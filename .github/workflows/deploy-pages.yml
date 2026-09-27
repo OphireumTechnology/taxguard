@@ -49,7 +49,8 @@ jobs:
       - name: Verify build output
         run: |
           test -f dist/index.html
-          echo "Production build verified."
+          echo "artaxserv.com" > dist/CNAME
+          echo "Production build and CNAME verified."
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5

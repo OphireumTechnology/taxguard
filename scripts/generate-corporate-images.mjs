@@ -1071,22 +1071,6 @@ function generateExecutiveSuiteSvg() {
 async function buildAllImages() {
   const images = [
     {
-      name: 'tax-advisory-planning',
-      svg: generateTaxAdvisorySvg(),
-    },
-    {
-      name: 'corporate-business-advisory',
-      svg: generateCorporateServicesSvg(),
-    },
-    {
-      name: 'estate-legacy-planning',
-      svg: generateEstatePlanningSvg(),
-    },
-    {
-      name: 'meticulous-tax-preparation',
-      svg: generateTaxPreparationSvg(),
-    },
-    {
       name: 'bookkeeping-financial-reporting',
       svg: generateFinancialReportingSvg(),
     },
