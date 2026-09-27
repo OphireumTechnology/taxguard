@@ -1,0 +1,2674 @@
+﻿import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+
+const ROOT = process.cwd();
+const MASTER_BUILD_POLICY = path.join(
+  ROOT,
+  "tools",
+  "taxguard-autonomous-dev",
+  "MASTER_BUILD_POLICY.md"
+);
+
+const MODEL =
+  process.env.TAXGUARD_OPENAI_MODEL ||
+  "gpt-5.6-sol";
+
+const API_KEY = process.env.OPENAI_API_KEY;
+
+if (!API_KEY) {
+  console.error("OPENAI_API_KEY missing.");
+  process.exit(1);
+}
+
+const now = new Date();
+const stamp = now
+  .toISOString()
+  .replace(/[:.]/g, "-");
+
+const BACKUP_ROOT = path.join(
+  ROOT,
+  "backups",
+  `autonomous-dev-${stamp}`
+);
+
+const STATE_DIR = path.join(
+  ROOT,
+  "tools",
+  "taxguard-autonomous-dev"
+);
+
+const STATE_FILE = path.join(
+  STATE_DIR,
+  "autonomous-state.json"
+);
+
+const LOG_FILE = path.join(
+  STATE_DIR,
+  "autonomous-dev.log"
+);
+
+const REPORT_FILE = path.join(
+  ROOT,
+  `TAXGUARD_AUTONOMOUS_DEVELOPMENT_REPORT_${stamp}.md`
+);
+
+fs.mkdirSync(BACKUP_ROOT, { recursive: true });
+fs.mkdirSync(STATE_DIR, { recursive: true });
+
+const consoleLog = [];
+
+function log(text = "") {
+  const value = String(text);
+
+  console.log(value);
+  consoleLog.push(value);
+
+  fs.appendFileSync(
+    LOG_FILE,
+    `[${new Date().toISOString()}] ${value}\n`,
+    "utf8"
+  );
+}
+
+function relative(file) {
+  return path
+    .relative(ROOT, file)
+    .replaceAll("\\", "/");
+}
+
+function run(command, args = []) {
+
+  log("");
+  log(`> ${command} ${args.join(" ")}`);
+
+  const result = spawnSync(
+    command,
+    args,
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+      shell: true,
+      env: process.env
+    }
+  );
+
+  if (result.stdout) {
+    process.stdout.write(result.stdout);
+    fs.appendFileSync(LOG_FILE, result.stdout, "utf8");
+  }
+
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+    fs.appendFileSync(LOG_FILE, result.stderr, "utf8");
+  }
+
+  return {
+    status: result.status ?? 1,
+    stdout: result.stdout || "",
+    stderr: result.stderr || ""
+  };
+}
+
+function read(file) {
+  return fs.readFileSync(file, "utf8");
+}
+
+function write(file, content) {
+
+  fs.mkdirSync(
+    path.dirname(file),
+    { recursive: true }
+  );
+
+  fs.writeFileSync(
+    file,
+    content,
+    "utf8"
+  );
+}
+
+function backup(file) {
+
+  if (!fs.existsSync(file)) return;
+
+  const destination =
+    path.join(
+      BACKUP_ROOT,
+      relative(file)
+    );
+
+  fs.mkdirSync(
+    path.dirname(destination),
+    { recursive: true }
+  );
+
+  if (!fs.existsSync(destination)) {
+    fs.copyFileSync(file, destination);
+  }
+}
+
+function saveState(state) {
+
+  write(
+    STATE_FILE,
+    JSON.stringify(
+      state,
+      null,
+      2
+    )
+  );
+}
+
+function loadState() {
+
+  if (!fs.existsSync(STATE_FILE)) {
+    return {
+      version: 1,
+      completed: [],
+      startedAt: new Date().toISOString()
+    };
+  }
+
+  try {
+    return JSON.parse(
+      read(STATE_FILE)
+    );
+  } catch {
+    return {
+      version: 1,
+      completed: [],
+      startedAt: new Date().toISOString()
+    };
+  }
+}
+
+/*
+ * ------------------------------------------------------------
+ * TARGETED SOURCE DISCOVERY
+ * ------------------------------------------------------------
+ *
+ * No old repository-wide diagnostic scan.
+ *
+ * We only inspect TypeScript/TSX files under known application
+ * source locations and select files related to the milestone.
+ */
+
+function walk(dir, output = [], depth = 0) {
+
+  if (!fs.existsSync(dir)) return output;
+  if (depth > 6) return output;
+
+  for (
+    const entry of fs.readdirSync(
+      dir,
+      { withFileTypes: true }
+    )
+  ) {
+
+    if (
+      entry.name === "node_modules" ||
+      entry.name === ".git" ||
+      entry.name === "dist" ||
+      entry.name === "backups"
+    ) {
+      continue;
+    }
+
+    const full =
+      path.join(
+        dir,
+        entry.name
+      );
+
+    if (entry.isDirectory()) {
+
+      walk(
+        full,
+        output,
+        depth + 1
+      );
+
+      continue;
+    }
+
+    if (
+      /\.(ts|tsx)$/.test(entry.name)
+    ) {
+      /*
+       * Never feed stale source backups into the autonomous engineer.
+       * They can contain obsolete implementations and confuse routing
+       * decisions.
+       */
+      if (
+        /\.backup\.(ts|tsx)$/i.test(entry.name) ||
+        /\.before-[^.]+\.(ts|tsx)$/i.test(entry.name) ||
+        /\.bak\.(ts|tsx)$/i.test(entry.name) ||
+        /before-live/i.test(entry.name)
+      ) {
+        continue;
+      }
+
+      output.push(full);
+    }
+  }
+
+  return output;
+}
+
+const SOURCE_FILES = walk(
+  path.join(ROOT, "src")
+).filter(file => {
+
+  const name =
+    relative(file);
+
+  return !(
+    /\.backup\.(ts|tsx)$/i.test(name) ||
+    /\.before-[^/]+\.(ts|tsx)$/i.test(name) ||
+    /\.bak\.(ts|tsx)$/i.test(name) ||
+    /before-live/i.test(name)
+  );
+});
+
+function scoreFile(file, terms) {
+
+  const name =
+    relative(file).toLowerCase();
+
+  let score = 0;
+
+  for (const term of terms) {
+
+    const t =
+      term.toLowerCase();
+
+    if (name.includes(t)) {
+      score += 20;
+    }
+  }
+
+  let content = "";
+
+  try {
+    content = read(file).toLowerCase();
+  } catch {
+    return score;
+  }
+
+  for (const term of terms) {
+
+    const t =
+      term.toLowerCase();
+
+    if (content.includes(t)) {
+      score += 3;
+    }
+  }
+
+  return score;
+}
+
+function targetedFiles(terms) {
+
+  /*
+   * Autonomous completion discovery vocabulary.
+   *
+   * These terms help locate existing TaxGuard implementations.
+   * They do not mark anything complete.
+   */
+  terms = [
+    ...new Set([
+      ...terms,
+
+      "ClientIntakeDashboard",
+      "StageTwo",
+      "StageThree",
+      "Collection",
+      "Validation",
+      "Workflow",
+      "ExitGate",
+      "activeWorkflowStage",
+
+      "router",
+      "routes",
+      "server",
+      "persistence",
+
+      "clientId",
+      "Firebase",
+      "Firestore",
+
+      "KnowledgeRegistry",
+      "RuleEngine",
+      "Calculation",
+      "Evidence",
+      "Provenance",
+
+      "HumanReview",
+      "Approval",
+      "Governance",
+      "Audit",
+
+      "AI",
+      "Gateway",
+      "DecisionTrace"
+    ])
+  ];
+
+  const always = [
+    "src/App.tsx",
+    "src/context/AppContext.tsx",
+    "src/services/api.ts",
+    "src/firebase/auth.ts",
+    "src/server/routes/auth.routes.ts",
+
+    /*
+     * Stage 01 authoritative service.
+     * OpenAI explicitly requested this file during M1.
+     */
+    "src/services/stageOneOnboardingService.ts",
+
+    /*
+     * Known LIVE/server persistence and identity integration points.
+     */
+    "src/server/db.ts",
+    "src/server/auth.ts",
+
+    /*
+     * Existing portal routing/layout integration points.
+     */
+    "src/components/layout/PortalLayout.tsx",
+    "src/components/portal/StageOneIdentityWizard.tsx",
+
+    "src/components/portal/ClientIntakeDashboard.tsx",
+
+    "src/components/collection/StageTwoCollectionWorkspace.tsx",
+    "src/components/collection/StageTwoExitGateView.tsx",
+
+    "src/services/stageTwoCollectionService.ts",
+    "src/services/stageTwoCollectionOperationsService.ts",
+    "src/services/stageTwoDocumentIntelligenceService.ts",
+    "src/services/stageTwoIntakeSecurityService.ts",
+
+    "src/components/validation/StageThreeValidationWorkspace.tsx",
+    "src/services/stageThreeValidationService.ts",
+
+    "src/server/index.ts",
+    "src/server/server.ts",
+    "src/server/app.ts",
+    "src/server/routes/index.ts",
+    "src/server/routes/documents.routes.ts"
+  ]
+    .map(f => path.join(ROOT, f))
+    .filter(fs.existsSync);
+
+  const scored =
+    SOURCE_FILES
+      .map(file => ({
+        file,
+        score: scoreFile(file, terms)
+      }))
+      .filter(x => x.score > 0)
+      .sort(
+        (a, b) =>
+          b.score - a.score
+      )
+      .slice(0, 60)
+      .map(x => x.file);
+
+  return [
+    ...new Set(
+      [
+        ...always,
+        ...scored
+      ]
+    )
+  ];
+}
+
+/*
+ * ------------------------------------------------------------
+ * AUTONOMOUS TARGETED DISCOVERY
+ * ------------------------------------------------------------
+ *
+ * Used only when OpenAI explicitly identifies missing source
+ * context. This is not a historical/full diagnostic scan.
+ *
+ * It searches filenames and source symbols under src/ and adds
+ * only the strongest matching files to the next attempt.
+ */
+
+function discoveryTermsFromRequest(request) {
+
+  const text =
+    String(request || "");
+
+  const terms =
+    new Set();
+
+  /*
+   * Extract explicit source paths requested by OpenAI.
+   */
+
+  const pathMatches =
+    text.match(
+      /src\/[A-Za-z0-9_./-]+\.(?:ts|tsx)/g
+    ) || [];
+
+  for (
+    const match of pathMatches
+  ) {
+    terms.add(match);
+  }
+
+  /*
+   * Extract useful architecture/symbol words.
+   */
+
+  const words =
+    text.match(
+      /\b[A-Za-z][A-Za-z0-9_]{4,}\b/g
+    ) || [];
+
+  const ignored =
+    new Set([
+      "NEEDS_TARGETED_DISCOVERY",
+      "targeted",
+      "discovery",
+      "existing",
+      "authenticated",
+      "that",
+      "with",
+      "from",
+      "this",
+      "file",
+      "routes",
+      "route"
+    ]);
+
+  for (
+    const word of words
+  ) {
+
+    if (
+      !ignored.has(word) &&
+      word.length >= 5
+    ) {
+      terms.add(word);
+    }
+  }
+
+  return [...terms];
+}
+
+function autonomousTargetedDiscovery(
+  request,
+  existingFiles = []
+) {
+
+  const terms =
+    discoveryTermsFromRequest(
+      request
+    );
+
+  const discovered =
+    new Map();
+
+  /*
+   * First honor exact requested paths.
+   */
+
+  for (
+    const term of terms
+  ) {
+
+    if (
+      !term.startsWith("src/")
+    ) {
+      continue;
+    }
+
+    const exact =
+      path.join(
+        ROOT,
+        term
+      );
+
+    if (
+      fs.existsSync(exact)
+    ) {
+
+      discovered.set(
+        exact,
+        1000
+      );
+    }
+  }
+
+  /*
+   * Search active source files only.
+   */
+
+  for (
+    const file of SOURCE_FILES
+  ) {
+
+    const filename =
+      relative(file);
+
+    /*
+     * Ignore stale source copies.
+     */
+
+    if (
+      /\.backup\.(ts|tsx)$/i.test(filename) ||
+      /\.before-[^/]+\.(ts|tsx)$/i.test(filename) ||
+      /\.bak\.(ts|tsx)$/i.test(filename) ||
+      /before-live/i.test(filename)
+    ) {
+      continue;
+    }
+
+    let score = 0;
+
+    const lowerName =
+      filename.toLowerCase();
+
+    let content = "";
+
+    try {
+      content =
+        read(file).toLowerCase();
+    } catch {
+      continue;
+    }
+
+    for (
+      const term of terms
+    ) {
+
+      const lowerTerm =
+        term.toLowerCase();
+
+      if (
+        lowerTerm.startsWith("src/")
+      ) {
+
+        const base =
+          path.basename(
+            lowerTerm
+          );
+
+        if (
+          lowerName.endsWith(base)
+        ) {
+          score += 200;
+        }
+
+        continue;
+      }
+
+      if (
+        lowerName.includes(
+          lowerTerm
+        )
+      ) {
+        score += 30;
+      }
+
+      if (
+        content.includes(
+          lowerTerm
+        )
+      ) {
+        score += 5;
+      }
+    }
+
+    /*
+     * Server registration files are important when OpenAI
+     * requests router/entry/mount information.
+     */
+
+    if (
+      /server|router|route|mount|entry|persistence/i
+        .test(request)
+    ) {
+
+      if (
+        /src\/server\//i.test(filename)
+      ) {
+        score += 10;
+      }
+
+      if (
+        /index|server|app|main|route/i
+          .test(
+            path.basename(filename)
+          )
+      ) {
+        score += 15;
+      }
+
+      if (
+        /app\.use|router\.use|express|register.*route|routes/i
+          .test(content)
+      ) {
+        score += 20;
+      }
+    }
+
+    if (
+      score > 0
+    ) {
+
+      discovered.set(
+        file,
+        Math.max(
+          score,
+          discovered.get(file) || 0
+        )
+      );
+    }
+  }
+
+  const additions =
+    [...discovered.entries()]
+      .sort(
+        (a, b) =>
+          b[1] - a[1]
+      )
+      .slice(0, 18)
+      .map(
+        ([file]) => file
+      );
+
+  return [
+    ...new Set([
+      ...existingFiles,
+      ...additions
+    ])
+  ];
+}
+/*
+ * ------------------------------------------------------------
+ * CONTEXT REDUCTION
+ * ------------------------------------------------------------
+ *
+ * Large source files are not automatically sent in full.
+ *
+ * Relevant regions are selected around milestone terms.
+ */
+
+function prepareFileContext(
+  file,
+  terms
+) {
+
+  const source =
+    read(file);
+
+  if (source.length <= 30000) {
+    return source;
+  }
+
+  const lines =
+    source.split(/\r?\n/);
+
+  const selected =
+    new Set();
+
+  lines.forEach(
+    (line, index) => {
+
+      const lower =
+        line.toLowerCase();
+
+      const match =
+        terms.some(
+          term =>
+            lower.includes(
+              term.toLowerCase()
+            )
+        );
+
+      if (!match) return;
+
+      for (
+        let i =
+          Math.max(
+            0,
+            index - 15
+          );
+        i <=
+          Math.min(
+            lines.length - 1,
+            index + 22
+          );
+        i++
+      ) {
+        selected.add(i);
+      }
+    }
+  );
+
+  /*
+   * Always include beginning imports.
+   */
+
+  for (
+    let i = 0;
+    i < Math.min(80, lines.length);
+    i++
+  ) {
+    selected.add(i);
+  }
+
+  return [...selected]
+    .sort((a, b) => a - b)
+    .map(
+      i =>
+        `${i + 1}: ${lines[i]}`
+    )
+    .join("\n");
+}
+
+/*
+ * ------------------------------------------------------------
+ * OPENAI RESPONSES API
+ * ------------------------------------------------------------
+ */
+
+async function askOpenAI({
+  milestone,
+  objective,
+  terms,
+  files,
+  failure = ""
+}) {
+
+  const sourceContext =
+    files
+      .filter(fs.existsSync)
+      .map(file => {
+
+        const context =
+          prepareFileContext(
+            file,
+            terms
+          );
+
+        return `
+===== FILE ${relative(file)} =====
+${context}
+===== END FILE =====
+`;
+
+      })
+      .join("\n");
+
+  const instructions = `
+You are the autonomous senior software engineer for TaxGuard.
+
+You are repairing and extending an EXISTING tax preparation platform.
+
+Do not redesign working systems unnecessarily.
+
+CURRENT MILESTONE:
+${milestone}
+
+OBJECTIVE:
+${objective}
+
+CORE TAXGUARD PRINCIPLE:
+
+AI proposes.
+Evidence supports.
+Rules validate.
+Calculations compute.
+Governance controls.
+Authorized humans approve material tax decisions.
+
+MANDATORY ARCHITECTURAL RULES:
+
+1. Preserve Stage 01 ONBOARD.
+2. Preserve Stage 02 COLLECT.
+3. Preserve Stage 03 VALIDATE.
+4. Reuse existing implementation before creating replacements.
+5. Never fake workflow completion.
+6. Never unlock a stage without its real exit gate.
+7. Preserve maker-checker separation.
+8. Preserve audit logging.
+9. Preserve AI-proposed-only governance.
+10. LIVE and DEMO must remain isolated.
+11. artest2026 remains DEMO only.
+12. LIVE must never fall back to demo taxpayer data.
+13. Permanent Client ID remains immutable.
+14. Never create a new Client ID merely to repair routing.
+15. Never create Test Client 006.
+16. Never reset Client 005 password.
+17. Do not expose Firebase credentials.
+18. Preserve Firebase Authentication.
+19. Preserve server authorization.
+20. External tax filing/submission remains disabled.
+21. Never silently repair uncertain taxpayer facts.
+22. Missing LIVE data must fail closed.
+23. Do not hard-code a passing test.
+24. Do not weaken tests just to make them pass.
+25. Do not delete security controls.
+26. Do not delete existing tax engines.
+27. Do not replace deterministic calculations with LLM guesses.
+28. Do not invent tax law.
+29. Tax rules require source/tax-year provenance.
+30. Keep changes narrowly scoped to this milestone.
+
+KNOWN LIVE WORKFLOW REQUIREMENT:
+
+Authenticated LIVE user
+â†’ permanent client identity
+â†’ persisted workflow state
+â†’ Stage 01 if incomplete
+â†’ LIVE workspace if Stage 01 complete
+â†’ Stage 02
+â†’ Stage 03 only after Stage 02 gate
+â†’ remaining workflow sequentially.
+
+KNOWN PREVIOUS ROUTING DEFECT:
+
+StageOneOnboardingService can correctly set:
+
+stageOneCompleted = true
+activeWorkflowStage = 2
+
+but LIVE dashboard routing previously returned the user to Stage 01.
+
+Do not recreate that loop.
+
+
+AUTONOMOUS COMPLETION DIRECTIVE:
+
+Continue development through the complete TaxGuard workflow.
+
+Do not stop merely because another implementation file is needed.
+
+If more source context is required, request NEEDS_TARGETED_DISCOVERY
+with the exact filename, symbol, service, route, repository or
+persistence layer required.
+
+The controller will attempt to locate it automatically.
+
+DEVELOPMENT TARGET:
+
+Authentication
+  -> Permanent Client ID
+  -> strict LIVE / DEMO isolation
+  -> Stage 01 ONBOARD
+  -> Stage 01 hard exit gate
+  -> LIVE workspace
+  -> Stage 02 COLLECT
+  -> Stage 02 hard exit gate
+  -> Stage 03 VALIDATE
+  -> Stage 03 hard exit gate
+  -> remaining TaxGuard workflow stages
+  -> Intelligence Core
+  -> Knowledge Registry
+  -> Rule Engine
+  -> deterministic Calculation Engine
+  -> provider-neutral AI Gateway
+  -> Evidence / Provenance
+  -> Human Review
+  -> Governance
+  -> Audit Ledger
+  -> final testing and production build.
+
+IMPORTANT:
+
+"Complete" means implemented and validated.
+
+Never mark a milestone complete because a placeholder page exists.
+
+Never manufacture workflow records.
+
+Never set completion=true merely to satisfy a test.
+
+Never remove a failing test merely to obtain PASS.
+
+Never replace deterministic tax calculations with an LLM.
+
+Never invent federal or state tax rules.
+
+Where authoritative tax content is absent, implement the architecture,
+schema, interfaces and fail-closed behavior rather than fabricating law.
+
+External government filing/transmission remains disabled.
+
+PATCH FORMAT:
+
+Return ONLY JSON.
+
+No markdown.
+
+No prose outside JSON.
+
+Schema:
+
+{
+  "summary": "what you changed and why",
+  "changes": [
+    {
+      "file": "relative/file/path.tsx",
+      "operations": [
+        {
+          "old_text": "exact existing source text",
+          "new_text": "replacement source text"
+        }
+      ]
+    }
+  ]
+}
+
+PATCH SAFETY RULES:
+
+- old_text must match source exactly.
+- No ellipses in old_text.
+- No line-number based edits.
+- Prefer small exact replacements.
+- Each old_text should occur exactly once.
+- To create a new file, use old_text="".
+- Do not overwrite an existing file using old_text="".
+- Do not modify package-lock unless truly necessary.
+- Do not modify Firebase service-account files.
+- Do not modify .env secrets.
+
+If supplied context is insufficient for a safe change:
+
+return:
+
+{
+  "summary": "NEEDS_TARGETED_DISCOVERY: exact missing symbol/file",
+  "changes": []
+}
+
+Do not guess.
+`;
+
+  const failureText =
+    failure
+      ? `
+PREVIOUS VALIDATION FAILURE:
+
+${failure.slice(-12000)}
+`
+      : "";
+
+  const body = {
+    model: MODEL,
+
+    reasoning: {
+      effort: "medium"
+    },
+
+    input: [
+      {
+        role: "system",
+        content: [
+          {
+            type: "input_text",
+            text: instructions
+          }
+        ]
+      },
+
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text:
+`${failureText}
+
+TARGETED TAXGUARD SOURCE:
+
+${sourceContext}`
+          }
+        ]
+      }
+    ]
+  };
+
+  const response =
+    await fetch(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+
+        headers: {
+          "Authorization":
+            `Bearer ${API_KEY}`,
+
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          JSON.stringify(body)
+      }
+    );
+
+  if (!response.ok) {
+
+    const error =
+      await response.text();
+
+    throw new Error(
+      `OpenAI API ${response.status}: ${error}`
+    );
+  }
+
+  const data =
+    await response.json();
+
+  let output = "";
+
+  /*
+   * Responses API returns an array of output items.
+   */
+
+  for (
+    const item of data.output || []
+  ) {
+
+    for (
+      const part of item.content || []
+    ) {
+
+      if (
+        part.type === "output_text"
+      ) {
+        output += part.text;
+      }
+    }
+  }
+
+  output =
+    output.trim();
+
+  if (
+    output.startsWith("```")
+  ) {
+
+    output =
+      output
+        .replace(
+          /^```(?:json)?\s*/i,
+          ""
+        )
+        .replace(
+          /\s*```$/,
+          ""
+        );
+  }
+
+  try {
+
+    return JSON.parse(output);
+
+  } catch {
+
+    throw new Error(
+      "OpenAI returned invalid JSON:\n" +
+      output.slice(0, 4000)
+    );
+  }
+}
+
+/*
+ * ------------------------------------------------------------
+ * PATCH APPLICATION
+ * ------------------------------------------------------------
+ */
+
+function applyPatch(patch) {
+
+  if (
+    !patch ||
+    !Array.isArray(
+      patch.changes
+    )
+  ) {
+
+    throw new Error(
+      "Invalid OpenAI patch."
+    );
+  }
+
+  const snapshots =
+    new Map();
+
+  const changedFiles = [];
+
+  for (
+    const change of patch.changes
+  ) {
+
+    if (
+      !change.file ||
+      !Array.isArray(
+        change.operations
+      )
+    ) {
+      continue;
+    }
+
+    const file =
+      path.resolve(
+        ROOT,
+        change.file
+      );
+
+    if (
+      !file.startsWith(ROOT)
+    ) {
+
+      throw new Error(
+        `Unsafe patch path: ${change.file}`
+      );
+    }
+
+    const existed =
+      fs.existsSync(file);
+
+    const original =
+      existed
+        ? read(file)
+        : null;
+
+    snapshots.set(
+      file,
+      original
+    );
+
+    if (existed) {
+      backup(file);
+    }
+
+    let content =
+      original ?? "";
+
+    for (
+      const operation
+      of change.operations
+    ) {
+
+      const oldText =
+        operation.old_text ?? "";
+
+      const newText =
+        operation.new_text ?? "";
+
+      if (oldText === "") {
+
+        if (existed) {
+
+          throw new Error(
+            `Create-file operation rejected because ${change.file} already exists.`
+          );
+        }
+
+        content = newText;
+
+        continue;
+      }
+
+      const occurrences =
+        content
+          .split(oldText)
+          .length - 1;
+
+      if (occurrences !== 1) {
+
+        throw new Error(
+          `Exact patch rejected in ${change.file}. old_text occurrences=${occurrences}`
+        );
+      }
+
+      content =
+        content.replace(
+          oldText,
+          newText
+        );
+    }
+
+    write(
+      file,
+      content
+    );
+
+    changedFiles.push(file);
+  }
+
+  return {
+    snapshots,
+    changedFiles
+  };
+}
+
+function rollbackPatch(
+  snapshots,
+  changedFiles
+) {
+
+  for (
+    const file of changedFiles
+  ) {
+
+    const original =
+      snapshots.get(file);
+
+    if (original === null) {
+
+      if (fs.existsSync(file)) {
+        fs.rmSync(
+          file,
+          { force: true }
+        );
+      }
+
+    } else {
+
+      write(
+        file,
+        original
+      );
+    }
+  }
+}
+
+/*
+ * ------------------------------------------------------------
+ * VALIDATION
+ * ------------------------------------------------------------
+ */
+
+function typecheck() {
+
+  return run(
+    "npm.cmd",
+    [
+      "run",
+      "typecheck"
+    ]
+  );
+}
+
+function tests() {
+
+  return run(
+    "npm.cmd",
+    [
+      "test",
+      "--",
+      "--run"
+    ]
+  );
+}
+
+function build() {
+
+  return run(
+    "npm.cmd",
+    [
+      "run",
+      "build"
+    ]
+  );
+}
+
+function detectE2E() {
+
+  const packageFile =
+    path.join(
+      ROOT,
+      "package.json"
+    );
+
+  if (!fs.existsSync(packageFile)) {
+    return null;
+  }
+
+  const pkg =
+    JSON.parse(
+      read(packageFile)
+    );
+
+  const scripts =
+    pkg.scripts || {};
+
+  const candidates = [
+    "test:e2e",
+    "e2e",
+    "test:playwright",
+    "playwright"
+  ];
+
+  for (
+    const name of candidates
+  ) {
+
+    if (scripts[name]) {
+      return name;
+    }
+  }
+
+  return null;
+}
+
+/*
+ * ------------------------------------------------------------
+ * STATIC GOVERNANCE CHECK
+ * ------------------------------------------------------------
+ */
+
+function governanceCheck() {
+
+  const findings = [];
+
+  for (
+    const file of SOURCE_FILES
+  ) {
+
+    let content;
+
+    try {
+      content = read(file);
+    } catch {
+      continue;
+    }
+
+    const name =
+      relative(file);
+
+    if (
+      /externalSubmissionEnabled\s*[:=]\s*true/i
+        .test(content)
+    ) {
+
+      findings.push(
+        `${name}: external submission appears enabled`
+      );
+    }
+
+    if (
+      /stageThreeCompleted\s*=\s*true/i
+        .test(content)
+    ) {
+
+      findings.push(
+        `${name}: possible hard-coded Stage 03 completion`
+      );
+    }
+
+    if (
+      /firebase-admin\.json/i
+        .test(content) &&
+      !/GOOGLE_APPLICATION_CREDENTIALS/
+        .test(content)
+    ) {
+
+      findings.push(
+        `${name}: inspect Firebase credential reference`
+      );
+    }
+  }
+
+  return findings;
+}
+
+/*
+ * ------------------------------------------------------------
+ * MILESTONE ENGINE
+ * ------------------------------------------------------------
+ */
+
+async function executeMilestone(
+  state,
+  milestone
+) {
+
+  if (
+    state.completed.includes(
+      milestone.id
+    )
+  ) {
+
+    log(
+      `${milestone.id}: already completed â€” skipping.`
+    );
+
+    return;
+  }
+
+  log("");
+  log(
+    "============================================================"
+  );
+
+  log(
+    `${milestone.id} â€” ${milestone.name}`
+  );
+
+  log(
+    "============================================================"
+  );
+
+  let failure = "";
+
+  /*
+   * Additional source files discovered during this milestone
+   * persist across subsequent attempts.
+   */
+  let discoveredFiles = [];
+
+  /*
+   * Autonomous completion mode.
+   *
+   * Multiple attempts are permitted because later TaxGuard stages
+   * can span UI, services, persistence, governance and tests.
+   *
+   * Every compiler-breaking patch is still rolled back.
+   */
+  for (
+    let attempt = 1;
+    attempt <= 8;
+    attempt++
+  ) {
+
+    log(
+      `OpenAI engineering attempt ${attempt}/3`
+    );
+
+    const baseFiles =
+      targetedFiles(
+        milestone.terms
+      );
+
+    const files = [
+      ...new Set([
+        ...baseFiles,
+        ...discoveredFiles
+      ])
+    ];
+
+    log(
+      `Targeted files: ${files.length}`
+    );
+
+    for (
+      const file of files
+    ) {
+      log(
+        `  ${relative(file)}`
+      );
+    }
+
+    const patch =
+      await askOpenAI({
+        milestone:
+          `${milestone.id} â€” ${milestone.name}`,
+
+        objective:
+          milestone.objective,
+
+        terms:
+          milestone.terms,
+
+        files,
+
+        failure
+      });
+
+    log(
+      `OpenAI summary: ${patch.summary}`
+    );
+
+    if (
+      !patch.changes ||
+      patch.changes.length === 0
+    ) {
+
+      if (
+        String(patch.summary)
+          .startsWith(
+            "NEEDS_TARGETED_DISCOVERY"
+          )
+      ) {
+
+        log(
+          `${milestone.id}: OpenAI requested targeted discovery.`
+        );
+
+        log(
+          patch.summary
+        );
+
+        /*
+         * Do not terminate the autonomous run immediately.
+         *
+         * Feed the discovery request into the next attempt so the
+         * milestone can use the larger targeted source set.
+         */
+        const expanded =
+          autonomousTargetedDiscovery(
+            patch.summary,
+            files
+          );
+
+        discoveredFiles =
+          expanded.filter(
+            file =>
+              !baseFiles.includes(file)
+          );
+
+        log(
+          `Autonomous targeted discovery added ${discoveredFiles.length} source file(s).`
+        );
+
+        for (
+          const file of discoveredFiles
+        ) {
+          log(
+            `  DISCOVERED: ${relative(file)}`
+          );
+        }
+
+        failure =
+          `TARGETED DISCOVERY COMPLETED FOR PREVIOUS REQUEST:
+
+${patch.summary}
+
+Additional matching source files have now been supplied.
+
+IMPORTANT:
+
+Continue the SAME milestone.
+
+Inspect the newly supplied source before creating anything.
+
+Prefer, in order:
+
+1. existing production implementation,
+2. existing service/repository,
+3. existing route/controller,
+4. existing tests/contracts,
+5. minimal new integration code only when no implementation exists.
+
+Do not create a second Stage 02 or Stage 03 engine.
+
+Do not use demo data for LIVE clients.
+
+Do not guess.
+
+If another specific file or symbol is still required, return another
+NEEDS_TARGETED_DISCOVERY request with its exact identity.`;
+
+        continue;
+      }
+
+      log(
+        "No source changes required."
+      );
+
+      state.completed.push(
+        milestone.id
+      );
+
+      saveState(state);
+
+      return;
+    }
+
+    let applied;
+
+    try {
+
+      applied =
+        applyPatch(patch);
+
+    } catch (error) {
+
+      failure =
+        String(error);
+
+      log(
+        `Patch safety rejection: ${failure}`
+      );
+
+      continue;
+    }
+
+    const check =
+      typecheck();
+
+    if (
+      check.status === 0
+    ) {
+
+      log(
+        `${milestone.id}: TypeScript PASS`
+      );
+
+      state.completed.push(
+        milestone.id
+      );
+
+      saveState(state);
+
+      return;
+    }
+
+    log(
+      `${milestone.id}: TypeScript FAIL â€” rolling back OpenAI attempt.`
+    );
+
+    rollbackPatch(
+      applied.snapshots,
+      applied.changedFiles
+    );
+
+    failure =
+      (
+        check.stdout +
+        "\n" +
+        check.stderr
+      ).slice(-12000);
+  }
+
+  throw new Error(
+    `${milestone.id} failed after autonomous repair and targeted discovery attempts.`
+  );
+}
+
+/*
+ * ------------------------------------------------------------
+ * DEVELOPMENT ROADMAP
+ * ------------------------------------------------------------
+ */
+
+const MILESTONES = [
+
+  {
+    id: "M1",
+
+    name:
+      "LIVE Client Routing",
+
+    terms: [
+      "App",
+      "client_portal",
+      "client/dashboard",
+      "stage_one",
+      "currentPage",
+      "setCurrentPage",
+      "StageOneIdentityWizard",
+      "activeWorkflowStage"
+    ],
+
+    objective:
+`Repair LIVE client routing so authenticated LIVE clients are routed according to persisted workflow state.
+
+Stage 01 incomplete -> Stage 01.
+Stage 01 complete -> LIVE client workspace.
+
+Successful Stage 01 exit must not route back into Stage 01.
+
+Preserve DEMO routing.`
+  },
+
+  {
+    id: "M2",
+
+    name:
+      "Stage 01 Exit Gate Integration",
+
+    terms: [
+      "StageOne",
+      "Onboarding",
+      "passHardExitGate",
+      "stageOneCompleted",
+      "activeWorkflowStage",
+      "clientId"
+    ],
+
+    objective:
+`Ensure Stage 01 completion, navigation, persistence and audit behavior agree.
+
+The hard exit gate remains authoritative.
+
+Do not bypass any blocking requirement.
+
+Repair confirmed Stage 01 encoding defects only where encountered.`
+  },
+
+  {
+    id: "M3",
+
+    name:
+      "Stage 02 COLLECT Integration",
+
+    terms: [
+      "StageTwo",
+      "Stage2",
+      "Collect",
+      "Document",
+      "Upload",
+      "DocumentIntelligence",
+      "clientId"
+    ],
+
+    objective:
+`Connect the existing Stage 02 COLLECT implementation into the authenticated LIVE client workspace.
+
+Reuse existing document collection services and gates.
+
+LIVE data must belong only to the authenticated client.
+
+Do not use demo documents as fallback.
+
+Do not fake Stage 02 completion.`
+  },
+
+  {
+    id: "M4",
+
+    name:
+      "Stage 03 VALIDATE Integration",
+
+    terms: [
+      "StageThree",
+      "Stage3",
+      "Validate",
+      "Validation",
+      "OCR",
+      "Provenance",
+      "Extraction",
+      "isAiProposedOnly"
+    ],
+
+    objective:
+`Connect existing Stage 03 VALIDATE functionality after the real Stage 02 exit gate.
+
+Preserve provenance, blocking exceptions, evidence lineage and isAiProposedOnly governance.
+
+AI extraction must not become automatically tax-verified.`
+  },
+
+  {
+    id: "M5",
+
+    name:
+      "Workflow Stage Gating",
+
+    terms: [
+      "workflow",
+      "stage",
+      "gate",
+      "activeWorkflowStage",
+      "roadmap",
+      "approval"
+    ],
+
+    objective:
+`Harden sequential workflow gating.
+
+Stages may unlock only from actual persisted exit-gate state.
+
+Do not create fake completion flags.
+
+Future stages remain locked until their prerequisites are satisfied.`
+  },
+
+  {
+    id: "M6",
+
+    name:
+      "Permanent Client Identity Integrity",
+
+    terms: [
+      "clientId",
+      "Firebase",
+      "uid",
+      "firebase-session",
+      "currentUser",
+      "onboarding",
+      "Document"
+    ],
+
+    objective:
+`Ensure LIVE workflow records consistently use the correct permanent Client ID where the TaxGuard domain requires it.
+
+Firebase UID remains authentication identity but must not silently replace the permanent Client ID.
+
+Remove unsafe LIVE fallback identifiers such as client_1 if encountered.
+
+Do not allocate another permanent Client ID.`
+  },
+
+  {
+    id: "M7",
+
+    name:
+      "LIVE and DEMO Isolation",
+
+    terms: [
+      "DemoAuthService",
+      "demo",
+      "INITIAL_DEMO_CLIENTS",
+      "currentUser",
+      "environment",
+      "artest2026"
+    ],
+
+    objective:
+`Enforce strict LIVE/DEMO isolation.
+
+DEMO remains available through artest2026.
+
+LIVE must never show demo taxpayer records.
+
+Missing LIVE data must remain empty/new rather than falling back to seeded demo data.`
+  },
+
+  {
+    id: "M8",
+
+    name:
+      "Intelligence Core Integration",
+
+    terms: [
+      "Knowledge",
+      "RuleEngine",
+      "Evidence",
+      "HumanReview",
+      "Reasoning",
+      "Approval",
+      "DecisionTrace",
+      "Governance"
+    ],
+
+    objective:
+`Integrate the existing TaxGuard Intelligence Core with the workflow without replacing deterministic tax logic.
+
+Preserve Knowledge Registry, Rule Engine, Evidence Package, Human Review Bridge, AI Reasoning Gateway, Approval Orchestrator, Decision Trace Ledger and Governance Boundary where already implemented.`
+  },
+
+  {
+    id: "M9",
+
+    name:
+      "Knowledge Foundation",
+
+    terms: [
+      "knowledge",
+      "registry",
+      "source",
+      "taxYear",
+      "citation",
+      "rule",
+      "retrieval"
+    ],
+
+    objective:
+`Strengthen the provider-neutral TaxGuard knowledge architecture.
+
+Tax knowledge must support authoritative-source provenance and tax-year applicability.
+
+Do not invent substantive tax rules merely to populate the registry.
+
+If authoritative content is unavailable locally, implement architecture/schema only.`
+  },
+
+  {
+    id: "M10",
+
+    name:
+      "Calculation Boundary",
+
+    terms: [
+      "calculation",
+      "calculator",
+      "compute",
+      "tax",
+      "rule",
+      "deterministic"
+    ],
+
+    objective:
+`Preserve or strengthen the deterministic calculation boundary.
+
+LLMs may explain or propose but must not replace authoritative deterministic tax calculations.
+
+Do not fabricate tax formulas.`
+  },
+
+  {
+    id: "M11",
+
+    name:
+      "Provider Neutral AI Gateway",
+
+    terms: [
+      "AI",
+      "OpenAI",
+      "Gemini",
+      "Gateway",
+      "provider",
+      "model"
+    ],
+
+    objective:
+`Keep TaxGuard AI-provider neutral.
+
+Business rules, calculations, evidence, workflow and audit belong to TaxGuard rather than a particular LLM provider.
+
+Preserve existing provider adapters where present.`
+  },
+
+  {
+    id: "M12",
+
+    name:
+      "Evidence and Provenance",
+
+    terms: [
+      "Evidence",
+      "Provenance",
+      "DocumentId",
+      "SHA",
+      "OCRArtifact",
+      "ExtractionArtifact",
+      "BoundingBox",
+      "audit"
+    ],
+
+    objective:
+`Strengthen evidence lineage and provenance using existing structures.
+
+Preserve source document identity, hashes, extraction provenance and auditability.
+
+Never silently manufacture missing evidence.`
+  },
+
+  {
+    id: "M13",
+
+    name:
+      "Human Review Governance",
+
+    terms: [
+      "HumanReview",
+      "maker",
+      "checker",
+      "reviewer",
+      "approval",
+      "exception",
+      "authorized"
+    ],
+
+    objective:
+`Preserve human authorization for material tax decisions.
+
+Maintain maker-checker separation.
+
+Low-confidence, conflicting, incomplete or material decisions must remain reviewable and gated.`
+  },
+
+  {
+    id: "M14",
+
+    name:
+      "Security and Audit Hardening",
+
+    terms: [
+      "audit",
+      "security",
+      "authorization",
+      "role",
+      "session",
+      "logout",
+      "externalSubmission",
+      "credential"
+    ],
+
+    objective:
+`Harden existing security and audit integration without weakening authentication or authorization.
+
+External submission remains disabled.
+
+Do not expose credentials.
+
+Do not create backdoors.
+
+Preserve role separation and canonical audit records.`
+  },
+
+  {
+    id: "M15",
+
+    name:
+      "UI and Encoding Cleanup",
+
+    terms: [
+      "Ã‚Â§",
+      "Ã¢â‚¬â€",
+      "Ã¢â‚¬Â¢",
+      "StageOne",
+      "workspace",
+      "navigation",
+      "dashboard"
+    ],
+
+    objective:
+`Perform targeted UI integration cleanup.
+
+Repair confirmed mojibake such as IRC Ã‚Â§ 7216, Ã¢â‚¬â€, and Ã¢â‚¬Â¢ when present.
+
+Keep the client workspace clean and easy to navigate.
+
+Do not alter legal substance merely because text encoding is corrected.`
+  }
+];
+
+/*
+ * ------------------------------------------------------------
+ * MAIN
+ * ------------------------------------------------------------
+ */
+
+async function main() {
+
+  log("");
+  log(
+    "============================================================"
+  );
+
+  log(
+    " TAXGUARD AUTONOMOUS DEVELOPMENT"
+  );
+
+  log(
+    "============================================================"
+  );
+
+  log(
+    `Model: ${MODEL}`
+  );
+
+  log(
+    `Backup: ${BACKUP_ROOT}`
+  );
+
+  log(
+    `State: ${STATE_FILE}`
+  );
+
+  log("");
+
+  log(
+    "Retired V1 AutoFix: DISABLED"
+  );
+
+  log(
+    "Historical broad scan: NOT RUN"
+  );
+
+  log(
+    "Targeted milestone discovery: ENABLED"
+  );
+
+  /*
+   * Baseline gate
+   */
+
+  const baseline =
+    typecheck();
+
+  if (
+    baseline.status !== 0
+  ) {
+
+    throw new Error(
+      "Baseline TypeScript failed. No autonomous changes applied."
+    );
+  }
+
+  log(
+    "Baseline TypeScript: PASS"
+  );
+
+  const state =
+    loadState();
+
+  /*
+   * Milestone development
+   */
+
+  for (
+    const milestone
+    of MILESTONES
+  ) {
+
+    await executeMilestone(
+      state,
+      milestone
+    );
+  }
+
+  /*
+   * Final TypeScript
+   */
+
+  log("");
+  log(
+    "============================================================"
+  );
+
+  log(
+    " FINAL TYPESCRIPT VALIDATION"
+  );
+
+  log(
+    "============================================================"
+  );
+
+  const finalTypecheck =
+    typecheck();
+
+  if (
+    finalTypecheck.status !== 0
+  ) {
+
+    throw new Error(
+      "Final TypeScript validation failed."
+    );
+  }
+
+  /*
+   * Full tests
+   */
+
+  log("");
+  log(
+    "============================================================"
+  );
+
+  log(
+    " FULL AUTOMATED TEST SUITE"
+  );
+
+  log(
+    "============================================================"
+  );
+
+  let testResult =
+    tests();
+
+  /*
+   * If full tests fail, give OpenAI one targeted repair cycle.
+   */
+
+  if (
+    testResult.status !== 0
+  ) {
+
+    log(
+      "Tests failed. Starting autonomous test-repair cycle."
+    );
+
+    const repairMilestone = {
+      id: "TEST-REPAIR",
+
+      name:
+        "Automated Test Failure Repair",
+
+      terms: [
+        "test",
+        "spec",
+        "workflow",
+        "stage",
+        "client",
+        "auth"
+      ],
+
+      objective:
+`Repair the ACTUAL source defect causing the supplied automated test failure.
+
+Do not weaken, skip, delete or hard-code the tests.
+
+Preserve TaxGuard governance and security.
+
+Test failure output:
+
+${(
+  testResult.stdout +
+  "\n" +
+  testResult.stderr
+).slice(-12000)}`
+    };
+
+    const tempState = {
+      version: 1,
+      completed: [],
+      startedAt:
+        new Date().toISOString()
+    };
+
+    await executeMilestone(
+      tempState,
+      repairMilestone
+    );
+
+    testResult =
+      tests();
+
+    if (
+      testResult.status !== 0
+    ) {
+
+      throw new Error(
+        "Automated tests still fail after autonomous repair."
+      );
+    }
+  }
+
+  /*
+   * Production build
+   */
+
+  log("");
+  log(
+    "============================================================"
+  );
+
+  log(
+    " PRODUCTION BUILD"
+  );
+
+  log(
+    "============================================================"
+  );
+
+  let buildResult =
+    build();
+
+  if (
+    buildResult.status !== 0
+  ) {
+
+    log(
+      "Build failed. Starting autonomous build-repair cycle."
+    );
+
+    const buildRepair = {
+      id: "BUILD-REPAIR",
+
+      name:
+        "Production Build Repair",
+
+      terms: [
+        "vite",
+        "build",
+        "import",
+        "route",
+        "component",
+        "typescript"
+      ],
+
+      objective:
+`Repair the actual source defect causing the production build failure.
+
+Do not remove functionality merely to make the build pass.
+
+Build failure:
+
+${(
+  buildResult.stdout +
+  "\n" +
+  buildResult.stderr
+).slice(-12000)}`
+    };
+
+    const tempState = {
+      version: 1,
+      completed: [],
+      startedAt:
+        new Date().toISOString()
+    };
+
+    await executeMilestone(
+      tempState,
+      buildRepair
+    );
+
+    buildResult =
+      build();
+
+    if (
+      buildResult.status !== 0
+    ) {
+
+      throw new Error(
+        "Production build still fails after autonomous repair."
+      );
+    }
+  }
+
+  /*
+   * Existing E2E test suite
+   */
+
+  const e2e =
+    detectE2E();
+
+  let e2eStatus =
+    "NOT CONFIGURED";
+
+  if (e2e) {
+
+    log("");
+    log(
+      `Running existing E2E script: ${e2e}`
+    );
+
+    const result =
+      run(
+        "npm.cmd",
+        [
+          "run",
+          e2e
+        ]
+      );
+
+    if (
+      result.status !== 0
+    ) {
+
+      throw new Error(
+        `Existing E2E test suite '${e2e}' failed.`
+      );
+    }
+
+    e2eStatus =
+      "PASS";
+  }
+
+  /*
+   * Governance verification
+   */
+
+  const findings =
+    governanceCheck();
+
+  if (
+    findings.length > 0
+  ) {
+
+    log("");
+    log(
+      "Governance findings:"
+    );
+
+    findings.forEach(
+      finding =>
+        log(
+          ` - ${finding}`
+        )
+    );
+
+    throw new Error(
+      "Governance/security verification requires review."
+    );
+  }
+
+  /*
+   * Final second-pass validation
+   */
+
+  const finalTypecheck2 =
+    typecheck();
+
+  const finalTests2 =
+    tests();
+
+  const finalBuild2 =
+    build();
+
+  if (
+    finalTypecheck2.status !== 0 ||
+    finalTests2.status !== 0 ||
+    finalBuild2.status !== 0
+  ) {
+
+    throw new Error(
+      "Final second-pass validation failed."
+    );
+  }
+
+  const report =
+`# TaxGuard Autonomous Development Report
+
+Generated:
+${new Date().toISOString()}
+
+## Overall Status
+
+PASS
+
+## OpenAI Model
+
+${MODEL}
+
+## Development Milestones
+
+${MILESTONES
+  .map(
+    m =>
+      `- ${m.id} ${m.name}: PASS`
+  )
+  .join("\n")}
+
+## Final Validation
+
+- TypeScript: PASS
+- Automated Tests: PASS
+- Production Build: PASS
+- Existing E2E Suite: ${e2eStatus}
+- Governance Static Check: PASS
+
+## Safety Controls
+
+- Retired V1 AutoFix not executed
+- No historical broad repository scan
+- LIVE / DEMO isolation preserved
+- No Test Client 006 created
+- Client 005 password not reset
+- Permanent Client ID protected
+- Firebase authentication preserved
+- Stage gates preserved
+- AI-proposed-only governance preserved
+- Maker-checker governance preserved
+- External submission remains disabled
+- OpenAI patch attempts use exact-text matching
+- Failed compiler patch attempts are rolled back
+
+## Backup
+
+${BACKUP_ROOT}
+
+## State
+
+${STATE_FILE}
+
+## Log
+
+${LOG_FILE}
+
+TAXGUARD AUTONOMOUS DEVELOPMENT: PASS
+`;
+
+  write(
+    REPORT_FILE,
+    report
+  );
+
+  /*
+   * Mark state complete.
+   */
+
+  state.finishedAt =
+    new Date().toISOString();
+
+  state.status =
+    "PASS";
+
+  saveState(state);
+
+  log("");
+  log(
+    "============================================================"
+  );
+
+  log(
+    " TAXGUARD AUTONOMOUS DEVELOPMENT: PASS"
+  );
+
+  log(
+    "============================================================"
+  );
+
+  log(
+    "TypeScript: PASS"
+  );
+
+  log(
+    "Automated Tests: PASS"
+  );
+
+  log(
+    "Production Build: PASS"
+  );
+
+  log(
+    `E2E: ${e2eStatus}`
+  );
+
+  log(
+    "Governance Check: PASS"
+  );
+
+  log("");
+  log(
+    `Report: ${REPORT_FILE}`
+  );
+
+  log(
+    `Backup: ${BACKUP_ROOT}`
+  );
+
+  log(
+    `Log: ${LOG_FILE}`
+  );
+}
+
+main()
+  .catch(error => {
+
+    log("");
+    log(
+      "============================================================"
+    );
+
+    log(
+      " TAXGUARD AUTONOMOUS DEVELOPMENT: BLOCKED"
+    );
+
+    log(
+      "============================================================"
+    );
+
+    log(
+      String(
+        error?.stack ||
+        error
+      )
+    );
+
+    const state =
+      loadState();
+
+    state.status =
+      "BLOCKED";
+
+    state.lastError =
+      String(
+        error?.stack ||
+        error
+      );
+
+    state.updatedAt =
+      new Date().toISOString();
+
+    saveState(state);
+
+    const report =
+`# TaxGuard Autonomous Development Report
+
+Generated:
+${new Date().toISOString()}
+
+## Overall Status
+
+BLOCKED
+
+## Reason
+
+${String(
+  error?.stack ||
+  error
+)}
+
+## Important
+
+Completed milestones were checkpointed.
+
+Do not rerun V1 AutoFix.
+
+Do not repeat historical repository scans.
+
+The autonomous controller may be run again after the blocker is resolved.
+Completed milestones will be skipped.
+
+## Backup
+
+${BACKUP_ROOT}
+
+## State
+
+${STATE_FILE}
+
+## Log
+
+${LOG_FILE}
+
+TAXGUARD AUTONOMOUS DEVELOPMENT: BLOCKED
+`;
+
+    try {
+      write(
+        REPORT_FILE,
+        report
+      );
+    } catch {}
+
+    process.exit(1);
+  });

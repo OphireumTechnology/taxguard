@@ -1,0 +1,55 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.disconnectAccountingIntegration = exports.initiateAccountingOAuth = exports.getSecureDocumentDownloadUrl = exports.stripeWebhook = exports.createStripeCheckoutSession = exports.bookAppointmentTransaction = exports.bootstrapFirstAdmin = exports.assignUserRole = void 0;
+const admin = __importStar(require("firebase-admin"));
+// Initialize Firebase Admin once
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+var roles_1 = require("./roles");
+Object.defineProperty(exports, "assignUserRole", { enumerable: true, get: function () { return roles_1.assignUserRole; } });
+Object.defineProperty(exports, "bootstrapFirstAdmin", { enumerable: true, get: function () { return roles_1.bootstrapFirstAdmin; } });
+var appointments_1 = require("./appointments");
+Object.defineProperty(exports, "bookAppointmentTransaction", { enumerable: true, get: function () { return appointments_1.bookAppointmentTransaction; } });
+var stripe_1 = require("./stripe");
+Object.defineProperty(exports, "createStripeCheckoutSession", { enumerable: true, get: function () { return stripe_1.createStripeCheckoutSession; } });
+Object.defineProperty(exports, "stripeWebhook", { enumerable: true, get: function () { return stripe_1.stripeWebhook; } });
+var documents_1 = require("./documents");
+Object.defineProperty(exports, "getSecureDocumentDownloadUrl", { enumerable: true, get: function () { return documents_1.getSecureDocumentDownloadUrl; } });
+var integrations_1 = require("./integrations");
+Object.defineProperty(exports, "initiateAccountingOAuth", { enumerable: true, get: function () { return integrations_1.initiateAccountingOAuth; } });
+Object.defineProperty(exports, "disconnectAccountingIntegration", { enumerable: true, get: function () { return integrations_1.disconnectAccountingIntegration; } });
+//# sourceMappingURL=index.js.map

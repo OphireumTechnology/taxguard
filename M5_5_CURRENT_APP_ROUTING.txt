@@ -1,0 +1,360 @@
+   29 | const ProfessionalDisclaimersPage = lazy(() => import('./components/public/ProfessionalDisclaimersPage').then(m => ({ default: m.ProfessionalDisclaimersPage })));
+   30 | const TaxStrategiesPage = lazy(() => import('./components/public/TaxStrategiesPage').then(m => ({ default: m.TaxStrategiesPage })));
+   31 | const IndustriesPage = lazy(() => import('./components/public/IndustriesPage').then(m => ({ default: m.IndustriesPage })));
+   32 | const NotFoundPage = lazy(() => import('./components/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+   33 | const ClientLoginPage = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.ClientLoginPage })));
+   34 | const ClientRegisterPage = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.ClientRegisterPage })));
+   35 | const StaffLoginPage = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.StaffLoginPage })));
+   36 | const StageOneIdentityWizard = lazy(() => import('./components/portal/StageOneIdentityWizard').then(m => ({ default: m.StageOneIdentityWizard })));
+   37 | const StaffOnboardingWizard = lazy(() => import('./components/workspace/StaffOnboardingWizard').then(m => ({ default: m.StaffOnboardingWizard })));
+   38 | const LiveCalendarModule = lazy(() => import('./components/calendar/LiveCalendarModule').then(m => ({ default: m.LiveCalendarModule })));
+   39 | const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
+   40 | 
+   41 | import { DemoAppRouter } from './demo/DemoAppRouter';
+   42 | import { PublicV2Router } from './public-v2/PublicV2Router';
+   43 | import { DemoAuthService } from './demo/services/DemoAuthService';
+   44 | import { DEMO_ROLES, DemoRole } from './demo/types';
+   45 | import { ErrorPageView } from './demo/components/ErrorPages';
+   46 | 
+   47 | import { LiveClientWorkflowRouter } from './components/workflow/LiveClientWorkflowRouter';
+   48 | function getUrlTarget(): string {
+   49 |   if (typeof window === 'undefined') return '';
+   50 |   const hash = (window.location.hash || '').replace(/^#\/?/, '').replace(/^\/+/, '').toLowerCase();
+   51 |   const path = (window.location.pathname || '').replace(/^\/+/, '').toLowerCase();
+   52 |   return hash || path;
+   53 | }
+   54 | 
+   55 | function isTaxGuardRouteUrl(): boolean {
+   56 |   return getUrlTarget().startsWith('taxguard');
+   57 | }
+   58 | 
+   59 | function isPublicV2RouteUrl(): boolean {
+   60 |   return getUrlTarget().startsWith('public-v2');
+   61 | }
+   62 | 
+   63 | function isCanonicalLiveAuthRouteUrl(): boolean {
+   64 |   const target = getUrlTarget().replace(/\/+$/, '');
+   65 |   return target === 'client/login' || target === 'client/register';
+   66 | }
+   67 | 
+   68 | function isClientScopedRouteUrl(): boolean {
+   69 |   const target = getUrlTarget();
+   70 |   return target === 'client' || target.startsWith('client/');
+   71 | }
+   72 | 
+   73 | function hasLiveClientWorkspace(user: { role?: string } | null | undefined): boolean {
+   74 |   return Boolean(
+   75 |     typeof window !== 'undefined' &&
+   76 |     user?.role === 'client' &&
+   77 |     localStorage.getItem('taxguard_environment') === 'live' &&
+   78 |     !DemoAuthService.isAuthenticated('client')
+   79 |   );
+   80 | }
+   81 | 
+   82 | function getLiveClientLandingPage(user: { clientId?: string } | null | undefined): 'stage_one_onboard' | 'client_portal' {
+   83 |   return StageOneOnboardingService.hasPassedHardExitGate(user?.clientId)
+   84 |     ? 'client_portal'
+   85 |     : 'stage_one_onboard';
+   86 | }
+   87 | 
+   88 | function isDemoRouteUrl(): boolean {
+   89 |   const target = getUrlTarget();
+   90 |   if (target.startsWith('taxguard') || target.startsWith('public-v2')) return false;
+   91 |   if (isCanonicalLiveAuthRouteUrl()) return false;
+   92 |   if (target.startsWith('error/')) return true;
+   93 |   if (target === 'portals' || target.startsWith('portals/')) return true;
+   94 |   if (target.endsWith('/login') || target.endsWith('/dashboard')) return true;
+   95 |   if (target.includes('/login') || target.includes('/dashboard')) return true;
+   96 |   return ['client-portal', 'client_portal', 'reviewer-portal', 'staff-portal', 'cpa-portal', 'admin-dashboard', 'admin-portal', 'reviewer-workspace', 'accountant-workspace', 'portals'].includes(target);
+   97 | }
+   98 | 
+   99 | const AppContent: React.FC = () => {
+  100 |   const { currentPage, currentUser, setCurrentPage, pageParams } = useApp();
+  101 |   const [liveTaxYear, setLiveTaxYear] = React.useState<number>(
+  102 |     () => new Date().getFullYear() - 1
+  103 |   );
+  104 |   const [isDemoRoute, setIsDemoRoute] = React.useState(() => isDemoRouteUrl());
+  105 |   const [isPublicV2Route, setIsPublicV2Route] = React.useState(() => isPublicV2RouteUrl());
+  106 |   const [isTaxGuardRoute, setIsTaxGuardRoute] = React.useState(() => isTaxGuardRouteUrl());
+  107 | 
+  108 |   useEffect(() => {
+  109 |     const handleUrlChange = () => {
+  110 |       setIsDemoRoute(isDemoRouteUrl());
+  111 |       setIsPublicV2Route(isPublicV2RouteUrl());
+  112 |       setIsTaxGuardRoute(isTaxGuardRouteUrl());
+  113 |     };
+  114 |     window.addEventListener('hashchange', handleUrlChange);
+  115 |     window.addEventListener('popstate', handleUrlChange);
+  116 |     return () => {
+  117 |       window.removeEventListener('hashchange', handleUrlChange);
+  118 |       window.removeEventListener('popstate', handleUrlChange);
+  119 |     };
+  120 |   }, []);
+  121 | 
+  122 |   useEffect(() => {
+  123 |     if (import.meta.env.DEV) {
+  124 |       console.log(`[DIAGNOSTIC] Router initialization: active page = "${currentPage}", isTaxGuardRoute = ${isTaxGuardRoute}, isDemoRoute = ${isDemoRoute}, isPublicV2Route = ${isPublicV2Route}, authenticatedRole = "${currentUser?.role || 'none'}"`);
+  125 |     }
+  126 |   }, [currentPage, isTaxGuardRoute, isDemoRoute, isPublicV2Route, currentUser?.role]);
+  127 | 
+  128 |   useEffect(() => {
+  129 |     if (!hasLiveClientWorkspace(currentUser)) return;
+  130 | 
+  131 |     const landingPage = getLiveClientLandingPage(currentUser);
+  132 |     const isLiveWorkflowRoute = getUrlTarget().startsWith('client/dashboard') || [
+  133 |       'client_portal',
+  134 |       'stage_one_onboard',
+  135 |       'onboarding',
+  136 |       'client_onboarding'
+  137 |     ].includes(currentPage);
+  138 | 
+  139 |     if (isLiveWorkflowRoute && currentPage !== landingPage) {
+  140 |       setCurrentPage(landingPage);
+  141 |     }
+  142 |   }, [currentPage, currentUser, setCurrentPage]);
+  143 | 
+  144 |   useEffect(() => {
+  145 |     let targetHash = '';
+  146 | 
+  147 |     if (currentPage === 'portals') {
+  148 |       targetHash = '#/portals';
+  149 |     } else if (currentPage === 'admin_dashboard' || currentPage === 'admin_portal') {
+  150 |       targetHash = DemoAuthService.isAuthenticated('admin') ? '#/admin/dashboard' : '#/admin/login';
+  151 |     } else if (currentPage === 'reviewer_workspace' || currentPage === 'senior_reviewer_workspace' || currentPage === 'reviewer_portal') {
+  152 |       targetHash = DemoAuthService.isAuthenticated('reviewer') ? '#/reviewer/dashboard' : '#/reviewer/login';
+  153 |     } else if (currentPage === 'accountant_workspace' || currentPage === 'staff_portal') {
+  154 |       targetHash = DemoAuthService.isAuthenticated('accountant') ? '#/accountant/dashboard' : '#/accountant/login';
+  155 |     } else if (currentPage === 'client_portal') {
+  156 |       const hasLiveClientSession = hasLiveClientWorkspace(currentUser);
+  157 |       const hasDemoClientSession = DemoAuthService.isAuthenticated('client');
+  158 | 
+  159 |       if (hasLiveClientSession) {
+  160 |         targetHash = getLiveClientLandingPage(currentUser) === 'client_portal'
+  161 |           ? '#/client_portal'
+  162 |           : '#/stage_one_onboard';
+  163 |       } else if (hasDemoClientSession) {
+  164 |         targetHash = '#/client/dashboard';
+  165 |       } else {
+  166 |         targetHash = '#/client/login';
+  167 |       }
+  168 |     }
+  169 | 
+  170 |     if (targetHash && window.location.hash !== targetHash) {
+  171 |       window.location.hash = targetHash;
+  172 |       setIsDemoRoute(
+  173 |         targetHash !== '#/client/login' &&
+  174 |         targetHash !== '#/stage_one_onboard' &&
+  175 |         !Boolean(currentUser && currentUser.role === 'client')
+  176 |       );
+  177 |     }
+  178 |   }, [currentPage, currentUser]);
+  179 | 
+  180 |   useEffect(() => {
+  181 |     window.scrollTo(0, 0);
+  182 |   }, [currentPage]);
+  183 | 
+  184 |   const isTaxGuard = isTaxGuardRoute || isTaxGuardRouteUrl() || (currentPage as string) === 'taxguard';
+  185 |   if (isTaxGuard) {
+  186 |     const activeRoles = DemoAuthService.getActiveRoles();
+  187 |     if (activeRoles && activeRoles.length > 0) {
+  188 |       const primaryRole = activeRoles[0] as DemoRole;
+  189 |       const targetPath = DEMO_ROLES[primaryRole]?.dashboardPath || '#/client/dashboard';
+  190 |       if (window.location.hash !== targetPath) window.location.hash = targetPath;
+  191 |       return <DemoAppRouter />;
+  192 |     }
+  193 |     return (
+  194 |       <ErrorPageView
+  195 |         type="403"
+  196 |         customMessage="Access to standalone TaxGuard console has been removed. TaxGuard AI operates as an integrated service layer within authorized role dashboards. Please log in to your designated role dashboard."
+  197 |         onNavigateHome={() => { window.location.hash = '#/'; }}
+  198 |         onNavigateLogin={() => { window.location.hash = '#/portals'; }}
+  199 |       />
+  200 |     );
+  201 |   }
+  202 | 
+  203 |   const isPublicV2 = isPublicV2Route || isPublicV2RouteUrl() || currentPage === 'public_v2';
+  204 |   if (isPublicV2) return <PublicV2Router />;
+  205 | 
+  206 |   const hasDemoClientSession = DemoAuthService.isAuthenticated('client');
+  207 |   const hasLiveClientSession = hasLiveClientWorkspace(currentUser);
+  208 |   const isLiveClientRoute = hasLiveClientSession && (
+  209 |     isClientScopedRouteUrl() ||
+  210 |     ['client_portal', 'stage_one_onboard', 'onboarding', 'client_onboarding'].includes(currentPage)
+  211 |   );
+  212 | 
+  213 |   const isDemo = !isLiveClientRoute && (
+  214 |     isDemoRoute ||
+  215 |     isDemoRouteUrl() ||
+  216 |     [
+  217 |       'portals',
+  218 |       'admin_dashboard',
+  219 |       'admin_portal',
+  220 |       'reviewer_workspace',
+  221 |       'senior_reviewer_workspace',
+  222 |       'reviewer_portal',
+  223 |       'accountant_workspace',
+  224 |       'staff_portal'
+  225 |     ].includes(currentPage) ||
+  226 |     (currentPage === 'client_portal' && hasDemoClientSession && !hasLiveClientSession)
+  227 |   );
+  228 | 
+  229 |   if (isDemo) return <DemoAppRouter />;
+  230 | 
+  231 |   const renderPage = () => {
+  232 |     if (currentPage === 'client_portal' && hasLiveClientSession) {
+  233 |       const permanentClientId = currentUser?.clientId?.trim();
+  234 | 
+  235 |       if (!permanentClientId) {
+  236 |         return (
+  237 |           <div className="mx-auto mt-8 max-w-3xl rounded-xl border border-red-200 bg-white p-6 shadow-sm">
+  238 |             <h2 className="text-lg font-bold text-red-800">
+  239 |               LIVE Workspace Locked
+  240 |             </h2>
+  241 | 
+  242 |             <p className="mt-2 text-sm text-slate-700">
+  243 |               A permanent TaxGuard Client ID is required before Stage 02 can open.
+  244 |               TaxGuard will not substitute DEMO data or create a browser-side Client ID.
+  245 |             </p>
+  246 |           </div>
+  247 |         );
+  248 |       }
+  249 | 
+  250 |       if (!StageOneOnboardingService.hasPassedHardExitGate(permanentClientId)) {
+  251 |         return (
+  252 |           <StageOneIdentityWizard
+  253 |             initialClientId={permanentClientId}
+  254 |             onExitGatePassed={() => setCurrentPage('client_portal')}
+  255 |             onNavigateToDashboard={() => setCurrentPage('client_portal')}
+  256 |           />
+  257 |         );
+  258 |       }
+  259 | 
+  260 |       return (
+  261 |         <StageTwoCollectionWorkspace
+  262 |           clientId={permanentClientId}
+  263 |           selectedTaxYear={liveTaxYear}
+  264 |           onTaxYearChange={setLiveTaxYear}
+  265 |           initialSubTab="checklist"
+  266 |         />
+  267 |       );
+  268 |     }
+  269 | 
+  270 |     if (
+  271 |       currentPage === 'admin_dashboard' ||
+  272 |       currentPage === 'admin_portal' ||
+  273 |       currentPage === 'reviewer_workspace' ||
+  274 |       currentPage === 'senior_reviewer_workspace' ||
+  275 |       currentPage === 'reviewer_portal' ||
+  276 |       currentPage === 'accountant_workspace' ||
+  277 |       currentPage === 'staff_portal' ||
+  278 |       currentPage === 'client_portal' ||
+  279 |       currentPage === 'portals'
+  280 |     ) {
+  281 |       return null;
+  282 |     }
+  283 | 
+  284 |     if (currentPage === 'stage_one_onboard' || currentPage === 'onboarding' || currentPage === 'client_onboarding') {
+  285 |       if (hasLiveClientSession && StageOneOnboardingService.hasPassedHardExitGate(currentUser?.clientId)) {
+  286 |         const permanentClientId = currentUser?.clientId?.trim();
+  287 | 
+  288 |         if (!permanentClientId) {
+  289 |           return <ClientLoginPage />;
+  290 |         }
+  291 | 
+  292 |         return (
+  293 |           <StageTwoCollectionWorkspace
+  294 |             clientId={permanentClientId}
+  295 |             selectedTaxYear={liveTaxYear}
+  296 |             onTaxYearChange={setLiveTaxYear}
+  297 |             initialSubTab="checklist"
+  298 |           />
+  299 |         );
+  300 |       }
+  301 | 
+  302 |       return (
+  303 |         <StageOneIdentityWizard
+  304 |           onExitGatePassed={() => setCurrentPage('client_portal')}
+  305 |           onNavigateToDashboard={() => setCurrentPage('client_portal')}
+  306 |         />
+  307 |       );
+  308 |     }
+  309 | 
+  310 |     if (currentPage === 'staff_onboarding') {
+  311 |       if (!currentUser) return <StaffLoginPage />;
+  312 |       return <StaffOnboardingWizard />;
+  313 |     }
+  314 | 
+  315 |     switch (currentPage) {
+  316 |       case 'home': return <HomePage />;
+  317 |       case 'about': return <AboutPage />;
+  318 |       case 'founder': return <FounderPage />;
+  319 |       case 'services': return <ServicesPage />;
+  320 |       case 'industries': return <IndustriesPage />;
+  321 |       case 'tax_strategies': return <TaxStrategiesPage />;
+  322 |       case 'pricing': return <PricingPage />;
+  323 |       case 'book_consultation': return <BookConsultationPage />;
+  324 |       case 'resources': return <ResourcesPage />;
+  325 |       case 'careers': return <CareersPage />;
+  326 |       case 'job_detail': return <JobDetailPage />;
+  327 |       case 'contact': return <ContactPage />;
+  328 |       case 'privacy': return <PrivacyPolicyPage />;
+  329 |       case 'terms': return <TermsOfServicePage />;
+  330 |       case 'accessibility': return <AccessibilityStatementPage />;
+  331 |       case 'security': return <SecurityDataHandlingPage />;
+  332 |       case 'disclaimers': return <ProfessionalDisclaimersPage />;
+  333 |       case 'live_calendar': return <LiveCalendarModule />;
+  334 |       case 'virtual_consultation_room':
+  335 |         return (
+  336 |           <VirtualConsultationRoom
+  337 |             roomId={pageParams?.roomId}
+  338 |             appointmentId={pageParams?.appointmentId}
+  339 |             onExit={() => setCurrentPage('stage_one_onboard')}
+  340 |           />
+  341 |         );
+  342 |       case 'client_login': return <ClientLoginPage />;
+  343 |       case 'client_register': return <ClientRegisterPage />;
+  344 |       case 'staff_login': return <StaffLoginPage />;
+  345 |       case 'not_found':
+  346 |       default:
+  347 |         return <NotFoundPage />;
+  348 |     }
+  349 |   };
+  350 | 
+  351 |   const portalRoutes = new Set<string>([
+  352 |     'stage_one_onboard',
+  353 |     'client_portal',
+  354 |     'client_onboarding',
+  355 |     'onboarding',
+  356 |     'staff_onboarding',
+  357 |     'accountant_workspace',
+  358 |     'staff_portal',
+  359 |     'reviewer_workspace',
+  360 |     'senior_reviewer_workspace',
+  361 |     'reviewer_portal',
+  362 |     'admin_dashboard',
+  363 |     'admin_portal',
+  364 |     'live_calendar',
+  365 |     'virtual_consultation_room'
+  366 |   ]);
+  367 | 
+  368 |   if (portalRoutes.has(currentPage)) {
+  369 |     return (
+  370 |       <PortalLayout>
+  371 |         <Suspense fallback={<PageLoadingFallback />}>
+  372 |           {renderPage()}
+  373 |         </Suspense>
+  374 |       </PortalLayout>
+  375 |     );
+  376 |   }
+  377 | 
+  378 |   return (
+  379 |     <PublicLayout>
+  380 |       <Suspense fallback={<PageLoadingFallback />}>
+  381 |         {renderPage()}
+  382 |       </Suspense>
+  383 |     </PublicLayout>
+  384 |   );
+  385 | };
+  386 | 
+  387 | export default function App() {
+  388 |   return (

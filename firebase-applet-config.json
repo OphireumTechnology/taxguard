@@ -1,0 +1,12 @@
+{
+  "projectId": "taxguard2026",
+  "appId": "1:810296143272:web:27b53efad796ca3c38019d",
+  "apiKey": "AIzaSyDYgQQPGGGVjyzXVXq5NrumDGRPE8dgudg",
+  "authDomain": "taxguard2026.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "taxguard2026.firebasestorage.app",
+  "messagingSenderId": "810296143272",
+  "measurementId": "G-W49289W1W5",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}

@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "verdant-ship-ppthm",
+    "production": "ar-tax-portal-prod",
+    "staging": "ar-tax-portal-staging"
+  }
+}

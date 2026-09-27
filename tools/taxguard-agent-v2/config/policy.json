@@ -1,0 +1,24 @@
+{
+  "version": "2.0",
+  "mode": "local-first",
+  "maxFilesPerAiRequest": 3,
+  "maxContextCharacters": 30000,
+  "maxApiCallsPerTask": 1,
+  "highReasoningAutomatic": false,
+  "rules": [
+    "Search locally before using AI",
+    "Never send the whole repository",
+    "Never send node_modules",
+    "Never send dist",
+    "Never send backups",
+    "Never send credentials",
+    "Never send .env files",
+    "Never send firebase-admin.json",
+    "Reuse known project architecture",
+    "One root cause, one coherent patch",
+    "Validate locally",
+    "Never git push automatically",
+    "Never deploy automatically",
+    "Never enable external tax submission"
+  ]
+}

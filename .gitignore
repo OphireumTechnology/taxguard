@@ -1,0 +1,43 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# TaxGuard local development backups
+backups/
+*.backup.ts
+*.backup.tsx
+*.backup.json
+
+# Firebase Admin service-account credentials
+firebase-admin.json
+**/firebase-admin.json
+*-firebase-adminsdk-*.json
+# TaxGuard local diagnostics
+TAXGUARD_*.txt
+# TaxGuard temporary source backups
+*.before-*.ts
+*.before-*.tsx
+*.bak
+# Local backup folders
+# Firebase Admin credentials
+
+# TaxGuard local/private files
+.env
+.env.*
+!.env.example
+firebase-admin.json
+**/firebase-admin.json
+.taxguard/
+backups/
+dist/
+node_modules/
+TAXGUARD_*.txt
+TAXGUARD_*_REPORT.md
+tools/taxguard-autofix/
+tools/taxguard-autobuild-v2/
+tools/taxguard-continuation/

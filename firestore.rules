@@ -1,0 +1,426 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all paths by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Global Core Helpers
+    // -------------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAuthUid(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Administrator verification: verified custom claim or admin collection record
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.keys().hasAll(['role']) && request.auth.token.role == 'administrator') ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Accountant verification
+    function isAccountant() {
+      return isSignedIn() && (
+        isAdmin() ||
+        (request.auth.token.keys().hasAll(['role']) && request.auth.token.role == 'accountant') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'accountant')
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // Entity Validation Helpers
+    // -------------------------------------------------------------------------
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 150 &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+             data.role in ['client', 'accountant', 'administrator'] &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 20)) &&
+             (!('organizationId' in data) || (data.organizationId is string && data.organizationId.size() <= 128)) &&
+             (!('status' in data) || data.status in ['active', 'suspended', 'pending']);
+    }
+
+    function isValidOrganization(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 150 &&
+             data.ownerId is string && isValidId(data.ownerId) &&
+             (!('assignedAccountantId' in data) || (data.assignedAccountantId is string && isValidId(data.assignedAccountantId))) &&
+             (!('ein' in data) || (data.ein is string && data.ein.size() <= 20));
+    }
+
+    function isValidServiceRequest(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.clientId is string && data.clientId == request.auth.uid &&
+             data.serviceId is string && isValidId(data.serviceId) &&
+             data.status in ['submitted', 'in_review', 'in_progress', 'awaiting_documents', 'completed', 'cancelled'] &&
+             (!('organizationId' in data) || (data.organizationId is string && isValidId(data.organizationId))) &&
+             (!('assignedAccountantId' in data) || (data.assignedAccountantId is string && isValidId(data.assignedAccountantId))) &&
+             (!('details' in data) || (data.details is string && data.details.size() <= 2000));
+    }
+
+    function isValidAppointment(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.clientId is string && isValidId(data.clientId) &&
+             data.accountantId is string && isValidId(data.accountantId) &&
+             data.serviceType is string && data.serviceType.size() <= 100 &&
+             data.durationMinutes is number && data.durationMinutes > 0 && data.durationMinutes <= 240 &&
+             data.timeZone is string && data.timeZone.size() <= 50 &&
+             data.status in ['confirmed', 'rescheduled', 'cancelled', 'completed'] &&
+             (!('meetingUrl' in data) || (data.meetingUrl is string && data.meetingUrl.size() <= 255)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidDocumentItem(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.clientId is string && isValidId(data.clientId) &&
+             data.uploadedBy is string && data.uploadedBy == request.auth.uid &&
+             data.fileName is string && data.fileName.size() >= 1 && data.fileName.size() <= 200 &&
+             data.storagePath is string && data.storagePath.size() <= 300 &&
+             data.mimeType is string && data.mimeType.size() <= 100 &&
+             data.sizeBytes is number && data.sizeBytes > 0 && data.sizeBytes <= 52428800 &&
+             data.category in ['tax_return', 'w2', '1099', 'k1', 'bank_statement', 'receipt', 'engagement_letter', 'invoice', 'deliverable'] &&
+             data.status in ['uploaded', 'verified', 'rejected', 'archived'] &&
+             (!('year' in data) || (data.year is number && data.year >= 2000 && data.year <= 2100)) &&
+             (!('organizationId' in data) || (data.organizationId is string && isValidId(data.organizationId))) &&
+             (!('assignedAccountantId' in data) || (data.assignedAccountantId is string && isValidId(data.assignedAccountantId)));
+    }
+
+    function isValidDocumentRequest(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.clientId is string && isValidId(data.clientId) &&
+             data.requestedBy is string && isValidId(data.requestedBy) &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.status in ['pending', 'uploaded', 'accepted', 'rejected'] &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+             (!('taxYear' in data) || (data.taxYear is number && data.taxYear >= 2000 && data.taxYear <= 2100)) &&
+             (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 20)) &&
+             (!('fulfilledDocumentId' in data) || (data.fulfilledDocumentId is string && isValidId(data.fulfilledDocumentId)));
+    }
+
+    function isValidMessage(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.conversationId is string && isValidId(data.conversationId) &&
+             data.senderId is string && data.senderId == request.auth.uid &&
+             data.senderRole in ['client', 'accountant', 'administrator'] &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&
+             data.read is bool;
+    }
+
+    function isValidNotification(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && isValidId(data.userId) &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.message is string && data.message.size() >= 1 && data.message.size() <= 500 &&
+             data.type in ['document', 'appointment', 'billing', 'message', 'system'] &&
+             data.read is bool &&
+             (!('link' in data) || (data.link is string && data.link.size() <= 100));
+    }
+
+    function isValidConsentRecord(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.policyType in ['terms_of_service', 'privacy_policy', 'engagement_letter', 'e_file_consent'] &&
+             data.version is string && data.version.size() <= 20 &&
+             data.accepted == true &&
+             (!('userAgent' in data) || (data.userAgent is string && data.userAgent.size() <= 255));
+    }
+
+    // -------------------------------------------------------------------------
+    // Collections
+    // -------------------------------------------------------------------------
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAccountant() || isAdmin());
+      allow list: if isAdmin();
+      
+      // User registration: can only register self as 'client' role
+      allow create: if isAuthUid(userId) && isValidUser(incoming()) && (
+        incoming().role == 'client' || isAdmin()
+      );
+      
+      // User update: cannot escalate role; only self or admin
+      allow update: if (
+        isAdmin() ||
+        (isAuthUid(userId) && isValidUser(incoming()) &&
+         incoming().role == existing().role &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'phone', 'organizationId', 'updatedAt']))
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // Admins registry (read by anyone to check admin status; write only by existing admin)
+    match /admins/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Organizations Collection
+    match /organizations/{orgId} {
+      allow get: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.assignedAccountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.assignedAccountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isValidOrganization(incoming()) && (
+        incoming().ownerId == request.auth.uid || isAdmin()
+      );
+      allow update: if isSignedIn() && isValidOrganization(incoming()) && (
+        isAdmin() ||
+        (existing().ownerId == request.auth.uid &&
+         incoming().ownerId == existing().ownerId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'ein', 'updatedAt']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Organization Members
+    match /organizationMembers/{memberId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin() || isAccountant()
+      );
+      allow write: if isAdmin();
+    }
+
+    // Services Catalog: Publicly readable; Admin writable
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Service Requests
+    match /serviceRequests/{requestId} {
+      allow get: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.assignedAccountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.assignedAccountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isValidServiceRequest(incoming()) && (
+        incoming().clientId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isValidServiceRequest(incoming()) && (
+        isAdmin() ||
+        (isAccountant() && incoming().clientId == existing().clientId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'assignedAccountantId', 'updatedAt'])) ||
+        (existing().clientId == request.auth.uid &&
+         incoming().clientId == existing().clientId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['details', 'status', 'updatedAt']) &&
+         existing().status in ['submitted', 'awaiting_documents'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Appointments: clients can only view own; accountants view assigned; writes via transacted function or validated client booking
+    match /appointments/{appointmentId} {
+      allow get: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.accountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.accountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isValidAppointment(incoming()) && (
+        incoming().clientId == request.auth.uid || isAdmin()
+      );
+      allow update: if isSignedIn() && isValidAppointment(incoming()) && (
+        isAdmin() ||
+        (existing().accountantId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'meetingUrl', 'notes', 'updatedAt'])) ||
+        (existing().clientId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes', 'updatedAt']) &&
+         incoming().status == 'cancelled')
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Accountant Availability
+    match /accountantAvailability/{slotId} {
+      allow read: if true;
+      allow write: if isAccountant() || isAdmin();
+    }
+
+    // Documents metadata: private to client, assigned accountant, and admin
+    match /documents/{docId} {
+      allow get: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.assignedAccountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.assignedAccountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isValidDocumentItem(incoming()) && (
+        incoming().clientId == request.auth.uid || isAccountant() || isAdmin()
+      );
+      allow update: if isSignedIn() && isValidDocumentItem(incoming()) && (
+        isAdmin() ||
+        (isAccountant() &&
+         incoming().clientId == existing().clientId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'category', 'year', 'assignedAccountantId', 'updatedAt'])) ||
+        (existing().clientId == request.auth.uid &&
+         incoming().clientId == existing().clientId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['fileName', 'category', 'year', 'updatedAt']))
+      );
+      allow delete: if isAdmin() || (isSignedIn() && existing().uploadedBy == request.auth.uid && existing().status == 'uploaded');
+    }
+
+    // Document Requests
+    match /documentRequests/{reqId} {
+      allow get: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.requestedBy == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.requestedBy == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAccountant() || isAdmin();
+      allow update: if isSignedIn() && isValidDocumentRequest(incoming()) && (
+        isAdmin() ||
+        (isAccountant() && incoming().clientId == existing().clientId) ||
+        (existing().clientId == request.auth.uid &&
+         incoming().clientId == existing().clientId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'fulfilledDocumentId']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Subscriptions: read-only for owner client & admin; write restricted to Cloud Functions
+    match /subscriptions/{subId} {
+      allow get: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Invoices: read-only for client owner & admin; write restricted to Cloud Functions & admin
+    match /invoices/{invoiceId} {
+      allow get: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Payments: read-only for client owner & admin; write restricted to Cloud Functions
+    match /payments/{paymentId} {
+      allow get: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Conversations
+    match /conversations/{conversationId} {
+      allow get: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.accountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.accountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && (
+        incoming().clientId == request.auth.uid || isAccountant() || isAdmin()
+      );
+      allow update: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.accountantId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Messages
+    match /messages/{messageId} {
+      allow get: if isSignedIn() && (
+        resource.data.senderId == request.auth.uid ||
+        isAdmin() ||
+        isAccountant()
+      );
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidMessage(incoming());
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['read']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Notifications: strictly private to recipient
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isAdmin() || isAccountant();
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+      );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Consent Records: append-only by owner, immutable
+    match /consentRecords/{consentId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidConsentRecord(incoming());
+      allow update, delete: if false;
+    }
+
+    // Integration Connections
+    match /integrationConnections/{connId} {
+      allow read: if isSignedIn() && (isAccountant() || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Audit Logs: read-only by admin; writes strictly restricted to server / cloud functions
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Webhook Idempotency: strictly internal
+    match /processedWebhookEvents/{eventId} {
+      allow read, write: if false;
+    }
+  }
+}

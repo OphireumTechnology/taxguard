@@ -1,0 +1,48 @@
+{
+  "milestone": "M6",
+  "name": "Tax Knowledge, Rules, Evidence and Governance Core",
+  "status": "FROZEN_PASS",
+  "createdAt": "2026-09-23T15:58:49.318Z",
+  "calculationEngineIncluded": false,
+  "externalTaxSubmissionEnabled": false,
+  "openAiApiUsed": false,
+  "milestones": {
+    "M6.1": "FROZEN_PASS",
+    "M6.2": "FROZEN_PASS",
+    "M6.3": "FROZEN_PASS",
+    "M6.4": "FROZEN_PASS",
+    "M6.5": "FROZEN_PASS",
+    "M6.6": "FROZEN_PASS",
+    "M6.7": "FROZEN_PASS",
+    "M6.8": "FROZEN_PASS",
+    "M6.9": "FROZEN_PASS"
+  },
+  "governance": {
+    "aiCreatesVerifiedFacts": false,
+    "aiCreatesVerifiedRules": false,
+    "aiCreatesTaxAuthority": false,
+    "aiSelfApproval": false,
+    "humanApprovalRequired": true,
+    "professionalReviewBoundary": true,
+    "evidenceProvenanceRequired": true,
+    "ruleVerificationRequired": true,
+    "authorityVerificationRequired": true,
+    "conflictDetectionRequired": true,
+    "externalSubmissionEnabled": false
+  },
+  "sourceHashes": {
+    "src/taxguard/knowledge/TaxAuthoritySourceRegistry.ts": "a25250242a25ae18845802b9165676be327621e818cd03eef4ea090e999b75a9",
+    "src/taxguard/knowledge/TaxRuleRegistry.ts": "dff7d657fe038de5286241ab9ab5253efe28ba216707a75cc6b7bd09cf7424e0",
+    "src/taxguard/knowledge/Federal1040KnowledgePack2025.ts": "7875b3dfbedcde596dff01ec78e7fa95736f104120b1d3215be627dcffa2322d",
+    "src/taxguard/knowledge/TaxRuleApplicabilityEngine.ts": "f20716a647f1f2e86769fb28a7ef974da65edcf4f9b1b5a86ab9853594650cc6",
+    "src/taxguard/knowledge/TaxEvidenceCitationBinding.ts": "e6a4328fd6263aa051ea65db6509abd884a1460d1f2a35b21d77b00a7b5d5ea8",
+    "src/taxguard/knowledge/TaxKnowledgeConflictEngine.ts": "979048bde684a0fd0a890e1944db4820b98eff12f205d6ee294eff4d51a2c51b",
+    "src/taxguard/knowledge/TaxAIKnowledgeBoundary.ts": "05b3d3de7a1484a07227c3c8eb3250ef745d0bf8c82c6eb63d24b8c3f3756f20",
+    "src/taxguard/knowledge/TaxHumanReviewAuditIntegration.ts": "223b63a8e027248a0d1dcbdc366af081a490951bdedc5d019a29a1b4ab1d9570",
+    "src/taxguard/intelligence/review/HumanReviewBridge.ts": "dde4d9e6a8871986b318810a943f5cc78b0df62d60e99f25f5d10839ee371e9c",
+    "src/taxguard/intelligence/trace/DecisionTraceLedger.ts": "141ca679bf0d0a8c4ed14062f5e2ae805b1e8b503f2288a08139088c67bed218",
+    "src/taxguard/intelligence/decisions/DecisionApprovalOrchestrator.ts": "7c70d90452b77aa9fd37966d632751f8123f681c5edf0165fed1cfef44d7a9ce",
+    "src/taxguard/intelligence/governance/IntelligenceGovernanceBoundary.ts": "3e85579cee2aaeff2952ac73bd58e77b05eec527de875ce686895834e8c63fa7",
+    "src/services/stageThreeValidationService.ts": "bdb5082f39544605d6051f636ea4018e65a20bdc5e6f62d4c6df2520c32b3a9a"
+  }
+}

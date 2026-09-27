@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>A/R Tax Services, LLC</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      // This script takes the current url and converts the path and query
+      // string into just a query string, and then redirects the browser
+      // to the new url with only a query string and hash fragment,
+      // e.g. https://artaxserv.com/services?foo=bar#baz becomes
+      // https://artaxserv.com/?/services&foo=bar#baz
+      var pathSegmentsToKeep = 0; // For custom domain root artaxserv.com
+
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body style="background-color: #06172C; color: #F8F6F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center;">
+    <div>
+      <h1 style="color: #E2BD67; font-size: 24px; margin-bottom: 8px;">A/R Tax Services, LLC</h1>
+      <p style="color: #94A3B8; font-size: 14px;">Redirecting to secure portal...</p>
+      <noscript>
+        <p style="margin-top: 16px;"><a href="/" style="color: #C99A3D; text-decoration: underline;">Click here to continue to artaxserv.com</a></p>
+      </noscript>
+    </div>
+  </body>
+</html>

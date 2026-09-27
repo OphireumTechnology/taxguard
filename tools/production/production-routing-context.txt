@@ -1,0 +1,1694 @@
+============================================================ 
+TAXGUARD PRODUCTION ROUTING CONTEXT 
+============================================================ 
+ 
+===== PACKAGE.JSON ===== 
+{
+  "name": "ar-tax-portal",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "start": "node dist/server.cjs",
+    "preview": "vite preview",
+    "clean": "rimraf dist",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "firebase": "^12.18.0",
+    "firebase-admin": "^14.4.0",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.0",
+    "rimraf": "^6.0.1",
+    "sharp": "^0.35.4",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.3",
+    "vitest": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10 <11"
+  }
+}
+ 
+===== VITE CONFIG ===== 
+﻿import { configDefaults } from 'vitest/config';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
+
+export default defineConfig(() => {
+  return {
+    base: '/',
+
+    plugins: [
+      react(),
+      tailwindcss(),
+    ],
+
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      },
+    },
+
+    server: {
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modify - file watching is disabled to prevent flickering during agent edits.
+      hmr: process.env.DISABLE_HMR !== 'true',
+
+      // Disable file watching when DISABLE_HMR is true.
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+
+    build: {
+      chunkSizeWarningLimit: 850,
+
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) return 'vendor-firebase';
+              if (id.includes('motion')) return 'vendor-motion';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+
+              if (
+                id.includes('react') ||
+                id.includes('scheduler')
+              ) {
+                return 'vendor-react';
+              }
+
+              return 'vendor-libs';
+            }
+          },
+        },
+      },
+    },
+  };
+});
+
+ 
+===== SERVER.TS ===== 
+/**
+ * A/R Tax Services, LLC - Production Server Entry Point
+ * Full-stack Express + Vite application with enterprise security headers,
+ * role-based access control, cryptographic session handling, and Gemini AI pipeline.
+ */
+
+import express from 'express';
+import path from 'path';
+import { createServer as createViteServer } from 'vite';
+import { initSeedPasswords } from './src/server/auth';
+import { authRouter } from './src/server/routes/auth.routes';
+import { onboardingRouter } from './src/server/routes/onboarding.routes';
+import { documentsRouter } from './src/server/routes/documents.routes';
+import { engagementsRouter } from './src/server/routes/engagements.routes';
+import { appointmentsRouter } from './src/server/routes/appointments.routes';
+import { paymentsRouter } from './src/server/routes/payments.routes';
+import { integrationsRouter } from './src/server/routes/integrations.routes';
+import { messagesRouter } from './src/server/routes/messages.routes';
+import { careersRouter } from './src/server/routes/careers.routes';
+import { legalRouter } from './src/server/routes/legal.routes';
+import { adminRouter } from './src/server/routes/admin.routes';
+import { securityRouter } from './src/server/routes/security.routes';
+import { assignmentsRouter } from './src/server/routes/assignments.routes';
+import { accountantRouter } from './src/server/routes/accountant.routes';
+import { calendarRouter } from './src/server/routes/calendar.routes';
+import { consultationRoomRouter } from './src/server/routes/consultationRoom.routes';
+import { intakeRouter } from './src/server/routes/intake.routes';
+import { stagingRouter } from './src/server/routes/staging.routes';
+import { monitoringRouter } from './src/server/routes/monitoring.routes';
+import { taxguardRouter, handleLegacyTaxGuardRoute } from './src/server/routes/taxguard.routes';
+import { db } from './src/server/db';
+import { AuthenticatedRequest } from './src/server/auth';
+import './src/server/firebase-admin';
+
+const app = express();
+const PORT = 3000;
+
+// Initialize seed credentials
+initSeedPasswords();
+
+// Parse JSON and form payloads with generous limits for file base64 data
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// CORS and Security Headers allowing AI Studio iframe embedding and preview
+app.use((req, res, next) => {
+  // Allow AI Studio preview frames and cross-origin previews
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-token');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Explicitly remove X-Frame-Options so the AI Studio preview iframe can render
+  res.removeHeader('X-Frame-Options');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    firm: 'A/R TAX SERVICES, LLC',
+    location: 'Columbia, South Carolina, USA',
+    founder: 'Desmond Hinds',
+    tagline: 'Preserving Wealth. Building Legacies.',
+    serverTime: new Date().toISOString(),
+    geminiConfigured: !!process.env.GEMINI_API_KEY
+  });
+});
+
+// API Routes
+app.use('/api/auth', authRouter);
+app.use('/api/onboarding', onboardingRouter);
+app.use('/api/documents', documentsRouter);
+app.use('/api/engagements', engagementsRouter);
+app.use('/api/appointments', appointmentsRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/integrations', integrationsRouter);
+app.use('/api/messages', messagesRouter);
+app.use('/api/careers', careersRouter);
+app.use('/api/legal', legalRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/security', securityRouter);
+app.use('/api/assignments', assignmentsRouter);
+app.use('/api/accountant', accountantRouter);
+app.use('/api/calendar', calendarRouter);
+app.use('/api/consultation-rooms', consultationRoomRouter);
+app.use('/api/intake', intakeRouter);
+app.use('/api/staging', stagingRouter);
+app.use('/api/monitoring', monitoringRouter);
+app.use('/api/taxguard', taxguardRouter);
+
+// Legacy /taxguard route redirection and security gate
+app.use(['/taxguard', '/taxguard/*'], (req: AuthenticatedRequest, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : (req.headers['x-session-token'] as string);
+
+  if (token) {
+    const session = db.sessions.get(token);
+    if (session && Date.now() <= session.expiresAt) {
+      const user = db.users.get(session.userId);
+      if (user && user.status !== 'disabled' && user.status !== 'suspended') {
+        req.user = user;
+        req.token = token;
+      }
+    }
+  }
+
+  handleLegacyTaxGuardRoute(req, res);
+});
+
+// Serve public assets explicitly with cache revalidation
+app.use(express.static(path.join(process.cwd(), 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i)) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
+
+// Vite middleware for dev vs static serving in production
+async function startServer() {
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    // Redirect any legacy /ar-tax-portal requests to root domain paths
+    app.use((req, res, next) => {
+      if (req.path === '/ar-tax-portal' || req.path === '/ar-tax-portal/') {
+        return res.redirect(301, '/');
+      }
+      if (req.path.startsWith('/ar-tax-portal/')) {
+        const cleanPath = req.path.replace(/^\/ar-tax-portal/, '');
+        return res.redirect(301, cleanPath || '/');
+      }
+      next();
+    });
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[A/R Tax Services] Server successfully initialized on port ${PORT}`);
+  });
+}
+
+startServer().catch(err => {
+  console.error('Fatal server startup error:', err);
+  process.exit(1);
+});
+ 
+===== API SERVICE ===== 
+/**
+ * Enterprise API Client for A/R Tax Services, LLC
+ * Bridges client React interface to the secure Express + Vite backend.
+ * Handles bearer token injection, automated error decoding, and real-time state synchronization.
+ */
+
+import { 
+  User, 
+  Engagement, 
+  DocumentItem, 
+  Appointment, 
+  Invoice, 
+  AccountingConnection, 
+  Message, 
+  JobListing, 
+  Applicant, 
+  AuditLog,
+  OnboardingState,
+  JournalEntryDraft,
+  LegalCoordinationRecord,
+  SecurityTestResult,
+  ClientAccountantBinding,
+  AccountantProfile,
+  AccountingWorkflowTask,
+  DocumentRequest,
+  ReassignmentRequest,
+  DetailedAccountingIntegration
+} from '../types';
+
+const TOKEN_KEY = 'artax_session_token';
+let memoryToken: string | null = null;
+
+export function getStoredToken(): string | null {
+  try {
+    return (
+      localStorage.getItem(TOKEN_KEY) ||
+      sessionStorage.getItem(TOKEN_KEY) ||
+      localStorage.getItem('token') ||
+      sessionStorage.getItem('token') ||
+      memoryToken
+    );
+  } catch (e) {
+    return memoryToken;
+  }
+}
+
+export function setStoredToken(token: string) {
+  memoryToken = token;
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem('token', token);
+    sessionStorage.setItem('token', token);
+  } catch (e) {
+    // Storage restricted or unavailable in sandboxed iframe; memoryToken is active
+  }
+}
+
+export function clearStoredToken() {
+  memoryToken = null;
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+  } catch (e) {
+    // Storage restricted or unavailable in sandboxed iframe
+  }
+}
+
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {})
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    headers['x-session-token'] = token;
+  }
+
+  const response = await fetch(endpoint, {
+    ...options,
+    headers
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const errorMsg = data.error || data.message || `Request failed with status ${response.status}`;
+    const err = new Error(errorMsg) as any;
+    err.status = response.status;
+    err.code = data.code;
+    err.data = data;
+    throw err;
+  }
+
+  return data as T;
+}
+
+export const api = {
+  // Authentication & Session
+  auth: {
+    login: async (email: string, password: string, mfaCode?: string) => {
+      const res = await request<{ token?: string; user?: User; mfaRequired?: boolean; message?: string }>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, mfaCode })
+      });
+      if (res.token) {
+        setStoredToken(res.token);
+      }
+      return res;
+    },
+
+    register: async (payload: { name: string; email: string; password: string; phone?: string; companyName?: string; clientType?: 'individual' | 'business' }) => {
+      const res = await request<{ message: string; token: string; user: User; verificationTokenSimulated?: string }>('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (res.token) {
+        setStoredToken(res.token);
+      }
+      return res;
+    },
+
+    firebaseSession: async (payload: {
+  idToken: string;
+  name?: string;
+  phone?: string;
+  companyName?: string;
+  clientType?: 'individual' | 'business';
+}) => {
+  const res = await request<{
+    message: string;
+    token: string;
+    user: User;
+  }>('/api/auth/firebase-session', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  if (res.token) {
+    setStoredToken(res.token);
+  }
+
+  return res;
+},
+
+
+
+    getMe: async () => {
+      return request<{ user: User }>('/api/auth/me');
+    },
+
+    logout: async () => {
+      try {
+        await request('/api/auth/logout', { method: 'POST' });
+      } finally {
+        clearStoredToken();
+      }
+    },
+
+    verifyEmail: async (token: string) => {
+      return request<{ message: string; user: User }>('/api/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ token })
+      });
+    },
+
+    forgotPassword: async (email: string) => {
+      return request<{ message: string; resetTokenSimulated?: string }>('/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      });
+    },
+
+    resetPassword: async (token: string, newPassword: string) => {
+      return request<{ message: string }>('/api/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, newPassword })
+      });
+    },
+
+    googleLogin: async (email: string, name?: string) => {
+      const res = await request<{ token: string; user: User }>('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ email, name })
+      });
+      if (res.token) {
+        setStoredToken(res.token);
+      }
+      return res;
+    }
+  },
+
+  // 15-Step Client Onboarding
+  onboarding: {
+    getState: async () => {
+      return request<{ state: OnboardingState; progress: { percentComplete: number; missingRequirements: string[]; nextAction: string } }>('/api/onboarding');
+    },
+
+    saveStep: async (stepData: Partial<OnboardingState>) => {
+      return request<{ message: string; state: OnboardingState; progress: any }>('/api/onboarding/save-step', {
+        method: 'POST',
+        body: JSON.stringify(stepData)
+      });
+    },
+
+    submitDossier: async () => {
+      return request<{ message: string; state: OnboardingState }>('/api/onboarding/submit', {
+        method: 'POST'
+      });
+    }
+  },
+
+  // Document Management & AI Extraction
+  documents: {
+    list: async (params: { category?: string; taxYear?: number; status?: string; search?: string; clientId?: string } = {}) => {
+      const query = new URLSearchParams();
+      if (params.category) query.append('category', params.category);
+      if (params.taxYear) query.append('taxYear', String(params.taxYear));
+      if (params.status) query.append('status', params.status);
+      if (params.search) query.append('search', params.search);
+      if (params.clientId) query.append('clientId', params.clientId);
+      return request<{ documents: DocumentItem[] }>(`/api/documents?${query.toString()}`);
+    },
+
+    upload: async (payload: {
+      fileName: string;
+      fileSize?: string;
+      fileType?: string;
+      category?: string;
+      taxYear?: number;
+      description?: string;
+      rawContentSample?: string;
+      clientId?: string;
+    }) => {
+      return request<{ message: string; document: DocumentItem; extractionSummary: any }>('/api/documents/upload', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    getSignedUrl: async (documentId: string) => {
+      return request<{ signedUrl: string; token: string; expiresInSeconds: number; expiresAt: string }>(`/api/documents/${documentId}/signed-url`, {
+        method: 'POST'
+      });
+    },
+
+    review: async (documentId: string, payload: { status: string; reviewerNotes?: string; correctedFields?: any[] }) => {
+      return request<{ message: string; document: DocumentItem }>(`/api/documents/${documentId}/review`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+  },
+
+  // Engagements & Maker-Checker Workflows
+  engagements: {
+    list: async () => {
+      return request<{ engagements: Engagement[] }>('/api/engagements');
+    },
+
+    get: async (id: string) => {
+      return request<{ engagement: Engagement }>(`/api/engagements/${id}`);
+    },
+
+    updateStatus: async (id: string, payload: { status: string; progressPercent?: number; notes?: string }) => {
+      return request<{ message: string; engagement: Engagement }>(`/api/engagements/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    dispatch8879: async (id: string) => {
+      return request<{ message: string; engagement: Engagement; deliverableDocumentId: string }>(`/api/engagements/${id}/dispatch-8879`, {
+        method: 'POST'
+      });
+    },
+
+    getJournalEntries: async (clientId: string) => {
+      return request<{ journalEntries: JournalEntryDraft[] }>(`/api/engagements/journal-entries/${clientId}`);
+    },
+
+    createJournalEntry: async (payload: Partial<JournalEntryDraft>) => {
+      return request<{ journalEntry: JournalEntryDraft }>('/api/engagements/journal-entries', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    approveJournalEntry: async (id: string) => {
+      return request<{ message: string; journalEntry: JournalEntryDraft }>(`/api/engagements/journal-entries/${id}/approve`, {
+        method: 'PATCH'
+      });
+    }
+  },
+
+  // Appointments & Calendar Conflict Prevention
+  appointments: {
+    list: async () => {
+      return request<{ appointments: Appointment[] }>('/api/appointments');
+    },
+
+    book: async (payload: {
+      clientName: string;
+      clientEmail: string;
+      clientPhone?: string;
+      serviceType?: string;
+      accountantId?: string;
+      requestedFounder?: boolean;
+      date: string;
+      timeSlot: string;
+      type: 'virtual' | 'phone' | 'in_office';
+      notes?: string;
+    }) => {
+      return request<{ message: string; appointment: Appointment; confirmationDetails: any }>('/api/appointments/book', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    update: async (id: string, payload: Partial<Appointment>) => {
+      return request<{ message: string; appointment: Appointment }>(`/api/appointments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+  },
+
+  // Payments, Subscriptions & Invoices
+  payments: {
+    charge: async (payload: {
+      amount: number;
+      currency?: string;
+      invoiceId?: string;
+      servicePlanId?: string;
+      description?: string;
+      paymentMethod?: string;
+      idempotencyKey?: string;
+      discountCode?: string;
+    }) => {
+      return request<{ success: boolean; message: string; invoice: Invoice; receipt: any }>('/api/payments/charge', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    getInvoices: async () => {
+      return request<{ invoices: Invoice[] }>('/api/payments/invoices');
+    }
+  },
+
+  // Accounting Integrations & 5-Stage Write Operations
+  integrations: {
+    list: async () => {
+      return request<{ connections: AccountingConnection[] }>('/api/integrations');
+    },
+
+    connect: async (provider: string, companyName?: string) => {
+      return request<{ message: string; connection: AccountingConnection }>('/api/integrations/connect', {
+        method: 'POST',
+        body: JSON.stringify({ provider, companyName })
+      });
+    },
+
+    sync: async (id: string) => {
+      return request<{ message: string; connection: AccountingConnection }>(`/api/integrations/${id}/sync`, {
+        method: 'POST'
+      });
+    },
+
+    disconnect: async (id: string) => {
+      return request<{ message: string; connection: AccountingConnection }>(`/api/integrations/${id}/disconnect`, {
+        method: 'POST'
+      });
+    },
+
+    authorizeStage1Client: async (id: string) => {
+      return request<{ message: string; writeAuthorization: any }>(`/api/integrations/${id}/authorize-write/client`, {
+        method: 'POST'
+      });
+    },
+
+    authorizeStage2Accountant: async (id: string) => {
+      return request<{ message: string; writeAuthorization: any }>(`/api/integrations/${id}/authorize-write/accountant-prepare`, {
+        method: 'POST'
+      });
+    },
+
+    authorizeStage3Reviewer: async (id: string) => {
+      return request<{ message: string; writeAuthorization: any }>(`/api/integrations/${id}/authorize-write/reviewer-approve`, {
+        method: 'POST'
+      });
+    },
+
+    executeStage4Commit: async (id: string) => {
+      return request<{ success: boolean; message: string; connection: AccountingConnection }>(`/api/integrations/${id}/authorize-write/execute-commit`, {
+        method: 'POST',
+        body: JSON.stringify({ confirmationPhrase: 'CONFIRM_WRITE_TO_LEDGER' })
+      });
+    }
+  },
+
+  // Messaging & Staff Notes
+  messages: {
+    list: async (params: { engagementId?: string } = {}) => {
+      const q = params.engagementId ? `?engagementId=${params.engagementId}` : '';
+      return request<{ messages: Message[] }>(`/api/messages${q}`);
+    },
+
+    send: async (payload: {
+      recipientId?: string;
+      recipientName?: string;
+      engagementId?: string;
+      content: string;
+      isInternalNote?: boolean;
+      attachments?: string[];
+    }) => {
+      return request<{ message: string; messageData: Message }>('/api/messages', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    markRead: async (id: string) => {
+      return request<{ success: boolean; message: Message }>(`/api/messages/${id}/read`, {
+        method: 'PATCH'
+      });
+    }
+  },
+
+  // Careers & Recruiting Workspace
+  careers: {
+    getJobs: async () => {
+      return request<{ jobs: JobListing[] }>('/api/careers/jobs');
+    },
+
+    getJob: async (id: string) => {
+      return request<{ job: JobListing }>(`/api/careers/jobs/${id}`);
+    },
+
+    apply: async (payload: {
+      jobId: string;
+      fullName: string;
+      email: string;
+      phone?: string;
+      linkedinUrl?: string;
+      yearsExperience?: number;
+      resumeFileName?: string;
+      coverLetter?: string;
+    }) => {
+      return request<{ message: string; applicantId: string }>('/api/careers/apply', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    getApplicants: async (params: { jobId?: string; status?: string } = {}) => {
+      const q = new URLSearchParams();
+      if (params.jobId) q.append('jobId', params.jobId);
+      if (params.status) q.append('status', params.status);
+      return request<{ applicants: Applicant[] }>(`/api/careers/applicants?${q.toString()}`);
+    },
+
+    updateApplicant: async (id: string, payload: Partial<Applicant>) => {
+      return request<{ message: string; applicant: Applicant }>(`/api/careers/applicants/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+  },
+
+  // Legal & Professional Coordination
+  legal: {
+    list: async () => {
+      return request<{ legalRecords: LegalCoordinationRecord[]; statutoryDisclaimer: string }>('/api/legal');
+    },
+
+    create: async (payload: Partial<LegalCoordinationRecord>) => {
+      return request<{ message: string; record: LegalCoordinationRecord; statutoryDisclaimer: string }>('/api/legal', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+  },
+
+  // Admin & Compliance Management
+  admin: {
+    getAuditLogs: async (params: { action?: string; userId?: string; severity?: string; limit?: number } = {}) => {
+      const q = new URLSearchParams();
+      if (params.action) q.append('action', params.action);
+      if (params.userId) q.append('userId', params.userId);
+      if (params.severity) q.append('severity', params.severity);
+      if (params.limit) q.append('limit', String(params.limit));
+      return request<{ auditLogs: AuditLog[]; totalCount: number }>(`/api/admin/audit-logs?${q.toString()}`);
+    },
+
+    getSecurityEvents: async () => {
+      return request<{ securityEvents: any[] }>('/api/admin/security-events');
+    },
+
+    getSystemHealth: async () => {
+      return request<{
+        healthStatus: string;
+        serverTimestamp: string;
+        metrics: any;
+        workloadBalancing: any[];
+      }>('/api/admin/system-health');
+    },
+
+    getUsers: async () => {
+      return request<{ users: User[] }>('/api/admin/users');
+    },
+
+    reassignClient: async (clientId: string, accountantId: string, reviewerId?: string, reason: string = 'Administrative workload balancing') => {
+      return request<{ message: string; client: User }>(`/api/admin/users/${clientId}/reassign`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assignedAccountantId: accountantId, assignedReviewerId: reviewerId, reason })
+      });
+    },
+
+    setUserStatus: async (userId: string, status: 'active' | 'disabled' | 'suspended', reason: string = 'Administrative account maintenance', confirmation: boolean = true) => {
+      return request<{ message: string; user: User }>(`/api/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, reason, confirmation })
+      });
+    },
+
+    updatePlanPrice: async (planId: string, price: number, changeReason: string = 'Annual firm pricing schedule update', currency: 'USD' = 'USD') => {
+      return request<{ message: string; plan: any }>(`/api/admin/service-plans/${planId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ price, currency, changeReason })
+      });
+    },
+
+    impersonate: async (clientId: string) => {
+      const res = await request<{ message: string; token: string; user: User }>(`/api/admin/impersonate/${clientId}`, {
+        method: 'POST'
+      });
+      if (res.token) {
+        setStoredToken(res.token);
+      }
+      return res;
+    }
+  },
+
+  // Automated Negative Security Test Suite Runner
+  security: {
+    runNegativeTests: async () => {
+      return request<{
+        summary: {
+          totalTests: number;
+          passed: number;
+          failed: number;
+          allPassed: boolean;
+          executionDurationMs: number;
+          completedAt: string;
+        };
+        results: SecurityTestResult[];
+      }>('/api/security/run-suite');
+    }
+  },
+
+  // Client-Accountant Binding & Governance
+  assignments: {
+    list: async () => {
+      return request<{ bindings: ClientAccountantBinding[] }>('/api/assignments');
+    },
+
+    listForClient: async (clientId: string) => {
+      return request<{ bindings: ClientAccountantBinding[] }>(`/api/assignments/client/${clientId}`);
+    },
+
+    getWorkload: async () => {
+      return request<{ profiles: AccountantProfile[] }>('/api/assignments/accountants-workload');
+    },
+
+    bind: async (payload: {
+      clientId: string;
+      accountantId: string;
+      assignmentType?: string;
+      accessScope?: string[];
+      effectiveDate?: string;
+      expirationDate?: string;
+      reason?: string;
+      internalNotes?: string;
+    }) => {
+      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/bind', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    unbind: async (bindingId: string, reason: string, replacementAccountantId?: string) => {
+      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/unbind', {
+        method: 'POST',
+        body: JSON.stringify({ bindingId, reason, replacementAccountantId })
+      });
+    },
+
+    suspend: async (bindingId: string, reason?: string) => {
+      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/suspend', {
+        method: 'POST',
+        body: JSON.stringify({ bindingId, reason })
+      });
+    },
+
+    restore: async (bindingId: string) => {
+      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/restore', {
+        method: 'POST',
+        body: JSON.stringify({ bindingId })
+      });
+    },
+
+    reassign: async (currentBindingId: string, newAccountantId: string, reason?: string) => {
+      return request<{ message: string; oldBinding: ClientAccountantBinding; newBinding: ClientAccountantBinding }>('/api/assignments/reassign', {
+        method: 'POST',
+        body: JSON.stringify({ currentBindingId, newAccountantId, reason })
+      });
+    },
+
+    requestReassignment: async (reason: string, preferredSpecialization?: string) => {
+      return request<{ message: string; request: ReassignmentRequest }>('/api/assignments/request-reassignment', {
+        method: 'POST',
+        body: JSON.stringify({ reason, preferredSpecialization })
+      });
+    },
+
+    listReassignmentRequests: async () => {
+      return request<{ requests: ReassignmentRequest[] }>('/api/assignments/reassignment-requests');
+    },
+
+    reviewReassignmentRequest: async (id: string, action: 'approved' | 'rejected', notes?: string) => {
+      return request<{ message: string; request: ReassignmentRequest }>(`/api/assignments/reassignment-requests/${id}/review`, {
+        method: 'POST',
+        body: JSON.stringify({ action, notes })
+      });
+    }
+  },
+
+  // Dedicated Accountant Workspace & Tasks
+  accountant: {
+    getOverview: async () => {
+      return request<{
+        metrics: {
+          totalAssignedClients: number;
+          activeAssignmentsCount: number;
+          tasksDueToday: number;
+          upcomingDeadlinesCount: number;
+          documentsAwaitingReview: number;
+          clientQuestionsAwaitingResponse: number;
+          completedTasks: number;
+          overdueTasks: number;
+          connectionAlerts: number;
+        };
+        urgentDeadlinesQueue: any[];
+        recentTasks: AccountingWorkflowTask[];
+        docsAwaitingReview: DocumentItem[];
+      }>('/api/accountant/overview');
+    },
+
+    getClients: async () => {
+      return request<{ clients: any[] }>('/api/accountant/clients');
+    },
+
+    getClientWorkspace: async (clientId: string) => {
+      return request<{
+        client: any;
+        bindings: ClientAccountantBinding[];
+        engagements: Engagement[];
+        documents: DocumentItem[];
+        tasks: AccountingWorkflowTask[];
+        documentRequests: DocumentRequest[];
+        integrations: DetailedAccountingIntegration[];
+        journalEntries: JournalEntryDraft[];
+        legalRecords: LegalCoordinationRecord[];
+        messages: Message[];
+      }>(`/api/accountant/workspace/${clientId}`);
+    },
+
+    saveTask: async (taskData: Partial<AccountingWorkflowTask>) => {
+      return request<{ message: string; task: AccountingWorkflowTask }>('/api/accountant/tasks', {
+        method: 'POST',
+        body: JSON.stringify(taskData)
+      });
+    },
+
+    updateTaskStatus: async (taskId: string, status: string, comment?: string) => {
+      return request<{ message: string; task: AccountingWorkflowTask }>(`/api/accountant/tasks/${taskId}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status, comment })
+      });
+    },
+
+    reviewTask: async (taskId: string, action: 'approved' | 'rejected' | 'requested_changes', notes?: string) => {
+      return request<{ message: string; task: AccountingWorkflowTask }>(`/api/accountant/tasks/${taskId}/review`, {
+        method: 'POST',
+        body: JSON.stringify({ action, notes })
+      });
+    },
+
+    requestDocument: async (payload: { clientId: string; title: string; description?: string; category?: string; taxYear?: number; dueDate: string }) => {
+      return request<{ message: string; request: DocumentRequest }>('/api/accountant/documents/request', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    uploadDeliverable: async (payload: { clientId: string; fileName: string; category?: string; taxYear?: number; notes?: string }) => {
+      return request<{ message: string; document: DocumentItem }>('/api/accountant/documents/upload-deliverable', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    updateDocStatus: async (docId: string, status: string, notes?: string) => {
+      return request<{ message: string; document: DocumentItem }>(`/api/accountant/documents/${docId}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status, notes })
+      });
+    },
+
+    addNote: async (clientId: string, content: string, isInternalOnly = true) => {
+      return request<{ message: string; note: any }>('/api/accountant/notes', {
+        method: 'POST',
+        body: JSON.stringify({ clientId, content, isInternalOnly })
+      });
+    }
+  }
+};
+ 
+===== AUTH ROUTES ===== 
+/**
+ * Authentication & Identity Routes
+ * Firebase-backed LIVE identity, demonstration login, password management,
+ * brute-force lockout, session validation, and MFA.
+ */
+
+import { Router, Request, Response } from 'express';
+import { randomBytes } from 'crypto';
+import { db } from '../db';
+import {
+  hashPassword,
+  verifyPassword,
+  createSession,
+  revokeSession,
+  checkBruteForceLockout,
+  recordLoginFailure,
+  clearLoginFailures,
+  authenticateToken,
+  AuthenticatedRequest
+} from '../auth';
+import { User, OnboardingState } from '../../types';
+import {
+  getFirebaseAdminAuth,
+  getFirebaseAdminDb,
+  verifyFirebaseIdToken
+} from '../firebase-admin';
+import { allocateTaxGuardClientId } from '../client-id.service';
+
+export const authRouter = Router();
+
+/**
+ * LIVE public registration must be completed with Firebase Authentication and
+ * then bridged through /firebase-session. The legacy endpoint must never mint
+ * a LIVE session from caller-supplied profile data.
+ */
+authRouter.post('/register', (_req: Request, res: Response) => {
+  return res.status(410).json({
+    error: 'Public registration requires Firebase Authentication.',
+    code: 'FIREBASE_REGISTRATION_REQUIRED'
+  });
+});
+
+const firebaseProvisioningLocks = new Map<string, Promise<void>>();
+
+async function withFirebaseProvisioningLock<T>(firebaseUid: string, operation: () => Promise<T>): Promise<T> {
+  const previous = firebaseProvisioningLocks.get(firebaseUid) || Promise.resolve();
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  const tail = previous.catch(() => {}).then(() => gate);
+  firebaseProvisioningLocks.set(firebaseUid, tail);
+
+  await previous.catch(() => {});
+
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (firebaseProvisioningLocks.get(firebaseUid) === tail) {
+      firebaseProvisioningLocks.delete(firebaseUid);
+    }
+  }
+}
+
+/**
+ * Firebase -> TaxGuard LIVE session bridge.
+ * Firebase proves external identity. TaxGuard restores or provisions the
+ * permanent application identity and creates the application session.
+ */
+authRouter.post('/firebase-session', async (req: Request, res: Response) => {
+  const { idToken } = req.body || {};
+
+  if (!idToken || typeof idToken !== 'string') {
+    return res.status(400).json({ error: 'Firebase ID token is required.' });
+  }
+
+  let decodedToken: Awaited<ReturnType<typeof verifyFirebaseIdToken>>;
+
+  try {
+    decodedToken = await verifyFirebaseIdToken(idToken);
+  } catch (error) {
+    console.error('[Firebase Session] Token verification failed.', error);
+    return res.status(401).json({ error: 'Firebase authentication could not be verified.' });
+  }
+
+  const firebaseUid = decodedToken.uid;
+  const tokenEmail = typeof decodedToken.email === 'string'
+    ? decodedToken.email.trim().toLowerCase()
+    : '';
+
+  if (!firebaseUid || !tokenEmail) {
+    return res.status(401).json({
+      error: 'Verified Firebase identity does not contain a valid email.'
+    });
+  }
+
+  const firestore = getFirebaseAdminDb();
+  const firebaseAdminAuth = getFirebaseAdminAuth();
+
+  if (!firestore || !firebaseAdminAuth) {
+    return res.status(503).json({ error: 'Live account persistence is unavailable.' });
+  }
+
+  try {
+    const firebaseAccount = await firebaseAdminAuth.getUser(firebaseUid);
+    const verifiedEmail = (firebaseAccount.email || '').trim().toLowerCase();
+
+    if (!verifiedEmail || verifiedEmail !== tokenEmail) {
+      return res.status(401).json({ error: 'Verified Firebase identity is inconsistent.' });
+    }
+
+    const provisioned = await withFirebaseProvisioningLock(firebaseUid, async () => {
+      const userRef = firestore.collection('users').doc(firebaseUid);
+      const existingSnapshot = await userRef.get();
+      const existing = existingSnapshot.exists ? existingSnapshot.data() || {} : {};
+      const hadPermanentClientId = Boolean(existing.clientId);
+
+      let clientId: string;
+      let clientIdSequence: number | undefined;
+
+      if (hadPermanentClientId) {
+        clientId = String(existing.clientId);
+      } else {
+        const allocation = await allocateTaxGuardClientId(firestore);
+        clientId = allocation.clientId;
+        clientIdSequence = allocation.sequence;
+      }
+
+      const existingDbUser = db.users.get(firebaseUid);
+      const persistedStatus = existingDbUser?.status || existing.status;
+
+      if (persistedStatus === 'disabled' || persistedStatus === 'suspended') {
+        const blockedError = new Error('ACCOUNT_DISABLED') as Error & { status?: number };
+        blockedError.status = 403;
+        throw blockedError;
+      }
+
+      const verifiedName = firebaseAccount.displayName?.trim() || verifiedEmail;
+      const existingPhone = hadPermanentClientId && typeof existing.phone === 'string' ? existing.phone : '';
+      const existingCompany = hadPermanentClientId && typeof existing.companyName === 'string' ? existing.companyName : '';
+      const existingClientType = hadPermanentClientId && existing.clientType === 'business'
+        ? 'business'
+        : 'individual';
+      const createdAt = typeof existing.createdAt === 'string'
+        ? existing.createdAt
+        : firebaseAccount.metadata.creationTime || new Date().toISOString();
+
+      const user: User = {
+        id: firebaseUid,
+        clientId,
+        email: verifiedEmail,
+        name: verifiedName,
+        role: 'client',
+        phone: existingPhone || firebaseAccount.phoneNumber || '',
+        companyName: existingCompany,
+        company: existingCompany,
+        clientType: existingClientType,
+        status: 'active',
+        isVerified: true,
+        createdAt,
+        mfaEnabled: false
+      };
+
+      const persistedProfile: Record<string, unknown> = {
+        uid: firebaseUid,
+        clientId,
+        email: verifiedEmail,
+        fullName: verifiedName,
+        role: 'client',
+        phone: user.phone || '',
+        companyName: user.companyName || '',
+        clientType: existingClientType,
+        status: 'active',
+        environment: 'live',
+        externalSubmissionEnabled: false,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (!hadPermanentClientId) {
+        persistedProfile.clientIdSequence = clientIdSequence;
+        persistedProfile.createdAt = createdAt;
+      }
+
+      await userRef.set(persistedProfile, { merge: true });
+      db.users.set(firebaseUid, user);
+
+      if (!db.onboardingStates.has(firebaseUid)) {
+        const onboardingState: OnboardingState = {
+          id: `onb_${randomBytes(16).toString('hex')}`,
+          userId: firebaseUid,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          step: 1,
+          percentComplete: 5,
+          entityType: existingClientType,
+          contactInfo: {
+            fullName: user.name,
+            email: user.email,
+            phone: user.phone || '',
+            address: '',
+            city: '',
+            state: '',
+            zipCode: ''
+          },
+          selectedServices: [],
+          intakeAnswers: {},
+          uploadedDocuments: [],
+          paymentMethodAuthorized: false,
+          engagementAgreementSigned: false,
+          privacyDisclaimerAccepted: false,
+          accountingSoftwareConnected: false,
+          consultationBooked: false,
+          status: 'draft',
+          missingRequirements: [
+            'Complete identity verification',
+            'Complete onboarding information'
+          ]
+        };
+        db.onboardingStates.set(firebaseUid, onboardingState);
+      }
+
+      return { user, clientId, restored: hadPermanentClientId };
+    });
+
+    const sessionToken = createSession(firebaseUid, 'client');
+
+    db.logAudit({
+      userId: provisioned.user.id,
+      userName: provisioned.user.name,
+      userRole: 'client',
+      action: provisioned.restored ? 'FIREBASE_SESSION_RESTORED' : 'FIREBASE_CLIENT_PROVISIONED',
+      resource: `User #${provisioned.user.id}`,
+      details: provisioned.restored
+        ? 'LIVE TaxGuard session restored from a verified Firebase identity.'
+        : 'LIVE TaxGuard client provisioned from a verified Firebase identity.',
+      ipAddress: req.ip || 'unknown',
+      severity: 'info'
+    });
+
+    return res.status(200).json({
+      message: provisioned.restored
+        ? 'Live TaxGuard session restored.'
+        : 'Live TaxGuard account provisioned.',
+      token: sessionToken,
+      user: provisioned.user,
+      clientId: provisioned.clientId,
+      environment: 'live',
+      externalSubmissionEnabled: false
+    });
+  } catch (error: any) {
+    if (error?.status === 403 || error?.message === 'ACCOUNT_DISABLED') {
+      return res.status(403).json({
+        error: 'Access denied because this TaxGuard account is disabled or suspended.',
+        code: 'ACCOUNT_DISABLED'
+      });
+    }
+
+    console.error('[Firebase Session] Provisioning failed.', error);
+    return res.status(503).json({ error: 'The LIVE TaxGuard session could not be provisioned.' });
+  }
+});
+
+// Secure demonstration/staff login. LIVE public clients use Firebase.
+authRouter.post('/login', async (req: Request, res: Response) => {
+  const { email, password, mfaCode } = req.body;
+  const ip = req.ip || 'unknown';
+  const lockoutKey = `${ip}_${(email || '').toLowerCase()}`;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
+
+  const lockout = checkBruteForceLockout(lockoutKey);
+  if (lockout.locked) {
+    db.logSecurityEvent({
+      eventType: 'LOGIN_ATTEMPT_DURING_LOCKOUT',
+      ipAddress: ip,
+      details: `Blocked login attempt for ${email}. Account is locked for another ${lockout.remainingSec} seconds.`,
+      severity: 'warning'
+    });
+    return res.status(429).json({
+      error: `Too many failed login attempts. Access temporarily locked for ${lockout.remainingSec} seconds. Please try again later.`,
+      locked: true,
+      remainingSec: lockout.remainingSec
+    });
+  }
+
+  const user = Array.from(db.users.values()).find(item => item.email.toLowerCase() === email.toLowerCase());
+  const storedHash = db.userPasswords.get(email.toLowerCase());
+
+  if (!user || !storedHash || !verifyPassword(password, storedHash)) {
+    recordLoginFailure(lockoutKey, ip, email);
+    return res.status(401).json({
+      error: 'Invalid credentials. Please verify your email and password.',
+      code: 'INVALID_CREDENTIALS'
+    });
+  }
+
+  if (user.status === 'disabled' || user.status === 'suspended') {
+    db.logSecurityEvent({
+      eventType: 'DISABLED_USER_LOGIN_ATTEMPT',
+      ipAddress: ip,
+      userId: user.id,
+      details: `Blocked login attempt for ${user.email} because status is ${user.status}.`,
+      severity: 'critical'
+    });
+    return res.status(403).json({
+      error: `Access Denied: Your account has been ${user.status}. Please contact A/R Tax Services compliance at info@artaxservices.com.`,
+      code: 'ACCOUNT_DISABLED'
+    });
+  }
+
+  if (user.mfaEnabled && !mfaCode) {
+    return res.status(200).json({
+      mfaRequired: true,
+      message: 'MFA authorization code required.',
+      userId: user.id
+    });
+  }
+
+  clearLoginFailures(lockoutKey);
+  user.lastLoginAt = new Date().toISOString();
+  db.users.set(user.id, user);
+  const token = createSession(user.id, user.role);
+
+  db.logAudit({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: 'USER_LOGIN_SUCCESS',
+    resource: 'Session Manager',
+    details: `Successful authentication from IP ${ip}. Role: ${user.role}.`,
+    ipAddress: ip,
+    severity: 'info'
+  });
+
+  return res.json({ token, user });
+});
+
+authRouter.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  return res.json({ user: req.user });
+});
+
+authRouter.post('/logout', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  if (req.token) revokeSession(req.token);
+  db.logAudit({
+    userId: req.user?.id || 'unknown',
+    userName: req.user?.name || 'Anonymous',
+    userRole: req.user?.role || 'client',
+    action: 'USER_LOGOUT',
+    resource: 'Session Manager',
+    details: 'User explicitly logged out and session revoked.',
+    ipAddress: req.ip || 'unknown',
+    severity: 'info'
+  });
+  return res.json({ message: 'Logged out successfully.' });
+});
+
+authRouter.post('/verify-email', (req: Request, res: Response) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'Verification token is required.' });
+
+  const email = db.emailVerificationTokens.get(token);
+  if (!email) return res.status(400).json({ error: 'Invalid or expired verification token.' });
+
+  const user = Array.from(db.users.values()).find(item => item.email.toLowerCase() === email.toLowerCase());
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+
+  user.isVerified = true;
+  db.users.set(user.id, user);
+  db.emailVerificationTokens.delete(token);
+  db.logAudit({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: 'EMAIL_VERIFIED',
+    resource: `User #${user.id}`,
+    details: `Email ${email} verified successfully via cryptographic token.`,
+    ipAddress: req.ip || 'unknown',
+    severity: 'info'
+  });
+  return res.json({ message: 'Email verified successfully!', user });
+});
+
+authRouter.post('/forgot-password', (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email address is required.' });
+
+  const user = Array.from(db.users.values()).find(item => item.email.toLowerCase() === email.toLowerCase());
+  if (!user) {
+    return res.json({ message: 'If an account exists with this email, a secure reset token has been dispatched.' });
+  }
+
+  const resetToken = randomBytes(24).toString('hex');
+  db.passwordResetTokens.set(resetToken, {
+    email: email.toLowerCase(),
+    expiresAt: Date.now() + 60 * 60 * 1000
+  });
+
+  db.logAudit({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: 'PASSWORD_RESET_REQUESTED',
+    resource: `User #${user.id}`,
+    details: `Password reset token generated for ${email}.`,
+    ipAddress: req.ip || 'unknown',
+    severity: 'info'
+  });
+
+  return res.json({
+    message: 'If an account exists with this email, a secure reset token has been dispatched.',
+    ...(process.env.NODE_ENV !== 'production' ? { devResetToken: resetToken } : {})
+  });
+});
+
+authRouter.post('/change-password', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current password and new password are required.' });
+  }
+
+  const storedHash = db.userPasswords.get(user.email.toLowerCase());
+  if (!storedHash || !verifyPassword(currentPassword, storedHash)) {
+    return res.status(401).json({ error: 'Current password verification failed.' });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+  }
+
+  db.userPasswords.set(user.email.toLowerCase(), hashPassword(newPassword));
+  user.mustResetPassword = false;
+  db.users.set(user.id, user);
+
+  const currentToken = req.headers.authorization?.replace('Bearer ', '') || (req.headers['x-session-token'] as string);
+  let revokedCount = 0;
+  for (const [token, session] of db.sessions.entries()) {
+    if (session.userId === user.id && token !== currentToken) {
+      db.sessions.delete(token);
+      revokedCount++;
+    }
+  }
+
+  db.logAudit({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: 'PASSWORD_CHANGED',
+    resource: `User #${user.id}`,
+    details: `Password successfully updated. ${revokedCount} other active sessions revoked.`,
+    ipAddress: req.ip || 'unknown',
+    severity: 'info'
+  });
+
+  return res.json({
+    message: 'Password successfully changed. Other active sessions have been securely terminated.',
+    revokedSessions: revokedCount
+  });
+});
+
+authRouter.post('/revoke-sessions', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  let revokedCount = 0;
+
+  for (const [token, session] of db.sessions.entries()) {
+    if (session.userId === user.id) {
+      db.sessions.delete(token);
+      revokedCount++;
+    }
+  }
+
+  db.logAudit({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: 'ALL_SESSIONS_REVOKED',
+    resource: `User #${user.id}`,
+    details: `User explicitly revoked all active sessions (${revokedCount} terminated).`,
+    ipAddress: req.ip || 'unknown',
+    severity: 'warning'
+  });
+
+  return res.json({ message: 'All sessions successfully revoked.', revokedCount });
+});
+
+authRouter.post('/reset-password', (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) return res.status(400).json({ error: 'Token and new password are required.' });
+
+  const resetRecord = db.passwordResetTokens.get(token);
+  if (!resetRecord || Date.now() > resetRecord.expiresAt) {
+    return res.status(400).json({ error: 'Reset token is invalid or has expired.' });
+  }
+
+  const user = Array.from(db.users.values()).find(item => item.email.toLowerCase() === resetRecord.email.toLowerCase());
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+
+  db.userPasswords.set(user.email.toLowerCase(), hashPassword(newPassword));
+  db.passwordResetTokens.delete(token);
+
+  for (const [sessionToken, sessionData] of db.sessions.entries()) {
+    if (sessionData.userId === user.id) db.sessions.delete(sessionToken);
+  }
+
+  db.logAudit({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: 'PASSWORD_RESET_COMPLETED',
+    resource: `User #${user.id}`,
+    details: 'User password reset completed. All active sessions invalidated.',
+    ipAddress: req.ip || 'unknown',
+    severity: 'warning'
+  });
+
+  return res.json({ message: 'Password has been successfully updated. Please log in with your new credentials.' });
+});
+
+/**
+ * Caller-asserted Google profile data is not an authentication proof. Google
+ * users must authenticate through Firebase and use /firebase-session.
+ */
+authRouter.post('/google', (_req: Request, res: Response) => {
+  return res.status(410).json({
+    error: 'Google authentication requires a verified Firebase provider token.',
+    code: 'FIREBASE_PROVIDER_TOKEN_REQUIRED'
+  });
+});
+ 
+===== FIREBASE CONFIG ===== 
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099,
+      "host": "0.0.0.0"
+    },
+    "firestore": {
+      "port": 8080,
+      "host": "0.0.0.0"
+    },
+    "storage": {
+      "port": 9199,
+      "host": "0.0.0.0"
+    },
+    "functions": {
+      "port": 5001,
+      "host": "0.0.0.0"
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000,
+      "host": "0.0.0.0"
+    },
+    "singleProjectMode": true
+  }
+}
+ 
+===== GITHUB PAGES WORKFLOW ===== 
+name: Deploy Vite website to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Show environment
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript validation
+        run: npm run lint
+
+      - name: Run TaxGuard regression tests
+        run: npm test -- --run
+
+      - name: Build production application
+        run: npm run build
+
+      - name: Verify production build
+        run: |
+          test -f dist/index.html
+          echo "Production build created successfully"
+          ls -la dist
+          ls -la dist/assets || true
+
+      - name: Configure custom domain
+        run: echo "artaxserv.com" > dist/CNAME
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload production build
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy production website
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+ 
+===== OTHER DEPLOY WORKFLOWS ===== 

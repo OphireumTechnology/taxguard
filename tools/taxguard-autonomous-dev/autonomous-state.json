@@ -1,0 +1,21 @@
+﻿{
+    "version":  4,
+    "lastError":  null,
+    "currentMilestone":  "M3",
+    "masterBuildStartedAt":  "2026-09-23T19:52:46.3819782+08:00",
+    "status":  "READY",
+    "completedMilestones":  [
+                                "M1",
+                                "M2"
+                            ],
+    "failedMilestone":  null,
+    "protections":  {
+                        "preserveM1":  true,
+                        "externalSubmissionEnabled":  false,
+                        "noHistoricalBroadScan":  true,
+                        "noV1AutoFix":  true,
+                        "noFakeCompletion":  true,
+                        "noDemoFallbackForLive":  true,
+                        "preserveM2":  true
+                    }
+}

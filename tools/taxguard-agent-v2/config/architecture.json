@@ -1,0 +1,43 @@
+{
+  "application": "TaxGuard / A-R Tax Services",
+  "canonicalClientLogin": "/#/client/login",
+  "canonicalClientRegistration": "/#/client/register",
+
+  "demo": {
+    "username": "artest2026",
+    "authentication": "DemoAuthService",
+    "mustRemainIsolated": true
+  },
+
+  "live": {
+    "authentication": "Firebase Authentication",
+    "sessionBridge": "/api/auth/firebase-session",
+    "clientIdAuthority": "server",
+    "externalSubmissionEnabled": false
+  },
+
+  "protectedSystems": [
+    "Stage 01 ONBOARD",
+    "Stage 02 COLLECT",
+    "Stage 03 VALIDATE",
+    "TG-CORE-001",
+    "TG-CORE-002",
+    "TG-CORE-003",
+    "TG-CORE-004",
+    "TG-CORE-005",
+    "TG-CORE-006",
+    "TG-CORE-007",
+    "TG-CORE-008"
+  ],
+
+  "security": [
+    "Firebase UID and permanent Client ID are distinct",
+    "LIVE must never receive DEMO taxpayer fixtures",
+    "DEMO must never create a LIVE Firebase identity",
+    "No browser-generated permanent Client IDs",
+    "No Michael Perotti LIVE fallback",
+    "No client_1 LIVE fallback",
+    "No legacy LIVE registration fallback",
+    "External tax submission remains disabled"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "taskId": "ccf2ca61e4da12df",
+  "createdAt": "2026-09-23T00:14:41.748Z",
+  "query": "artest2026 demo login invalid credentials",
+  "apiCalls": 0,
+  "selectedFiles": [
+    "src/demo/components/RoleLoginPage.tsx",
+    "src/context/AppContext.tsx",
+    "src/demo/components/RoleLoginPage.before-live-auth.tsx"
+  ],
+  "contextCharacters": 30047,
+  "policy": {
+    "maxFiles": 3,
+    "maxContextCharacters": 30000,
+    "maxApiCalls": 1
+  }
+}
