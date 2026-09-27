@@ -573,7 +573,7 @@ export const HomePage: React.FC = () => {
             <EditorialSplitImage
               srcJpg={BRAND_ASSETS.privateConsultationExpJpg}
               srcWebp={BRAND_ASSETS.privateConsultationExpWebp}
-              alt="Four-phase private client advisory engagement roadmap covering discovery and diagnostic, strategic architecture, meticulous execution, and ongoing stewardship"
+              alt="Professional tax advisor and client in a confidential consultation discussing structured tax strategy in an elegant office"
               caption="Confidential One-on-One Consultation"
               tag="Personal Attention"
               aspectRatio="4/3"
@@ -704,8 +704,8 @@ export const HomePage: React.FC = () => {
             <EditorialSplitImage
               srcJpg={BRAND_ASSETS.bookkeepingReportingJpg}
               srcWebp={BRAND_ASSETS.bookkeepingReportingWebp}
-              alt="Accurate financial dashboard and general ledger reconciliation suite displaying chart of accounts, trial balance, and real-time bank integrations"
-              caption="Financial Reporting & Reconciliation Suite"
+              alt="Executive financial reporting and accounting workstation with financial ledger, balance sheet analysis, and digital integration"
+              caption="Financial Reporting & Reconciliation"
               tag="Accounting Oversight"
               aspectRatio="4/3"
             />

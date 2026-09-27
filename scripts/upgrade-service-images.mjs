@@ -15,6 +15,8 @@ const specs = [
     id: 'tax-advisory-planning',
     sourceFile: 'tax-consultation-advisory.jpg',
     outputBasename: 'tax-advisory-planning',
+    width: 1200,
+    height: 675,
     brightness: 1.18,
     saturation: 0.98,
     sharpen: true,
@@ -24,6 +26,8 @@ const specs = [
     id: 'corporate-business-advisory',
     sourceFile: 'business-tax-strategy.jpg',
     outputBasename: 'corporate-business-advisory',
+    width: 1200,
+    height: 675,
     brightness: 0.92,
     saturation: 0.95,
     sharpen: true,
@@ -33,6 +37,8 @@ const specs = [
     id: 'estate-legacy-planning',
     sourceFile: 'estate-legacy-planning.jpg',
     outputBasename: 'estate-legacy-planning',
+    width: 1200,
+    height: 675,
     brightness: 1.0,
     saturation: 0.98,
     sharpen: true,
@@ -42,7 +48,42 @@ const specs = [
     id: 'meticulous-tax-preparation',
     sourceFile: 'meticulous-tax-preparation.jpg',
     outputBasename: 'meticulous-tax-preparation',
+    width: 1200,
+    height: 675,
     brightness: 1.05,
+    saturation: 0.98,
+    sharpen: true,
+    position: 'center',
+  },
+  {
+    id: 'private-consultation-experience',
+    sourceFile: 'tax-consultation-advisory.jpg',
+    outputBasename: 'private-consultation-experience',
+    width: 1200,
+    height: 900,
+    brightness: 1.18,
+    saturation: 0.98,
+    sharpen: true,
+    position: 'center',
+  },
+  {
+    id: 'bookkeeping-financial-reporting',
+    sourceFile: 'bookkeeping-financial-reporting.jpeg',
+    outputBasename: 'bookkeeping-financial-reporting',
+    width: 1200,
+    height: 900,
+    brightness: 1.08,
+    saturation: 0.98,
+    sharpen: true,
+    position: 'center',
+  },
+  {
+    id: 'executive-consultation-suite',
+    sourceFile: 'hero-executive-advisory.jpg',
+    outputBasename: 'executive-consultation-suite',
+    width: 1600,
+    height: 900,
+    brightness: 1.0,
     saturation: 0.98,
     sharpen: true,
     position: 'center',
@@ -50,7 +91,7 @@ const specs = [
 ];
 
 async function run() {
-  console.log('Upgrading 4 core corporate service images to 16:9 unified visual system...');
+  console.log('Upgrading corporate images to unified photographic visual system...');
 
   for (const spec of specs) {
     const srcPath = path.join(publicImagesDir, spec.sourceFile);
@@ -67,7 +108,7 @@ async function run() {
       });
     }
 
-    pipeline = pipeline.resize(1200, 675, {
+    pipeline = pipeline.resize(spec.width, spec.height, {
       fit: 'cover',
       position: spec.position,
     });
@@ -97,7 +138,7 @@ async function run() {
 
     const stats = await sharp(jpgBuf).stats();
     console.log(`✓ Processed ${spec.outputBasename}:`, {
-      dimensions: '1200x675 (16:9)',
+      dimensions: `${spec.width}x${spec.height}`,
       jpgSize: `${Math.round(jpgBuf.length / 1024)} KB`,
       webpSize: `${Math.round(webpBuf.length / 1024)} KB`,
       meanRGB: stats.channels.slice(0, 3).map((c) => Math.round(c.mean)),
@@ -105,7 +146,7 @@ async function run() {
     });
   }
 
-  console.log('All 4 service images successfully upgraded and synchronized.');
+  console.log('All corporate images successfully upgraded and synchronized.');
 }
 
 run().catch((err) => {

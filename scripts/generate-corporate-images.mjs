@@ -1069,20 +1069,8 @@ function generateExecutiveSuiteSvg() {
 }
 
 async function buildAllImages() {
-  const images = [
-    {
-      name: 'bookkeeping-financial-reporting',
-      svg: generateFinancialReportingSvg(),
-    },
-    {
-      name: 'private-consultation-experience',
-      svg: generatePrivateConsultationSvg(),
-    },
-    {
-      name: 'executive-consultation-suite',
-      svg: generateExecutiveSuiteSvg(),
-    },
-  ];
+  // All corporate images have been upgraded to real high-definition photography
+  const images = [];
 
   for (const img of images) {
     console.log(`Rendering ${img.name}...`);

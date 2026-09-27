@@ -50,14 +50,14 @@ export const BRAND_ASSETS = {
   estateLegacyPlanningWebp: getAssetUrl('images/estate-legacy-planning.webp?v=2026_corp_v4'),
   estateLegacyPlanningJpg: getAssetUrl('images/estate-legacy-planning.jpg?v=2026_corp_v4'),
 
-  bookkeepingReportingWebp: getAssetUrl('images/bookkeeping-financial-reporting.webp?v=2026_corp_v3'),
-  bookkeepingReportingJpg: getAssetUrl('images/bookkeeping-financial-reporting.jpg?v=2026_corp_v3'),
+  bookkeepingReportingWebp: getAssetUrl('images/bookkeeping-financial-reporting.webp?v=2026_corp_v4'),
+  bookkeepingReportingJpg: getAssetUrl('images/bookkeeping-financial-reporting.jpg?v=2026_corp_v4'),
 
-  privateConsultationExpWebp: getAssetUrl('images/private-consultation-experience.webp?v=2026_corp_v3'),
-  privateConsultationExpJpg: getAssetUrl('images/private-consultation-experience.jpg?v=2026_corp_v3'),
+  privateConsultationExpWebp: getAssetUrl('images/private-consultation-experience.webp?v=2026_corp_v4'),
+  privateConsultationExpJpg: getAssetUrl('images/private-consultation-experience.jpg?v=2026_corp_v4'),
 
-  executiveConsultationSuiteWebp: getAssetUrl('images/executive-consultation-suite.webp?v=2026_corp_v3'),
-  executiveConsultationSuiteJpg: getAssetUrl('images/executive-consultation-suite.jpg?v=2026_corp_v3'),
+  executiveConsultationSuiteWebp: getAssetUrl('images/executive-consultation-suite.webp?v=2026_corp_v4'),
+  executiveConsultationSuiteJpg: getAssetUrl('images/executive-consultation-suite.jpg?v=2026_corp_v4'),
 
   founderOfficeJpg: getAssetUrl('images/desmond-hinds-office.jpg'),
 
