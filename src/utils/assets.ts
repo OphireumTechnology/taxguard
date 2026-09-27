@@ -38,17 +38,17 @@ export const BRAND_ASSETS = {
   heroExecutiveAdvisoryWebp: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
   heroExecutiveAdvisoryJpg: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
 
-  taxAdvisoryPlanningWebp: getAssetUrl('images/tax-advisory-planning.webp?v=2026_corp_v3'),
-  taxAdvisoryPlanningJpg: getAssetUrl('images/tax-advisory-planning.jpg?v=2026_corp_v3'),
+  taxAdvisoryPlanningWebp: getAssetUrl('images/tax-advisory-planning.webp?v=2026_corp_v4'),
+  taxAdvisoryPlanningJpg: getAssetUrl('images/tax-advisory-planning.jpg?v=2026_corp_v4'),
 
-  corporateBusinessAdvisoryWebp: getAssetUrl('images/corporate-business-advisory.webp?v=2026_corp_v3'),
-  corporateBusinessAdvisoryJpg: getAssetUrl('images/corporate-business-advisory.jpg?v=2026_corp_v3'),
+  corporateBusinessAdvisoryWebp: getAssetUrl('images/corporate-business-advisory.webp?v=2026_corp_v4'),
+  corporateBusinessAdvisoryJpg: getAssetUrl('images/corporate-business-advisory.jpg?v=2026_corp_v4'),
 
-  meticulousTaxPrepWebp: getAssetUrl('images/meticulous-tax-preparation.webp?v=2026_corp_v3'),
-  meticulousTaxPrepJpg: getAssetUrl('images/meticulous-tax-preparation.jpg?v=2026_corp_v3'),
+  meticulousTaxPrepWebp: getAssetUrl('images/meticulous-tax-preparation.webp?v=2026_corp_v4'),
+  meticulousTaxPrepJpg: getAssetUrl('images/meticulous-tax-preparation.jpg?v=2026_corp_v4'),
 
-  estateLegacyPlanningWebp: getAssetUrl('images/estate-legacy-planning.webp?v=2026_corp_v3'),
-  estateLegacyPlanningJpg: getAssetUrl('images/estate-legacy-planning.jpg?v=2026_corp_v3'),
+  estateLegacyPlanningWebp: getAssetUrl('images/estate-legacy-planning.webp?v=2026_corp_v4'),
+  estateLegacyPlanningJpg: getAssetUrl('images/estate-legacy-planning.jpg?v=2026_corp_v4'),
 
   bookkeepingReportingWebp: getAssetUrl('images/bookkeeping-financial-reporting.webp?v=2026_corp_v3'),
   bookkeepingReportingJpg: getAssetUrl('images/bookkeeping-financial-reporting.jpg?v=2026_corp_v3'),

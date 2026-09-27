@@ -242,7 +242,7 @@ export const TaxStrategiesPage: React.FC = () => {
               <EditorialSplitImage
                 src={BRAND_ASSETS.taxAdvisoryPlanningJpg}
                 webpSrc={BRAND_ASSETS.taxAdvisoryPlanningWebp}
-                alt="Strategic tax advisory blueprint detailing IRS code statutory frameworks, bracket analysis, and deduction modeling"
+                alt="Professional tax advisor discussing strategic tax planning with a client"
                 badgeText="IRC Strategy Governance"
                 className="w-full min-h-[260px]"
               />

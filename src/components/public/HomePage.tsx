@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { TESTIMONIALS_DATA } from '../../data/mockData';
 import { BrandLogo } from '../common/BrandLogo';
@@ -307,17 +307,17 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-          {/* Card 1: Tax Advisory & Planning */}
+          {/* Card 1: Tax Advisory and Planning */}
           <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.taxAdvisoryPlanningJpg}
                 webpSrc={BRAND_ASSETS.taxAdvisoryPlanningWebp}
-                alt="Strategic tax advisory architecture displaying multi-year tax projection scenarios, S-Corp and LLC entity structure, and pass-through deduction optimization"
+                alt="Professional tax advisor discussing strategic tax planning with a client"
                 categoryBadge="Tax Advisory & Strategy"
                 icon={<Workflow className="w-5 h-5 text-[#C99A3D]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Tax Advisory &amp; Planning</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Tax Advisory and Planning</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Strategic federal and multistate tax planning engineered to legally minimize liabilities, model future transactions, and optimize entity structures.
               </p>
@@ -342,17 +342,17 @@ export const HomePage: React.FC = () => {
             </ul>
           </div>
 
-          {/* Card 2: Business & Corporate Services */}
+          {/* Card 2: Business and Corporate Services */}
           <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.corporateBusinessAdvisoryJpg}
                 webpSrc={BRAND_ASSETS.corporateBusinessAdvisoryWebp}
-                alt="Corporate tax compliance suite illustrating Form 1120-S, Form 1065, multistate nexus apportionment, and executive reasonable compensation benchmarks"
+                alt="Business professionals reviewing corporate financial and advisory matters"
                 categoryBadge="Corporate & Enterprise"
                 icon={<Building2 className="w-5 h-5 text-[#C99A3D]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Business &amp; Corporate Services</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Business and Corporate Services</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Comprehensive compliance and filing services for enterprise owners, partnerships, and growing companies across multiple state jurisdictions.
               </p>
@@ -377,17 +377,17 @@ export const HomePage: React.FC = () => {
             </ul>
           </div>
 
-          {/* Card 3: Wealth, Estate & Asset Coordination */}
+          {/* Card 3: Wealth, Estate and Asset Protection */}
           <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.estateLegacyPlanningJpg}
                 webpSrc={BRAND_ASSETS.estateLegacyPlanningWebp}
-                alt="Comprehensive family wealth structure mapping revocable and irrevocable trusts, business equity, real estate assets, and generational wealth preservation"
+                alt="Advisor consulting with clients on wealth, estate and asset protection planning"
                 categoryBadge="Asset Protection & Legacy"
                 icon={<Scale className="w-5 h-5 text-[#C99A3D]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Wealth, Estate &amp; Asset Protection</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Wealth, Estate and Asset Protection</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Coordinating with estate attorneys and family fiduciaries to ensure assets transfer with minimal tax friction and maximum structural protection.
               </p>
@@ -412,13 +412,13 @@ export const HomePage: React.FC = () => {
             </ul>
           </div>
 
-          {/* Card 4: Meticulous Tax Preparation & Review */}
+          {/* Card 4: Meticulous Tax Preparation */}
           <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.meticulousTaxPrepJpg}
                 webpSrc={BRAND_ASSETS.meticulousTaxPrepWebp}
-                alt="Multi-screen tax preparation workstation demonstrating 7-step review workflow, Form 1040 line-item reconciliation, and certified IRS electronic filing"
+                alt="Tax professional carefully reviewing tax documents and financial records"
                 categoryBadge="Accuracy & Compliance"
                 icon={<FileCheck2 className="w-5 h-5 text-[#C99A3D]" />}
               />

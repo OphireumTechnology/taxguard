@@ -81,7 +81,7 @@ export const ServicesPage: React.FC = () => {
                   <ServiceCardImage
                     src={BRAND_ASSETS.meticulousTaxPrepJpg}
                     webpSrc={BRAND_ASSETS.meticulousTaxPrepWebp}
-                    alt="Multi-screen workstation displaying certified Form 1040 tax return preparation, deduction substantiation, and IRS e-file status"
+                    alt="Tax professional carefully reviewing tax documents and financial records"
                     categoryBadge="Private Client Tax"
                     icon={<FileCheck2 className="w-5 h-5 text-[#C6A15B]" />}
                   />
@@ -144,7 +144,7 @@ export const ServicesPage: React.FC = () => {
                   <ServiceCardImage
                     src={BRAND_ASSETS.corporateBusinessAdvisoryJpg}
                     webpSrc={BRAND_ASSETS.corporateBusinessAdvisoryWebp}
-                    alt="Corporate tax compliance suite illustrating Form 1120-S, Form 1065, and multistate nexus apportionment"
+                    alt="Business professionals reviewing corporate financial and advisory matters"
                     categoryBadge="Corporate Advisory"
                     icon={<Building2 className="w-5 h-5 text-[#C6A15B]" />}
                   />
@@ -207,7 +207,7 @@ export const ServicesPage: React.FC = () => {
                   <ServiceCardImage
                     src={BRAND_ASSETS.estateLegacyPlanningJpg}
                     webpSrc={BRAND_ASSETS.estateLegacyPlanningWebp}
-                    alt="Estate coordination blueprint detailing trust structures, asset protection, and generational wealth preservation"
+                    alt="Advisor consulting with clients on wealth, estate and asset protection planning"
                     categoryBadge="Legacy & Estates"
                     icon={<Scale className="w-5 h-5 text-[#C6A15B]" />}
                   />
