@@ -1,0 +1,59 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.keys().hasAll(['role']) && request.auth.token.role == 'administrator')
+      );
+    }
+
+    function isAccountant() {
+      return isSignedIn() && (
+        isAdmin() ||
+        (request.auth.token.keys().hasAll(['role']) && request.auth.token.role == 'accountant')
+      );
+    }
+
+    function isValidTaxDocument() {
+      return request.resource.size <= 50 * 1024 * 1024 // 50MB max
+        && (
+          request.resource.contentType.matches('application/pdf') ||
+          request.resource.contentType.matches('image/jpeg') ||
+          request.resource.contentType.matches('image/png') ||
+          request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') ||
+          request.resource.contentType.matches('application/vnd.ms-excel') ||
+          request.resource.contentType.matches('text/csv')
+        );
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Private client documents partitioned by client and document ID
+    match /clients/{clientId}/{documentId}/{fileName} {
+      // Read access: owner client, assigned accountants, or firm admins
+      allow read: if isOwner(clientId) || isAccountant() || isAdmin();
+      
+      // Upload access: must be owner uploading valid tax file under 50MB, or staff
+      allow write: if (isOwner(clientId) || isAccountant() || isAdmin()) && isValidTaxDocument();
+    }
+
+    // Firm deliverable storage (completed tax returns, IRS confirmation forms)
+    match /deliverables/{clientId}/{documentId}/{fileName} {
+      allow read: if isOwner(clientId) || isAccountant() || isAdmin();
+      allow write: if isAccountant() || isAdmin();
+    }
+  }
+}

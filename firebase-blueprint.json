@@ -1,0 +1,410 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role, contact info, and organization association.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "fullName": { "type": "string", "maxLength": 100, "description": "User full name" },
+        "role": { "type": "string", "enum": ["client", "accountant", "administrator"], "description": "Assigned user role" },
+        "organizationId": { "type": "string", "maxLength": 128, "description": "Associated organization ID" },
+        "phone": { "type": "string", "maxLength": 20, "description": "Phone number" },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"], "description": "Account status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["uid", "email", "fullName", "role", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Privileged record used by Firestore Security Rules to verify admin existence.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Admin UID" },
+        "email": { "type": "string", "format": "email", "description": "Admin email" },
+        "grantedBy": { "type": "string", "description": "Bootstrap or assigning admin UID" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Organization": {
+      "title": "Organization",
+      "description": "Client business entity or family trust entity.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Organization ID" },
+        "name": { "type": "string", "maxLength": 150, "description": "Legal business name" },
+        "ownerId": { "type": "string", "description": "Client owner Auth UID" },
+        "assignedAccountantId": { "type": "string", "description": "Assigned CPA Auth UID" },
+        "ein": { "type": "string", "maxLength": 20, "description": "Masked EIN or tax ID" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["id", "name", "ownerId", "createdAt", "updatedAt"]
+    },
+    "OrganizationMember": {
+      "title": "OrganizationMember",
+      "description": "Member authorization within an organization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Member mapping ID" },
+        "organizationId": { "type": "string", "description": "Organization ID" },
+        "userId": { "type": "string", "description": "User Auth UID" },
+        "role": { "type": "string", "enum": ["owner", "manager", "staff"], "description": "Member role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "organizationId", "userId", "role", "createdAt"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Catalog item of professional accounting and tax advisory services.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Service ID" },
+        "title": { "type": "string", "maxLength": 100, "description": "Service name" },
+        "description": { "type": "string", "maxLength": 500, "description": "Detailed scope" },
+        "category": { "type": "string", "enum": ["tax_prep", "tax_planning", "bookkeeping", "advisory", "audit_defense"], "description": "Service category" },
+        "priceMonthly": { "type": "number", "description": "Price for monthly retainer in cents" },
+        "priceAnnual": { "type": "number", "description": "Price for annual engagement in cents" },
+        "stripePriceId": { "type": "string", "maxLength": 100, "description": "Stripe Price ID" },
+        "active": { "type": "boolean", "description": "Whether service is open for new bookings" }
+      },
+      "required": ["id", "title", "description", "category", "active"]
+    },
+    "ServiceRequest": {
+      "title": "ServiceRequest",
+      "description": "Client intake or engagement service request.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Request ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "organizationId": { "type": "string", "description": "Target organization ID" },
+        "serviceId": { "type": "string", "description": "Service catalog ID" },
+        "assignedAccountantId": { "type": "string", "description": "Assigned CPA Auth UID" },
+        "status": { "type": "string", "enum": ["submitted", "in_review", "in_progress", "awaiting_documents", "completed", "cancelled"], "description": "Workflow status" },
+        "details": { "type": "string", "maxLength": 2000, "description": "Client notes or business context" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["id", "clientId", "serviceId", "status", "createdAt", "updatedAt"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Tax consultation or advisory appointment scheduled with timezone awareness.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Appointment ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "accountantId": { "type": "string", "description": "Accountant Auth UID" },
+        "serviceType": { "type": "string", "maxLength": 100, "description": "Type of consultation" },
+        "scheduledTime": { "type": "string", "format": "date-time", "description": "ISO start time" },
+        "durationMinutes": { "type": "number", "description": "Duration in minutes" },
+        "timeZone": { "type": "string", "maxLength": 50, "description": "Timezone, e.g. America/New_York" },
+        "status": { "type": "string", "enum": ["confirmed", "rescheduled", "cancelled", "completed"], "description": "Appointment status" },
+        "meetingUrl": { "type": "string", "maxLength": 255, "description": "Secure virtual conference link" },
+        "notes": { "type": "string", "maxLength": 1000, "description": "Client agenda notes" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["id", "clientId", "accountantId", "scheduledTime", "durationMinutes", "timeZone", "status", "createdAt", "updatedAt"]
+    },
+    "AccountantAvailability": {
+      "title": "AccountantAvailability",
+      "description": "Working hours and blocked slots for an accountant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Slot or schedule ID" },
+        "accountantId": { "type": "string", "description": "Accountant Auth UID" },
+        "dayOfWeek": { "type": "number", "description": "0 for Sunday to 6 for Saturday" },
+        "startHour": { "type": "number", "description": "Hour in 24h format (0-23)" },
+        "endHour": { "type": "number", "description": "Hour in 24h format (0-23)" },
+        "timeZone": { "type": "string", "maxLength": 50, "description": "Default timezone America/New_York" },
+        "active": { "type": "boolean", "description": "Whether availability is active" }
+      },
+      "required": ["id", "accountantId", "dayOfWeek", "startHour", "endHour", "timeZone", "active"]
+    },
+    "DocumentItem": {
+      "title": "DocumentItem",
+      "description": "Metadata for confidential client and firm documents stored securely in Cloud Storage.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Document ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "organizationId": { "type": "string", "description": "Organization ID" },
+        "uploadedBy": { "type": "string", "description": "Uploader Auth UID" },
+        "assignedAccountantId": { "type": "string", "description": "Assigned CPA Auth UID" },
+        "fileName": { "type": "string", "maxLength": 200, "description": "Sanitized file display name" },
+        "storagePath": { "type": "string", "maxLength": 300, "description": "Cloud Storage path" },
+        "mimeType": { "type": "string", "maxLength": 100, "description": "MIME type (pdf, png, jpg, xlsx, etc.)" },
+        "sizeBytes": { "type": "number", "description": "File size in bytes" },
+        "category": { "type": "string", "enum": ["tax_return", "w2", "1099", "k1", "bank_statement", "receipt", "engagement_letter", "invoice", "deliverable"], "description": "Document category" },
+        "year": { "type": "number", "description": "Tax year" },
+        "status": { "type": "string", "enum": ["uploaded", "verified", "rejected", "archived"], "description": "Verification status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Upload timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Status update timestamp" }
+      },
+      "required": ["id", "clientId", "uploadedBy", "fileName", "storagePath", "mimeType", "sizeBytes", "category", "status", "createdAt", "updatedAt"]
+    },
+    "DocumentRequest": {
+      "title": "DocumentRequest",
+      "description": "Item on the accountant's checklist requesting specific documentation from the client.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Request item ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "requestedBy": { "type": "string", "description": "Accountant Auth UID" },
+        "title": { "type": "string", "maxLength": 150, "description": "Name of needed document (e.g. 2025 Form 1099-NEC)" },
+        "description": { "type": "string", "maxLength": 500, "description": "Instructions for client" },
+        "taxYear": { "type": "number", "description": "Applicable tax year" },
+        "status": { "type": "string", "enum": ["pending", "uploaded", "accepted", "rejected"], "description": "Request fulfillment status" },
+        "dueDate": { "type": "string", "format": "date", "description": "Filing deadline" },
+        "fulfilledDocumentId": { "type": "string", "description": "ID of uploaded document meeting this request" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "clientId", "requestedBy", "title", "status", "createdAt"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Client recurring advisory or monthly bookkeeping plan status.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Subscription ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "serviceId": { "type": "string", "description": "Service ID" },
+        "planName": { "type": "string", "maxLength": 100, "description": "Plan display name" },
+        "stripeCustomerId": { "type": "string", "description": "Stripe Customer ID" },
+        "stripeSubscriptionId": { "type": "string", "description": "Stripe Subscription ID" },
+        "status": { "type": "string", "enum": ["active", "trialing", "past_due", "canceled", "incomplete"], "description": "Subscription status" },
+        "amountCents": { "type": "number", "description": "Recurring amount in cents" },
+        "currentPeriodEnd": { "type": "string", "format": "date-time", "description": "Billing cycle end" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "clientId", "serviceId", "planName", "status", "amountCents", "createdAt"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Professional fee invoice for accounting services.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Invoice ID" },
+        "invoiceNumber": { "type": "string", "maxLength": 50, "description": "Human readable invoice number (e.g. INV-2026-001)" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "amountCents": { "type": "number", "description": "Total amount in cents" },
+        "status": { "type": "string", "enum": ["draft", "open", "paid", "uncollectible", "void"], "description": "Invoice status" },
+        "dueDate": { "type": "string", "format": "date", "description": "Payment due date" },
+        "stripeInvoiceId": { "type": "string", "description": "Associated Stripe invoice ID" },
+        "stripePaymentIntentId": { "type": "string", "description": "Payment intent ID" },
+        "description": { "type": "string", "maxLength": 255, "description": "Engagement description" },
+        "paidAt": { "type": "string", "format": "date-time", "description": "Timestamp paid" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Invoice creation timestamp" }
+      },
+      "required": ["id", "invoiceNumber", "clientId", "amountCents", "status", "dueDate", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment record verified via Stripe webhook.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Payment record ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "invoiceId": { "type": "string", "description": "Invoice ID" },
+        "stripeChargeId": { "type": "string", "description": "Stripe Charge ID" },
+        "stripePaymentIntentId": { "type": "string", "description": "Stripe Payment Intent ID" },
+        "amountCents": { "type": "number", "description": "Amount in cents" },
+        "currency": { "type": "string", "maxLength": 3, "description": "usd" },
+        "status": { "type": "string", "enum": ["succeeded", "pending", "failed"], "description": "Payment status" },
+        "receiptUrl": { "type": "string", "maxLength": 300, "description": "Stripe hosted receipt URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Payment timestamp" }
+      },
+      "required": ["id", "clientId", "amountCents", "currency", "status", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Secure messaging channel between a client and their assigned CPA/Accountant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Conversation ID" },
+        "clientId": { "type": "string", "description": "Client Auth UID" },
+        "accountantId": { "type": "string", "description": "Accountant Auth UID" },
+        "subject": { "type": "string", "maxLength": 150, "description": "Engagement or subject topic" },
+        "lastMessageSnippet": { "type": "string", "maxLength": 200, "description": "Preview of last message" },
+        "lastMessageAt": { "type": "string", "format": "date-time", "description": "Timestamp of last message" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "clientId", "accountantId", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual message within a secure conversation.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Message ID" },
+        "conversationId": { "type": "string", "description": "Parent conversation ID" },
+        "senderId": { "type": "string", "description": "Sender Auth UID" },
+        "senderRole": { "type": "string", "enum": ["client", "accountant", "administrator"], "description": "Sender role" },
+        "senderName": { "type": "string", "maxLength": 100, "description": "Sender name" },
+        "content": { "type": "string", "maxLength": 5000, "description": "Message body" },
+        "read": { "type": "boolean", "description": "Read status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp" }
+      },
+      "required": ["id", "conversationId", "senderId", "senderRole", "content", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app alert for document requests, appointments, invoice status, and messages.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Notification ID" },
+        "userId": { "type": "string", "description": "Recipient Auth UID" },
+        "title": { "type": "string", "maxLength": 150, "description": "Notification title" },
+        "message": { "type": "string", "maxLength": 500, "description": "Notification body" },
+        "type": { "type": "string", "enum": ["document", "appointment", "billing", "message", "system"], "description": "Category" },
+        "link": { "type": "string", "maxLength": 100, "description": "Navigation link" },
+        "read": { "type": "boolean", "description": "Whether user marked as read" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "userId", "title", "message", "type", "read", "createdAt"]
+    },
+    "ConsentRecord": {
+      "title": "ConsentRecord",
+      "description": "Audit record of client electronic signature, terms of service, and privacy agreement.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Consent ID" },
+        "userId": { "type": "string", "description": "Consenting User Auth UID" },
+        "policyType": { "type": "string", "enum": ["terms_of_service", "privacy_policy", "engagement_letter", "e_file_consent"], "description": "Type of agreement" },
+        "version": { "type": "string", "maxLength": 20, "description": "Policy version code" },
+        "accepted": { "type": "boolean", "description": "Explicit affirmative consent" },
+        "userAgent": { "type": "string", "maxLength": 255, "description": "Browser user agent" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp accepted" }
+      },
+      "required": ["id", "userId", "policyType", "version", "accepted", "createdAt"]
+    },
+    "IntegrationConnection": {
+      "title": "IntegrationConnection",
+      "description": "Connected accounting platforms (QuickBooks, Xero, FreshBooks, Zoho Books).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Connection ID" },
+        "organizationId": { "type": "string", "description": "Organization ID" },
+        "provider": { "type": "string", "enum": ["quickbooks", "xero", "freshbooks", "zohobooks"], "description": "Accounting platform" },
+        "status": { "type": "string", "enum": ["connected", "disconnected", "configuration_required", "error"], "description": "Connection state" },
+        "externalTenantId": { "type": "string", "maxLength": 100, "description": "Tenant/Realm ID" },
+        "lastSyncedAt": { "type": "string", "format": "date-time", "description": "Last synchronization time" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["id", "organizationId", "provider", "status", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable security and compliance activity trail.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Log entry ID" },
+        "actorId": { "type": "string", "description": "Auth UID of performer" },
+        "actorRole": { "type": "string", "description": "Role at time of action" },
+        "action": { "type": "string", "maxLength": 100, "description": "System action performed" },
+        "targetResource": { "type": "string", "maxLength": 100, "description": "Target entity" },
+        "targetId": { "type": "string", "maxLength": 128, "description": "Target document ID" },
+        "metadata": { "type": "string", "maxLength": 1000, "description": "Sanitized metadata" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp" }
+      },
+      "required": ["id", "actorId", "action", "targetResource", "createdAt"]
+    },
+    "ProcessedWebhookEvent": {
+      "title": "ProcessedWebhookEvent",
+      "description": "Idempotency record to prevent duplicate Stripe webhook processing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Stripe Event ID (evt_xxx)" },
+        "eventType": { "type": "string", "maxLength": 100, "description": "Event name" },
+        "processedAt": { "type": "string", "format": "date-time", "description": "Timestamp processed" }
+      },
+      "required": ["id", "eventType", "processedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "Private user profiles accessible by self and admins."
+    },
+    "/admins/{userId}": {
+      "schema": "#/entities/AdminRecord",
+      "description": "Restricted admin registry used by Firestore Security Rules to verify admin status."
+    },
+    "/organizations/{orgId}": {
+      "schema": "#/entities/Organization",
+      "description": "Client business organizations."
+    },
+    "/organizationMembers/{memberId}": {
+      "schema": "#/entities/OrganizationMember",
+      "description": "Organization membership and permissions."
+    },
+    "/services/{serviceId}": {
+      "schema": "#/entities/Service",
+      "description": "Catalog of services; publicly readable, admin writable."
+    },
+    "/serviceRequests/{requestId}": {
+      "schema": "#/entities/ServiceRequest",
+      "description": "Client intake and service requests."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "#/entities/Appointment",
+      "description": "Client and CPA consultation bookings."
+    },
+    "/accountantAvailability/{slotId}": {
+      "schema": "#/entities/AccountantAvailability",
+      "description": "Accountant schedule and working hours."
+    },
+    "/documents/{docId}": {
+      "schema": "#/entities/DocumentItem",
+      "description": "Secure document metadata."
+    },
+    "/documentRequests/{reqId}": {
+      "schema": "#/entities/DocumentRequest",
+      "description": "Missing documents requested by accountants."
+    },
+    "/subscriptions/{subId}": {
+      "schema": "#/entities/Subscription",
+      "description": "Client active subscriptions managed via server webhooks."
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "#/entities/Invoice",
+      "description": "Client billing invoices."
+    },
+    "/payments/{paymentId}": {
+      "schema": "#/entities/Payment",
+      "description": "Verified payments processed through Stripe."
+    },
+    "/conversations/{conversationId}": {
+      "schema": "#/entities/Conversation",
+      "description": "Direct communication thread between client and assigned accountant."
+    },
+    "/messages/{messageId}": {
+      "schema": "#/entities/Message",
+      "description": "Messages sent within conversations."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "#/entities/Notification",
+      "description": "In-app notifications for users."
+    },
+    "/consentRecords/{consentId}": {
+      "schema": "#/entities/ConsentRecord",
+      "description": "Legal consent and policy acceptance audit trail."
+    },
+    "/integrationConnections/{connId}": {
+      "schema": "#/entities/IntegrationConnection",
+      "description": "Accounting platform integrations."
+    },
+    "/auditLogs/{logId}": {
+      "schema": "#/entities/AuditLog",
+      "description": "System-wide immutable audit trail; written by server/functions."
+    },
+    "/processedWebhookEvents/{eventId}": {
+      "schema": "#/entities/ProcessedWebhookEvent",
+      "description": "Stripe webhook idempotency cache."
+    }
+  }
+}

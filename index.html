@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages - Path Restoration
+      // MIT License - https://github.com/rafgraph/spa-github-pages
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+    <script>
+      // Narrowed filter: ONLY suppress confirmed third-party browser extension injection noise (e.g. MetaMask extension in iframe)
+      // Never suppress genuine application, Firebase, API, authentication, or React rendering errors.
+      (function() {
+        var isConfirmedExtensionNoise = function(msg, source, stack) {
+          var text = ((msg || '') + ' ' + (source || '') + ' ' + (stack || '')).toLowerCase();
+          
+          // Never suppress genuine application, Firebase, backend API, or local code errors
+          if (
+            text.indexOf('/src/') !== -1 ||
+            text.indexOf('artaxserv.com') !== -1 ||
+            text.indexOf('/api/') !== -1 ||
+            text.indexOf('firebase') !== -1 ||
+            text.indexOf('firestore') !== -1 ||
+            text.indexOf('googleapis') !== -1 ||
+            text.indexOf('react') !== -1
+          ) {
+            return false;
+          }
+
+          // Must originate from an extension protocol or known wallet injection script
+          var isExtensionProtocol = 
+            text.indexOf('chrome-extension://') !== -1 ||
+            text.indexOf('moz-extension://') !== -1 ||
+            text.indexOf('safari-web-extension://') !== -1;
+
+          var isKnownWalletError = 
+            text.indexOf('failed to connect to metamask') !== -1 ||
+            text.indexOf('metamask: the event') !== -1 ||
+            text.indexOf('metamask-contentscript') !== -1 ||
+            text.indexOf('evm-ask-provider') !== -1;
+
+          return isExtensionProtocol || isKnownWalletError;
+        };
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e.reason;
+          var msg = (reason && (reason.message || String(reason))) || '';
+          var stack = (reason && reason.stack) || '';
+          if (isConfirmedExtensionNoise(msg, '', stack)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }, true);
+
+        window.addEventListener('error', function(e) {
+          var msg = (e && (e.message || (e.error && e.error.message))) || '';
+          var source = (e && e.filename) || '';
+          var stack = (e && e.error && e.error.stack) || '';
+          if (isConfirmedExtensionNoise(msg, source, stack)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A/R Tax Services, LLC | Tax Preparation, Advisory &amp; Wealth Planning</title>
+    <meta name="description" content="Professional tax preparation, business accounting, strategic tax advisory, and wealth coordination in Columbia, South Carolina." />
+    <link rel="canonical" href="https://artaxservices.com/" />
+    <meta property="og:title" content="A/R Tax Services, LLC | Tax Preparation, Advisory &amp; Wealth Planning" />
+    <meta property="og:description" content="Professional tax preparation, business accounting, strategic tax advisory, and wealth coordination in Columbia, South Carolina." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://artaxservices.com/" />
+    <meta property="og:site_name" content="A/R Tax Services, LLC" />
+    <meta property="og:image" content="/images/ar-tax-services-logo.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="A/R Tax Services, LLC | Tax Preparation, Advisory &amp; Wealth Planning" />
+    <meta name="twitter:description" content="Professional tax preparation, business accounting, strategic tax advisory, and wealth coordination in Columbia, South Carolina." />
+    <meta name="twitter:image" content="/images/ar-tax-services-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preload" as="image" href="/ceo/123456789-desmond.png?v=20260922-1" type="image/png" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["AccountingService", "FinancialService", "LocalBusiness"],
+      "name": "A/R Tax Services, LLC",
+      "image": "https://artaxservices.com/images/ar-tax-services-logo.png",
+      "@id": "https://artaxservices.com/#organization",
+      "url": "https://artaxservices.com/",
+      "telephone": "+1-678-205-9486",
+      "email": "info@artaxservices.com",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Columbia",
+        "addressRegion": "SC",
+        "postalCode": "29201",
+        "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 34.0007,
+        "longitude": -81.0348
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+          ],
+          "opens": "09:00",
+          "closes": "18:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Saturday",
+          "opens": "10:00",
+          "closes": "14:00"
+        }
+      ],
+      "founder": {
+        "@type": "Person",
+        "name": "Desmond Hinds",
+        "jobTitle": "Founder & Chief Executive Officer"
+      },
+      "description": "Professional tax preparation, business accounting, strategic tax advisory, and wealth coordination in Columbia, South Carolina.",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Tax & Accounting Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Individual Tax Preparation & Filing",
+              "description": "Form 1040 federal and multi-state tax preparation with itemized deductions and credit optimization."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Business Tax Filing & Corporate Compliance",
+              "description": "Form 1120, 1120S, 1065 entity tax returns, K-1 generation, and quarterly estimated tax scheduling."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Monthly & Quarterly Bookkeeping",
+              "description": "General ledger reconciliation, GAAP financial statement generation, and accounting software management."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Tax Planning & Strategy Advisory",
+              "description": "Proactive tax reduction frameworks, Section 199A QBI evaluation, and entity structuring."
+            }
+          }
+        ]
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-[#06172C] text-[#F8F6F1] font-sans antialiased selection:bg-[#C99A3D] selection:text-[#06172C]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,9 @@
+{
+  "name": "A/R Tax Services, LLC",
+  "description": "Professional tax preparation, business accounting, strategic tax advisory, and wealth coordination in Columbia, South Carolina.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Exact UHNW Master Brand Tokens per Master Specification */
+    --brand-navy: #061A2F;
+    --brand-navy-dark: #031323;
+    --brand-midnight: #020D18;
+    --brand-gold: #C99A32;
+    --brand-gold-premium: #D7AC4A;
+    --brand-gold-soft: #E8C66A;
+    --brand-ivory: #F7F4ED;
+    --brand-white: #FFFFFF;
+    --brand-off-white: #FBFAF7;
+    --brand-text: #1A2028;
+    --brand-muted: #667085;
+    --brand-border: #D8DCE2;
+    --brand-success: #138A67;
+    --brand-warning: #B87319;
+    --brand-error: #B42318;
+    --brand-info: #2563A6;
+
+    /* Color token mappings */
+    --color-primary-midnight-navy: #061A2F;
+    --color-deep-navy: #031323;
+    --color-elevated-navy: #0A2544;
+    --color-navy-hover: #0E315A;
+
+    --color-refined-gold: #C99A32;
+    --color-bright-gold: #D7AC4A;
+    --color-soft-champagne: #E8C66A;
+    --color-muted-gold-surface: #F5ECDA;
+
+    --color-warm-ivory: #F7F4ED;
+    --color-soft-ivory-surface: #FBFAF7;
+
+    --color-primary-dark-text: #1A2028;
+    --color-secondary-text: #4A5568;
+    --color-muted-text: #667085;
+    --color-text-on-dark: #F7F4ED;
+
+    --color-navy-border: #1A365D;
+    --color-gold-border: #C99A32;
+    --color-light-border: #D8DCE2;
+
+    --color-success: #138A67;
+    --color-warning: #B87319;
+    --color-error: #B42318;
+    --color-error-bg: #FFF1F0;
+    --color-information: #2563A6;
+
+    /* Semantic Mappings */
+    --color-page-background: #061A2F;
+    --color-surface-dark: #031323;
+    --color-surface-elevated: #0A2544;
+    --color-surface-light: #FBFAF7;
+    --color-surface-highlight: #F7F4ED;
+    --color-brand-primary: #C99A32;
+    --color-brand-hover: #D7AC4A;
+    --color-text-primary: #1A2028;
+    --color-text-secondary: #4A5568;
+    --color-border: #D8DCE2;
+    --color-focus: #C99A32;
+
+    /* Legacy compatibility aliases */
+    --color-midnight: #061A2F;
+    --color-heritage: #0A2544;
+    --color-gold: #C99A32;
+    --color-champagne: #D7AC4A;
+    --color-ivory: #F7F4ED;
+  }
+
+  body {
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+    background-color: #06172C;
+    color: #F8F6F1;
+  }
+
+  .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  /* Universal select and option high-contrast baseline rule */
+  select option {
+    background-color: #FBF8F1;
+    color: #10233D;
+    font-weight: 500;
+  }
+  select.bg-slate-900 option,
+  select.bg-navy option,
+  .dark-select option {
+    background-color: #0D2746;
+    color: #F7F1E5;
+  }
+}
+
+/* Premium executive brand utility classes */
+.bg-surface-ivory {
+  background-color: #FBF8F1;
+}
+
+.bg-surface-ivory-warm {
+  background-color: #F7F1E5;
+}
+
+.bg-surface-muted-gold {
+  background-color: #F4E7C3;
+}
+
+.border-ivory-light {
+  border-color: #D8C9A5;
+}
+
+.border-gold-refined {
+  border-color: #B98B32;
+}
+
+.border-navy-refined {
+  border-color: #244567;
+}
+
+.text-navy-primary {
+  color: #10233D;
+}
+
+.text-navy-secondary {
+  color: #52657B;
+}
+
+.text-navy-muted {
+  color: #718096;
+}
+
+.text-gold-refined {
+  color: #C99A3D;
+}
+
+.text-gold-bright {
+  color: #E2B957;
+}
+
+.gold-shimmer {
+  background: linear-gradient(135deg, #C99A3D 0%, #E2BD67 50%, #C99A3D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border-subtle {
+  border-color: rgba(201, 154, 61, 0.35);
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #C99A3D 0%, #E2B957 100%);
+}
+
+.navy-card-gradient {
+  background: linear-gradient(180deg, #0B2748 0%, #06172C 100%);
+}
+
+/* Accessible focus ring standards */
+*:focus-visible {
+  outline: 2px solid #C99A3D;
+  outline-offset: 2px;
+}
+
+/* CEO Portrait display specification */
+.ceo-photo {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Homepage Hero CEO Image specification */
+.home-ceo-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
