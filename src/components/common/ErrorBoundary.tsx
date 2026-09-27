@@ -1,4 +1,4 @@
-﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { 
   AlertTriangle, 
   RefreshCw, 
@@ -78,7 +78,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     const errorStr = (error?.message || '').toLowerCase();
     let errorCategory: State['errorCategory'] = 'runtime';
 
-    if (errorStr.includes('dynamically imported module') || errorStr.includes('loading chunk') || errorStr.includes('failed to fetch')) {
+    if (errorStr.includes('dynamically imported module') || errorStr.includes('loading chunk') || errorStr.includes('chunkloaderror')) {
       errorCategory = 'chunk';
     } else if (errorStr.includes('network') || errorStr.includes('fetch') || errorStr.includes('econnrefused')) {
       errorCategory = 'network';
