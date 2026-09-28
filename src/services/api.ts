@@ -732,5 +732,105 @@ export const api = {
         body: JSON.stringify({ clientId, content, isInternalOnly })
       });
     }
+  },
+
+  // Authoritative Scoped Case, Stage Engine, Document Pipeline & OCR API (M18.4 - M18.6)
+  caseAuthority: {
+    getCase: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}`);
+    },
+    listCases: async (tenantId: string, clientId: string, engagementId: string) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/cases`);
+    },
+    updateCase: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; patch: Record<string, unknown> }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    },
+    activateCase: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/activate`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    blockCase: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; reason: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/block`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    reopenCase: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reopen`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    archiveCase: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/archive`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    getStages: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages`);
+    },
+    getStageState: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}`);
+    },
+    evaluateStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; snapshot: unknown }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/evaluate`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    transitionStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; toStage?: number; approvalId?: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/transition`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    blockStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; reason: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/block`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    reopenStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/reopen`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    invalidateDownstream: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; reason: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/invalidate`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    getDocuments: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/documents`);
+    },
+    registerDocument: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; document: Record<string, unknown> }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/documents`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    submitOcr: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, docId: string, payload: { version: number; operationId: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/documents/${docId}/ocr`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    reviewOcrField: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, fieldId: string, payload: { version: number; operationId: string; decision: { action: string; correctedValue?: unknown; reason?: string } }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/ocr/${fieldId}/review`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    getProviderReadiness: async () => {
+      return request<{ providers: any[] }>('/api/provider-readiness');
+    }
   }
 };

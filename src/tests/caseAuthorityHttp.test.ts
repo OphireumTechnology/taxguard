@@ -61,3 +61,36 @@ it('returns unavailable rather than raw storage errors', async () => {
   expect(response.status).toBe(503);
   expect(await response.text()).not.toContain('secret backend');
 });
+
+it('returns 18 persistent stage states via the API', async () => {
+  const response = await fetch(origin + '/stages', { headers: { 'x-test-user': 'owner' } });
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data).toHaveLength(18);
+  expect(data[0].stageName).toBe('ONBOARD');
+  expect(data[17].stageName).toBe('REPEAT');
+});
+
+it('returns truthful provider readiness without secret keys', async () => {
+  const readinessUrl = origin.split('/tenantA')[0] + '/provider-readiness';
+  const response = await fetch(readinessUrl);
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(Array.isArray(data.providers)).toBe(true);
+  expect(data.providers.some((p: any) => p.provider === 'DATABASE')).toBe(true);
+});
+
+it('lists cases for an engagement via the API', async () => {
+  holder.db.records.set('taxguardTenants/tenantA/clients/001/engagements/engA', {
+    clientId: '001',
+    taxYears: [2025],
+  });
+  const casesUrl = origin.split('/2025')[0] + '/cases';
+  const response = await fetch(casesUrl, { headers: { 'x-test-user': 'preparer' } });
+  expect(response.status).toBe(200);
+  const cases = await response.json();
+  expect(Array.isArray(cases)).toBe(true);
+  expect(cases).toHaveLength(1);
+  expect(cases[0].taxYear).toBe(2025);
+});
+

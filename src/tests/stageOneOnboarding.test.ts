@@ -63,7 +63,7 @@ describe('Stage One Onboard - Unified 18-Stage Operating Workflow', () => {
         email: existing.email,
         phone: '(555) 000-1111',
         legalName: 'Brand New Taxpayer LLC'
-      });
+      }, INITIAL_DEMO_CLIENTS);
 
       expect(report.status).toBe('EXACT_MATCH');
       expect(report.routedToReview).toBe(true);
@@ -76,7 +76,7 @@ describe('Stage One Onboard - Unified 18-Stage Operating Workflow', () => {
         email: 'completely.new@example.com',
         phone: existing.phone,
         legalName: 'Unique Entity LLC'
-      });
+      }, INITIAL_DEMO_CLIENTS);
 
       expect(report.routedToReview).toBe(true);
       expect(report.matches.some(m => m.matchedField === 'phone')).toBe(true);
@@ -88,7 +88,7 @@ describe('Stage One Onboard - Unified 18-Stage Operating Workflow', () => {
         email: 'unique.person@example.com',
         phone: '(803) 555-8899',
         legalName: 'Perotti Capital Holdings, LLC'
-      });
+      }, INITIAL_DEMO_CLIENTS);
 
       expect(report.routedToReview).toBe(true);
       expect(report.matches.some(m => m.matchedField === 'name')).toBe(true);
@@ -106,7 +106,7 @@ describe('Stage One Onboard - Unified 18-Stage Operating Workflow', () => {
           zip: '29801',
           country: 'United States'
         }
-      });
+      }, INITIAL_DEMO_CLIENTS);
 
       expect(report.status).toBe('CLEARED');
       expect(report.routedToReview).toBe(false);
@@ -120,7 +120,7 @@ describe('Stage One Onboard - Unified 18-Stage Operating Workflow', () => {
         phone: '(678) 205-9486'
       });
 
-      const dupReport = StageOneOnboardingService.runDuplicateCheck(dossier);
+      const dupReport = StageOneOnboardingService.runDuplicateCheck(dossier, INITIAL_DEMO_CLIENTS);
       dossier.duplicateCheck = dupReport;
       StageOneOnboardingService.saveDossier(dossier);
       expect(dossier.duplicateCheck.routedToReview).toBe(true);
