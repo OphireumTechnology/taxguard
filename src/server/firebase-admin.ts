@@ -48,7 +48,7 @@ function initializeFirebaseAdmin(): void {
      * supported for compatibility.
      */
     const credential =
-      applicationCredentials
+      applicationCredentials || process.env.K_SERVICE || process.env.FUNCTION_TARGET
         ? applicationDefault()
         : projectId && clientEmail && privateKey
           ? cert({

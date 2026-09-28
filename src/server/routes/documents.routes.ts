@@ -189,6 +189,7 @@ documentsRouter.get('/download/:token', (req: Request, res: Response) => {
 
 // Upload new document with malware scanning hook and AI extraction
 documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords, async (req: AuthenticatedRequest, res: Response) => {
+  if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Real document intake is unavailable until the quarantine and scanning pipeline is commissioned.', code: 'DOCUMENT_INTAKE_NOT_READY' });
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 

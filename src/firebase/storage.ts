@@ -37,6 +37,7 @@ export async function uploadClientTaxDocument(
   organizationId?: string,
   onProgress?: UploadProgressCallback
 ): Promise<DocumentItem> {
+  if (import.meta.env.PROD) throw new Error('Document intake is unavailable until the secure scanning pipeline is commissioned.');
   if (!auth.currentUser) {
     throw new Error('User must be authenticated to upload confidential tax records.');
   }

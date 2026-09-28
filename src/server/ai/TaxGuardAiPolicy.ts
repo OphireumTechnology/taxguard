@@ -4,6 +4,9 @@ import type {
 
 const BLOCKED_PATTERNS:
   readonly RegExp[] = [
+    /\b(?:\d{3}[- ]\d{2}[- ]\d{4}|\d{2}-\d{7}|\d{9,19})\b/,
+    /\b(?:ssn|tin|ein|bank|routing|account\s*number|auth(?:entication)?\s*token|access[_ -]?token|secret)\s*[:=]/i,
+    /\bsk-[a-z0-9_-]{8,}/i,
     /-----BEGIN[\s\S]*PRIVATE KEY-----/i,
 
     /\bpassword\s*[:=]/i,
@@ -40,12 +43,18 @@ export class TaxGuardAiPolicy {
     }
 
     if (
-      !request.task ||
+      typeof request.task !== 'string' ||
       !request.task.trim()
     ) {
       throw new Error(
         'TAXGUARD_AI_TASK_REQUIRED'
       );
+    }
+
+    if ((request.context !== undefined && typeof request.context !== 'string') ||
+        (request.evidence !== undefined && (!Array.isArray(request.evidence) || request.evidence.some(v => typeof v !== 'string'))) ||
+        (request.riskLevel !== undefined && !['routine', 'material', 'critical'].includes(request.riskLevel))) {
+      throw new Error('TAXGUARD_AI_INVALID_REQUEST');
     }
 
     if (
@@ -92,6 +101,8 @@ export class TaxGuardAiPolicy {
 
     const payload =
       combined(request);
+
+    if (payload.length > 64000) throw new Error('TAXGUARD_AI_PAYLOAD_TOO_LARGE');
 
     for (
       const pattern

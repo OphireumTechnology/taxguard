@@ -13,6 +13,7 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 import { UserRole } from '../types';
+import { passwordResetSettings } from './passwordResetPolicy';
 
 export interface AuthUserProfile {
   uid: string;
@@ -99,13 +100,13 @@ export async function registerWithEmail(
       emailVerified: fbUser.emailVerified
     };
 
-    await setDoc(doc(db, 'users', fbUser.uid), {
+    if (!import.meta.env.PROD) await setDoc(doc(db, 'users', fbUser.uid), {
       ...profile,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
-    if (companyName) {
+    if (companyName && !import.meta.env.PROD) {
       await setDoc(doc(db, 'organizations', orgId), {
         id: orgId,
         name: companyName,
@@ -224,13 +225,12 @@ export async function logout(): Promise<void> {
  */
 export async function requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://artaxserv.com';
-    await sendPasswordResetEmail(auth, email.trim(), {
-      url: `${origin}/#/login`
-    });
+    await sendPasswordResetEmail(auth, email.trim(), passwordResetSettings(import.meta.env.VITE_PASSWORD_RESET_CONTINUE_URL));
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message || 'Failed to send password reset email.' };
+    return { success: false, error: error.code === 'auth/unauthorized-continue-uri'
+      ? 'Password reset configuration requires administrator attention. Please contact support.'
+      : 'Unable to send the password reset email. Please try again later.' };
   }
 }
 

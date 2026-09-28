@@ -3,7 +3,8 @@ import {
 } from 'express';
 
 import {
-  authenticateToken
+  authenticateToken,
+  type AuthenticatedRequest
 } from '../auth';
 
 import {
@@ -67,6 +68,12 @@ router.get(
 router.post(
   '/propose',
   authenticateToken,
+  (req: AuthenticatedRequest, res, next) => {
+    if (!req.user || req.user.status !== 'active' || !['accountant', 'reviewer', 'senior_reviewer'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'TAXGUARD_AI_FORBIDDEN', requiresHumanReview: true });
+    }
+    next();
+  },
   async (
     req,
     res
@@ -74,16 +81,9 @@ router.post(
     const id =
       correlationId();
 
-    /*
-     * Authentication has already been
-     * enforced by authenticateToken.
-     *
-     * M16 deliberately does not assume
-     * a particular AuthenticatedRequest
-     * property shape.
-     */
+    // Identity comes only from the authenticated server session.
     const actorId =
-      'authenticated-taxguard-user';
+      (req as AuthenticatedRequest).user!.id;
 
     try {
       const request =
@@ -136,12 +136,12 @@ router.post(
         proposal
       });
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'TAXGUARD_AI_UNKNOWN_FAILURE';
+      const message = error instanceof Error && /^TAXGUARD_AI_[A-Z_]+$/.test(error.message)
+        ? error.message : 'TAXGUARD_AI_PROVIDER_FAILURE';
 
       const rejected =
+        message === 'TAXGUARD_AI_INVALID_REQUEST' ||
+        message === 'TAXGUARD_AI_PAYLOAD_TOO_LARGE' ||
         message ===
           'TAXGUARD_AI_REQUEST_REQUIRED' ||
 

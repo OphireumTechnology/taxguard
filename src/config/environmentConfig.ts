@@ -115,3 +115,9 @@ export class EnvironmentConfigService {
     return Object.values(ENVIRONMENT_CONFIGS);
   }
 }
+
+/**
+ * Canonical TaxGuard environment configuration accessor.
+ */
+export const getEnvironmentConfig = (): EnvironmentBehaviorConfig =>
+  EnvironmentConfigService.getConfig();

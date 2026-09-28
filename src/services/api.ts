@@ -26,6 +26,7 @@ import {
   ReassignmentRequest,
   DetailedAccountingIntegration
 } from '../types';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 const TOKEN_KEY = 'artax_session_token';
 let memoryToken: string | null = null;
@@ -67,9 +68,6 @@ export function clearStoredToken() {
     // Storage restricted or unavailable in sandboxed iframe
   }
 }
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || ''
-).replace(/\/+$/, '');
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers: Record<string, string> = {
@@ -82,7 +80,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['x-session-token'] = token;
   }
 
-const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+const response = await fetch(apiEndpoint(endpoint), {
     ...options,
     headers
   });
@@ -90,6 +88,10 @@ const response = await fetch(`${API_BASE_URL}${endpoint}`, {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      clearStoredToken();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired'));
+    }
     const errorMsg = data.error || data.message || `Request failed with status ${response.status}`;
     const err = new Error(errorMsg) as any;
     err.status = response.status;

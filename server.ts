@@ -1,3 +1,4 @@
+import { createProductionApp } from './src/server/productionApp';
 /**
  * A/R Tax Services, LLC - Production Server Entry Point
  * Full-stack Express + Vite application with enterprise security headers,
@@ -7,6 +8,8 @@
 
 import express from 'express';
 import path from 'path';
+import { protectServerBuildArtifacts } from './src/server/staticAssetPolicy';
+import { caseAuthorityRouter } from './src/server/routes/case-authority.routes';
 import { createServer as createViteServer } from 'vite';
 
 import {
@@ -134,6 +137,8 @@ import './src/server/firebase-admin';
 const app =
   express();
 
+const productionApi = createProductionApp();
+
 const PORT =
   Number(
     process.env.PORT
@@ -145,7 +150,13 @@ const PORT =
  * ============================================================
  */
 
-initSeedPasswords();
+if (process.env.NODE_ENV !== 'production') initSeedPasswords();
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.path === '/api' || req.path.startsWith('/api/')) return productionApi(req, res, next);
+    next();
+  });
+}
 
 /**
  * ============================================================
@@ -215,7 +226,7 @@ app.use(
 
     res.setHeader(
       'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, OPTIONS'
+      'GET, POST, PUT, PATCH, DELETE, OPTIONS'
     );
 
     res.setHeader(
@@ -569,6 +580,7 @@ app.use(
  */
 
 async function startServer() {
+  app.use('/api/case-authority', caseAuthorityRouter);
   /**
    * Development:
    * Vite runs as Express middleware.
@@ -652,6 +664,7 @@ async function startServer() {
      */
 
     app.use(
+      protectServerBuildArtifacts,
       express.static(
         distPath
       )
