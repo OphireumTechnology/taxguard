@@ -23,12 +23,7 @@ import {
   UserStatusUpdateResult,
   ClientReassignmentResult
 } from '../types';
-import {
-  INITIAL_USERS,
-  INITIAL_SERVICE_PLANS,
-  INITIAL_JOBS,
-  INITIAL_APPLICANTS
-} from '../data/mockData';
+import { INITIAL_SERVICE_PLANS, INITIAL_JOBS } from '../data/mockData';
 import { api, getStoredToken, clearStoredToken } from '../services/api';
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -40,7 +35,6 @@ import {
 import { seedInitialServicesIfEmpty } from '../firebase/seed';
 import { testConnection } from '../firebase/firestore';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { DemoAuthService } from '../demo/services/DemoAuthService';
 import { StageOneOnboardingService } from '../services/stageOneOnboardingService';
 
 export type PageRoute =
@@ -168,34 +162,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const DEMO_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif_1',
-    title: 'Tax Document Under Review',
-    message: 'Senior Reviewer Elena Rostova is conducting final compliance review on your 2025 return.',
-    timestamp: '10 mins ago',
-    isRead: false,
-    type: 'info',
-    linkTarget: 'client_portal'
-  },
-  {
-    id: 'notif_2',
-    title: 'Upcoming Consultation',
-    message: 'Strategy session with Desmond Hinds confirmed for Sept 15 at 10:00 AM EST.',
-    timestamp: '2 hours ago',
-    isRead: false,
-    type: 'success',
-    linkTarget: 'client_portal'
-  },
-  {
-    id: 'notif_3',
-    title: 'Security Scan Passed',
-    message: 'Zero vulnerabilities detected. AES-256 encrypted storage active.',
-    timestamp: '1 day ago',
-    isRead: true,
-    type: 'info'
-  }
-];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const resolveRoute = (rawInput: string): PageRoute | null => {
@@ -343,10 +309,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const authOperationInProgressRef = useRef(false);
   const firebaseSessionPromisesRef = useRef<Map<string, Promise<User>>>(new Map());
 
-  const isDemoWorkspace = () => DemoAuthService.hasAnyActiveSession() || (
-    typeof window !== 'undefined' && localStorage.getItem('taxguard_environment') === 'demo'
-  );
-
   const clearTaxpayerState = useCallback(() => {
     setUsers([]);
     setEngagements([]);
@@ -362,12 +324,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications([]);
     setOnboardingState(null);
     setOnboardingProgress(null);
-  }, []);
-
-  const restoreDemoFixtures = useCallback(() => {
-    setUsers(INITIAL_USERS);
-    setApplicants(INITIAL_APPLICANTS);
-    setNotifications(DEMO_NOTIFICATIONS.map(item => ({ ...item })));
   }, []);
 
   useEffect(() => {
@@ -481,8 +437,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const restoration = (async () => {
       const idToken = await firebaseUser.getIdToken(forceRefresh);
       if (!idToken) throw new Error('A verified Firebase identity token could not be obtained.');
-
-      DemoAuthService.clearAllSessions();
       clearTaxpayerState();
       clearStoredToken();
 
@@ -602,7 +556,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       await firebaseLogout().catch(() => {});
-      DemoAuthService.clearAllSessions();
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
@@ -648,57 +601,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (!normalizedEmail || !password) return { success: false, error: 'Email and password are required.' };
 
-    if (normalizedEmail === 'artest2026') {
-      authOperationInProgressRef.current = true;
-      try {
-        await firebaseLogout().catch(() => {});
-        DemoAuthService.clearAllSessions();
-        const demoResult = await DemoAuthService.authenticate('client', normalizedEmail, password);
-        if (!demoResult.success || !demoResult.session) {
-          return { success: false, error: demoResult.error || 'Invalid Login ID or password.' };
-        }
-
-        const demoProfile = INITIAL_USERS.find(user =>
-          user.id === demoResult.session?.user.id || user.email === demoResult.session?.user.email
-        ) || INITIAL_USERS.find(user => user.role === 'client');
-
-        if (!demoProfile) {
-          DemoAuthService.logout('client');
-          return { success: false, error: 'The demonstration client profile is unavailable.' };
-        }
-
-        clearStoredToken();
-        clearTaxpayerState();
-        restoreDemoFixtures();
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('taxguard_environment', 'demo');
-          localStorage.removeItem('demo_session');
-        }
-
-        const demoUser: User = {
-          ...demoProfile,
-          id: demoResult.session.user.id,
-          name: demoResult.session.user.name,
-          email: demoResult.session.user.email,
-          role: 'client'
-        };
-
-        setCurrentUser(demoUser);
-        setCurrentRoleState('client');
-        setIsInitialized(true);
-        return { success: true, redirectPage: 'client_portal' };
-      } catch (err: any) {
-        return { success: false, error: err?.message || 'Invalid Login ID or password.' };
-      } finally {
-        authOperationInProgressRef.current = false;
-      }
-    }
-
     authOperationInProgressRef.current = true;
 
     try {
-      DemoAuthService.clearAllSessions();
       if (typeof window !== 'undefined') {
         localStorage.removeItem('demo_session');
         sessionStorage.removeItem('demo_session');
@@ -733,7 +638,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     authOperationInProgressRef.current = true;
 
     try {
-      DemoAuthService.clearAllSessions();
       clearStoredToken();
       clearTaxpayerState();
 
@@ -781,13 +685,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       if (isDemoSession) {
-        DemoAuthService.clearAllSessions();
       } else {
         await firebaseLogout().catch(() => {});
         await api.auth.logout().catch(() => {});
       }
     } finally {
-      DemoAuthService.clearAllSessions();
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
@@ -808,7 +710,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const uploadDocument = async (docData: Partial<DocumentItem>, sampleText?: string): Promise<DocumentItem | null> => {
     try {
-      if (isDemoWorkspace()) throw new Error('DEMO documents cannot be written to LIVE storage.');
       if (!currentUser?.clientId) throw new Error('Permanent TaxGuard Client ID is required.');
 
       const res = await api.documents.upload({
@@ -825,8 +726,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDocuments(previous => [newDoc, ...previous.filter(item => item.id !== newDoc.id)]);
       setNotifications(previous => [{
         id: `notif_${Date.now()}`,
-        title: 'Document Securely Encrypted',
-        message: `${newDoc.fileName} was verified by anti-malware and processed by AI extraction (${newDoc.ocrConfidence || 95}% confidence).`,
+        title: 'Document Intake Received',
+        message: `${newDoc.fileName} was received by TaxGuard and is pending the applicable security, processing, validation, and human-review controls.`,
         timestamp: 'Just now',
         isRead: false,
         type: 'success',
@@ -912,7 +813,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const bookAppointment = async (aptData: Omit<Appointment, 'id' | 'createdAt' | 'status'>) => {
     try {
-      if (isDemoWorkspace()) throw new Error('DEMO appointments cannot be written to LIVE scheduling services.');
       if (!currentUser?.clientId) throw new Error('Permanent TaxGuard Client ID is required.');
 
       const res = await api.appointments.book(aptData);
@@ -1090,7 +990,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveOnboardingStep = async (stepData: Partial<OnboardingState>): Promise<boolean> => {
     try {
-      if (isDemoWorkspace()) throw new Error('DEMO onboarding data cannot be written to LIVE storage.');
       if (!currentUser?.clientId) throw new Error('Permanent TaxGuard Client ID is required.');
       const res = await api.onboarding.saveStep(stepData);
       setOnboardingState(res.state);
@@ -1104,7 +1003,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const submitOnboardingDossier = async (): Promise<boolean> => {
     try {
-      if (isDemoWorkspace()) throw new Error('DEMO onboarding dossiers cannot be submitted to LIVE services.');
       if (!currentUser?.clientId) throw new Error('Permanent TaxGuard Client ID is required.');
       const res = await api.onboarding.submitDossier();
       setOnboardingState(res.state);
@@ -1117,7 +1015,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createLegalRecord = async (record: Partial<LegalCoordinationRecord>): Promise<boolean> => {
     try {
-      if (isDemoWorkspace()) throw new Error('DEMO legal records cannot be written to LIVE storage.');
       const recordId = record.id || `legal_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       setDoc(doc(db, 'consentRecords', recordId), {
         ...record,

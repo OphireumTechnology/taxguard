@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,11 +36,7 @@ const StaffOnboardingWizard = lazy(() => import('./components/workspace/StaffOnb
 const LiveCalendarModule = lazy(() => import('./components/calendar/LiveCalendarModule').then(m => ({ default: m.LiveCalendarModule })));
 const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
 
-import { DemoAppRouter } from './demo/DemoAppRouter';
 import { PublicV2Router } from './public-v2/PublicV2Router';
-import { DemoAuthService } from './demo/services/DemoAuthService';
-import { DEMO_ROLES, DemoRole } from './demo/types';
-import { ErrorPageView } from './demo/components/ErrorPages';
 
 import { LiveClientWorkflowRouter } from './components/workflow/LiveClientWorkflowRouter';
 function getUrlTarget(): string {
@@ -68,12 +64,13 @@ function isClientScopedRouteUrl(): boolean {
   return target === 'client' || target.startsWith('client/');
 }
 
-function hasLiveClientWorkspace(user: { role?: string } | null | undefined): boolean {
+function hasLiveClientWorkspace(
+  user: { role?: string; clientId?: string } | null | undefined
+): boolean {
   return Boolean(
-    typeof window !== 'undefined' &&
     user?.role === 'client' &&
-    localStorage.getItem('taxguard_environment') === 'live' &&
-    !DemoAuthService.isAuthenticated('client')
+    user?.clientId &&
+    user.clientId.trim().length > 0
   );
 }
 
@@ -94,13 +91,12 @@ const AppContent: React.FC = () => {
   const [liveTaxYear, setLiveTaxYear] = React.useState<number>(
     () => new Date().getFullYear() - 1
   );
-  const [isDemoRoute, setIsDemoRoute] = React.useState(() => isDemoRouteUrl());
   const [isPublicV2Route, setIsPublicV2Route] = React.useState(() => isPublicV2RouteUrl());
   const [isTaxGuardRoute, setIsTaxGuardRoute] = React.useState(() => isTaxGuardRouteUrl());
 
   useEffect(() => {
     const handleUrlChange = () => {
-      setIsDemoRoute(isDemoRouteUrl());
+
       setIsPublicV2Route(isPublicV2RouteUrl());
       setIsTaxGuardRoute(isTaxGuardRouteUrl());
     };
@@ -114,40 +110,38 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log(`[DIAGNOSTIC] Router initialization: active page = "${currentPage}", isTaxGuardRoute = ${isTaxGuardRoute}, isDemoRoute = ${isDemoRoute}, isPublicV2Route = ${isPublicV2Route}, authenticatedRole = "${currentUser?.role || 'none'}"`);
+      console.log(`[DIAGNOSTIC] Router initialization: active page = "${currentPage}", isTaxGuardRoute = ${isTaxGuardRoute}, isPublicV2Route = ${isPublicV2Route}, authenticatedRole = "${currentUser?.role || 'none'}"`);
     }
-  }, [currentPage, isTaxGuardRoute, isDemoRoute, isPublicV2Route, currentUser?.role]);
+  }, [currentPage, isTaxGuardRoute, isPublicV2Route, currentUser?.role]);
 useEffect(() => {
     let targetHash = '';
 
     if (currentPage === 'portals') {
-      targetHash = '#/portals';
-    } else if (currentPage === 'admin_dashboard' || currentPage === 'admin_portal') {
-      targetHash = DemoAuthService.isAuthenticated('admin') ? '#/admin/dashboard' : '#/admin/login';
-    } else if (currentPage === 'reviewer_workspace' || currentPage === 'senior_reviewer_workspace' || currentPage === 'reviewer_portal') {
-      targetHash = DemoAuthService.isAuthenticated('reviewer') ? '#/reviewer/dashboard' : '#/reviewer/login';
-    } else if (currentPage === 'accountant_workspace' || currentPage === 'staff_portal') {
-      targetHash = DemoAuthService.isAuthenticated('accountant') ? '#/accountant/dashboard' : '#/accountant/login';
+      targetHash = '#/public-v2/portals';
+    } else if (
+      currentPage === 'admin_dashboard' ||
+      currentPage === 'admin_portal'
+    ) {
+      targetHash = currentUser ? '#/admin/dashboard' : '#/staff/login';
+    } else if (
+      currentPage === 'reviewer_workspace' ||
+      currentPage === 'senior_reviewer_workspace' ||
+      currentPage === 'reviewer_portal'
+    ) {
+      targetHash = currentUser ? '#/reviewer/dashboard' : '#/staff/login';
+    } else if (
+      currentPage === 'accountant_workspace' ||
+      currentPage === 'staff_portal'
+    ) {
+      targetHash = currentUser ? '#/accountant/dashboard' : '#/staff/login';
     } else if (currentPage === 'client_portal') {
-      const hasLiveClientSession = hasLiveClientWorkspace(currentUser);
-      const hasDemoClientSession = DemoAuthService.isAuthenticated('client');
-
-      if (hasLiveClientSession) {
-        targetHash = '#/client_portal';
-      } else if (hasDemoClientSession) {
-        targetHash = '#/client/dashboard';
-      } else {
-        targetHash = '#/client/login';
-      }
+      targetHash = hasLiveClientWorkspace(currentUser)
+        ? '#/client_portal'
+        : '#/client/login';
     }
 
     if (targetHash && window.location.hash !== targetHash) {
       window.location.hash = targetHash;
-      setIsDemoRoute(
-        targetHash !== '#/client/login' &&
-        targetHash !== '#/stage_one_onboard' &&
-        !Boolean(currentUser && currentUser.role === 'client')
-      );
     }
   }, [currentPage, currentUser]);
 
@@ -157,13 +151,7 @@ useEffect(() => {
 
   const isTaxGuard = isTaxGuardRoute || isTaxGuardRouteUrl() || (currentPage as string) === 'taxguard';
   if (isTaxGuard) {
-    const activeRoles = DemoAuthService.getActiveRoles();
-    if (activeRoles && activeRoles.length > 0) {
-      const primaryRole = activeRoles[0] as DemoRole;
-      const targetPath = DEMO_ROLES[primaryRole]?.dashboardPath || '#/client/dashboard';
-      if (window.location.hash !== targetPath) window.location.hash = targetPath;
-      return <DemoAppRouter />;
-    }
+}
     return (
       <ErrorPageView
         type="403"
@@ -176,33 +164,20 @@ useEffect(() => {
 
   const isPublicV2 = isPublicV2Route || isPublicV2RouteUrl() || currentPage === 'public_v2';
   if (isPublicV2) return <PublicV2Router />;
-
-  const hasDemoClientSession = DemoAuthService.isAuthenticated('client');
   const hasLiveClientSession = hasLiveClientWorkspace(currentUser);
-  const isLiveClientRoute = hasLiveClientSession && (
-    isClientScopedRouteUrl() ||
-    ['client_portal', 'stage_one_onboard', 'onboarding', 'client_onboarding'].includes(currentPage)
-  );
 
-  const isDemo = !isLiveClientRoute && (
-    isDemoRoute ||
-    isDemoRouteUrl() ||
-    [
-      'portals',
-      'admin_dashboard',
-      'admin_portal',
-      'reviewer_workspace',
-      'senior_reviewer_workspace',
-      'reviewer_portal',
-      'accountant_workspace',
-      'staff_portal'
-    ].includes(currentPage) ||
-    (currentPage === 'client_portal' && hasDemoClientSession && !hasLiveClientSession)
-  );
-
-  if (isDemo) return <DemoAppRouter />;
-
-  const renderPage = () => {
+  const isLiveClientRoute =
+    hasLiveClientSession &&
+    (
+      isClientScopedRouteUrl() ||
+      [
+        'client_portal',
+        'stage_one_onboard',
+        'onboarding',
+        'client_onboarding'
+      ].includes(currentPage)
+    );
+const renderPage = () => {
     if (currentPage === 'client_portal' && hasLiveClientSession) {
       const permanentClientId = currentUser?.clientId?.trim();
 

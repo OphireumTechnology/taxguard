@@ -1,4 +1,4 @@
-﻿/**
+/**
  * A/R Tax Services, LLC - Stage One Onboarding & Identity Verification Engine
  * Implements Stage One (Onboard) in the Unified 18-Stage Operating Workflow:
  * 1. Minimal account entry -> Internal Client ID generation
@@ -7,12 +7,10 @@
  * 4. Addresses & Authorized Representative
  * 5. Supporting ID documents
  * 6. Duplicate check across TIN, Legal Name, Email, Phone, Address (block/route to review)
- * 7. Engagement & Consent with approved IRC Â§ 7216 language
+ * 7. Engagement & Consent with approved IRC Ã‚Â§ 7216 language
  * 8. Onboarding Readiness Card & Hard Exit Gate
  * 9. Stage Two activation upon satisfaction
  */
-
-import { INITIAL_DEMO_CLIENTS } from '../demo/mockData';
 import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService';
 import { EnvironmentConfigService } from '../config/environmentConfig';
 
@@ -270,9 +268,15 @@ export class StageOneOnboardingService {
    */
   public static runDuplicateCheck(
     dossier: Partial<StageOneDossier>,
-    options?: {
-      includeDemoRepository?: boolean;
-    }
+    existingClients: Array<{
+      id: string;
+      name: string;
+      businessName?: string;
+      email?: string;
+      phone?: string;
+      einOrSsnMasked?: string;
+      address?: string;
+    }> = []
   ): DuplicateCheckReport {
     const matches: DuplicateMatchItem[] = [];
     const normEmail = (dossier.email || '').trim().toLowerCase();
@@ -282,18 +286,7 @@ export class StageOneOnboardingService {
     const normStreet = (dossier.residentialOrPrincipalAddress?.street || '').trim().toLowerCase();
     const normZip = (dossier.residentialOrPrincipalAddress?.zip || '').trim();
     const targetLast4 = dossier.tinLast4 || (dossier.maskedTIN ? dossier.maskedTIN.slice(-4) : '');
-
-    /*
-     * The seeded demonstration repository must never participate
-     * in a LIVE taxpayer duplicate decision.
-     *
-     * A production client registry should later be supplied by the
-     * server/database duplicate-check pipeline.
-     */
-    const duplicateRepository =
-      options?.includeDemoRepository === false
-        ? []
-        : INITIAL_DEMO_CLIENTS;
+    const duplicateRepository = existingClients;
 
     for (const existing of duplicateRepository) {
       // 1. Check Email
@@ -479,7 +472,7 @@ export class StageOneOnboardingService {
 
     // Gate 4: Authorized Representative (Mandatory for entity, verified for individual)
     const authRep = dossier.authorizedRep;
-    const repSatisfied = isEntity 
+    const repSatisfied = isEntity
       ? Boolean(authRep && authRep.fullName && authRep.title && authRep.email && authRep.phone)
       : true;
     blockingItems.push({
@@ -515,20 +508,20 @@ export class StageOneOnboardingService {
     // Gate 7: Engagement & Consent Executed
     const eng = dossier.engagementConsent;
     const consentSatisfied = Boolean(
-      eng && 
-      eng.irc7216ConsentAccepted && 
-      eng.termsAndScopeAccepted && 
-      eng.pricingScheduleAcknowledged && 
+      eng &&
+      eng.irc7216ConsentAccepted &&
+      eng.termsAndScopeAccepted &&
+      eng.pricingScheduleAcknowledged &&
       eng.electronicSignatureConsentAccepted &&
-      eng.signerFullName && 
+      eng.signerFullName &&
       eng.signerFullName.trim().length >= 3 &&
       eng.signedAt
     );
     blockingItems.push({
       id: 'gate_consent',
-      label: 'Engagement Scope & IRC Â§ 7216 Consent E-Signature',
+      label: 'Engagement Scope & IRC Ã‚Â§ 7216 Consent E-Signature',
       satisfied: consentSatisfied,
-      blockingReason: consentSatisfied ? undefined : 'IRC Â§ 7216 consent, scope acknowledgment, and legal electronic signature required.'
+      blockingReason: consentSatisfied ? undefined : 'IRC Ã‚Â§ 7216 consent, scope acknowledgment, and legal electronic signature required.'
     });
 
     // Calculate percentage
@@ -569,7 +562,7 @@ export class StageOneOnboardingService {
         .filter(b => !b.satisfied)
         .map(b => b.label)
         .join('; ');
-      
+
       TaxGuardAuditService.logEvent({
         tenantId: 'tenant_ar_tax_demo',
         userId: clientId,
@@ -719,7 +712,7 @@ export class StageOneOnboardingService {
    * Reviewer override for duplicate match
    */
   public static resolveDuplicateReview(
-    clientId: string, 
+    clientId: string,
     decision: 'override_approved' | 'rejected_duplicate',
     reviewerName: string,
     notes: string
@@ -755,6 +748,3 @@ export class StageOneOnboardingService {
     return dossier;
   }
 }
-
-
-

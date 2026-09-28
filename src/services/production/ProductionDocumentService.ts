@@ -1,4 +1,4 @@
-﻿import { api } from '../api';
+import { api } from '../api';
 import type {
   TaxGuardDocumentRecord,
   TaxGuardDocumentService,
@@ -52,8 +52,8 @@ const normalizeDocument = (
 /**
  * LIVE document adapter.
  *
- * This class never falls back to DemoVaultService or demoDataStore.
- * All LIVE operations cross the authenticated TaxGuard API boundary.
+ * Browser-local document repositories are never authoritative.
+ * All production document operations cross the authenticated TaxGuard API boundary.
  *
  * Uploads remain subject to the server's DOCUMENT_INTAKE_NOT_READY
  * fail-closed policy until real quarantine/malware scanning is commissioned.

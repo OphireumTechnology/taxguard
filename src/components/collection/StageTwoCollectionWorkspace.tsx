@@ -1,6 +1,6 @@
 /**
  * A/R Tax Services, LLC - Stage 02 Collection Workspace
- * Unified 18-Stage Tax Operating Workflow — Milestone M2 / Stage 02: Collect
+ * Unified 18-Stage Tax Operating Workflow ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Milestone M2 / Stage 02: Collect
  *
  * Implements:
  * - TG-COL-001: Centralized Tax-Year Collection Workspace
@@ -73,13 +73,6 @@ import { StageTwoExceptionsView } from './StageTwoExceptionsView';
 import { StageTwoExitGateView } from './StageTwoExitGateView';
 import { StageTwoCollectionOperationsService } from '../../services/stageTwoCollectionOperationsService';
 import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
-import { UploadScanCenterSection } from '../../demo/views/client/UploadScanCenterSection';
-import { ClientVaultSection } from '../../demo/views/client/ClientVaultSection';
-import { MissingDocumentsSection } from '../../demo/views/client/MissingDocumentsSection';
-import { ClientDocumentRequestsView } from '../../demo/views/client/ClientSubViews';
-import { AccountantReviewStatusSection } from '../../demo/views/client/AccountantReviewStatusSection';
-import { DemoVaultService } from '../../demo/services/clientDashboardServices';
-
 interface StageTwoCollectionWorkspaceProps {
   clientId?: string;
   selectedTaxYear: number;
@@ -127,8 +120,6 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
   const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null);
 
   // Reusable vault service
-  const vaultService = useMemo(() => new DemoVaultService(), []);
-
   // 1. Resolve Workspace Context (TG-COL-001)
   const context = useMemo<TaxYearCollectionWorkspaceContext>(() => {
     return StageTwoCollectionService.getWorkspaceContext(propClientId, selectedTaxYear);
@@ -332,7 +323,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       });
 
       setUploadSuccessMessage(
-        `Successfully ingested file with Document ID: ${ingested.documentId}. SHA-256: ${ingested.sha256Hash.substring(0, 12)}... (Status: Received — Awaiting Staff Verification)`
+        `Successfully ingested file with Document ID: ${ingested.documentId}. SHA-256: ${ingested.sha256Hash.substring(0, 12)}... (Status: Received ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Awaiting Staff Verification)`
       );
       setUploadFile(null);
       setWorkspaceVersion(v => v + 1);
@@ -393,7 +384,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 <Building2 className="w-6 h-6 text-[#D7AC4A] flex-shrink-0" />
                 <span>{context.entityName}</span>
               </h1>
-              <span className="text-slate-400 hidden sm:inline">•</span>
+              <span className="text-slate-400 hidden sm:inline">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
               <span className="text-sm text-slate-300 font-medium">
                 {context.returnType}
               </span>
@@ -401,9 +392,9 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
               <span>Jurisdictions: <strong className="text-slate-200">{context.jurisdictions.join(', ')}</strong></span>
-              <span>•</span>
+              <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
               <span>Assigned Preparer: <strong className="text-slate-200">{context.assignedPreparer}</strong></span>
-              <span>•</span>
+              <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
               <span>Assigned Reviewer: <strong className="text-slate-200">{context.assignedReviewer}</strong></span>
             </div>
           </div>
@@ -651,36 +642,82 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {/* SUB-TAB: UPLOAD CENTER (TG-COL-003) */}
       {activeSubTab === 'upload' && (
         <div className="space-y-6">
-          <UploadScanCenterSection
-            selectedYear={context.taxYear}
-            onDocumentProcessed={(doc) => {
-              // Automatically ingest into Stage 02 Collection Service
-              StageTwoCollectionService.ingestDocumentUpload({
-                clientId: context.clientId,
-                engagementId: context.engagementId,
-                taxYear: context.taxYear,
-                uploaderSource: 'scanner_intake',
-                uploadedBy: 'Client Portal Scanner',
-                originalFileName: doc.name || 'scanned_tax_document.pdf',
-                fileSizeBytes: doc.sizeBytes || 250000,
-                mimeType: doc.type || 'application/pdf',
-                claimedCategory: doc.classificationSuggestion || 'Scanned Document'
-              });
-              setWorkspaceVersion(v => v + 1);
-            }}
-            onNavigateToAiPipeline={() => setActiveSubTab('processing')}
-          />
+          <div className="rounded-xl border border-neutral-300 bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <UploadCloud className="h-5 w-5 text-[#061A2F]" />
+
+              <div className="flex-1">
+                <h2 className="text-base font-bold text-neutral-900">
+                  Secure Document Intake
+                </h2>
+
+                <p className="mt-1 text-sm text-neutral-600">
+                  Documents enter TaxGuard through the controlled Stage 02
+                  intake boundary. A document is not considered verified
+                  merely because it has been uploaded.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetRequirement(null);
+                    setUploadCategory('General Supporting Documentation');
+                    setUploadFile(null);
+                    setUploadModalOpen(true);
+                  }}
+                  className="mt-4 rounded-md bg-[#061A2F] px-4 py-2 text-xs font-semibold text-white"
+                >
+                  Select Document
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* SUB-TAB: DOCUMENT VAULT */}
       {activeSubTab === 'vault' && (
-        <div className="space-y-6">
-          <ClientVaultSection
-            vaultService={vaultService}
-            clientId={context.clientId}
-            onOpenAssistant={onOpenAssistant || (() => {})}
-          />
+        <div className="space-y-4">
+          <div className="rounded-xl border border-neutral-300 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-bold text-neutral-900">
+              Engagement Document Register
+            </h2>
+
+            <p className="mt-1 text-xs text-neutral-600">
+              This register reflects the current Stage 02 engagement records.
+            </p>
+
+            {uploadedDocs.length === 0 ? (
+              <div className="mt-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm text-neutral-600">
+                No documents are currently available for this engagement.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {uploadedDocs.map(doc => (
+                  <div
+                    key={doc.documentId}
+                    className="rounded-lg border border-neutral-200 p-4"
+                  >
+                    <div className="flex flex-col justify-between gap-2 md:flex-row">
+                      <div>
+                        <div className="text-sm font-semibold text-neutral-900">
+                          {doc.originalFileName}
+                        </div>
+
+                        <div className="mt-1 font-mono text-xs text-neutral-500">
+                          {doc.documentId}
+                        </div>
+                      </div>
+
+                      <div className="text-xs font-semibold text-neutral-700">
+                        {doc.processingState}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -737,7 +774,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
               </div>
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-[#1A365D] text-[#D7AC4A] border border-[#D7AC4A]/40 rounded">
-                  ENGINE: DEV / SIMULATED OCR
+                  ENGINE: SECURE DOCUMENT PROCESSING
                 </span>
                 <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-white/10 text-white rounded">
                   {uploadedDocs.length} Ingested Records
@@ -785,7 +822,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                         <span>Claimed: <strong>{doc.claimedCategory}</strong></span>
                         {intel && (
                           <>
-                            <span>•</span>
+                            <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
                             <span className="flex items-center gap-1">
                               AI Detected: <strong className="text-[#0A2544]">{intel.aiDetectedCategory}</strong>
                               <span className="text-[10px] font-mono text-neutral-500">
@@ -794,7 +831,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                             </span>
                           </>
                         )}
-                        <span>•</span>
+                        <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
                         <span>Uploaded {new Date(doc.uploadTimestamp).toLocaleDateString()}</span>
                       </div>
                     </div>
@@ -843,7 +880,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                         </span>
                       </div>
                       <div className="text-[10px] text-neutral-500 truncate">
-                        Simulated Dev Engine
+                        Production Processing Engine
                       </div>
                     </div>
 
@@ -859,7 +896,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                           {intel?.classificationConflict ? 'CONFLICT' : 'MATCHED'}
                         </span>
                         <span className="text-[10px] font-mono text-neutral-500">
-                          {intel ? `${(intel.classificationConfidence * 100).toFixed(0)}%` : '—'}
+                          {intel ? `${(intel.classificationConfidence * 100).toFixed(0)}%` : 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}
                         </span>
                       </div>
                       <div className="text-[10px] text-neutral-500 truncate">
@@ -910,7 +947,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                       </div>
                       <div className="text-[10px] text-neutral-500 truncate">
                         {intel?.versionIntelligence.requiresDownstreamRevalidation
-                          ? '⚡ Revalidation Required'
+                          ? 'ÃƒÂ¢Ã…Â¡Ã‚Â¡ Revalidation Required'
                           : 'Standard Version'}
                       </div>
                     </div>
@@ -966,7 +1003,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                                       {prov.fieldLabel || prov.fieldKey || key}
                                     </td>
                                     <td className="p-2.5 font-mono font-bold text-neutral-800">
-                                      {String(prov.extractedValue ?? '—')}
+                                      {String(prov.extractedValue ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â')}
                                     </td>
                                     <td className="p-2.5 font-mono">
                                       {(prov.confidence * 100).toFixed(0)}%
@@ -1035,7 +1072,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs pt-1">
               <div className="p-3 bg-slate-900/80 border border-slate-700 rounded-lg">
                 <div className="text-[10px] text-slate-400 uppercase font-mono">Boundary 1</div>
-                <div className="font-bold text-amber-300 mt-0.5">Upload ≠ Verified</div>
+                <div className="font-bold text-amber-300 mt-0.5">Upload ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â  Verified</div>
                 <p className="text-[11px] text-slate-400 mt-1">
                   A successful document receipt only confirms ingestion into staging. Verification requires full accounting inspection.
                 </p>
@@ -1043,7 +1080,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
 
               <div className="p-3 bg-slate-900/80 border border-slate-700 rounded-lg">
                 <div className="text-[10px] text-slate-400 uppercase font-mono">Boundary 2</div>
-                <div className="font-bold text-amber-300 mt-0.5">Clean Scan ≠ Tax Verified</div>
+                <div className="font-bold text-amber-300 mt-0.5">Clean Scan ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â  Tax Verified</div>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Passing signature, archive, and malware screening does not certify that tax numbers or schedules are accurate.
                 </p>
@@ -1051,7 +1088,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
 
               <div className="p-3 bg-slate-900/80 border border-slate-700 rounded-lg">
                 <div className="text-[10px] text-slate-400 uppercase font-mono">Boundary 3</div>
-                <div className="font-bold text-amber-300 mt-0.5">Encrypted Storage ≠ Human Reviewed</div>
+                <div className="font-bold text-amber-300 mt-0.5">Encrypted Storage ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â  Human Reviewed</div>
                 <p className="text-[11px] text-slate-400 mt-1">
                   AES-256-GCM vault storage protects confidentiality at rest; CPA human sign-off remains mandatory before filing.
                 </p>
@@ -1111,9 +1148,9 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                       </p>
                       <div className="text-[11px] text-neutral-500 flex flex-wrap items-center gap-2 font-mono">
                         <span>Scanner: {doc.malwareScannerName}</span>
-                        <span>•</span>
+                        <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
                         <span>Detected Type: {doc.signatureValidation.detectedFileType}</span>
-                        <span>•</span>
+                        <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
                         <span>Quarantined: {doc.quarantineTimestamp ? new Date(doc.quarantineTimestamp).toLocaleString() : 'N/A'}</span>
                       </div>
                     </div>
@@ -1245,7 +1282,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                           {doc.originalFilename}
                         </div>
                         <div className="text-[10px] font-mono text-neutral-500">
-                          {(doc.fileSizeBytes / 1024).toFixed(1)} KB • {doc.claimedCategory}
+                          {(doc.fileSizeBytes / 1024).toFixed(1)} KB ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {doc.claimedCategory}
                         </div>
                       </td>
 
@@ -1589,7 +1626,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 <div className="p-5 bg-[#061A2F] text-white flex items-center justify-between border-b border-[#1A365D]">
                   <div className="space-y-0.5">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                      Human Review Disposition — {selectedReviewItem.documentId}
+                      Human Review Disposition ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {selectedReviewItem.documentId}
                     </h3>
                     <p className="text-xs text-slate-300">
                       Acting as: <strong>{reviewRole.toUpperCase()}</strong> | File: {selectedReviewItem.filename}
@@ -1636,7 +1673,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                             {selectedReviewItem.flaggedFields.map((f, i) => (
                               <tr key={i}>
                                 <td className="p-2 font-mono font-bold text-neutral-800">{f.fieldLabel || f.fieldKey}</td>
-                                <td className="p-2 font-mono text-neutral-700">{String(f.extractedValue ?? '—')}</td>
+                                <td className="p-2 font-mono text-neutral-700">{String(f.extractedValue ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â')}</td>
                                 <td className="p-2 font-mono text-rose-700">{(f.confidence * 100).toFixed(0)}%</td>
                                 <td className="p-2">
                                   {f.isMaterialField ? (
@@ -1665,14 +1702,14 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                       onChange={(e) => setReviewAction(e.target.value as HumanReviewAction)}
                       className="w-full p-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#061A2F]"
                     >
-                      <option value="ACCEPT">ACCEPT — Accept AI extraction as verified proposed data</option>
-                      <option value="CORRECT">CORRECT — Override extracted field with human-verified figure</option>
-                      <option value="RECLASSIFY">RECLASSIFY — Change document tax category</option>
-                      <option value="MARK_DUPLICATE">MARK_DUPLICATE — Flag as duplicate of existing record</option>
-                      <option value="MARK_SUPERSEDED">MARK_SUPERSEDED — Supersede with newer document version</option>
-                      <option value="REQUEST_REPLACEMENT">REQUEST_REPLACEMENT — Request new copy from client</option>
-                      <option value="ESCALATE">ESCALATE — Escalate to Senior CPA / Partner</option>
-                      <option value="REJECT">REJECT — Reject document completely</option>
+                      <option value="ACCEPT">ACCEPT ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Accept AI extraction as verified proposed data</option>
+                      <option value="CORRECT">CORRECT ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Override extracted field with human-verified figure</option>
+                      <option value="RECLASSIFY">RECLASSIFY ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Change document tax category</option>
+                      <option value="MARK_DUPLICATE">MARK_DUPLICATE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Flag as duplicate of existing record</option>
+                      <option value="MARK_SUPERSEDED">MARK_SUPERSEDED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Supersede with newer document version</option>
+                      <option value="REQUEST_REPLACEMENT">REQUEST_REPLACEMENT ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Request new copy from client</option>
+                      <option value="ESCALATE">ESCALATE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Escalate to Senior CPA / Partner</option>
+                      <option value="REJECT">REJECT ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Reject document completely</option>
                     </select>
                   </div>
 
@@ -1765,7 +1802,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">
               Standard Engagement Review Panel
             </h4>
-            <AccountantReviewStatusSection />
+
           </div>
         </div>
       )}
@@ -1806,7 +1843,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             {targetRequirement && (
               <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
                 <div className="font-bold text-slate-900">Target Requirement: {targetRequirement.title}</div>
-                <div className="text-[11px] font-mono text-slate-600">ID: {targetRequirement.requirementId} • Form: {targetRequirement.formNumber}</div>
+                <div className="text-[11px] font-mono text-slate-600">ID: {targetRequirement.requirementId} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Form: {targetRequirement.formNumber}</div>
               </div>
             )}
 
