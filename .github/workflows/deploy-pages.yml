@@ -1,9 +1,6 @@
 name: Deploy Vite website to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -37,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Functions test dependencies
+        run: npm ci --prefix functions
+
       - name: Type check
         run: npm run typecheck
 
@@ -44,11 +44,17 @@ jobs:
         run: npm test -- --run
 
       - name: Build production application
-        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_PASSWORD_RESET_CONTINUE_URL: ${{ vars.VITE_PASSWORD_RESET_CONTINUE_URL }}
+        run: |
+          npx tsx scripts/verify-production-config.ts
+          npm run build
 
       - name: Verify build output
         run: |
           test -f dist/index.html
+          test -z "$(find dist -type f \( -name '*.cjs' -o -name '*.map' \) -print)"
           echo "artaxserv.com" > dist/CNAME
           echo "Production build and CNAME verified."
 

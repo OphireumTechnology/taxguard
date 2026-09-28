@@ -15,7 +15,7 @@ export interface TaxGuardAiAuditEntry {
   timestamp: string;
 
   provider?:
-    'GOOGLE_GEMINI';
+    'GOOGLE_GEMINI' | 'OPENAI';
 
   model?: string;
 

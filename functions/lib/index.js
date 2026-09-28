@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.disconnectAccountingIntegration = exports.initiateAccountingOAuth = exports.getSecureDocumentDownloadUrl = exports.stripeWebhook = exports.createStripeCheckoutSession = exports.bookAppointmentTransaction = exports.bootstrapFirstAdmin = exports.assignUserRole = void 0;
+exports.taxguardApi = exports.disconnectAccountingIntegration = exports.initiateAccountingOAuth = exports.getSecureDocumentDownloadUrl = exports.stripeWebhook = exports.createStripeCheckoutSession = exports.bookAppointmentTransaction = exports.bootstrapFirstAdmin = exports.assignUserRole = void 0;
 const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin once
 if (!admin.apps.length) {
@@ -52,4 +52,6 @@ Object.defineProperty(exports, "getSecureDocumentDownloadUrl", { enumerable: tru
 var integrations_1 = require("./integrations");
 Object.defineProperty(exports, "initiateAccountingOAuth", { enumerable: true, get: function () { return integrations_1.initiateAccountingOAuth; } });
 Object.defineProperty(exports, "disconnectAccountingIntegration", { enumerable: true, get: function () { return integrations_1.disconnectAccountingIntegration; } });
+var taxguardApi_1 = require("./taxguardApi");
+Object.defineProperty(exports, "taxguardApi", { enumerable: true, get: function () { return taxguardApi_1.taxguardApi; } });
 //# sourceMappingURL=index.js.map

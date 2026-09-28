@@ -776,6 +776,7 @@ export class StageTwoCollectionService {
     file?: File;
     notes?: string;
   }): Promise<StageTwoUploadedDocument> {
+    if (process.env.NODE_ENV === 'production') throw new Error('DOCUMENT_INTAKE_NOT_READY: secure quarantine and scanning must be commissioned before accepting taxpayer documents.');
     const now = new Date().toISOString();
 
     // Prepare file bytes for security scanning & encryption pipeline

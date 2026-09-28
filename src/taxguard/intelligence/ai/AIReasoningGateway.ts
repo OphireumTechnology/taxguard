@@ -338,6 +338,12 @@ export class AIReasoningGateway {
       );
     }
 
+    if ((response.confidence !== undefined && !['HIGH_CONFIDENCE', 'MEDIUM_CONFIDENCE', 'LOW_CONFIDENCE', 'MISSING_CONFIDENCE'].includes(response.confidence)) ||
+        [response.issueSpots, response.recommendations].some(values => values !== undefined &&
+          (!Array.isArray(values) || values.some(value => typeof value !== 'string')))) {
+      throw new Error('AI reasoning provider returned invalid advisory fields.');
+    }
+
     const explanation = this.requireText(
       response.explanation,
       'explanation',

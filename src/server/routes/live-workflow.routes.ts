@@ -10,6 +10,12 @@ import {
 } from '../taxguard/liveWorkflow.types';
 
 const router = Router();
+router.use((_req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({ error: 'Legacy workflow requires tenant and engagement migration.', code: 'SCOPED_WORKFLOW_MIGRATION_REQUIRED' });
+  }
+  next();
+});
 
 function getTaxYear(value: unknown): number | null {
   const parsed = Number(value);

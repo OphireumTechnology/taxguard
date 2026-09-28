@@ -506,7 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (typeof window !== 'undefined') {
           try {
-            window.history.replaceState({ page: landingPage }, '', `/${landingPage}`);
+            window.history.replaceState({ page: landingPage }, '', `/#/${landingPage}`);
           } catch {
             window.location.hash = `#/${landingPage}`;
           }
@@ -532,6 +532,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     seedInitialServicesIfEmpty().catch(() => {});
 
     let active = true;
+    const expireSession = () => {
+      clearStoredToken();
+      clearTaxpayerState();
+      setCurrentUser(null);
+      setCurrentRoleState('guest');
+      setCurrentPageState('client_login');
+      localStorage.removeItem('taxguard_environment');
+      window.history.replaceState({ page: 'client_login' }, '', '/#/client/login');
+      void firebaseLogout().catch(() => {});
+    };
+    window.addEventListener('taxguard:session-expired', expireSession);
 
     const unsubscribeAuth = onAuthStateChanged(auth, async firebaseUser => {
       if (!active || authOperationInProgressRef.current) return;
@@ -581,6 +592,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       active = false;
       unsubscribeAuth();
+      window.removeEventListener('taxguard:session-expired', expireSession);
     };
   }, [clearTaxpayerState, refreshBackendData, restoreFirebaseSession]);
 

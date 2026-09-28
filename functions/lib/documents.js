@@ -36,9 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSecureDocumentDownloadUrl = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
+const documentReleasePolicy_1 = require("./documentReleasePolicy");
 exports.getSecureDocumentDownloadUrl = (0, https_1.onCall)({ cors: true }, async (request) => {
     if (!request.auth) {
         throw new https_1.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+    if (process.env.TAXGUARD_DOCUMENT_RELEASE_ENABLED !== 'true') {
+        throw new https_1.HttpsError('failed-precondition', 'Document release awaits trusted scanning and migration review.');
     }
     const { documentId } = request.data;
     if (!documentId) {
@@ -59,11 +63,11 @@ exports.getSecureDocumentDownloadUrl = (0, https_1.onCall)({ cors: true }, async
     if (!isOwner && !isAssignedCpa && !isAdmin) {
         throw new https_1.HttpsError('permission-denied', 'Access denied. You do not have permission to view this document.');
     }
-    if (docData.status === 'quarantined') {
+    if (!(0, documentReleasePolicy_1.documentCanBeReleased)({ ...docData, id: docSnap.id }, callerUid)) {
         throw new https_1.HttpsError('failed-precondition', 'Document is quarantined pending security review.');
     }
     const bucket = admin.storage().bucket();
-    const file = bucket.file(docData.storagePath);
+    const file = bucket.file(docData.storagePath, { generation: docData.storageGeneration });
     try {
         // Generate short-lived signed URL (15 minutes)
         const [signedUrl] = await file.getSignedUrl({
@@ -89,8 +93,8 @@ exports.getSecureDocumentDownloadUrl = (0, https_1.onCall)({ cors: true }, async
         };
     }
     catch (error) {
-        console.error('Signed URL generation error:', error);
-        throw new https_1.HttpsError('internal', `Failed to generate secure download link: ${error.message}`);
+        console.warn('Signed URL generation failed.');
+        throw new https_1.HttpsError('internal', 'Failed to generate secure download link.');
     }
 });
 //# sourceMappingURL=documents.js.map

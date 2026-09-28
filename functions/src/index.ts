@@ -10,3 +10,5 @@ export { bookAppointmentTransaction } from './appointments';
 export { createStripeCheckoutSession, stripeWebhook } from './stripe';
 export { getSecureDocumentDownloadUrl } from './documents';
 export { initiateAccountingOAuth, disconnectAccountingIntegration } from './integrations';
+
+export { taxguardApi } from './taxguardApi';

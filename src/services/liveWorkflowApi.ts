@@ -55,9 +55,7 @@ export interface LiveWorkflowState {
   updatedAt: string;
 }
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || ''
-).replace(/\/+$/, '');
+import { apiEndpoint } from '../config/apiEndpoint';
 
 function requireSessionToken(): string {
   const token = getStoredToken();
@@ -77,7 +75,7 @@ async function requestLiveWorkflow<T>(
   const token = requireSessionToken();
 
   const response = await fetch(
-    `${API_BASE_URL}${endpoint}`,
+    apiEndpoint(endpoint),
     {
       method: 'GET',
       headers: {

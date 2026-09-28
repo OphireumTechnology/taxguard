@@ -25,8 +25,16 @@ import {
   verifyFirebaseIdToken
 } from '../firebase-admin';
 import { allocateTaxGuardClientId } from '../client-id.service';
+import { DurableSessions } from '../durableSessions';
+import { AuthorityError } from '../taxguard/authority.repository';
 
 export const authRouter = Router();
+authRouter.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && !['/firebase-session', '/me', '/logout'].includes(req.path)) {
+    return res.status(410).json({ error: 'Use Firebase Authentication for live account operations.', code: 'FIREBASE_AUTH_REQUIRED' });
+  }
+  next();
+});
 
 /**
  * LIVE public registration must be completed with Firebase Authentication and
@@ -80,7 +88,7 @@ authRouter.post('/firebase-session', async (req: Request, res: Response) => {
   try {
     decodedToken = await verifyFirebaseIdToken(idToken);
   } catch (error) {
-    console.error('[Firebase Session] Token verification failed.', error);
+    console.warn('[Firebase Session] Token verification failed.');
     return res.status(401).json({ error: 'Firebase authentication could not be verified.' });
   }
 
@@ -100,6 +108,18 @@ authRouter.post('/firebase-session', async (req: Request, res: Response) => {
 
   if (!firestore || !firebaseAdminAuth) {
     return res.status(503).json({ error: 'Live account persistence is unavailable.' });
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const session = await new DurableSessions(firestore, firebaseAdminAuth, process.env.TAXGUARD_TENANT_ID || '').create(decodedToken);
+      return res.status(200).json({ ...session, message: 'Live TaxGuard session established.' });
+    } catch (error) {
+      return res.status(error instanceof AuthorityError ? error.status : 503).json({
+        error: 'Live identity could not be established. Contact support.',
+        code: error instanceof AuthorityError ? error.code : 'AUTH_UNAVAILABLE',
+      });
+    }
   }
 
   try {
@@ -263,6 +283,7 @@ authRouter.post('/firebase-session', async (req: Request, res: Response) => {
 
 // Secure demonstration/staff login. LIVE public clients use Firebase.
 authRouter.post('/login', async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Firebase authentication is required.', code: 'FIREBASE_AUTH_REQUIRED' });
   const { email, password, mfaCode } = req.body;
   const ip = req.ip || 'unknown';
   const lockoutKey = `${ip}_${(email || '').toLowerCase()}`;
@@ -342,7 +363,13 @@ authRouter.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Respon
   return res.json({ user: req.user });
 });
 
-authRouter.post('/logout', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+authRouter.post('/logout', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  if (req.token?.startsWith('tg_live_')) {
+    try {
+      await new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '').revoke(req.token);
+      return res.json({ message: 'Logged out successfully.' });
+    } catch { return res.status(503).json({ error: 'Session revocation unavailable.' }); }
+  }
   if (req.token) revokeSession(req.token);
   db.logAudit({
     userId: req.user?.id || 'unknown',

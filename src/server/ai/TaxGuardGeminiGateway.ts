@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { TaxGuardAiPolicy } from './TaxGuardAiPolicy';
 
 export type TaxGuardAiRisk =
   | 'routine'
@@ -175,6 +176,7 @@ export class TaxGuardGeminiGateway {
   static async propose(
     request: TaxGuardAiRequest
   ): Promise<TaxGuardAiProposal> {
+    TaxGuardAiPolicy.validate(request);
     const apiKey =
       required(
         process.env.GEMINI_API_KEY,
