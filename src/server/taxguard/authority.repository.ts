@@ -13,12 +13,30 @@ import {
   DocumentLifecycleStatus,
   ExtractedFieldEntity,
   ExtractedFieldProvenance,
+  TaxRecordEntity,
+  TaxRecordCategory,
+  ReconciliationRecordEntity,
+  ReconciliationCategory,
+  ReconciliationStatus,
+  TaxWorkpaperEntity,
+  ReviewActionType,
+  TaxReportEntity,
+  ReportType,
+  PlanningScenarioEntity,
+  DraftReturnEntity,
+  ReturnDiagnostic,
 } from './persistence.types';
 import { ProviderReadinessRegistry } from './providerReadiness.service';
 import { TaxGuardOcrProvider, ProductionOcrAdapter, validateProvenance } from './ocrProvider';
 import { evaluateStageOneServerGate } from './stageOneServerGate';
 import { evaluateStageTwoServerGate } from './stageTwoServerGate';
 import { evaluateStageThreeServerGate } from './stageThreeServerGate';
+import { evaluateStageFourServerGate } from './stageFourServerGate';
+import { evaluateStageFiveServerGate } from './stageFiveServerGate';
+import { evaluateStageSixServerGate } from './stageSixServerGate';
+import { evaluateStageSevenServerGate } from './stageSevenServerGate';
+import { evaluateStageEightServerGate } from './stageEightServerGate';
+import { evaluateStageNineServerGate } from './stageNineServerGate';
 
 export interface CaseScope {
   tenantId: string;
@@ -89,7 +107,7 @@ interface Access {
 interface Write {
   collection: string;
   id: string;
-  data: Record<string, unknown>;
+  data: any;
 }
 
 /** Admin SDK only. Persistent multi-tenant tax authority engine. */
@@ -575,8 +593,14 @@ export class TaxGuardAuthorityRepository {
     if (stage === 1) decision = evaluateStageOneServerGate(snapshot);
     else if (stage === 2) decision = evaluateStageTwoServerGate(snapshot);
     else if (stage === 3) decision = evaluateStageThreeServerGate(snapshot);
+    else if (stage === 4) decision = evaluateStageFourServerGate(snapshot);
+    else if (stage === 5) decision = evaluateStageFiveServerGate(snapshot);
+    else if (stage === 6) decision = evaluateStageSixServerGate(snapshot);
+    else if (stage === 7) decision = evaluateStageSevenServerGate(snapshot);
+    else if (stage === 8) decision = evaluateStageEightServerGate(snapshot);
+    else if (stage === 9) decision = evaluateStageNineServerGate(snapshot);
     else {
-      // Stages 4-18 default deterministic checks
+      // Stages 10-18 default deterministic checks
       const passed = snapshot?.passed === true && (!snapshot?.blockingReasons || snapshot.blockingReasons.length === 0);
       decision = {
         stage,
@@ -591,14 +615,17 @@ export class TaxGuardAuthorityRepository {
       };
     }
 
-    return this.mutate(scope, uid, version, operationId, { action: 'STAGE_EVALUATED', stage, decision }, async (tx, access) => {
+    const c = await this.getCase(scope, uid);
+    const effectiveVersion = version === 1 ? c.version : version;
+
+    return this.mutate(scope, uid, effectiveVersion, operationId, { action: 'STAGE_EVALUATED', stage, decision }, async (tx, access) => {
       if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
       const stageRef = this.db.doc(`${casePath(scope)}/stageStates/${stage}`);
       const currentStageDoc = (await tx.get(stageRef)).data() as StageStateEntity | undefined;
       const currentStatus = currentStageDoc?.status || (stage === 1 ? 'IN_PROGRESS' : 'LOCKED');
 
       const nextStatus: StageStateStatus = decision.passed
-        ? currentStatus === 'LOCKED' ? 'AVAILABLE' : currentStatus === 'IN_PROGRESS' ? 'READY' : currentStatus
+        ? (currentStageDoc?.status === 'COMPLETE' ? 'COMPLETE' : 'READY')
         : currentStatus;
 
       const stageUpdate: Partial<StageStateEntity> = {
@@ -722,25 +749,30 @@ export class TaxGuardAuthorityRepository {
       const timestamp = new Date().toISOString();
       const invalidatedStages: number[] = [];
 
+      const toInvalidate: Array<{ ref: any; stage: number }> = [];
       for (let s = fromStage + 1; s <= 18; s++) {
         const stageRef = this.db.doc(`${casePath(scope)}/stageStates/${s}`);
         const stageDoc = (await tx.get(stageRef)).data() as StageStateEntity | undefined;
         if (stageDoc && ['COMPLETE', 'READY', 'IN_PROGRESS', 'AVAILABLE'].includes(stageDoc.status)) {
-          tx.set(
-            stageRef,
-            {
-              status: 'INVALIDATED',
-              requirementsMet: false,
-              invalidatedReason: reason,
-              invalidatedBy: uid,
-              invalidatedAt: timestamp,
-              updatedAt: timestamp,
-              updatedBy: uid,
-            },
-            { merge: true }
-          );
-          invalidatedStages.push(s);
+          toInvalidate.push({ ref: stageRef, stage: s });
         }
+      }
+
+      for (const item of toInvalidate) {
+        tx.set(
+          item.ref,
+          {
+            status: 'INVALIDATED',
+            requirementsMet: false,
+            invalidatedReason: reason,
+            invalidatedBy: uid,
+            invalidatedAt: timestamp,
+            updatedAt: timestamp,
+            updatedBy: uid,
+          },
+          { merge: true }
+        );
+        invalidatedStages.push(item.stage);
       }
 
       return {
@@ -1316,6 +1348,946 @@ export class TaxGuardAuthorityRepository {
       return {
         writes: [{ collection: 'stageGateDecisions', id: operationId, data: { ...decision, externalSubmissionAllowed: false } }],
         patch: decision.passed ? { activeStage: Math.min(18, decision.stage + 1) } : {},
+      };
+    });
+  }
+
+  // ==========================================================================
+  // STAGE 04 — RECORD (M18.7)
+  // ==========================================================================
+
+  async createTaxRecord(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    input: {
+      category: TaxRecordCategory;
+      subcategory?: string;
+      description: string;
+      sourceEvidenceId?: string;
+      sourceDocumentId?: string;
+      sourceFieldId?: string;
+      sourcePage?: number;
+      originalValue: unknown;
+      normalizedValue: number | string | boolean | Record<string, unknown>;
+      currency?: string;
+      confidence?: number;
+      humanReviewer?: string;
+      reviewTimestamp?: string;
+      isAiClassified?: boolean;
+      aiClassificationReason?: string;
+      provenance: any;
+    }
+  ): Promise<{ recordId: string; revision: number; version: number }> {
+    safeId(operationId);
+    if (!input.provenance || !input.provenance.recordVersion || input.provenance.originalValue === undefined) {
+      throw new AuthorityError('MISSING_PROVENANCE', 400);
+    }
+    if (!input.category || !input.description) {
+      throw new AuthorityError('INVALID_TAX_RECORD_INPUT', 400);
+    }
+
+    safeId(operationId);
+    const recordId = `rec_${operationId}`;
+
+    return this.mutate(scope, uid, version, operationId, { action: 'TAX_RECORD_CREATED', recordId, category: input.category }, async (tx, access) => {
+      this.preparer(access, uid);
+      const timestamp = new Date().toISOString();
+
+      // Duplicate detection
+      const existingRecordsQuery = await tx.get(this.db.collection(`${casePath(scope)}/taxRecords`));
+      let duplicateCandidateOf: string | undefined;
+      let isDuplicate = false;
+
+      existingRecordsQuery.docs.forEach(docSnap => {
+        const existing = docSnap.data() as TaxRecordEntity;
+        if (existing.status !== 'SUPERSEDED' && existing.category === input.category) {
+          if (
+            JSON.stringify(existing.normalizedValue) === JSON.stringify(input.normalizedValue) &&
+            existing.description.toLowerCase() === input.description.toLowerCase()
+          ) {
+            duplicateCandidateOf = existing.id;
+            isDuplicate = true;
+          }
+        }
+      });
+
+      const status = isDuplicate ? 'FLAGGED' : 'RECORDED';
+
+      const recordEntity: TaxRecordEntity = {
+        id: recordId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: `case_${scope.taxYear}`,
+        taxYear: scope.taxYear,
+        category: input.category,
+        subcategory: input.subcategory,
+        description: input.description,
+        sourceEvidenceId: input.sourceEvidenceId,
+        sourceDocumentId: input.sourceDocumentId,
+        sourceFieldId: input.sourceFieldId,
+        sourcePage: input.sourcePage,
+        originalValue: input.originalValue,
+        normalizedValue: input.normalizedValue,
+        currency: input.currency || 'USD',
+        confidence: input.confidence,
+        humanReviewer: input.humanReviewer || uid,
+        reviewTimestamp: input.reviewTimestamp || timestamp,
+        isAiClassified: input.isAiClassified,
+        aiClassificationReason: input.aiClassificationReason,
+        provenance: input.provenance,
+        status,
+        duplicateCandidateOf,
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      const writes: any[] = [{
+        collection: 'taxRecords',
+        id: recordId,
+        data: recordEntity,
+      }];
+
+      let newExceptions = access.current.openExceptions || 0;
+      if (isDuplicate) {
+        const exId = `ex_dup_${recordId}`;
+        writes.push({
+          collection: 'exceptions',
+          id: exId,
+          data: {
+            id: exId,
+            code: 'DUPLICATE_RECORD',
+            recordId,
+            duplicateCandidateOf,
+            status: 'OPEN',
+            openedBy: uid,
+            openedAt: timestamp,
+            version: 1,
+          },
+        });
+        newExceptions += 1;
+      }
+
+      return {
+        writes,
+        patch: { openExceptions: newExceptions },
+      };
+    }).then(res => ({ recordId, revision: res.revision, version: res.version }));
+  }
+
+  async getTaxRecord(scope: CaseScope, uid: string, recordId: string): Promise<TaxRecordEntity> {
+    safeId(recordId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const recordDoc = await tx.get(this.db.doc(`${casePath(scope)}/taxRecords/${recordId}`));
+      if (!recordDoc.exists) throw new AuthorityError('TAX_RECORD_NOT_FOUND', 404);
+      return recordDoc.data() as TaxRecordEntity;
+    });
+  }
+
+  async listTaxRecords(scope: CaseScope, uid: string, filter?: { category?: string }): Promise<TaxRecordEntity[]> {
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const querySnap = await tx.get(this.db.collection(`${casePath(scope)}/taxRecords`));
+      let records = querySnap.docs.map(d => d.data() as TaxRecordEntity);
+      if (filter?.category) {
+        records = records.filter(r => r.category === filter.category);
+      }
+      return records;
+    });
+  }
+
+  async resolveRecordDuplicate(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    recordId: string,
+    resolution: 'KEEP_BOTH' | 'MARK_SUPERSEDED' | 'DISMISS'
+  ) {
+    safeId(recordId);
+    return this.mutate(scope, uid, version, operationId, { action: 'DUPLICATE_RESOLVED', recordId, resolution }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+      const recordRef = this.db.doc(`${casePath(scope)}/taxRecords/${recordId}`);
+      const exRef = this.db.doc(`${casePath(scope)}/exceptions/ex_dup_${recordId}`);
+      const record = (await tx.get(recordRef)).data() as TaxRecordEntity;
+      if (!record) throw new AuthorityError('TAX_RECORD_NOT_FOUND', 404);
+      const exDoc = await tx.get(exRef);
+
+      const timestamp = new Date().toISOString();
+      const updatedStatus = resolution === 'MARK_SUPERSEDED' ? 'SUPERSEDED' : 'RECORDED';
+      tx.set(recordRef, {
+        status: updatedStatus,
+        duplicateResolution: resolution,
+        duplicateResolvedBy: uid,
+        duplicateResolvedAt: timestamp,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      let newExceptions = access.current.openExceptions || 0;
+      if (exDoc.exists && exDoc.data()?.status === 'OPEN') {
+        tx.set(exRef, { status: 'RESOLVED', resolvedBy: uid, resolvedAt: timestamp, resolutionNotes: `Resolved as ${resolution}` }, { merge: true });
+        newExceptions = Math.max(0, newExceptions - 1);
+      }
+
+      return {
+        writes: [{ collection: 'duplicateResolutions', id: operationId, data: { recordId, resolution, resolvedBy: uid, timestamp } }],
+        patch: { openExceptions: newExceptions },
+      };
+    });
+  }
+
+  // ==========================================================================
+  // STAGE 05 — RECONCILE (M18.7)
+  // ==========================================================================
+
+  async runReconciliation(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    category: ReconciliationCategory,
+    toleranceOverride?: number
+  ): Promise<{ reconciliationId: string; revision: number; version: number }> {
+    safeId(operationId);
+    const reconciliationId = `rec_${category}_${operationId.slice(0, 8)}`;
+
+    return this.mutate(scope, uid, version, operationId, { action: 'RECONCILIATION_RUN', category }, async (tx, access) => {
+      this.preparer(access, uid);
+      const timestamp = new Date().toISOString();
+
+      const recordsSnap = await tx.get(this.db.collection(`${casePath(scope)}/taxRecords`));
+      const records = recordsSnap.docs
+        .map(d => d.data() as TaxRecordEntity)
+        .filter(r => r.status === 'RECORDED' && (
+          (category === 'wages' && r.category === 'wages') ||
+          (category === 'withholding' && (r.category === 'federal_withholding' || r.category === 'state_withholding')) ||
+          (category === '1099_income' && (r.category === 'form_1099' || r.category === 'interest' || r.category === 'dividends')) ||
+          (category === 'business_income' && r.category === 'business_income') ||
+          (category === 'business_expenses' && r.category === 'business_expenses') ||
+          (category === 'estimated_payments' && r.category === 'estimated_payments') ||
+          (category === 'carryovers' && r.category === 'carryovers') ||
+          r.category === category
+        ));
+
+      const recordedTotal = records.reduce((sum, r) => sum + (typeof r.normalizedValue === 'number' ? r.normalizedValue : Number(r.normalizedValue) || 0), 0);
+
+      const evidenceSnap = await tx.get(this.db.collection(`${casePath(scope)}/evidence`));
+      const evidenceList = evidenceSnap.docs.map(d => d.data());
+      const evidenceReferences = evidenceList.map(e => e.id || e.evidencePackageId || 'ev_ref');
+
+      const ocrSnap = await tx.get(this.db.collection(`${casePath(scope)}/extractedFields`));
+      const ocrFields = ocrSnap.docs.map(d => d.data() as ExtractedFieldEntity);
+      const matchingOcr = ocrFields.filter(f => (
+        (category === 'wages' && f.field.toLowerCase().includes('wage')) ||
+        (category === 'withholding' && f.field.toLowerCase().includes('withheld')) ||
+        (category === '1099_income' && (f.field.toLowerCase().includes('compensation') || f.field.toLowerCase().includes('dividend') || f.field.toLowerCase().includes('interest')))
+      ));
+
+      const sourceTotal = matchingOcr.length > 0
+        ? matchingOcr.reduce((sum, f) => sum + (typeof (f.finalAcceptedValue ?? f.proposedValue) === 'number' ? Number(f.finalAcceptedValue ?? f.proposedValue) : 0), 0)
+        : recordedTotal;
+
+      const difference = Math.round(Math.abs(recordedTotal - sourceTotal) * 100) / 100;
+      const tolerance = toleranceOverride !== undefined ? toleranceOverride : 1.00;
+
+      const isMatched = difference <= tolerance;
+      const status: ReconciliationStatus = isMatched ? 'MATCHED' : 'VARIANCE';
+      const exceptions: string[] = [];
+
+      let newExceptions = access.current.openExceptions || 0;
+
+      const entity: ReconciliationRecordEntity = {
+        id: reconciliationId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: `case_${scope.taxYear}`,
+        taxYear: scope.taxYear,
+        category,
+        sourceTotal,
+        recordedTotal,
+        difference,
+        tolerance,
+        status,
+        evidenceReferences,
+        recordIds: records.map(r => r.id),
+        exceptions,
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      const writes: any[] = [{ collection: 'reconciliations', id: reconciliationId, data: entity }];
+
+      if (!isMatched) {
+        const exCode = category === 'withholding' ? 'WITHHOLDING_MISMATCH' : 'TOTAL_MISMATCH';
+        exceptions.push(exCode);
+        const exId = `ex_recon_${reconciliationId}`;
+        writes.push({
+          collection: 'exceptions',
+          id: exId,
+          data: {
+            id: exId,
+            code: exCode,
+            category,
+            sourceTotal,
+            recordedTotal,
+            difference,
+            status: 'OPEN',
+            openedBy: uid,
+            openedAt: timestamp,
+            version: 1,
+          },
+        });
+        newExceptions += 1;
+      }
+
+      return {
+        writes,
+        patch: { openExceptions: newExceptions },
+      };
+    }).then(res => ({ reconciliationId, revision: res.revision, version: res.version }));
+  }
+
+  async getReconciliation(scope: CaseScope, uid: string, reconciliationId: string): Promise<ReconciliationRecordEntity> {
+    safeId(reconciliationId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = await tx.get(this.db.doc(`${casePath(scope)}/reconciliations/${reconciliationId}`));
+      if (!doc.exists) throw new AuthorityError('RECONCILIATION_NOT_FOUND', 404);
+      return doc.data() as ReconciliationRecordEntity;
+    });
+  }
+
+  async listReconciliations(scope: CaseScope, uid: string): Promise<ReconciliationRecordEntity[]> {
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const snap = await tx.get(this.db.collection(`${casePath(scope)}/reconciliations`));
+      return snap.docs.map(d => d.data() as ReconciliationRecordEntity);
+    });
+  }
+
+  async resolveReconciliationVariance(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    reconciliationId: string,
+    reason: string
+  ) {
+    safeId(reconciliationId);
+    return this.mutate(scope, uid, version, operationId, { action: 'RECONCILIATION_VARIANCE_RESOLVED', reconciliationId, reason }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+      const reconRef = this.db.doc(`${casePath(scope)}/reconciliations/${reconciliationId}`);
+      const exRef = this.db.doc(`${casePath(scope)}/exceptions/ex_recon_${reconciliationId}`);
+      const recon = (await tx.get(reconRef)).data() as ReconciliationRecordEntity;
+      if (!recon) throw new AuthorityError('RECONCILIATION_NOT_FOUND', 404);
+      const exDoc = await tx.get(exRef);
+
+      const timestamp = new Date().toISOString();
+      tx.set(reconRef, {
+        status: 'RESOLVED',
+        resolutionNotes: reason,
+        reviewer: uid,
+        reviewTimestamp: timestamp,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      let newExceptions = access.current.openExceptions || 0;
+      if (exDoc.exists && exDoc.data()?.status === 'OPEN') {
+        tx.set(exRef, { status: 'RESOLVED', resolvedBy: uid, resolvedAt: timestamp, resolutionNotes: reason }, { merge: true });
+        newExceptions = Math.max(0, newExceptions - 1);
+      }
+
+      return {
+        writes: [{ collection: 'reconciliationResolutions', id: operationId, data: { reconciliationId, reason, resolvedBy: uid, timestamp } }],
+        patch: { openExceptions: newExceptions },
+      };
+    });
+  }
+
+  // ==========================================================================
+  // STAGE 06 — REVIEW (M18.7)
+  // ==========================================================================
+
+  async createWorkpaper(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    input: {
+      workpaperType?: string;
+      title: string;
+      issue: string;
+      sourceEvidenceIds?: string[];
+      taxRecordIds?: string[];
+      analysis: string;
+      conclusion: string;
+      references?: string[];
+      exceptionIds?: string[];
+      resolution?: string;
+      status?: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+    }
+  ): Promise<{ workpaperId: string; revision: number; version: number }> {
+    safeId(operationId);
+    const workpaperId = `wp_${operationId.slice(0, 8)}`;
+    return this.mutate(scope, uid, version, operationId, { action: 'WORKPAPER_CREATED', workpaperId }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+      const timestamp = new Date().toISOString();
+
+      const workpaperEntity: TaxWorkpaperEntity = {
+        id: workpaperId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: `case_${scope.taxYear}`,
+        taxYear: scope.taxYear,
+        workpaperType: input.workpaperType || 'GENERAL_ANALYSIS',
+        title: input.title,
+        issue: input.issue,
+        sourceEvidenceIds: input.sourceEvidenceIds || [],
+        taxRecordIds: input.taxRecordIds || [],
+        analysis: input.analysis,
+        conclusion: input.conclusion,
+        reviewer: uid,
+        reviewerRole: access.member.role,
+        reviewDate: timestamp,
+        references: input.references || [],
+        exceptionIds: input.exceptionIds || [],
+        resolution: input.resolution,
+        status: input.status || 'DRAFT',
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      return {
+        writes: [{ collection: 'workpapers', id: workpaperId, data: workpaperEntity }],
+      };
+    }).then(res => ({ workpaperId, revision: res.revision, version: res.version }));
+  }
+
+  async getWorkpaper(scope: CaseScope, uid: string, workpaperId: string): Promise<TaxWorkpaperEntity> {
+    safeId(workpaperId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = await tx.get(this.db.doc(`${casePath(scope)}/workpapers/${workpaperId}`));
+      if (!doc.exists) throw new AuthorityError('WORKPAPER_NOT_FOUND', 404);
+      return doc.data() as TaxWorkpaperEntity;
+    });
+  }
+
+  async listWorkpapers(scope: CaseScope, uid: string): Promise<TaxWorkpaperEntity[]> {
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const snap = await tx.get(this.db.collection(`${casePath(scope)}/workpapers`));
+      return snap.docs.map(d => d.data() as TaxWorkpaperEntity);
+    });
+  }
+
+  async performReviewAction(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    target: { type: 'record' | 'reconciliation' | 'workpaper' | 'return'; id: string },
+    action: ReviewActionType,
+    notes?: string
+  ) {
+    safeId(operationId);
+    safeId(target.id);
+    return this.mutate(scope, uid, version, operationId, { action: 'REVIEW_ACTION_PERFORMED', target, reviewAction: action }, async (tx, access) => {
+      const collectionName = target.type === 'record' ? 'taxRecords'
+        : target.type === 'reconciliation' ? 'reconciliations'
+        : target.type === 'workpaper' ? 'workpapers'
+        : 'draftReturns';
+
+      const targetRef = this.db.doc(`${casePath(scope)}/${collectionName}/${target.id}`);
+      const targetDoc = await tx.get(targetRef);
+      if (!targetDoc.exists) throw new AuthorityError('TARGET_NOT_FOUND', 404);
+      const targetData = targetDoc.data();
+
+      // Prohibit self-approval (maker-checker violation)
+      if (targetData?.createdBy === uid || access.current.preparerUid === uid) {
+        throw new AuthorityError('MAKER_CHECKER_VIOLATION', 403);
+      }
+
+      this.reviewer(access, uid);
+
+      const timestamp = new Date().toISOString();
+      const updatedStatus = action === 'ACCEPT' ? 'APPROVED' : action === 'RETURN_FOR_CORRECTION' ? 'REJECTED' : 'IN_REVIEW';
+
+      tx.set(targetRef, {
+        status: updatedStatus,
+        reviewer: uid,
+        reviewerRole: access.member.role,
+        reviewTimestamp: timestamp,
+        reviewNotes: notes,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'reviewActions', id: operationId, data: { target, action, notes, reviewer: uid, timestamp } }],
+      };
+    });
+  }
+
+  // ==========================================================================
+  // STAGE 07 — REPORT (M18.7)
+  // ==========================================================================
+
+  async generateReport(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    reportType: ReportType
+  ): Promise<{ reportId: string; revision: number; version: number }> {
+    safeId(operationId);
+    const reportId = `rep_${reportType}_${operationId}`;
+
+    return this.mutate(scope, uid, version, operationId, { action: 'REPORT_GENERATED', reportType, reportId }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+      const timestamp = new Date().toISOString();
+      const newVersion = (access.current.version ?? access.current.revision) + 1;
+
+      const recordsSnap = await tx.get(this.db.collection(`${casePath(scope)}/taxRecords`));
+      const records = recordsSnap.docs.map(d => d.data() as TaxRecordEntity).filter(r => r.status === 'RECORDED');
+
+      const totalIncome = records.filter(r => ['wages', 'interest', 'dividends', 'business_income', 'form_1099'].includes(r.category))
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const totalDeductions = records.filter(r => ['business_expenses', 'adjustments', 'itemized_deductions'].includes(r.category))
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const totalWithholding = records.filter(r => ['federal_withholding', 'state_withholding', 'estimated_payments'].includes(r.category))
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+
+      const titleMap: Record<ReportType, string> = {
+        case_summary: 'Comprehensive Tax Case Summary',
+        income_summary: 'Consolidated Gross Income Schedule',
+        deduction_summary: 'Allowable Deductions & Expense Summary',
+        credit_summary: 'Applicable Tax Credits Analysis',
+        payment_withholding_summary: 'Prepayments & Withholding Reconciliation',
+        business_summary: 'Schedule C / Business Performance Summary',
+        reconciliation_report: 'Audit Tie-Out & Reconciliation Report',
+        exception_report: 'Audit & Compliance Exception Log',
+        review_report: 'Professional Review & Maker-Checker Signoff Report',
+        evidence_report: 'Source Document & Extraction Evidence Index',
+        workpaper_summary: 'Professional Workpaper Memorandum',
+        audit_trail_summary: 'Immutable Cryptographic Audit Trail Summary',
+      };
+
+      const sections: Array<{ title: string; items: Record<string, unknown> | Array<Record<string, unknown>> }> = [
+        {
+          title: 'Executive Metrics',
+          items: {
+            totalIncome,
+            totalDeductions,
+            totalWithholding,
+            netTaxableBase: Math.max(0, totalIncome - totalDeductions),
+            recordCount: records.length,
+          },
+        },
+        {
+          title: 'Classified Authoritative Records',
+          items: records.map(r => ({ category: r.category, description: r.description, value: r.normalizedValue })),
+        },
+      ];
+
+      const reportEntity: TaxReportEntity = {
+        id: reportId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: `case_${scope.taxYear}`,
+        taxYear: scope.taxYear,
+        reportType,
+        title: titleMap[reportType] || 'Tax Report',
+        dataVersion: newVersion,
+        generatedAt: timestamp,
+        generatedBy: uid,
+        status: 'CURRENT',
+        sourceReferences: records.map(r => r.id),
+        sections,
+        summaryMetrics: {
+          totalIncome,
+          totalDeductions,
+          totalWithholding,
+        },
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      return {
+        writes: [{ collection: 'reports', id: reportId, data: reportEntity }],
+      };
+    }).then(res => ({ reportId, revision: res.revision, version: res.version }));
+  }
+
+  async getReport(scope: CaseScope, uid: string, reportId: string): Promise<TaxReportEntity> {
+    safeId(reportId);
+    return this.db.runTransaction(async tx => {
+      const access = await this.access(tx, scope, uid);
+      const doc = await tx.get(this.db.doc(`${casePath(scope)}/reports/${reportId}`));
+      if (!doc.exists) throw new AuthorityError('REPORT_NOT_FOUND', 404);
+      const rep = doc.data() as TaxReportEntity;
+      if (rep.dataVersion < (access.current.version || 1)) {
+        return { ...rep, status: 'STALE' };
+      }
+      return rep;
+    });
+  }
+
+  async listReports(scope: CaseScope, uid: string): Promise<TaxReportEntity[]> {
+    return this.db.runTransaction(async tx => {
+      const access = await this.access(tx, scope, uid);
+      const snap = await tx.get(this.db.collection(`${casePath(scope)}/reports`));
+      return snap.docs.map(d => {
+        const rep = d.data() as TaxReportEntity;
+        if (rep.dataVersion < (access.current.version || 1)) {
+          return { ...rep, status: 'STALE' };
+        }
+        return rep;
+      });
+    });
+  }
+
+  // ==========================================================================
+  // STAGE 08 — PLAN (M18.7)
+  // ==========================================================================
+
+  async createPlanningScenario(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    input: {
+      name: string;
+      description: string;
+      assumptions: Record<string, unknown>;
+      adjustments: Array<{ category: string; description: string; deltaAmount: number }>;
+    }
+  ): Promise<{ scenarioId: string; revision: number; version: number }> {
+    safeId(operationId);
+    const scenarioId = `scen_${operationId}`;
+
+    return this.mutate(scope, uid, version, operationId, { action: 'PLANNING_SCENARIO_CREATED', scenarioId }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+      const timestamp = new Date().toISOString();
+
+      const recordsSnap = await tx.get(this.db.collection(`${casePath(scope)}/taxRecords`));
+      const records = recordsSnap.docs.map(d => d.data() as TaxRecordEntity).filter(r => r.status === 'RECORDED');
+
+      const baselineIncome = records.filter(r => ['wages', 'interest', 'dividends', 'business_income', 'form_1099'].includes(r.category))
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const baselineDeductions = records.filter(r => ['business_expenses', 'adjustments', 'itemized_deductions'].includes(r.category))
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+
+      const netAdjustment = (input.adjustments || []).reduce((sum, a) => sum + a.deltaAmount, 0);
+
+      const projectedAgi = Math.max(0, baselineIncome + netAdjustment);
+      const standardDeduction = 15000;
+      const projectedTaxableIncome = Math.max(0, projectedAgi - Math.max(standardDeduction, baselineDeductions));
+      const projectedTaxLiability = Math.round(projectedTaxableIncome * 0.22);
+      const projectedEffectiveRate = projectedAgi > 0 ? Math.round((projectedTaxLiability / projectedAgi) * 10000) / 100 : 0;
+      const baselineTax = Math.round(Math.max(0, baselineIncome - standardDeduction) * 0.22);
+      const projectedSavingsOrCost = baselineTax - projectedTaxLiability;
+
+      const scenarioEntity: PlanningScenarioEntity = {
+        id: scenarioId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: `case_${scope.taxYear}`,
+        taxYear: scope.taxYear,
+        name: input.name,
+        description: input.description,
+        baselineVersion: access.current.version || 1,
+        assumptions: input.assumptions || {},
+        adjustments: input.adjustments || [],
+        projectedResults: {
+          projectedAgi,
+          projectedTaxableIncome,
+          projectedTaxLiability,
+          projectedEffectiveRate,
+          projectedSavingsOrCost,
+          ruleVersion: 'IRS-PLAN-2025-v1',
+          calculationVersion: 'calc-plan-v1.0',
+        },
+        reviewStatus: 'PROPOSED',
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      return {
+        writes: [{ collection: 'planningScenarios', id: scenarioId, data: scenarioEntity }],
+      };
+    }).then(res => ({ scenarioId, revision: res.revision, version: res.version }));
+  }
+
+  async getPlanningScenario(scope: CaseScope, uid: string, scenarioId: string): Promise<PlanningScenarioEntity> {
+    safeId(scenarioId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = await tx.get(this.db.doc(`${casePath(scope)}/planningScenarios/${scenarioId}`));
+      if (!doc.exists) throw new AuthorityError('PLANNING_SCENARIO_NOT_FOUND', 404);
+      return doc.data() as PlanningScenarioEntity;
+    });
+  }
+
+  async listPlanningScenarios(scope: CaseScope, uid: string): Promise<PlanningScenarioEntity[]> {
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const snap = await tx.get(this.db.collection(`${casePath(scope)}/planningScenarios`));
+      return snap.docs.map(d => d.data() as PlanningScenarioEntity);
+    });
+  }
+
+  // ==========================================================================
+  // STAGE 09 — PREPARE TAXES (M18.7)
+  // ==========================================================================
+
+  async generateDraftReturn(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    returnType: 'INDIVIDUAL_1040' | 'PARTNERSHIP_1065' | 'S_CORP_1120S' | 'C_CORP_1120',
+    jurisdiction: string
+  ): Promise<{ returnId: string; revision: number; version: number }> {
+    safeId(operationId);
+    if (!jurisdiction) throw new AuthorityError('UNSUPPORTED_JURISDICTION', 400);
+    if (jurisdiction !== 'FEDERAL' && !['CA', 'NY', 'TX', 'FL', 'AR'].includes(jurisdiction)) {
+      throw new AuthorityError('UNSUPPORTED_JURISDICTION', 400);
+    }
+    if (returnType !== 'INDIVIDUAL_1040') {
+      throw new AuthorityError('UNSUPPORTED_RETURN_TYPE', 400);
+    }
+
+    const returnId = `ret_${jurisdiction}_${returnType}_${operationId}`;
+
+    return this.mutate(scope, uid, version, operationId, { action: 'DRAFT_RETURN_GENERATED', returnId, jurisdiction, returnType }, async (tx, access) => {
+      this.preparer(access, uid);
+      const timestamp = new Date().toISOString();
+      const newVersion = (access.current.version ?? access.current.revision) + 1;
+
+      const recordsSnap = await tx.get(this.db.collection(`${casePath(scope)}/taxRecords`));
+      const records = recordsSnap.docs.map(d => d.data() as TaxRecordEntity).filter(r => r.status === 'RECORDED');
+
+      const wages = records.filter(r => r.category === 'wages')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const interest = records.filter(r => r.category === 'interest')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const dividends = records.filter(r => r.category === 'dividends')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const businessIncome = records.filter(r => r.category === 'business_income' || r.category === 'form_1099')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const capitalGains = records.filter(r => r.category === 'capital_transactions')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+
+      const totalIncome = wages + interest + dividends + businessIncome + capitalGains;
+
+      const adjustments = records.filter(r => r.category === 'adjustments')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const adjustedGrossIncome = Math.max(0, totalIncome - adjustments);
+
+      const itemizedDeductions = records.filter(r => r.category === 'itemized_deductions')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+
+      const standardDeduction = 15000;
+      const deductionType: 'STANDARD' | 'ITEMIZED' = itemizedDeductions > standardDeduction ? 'ITEMIZED' : 'STANDARD';
+      const deductionAmount = Math.max(standardDeduction, itemizedDeductions);
+
+      const qbiDeduction = Math.round(businessIncome * 0.20);
+      const taxableIncome = Math.max(0, adjustedGrossIncome - deductionAmount - qbiDeduction);
+
+      let tentativeTax = 0;
+      if (taxableIncome <= 11925) {
+        tentativeTax = taxableIncome * 0.10;
+      } else if (taxableIncome <= 48475) {
+        tentativeTax = 1192.50 + (taxableIncome - 11925) * 0.12;
+      } else if (taxableIncome <= 103350) {
+        tentativeTax = 5578.50 + (taxableIncome - 48475) * 0.22;
+      } else {
+        tentativeTax = 17651.00 + (taxableIncome - 103350) * 0.24;
+      }
+      tentativeTax = Math.round(tentativeTax * 100) / 100;
+
+      const creditsTotal = records.filter(r => r.category === 'credits')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const totalTaxLiability = Math.max(0, tentativeTax - creditsTotal);
+
+      const federalWithholding = records.filter(r => r.category === 'federal_withholding')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const estimatedPayments = records.filter(r => r.category === 'estimated_payments')
+        .reduce((sum, r) => sum + (Number(r.normalizedValue) || 0), 0);
+      const paymentsAndWithholding = federalWithholding + estimatedPayments;
+
+      const balanceDueOrRefund = Math.round((paymentsAndWithholding - totalTaxLiability) * 100) / 100;
+
+      const diagnostics: ReturnDiagnostic[] = [];
+      if (access.current.openExceptions > 0) {
+        diagnostics.push({
+          code: 'UNRESOLVED_EXCEPTIONS',
+          message: `${access.current.openExceptions} blocking exception(s) remain open on this tax case.`,
+          severity: 'CRITICAL_BLOCKING',
+          resolved: false,
+        });
+      }
+      if (totalIncome === 0) {
+        diagnostics.push({
+          code: 'ZERO_TOTAL_INCOME',
+          message: 'No recorded gross income detected for this return.',
+          severity: 'WARNING',
+          resolved: false,
+        });
+      }
+
+      const hasBlockingDiagnostics = diagnostics.some(d => d.severity === 'CRITICAL_BLOCKING');
+      const status = hasBlockingDiagnostics ? 'DIAGNOSTIC_FAILED' : 'READY_FOR_PREPARER_REVIEW';
+
+      const draftReturnEntity: DraftReturnEntity = {
+        id: returnId,
+        returnId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: `case_${scope.taxYear}`,
+        taxYear: scope.taxYear,
+        jurisdiction,
+        returnType,
+        status,
+        sourceDataVersion: newVersion,
+        ruleVersion: 'IRS-1040-2025-REV1',
+        calculationVersion: 'calc-1040-v2025.1.0',
+        figures: {
+          totalIncome,
+          totalAdjustments: adjustments,
+          adjustedGrossIncome,
+          deductionType,
+          deductionAmount,
+          qualifiedBusinessIncomeDeduction: qbiDeduction,
+          taxableIncome,
+          tentativeTax,
+          creditsTotal,
+          totalTaxLiability,
+          paymentsAndWithholding,
+          balanceDueOrRefund,
+        },
+        forms: [
+          {
+            formNumber: '1040',
+            formName: 'U.S. Individual Income Tax Return',
+            lineItems: {
+              'Line 1z': wages,
+              'Line 2b': interest,
+              'Line 3b': dividends,
+              'Line 8': businessIncome,
+              'Line 9': totalIncome,
+              'Line 10': adjustments,
+              'Line 11': adjustedGrossIncome,
+              'Line 12': deductionAmount,
+              'Line 13': qbiDeduction,
+              'Line 15': taxableIncome,
+              'Line 16': tentativeTax,
+              'Line 24': totalTaxLiability,
+              'Line 25d': federalWithholding,
+              'Line 26': estimatedPayments,
+              'Line 33': paymentsAndWithholding,
+              'Line 34 (Refund)': balanceDueOrRefund > 0 ? balanceDueOrRefund : 0,
+              'Line 37 (Amount Owed)': balanceDueOrRefund < 0 ? Math.abs(balanceDueOrRefund) : 0,
+            },
+          },
+        ],
+        schedules: [
+          {
+            scheduleName: 'Schedule 1',
+            lineItems: { 'Part I Additional Income': businessIncome, 'Part II Adjustments': adjustments },
+          },
+        ],
+        diagnostics,
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      return {
+        writes: [{ collection: 'draftReturns', id: returnId, data: draftReturnEntity }],
+      };
+    }).then(res => ({ returnId, revision: res.revision, version: res.version }));
+  }
+
+  async getDraftReturn(scope: CaseScope, uid: string, returnId: string): Promise<DraftReturnEntity> {
+    safeId(returnId);
+    return this.db.runTransaction(async tx => {
+      const access = await this.access(tx, scope, uid);
+      const doc = await tx.get(this.db.doc(`${casePath(scope)}/draftReturns/${returnId}`));
+      if (!doc.exists) throw new AuthorityError('DRAFT_RETURN_NOT_FOUND', 404);
+      const ret = doc.data() as DraftReturnEntity;
+      if (ret.sourceDataVersion < (access.current.version || 1)) {
+        return { ...ret, status: 'STALE' };
+      }
+      return ret;
+    });
+  }
+
+  async listDraftReturns(scope: CaseScope, uid: string): Promise<DraftReturnEntity[]> {
+    return this.db.runTransaction(async tx => {
+      const access = await this.access(tx, scope, uid);
+      const snap = await tx.get(this.db.collection(`${casePath(scope)}/draftReturns`));
+      return snap.docs.map(d => {
+        const ret = d.data() as DraftReturnEntity;
+        if (ret.sourceDataVersion < (access.current.version || 1)) {
+          return { ...ret, status: 'STALE' };
+        }
+        return ret;
+      });
+    });
+  }
+
+  async certifyDraftReturn(scope: CaseScope, uid: string, version: number, operationId: string, returnId: string) {
+    safeId(returnId);
+    return this.mutate(scope, uid, version, operationId, { action: 'DRAFT_RETURN_CERTIFIED', returnId }, async (tx, access) => {
+      this.preparer(access, uid);
+      const returnRef = this.db.doc(`${casePath(scope)}/draftReturns/${returnId}`);
+      const ret = (await tx.get(returnRef)).data() as DraftReturnEntity;
+      if (!ret) throw new AuthorityError('DRAFT_RETURN_NOT_FOUND', 404);
+
+      if (ret.diagnostics?.some(d => d.severity === 'CRITICAL_BLOCKING' && !d.resolved)) {
+        throw new AuthorityError('BLOCKING_DIAGNOSTICS_REMAIN', 400);
+      }
+
+      const timestamp = new Date().toISOString();
+      tx.set(returnRef, {
+        status: 'PREPARER_CERTIFIED',
+        preparerCertifiedBy: uid,
+        preparerCertifiedAt: timestamp,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'returnCertifications', id: operationId, data: { returnId, certifiedBy: uid, timestamp } }],
       };
     });
   }

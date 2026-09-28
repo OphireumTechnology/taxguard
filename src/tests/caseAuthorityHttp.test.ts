@@ -94,3 +94,104 @@ it('lists cases for an engagement via the API', async () => {
   expect(cases[0].taxYear).toBe(2025);
 });
 
+it('supports Stages 04 through 09 via canonical HTTP routes', async () => {
+  // Stage 04: Create record
+  const recRes = await fetch(origin + '/records', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-test-user': 'preparer' },
+    body: JSON.stringify({
+      version: 1,
+      operationId: 'op_http_rec',
+      record: {
+        category: 'wages',
+        description: 'HTTP Form W-2',
+        originalValue: '60000',
+        normalizedValue: 60000,
+        provenance: { originalValue: '60000', recordVersion: 1 },
+      },
+    }),
+  });
+  expect(recRes.status).toBe(200);
+  const recData = await recRes.json();
+  expect(recData.recordId).toBeDefined();
+
+  // List records
+  const listRecRes = await fetch(origin + '/records', { headers: { 'x-test-user': 'preparer' } });
+  expect(listRecRes.status).toBe(200);
+  const records = await listRecRes.json();
+  expect(records.length).toBeGreaterThan(0);
+
+  // Stage 05: Reconcile
+  const reconRes = await fetch(origin + '/reconciliations/run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-test-user': 'preparer' },
+    body: JSON.stringify({
+      version: 2,
+      operationId: 'op_http_recon',
+      category: 'wages',
+      tolerance: 1.0,
+    }),
+  });
+  expect(reconRes.status).toBe(200);
+
+  // Stage 06: Workpaper
+  const wpRes = await fetch(origin + '/workpapers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-test-user': 'preparer' },
+    body: JSON.stringify({
+      version: 3,
+      operationId: 'op_http_wp',
+      workpaper: {
+        title: 'HTTP Wage Reconciliation Workpaper',
+        issue: 'W-2 Wage Verification',
+        analysis: 'Matched within tolerance',
+        conclusion: 'Verified',
+      },
+    }),
+  });
+  expect(wpRes.status).toBe(200);
+
+  // Stage 07: Report
+  const repRes = await fetch(origin + '/reports/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-test-user': 'preparer' },
+    body: JSON.stringify({
+      version: 4,
+      operationId: 'op_http_rep',
+      reportType: 'case_summary',
+    }),
+  });
+  expect(repRes.status).toBe(200);
+
+  // Stage 08: Plan
+  const planRes = await fetch(origin + '/planning', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-test-user': 'preparer' },
+    body: JSON.stringify({
+      version: 5,
+      operationId: 'op_http_plan',
+      scenario: {
+        name: 'HTTP Scenario',
+        description: 'Modeling test',
+        adjustments: [],
+      },
+    }),
+  });
+  expect(planRes.status).toBe(200);
+
+  // Stage 09: Return
+  const retRes = await fetch(origin + '/returns/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-test-user': 'preparer' },
+    body: JSON.stringify({
+      version: 6,
+      operationId: 'op_http_ret',
+      returnType: 'INDIVIDUAL_1040',
+      jurisdiction: 'FEDERAL',
+    }),
+  });
+  expect(retRes.status).toBe(200);
+  const retData = await retRes.json();
+  expect(retData.returnId).toBeDefined();
+});
+

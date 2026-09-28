@@ -141,3 +141,94 @@ caseAuthorityRouter.post(base + '/ai-review', handler((repo, scope, uid, req) =>
   if (process.env.TAXGUARD_OPENAI_CASES_ENABLED !== 'true') throw new AuthorityError('AI_CASE_REVIEW_DISABLED', 503);
   return proposeDurableOpenAIReview(repo, scope, uid, req.body || {});
 }));
+
+// ============================================================================
+// STAGE 04 — RECORD ROUTES (M18.7)
+// ============================================================================
+caseAuthorityRouter.post(base + '/records', handler((repo, scope, uid, req) =>
+  repo.createTaxRecord(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.record)
+));
+caseAuthorityRouter.get(base + '/records', handler((repo, scope, uid, req) =>
+  repo.listTaxRecords(scope, uid, { category: req.query.category as string | undefined })
+));
+caseAuthorityRouter.get(base + '/records/:id', handler((repo, scope, uid, req) =>
+  repo.getTaxRecord(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/records/:id/resolve-duplicate', handler((repo, scope, uid, req) =>
+  repo.resolveRecordDuplicate(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.resolution)
+));
+
+// ============================================================================
+// STAGE 05 — RECONCILE ROUTES (M18.7)
+// ============================================================================
+caseAuthorityRouter.post(base + '/reconciliations/run', handler((repo, scope, uid, req) =>
+  repo.runReconciliation(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.category, req.body?.tolerance)
+));
+caseAuthorityRouter.get(base + '/reconciliations', handler((repo, scope, uid) =>
+  repo.listReconciliations(scope, uid)
+));
+caseAuthorityRouter.get(base + '/reconciliations/:id', handler((repo, scope, uid, req) =>
+  repo.getReconciliation(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/reconciliations/:id/resolve', handler((repo, scope, uid, req) =>
+  repo.resolveReconciliationVariance(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.reason)
+));
+
+// ============================================================================
+// STAGE 06 — REVIEW ROUTES (M18.7)
+// ============================================================================
+caseAuthorityRouter.post(base + '/workpapers', handler((repo, scope, uid, req) =>
+  repo.createWorkpaper(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.workpaper)
+));
+caseAuthorityRouter.get(base + '/workpapers', handler((repo, scope, uid) =>
+  repo.listWorkpapers(scope, uid)
+));
+caseAuthorityRouter.get(base + '/workpapers/:id', handler((repo, scope, uid, req) =>
+  repo.getWorkpaper(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/reviews/action', handler((repo, scope, uid, req) =>
+  repo.performReviewAction(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.target, req.body?.action, req.body?.notes)
+));
+
+// ============================================================================
+// STAGE 07 — REPORT ROUTES (M18.7)
+// ============================================================================
+caseAuthorityRouter.post(base + '/reports/generate', handler((repo, scope, uid, req) =>
+  repo.generateReport(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.reportType)
+));
+caseAuthorityRouter.get(base + '/reports', handler((repo, scope, uid) =>
+  repo.listReports(scope, uid)
+));
+caseAuthorityRouter.get(base + '/reports/:id', handler((repo, scope, uid, req) =>
+  repo.getReport(scope, uid, req.params.id)
+));
+
+// ============================================================================
+// STAGE 08 — PLAN ROUTES (M18.7)
+// ============================================================================
+caseAuthorityRouter.post(base + '/planning', handler((repo, scope, uid, req) =>
+  repo.createPlanningScenario(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.scenario)
+));
+caseAuthorityRouter.get(base + '/planning', handler((repo, scope, uid) =>
+  repo.listPlanningScenarios(scope, uid)
+));
+caseAuthorityRouter.get(base + '/planning/:id', handler((repo, scope, uid, req) =>
+  repo.getPlanningScenario(scope, uid, req.params.id)
+));
+
+// ============================================================================
+// STAGE 09 — PREPARE TAXES ROUTES (M18.7)
+// ============================================================================
+caseAuthorityRouter.post(base + '/returns/generate', handler((repo, scope, uid, req) =>
+  repo.generateDraftReturn(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.returnType, req.body?.jurisdiction)
+));
+caseAuthorityRouter.get(base + '/returns', handler((repo, scope, uid) =>
+  repo.listDraftReturns(scope, uid)
+));
+caseAuthorityRouter.get(base + '/returns/:id', handler((repo, scope, uid, req) =>
+  repo.getDraftReturn(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/returns/:id/certify', handler((repo, scope, uid, req) =>
+  repo.certifyDraftReturn(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id)
+));
+

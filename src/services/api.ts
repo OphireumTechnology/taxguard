@@ -831,6 +831,115 @@ export const api = {
     },
     getProviderReadiness: async () => {
       return request<{ providers: any[] }>('/api/provider-readiness');
+    },
+
+    // Stage 04: Record
+    createTaxRecord: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; record: Record<string, unknown> }) => {
+      return request<{ recordId: string; revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/records`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    listTaxRecords: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, category?: string) => {
+      const q = category ? `?category=${encodeURIComponent(category)}` : '';
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/records${q}`);
+    },
+    getTaxRecord: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/records/${id}`);
+    },
+    resolveRecordDuplicate: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string, payload: { version: number; operationId: string; resolution: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/records/${id}/resolve-duplicate`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    // Stage 05: Reconcile
+    runReconciliation: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; category: string; tolerance?: number }) => {
+      return request<{ reconciliationId: string; revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reconciliations/run`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    listReconciliations: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reconciliations`);
+    },
+    getReconciliation: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reconciliations/${id}`);
+    },
+    resolveReconciliationVariance: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string, payload: { version: number; operationId: string; reason: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reconciliations/${id}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    // Stage 06: Review
+    createWorkpaper: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; workpaper: Record<string, unknown> }) => {
+      return request<{ workpaperId: string; revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/workpapers`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    listWorkpapers: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/workpapers`);
+    },
+    getWorkpaper: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/workpapers/${id}`);
+    },
+    performReviewAction: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; target: { type: string; id: string }; action: string; notes?: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reviews/action`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    // Stage 07: Report
+    generateReport: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; reportType: string }) => {
+      return request<{ reportId: string; revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reports/generate`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    listReports: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reports`);
+    },
+    getReport: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/reports/${id}`);
+    },
+
+    // Stage 08: Plan
+    createPlanningScenario: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; scenario: Record<string, unknown> }) => {
+      return request<{ scenarioId: string; revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/planning`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    listPlanningScenarios: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/planning`);
+    },
+    getPlanningScenario: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/planning/${id}`);
+    },
+
+    // Stage 09: Prepare Taxes
+    generateDraftReturn: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; returnType: string; jurisdiction: string }) => {
+      return request<{ returnId: string; revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/returns/generate`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    listDraftReturns: async (tenantId: string, clientId: string, engagementId: string, taxYear: number) => {
+      return request<any[]>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/returns`);
+    },
+    getDraftReturn: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string) => {
+      return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/returns/${id}`);
+    },
+    certifyDraftReturn: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, id: string, payload: { version: number; operationId: string }) => {
+      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/returns/${id}/certify`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
     }
   }
 };
