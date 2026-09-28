@@ -92,10 +92,21 @@ const response = await fetch(apiEndpoint(endpoint), {
       clearStoredToken();
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired'));
     }
-    const errorMsg = data.error || data.message || `Request failed with status ${response.status}`;
+    let errorMsg = data.error || data.message;
+    if (response.status === 405) {
+      console.error(`[TaxGuard API] HTTP 405 Method Not Allowed on endpoint: ${endpoint}`);
+      errorMsg = 'We could not securely connect to the TaxGuard authentication service. Please try again or contact support.';
+    } else if (!errorMsg) {
+      if (response.status === 502 || response.status === 503 || response.status === 504) {
+        console.error(`[TaxGuard API] Service unavailable (${response.status}) on endpoint: ${endpoint}`);
+        errorMsg = 'The TaxGuard service is temporarily unavailable. Please try again shortly or contact support.';
+      } else {
+        errorMsg = `We could not securely connect to the TaxGuard service (${response.status}). Please try again or contact support.`;
+      }
+    }
     const err = new Error(errorMsg) as any;
     err.status = response.status;
-    err.code = data.code;
+    err.code = data.code || (response.status === 405 ? 'METHOD_NOT_ALLOWED' : undefined);
     err.data = data;
     throw err;
   }

@@ -7,6 +7,15 @@ import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service'
 export function createProductionApp() {
   const app = express();
   app.disable('x-powered-by');
+  // Normalize Cloud Functions URL prefix if invoked via /taxguardApi/...
+  app.use((req, _res, next) => {
+    if (req.url.startsWith('/taxguardApi/')) {
+      req.url = req.url.slice('/taxguardApi'.length);
+    } else if (req.url === '/taxguardApi') {
+      req.url = '/';
+    }
+    next();
+  });
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
