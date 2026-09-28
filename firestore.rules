@@ -7,6 +7,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Server authority only. Admin SDK authorization is enforced transactionally.
+    match /taxguardTenants/{document=**} { allow read, write: if false; }
+    match /taxguardIdentities/{document=**} { allow read, write: if false; }
+    match /taxguardSessions/{document=**} { allow read, write: if false; }
+
     // -------------------------------------------------------------------------
     // Global Core Helpers
     // -------------------------------------------------------------------------
@@ -277,31 +282,11 @@ service cloud.firestore {
       allow write: if isAccountant() || isAdmin();
     }
 
-    // Documents metadata: private to client, assigned accountant, and admin
+    // Legacy document metadata is read-only until migrated to scoped server authority.
+    // Clients cannot assert scan results, assignments, storage paths or verification.
     match /documents/{docId} {
-      allow get: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid ||
-        resource.data.assignedAccountantId == request.auth.uid ||
-        isAdmin()
-      );
-      allow list: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid ||
-        resource.data.assignedAccountantId == request.auth.uid ||
-        isAdmin()
-      );
-      allow create: if isSignedIn() && isValidDocumentItem(incoming()) && (
-        incoming().clientId == request.auth.uid || isAccountant() || isAdmin()
-      );
-      allow update: if isSignedIn() && isValidDocumentItem(incoming()) && (
-        isAdmin() ||
-        (isAccountant() &&
-         incoming().clientId == existing().clientId &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'category', 'year', 'assignedAccountantId', 'updatedAt'])) ||
-        (existing().clientId == request.auth.uid &&
-         incoming().clientId == existing().clientId &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['fileName', 'category', 'year', 'updatedAt']))
-      );
-      allow delete: if isAdmin() || (isSignedIn() && existing().uploadedBy == request.auth.uid && existing().status == 'uploaded');
+      allow get, list: if isSignedIn() && resource.data.clientId == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
     // Document Requests
@@ -348,43 +333,26 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Conversations
+    // Legacy conversation participants are server-managed and immutable to browsers.
     match /conversations/{conversationId} {
-      allow get: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid ||
-        resource.data.accountantId == request.auth.uid ||
-        isAdmin()
-      );
-      allow list: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid ||
-        resource.data.accountantId == request.auth.uid ||
-        isAdmin()
-      );
-      allow create: if isSignedIn() && (
-        incoming().clientId == request.auth.uid || isAccountant() || isAdmin()
-      );
-      allow update: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid ||
-        resource.data.accountantId == request.auth.uid ||
-        isAdmin()
-      );
-      allow delete: if isAdmin();
+      allow get, list: if isSignedIn() &&
+        (resource.data.clientId == request.auth.uid || resource.data.accountantId == request.auth.uid);
+      allow create, update, delete: if false;
     }
 
-    // Messages
+    // Messages remain private to the stored conversation participants.
+    function canReadConversation(id) {
+      return isSignedIn() && id is string &&
+        exists(/databases/$(database)/documents/conversations/$(id)) &&
+        (get(/databases/$(database)/documents/conversations/$(id)).data.clientId == request.auth.uid ||
+         get(/databases/$(database)/documents/conversations/$(id)).data.accountantId == request.auth.uid);
+    }
     match /messages/{messageId} {
-      allow get: if isSignedIn() && (
-        resource.data.senderId == request.auth.uid ||
-        isAdmin() ||
-        isAccountant()
-      );
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isValidMessage(incoming());
-      allow update: if isSignedIn() && (
-        isAdmin() ||
-        (incoming().diff(existing()).affectedKeys().hasOnly(['read']))
-      );
-      allow delete: if isAdmin();
+      allow get, list: if canReadConversation(resource.data.conversationId);
+      allow create: if isSignedIn() && isValidMessage(incoming()) && canReadConversation(incoming().conversationId);
+      allow update: if canReadConversation(existing().conversationId) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
     }
 
     // Notifications: strictly private to recipient

@@ -1,12 +1,41 @@
 import React from 'react';
 import { Lock, ArrowUpRight, Users, ShieldCheck, Briefcase, FileCheck } from 'lucide-react';
-import { DEMO_ROLES } from '../../demo/types';
-
 interface PublicV2PortalsPageProps {
   onNavigate: (path: string) => void;
   onOpenConsultation: () => void;
 }
 
+
+const PUBLIC_PORTAL_LINKS = [
+  {
+    role: 'client',
+    dashboardPath: '#/client/login',
+    title: 'Client Portal',
+    description:
+      'Secure access for clients to onboarding, document collection, tax workflow status, review and authorized communications.',
+  },
+  {
+    role: 'staff',
+    dashboardPath: '#/staff/login',
+    title: 'Staff Portal',
+    description:
+      'Secure access for authorized tax preparers, accountants and operations staff.',
+  },
+  {
+    role: 'reviewer',
+    dashboardPath: '#/staff/login',
+    title: 'Reviewer Portal',
+    description:
+      'Secure access for authorized reviewers and professional quality-control workflows.',
+  },
+  {
+    role: 'admin',
+    dashboardPath: '#/staff/login',
+    title: 'Administration',
+    description:
+      'Restricted administrative access for authorized TaxGuard personnel.',
+  },
+] as const;
 export const PublicV2PortalsPage: React.FC<PublicV2PortalsPageProps> = ({
   onNavigate,
   onOpenConsultation
@@ -53,7 +82,7 @@ export const PublicV2PortalsPage: React.FC<PublicV2PortalsPageProps> = ({
           Client & Staff Portals
         </h1>
         <p className="text-base sm:text-lg text-neutral-700 max-w-3xl leading-relaxed">
-          Centralized directory for accessing client workspaces, staff accounting tools, technical review pipelines, and the complete 29-role demonstration ecosystem.
+          Centralized directory for accessing client workspaces, staff accounting tools, technical review pipelines, and the authenticated TaxGuard role-based workspace.
         </p>
       </div>
 
@@ -113,7 +142,7 @@ export const PublicV2PortalsPage: React.FC<PublicV2PortalsPageProps> = ({
 
         {/* Roles chip grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 pt-2">
-          {Object.values(DEMO_ROLES).slice(0, 18).map((r) => (
+          {PUBLIC_PORTAL_LINKS.slice(0, 18).map((r) => (
             <a
               key={r.role}
               href={`#${r.dashboardPath}`}

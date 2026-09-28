@@ -41,3 +41,5 @@ TAXGUARD_*_REPORT.md
 tools/taxguard-autofix/
 tools/taxguard-autobuild-v2/
 tools/taxguard-continuation/
+
+functions/lib/

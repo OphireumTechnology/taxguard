@@ -72,63 +72,7 @@ export const assignUserRole = onCall({ cors: true }, async (request) => {
   };
 });
 
-/**
- * First-run bootstrap function:
- * Allows the very first administrator to claim authority, or checks against an env secret BOOTSTRAP_ADMIN_KEY.
- * Once any admin exists in the system, this function permanently closes unless valid secret key is presented.
- */
-export const bootstrapFirstAdmin = onCall({ cors: true }, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication required to bootstrap admin account.');
-  }
-
-  const callerUid = request.auth.uid;
-  const db = admin.firestore();
-  
-  const existingAdminsSnap = await db.collection('admins').limit(1).get();
-  const bootstrapKey = request.data?.bootstrapKey;
-  const expectedKey = process.env.BOOTSTRAP_ADMIN_KEY || 'artax-initial-bootstrap-secure-2026';
-
-  if (!existingAdminsSnap.empty) {
-    if (!bootstrapKey || bootstrapKey !== expectedKey) {
-      throw new HttpsError('permission-denied', 'Firm administrators already exist. Use an active administrator account to manage roles.');
-    }
-  }
-
-  // Grant administrator claims
-  await admin.auth().setCustomUserClaims(callerUid, { role: 'administrator' });
-
-  const userRecord = await admin.auth().getUser(callerUid);
-
-  await db.collection('admins').doc(callerUid).set({
-    uid: callerUid,
-    email: userRecord.email || '',
-    grantedBy: 'system-bootstrap',
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  });
-
-  await db.collection('users').doc(callerUid).set({
-    uid: callerUid,
-    email: userRecord.email || '',
-    fullName: userRecord.displayName || 'Administrator',
-    role: 'administrator',
-    status: 'active',
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-
-  await db.collection('auditLogs').add({
-    action: 'ADMIN_BOOTSTRAPPED',
-    actorId: callerUid,
-    actorRole: 'administrator',
-    targetResource: 'admins',
-    targetId: callerUid,
-    metadata: JSON.stringify({ email: userRecord.email }),
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  });
-
-  return {
-    success: true,
-    message: 'Administrator privileges successfully provisioned. Please re-authenticate or refresh token.',
-    role: 'administrator'
-  };
+/** Public administrator bootstrap is permanently disabled. Provision through an audited operator process. */
+export const bootstrapFirstAdmin = onCall({ cors: false }, async (_request) => {
+  throw new HttpsError('failed-precondition', 'Public administrator bootstrap is disabled. Contact the authorized system operator.');
 });

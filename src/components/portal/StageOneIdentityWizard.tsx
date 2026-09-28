@@ -1,4 +1,4 @@
-﻿/**
+/**
  * A/R Tax Services, LLC - Stage One Identity Verification Wizard
  * Entry point: Registration -> Stage One Onboard (Unified 18-Stage Operating Workflow)
  * Features:
@@ -8,41 +8,41 @@
  * - Address & authorized representative collection
  * - Supporting ID documents via secure upload
  * - 5-Point Duplicate Check (TIN, Name, Email, Phone, Address) with blocking & review routing
- * - Approved IRC Â§ 7216 engagement & consent
+ * - Approved IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 engagement & consent
  * - Onboarding Readiness Card & Hard Exit Gate
  * - Stage Two activation upon pass
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  User, 
-  Building2, 
-  Lock, 
-  MapPin, 
-  FileText, 
-  UploadCloud, 
-  AlertTriangle, 
-  CheckCircle2, 
-  XCircle, 
-  ArrowRight, 
-  ArrowLeft, 
-  RefreshCw, 
-  Eye, 
-  EyeOff, 
-  Clock, 
-  FileCheck, 
-  HelpCircle, 
+import {
+  ShieldCheck,
+  User,
+  Building2,
+  Lock,
+  MapPin,
+  FileText,
+  UploadCloud,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  ArrowLeft,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Clock,
+  FileCheck,
+  HelpCircle,
   ExternalLink,
   Layers,
   Sparkles,
   Sliders,
   Check
 } from 'lucide-react';
-import { 
-  StageOneOnboardingService, 
-  StageOneDossier, 
-  TaxpayerType, 
+import {
+  StageOneOnboardingService,
+  StageOneDossier,
+  TaxpayerType,
   EntityClassification,
   SupportingIdDoc,
   DuplicateCheckReport
@@ -50,7 +50,6 @@ import {
 import { DocumentUpload } from './DocumentUpload';
 import { EnvironmentConfigService, AppEnvironment } from '../../config/environmentConfig';
 import { useApp } from '../../context/AppContext';
-import { INITIAL_DEMO_CLIENTS } from '../../demo/mockData';
 
 interface StageOneIdentityWizardProps {
   initialClientId?: string;
@@ -78,7 +77,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     currentUser.email.toLowerCase() !== 'artest2026';
 
   const authenticatedClientId = currentUser?.clientId;
-  
+
   // Environment state
   const [activeEnv, setActiveEnv] = useState<AppEnvironment>(() => EnvironmentConfigService.getEnvironment());
   const envConfig = EnvironmentConfigService.getConfig();
@@ -86,7 +85,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   // Active client dossier state
   const [dossier, setDossier] = useState<StageOneDossier | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'tin' | 'addresses' | 'representative' | 'documents' | 'duplicate' | 'consent' | 'readiness'>('profile');
-  
+
   // Raw TIN input state (masked immediately, never stored raw)
   const [rawTinInput, setRawTinInput] = useState('');
   const [tinNotice, setTinNotice] = useState<string | null>(null);
@@ -132,7 +131,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
       StageOneOnboardingService.setActiveClientId(targetId);
     }
     let loaded = StageOneOnboardingService.getDossier(targetId);
-    
+
     if (!loaded) {
       // Create initial dossier if none exists
       loaded = StageOneOnboardingService.createInitialDossier({
@@ -213,12 +212,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     setIsSimulatingCheck(true);
     setTimeout(() => {
       const report =
-        StageOneOnboardingService.runDuplicateCheck(
-          dossier,
-          {
-            includeDemoRepository: !isLiveClient
-          }
-        );
+        StageOneOnboardingService.runDuplicateCheck(dossier);
       const updated: StageOneDossier = {
         ...dossier,
         duplicateCheck: report
@@ -269,26 +263,6 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
         onExitGatePassed();
       }
     }
-  };
-
-  // Test Failure Simulation: Inject collision with an existing client
-  const handleInjectCollision = (sampleExisting: typeof INITIAL_DEMO_CLIENTS[0]) => {
-    if (isLiveClient) return;
-    if (!dossier) return;
-    const updated: StageOneDossier = {
-      ...dossier,
-      legalName: sampleExisting.name,
-      dbaName: sampleExisting.businessName,
-      email: sampleExisting.email,
-      phone: sampleExisting.phone,
-      tinLast4: sampleExisting.einOrSsnMasked.slice(-4),
-      maskedTIN: sampleExisting.einOrSsnMasked
-    };
-    updateDossier(updated);
-    setTimeout(() => {
-      const report = StageOneOnboardingService.runDuplicateCheck(updated);
-      updateDossier({ ...updated, duplicateCheck: report });
-    }, 100);
   };
 
   // Test Happy Path: Autofill compliant data
@@ -382,7 +356,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 text-slate-100">
-      
+
       {/* Top Banner: Workflow Header & Client ID */}
       <div className="rounded-3xl bg-[#0D2340] border border-[#1E3A5F] p-6 shadow-2xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1E3A5F] pb-4">
@@ -397,7 +371,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               {isStageOneCompleted ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/40 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  <span>EXIT GATE PASSED â€” STAGE 02 (COLLECT) ACTIVE</span>
+                  <span>EXIT GATE PASSED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â STAGE 02 (COLLECT) ACTIVE</span>
                 </span>
               ) : (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-900/40 text-amber-300 border border-amber-500/40 flex items-center gap-1">
@@ -410,7 +384,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               <span>Identity Verification Wizard</span>
             </h1>
             <p className="text-xs text-slate-300 mt-0.5">
-              Authoritative client onboarding, taxpayer validation, TIN masking, duplicate detection, and IRC Â§ 7216 consent.
+              Authoritative client onboarding, taxpayer validation, TIN masking, duplicate detection, and IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 consent.
             </p>
           </div>
 
@@ -419,7 +393,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               <span className="text-[10px] text-slate-400 font-mono uppercase">Internal Client ID:</span>
               <span className="text-xs font-mono font-bold text-[#C6A15B] tracking-wider">{dossier.clientId}</span>
             </div>
-            
+
             {/* Environment boundary */}
             {isLiveClient ? (
               <div className="flex items-center gap-2 text-[11px]">
@@ -499,7 +473,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
           <div className="p-2.5 rounded-xl border bg-[#07172B]/40 border-[#1E3A5F]/50 text-slate-500 hidden md:block">
             <div className="text-[10px] font-mono">STAGE 06-18</div>
-            <div className="font-bold text-xs mt-0.5">Review â†’ File â†’ Archive</div>
+            <div className="font-bold text-xs mt-0.5">Review ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ File ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Archive</div>
             <div className="text-[10px] text-slate-500">Unified 18-Stage</div>
           </div>
         </div>
@@ -533,47 +507,6 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
             </button>
           </div>
         </div>
-      )}
-
-      {/* Testing Simulation Bar - DEMO ONLY */}
-      {!isLiveClient && (
-      <div className="p-3 rounded-2xl bg-[#07172B] border border-[#1E3A5F] flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 text-slate-300 font-semibold">
-          <Sliders className="w-4 h-4 text-[#C6A15B]" />
-          <span>Stage 1 Test Controls:</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleAutofillCompliant}
-            className="px-2.5 py-1 rounded-lg bg-[#1E3A5F] hover:bg-[#2A4D7A] text-slate-200 text-[11px] font-semibold transition-colors"
-          >
-            Autofill Valid Profile (Happy Path)
-          </button>
-          <button
-            onClick={() => handleInjectCollision(INITIAL_DEMO_CLIENTS[0])}
-            className="px-2.5 py-1 rounded-lg bg-amber-900/40 hover:bg-amber-900/60 text-amber-200 border border-amber-500/30 text-[11px] font-semibold transition-colors"
-          >
-            Simulate Duplicate Collision (Failure Path)
-          </button>
-          <button
-            onClick={() => {
-              // Clear documents to test missing document gate
-              updateDossier({ ...dossier, supportingDocs: [] });
-            }}
-            className="px-2.5 py-1 rounded-lg bg-red-900/40 hover:bg-red-900/60 text-red-200 border border-red-500/30 text-[11px] font-semibold transition-colors"
-          >
-            Clear ID Docs (Test Gate Lock)
-          </button>
-          <button
-            onClick={() => setIsReviewerMode(!isReviewerMode)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-              isReviewerMode ? 'bg-purple-900/50 text-purple-200 border border-purple-400' : 'bg-[#0D2340] text-slate-400 border border-[#1E3A5F]'
-            }`}
-          >
-            {isReviewerMode ? 'Reviewer Role Active' : 'Enable Reviewer Role'}
-          </button>
-        </div>
-      </div>
       )}
 
       {/* Navigation Tabs */}
@@ -658,7 +591,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>7. IRC Â§ 7216 Consent</span>
+          <span>7. IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</span>
         </button>
 
         <button
@@ -677,7 +610,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
       {/* Main Tab Content */}
       <div className="p-6 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-xl">
-        
+
         {/* TAB 1: TAXPAYER & LEGAL ENTITY */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
@@ -692,8 +625,8 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               <div
                 onClick={() => updateDossier({ ...dossier, taxpayerType: 'individual', tinType: 'ssn' })}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                  dossier.taxpayerType === 'individual' 
-                    ? 'bg-[#07172B] border-[#C6A15B] shadow-lg ring-1 ring-[#C6A15B]' 
+                  dossier.taxpayerType === 'individual'
+                    ? 'bg-[#07172B] border-[#C6A15B] shadow-lg ring-1 ring-[#C6A15B]'
                     : 'bg-[#07172B]/60 border-[#1E3A5F] hover:border-slate-500'
                 }`}
               >
@@ -709,8 +642,8 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               <div
                 onClick={() => updateDossier({ ...dossier, taxpayerType: 'entity', tinType: 'ein' })}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                  dossier.taxpayerType === 'entity' 
-                    ? 'bg-[#07172B] border-[#C6A15B] shadow-lg ring-1 ring-[#C6A15B]' 
+                  dossier.taxpayerType === 'entity'
+                    ? 'bg-[#07172B] border-[#C6A15B] shadow-lg ring-1 ring-[#C6A15B]'
                     : 'bg-[#07172B]/60 border-[#1E3A5F] hover:border-slate-500'
                 }`}
               >
@@ -1385,7 +1318,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 onClick={() => setActiveTab('consent')}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] flex items-center gap-1.5"
               >
-                <span>Next: IRC Â§ 7216 Consent</span>
+                <span>Next: IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1396,7 +1329,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
         {activeTab === 'consent' && (
           <div className="space-y-6">
             <div className="border-b border-[#1E3A5F] pb-3">
-              <h2 className="font-serif text-lg font-bold text-white">7. Engagement Scope & IRC Â§ 7216 Consent</h2>
+              <h2 className="font-serif text-lg font-bold text-white">7. Engagement Scope & IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</h2>
               <p className="text-xs text-slate-300">
                 Statutory disclosures governing taxpayer data confidentiality, electronic communications, and professional scope.
               </p>
@@ -1404,7 +1337,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
             <div className="p-4 rounded-2xl bg-[#07172B] border border-[#1E3A5F] space-y-4 text-xs text-slate-300 max-h-64 overflow-y-auto">
               <h4 className="font-bold text-white uppercase tracking-wider text-[11px] text-[#C6A15B]">
-                Statutory Disclosure Under Internal Revenue Code Â§ 7216
+                Statutory Disclosure Under Internal Revenue Code ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216
               </h4>
               <p>
                 Federal law strictly prohibits tax return preparers from disclosing or using tax return information for purposes other than tax return preparation, unless expressly consented to by the taxpayer in writing.
@@ -1435,7 +1368,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                   className="mt-0.5 rounded text-[#C6A15B] focus:ring-[#C6A15B]"
                 />
                 <span>
-                  <strong>IRC Â§ 7216 Consent:</strong> I formally authorize A/R Tax Services, LLC to process confidential tax return information under Treas. Reg. Â§ 301.7216-3.
+                  <strong>IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent:</strong> I formally authorize A/R Tax Services, LLC to process confidential tax return information under Treas. Reg. ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 301.7216-3.
                 </span>
               </label>
 
@@ -1505,8 +1438,8 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Timestamp & Provenance</label>
                   <div className="bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-slate-400 font-mono text-xs">
-                    {dossier.engagementConsent.signedAt 
-                      ? new Date(dossier.engagementConsent.signedAt).toLocaleString() 
+                    {dossier.engagementConsent.signedAt
+                      ? new Date(dossier.engagementConsent.signedAt).toLocaleString()
                       : 'Pending Signature Input'}
                   </div>
                 </div>
@@ -1568,7 +1501,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
               {/* Progress bar */}
               <div className="w-full bg-[#0D2340] h-2.5 rounded-full overflow-hidden border border-[#1E3A5F]">
-                <div 
+                <div
                   className={`h-full transition-all duration-300 ${
                     readiness.isReady ? 'bg-emerald-500' : 'bg-[#C6A15B]'
                   }`}
@@ -1579,11 +1512,11 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               {/* Checklist items */}
               <div className="space-y-2.5 pt-2">
                 {readiness.blockingItems.map((item) => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 transition-colors ${
-                      item.satisfied 
-                        ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' 
+                      item.satisfied
+                        ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'
                         : 'bg-red-950/20 border-red-500/40 text-red-200'
                     }`}
                   >
@@ -1655,8 +1588,8 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                     onClick={handleAttemptExitGate}
                     disabled={!readiness.isReady}
                     className={`px-6 py-3 rounded-xl font-bold text-xs transition-all shadow-xl flex items-center gap-2 ${
-                      readiness.isReady 
-                        ? 'bg-[#C6A15B] hover:bg-[#D9BF7A] text-[#07172B] cursor-pointer' 
+                      readiness.isReady
+                        ? 'bg-[#C6A15B] hover:bg-[#D9BF7A] text-[#07172B] cursor-pointer'
                         : 'bg-[#1E3A5F]/50 text-slate-400 border border-[#1E3A5F] cursor-not-allowed opacity-60'
                     }`}
                   >
@@ -1674,7 +1607,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1E3A5F] hover:bg-[#2A4D7A] text-white flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Previous: IRC Â§ 7216 Consent</span>
+                <span>Previous: IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</span>
               </button>
             </div>
           </div>
@@ -1684,17 +1617,3 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     </div>
   );
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -2,14 +2,14 @@
   "name": "ar-tax-portal-functions",
   "scripts": {
     "lint": "tsc --noEmit",
-    "build": "tsc",
+    "build": "tsc && node ../scripts/build-function-api.mjs",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {

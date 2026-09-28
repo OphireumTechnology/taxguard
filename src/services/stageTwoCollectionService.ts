@@ -1,6 +1,6 @@
-﻿/**
+/**
  * A/R Tax Services, LLC - Stage Two Collection & Document Intake Engine
- * Unified 18-Stage Tax Operating Workflow â€” Milestone M2 / Stage 02: Collect
+ * Unified 18-Stage Tax Operating Workflow Ã¢â‚¬â€ Milestone M2 / Stage 02: Collect
  *
  * Implements:
  * - TG-COL-001: Centralized Tax-Year Collection Workspace Context (Client ID + Engagement + Tax Year + Entity/Return Type)
@@ -13,10 +13,8 @@
  * - Every upload emits an immutable audit event via TaxGuardAuditService.
  */
 
-import { demoDataStore } from '../demo/services/DemoDataService';
 import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService';
 import { StageOneOnboardingService, StageOneDossier } from './stageOneOnboardingService';
-import { DemoDocument } from '../demo/types';
 import {
   StageTwoIntakeSecurityService,
   StagedSecurityDocument,
@@ -165,7 +163,7 @@ export class StageTwoCollectionService {
         'TaxGuard client context is unavailable. Re-authentication or Stage 01 onboarding is required.'
       );
     }
-    
+
     // 2. Resolve Tax Year (default 2025)
     let resolvedYear = targetTaxYear || 2025;
     if (!targetTaxYear && typeof window !== 'undefined') {
@@ -175,22 +173,7 @@ export class StageTwoCollectionService {
 
     // 3. Resolve Entity & Engagement details
     const onboardingDossier = StageOneOnboardingService.getDossier(resolvedClientId);
-
-    // Hard LIVE/DEMO isolation.
-    // Only the canonical DEMO taxpayer may query the demo data store.
-    const isExplicitDemoClient = resolvedClientId === 'cli_perotti';
-
-    const demoClient = isExplicitDemoClient
-      ? demoDataStore.getClientById(resolvedClientId)
-      : undefined;
-
-    const demoEng = isExplicitDemoClient
-      ? demoDataStore.getEngagements().find(
-          e => e.clientId === resolvedClientId && e.taxYear === resolvedYear
-        )
-      : undefined;
-
-    let entityType: EntityReturnType = 'individual';
+let entityType: EntityReturnType = 'individual';
     let entityName = 'Client';
     let returnType = 'Form 1040 (U.S. Individual Income Tax Return)';
     let jurisdictions = ['Federal', 'SC'];
@@ -217,35 +200,19 @@ export class StageTwoCollectionService {
         returnType = 'Form 1040 (U.S. Individual Income Tax Return)';
       }
       jurisdictions = ['Federal', onboardingDossier.residentialOrPrincipalAddress.state || 'SC'];
-    } else if (demoClient) {
-      entityName = demoClient.name;
-      if (demoClient.entityType === 'S Corporation') {
-        entityType = 's_corp';
-        returnType = 'Form 1120-S (U.S. S-Corporation Return)';
-      } else if (demoClient.entityType === 'C Corporation') {
-        entityType = 'c_corp';
-        returnType = 'Form 1120 (U.S. Corporation Return)';
-      } else if (demoClient.entityType === 'Partnership') {
-        entityType = 'partnership';
-        returnType = 'Form 1065 (U.S. Partnership Return)';
-      } else {
-        entityType = 'individual';
-        returnType = 'Form 1040 (U.S. Individual Return)';
-      }
-      jurisdictions = [demoClient.primaryJurisdiction || 'SC', ...(demoClient.secondaryJurisdictions || [])];
     }
 
     return {
       clientId: resolvedClientId,
-      engagementId: demoEng ? demoEng.id : `ENG-${resolvedYear}-001`,
+      engagementId: '',
       taxYear: resolvedYear,
       entityType,
       entityName,
       returnType,
       jurisdictions,
-      status: demoEng ? demoEng.currentStatus : 'Awaiting Documents',
-      assignedPreparer: demoEng ? demoEng.assignedStaff : 'Senior Tax Accountant',
-      assignedReviewer: 'Desmond Hinds, CPA / Senior Reviewer'
+      status: 'SERVER_AUTHORITY_REQUIRED',
+      assignedPreparer: '',
+      assignedReviewer: ''
     };
   }
 
@@ -303,7 +270,7 @@ export class StageTwoCollectionService {
         'Govt ID',
         'Identity & Dependents',
         'Federal',
-        'Valid unexpired Driverâ€™s License or Passport for taxpayer and spouse per IRS security verification requirements.',
+        'Valid unexpired DriverÃ¢â‚¬â„¢s License or Passport for taxpayer and spouse per IRS security verification requirements.',
         'Required',
         'IRS Pub 1345 / Identity Verification'
       );
@@ -316,7 +283,7 @@ export class StageTwoCollectionService {
         'Federal / ' + primaryJurisdiction,
         'All Form W-2 statements issued by employers reporting wages, tips, federal, and state income tax withholdings.',
         'Required',
-        'IRC Â§ 6051'
+        'IRC Ã‚Â§ 6051'
       );
 
       addReq(
@@ -327,7 +294,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Interest income earned across bank accounts, credit unions, CDs, or municipal bonds.',
         'Required if applicable',
-        'IRC Â§ 6049'
+        'IRC Ã‚Â§ 6049'
       );
 
       addReq(
@@ -338,7 +305,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Ordinary dividends, qualified dividends, and capital gain distributions from brokerage holdings.',
         'Required if applicable',
-        'IRC Â§ 6042'
+        'IRC Ã‚Â§ 6042'
       );
 
       addReq(
@@ -349,7 +316,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Independent contractor, consulting, or freelance compensation earned during the tax year.',
         knownFacts.hasContractWork ? 'Required' : 'Required if applicable',
-        'IRC Â§ 6041A'
+        'IRC Ã‚Â§ 6041A'
       );
 
       addReq(
@@ -360,7 +327,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Reports home mortgage interest, points, and real estate property taxes paid to lending institutions.',
         'Required if applicable',
-        'IRC Â§ 6050H'
+        'IRC Ã‚Â§ 6050H'
       );
 
       addReq(
@@ -371,7 +338,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Required for reconciling federal Premium Tax Credit (Form 8962) if covered by Healthcare.gov or state exchange.',
         knownFacts.hasMarketplaceInsurance ? 'Required' : 'Required if applicable',
-        'IRC Â§ 36B'
+        'IRC Ã‚Â§ 36B'
       );
 
       addReq(
@@ -382,7 +349,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Share of income, deductions, and credits from partnerships, S-corporations, or trusts.',
         knownFacts.hasPassThrough ? 'Required' : 'Required if applicable',
-        'IRC Â§Â§ 702, 1366'
+        'IRC Ã‚Â§Ã‚Â§ 702, 1366'
       );
 
       if (primaryJurisdiction === 'SC') {
@@ -394,7 +361,7 @@ export class StageTwoCollectionService {
           'SC',
           'Documentation supporting South Carolina state tax credits, tuition tax credits, and county property tax credits.',
           'Recommended',
-          'SC Code Ann. Â§ 12-6-40'
+          'SC Code Ann. Ã‚Â§ 12-6-40'
         );
       }
     }
@@ -411,7 +378,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Complete signed copy of the prior tax year Form 1120-S including all Schedules K-1, balance sheets, and depreciation schedules.',
         'Required',
-        'Treas. Reg. Â§ 1.6037-1'
+        'Treas. Reg. Ã‚Â§ 1.6037-1'
       );
 
       addReq(
@@ -422,7 +389,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Year-end adjusted trial balance with debit/credit balance, chart of accounts, and detailed general ledger export.',
         'Required',
-        'IRC Â§ 446 / Accounting Methods'
+        'IRC Ã‚Â§ 446 / Accounting Methods'
       );
 
       addReq(
@@ -433,7 +400,7 @@ export class StageTwoCollectionService {
         'Federal',
         'All business checking, savings, and credit card statements through December 31 with formal bank reconciliation tie-outs.',
         'Required',
-        'IRC Â§ 6001 / Recordkeeping'
+        'IRC Ã‚Â§ 6001 / Recordkeeping'
       );
 
       addReq(
@@ -444,7 +411,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Reconciled federal employment tax returns and annual W-3 summary substantiating shareholder-officer reasonable compensation.',
         'Required',
-        'IRC Â§ 3121 / Rev. Rul. 74-44'
+        'IRC Ã‚Â§ 3121 / Rev. Rul. 74-44'
       );
 
       addReq(
@@ -455,7 +422,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Cumulative stock and debt basis schedules tracking beginning basis, income additions, non-dividend distributions, and loss limits.',
         'Required',
-        'IRC Â§ 1367 / Form 7203'
+        'IRC Ã‚Â§ 1367 / Form 7203'
       );
 
       addReq(
@@ -466,7 +433,7 @@ export class StageTwoCollectionService {
         'Federal / ' + primaryJurisdiction,
         'Invoices and settlement statements for all capital asset acquisitions, vehicle purchases, and machinery placed in service.',
         'Required',
-        'IRC Â§Â§ 168, 179'
+        'IRC Ã‚Â§Ã‚Â§ 168, 179'
       );
 
       if (primaryJurisdiction === 'SC') {
@@ -478,7 +445,7 @@ export class StageTwoCollectionService {
           'SC',
           'State depreciation modification schedule disallowing federal bonus depreciation and capping Section 179 at $25,000.',
           'Required',
-          'SC Code Ann. Â§ 12-6-40(A)(1)(a)'
+          'SC Code Ann. Ã‚Â§ 12-6-40(A)(1)(a)'
         );
       }
     }
@@ -495,7 +462,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Prior year Form 1120 with Schedule M-1/M-3 book-to-tax reconciliations and carryforward loss records.',
         'Required',
-        'IRC Â§ 6012'
+        'IRC Ã‚Â§ 6012'
       );
 
       addReq(
@@ -506,7 +473,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Comparative balance sheet, income statement, statement of cash flows, and note disclosures.',
         'Required',
-        'IRC Â§ 446'
+        'IRC Ã‚Â§ 446'
       );
 
       addReq(
@@ -517,7 +484,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Complete year-end adjusted trial balance mapped to corporate tax chart of accounts.',
         'Required',
-        'IRC Â§ 6001'
+        'IRC Ã‚Â§ 6001'
       );
 
       addReq(
@@ -528,7 +495,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Permanent and temporary timing differences (meals limitation, officer life insurance, deferred compensation, depreciation).',
         'Required',
-        'Treas. Reg. Â§ 1.6012-2'
+        'Treas. Reg. Ã‚Â§ 1.6012-2'
       );
 
       addReq(
@@ -539,7 +506,7 @@ export class StageTwoCollectionService {
         'Federal / ' + primaryJurisdiction,
         'Electronic Federal Tax Payment System (EFTPS) and state DOR confirmation receipts for quarterly tax installments.',
         'Required',
-        'IRC Â§ 6655'
+        'IRC Ã‚Â§ 6655'
       );
     }
 
@@ -555,7 +522,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Prior year Form 1065 with all partner Schedules K-1 and tax basis capital account schedules.',
         'Required',
-        'IRC Â§ 6031'
+        'IRC Ã‚Â§ 6031'
       );
 
       addReq(
@@ -566,7 +533,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Current executed Operating Agreement detailing profit/loss allocation percentages, guaranteed payments, and capital contributions.',
         'Required',
-        'IRC Â§ 704(b)'
+        'IRC Ã‚Â§ 704(b)'
       );
 
       addReq(
@@ -588,7 +555,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Full adjusted trial balance substantiating all gross receipts, cost of goods sold, and deductible operating expenses.',
         'Required',
-        'IRC Â§ 6001'
+        'IRC Ã‚Â§ 6001'
       );
 
       addReq(
@@ -597,9 +564,9 @@ export class StageTwoCollectionService {
         'Partner Compensation',
         'Partner Compensation',
         'Federal',
-        'Itemized schedules of all guaranteed payments for services or capital paid to partners under IRC Â§ 707(c).',
+        'Itemized schedules of all guaranteed payments for services or capital paid to partners under IRC Ã‚Â§ 707(c).',
         'Required if applicable',
-        'IRC Â§ 707(c)'
+        'IRC Ã‚Â§ 707(c)'
       );
     }
 
@@ -615,7 +582,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Categorized annual summary of business gross revenues, merchant processing fees, advertising, supplies, and operating expenses.',
         'Required',
-        'IRC Â§ 162'
+        'IRC Ã‚Â§ 162'
       );
 
       addReq(
@@ -626,7 +593,7 @@ export class StageTwoCollectionService {
         'Federal',
         'January through December business bank account statements demonstrating non-commingling of business and personal assets.',
         'Required',
-        'IRC Â§ 6001'
+        'IRC Ã‚Â§ 6001'
       );
 
       addReq(
@@ -637,7 +604,7 @@ export class StageTwoCollectionService {
         'Federal',
         'Statements issued by Stripe, Square, PayPal, or merchant processors reporting gross settlement volumes.',
         'Required if applicable',
-        'IRC Â§ 6050W'
+        'IRC Ã‚Â§ 6050W'
       );
     }
 
@@ -649,7 +616,7 @@ export class StageTwoCollectionService {
    */
   public static getRequirements(clientId: string, taxYear: number): ChecklistRequirement[] {
     const key = `${clientId}_${taxYear}`;
-    
+
     // Check in-memory first
     if (this.inMemoryRequirements.has(key)) {
       return this.inMemoryRequirements.get(key)!;
@@ -776,6 +743,7 @@ export class StageTwoCollectionService {
     file?: File;
     notes?: string;
   }): Promise<StageTwoUploadedDocument> {
+    if (process.env.NODE_ENV === 'production') throw new Error('DOCUMENT_INTAKE_NOT_READY: secure quarantine and scanning must be commissioned before accepting taxpayer documents.');
     const now = new Date().toISOString();
 
     // Prepare file bytes for security scanning & encryption pipeline
@@ -875,23 +843,13 @@ export class StageTwoCollectionService {
     }
 
     // DEMO isolation boundary:
-    // LIVE taxpayer documents must never be synchronized into demoDataStore.
+    // Production taxpayer documents remain within authenticated document authority.
     const isExplicitDemoClient = payload.clientId === 'cli_perotti';
 
     if (!isQuarantined && isExplicitDemoClient) {
       try {
-        demoDataStore.uploadDocument({
-          clientId: payload.clientId,
-          engagementId: payload.engagementId,
-          fileName: payload.originalFileName,
-          fileSize: `${(payload.fileSizeBytes / 1024).toFixed(1)} KB`,
-          fileType: payload.mimeType,
-          category: payload.claimedCategory,
-          taxYear: payload.taxYear,
-          uploadedBy: payload.uploadedBy
-        });
-      } catch (e) {
-        console.warn('Note: demoDataStore sync skipped or simulated', e);
+} catch (e) {
+        console.warn('Browser document synchronization is disabled', e);
       }
     }
 
@@ -1137,7 +1095,3 @@ export class StageTwoCollectionService {
     }
   }
 }
-
-
-
-

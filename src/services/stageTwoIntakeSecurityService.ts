@@ -306,114 +306,60 @@ export interface IDocumentEncryptionService {
  */
 export class DocumentEncryptionService implements IDocumentEncryptionService {
   private static readonly KEY_ID = 'kms/taxguard-dev-document-vault-key-01';
-
-  // Ephemeral master key derived via Web Crypto API in development/client runtime
   private static cachedCryptoKey: CryptoKey | null = null;
+  private static pendingCryptoKey: Promise<CryptoKey> | null = null;
 
-  private static async getOrCreateKey(): Promise<CryptoKey> {
-    if (this.cachedCryptoKey) {
-      return this.cachedCryptoKey;
-    }
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-      this.cachedCryptoKey = await window.crypto.subtle.generateKey(
-        { name: 'AES-GCM', length: 256 },
-        true,
-        ['encrypt', 'decrypt']
-      );
-      return this.cachedCryptoKey;
-    }
-
-    // Fallback: Generate mock key for headless test environments without native subtle crypto
-    throw new Error('Web Crypto subtle API not available in current environment');
+  private static crypto(): Crypto {
+    if (!globalThis.crypto?.subtle) throw new Error('DOCUMENT_CRYPTO_UNAVAILABLE');
+    return globalThis.crypto;
   }
 
-  public async encryptBytes(
-    data: Uint8Array,
-    documentId: string
-  ): Promise<{
-    encryptedBytes: Uint8Array;
-    metadata: DocumentEncryptionMetadata;
+  private static async getOrCreateKey(): Promise<CryptoKey> {
+    if (!this.cachedCryptoKey) {
+      this.pendingCryptoKey ??= this.crypto().subtle.generateKey(
+        { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+      );
+      try { this.cachedCryptoKey = await this.pendingCryptoKey; }
+      finally { this.pendingCryptoKey = null; }
+    }
+    return this.cachedCryptoKey;
+  }
+
+  public async encryptBytes(data: Uint8Array, documentId: string): Promise<{
+    encryptedBytes: Uint8Array; metadata: DocumentEncryptionMetadata;
   }> {
-    const timestamp = new Date().toISOString();
-
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-      try {
-        const key = await DocumentEncryptionService.getOrCreateKey();
-        const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit standard IV for AES-GCM
-        const ciphertextBuffer = await window.crypto.subtle.encrypt(
-          { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(documentId) },
-          key,
-          data
-        );
-
-        const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
-        return {
-          encryptedBytes: new Uint8Array(ciphertextBuffer),
-          metadata: {
-            algorithm: 'AES-256-GCM',
-            keyId: DocumentEncryptionService.KEY_ID,
-            keyManagementType: 'DEVELOPMENT_EPHEMERAL_KEY_STORE',
-            iv: ivHex,
-            encryptedAt: timestamp,
-            encryptedBytesLength: ciphertextBuffer.byteLength
-          }
-        };
-      } catch (err) {
-        console.warn('SubtleCrypto encrypt fallback', err);
-      }
-    }
-
-    // Deterministic simulation fallback for headless test runners
-    const simulatedIv = Array.from({ length: 12 }, () => Math.floor(Math.random() * 256))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    // Simple XOR masking for mock encryption payload
-    const mockEncrypted = new Uint8Array(data.length);
-    for (let i = 0; i < data.length; i++) {
-      mockEncrypted[i] = data[i] ^ 0x5a;
-    }
-
+    const crypto = DocumentEncryptionService.crypto();
+    const key = await DocumentEncryptionService.getOrCreateKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const bytes = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(documentId) }, key, data
+    );
     return {
-      encryptedBytes: mockEncrypted,
+      encryptedBytes: new Uint8Array(bytes),
       metadata: {
-        algorithm: 'AES-256-GCM',
-        keyId: DocumentEncryptionService.KEY_ID,
+        algorithm: 'AES-256-GCM', keyId: DocumentEncryptionService.KEY_ID,
         keyManagementType: 'DEVELOPMENT_EPHEMERAL_KEY_STORE',
-        iv: simulatedIv,
-        encryptedAt: timestamp,
-        encryptedBytesLength: mockEncrypted.length
-      }
+        iv: Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join(''),
+        encryptedAt: new Date().toISOString(), encryptedBytesLength: bytes.byteLength,
+      },
     };
   }
 
-  public async decryptBytes(
-    encryptedBytes: Uint8Array,
-    metadata: DocumentEncryptionMetadata,
-    documentId: string
-  ): Promise<Uint8Array> {
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle && DocumentEncryptionService.cachedCryptoKey) {
-      try {
-        const iv = new Uint8Array(
-          metadata.iv.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
-        );
-        const decryptedBuffer = await window.crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(documentId) },
-          DocumentEncryptionService.cachedCryptoKey,
-          encryptedBytes
-        );
-        return new Uint8Array(decryptedBuffer);
-      } catch (err) {
-        console.warn('SubtleCrypto decrypt failed, testing simulated fallback', err);
-      }
+  public async decryptBytes(encryptedBytes: Uint8Array, metadata: DocumentEncryptionMetadata, documentId: string): Promise<Uint8Array> {
+    const crypto = DocumentEncryptionService.crypto();
+    if (!DocumentEncryptionService.cachedCryptoKey || metadata.algorithm !== 'AES-256-GCM' ||
+        metadata.keyId !== DocumentEncryptionService.KEY_ID || !/^[a-f0-9]{24}$/i.test(metadata.iv)) {
+      throw new Error('DOCUMENT_DECRYPTION_FAILED');
     }
-
-    // Simulated unmasking
-    const unmasked = new Uint8Array(encryptedBytes.length);
-    for (let i = 0; i < encryptedBytes.length; i++) {
-      unmasked[i] = encryptedBytes[i] ^ 0x5a;
+    try {
+      const iv = new Uint8Array(metadata.iv.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
+      return new Uint8Array(await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(documentId) },
+        DocumentEncryptionService.cachedCryptoKey, encryptedBytes
+      ));
+    } catch {
+      throw new Error('DOCUMENT_DECRYPTION_FAILED');
     }
-    return unmasked;
   }
 }
 

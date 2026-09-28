@@ -8,6 +8,8 @@ import { Request, Response, NextFunction } from 'express';
 import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 import { db } from './db';
 import { User, UserRole } from '../types';
+import { getFirebaseAdminAuth, getFirebaseAdminDb } from './firebase-admin';
+import { DurableSessions } from './durableSessions';
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -139,17 +141,29 @@ export function revokeAllUserSessions(userId: string): number {
 }
 
 // Authentication Middleware
-export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') 
     ? authHeader.substring(7) 
     : (req.headers['x-session-token'] as string);
 
-  if (!token) {
+  if (typeof token !== 'string' || !token || token.length > 4096) {
     return res.status(401).json({ 
       error: 'Authentication required. No session token provided.',
       code: 'AUTH_REQUIRED' 
     });
+  }
+
+  if (token.startsWith('tg_live_') || process.env.NODE_ENV === 'production') {
+    try {
+      const sessions = new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '');
+      const user = await sessions.verify(token);
+      if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });
+      req.user = user; req.token = token;
+      return next();
+    } catch {
+      return res.status(503).json({ error: 'Live authentication unavailable.', code: 'AUTH_UNAVAILABLE' });
+    }
   }
 
   const session = db.sessions.get(token);

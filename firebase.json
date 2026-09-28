@@ -25,6 +25,8 @@
     "public": "dist",
     "ignore": [
       "firebase.json",
+      "**/*.cjs",
+      "**/*.map",
       "**/.*",
       "**/node_modules/**"
     ],

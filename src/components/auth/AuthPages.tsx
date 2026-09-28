@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
 import { requestPasswordReset } from '../../firebase/auth';
@@ -19,6 +19,12 @@ import {
 
 export const ClientLoginPage: React.FC = () => {
   const { login, setCurrentPage } = useApp();
+  useEffect(() => {
+    // Authentication fallback must not leave the password form on an onboarding URL.
+    if (window.location.pathname !== '/' || window.location.hash !== '#/client/login') {
+      window.history.replaceState(null, '', '/#/client/login');
+    }
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +58,7 @@ export const ClientLoginPage: React.FC = () => {
     const result = await requestPasswordReset(resetEmail.trim());
     setResetLoading(false);
     if (result.success) {
-      setResetSuccess(`A secure password reset link has been dispatched to ${resetEmail}. Check your inbox and spam folders.`);
+      setResetSuccess('If this address is registered, a password reset email will arrive shortly. Check your inbox and spam folders.');
     } else {
       setError(result.error || 'Unable to send password reset email. Please verify the address.');
     }
