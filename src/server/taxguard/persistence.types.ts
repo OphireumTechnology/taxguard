@@ -336,3 +336,242 @@ export interface AuditEventEntity {
   version: number;
   timestamp: string;
 }
+
+// ============================================================================
+// STAGE 04 — RECORD INTERFACES
+// ============================================================================
+
+export type TaxRecordCategory =
+  | 'taxpayer_identity'
+  | 'filing_profile'
+  | 'dependents'
+  | 'wages'
+  | 'interest'
+  | 'dividends'
+  | 'capital_transactions'
+  | 'business_income'
+  | 'business_expenses'
+  | 'rental_income'
+  | 'rental_expenses'
+  | 'retirement_income'
+  | 'social_security'
+  | 'unemployment'
+  | 'other_income'
+  | 'adjustments'
+  | 'itemized_deductions'
+  | 'credits'
+  | 'estimated_payments'
+  | 'federal_withholding'
+  | 'state_withholding'
+  | 'carryovers'
+  | 'assets'
+  | 'liabilities'
+  | 'entity_info'
+  | 'ownership_info'
+  | 'w2'
+  | 'form_1099'
+  | 'k1'
+  | 'other';
+
+export interface TaxRecordProvenance {
+  sourceEvidenceId?: string;
+  sourceDocumentId?: string;
+  sourceFieldId?: string;
+  sourcePage?: number;
+  originalValue: unknown;
+  recordVersion: number;
+  ruleVersion?: string;
+  humanReviewer?: string;
+  reviewTimestamp?: string;
+}
+
+export interface TaxRecordEntity extends ScopedAuthoritativeEntity {
+  category: TaxRecordCategory;
+  subcategory?: string;
+  description: string;
+  sourceEvidenceId?: string;
+  sourceDocumentId?: string;
+  sourceFieldId?: string;
+  sourcePage?: number;
+  originalValue: unknown;
+  normalizedValue: number | string | boolean | Record<string, unknown>;
+  currency: string;
+  confidence?: number;
+  humanReviewer?: string;
+  reviewTimestamp?: string;
+  isAiClassified?: boolean;
+  aiClassificationReason?: string;
+  provenance: TaxRecordProvenance;
+  status: 'DRAFT' | 'RECORDED' | 'FLAGGED' | 'SUPERSEDED';
+  duplicateCandidateOf?: string;
+}
+
+// ============================================================================
+// STAGE 05 — RECONCILE INTERFACES
+// ============================================================================
+
+export type ReconciliationCategory =
+  | 'wages'
+  | 'withholding'
+  | '1099_income'
+  | 'brokerage'
+  | 'k1_passthrough'
+  | 'business_income'
+  | 'business_expenses'
+  | 'estimated_payments'
+  | 'carryovers'
+  | 'state_withholding';
+
+export type ReconciliationStatus =
+  | 'PENDING'
+  | 'MATCHED'
+  | 'VARIANCE'
+  | 'EXCEPTION'
+  | 'REVIEW_REQUIRED'
+  | 'RESOLVED';
+
+export interface ReconciliationRecordEntity extends ScopedAuthoritativeEntity {
+  category: ReconciliationCategory;
+  sourceTotal: number;
+  recordedTotal: number;
+  difference: number;
+  tolerance: number;
+  status: ReconciliationStatus;
+  evidenceReferences: string[];
+  recordIds: string[];
+  exceptions: string[];
+  reviewer?: string;
+  reviewTimestamp?: string;
+  resolutionNotes?: string;
+}
+
+// ============================================================================
+// STAGE 06 — REVIEW INTERFACES
+// ============================================================================
+
+export type ReviewActionType =
+  | 'ACCEPT'
+  | 'RETURN_FOR_CORRECTION'
+  | 'REQUEST_EVIDENCE'
+  | 'RAISE_EXCEPTION'
+  | 'RESOLVE_EXCEPTION'
+  | 'ESCALATE';
+
+export interface TaxWorkpaperEntity extends ScopedAuthoritativeEntity {
+  workpaperType: string;
+  title: string;
+  issue: string;
+  sourceEvidenceIds: string[];
+  taxRecordIds: string[];
+  analysis: string;
+  conclusion: string;
+  reviewer: string;
+  reviewerRole: string;
+  reviewDate: string;
+  references: string[];
+  exceptionIds: string[];
+  resolution?: string;
+  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+}
+
+// ============================================================================
+// STAGE 07 — REPORT INTERFACES
+// ============================================================================
+
+export type ReportType =
+  | 'case_summary'
+  | 'income_summary'
+  | 'deduction_summary'
+  | 'credit_summary'
+  | 'payment_withholding_summary'
+  | 'business_summary'
+  | 'reconciliation_report'
+  | 'exception_report'
+  | 'review_report'
+  | 'evidence_report'
+  | 'workpaper_summary'
+  | 'audit_trail_summary';
+
+export interface TaxReportEntity extends ScopedAuthoritativeEntity {
+  reportType: ReportType;
+  title: string;
+  dataVersion: number;
+  generatedAt: string;
+  generatedBy: string;
+  status: 'CURRENT' | 'STALE' | 'INVALIDATED';
+  invalidatedReason?: string;
+  sourceReferences: string[];
+  sections: Array<{ title: string; items: Record<string, unknown> | Array<Record<string, unknown>> }>;
+  summaryMetrics: Record<string, number | string>;
+}
+
+// ============================================================================
+// STAGE 08 — PLAN INTERFACES
+// ============================================================================
+
+export interface PlanningAdjustment {
+  category: string;
+  description: string;
+  deltaAmount: number;
+}
+
+export interface PlanningScenarioEntity extends ScopedAuthoritativeEntity {
+  name: string;
+  description: string;
+  baselineVersion: number;
+  assumptions: Record<string, unknown>;
+  adjustments: PlanningAdjustment[];
+  projectedResults: {
+    projectedAgi: number;
+    projectedTaxableIncome: number;
+    projectedTaxLiability: number;
+    projectedEffectiveRate: number;
+    projectedSavingsOrCost: number;
+    ruleVersion: string;
+    calculationVersion: string;
+  };
+  reviewStatus: 'DRAFT' | 'PROPOSED' | 'REVIEWED' | 'ACCEPTED';
+}
+
+// ============================================================================
+// STAGE 09 — PREPARE TAXES INTERFACES
+// ============================================================================
+
+export interface ReturnDiagnostic {
+  code: string;
+  message: string;
+  severity: 'CRITICAL_BLOCKING' | 'WARNING' | 'INFORMATIONAL';
+  resolved: boolean;
+}
+
+export interface DraftReturnFigures {
+  totalIncome: number;
+  totalAdjustments: number;
+  adjustedGrossIncome: number;
+  deductionType: 'STANDARD' | 'ITEMIZED';
+  deductionAmount: number;
+  qualifiedBusinessIncomeDeduction: number;
+  taxableIncome: number;
+  tentativeTax: number;
+  creditsTotal: number;
+  totalTaxLiability: number;
+  paymentsAndWithholding: number;
+  balanceDueOrRefund: number;
+}
+
+export interface DraftReturnEntity extends ScopedAuthoritativeEntity {
+  returnId: string;
+  jurisdiction: 'FEDERAL' | 'CA' | 'NY' | 'TX' | 'FL' | string;
+  returnType: 'INDIVIDUAL_1040' | 'PARTNERSHIP_1065' | 'S_CORP_1120S' | 'C_CORP_1120';
+  status: 'DRAFT' | 'DIAGNOSTIC_FAILED' | 'READY_FOR_PREPARER_REVIEW' | 'PREPARER_CERTIFIED' | 'STALE' | 'SUPERSEDED';
+  sourceDataVersion: number;
+  ruleVersion: string;
+  calculationVersion: string;
+  figures: DraftReturnFigures;
+  forms: Array<{ formNumber: string; formName: string; lineItems: Record<string, unknown> }>;
+  schedules: Array<{ scheduleName: string; lineItems: Record<string, unknown> }>;
+  diagnostics: ReturnDiagnostic[];
+  preparerCertifiedBy?: string;
+  preparerCertifiedAt?: string;
+}
+
