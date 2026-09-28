@@ -1,4 +1,4 @@
-﻿import { spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -282,9 +282,12 @@ console.log(`
 ============================================================
 `);
 
+const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
+const npxBin = process.platform === "win32" ? "npx.cmd" : "npx";
+
 run(
   "1. TYPESCRIPT",
-  "npm.cmd",
+  npmBin,
   ["run", "typecheck"]
 );
 
@@ -292,7 +295,7 @@ scanProductionAuthority();
 
 run(
   "2. PRODUCTION AUTHORITY TESTS",
-  "npx.cmd",
+  npxBin,
   [
     "vitest",
     "run",
@@ -303,13 +306,13 @@ run(
 
 run(
   "3. COMPLETE REGRESSION SUITE",
-  "npm.cmd",
+  npmBin,
   ["test", "--", "--run"]
 );
 
 run(
   "4. PRODUCTION BUILD",
-  "npm.cmd",
+  npmBin,
   ["run", "build"]
 );
 

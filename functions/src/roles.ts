@@ -1,5 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 export const assignUserRole = onCall({ cors: true }, async (request) => {
   // 1. Authenticated caller required
@@ -11,7 +13,7 @@ export const assignUserRole = onCall({ cors: true }, async (request) => {
   const callerClaims = request.auth.token;
   const callerUid = request.auth.uid;
 
-  const db = admin.firestore();
+  const db = getFirestore();
   const adminDoc = await db.collection('admins').doc(callerUid).get();
 
   const isVerifiedAdmin = callerClaims.role === 'administrator' || adminDoc.exists;
@@ -29,24 +31,24 @@ export const assignUserRole = onCall({ cors: true }, async (request) => {
   }
 
   // Set Firebase Auth Custom Claims
-  await admin.auth().setCustomUserClaims(targetUid, { role: newRole });
+  await getAuth().setCustomUserClaims(targetUid, { role: newRole });
 
   // Synchronize Firestore user document
   const userRef = db.collection('users').doc(targetUid);
   await userRef.set({
     role: newRole,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
 
   // Update admins collection if administrator
   const targetAdminRef = db.collection('admins').doc(targetUid);
   if (newRole === 'administrator') {
-    const userRecord = await admin.auth().getUser(targetUid);
+    const userRecord = await getAuth().getUser(targetUid);
     await targetAdminRef.set({
       uid: targetUid,
       email: userRecord.email || '',
       grantedBy: callerUid,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp()
     });
   } else {
     // If demoting from administrator, remove from admins collection
@@ -61,7 +63,7 @@ export const assignUserRole = onCall({ cors: true }, async (request) => {
     targetResource: 'users',
     targetId: targetUid,
     metadata: JSON.stringify({ assignedRole: newRole }),
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
+    createdAt: FieldValue.serverTimestamp()
   });
 
   return {

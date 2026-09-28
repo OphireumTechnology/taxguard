@@ -710,7 +710,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                       </div>
 
                       <div className="text-xs font-semibold text-neutral-700">
-                        {doc.processingState}
+                        {doc.processingStatus}
                       </div>
                     </div>
                   </div>

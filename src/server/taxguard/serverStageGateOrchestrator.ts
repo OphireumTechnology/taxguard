@@ -24,6 +24,10 @@ import {
 } from './stageThreeServerGate';
 
 export class ServerStageGateOrchestrator {
+  static isStageFourUnlocked(stageThreeState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return stageThreeState?.requirementsMet === true && stageThreeState?.status === 'COMPLETE';
+  }
+
   static async commitScopedStageOne(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageOneGateSnapshot) {
     const decision = evaluateStageOneServerGate(snapshot);
     return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,

@@ -151,14 +151,32 @@ useEffect(() => {
 
   const isTaxGuard = isTaxGuardRoute || isTaxGuardRouteUrl() || (currentPage as string) === 'taxguard';
   if (isTaxGuard) {
-}
     return (
-      <ErrorPageView
-        type="403"
-        customMessage="Access to standalone TaxGuard console has been removed. TaxGuard AI operates as an integrated service layer within authorized role dashboards. Please log in to your designated role dashboard."
-        onNavigateHome={() => { window.location.hash = '#/'; }}
-        onNavigateLogin={() => { window.location.hash = '#/portals'; }}
-      />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-slate-200 p-6 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded-full text-xs font-semibold">
+            <span>403 Forbidden</span>
+          </div>
+          <h1 className="text-xl font-bold text-slate-900">Access Restricted</h1>
+          <p className="text-sm text-slate-600">
+            Access to standalone TaxGuard console has been removed. TaxGuard AI operates as an integrated service layer within authorized role dashboards. Please log in to your designated role dashboard.
+          </p>
+          <div className="pt-2 flex gap-3">
+            <button
+              onClick={() => { window.location.hash = '#/'; }}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition"
+            >
+              Return Home
+            </button>
+            <button
+              onClick={() => { window.location.hash = '#/portals'; }}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition"
+            >
+              Go to Portals
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 

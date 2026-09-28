@@ -165,6 +165,7 @@ export const DraftReturnPreparer: React.FC<{ userRole: string; onCompleted?: () 
         userRole,
         action: 'DRAFT_RETURN_PREPARED',
         recordType: 'engagement',
+        recordId: 'eng_draft_return_package',
         ipAddress: '127.0.0.1 (authenticated)',
         result: 'success',
         riskLevel: 'material',
