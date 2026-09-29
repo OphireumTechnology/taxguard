@@ -139,6 +139,31 @@ export const api = {
       return res;
     },
 
+    supabaseSession: async (payload: {
+      accessToken: string;
+      name?: string;
+      phone?: string;
+      companyName?: string;
+      clientType?: 'individual' | 'business';
+    }) => {
+      const res = await request<{
+        message: string;
+        token: string;
+        user: User;
+        clientId: string;
+        environment: string;
+      }>('/api/auth/supabase-session', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (res.token) {
+        setStoredToken(res.token);
+      }
+
+      return res;
+    },
+
     firebaseSession: async (payload: {
   idToken: string;
   name?: string;

@@ -27,13 +27,68 @@ import {
 import { allocateTaxGuardClientId } from '../client-id.service';
 import { DurableSessions } from '../durableSessions';
 import { AuthorityError } from '../taxguard/authority.repository';
+import {
+  verifySupabaseAccessToken,
+  isSupabaseServerConfigured,
+  VerifiedSupabaseUser
+} from '../supabase';
+import { SupabaseDurableSessions } from '../supabase-db';
 
 export const authRouter = Router();
 authRouter.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production' && !['/firebase-session', '/me', '/logout'].includes(req.path)) {
-    return res.status(410).json({ error: 'Use Firebase Authentication for live account operations.', code: 'FIREBASE_AUTH_REQUIRED' });
+  if (process.env.NODE_ENV === 'production' && !['/supabase-session', '/firebase-session', '/me', '/logout'].includes(req.path)) {
+    return res.status(410).json({ error: 'Use Supabase Authentication for live account operations.', code: 'SUPABASE_AUTH_REQUIRED' });
   }
   next();
+});
+
+/**
+ * Supabase -> TaxGuard LIVE session bridge.
+ * Supabase proves external identity. TaxGuard restores or provisions the
+ * permanent application identity and creates the application session.
+ */
+authRouter.post('/supabase-session', async (req: Request, res: Response) => {
+  const { accessToken } = req.body || {};
+
+  if (!accessToken || typeof accessToken !== 'string') {
+    return res.status(400).json({ error: 'Supabase access token is required.', code: 'TOKEN_REQUIRED' });
+  }
+
+  let verifiedUser: VerifiedSupabaseUser;
+
+  try {
+    verifiedUser = await verifySupabaseAccessToken(accessToken);
+  } catch (error: any) {
+    console.warn('[Supabase Session] Token verification failed:', error?.message);
+    return res.status(401).json({ error: 'Supabase authentication could not be verified.', code: 'INVALID_TOKEN' });
+  }
+
+  const uid = verifiedUser.uid;
+  const tokenEmail = verifiedUser.email;
+
+  if (!uid || !tokenEmail) {
+    return res.status(401).json({
+      error: 'Verified Supabase identity does not contain a valid email.',
+      code: 'INVALID_IDENTITY'
+    });
+  }
+
+  try {
+    const sessions = new SupabaseDurableSessions();
+    const session = await sessions.create(verifiedUser);
+    return res.status(200).json({
+      ...session,
+      message: 'Live TaxGuard session established.'
+    });
+  } catch (error: any) {
+    console.error('[Supabase Session] Session establishment failed:', error);
+    const status = error instanceof AuthorityError ? error.status : 503;
+    const code = error instanceof AuthorityError ? error.code : 'AUTH_UNAVAILABLE';
+    return res.status(status).json({
+      error: 'Live identity could not be established. Contact support.',
+      code
+    });
+  }
 });
 
 /**
@@ -366,7 +421,11 @@ authRouter.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Respon
 authRouter.post('/logout', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (req.token?.startsWith('tg_live_')) {
     try {
-      await new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '').revoke(req.token);
+      if (isSupabaseServerConfigured()) {
+        await new SupabaseDurableSessions().revoke(req.token);
+      } else {
+        await new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '').revoke(req.token);
+      }
       return res.json({ message: 'Logged out successfully.' });
     } catch { return res.status(503).json({ error: 'Session revocation unavailable.' }); }
   }

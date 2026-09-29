@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
-import { requestPasswordReset } from '../../firebase/auth';
+import { requestPasswordReset as requestFirebasePasswordReset } from '../../firebase/auth';
+import { requestPasswordReset as requestSupabasePasswordReset } from '../../supabase/auth';
+import { isSupabaseConfigured } from '../../supabase/config';
 import { 
   Lock, 
   Mail, 
@@ -55,7 +57,9 @@ export const ClientLoginPage: React.FC = () => {
     setResetLoading(true);
     setError(null);
     setResetSuccess(null);
-    const result = await requestPasswordReset(resetEmail.trim());
+    const result = isSupabaseConfigured()
+      ? await requestSupabasePasswordReset(resetEmail.trim())
+      : await requestFirebasePasswordReset(resetEmail.trim());
     setResetLoading(false);
     if (result.success) {
       setResetSuccess('If this address is registered, a password reset email will arrive shortly. Check your inbox and spam folders.');
