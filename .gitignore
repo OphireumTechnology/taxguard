@@ -43,3 +43,6 @@ tools/taxguard-autobuild-v2/
 tools/taxguard-continuation/
 
 functions/lib/
+
+# TaxGuard local recovery snapshots
+.taxguard-backups/
