@@ -7,6 +7,16 @@ import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service'
 export function createProductionApp() {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', 1);
+  // Normalize Cloud Functions URL prefix if invoked via /taxguardApi/...
+  app.use((req, _res, next) => {
+    if (req.url.startsWith('/taxguardApi/')) {
+      req.url = req.url.slice('/taxguardApi'.length);
+    } else if (req.url === '/taxguardApi') {
+      req.url = '/';
+    }
+    next();
+  });
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -24,7 +34,7 @@ export function createProductionApp() {
     next();
   });
   app.use(express.json({ limit: '256kb' }));
-  app.get('/api/health', (_req, res) => res.json({ status: 'available', documentIntakeEnabled: false }));
+  app.get('/api/health', (_req, res) => res.json({ status: 'available', provider: 'supabase', documentIntakeEnabled: false }));
   app.get('/api/provider-readiness', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ providers: ProviderReadinessRegistry.getAllProviderStatuses() });

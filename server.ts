@@ -698,7 +698,7 @@ async function startServer() {
    * Local development defaults to port 3000.
    */
 
-  app.listen(
+  const server = app.listen(
     PORT,
     '0.0.0.0',
     () => {
@@ -716,8 +716,34 @@ async function startServer() {
             : 'NO'
         }`
       );
+
+      console.log(
+        `[TaxGuard Engine] Supabase configured: ${
+          Boolean(
+            process.env
+              .SUPABASE_URL
+          )
+            ? 'YES'
+            : 'NO'
+        }`
+      );
     }
   );
+
+  const gracefulShutdown = (signal: string) => {
+    console.log(`[TaxGuard Server] Received ${signal}. Initiating graceful shutdown...`);
+    server.close(() => {
+      console.log('[TaxGuard Server] HTTP server closed gracefully.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error('[TaxGuard Server] Forceful shutdown timeout exceeded.');
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 /**

@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "verdant-ship-ppthm"
+    "default": "taxguard2026",
+    "production": "taxguard2026"
   }
 }

@@ -71,3 +71,16 @@ it('disables password and caller-role legacy registration endpoints', async () =
   expect((await fetch(origin + '/api/auth/register', { method: 'POST' })).status).toBe(410);
   expect((await fetch(origin + '/api/auth/login', { method: 'POST' })).status).toBe(410);
 });
+it('supports Cloud Functions URL prefix normalization for routes', async () => {
+  const healthRes = await fetch(origin + '/taxguardApi/api/health');
+  expect(healthRes.status).toBe(200);
+  expect((await healthRes.json()).status).toBe('available');
+
+  const sessionRes = await fetch(origin + '/taxguardApi/api/auth/firebase-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://artaxserv.com' },
+    body: JSON.stringify({ idToken: 'verified-by-mock' })
+  });
+  expect(sessionRes.status).toBe(200);
+});
+

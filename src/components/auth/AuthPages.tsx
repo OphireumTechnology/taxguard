@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
-import { requestPasswordReset } from '../../firebase/auth';
+import { requestPasswordReset as requestFirebasePasswordReset } from '../../firebase/auth';
+import { requestPasswordReset as requestSupabasePasswordReset } from '../../supabase/auth';
+import { isSupabaseConfigured } from '../../supabase/config';
 import { 
   Lock, 
   Mail, 
@@ -55,17 +57,15 @@ export const ClientLoginPage: React.FC = () => {
     setResetLoading(true);
     setError(null);
     setResetSuccess(null);
-    const result = await requestPasswordReset(resetEmail.trim());
+    const result = isSupabaseConfigured()
+      ? await requestSupabasePasswordReset(resetEmail.trim())
+      : await requestFirebasePasswordReset(resetEmail.trim());
     setResetLoading(false);
     if (result.success) {
       setResetSuccess('If this address is registered, a password reset email will arrive shortly. Check your inbox and spam folders.');
     } else {
       setError(result.error || 'Unable to send password reset email. Please verify the address.');
     }
-  };
-
-  const handleBiometricAuth = () => {
-    setError('Biometric sign-in is unavailable until server-verified WebAuthn credentials are configured. Please sign in with your password.');
   };
 
   return (
@@ -195,18 +195,15 @@ export const ClientLoginPage: React.FC = () => {
               </div>
             </form>
 
-            {/* Biometric WebAuthn Simulator */}
-            <div className="pt-4 border-t border-[#1E3A5F] space-y-3 text-center">
-              <span className="text-[11px] text-slate-400 block">Or authenticate with device hardware:</span>
-              <button
-                type="button"
-                onClick={handleBiometricAuth}
-                disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
-              >
-                <Fingerprint className="w-4 h-4 text-[#C6A15B]" />
-                Touch ID / Face ID Biometric Login
-              </button>
+            {/* Biometric / Passkey Hardware Authentication (Uncommissioned) */}
+            <div className="pt-4 border-t border-[#1E3A5F] space-y-2 text-center opacity-65">
+              <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#07172B] border border-[#1E3A5F] text-slate-400 text-xs select-none">
+                <Fingerprint className="w-4 h-4 text-slate-400" />
+                <span>Touch ID / Face ID Biometric Login (Not Configured)</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Hardware WebAuthn is unavailable. Please authenticate securely with your password.
+              </p>
             </div>
 
             <div className="text-center text-xs text-slate-400 pt-2">

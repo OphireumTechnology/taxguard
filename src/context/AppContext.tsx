@@ -32,6 +32,12 @@ import {
   registerWithEmail,
   logout as firebaseLogout
 } from '../firebase/auth';
+import {
+  loginWithEmail as supabaseLoginWithEmail,
+  registerWithEmail as supabaseRegisterWithEmail,
+  logout as supabaseLogout
+} from '../supabase/auth';
+import { isSupabaseConfigured } from '../supabase/config';
 import { seedInitialServicesIfEmpty } from '../firebase/seed';
 import { testConnection } from '../firebase/firestore';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -612,6 +618,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearStoredToken();
       clearTaxpayerState();
 
+      if (isSupabaseConfigured()) {
+        const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
+        if (!sbResult.success || !sbResult.accessToken) {
+          return { success: false, error: sbResult.error || 'Invalid email or password.' };
+        }
+
+        const liveSession = await api.auth.supabaseSession({ accessToken: sbResult.accessToken });
+        if (!liveSession.user) throw new Error('TaxGuard could not restore the LIVE client workspace.');
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('taxguard_environment', 'live');
+          localStorage.removeItem('demo_session');
+          sessionStorage.removeItem('demo_session');
+        }
+
+        setCurrentUser(liveSession.user);
+        setCurrentRoleState(liveSession.user.role);
+        await refreshBackendData();
+
+        const landingPage = getLiveClientLandingPage(liveSession.user);
+        setCurrentPageState(landingPage);
+        setPageParams({});
+        return { success: true, redirectPage: landingPage };
+      }
+
       const firebaseResult = await loginWithEmail(normalizedEmail, password);
       if (!firebaseResult.success || !auth.currentUser) {
         return { success: false, error: firebaseResult.error || 'Invalid email or password.' };
@@ -686,6 +717,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       if (isDemoSession) {
       } else {
+        await supabaseLogout().catch(() => {});
         await firebaseLogout().catch(() => {});
         await api.auth.logout().catch(() => {});
       }

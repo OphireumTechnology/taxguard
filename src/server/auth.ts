@@ -10,6 +10,8 @@ import { db } from './db';
 import { User, UserRole } from '../types';
 import { getFirebaseAdminAuth, getFirebaseAdminDb } from './firebase-admin';
 import { DurableSessions } from './durableSessions';
+import { isSupabaseServerConfigured } from './supabase';
+import { SupabaseDurableSessions } from './supabase-db';
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -156,7 +158,9 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
 
   if (token.startsWith('tg_live_') || process.env.NODE_ENV === 'production') {
     try {
-      const sessions = new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '');
+      const sessions = isSupabaseServerConfigured()
+        ? new SupabaseDurableSessions()
+        : new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '');
       const user = await sessions.verify(token);
       if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });
       req.user = user; req.token = token;
