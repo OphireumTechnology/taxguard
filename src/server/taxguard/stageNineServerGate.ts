@@ -35,9 +35,9 @@ export function evaluateStageNineServerGate(snapshot: StageNineGateSnapshot): St
   return {
     stage: 9,
     passed: Object.values(checks).every(Boolean) && blockingReasons.length === 0,
-    gateName: 'STAGE_09_PREPARE_TAXES_GATE',
+    gateName: 'STAGE_09_RETURN_GATE',
     evidence: {
-      source: 'TaxGuardPreparationEngine',
+      source: 'TaxGuardReturnEngine',
       evaluatedAt: new Date().toISOString(),
       checks,
       blockingReasons,

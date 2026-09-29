@@ -139,10 +139,7 @@ const app =
 
 const productionApi = createProductionApp();
 
-const PORT =
-  Number(
-    process.env.PORT
-  ) || 3000;
+const PORT = Number(process.env.APP_PORT) || 3000;
 
 /**
  * ============================================================
