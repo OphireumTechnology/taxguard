@@ -141,29 +141,51 @@ export async function logout(): Promise<void> {
   await supabase.auth.signOut().catch(() => {});
 }
 
+export const NEUTRAL_PASSWORD_RESET_MESSAGE =
+  'If an account exists for this email address, password recovery instructions have been sent.';
+
+export function validatePasswordStrength(password: string): { valid: boolean; message?: string } {
+  if (!password || password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long.' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one uppercase letter.' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one lowercase letter.' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number.' };
+  }
+  return { valid: true };
+}
+
 export async function requestPasswordReset(
   email: string,
   redirectTo?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; message: string; error?: string }> {
   try {
     const normalizedEmail = email.trim().toLowerCase();
-    const redirectUrl = redirectTo || (typeof window !== 'undefined' ? `${window.location.origin}/#/client/login` : undefined);
-    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+    const defaultOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://artaxserv.com';
+    const redirectUrl = redirectTo || `${defaultOrigin}/#/client/reset-password`;
+
+    // Dispatch Supabase password reset
+    await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: redirectUrl
+    }).catch(err => {
+      console.warn('[Supabase Auth] Password reset request dispatch note:', err?.message || err);
     });
 
-    if (error) {
-      return {
-        success: false,
-        error: error.message || 'Unable to dispatch password reset email. Please verify the address.'
-      };
-    }
-
-    return { success: true };
-  } catch (err: any) {
+    // Invariant: Always return neutral response to prevent account enumeration
     return {
-      success: false,
-      error: err?.message || 'Password reset request could not be processed.'
+      success: true,
+      message: NEUTRAL_PASSWORD_RESET_MESSAGE
+    };
+  } catch (err: any) {
+    console.warn('[Supabase Auth] Password reset processing note:', err?.message || err);
+    return {
+      success: true,
+      message: NEUTRAL_PASSWORD_RESET_MESSAGE
     };
   }
 }
@@ -172,17 +194,28 @@ export async function completePasswordReset(
   newPass: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const check = validatePasswordStrength(newPass);
+    if (!check.valid) {
+      return { success: false, error: check.message };
+    }
+
     const { error } = await supabase.auth.updateUser({
       password: newPass
     });
 
     if (error) {
-      return { success: false, error: error.message || 'Failed to update password.' };
+      return {
+        success: false,
+        error: 'Password update could not be completed. The recovery link may have expired or is invalid.'
+      };
     }
 
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Password reset could not be completed.' };
+    return {
+      success: false,
+      error: 'Password reset could not be completed. Please try requesting a new link.'
+    };
   }
 }
 

@@ -232,3 +232,112 @@ caseAuthorityRouter.post(base + '/returns/:id/certify', handler((repo, scope, ui
   repo.certifyDraftReturn(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id)
 ));
 
+// ============================================================================
+// STAGE 10 — APPROVE ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/approvals', handler((repo, scope, uid, req) =>
+  repo.approveDraftReturn(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.returnId, req.body?.rationale)
+));
+caseAuthorityRouter.get(base + '/approvals/:id', handler((repo, scope, uid, req) =>
+  repo.getApproval(scope, uid, req.params.id)
+));
+
+// ============================================================================
+// STAGE 11 — SIGN ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/signatures', handler((repo, scope, uid, req) =>
+  repo.createSignaturePackage(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.returnId, req.body?.signers)
+));
+caseAuthorityRouter.get(base + '/signatures/:id', handler((repo, scope, uid, req) =>
+  repo.getSignaturePackage(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/signatures/:id/events', handler((repo, scope, uid, req) =>
+  repo.recordSignatureEvent(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.event)
+));
+
+// ============================================================================
+// STAGE 12 — FILE ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/filings', handler((repo, scope, uid, req) =>
+  repo.createFilingPackage(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.returnId, req.body?.jurisdiction, req.body?.idempotencyKey)
+));
+caseAuthorityRouter.get(base + '/filings/:id', handler((repo, scope, uid, req) =>
+  repo.getFilingPackage(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/filings/:id/submit', handler((repo, scope, uid, req) =>
+  repo.submitFiling(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id)
+));
+caseAuthorityRouter.post(base + '/filings/:id/ack', handler((repo, scope, uid, req) =>
+  repo.recordFilingAcknowledgement(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.acknowledgement)
+));
+
+// ============================================================================
+// STAGE 13 — GOVERNMENT FEEDBACK ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/feedback', handler((repo, scope, uid, req) =>
+  repo.recordGovernmentFeedback(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.feedback)
+));
+caseAuthorityRouter.get(base + '/feedback/:id', handler((repo, scope, uid, req) =>
+  repo.getGovernmentFeedback(scope, uid, req.params.id)
+));
+
+// ============================================================================
+// STAGE 14 — RESOLUTION ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/resolutions', handler((repo, scope, uid, req) =>
+  repo.createResolutionCase(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.resolution)
+));
+caseAuthorityRouter.get(base + '/resolutions/:id', handler((repo, scope, uid, req) =>
+  repo.getResolutionCase(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/resolutions/:id/resolve', handler((repo, scope, uid, req) =>
+  repo.resolveResolutionCase(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.decision)
+));
+
+// ============================================================================
+// STAGE 15 — MONITORING ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/monitoring', handler((repo, scope, uid, req) =>
+  repo.createMonitoringItem(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.item)
+));
+caseAuthorityRouter.get(base + '/monitoring', handler((repo, scope, uid) =>
+  repo.listMonitoringItems(scope, uid)
+));
+caseAuthorityRouter.patch(base + '/monitoring/:id', handler((repo, scope, uid, req) =>
+  repo.updateMonitoringItemStatus(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.status)
+));
+
+// ============================================================================
+// STAGE 16 — ARCHIVE ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/archive/manifest', handler((repo, scope, uid, req) =>
+  repo.createArchiveManifest(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.manifest)
+));
+caseAuthorityRouter.get(base + '/archive/manifest/:id', handler((repo, scope, uid, req) =>
+  repo.getArchiveManifest(scope, uid, req.params.id)
+));
+
+// ============================================================================
+// STAGE 17 — RENEWAL ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/renewals', handler((repo, scope, uid, req) =>
+  repo.createRenewalRecord(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.nextTaxYear, req.body?.checklist, req.body?.carryForwardCandidates)
+));
+caseAuthorityRouter.get(base + '/renewals/:id', handler((repo, scope, uid, req) =>
+  repo.getRenewalRecord(scope, uid, req.params.id)
+));
+caseAuthorityRouter.post(base + '/renewals/:id/carry-forward', handler((repo, scope, uid, req) =>
+  repo.classifyCarryForwardCandidate(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.params.id, req.body?.candidateId, req.body?.classification)
+));
+
+// ============================================================================
+// STAGE 18 — REPEAT ROUTES
+// ============================================================================
+caseAuthorityRouter.post(base + '/repeat', handler((repo, scope, uid, req) =>
+  repo.createRepeatTaxCase(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.nextTaxYear, req.body?.confirmedCandidates)
+));
+caseAuthorityRouter.get(base + '/repeat/:id', handler((repo, scope, uid, req) =>
+  repo.getRepeatCase(scope, uid, req.params.id)
+));
+
+

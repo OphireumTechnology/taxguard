@@ -53,6 +53,51 @@ import {
   evaluateStageNineServerGate
 } from './stageNineServerGate';
 
+import {
+  StageTenGateSnapshot,
+  evaluateStageTenServerGate
+} from './stageTenServerGate';
+
+import {
+  StageElevenGateSnapshot,
+  evaluateStageElevenServerGate
+} from './stageElevenServerGate';
+
+import {
+  StageTwelveGateSnapshot,
+  evaluateStageTwelveServerGate
+} from './stageTwelveServerGate';
+
+import {
+  StageThirteenGateSnapshot,
+  evaluateStageThirteenServerGate
+} from './stageThirteenServerGate';
+
+import {
+  StageFourteenGateSnapshot,
+  evaluateStageFourteenServerGate
+} from './stageFourteenServerGate';
+
+import {
+  StageFifteenGateSnapshot,
+  evaluateStageFifteenServerGate
+} from './stageFifteenServerGate';
+
+import {
+  StageSixteenGateSnapshot,
+  evaluateStageSixteenServerGate
+} from './stageSixteenServerGate';
+
+import {
+  StageSeventeenGateSnapshot,
+  evaluateStageSeventeenServerGate
+} from './stageSeventeenServerGate';
+
+import {
+  StageEighteenGateSnapshot,
+  evaluateStageEighteenServerGate
+} from './stageEighteenServerGate';
+
 export class ServerStageGateOrchestrator {
   static isStageUnlocked(priorStageState?: { requirementsMet?: boolean; status?: string }): boolean {
     return priorStageState?.requirementsMet === true && priorStageState?.status === 'COMPLETE';
@@ -84,6 +129,38 @@ export class ServerStageGateOrchestrator {
 
   static isStageTenUnlocked(stageNineState?: { requirementsMet?: boolean; status?: string }): boolean {
     return this.isStageUnlocked(stageNineState);
+  }
+
+  static isStageElevenUnlocked(stageTenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageTenState);
+  }
+
+  static isStageTwelveUnlocked(stageElevenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageElevenState);
+  }
+
+  static isStageThirteenUnlocked(stageTwelveState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageTwelveState);
+  }
+
+  static isStageFourteenUnlocked(stageThirteenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageThirteenState);
+  }
+
+  static isStageFifteenUnlocked(stageFourteenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageFourteenState);
+  }
+
+  static isStageSixteenUnlocked(stageFifteenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageFifteenState);
+  }
+
+  static isStageSeventeenUnlocked(stageSixteenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageSixteenState);
+  }
+
+  static isStageEighteenUnlocked(stageSeventeenState?: { requirementsMet?: boolean; status?: string }): boolean {
+    return this.isStageUnlocked(stageSeventeenState);
   }
 
   static async commitScopedStageOne(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageOneGateSnapshot) {
@@ -182,6 +259,51 @@ export class ServerStageGateOrchestrator {
 
   static async commitStageNine(context: StageTransitionContext, snapshot: StageNineGateSnapshot) {
     const decision = evaluateStageNineServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageTen(context: StageTransitionContext, snapshot: StageTenGateSnapshot) {
+    const decision = evaluateStageTenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageEleven(context: StageTransitionContext, snapshot: StageElevenGateSnapshot) {
+    const decision = evaluateStageElevenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageTwelve(context: StageTransitionContext, snapshot: StageTwelveGateSnapshot) {
+    const decision = evaluateStageTwelveServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageThirteen(context: StageTransitionContext, snapshot: StageThirteenGateSnapshot) {
+    const decision = evaluateStageThirteenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageFourteen(context: StageTransitionContext, snapshot: StageFourteenGateSnapshot) {
+    const decision = evaluateStageFourteenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageFifteen(context: StageTransitionContext, snapshot: StageFifteenGateSnapshot) {
+    const decision = evaluateStageFifteenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageSixteen(context: StageTransitionContext, snapshot: StageSixteenGateSnapshot) {
+    const decision = evaluateStageSixteenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageSeventeen(context: StageTransitionContext, snapshot: StageSeventeenGateSnapshot) {
+    const decision = evaluateStageSeventeenServerGate(snapshot);
+    return StageTransitionCoordinator.persistDecision(context, decision);
+  }
+
+  static async commitStageEighteen(context: StageTransitionContext, snapshot: StageEighteenGateSnapshot) {
+    const decision = evaluateStageEighteenServerGate(snapshot);
     return StageTransitionCoordinator.persistDecision(context, decision);
   }
 }

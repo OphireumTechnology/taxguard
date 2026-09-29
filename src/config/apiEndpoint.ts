@@ -1,7 +1,7 @@
 export function resolveApiBaseUrl(raw: string | undefined, production: boolean, sameOrigin = false, frontendOrigin?: string): string {
   const value = (raw || '').trim().replace(/\/+$/, '');
   if (!value) {
-    if (production && (!sameOrigin || !frontendOrigin || isStaticHost(new URL(frontendOrigin).hostname))) throw new Error('The secure TaxGuard API is not configured. Please contact support.');
+    if (production && (!sameOrigin || !frontendOrigin || isStaticHost(frontendOrigin))) throw new Error('The secure TaxGuard API is not configured. Please contact support.');
     return '';
   }
   const url = new URL(value);
@@ -11,7 +11,15 @@ export function resolveApiBaseUrl(raw: string | undefined, production: boolean, 
   if (isStaticHost(url.hostname)) throw new Error('GitHub Pages cannot host the TaxGuard API.');
   return url.origin + (url.pathname === '/' ? '' : url.pathname);
 }
-function isStaticHost(host: string): boolean {
+function parseHostname(originOrHost: string): string {
+  try {
+    return originOrHost.includes('://') ? new URL(originOrHost).hostname : originOrHost;
+  } catch {
+    return originOrHost;
+  }
+}
+function isStaticHost(hostOrUrl: string): boolean {
+  const host = parseHostname(hostOrUrl);
   return ['artaxserv.com', 'www.artaxserv.com', 'github.io'].includes(host) || host.endsWith('.github.io');
 }
 export function apiEndpoint(path: string): string {

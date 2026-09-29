@@ -1,6 +1,10 @@
 /**
  * TaxGuard Provider Readiness Registry
  * Truthfully evaluates external provider statuses without exposing secrets.
+ *
+ * Tracks all 10 canonical infrastructure and service providers:
+ * DATABASE, AUTHENTICATION, STORAGE, MALWARE_SCANNER, OCR, AI,
+ * E_SIGNATURE, FILING, QUICKBOOKS, XERO.
  */
 
 import {
@@ -31,52 +35,72 @@ export class ProviderReadinessRegistry {
 
     switch (type) {
       case 'DATABASE': {
-        // We know Firestore is initialized with project taxguard2026 or default
+        const hasSupabase = Boolean(
+          process.env.SUPABASE_URL &&
+          (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+        );
+        const status: ProviderReadinessStatus = hasSupabase ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
           provider: 'DATABASE',
-          status: 'CONFIGURED',
-          description: 'Google Cloud Firestore Enterprise Edition is provisioned and active.',
-          isOperational: true,
+          status,
+          description: hasSupabase
+            ? 'PostgreSQL / Supabase production database is provisioned and active.'
+            : 'Production relational database is not configured.',
+          isOperational: hasSupabase,
           lastChecked: new Date().toISOString(),
         };
       }
 
-      case 'DOCUMENT_STORAGE': {
-        // Document storage is active via Firebase Cloud Storage if bucket configured
-        const hasBucket = Boolean(process.env.FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET);
-        const status: ProviderReadinessStatus = hasBucket ? 'CONFIGURED' : 'NOT_CONFIGURED';
+      case 'AUTHENTICATION': {
+        const hasAuth = Boolean(
+          process.env.SUPABASE_URL &&
+          (process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
+        );
+        const status: ProviderReadinessStatus = hasAuth ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
-          provider: 'DOCUMENT_STORAGE',
+          provider: 'AUTHENTICATION',
           status,
-          description: hasBucket
-            ? 'Encrypted cloud document bucket configured.'
-            : 'Production document storage bucket is not configured.',
-          isOperational: hasBucket,
+          description: hasAuth
+            ? 'Supabase Authentication & JWT Token Verification active.'
+            : 'Production authentication provider is not configured.',
+          isOperational: hasAuth,
+          lastChecked: new Date().toISOString(),
+        };
+      }
+
+      case 'STORAGE':
+      case 'DOCUMENT_STORAGE': {
+        const hasStorage = Boolean(
+          process.env.SUPABASE_URL &&
+          (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+        );
+        const status: ProviderReadinessStatus = hasStorage ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        return {
+          provider: type,
+          status,
+          description: hasStorage
+            ? 'Encrypted Supabase Storage vault is active.'
+            : 'Production document storage vault is not configured.',
+          isOperational: hasStorage,
           lastChecked: new Date().toISOString(),
         };
       }
 
       case 'MALWARE_SCANNER': {
-        // Check if real scanning service socket or binary is configured
-        const hasScanner = Boolean(
-          process.env.TAXGUARD_MALWARE_SCANNER_URL ||
-          process.env.CLAMAV_HOST ||
-          process.env.MALWARE_SCANNER_ENABLED === 'true'
-        );
-        const status: ProviderReadinessStatus = hasScanner ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        const isScannerReady = process.env.TAXGUARD_MALWARE_SCANNER_ENABLED === 'true';
+        const status: ProviderReadinessStatus = isScannerReady ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
           provider: 'MALWARE_SCANNER',
           status,
-          description: hasScanner
+          description: isScannerReady
             ? 'Production anti-malware daemon is connected.'
             : 'Malware scanner is not configured. Documents remain quarantined.',
-          isOperational: hasScanner,
+          isOperational: isScannerReady,
           lastChecked: new Date().toISOString(),
         };
       }
 
       case 'OCR': {
-        // Check if real OCR provider is configured (Google Document AI / Cloud Vision / OCR service)
         const hasOcr = Boolean(
           process.env.TAXGUARD_OCR_ENABLED === 'true' ||
           process.env.DOCUMENT_AI_PROCESSOR_ID ||
@@ -95,7 +119,6 @@ export class ProviderReadinessRegistry {
       }
 
       case 'AI': {
-        // Check if server-side AI provider (OpenAI / Gemini) is configured
         const hasAi = Boolean(
           process.env.OPENAI_API_KEY ||
           process.env.GEMINI_API_KEY
@@ -111,16 +134,91 @@ export class ProviderReadinessRegistry {
           lastChecked: new Date().toISOString(),
         };
       }
+
+      case 'E_SIGNATURE': {
+        const hasSign = Boolean(
+          process.env.TAXGUARD_SIGNATURE_PROVIDER_URL ||
+          process.env.DOCUSIGN_INTEGRATION_KEY ||
+          process.env.HELLO_SIGN_KEY
+        );
+        const status: ProviderReadinessStatus = hasSign ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        return {
+          provider: 'E_SIGNATURE',
+          status,
+          description: hasSign
+            ? 'Authorized e-signature provider is connected.'
+            : 'E-signature provider is not configured. Stage 11 fails closed.',
+          isOperational: hasSign,
+          lastChecked: new Date().toISOString(),
+        };
+      }
+
+      case 'FILING': {
+        const hasFiling = Boolean(
+          process.env.TAXGUARD_IRS_MEF_TRANSMITTER_ID ||
+          process.env.TAXGUARD_FILING_PROVIDER_URL ||
+          process.env.TAXGUARD_MEF_ETIN
+        );
+        const status: ProviderReadinessStatus = hasFiling ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        return {
+          provider: 'FILING',
+          status,
+          description: hasFiling
+            ? 'Authorized IRS MeF filing transmitter is connected.'
+            : 'Filing provider is not configured. Stage 12 fails closed.',
+          isOperational: hasFiling,
+          lastChecked: new Date().toISOString(),
+        };
+      }
+
+      case 'QUICKBOOKS': {
+        const hasQbo = Boolean(
+          process.env.QUICKBOOKS_CLIENT_ID &&
+          process.env.QUICKBOOKS_CLIENT_SECRET
+        );
+        const status: ProviderReadinessStatus = hasQbo ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        return {
+          provider: 'QUICKBOOKS',
+          status,
+          description: hasQbo
+            ? 'QuickBooks Online OAuth connection credentials configured.'
+            : 'QuickBooks integration is optional and not configured.',
+          isOperational: hasQbo,
+          lastChecked: new Date().toISOString(),
+        };
+      }
+
+      case 'XERO': {
+        const hasXero = Boolean(
+          process.env.XERO_CLIENT_ID &&
+          process.env.XERO_CLIENT_SECRET
+        );
+        const status: ProviderReadinessStatus = hasXero ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        return {
+          provider: 'XERO',
+          status,
+          description: hasXero
+            ? 'Xero Accounting OAuth connection credentials configured.'
+            : 'Xero integration is optional and not configured.',
+          isOperational: hasXero,
+          lastChecked: new Date().toISOString(),
+        };
+      }
     }
   }
 
   static getAllProviderStatuses(): ProviderReadinessInfo[] {
     const providers: ProviderType[] = [
       'DATABASE',
-      'DOCUMENT_STORAGE',
+      'AUTHENTICATION',
+      'STORAGE',
       'MALWARE_SCANNER',
       'OCR',
       'AI',
+      'E_SIGNATURE',
+      'FILING',
+      'QUICKBOOKS',
+      'XERO',
     ];
     return providers.map((p) => this.getProviderStatus(p));
   }

@@ -133,16 +133,15 @@ import {
 } from './src/server/auth';
 
 import './src/server/firebase-admin';
+import { ProviderReadinessRegistry } from './src/server/taxguard/providerReadiness.service';
+import { ensureCanonicalTenantBootstrap } from './src/server/taxguard/tenantBootstrap';
 
 const app =
   express();
 
 const productionApi = createProductionApp();
 
-const PORT =
-  Number(
-    process.env.PORT
-  ) || 3000;
+const PORT = Number(process.env.APP_PORT) || 3000;
 
 /**
  * ============================================================
@@ -304,6 +303,19 @@ app.get(
           process.env
             .GEMINI_API_KEY
         )
+    });
+  }
+);
+
+app.get(
+  '/api/provider-readiness',
+  (
+    _req,
+    res
+  ) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      providers: ProviderReadinessRegistry.getAllProviderStatuses()
     });
   }
 );
@@ -580,6 +592,7 @@ app.use(
  */
 
 async function startServer() {
+  await ensureCanonicalTenantBootstrap().catch(err => console.warn('[Tenant Bootstrap] Warning:', err?.message || err));
   app.use('/api/case-authority', caseAuthorityRouter);
   /**
    * Development:

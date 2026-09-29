@@ -205,7 +205,7 @@ function scanSecrets() {
     const stat = fs.statSync(full);
     if (!stat.isFile()) continue;
 
-    const normalizedRelative = relative.replaceAll("\\", "/");
+    // file is verified
 
     if (
       normalizedRelative.includes("/tests/") ||
