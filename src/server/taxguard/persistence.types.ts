@@ -104,16 +104,23 @@ export type OcrJobStatus =
 
 export type ProviderType =
   | 'DATABASE'
+  | 'AUTHENTICATION'
   | 'DOCUMENT_STORAGE'
+  | 'STORAGE'
   | 'MALWARE_SCANNER'
   | 'OCR'
-  | 'AI';
+  | 'AI'
+  | 'E_SIGNATURE'
+  | 'FILING'
+  | 'QUICKBOOKS'
+  | 'XERO';
 
 export type ProviderReadinessStatus =
   | 'CONFIGURED'
   | 'DEGRADED'
   | 'NOT_CONFIGURED'
-  | 'DISABLED';
+  | 'DISABLED'
+  | 'ERROR';
 
 export interface ProviderReadinessInfo {
   provider: ProviderType;
@@ -573,5 +580,326 @@ export interface DraftReturnEntity extends ScopedAuthoritativeEntity {
   diagnostics: ReturnDiagnostic[];
   preparerCertifiedBy?: string;
   preparerCertifiedAt?: string;
+}
+
+// ============================================================================
+// STAGE 10 — APPROVAL INTERFACES
+// ============================================================================
+
+export type ApprovalStatus =
+  | 'PENDING'
+  | 'READY'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'REOPENED'
+  | 'INVALIDATED';
+
+export interface ApprovalRecord extends ScopedAuthoritativeEntity {
+  approvalId: string;
+  returnVersionId: string;
+  returnHash: string;
+  preparedBy: string;
+  reviewedBy: string;
+  approvedBy: string;
+  credential: string;
+  status: ApprovalStatus;
+  rationale: string;
+  diagnosticsSnapshot: ReturnDiagnostic[];
+  exceptionSnapshot: Array<{ code: string; resolved: boolean }>;
+  approvedAt: string;
+}
+
+// ============================================================================
+// STAGE 11 — SIGNATURE INTERFACES
+// ============================================================================
+
+export type SignaturePackageStatus =
+  | 'NOT_READY'
+  | 'READY'
+  | 'SENT'
+  | 'VIEWED'
+  | 'SIGNED'
+  | 'DECLINED'
+  | 'EXPIRED'
+  | 'VOIDED'
+  | 'FAILED';
+
+export type SignatureRequestStatus =
+  | 'PENDING'
+  | 'SENT'
+  | 'VIEWED'
+  | 'SIGNED'
+  | 'DECLINED'
+  | 'EXPIRED'
+  | 'FAILED';
+
+export type SignerRole = 'TAXPAYER' | 'SPOUSE' | 'PREPARER' | 'REPRESENTATIVE';
+
+export interface Signer {
+  id: string;
+  name: string;
+  email: string;
+  role: SignerRole;
+  status: SignatureRequestStatus;
+  signedAt?: string;
+  signatureEvidenceHash?: string;
+}
+
+export interface SignatureAuthorization {
+  caseId: string;
+  taxYear: number;
+  returnVersionId: string;
+  returnHash: string;
+  consentTimestamp: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface SignatureEvent {
+  eventId: string;
+  packageId: string;
+  eventType: 'SENT' | 'VIEWED' | 'SIGNED' | 'DECLINED' | 'EXPIRED' | 'VOIDED';
+  actorEmail: string;
+  timestamp: string;
+  evidenceHash?: string;
+}
+
+export interface SignaturePackageEntity extends ScopedAuthoritativeEntity {
+  packageId: string;
+  returnVersionId: string;
+  returnHash: string;
+  signers: Signer[];
+  status: SignaturePackageStatus;
+  provider: string;
+  providerEnvelopeId?: string;
+  completedAt?: string;
+  authorization?: SignatureAuthorization;
+  events: SignatureEvent[];
+}
+
+// ============================================================================
+// STAGE 12 — FILING INTERFACES
+// ============================================================================
+
+export type FilingPackageStatus =
+  | 'NOT_READY'
+  | 'READY'
+  | 'QUEUED'
+  | 'SUBMITTING'
+  | 'SUBMITTED'
+  | 'ACKNOWLEDGED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface FilingAttempt {
+  attemptNumber: number;
+  provider: string;
+  submittedAt: string;
+  requestPayloadHash: string;
+  responseStatus: string;
+  errorDetails?: string;
+}
+
+export interface FilingAcknowledgement {
+  ackId: string;
+  receivedAt: string;
+  submissionId: string;
+  status: 'ACCEPTED' | 'REJECTED' | 'PENDING';
+  rawCode?: string;
+  message?: string;
+  acceptanceCode?: string;
+}
+
+export interface FilingPackageEntity extends ScopedAuthoritativeEntity {
+  packageId: string;
+  submissionId: string;
+  returnVersionId: string;
+  returnHash: string;
+  jurisdiction: string;
+  status: FilingPackageStatus;
+  idempotencyKey: string;
+  signatureAuthorizationId: string;
+  provider: string;
+  submittedAt?: string;
+  acknowledgedAt?: string;
+  attempts: FilingAttempt[];
+  acknowledgement?: FilingAcknowledgement;
+}
+
+// ============================================================================
+// STAGE 13 — GOVERNMENT FEEDBACK INTERFACES
+// ============================================================================
+
+export type GovernmentFeedbackStatus =
+  | 'RECEIVED'
+  | 'PROCESSING'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'PARTIALLY_ACCEPTED'
+  | 'NOTICE_RECEIVED'
+  | 'ACTION_REQUIRED';
+
+export interface GovernmentNotice {
+  noticeId: string;
+  noticeNumber: string;
+  noticeDate: string;
+  issuingAgency: string;
+  summary: string;
+  responseDeadline?: string;
+  amountProposed?: number;
+  actionRequired: string;
+  resolved: boolean;
+}
+
+export interface GovernmentFeedbackEntity extends ScopedAuthoritativeEntity {
+  feedbackId: string;
+  submissionId: string;
+  provider: string;
+  jurisdiction: string;
+  status: GovernmentFeedbackStatus;
+  externalReference: string;
+  receivedTimestamp: string;
+  payloadHash: string;
+  normalizedCode: string;
+  message: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  requiredAction?: string;
+  provenance: Record<string, unknown>;
+  notices: GovernmentNotice[];
+}
+
+// ============================================================================
+// STAGE 14 — RESOLVE INTERFACES
+// ============================================================================
+
+export type ResolutionCaseStatus =
+  | 'OPEN'
+  | 'INVESTIGATING'
+  | 'WAITING_FOR_CLIENT'
+  | 'WAITING_FOR_GOVERNMENT'
+  | 'READY_FOR_REVIEW'
+  | 'RESOLVED'
+  | 'CLOSED';
+
+export interface ResolutionIssue {
+  issueId: string;
+  code: string;
+  description: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: 'OPEN' | 'ADDRESSED' | 'DISMISSED';
+  resolvedAt?: string;
+}
+
+export interface ResolutionCaseEntity extends ScopedAuthoritativeEntity {
+  resolutionId: string;
+  originatingFeedbackId?: string;
+  status: ResolutionCaseStatus;
+  issueType: string;
+  description: string;
+  issues: ResolutionIssue[];
+  actionsTaken: Array<{ action: string; timestamp: string; actor: string }>;
+  evidenceIds: string[];
+  assignedTo: string;
+  resolutionDecision?: {
+    actionType: 'AMENDED_RETURN' | 'CORRECTION_STATEMENT' | 'NOTICE_RESPONSE' | 'NO_CHANGE';
+    rationale: string;
+    decidedBy: string;
+    decidedAt: string;
+  };
+  resolvedAt?: string;
+}
+
+// ============================================================================
+// STAGE 15 — MONITOR INTERFACES
+// ============================================================================
+
+export type MonitoringItemStatus =
+  | 'OPEN'
+  | 'DUE_SOON'
+  | 'OVERDUE'
+  | 'ESCALATED'
+  | 'RESOLVED'
+  | 'CANCELLED';
+
+export interface MonitoringItemEntity extends ScopedAuthoritativeEntity {
+  itemId: string;
+  itemType: 'GOVERNMENT_DEADLINE' | 'PAYMENT_DEADLINE' | 'ESTIMATED_TAX' | 'NOTICE_RESPONSE' | 'AMENDED_RETURN_FOLLOWUP' | 'PROFESSIONAL_REVIEW';
+  title: string;
+  description: string;
+  dueDate: string;
+  status: MonitoringItemStatus;
+  followUpDate?: string;
+  assignedTo: string;
+  resolvedAt?: string;
+  escalationCount: number;
+}
+
+// ============================================================================
+// STAGE 16 — ARCHIVE INTERFACES
+// ============================================================================
+
+export interface ArchiveManifestEntity extends ScopedAuthoritativeEntity {
+  manifestId: string;
+  status: string;
+  returnVersions: string[];
+  filingRecords: string[];
+  governmentFeedback: string[];
+  resolutionStatus: string;
+  documentManifest: Array<{ documentId: string; hash: string; version: number }>;
+  auditManifest: { totalEvents: number; checksum: string };
+  retentionPolicy: {
+    minimumRetentionYears: number;
+    eligibleForDestructionDate: string;
+    legalHold: boolean;
+  };
+  integrityHash: string;
+  archivedAt: string;
+  archivedBy: string;
+}
+
+// ============================================================================
+// STAGE 17 — RENEW INTERFACES
+// ============================================================================
+
+export type CarryForwardClassification =
+  | 'REFERENCE'
+  | 'CANDIDATE'
+  | 'REQUIRES_CONFIRMATION'
+  | 'CONFIRMED';
+
+export interface CarryForwardCandidate {
+  id: string;
+  category: string;
+  description: string;
+  priorYearValue: string | number;
+  classification: CarryForwardClassification;
+  sourceTaxRecordId?: string;
+  confirmedBy?: string;
+  confirmedAt?: string;
+}
+
+export interface RenewalRecordEntity extends ScopedAuthoritativeEntity {
+  renewalId: string;
+  priorTaxYear: number;
+  nextTaxYear: number;
+  checklist: Array<{ item: string; completed: boolean; completedAt?: string }>;
+  carryForwardCandidates: CarryForwardCandidate[];
+  status: 'PENDING' | 'IN_REVIEW' | 'COMPLETED';
+}
+
+// ============================================================================
+// STAGE 18 — REPEAT INTERFACES
+// ============================================================================
+
+export interface RepeatCaseEntity extends ScopedAuthoritativeEntity {
+  repeatId: string;
+  previousCaseId: string;
+  nextCaseId: string;
+  priorTaxYear: number;
+  nextTaxYear: number;
+  carryForwardCount: number;
+  initializedAt: string;
 }
 

@@ -678,6 +678,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const effectiveCompanyName = payload.companyName || payload.company || '';
+
+      if (isSupabaseConfigured()) {
+        const sbResult = await supabaseRegisterWithEmail(
+          payload.name,
+          payload.email.trim().toLowerCase(),
+          payload.password,
+          payload.phone,
+          effectiveCompanyName
+        );
+
+        if (!sbResult.success) {
+          return { success: false, error: sbResult.error || 'Registration failed.' };
+        }
+
+        if (sbResult.accessToken) {
+          const liveSession = await api.auth.supabaseSession({
+            accessToken: sbResult.accessToken,
+            name: payload.name,
+            phone: payload.phone,
+            companyName: effectiveCompanyName,
+            clientType: payload.clientType
+          });
+
+          if (liveSession.user) {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('taxguard_environment', 'live');
+            }
+            setCurrentUser(liveSession.user);
+            setCurrentRoleState(liveSession.user.role);
+            await refreshBackendData();
+            const landingPage = getLiveClientLandingPage(liveSession.user);
+            setCurrentPageState(landingPage);
+            setPageParams({});
+          }
+        }
+
+        return {
+          success: true,
+          verificationTokenSimulated: 'supabase-verified'
+        };
+      }
+
       const firebaseResult = await registerWithEmail(
         payload.name,
         payload.email.trim().toLowerCase(),

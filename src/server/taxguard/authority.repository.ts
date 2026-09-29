@@ -25,6 +25,22 @@ import {
   PlanningScenarioEntity,
   DraftReturnEntity,
   ReturnDiagnostic,
+  ApprovalRecord,
+  SignaturePackageEntity,
+  SignatureEvent,
+  FilingPackageEntity,
+  FilingAttempt,
+  FilingAcknowledgement,
+  GovernmentFeedbackEntity,
+  GovernmentNotice,
+  ResolutionCaseEntity,
+  ResolutionIssue,
+  MonitoringItemEntity,
+  ArchiveManifestEntity,
+  RenewalRecordEntity,
+  CarryForwardCandidate,
+  CarryForwardClassification,
+  RepeatCaseEntity,
 } from './persistence.types';
 import { ProviderReadinessRegistry } from './providerReadiness.service';
 import { TaxGuardOcrProvider, ProductionOcrAdapter, validateProvenance } from './ocrProvider';
@@ -37,6 +53,15 @@ import { evaluateStageSixServerGate } from './stageSixServerGate';
 import { evaluateStageSevenServerGate } from './stageSevenServerGate';
 import { evaluateStageEightServerGate } from './stageEightServerGate';
 import { evaluateStageNineServerGate } from './stageNineServerGate';
+import { evaluateStageTenServerGate } from './stageTenServerGate';
+import { evaluateStageElevenServerGate } from './stageElevenServerGate';
+import { evaluateStageTwelveServerGate } from './stageTwelveServerGate';
+import { evaluateStageThirteenServerGate } from './stageThirteenServerGate';
+import { evaluateStageFourteenServerGate } from './stageFourteenServerGate';
+import { evaluateStageFifteenServerGate } from './stageFifteenServerGate';
+import { evaluateStageSixteenServerGate } from './stageSixteenServerGate';
+import { evaluateStageSeventeenServerGate } from './stageSeventeenServerGate';
+import { evaluateStageEighteenServerGate } from './stageEighteenServerGate';
 
 export interface CaseScope {
   tenantId: string;
@@ -416,7 +441,7 @@ export class TaxGuardAuthorityRepository {
     revision: number,
     operationId: string,
     request: unknown,
-    build: (tx: Transaction, access: Access) => Promise<{ writes: Write[]; patch?: Partial<CaseRecord> }>
+    build: (tx: Transaction, access: Access) => Promise<{ writes?: Write[]; patch?: Partial<CaseRecord>; [key: string]: any }>
   ) {
     const path = casePath(scope);
     safeId(operationId);
@@ -435,10 +460,10 @@ export class TaxGuardAuthorityRepository {
       if (access.current.revision !== revision && currentVersion !== revision) {
         throw new AuthorityError('VERSION_CONFLICT', 409);
       }
-      const { writes, patch = {} } = await build(tx, access);
+      const { writes = [], patch = {}, ...customResult } = await build(tx, access);
       const timestamp = new Date().toISOString();
       const newVersion = revision + 1;
-      const result = { revision: newVersion, version: newVersion, operationId };
+      const result = { revision: newVersion, version: newVersion, operationId, ...customResult };
       for (const write of writes) {
         safeId(write.id);
         tx.create(this.db.doc(`${path}/${write.collection}/${write.id}`), {
@@ -599,20 +624,17 @@ export class TaxGuardAuthorityRepository {
     else if (stage === 7) decision = evaluateStageSevenServerGate(snapshot);
     else if (stage === 8) decision = evaluateStageEightServerGate(snapshot);
     else if (stage === 9) decision = evaluateStageNineServerGate(snapshot);
+    else if (stage === 10) decision = evaluateStageTenServerGate(snapshot);
+    else if (stage === 11) decision = evaluateStageElevenServerGate(snapshot);
+    else if (stage === 12) decision = evaluateStageTwelveServerGate(snapshot);
+    else if (stage === 13) decision = evaluateStageThirteenServerGate(snapshot);
+    else if (stage === 14) decision = evaluateStageFourteenServerGate(snapshot);
+    else if (stage === 15) decision = evaluateStageFifteenServerGate(snapshot);
+    else if (stage === 16) decision = evaluateStageSixteenServerGate(snapshot);
+    else if (stage === 17) decision = evaluateStageSeventeenServerGate(snapshot);
+    else if (stage === 18) decision = evaluateStageEighteenServerGate(snapshot);
     else {
-      // Stages 10-18 default deterministic checks
-      const passed = snapshot?.passed === true && (!snapshot?.blockingReasons || snapshot.blockingReasons.length === 0);
-      decision = {
-        stage,
-        passed,
-        gateName: `STAGE_${stage}_GATE`,
-        evidence: {
-          source: 'TaxGuardStageEngine',
-          evaluatedAt: new Date().toISOString(),
-          checks: { requirementsPassed: passed },
-          blockingReasons: snapshot?.blockingReasons || (passed ? [] : ['Requirements incomplete']),
-        },
-      };
+      throw new AuthorityError('INVALID_STAGE', 400);
     }
 
     const c = await this.getCase(scope, uid);
@@ -2278,8 +2300,10 @@ export class TaxGuardAuthorityRepository {
       }
 
       const timestamp = new Date().toISOString();
+      const nextVersion = (access.current.version ?? access.current.revision) + 1;
       tx.set(returnRef, {
         status: 'PREPARER_CERTIFIED',
+        sourceDataVersion: nextVersion,
         preparerCertifiedBy: uid,
         preparerCertifiedAt: timestamp,
         updatedAt: timestamp,
@@ -2291,4 +2315,1006 @@ export class TaxGuardAuthorityRepository {
       };
     });
   }
+
+  // ============================================================================
+  // STAGE 10 — APPROVAL METHODS
+  // ============================================================================
+
+  async approveDraftReturn(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    returnId: string,
+    rationale: string
+  ) {
+    safeId(returnId);
+    safeId(uid);
+    const memberDoc = (this.db as any).doc(`taxguardTenants/${scope.tenantId}/members/${uid}`);
+    const memberSnap = typeof memberDoc?.get === 'function' ? await memberDoc.get() : undefined;
+    const memberData = memberSnap?.data?.();
+    if (memberData && ['reviewer', 'senior_reviewer'].includes(memberData.role) && memberData.credentialVerified === false) {
+      throw new AuthorityError('CREDENTIAL_UNVERIFIED', 403);
+    }
+    return this.mutate(scope, uid, version, operationId, { action: 'DRAFT_RETURN_APPROVED', returnId }, async (tx, access) => {
+      // Maker-checker invariant: preparer cannot approve
+      if (access.current.preparerUid === uid) {
+        throw new AuthorityError('MAKER_CHECKER_VIOLATION', 403);
+      }
+
+      this.reviewer(access, uid);
+
+      // Credential verification invariant: approver must have verified professional credentials
+      if (!access.member?.credentialVerified && !access.assignment?.credentialVerified) {
+        throw new AuthorityError('CREDENTIAL_UNVERIFIED', 403);
+      }
+
+      if (access.current.openExceptions > 0) {
+        throw new AuthorityError('UNRESOLVED_EXCEPTIONS', 400);
+      }
+
+      let returnRef = this.db.doc(`${casePath(scope)}/draftReturns/${returnId}`);
+      let ret = (await tx.get(returnRef)).data() as DraftReturnEntity | undefined;
+      if (!ret) {
+        const allReturns = await tx.get(this.db.collection(`${casePath(scope)}/draftReturns`));
+        const matched = allReturns.docs.find(d => d.id === returnId || d.id.startsWith(returnId) || (d.data() as any).returnId === returnId);
+        if (matched) {
+          ret = matched.data() as DraftReturnEntity;
+          returnRef = this.db.doc(`${casePath(scope)}/draftReturns/${matched.id}`);
+        }
+      }
+      if (!ret) throw new AuthorityError('DRAFT_RETURN_NOT_FOUND', 404);
+
+      if (ret.status === 'STALE') {
+        throw new AuthorityError('RETURN_STALE', 400);
+      }
+
+      if (ret.diagnostics?.some(d => d.severity === 'CRITICAL_BLOCKING' && !d.resolved)) {
+        throw new AuthorityError('BLOCKING_DIAGNOSTICS_REMAIN', 400);
+      }
+
+      const returnHash = createHash('sha256').update(JSON.stringify(ret.figures) + ret.returnId).digest('hex');
+      const timestamp = new Date().toISOString();
+      const approvalId = `appr_${returnId}_${Date.now()}`;
+      const approvalRef = this.db.doc(`${casePath(scope)}/approvals/${approvalId}`);
+
+      const approvalRecord: ApprovalRecord = {
+        id: approvalId,
+        approvalId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        returnVersionId: returnId,
+        returnHash,
+        preparedBy: access.current.preparerUid,
+        reviewedBy: uid,
+        approvedBy: uid,
+        credential: access.member?.credentialType || access.assignment?.credentialType || 'CPA',
+        status: 'APPROVED',
+        rationale: rationale || 'Verified with deterministic calculation compliance',
+        diagnosticsSnapshot: ret.diagnostics || [],
+        exceptionSnapshot: [],
+        approvedAt: timestamp,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      tx.set(returnRef, {
+        status: 'APPROVED',
+        approvedBy: uid,
+        approvedAt: timestamp,
+        returnHash,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'approvals', id: approvalId, data: approvalRecord }],
+        approvalId,
+        returnHash,
+        status: 'APPROVED',
+      };
+    });
+  }
+
+  async getApproval(scope: CaseScope, uid: string, approvalId: string): Promise<ApprovalRecord> {
+    safeId(approvalId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/approvals/${approvalId}`))).data() as ApprovalRecord;
+      if (!doc) throw new AuthorityError('APPROVAL_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 11 — SIGNATURE METHODS
+  // ============================================================================
+
+  async createSignaturePackage(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    returnId: string,
+    signers: Array<{ name: string; email: string; role: any }>
+  ) {
+    safeId(returnId);
+    return this.mutate(scope, uid, version, operationId, { action: 'SIGNATURE_PACKAGE_CREATED', returnId }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+
+      const signReadiness = ProviderReadinessRegistry.getProviderStatus('E_SIGNATURE');
+      if (!signReadiness.isOperational) {
+        throw new AuthorityError('SIGNATURE_PROVIDER_NOT_CONFIGURED', 503);
+      }
+
+      const returnRef = this.db.doc(`${casePath(scope)}/draftReturns/${returnId}`);
+      const ret = (await tx.get(returnRef)).data() as DraftReturnEntity | undefined;
+      if (!ret) throw new AuthorityError('DRAFT_RETURN_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      const packageId = `sigpkg_${returnId}_${Date.now()}`;
+      const returnHash = ret.returnId ? createHash('sha256').update(JSON.stringify(ret.figures) + ret.returnId).digest('hex') : 'hash_unavailable';
+
+      const pkg: SignaturePackageEntity = {
+        id: packageId,
+        packageId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        returnVersionId: returnId,
+        returnHash,
+        signers: (signers || []).map((s, idx) => ({
+          id: `signer_${idx + 1}`,
+          name: s.name,
+          email: s.email,
+          role: s.role,
+          status: 'SENT',
+        })),
+        status: 'SENT',
+        provider: 'E_SIGNATURE_GATEWAY',
+        events: [{
+          eventId: `ev_${Date.now()}`,
+          packageId,
+          eventType: 'SENT',
+          actorEmail: uid,
+          timestamp,
+        }],
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'signaturePackages', id: packageId, data: pkg }],
+        packageId,
+        status: pkg.status,
+      };
+    });
+  }
+
+  async recordSignatureEvent(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    packageId: string,
+    event: { signerId: string; eventType: 'VIEWED' | 'SIGNED' | 'DECLINED'; evidenceHash?: string }
+  ) {
+    safeId(packageId);
+    return this.mutate(scope, uid, version, operationId, { action: 'SIGNATURE_EVENT_RECORDED', packageId, eventType: event.eventType }, async (tx) => {
+      const pkgRef = this.db.doc(`${casePath(scope)}/signaturePackages/${packageId}`);
+      const pkg = (await tx.get(pkgRef)).data() as SignaturePackageEntity | undefined;
+      if (!pkg) throw new AuthorityError('SIGNATURE_PACKAGE_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      const updatedSigners = pkg.signers.map(s => {
+        if (s.id === event.signerId) {
+          return {
+            ...s,
+            status: (event.eventType === 'SIGNED' ? 'SIGNED' : event.eventType === 'DECLINED' ? 'DECLINED' : 'VIEWED') as any,
+            signedAt: event.eventType === 'SIGNED' ? timestamp : s.signedAt,
+            signatureEvidenceHash: event.evidenceHash || s.signatureEvidenceHash,
+          };
+        }
+        return s;
+      });
+
+      const allSigned = updatedSigners.every(s => s.status === 'SIGNED');
+      const anyDeclined = updatedSigners.some(s => s.status === 'DECLINED');
+      const newStatus = anyDeclined ? 'DECLINED' : allSigned ? 'SIGNED' : pkg.status;
+
+      const newEvents: SignatureEvent[] = [
+        ...(pkg.events || []),
+        {
+          eventId: `ev_${Date.now()}`,
+          packageId,
+          eventType: event.eventType,
+          actorEmail: uid,
+          timestamp,
+          evidenceHash: event.evidenceHash,
+        },
+      ];
+
+      tx.set(pkgRef, {
+        signers: updatedSigners,
+        status: newStatus,
+        completedAt: allSigned ? timestamp : undefined,
+        events: newEvents,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'signatureEvents', id: operationId, data: { packageId, event, timestamp } }],
+        status: newStatus,
+      };
+    });
+  }
+
+  async getSignaturePackage(scope: CaseScope, uid: string, packageId: string): Promise<SignaturePackageEntity> {
+    safeId(packageId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/signaturePackages/${packageId}`))).data() as SignaturePackageEntity;
+      if (!doc) throw new AuthorityError('SIGNATURE_PACKAGE_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 12 — FILING METHODS
+  // ============================================================================
+
+  async createFilingPackage(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    returnId: string,
+    jurisdiction: string,
+    idempotencyKey: string
+  ) {
+    safeId(returnId);
+    safeId(idempotencyKey);
+    return this.mutate(scope, uid, version, operationId, { action: 'FILING_PACKAGE_CREATED', returnId, idempotencyKey }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+
+      const filingReadiness = ProviderReadinessRegistry.getProviderStatus('FILING');
+      if (!filingReadiness.isOperational) {
+        throw new AuthorityError('FILING_PROVIDER_NOT_CONFIGURED', 503);
+      }
+
+      // Idempotency check: if package already created with this idempotency key, return existing
+      const existingIdemp = (await tx.get(this.db.doc(`${casePath(scope)}/filingsByIdempotency/${idempotencyKey}`))).data();
+      if (existingIdemp) {
+        return { writes: [], packageId: existingIdemp.packageId, status: existingIdemp.status, idempotencyReplay: true };
+      }
+
+      const returnRef = this.db.doc(`${casePath(scope)}/draftReturns/${returnId}`);
+      const ret = (await tx.get(returnRef)).data() as DraftReturnEntity | undefined;
+      if (!ret) throw new AuthorityError('DRAFT_RETURN_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      const packageId = `filepkg_${returnId}_${Date.now()}`;
+      const submissionId = `sub_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      const returnHash = createHash('sha256').update(JSON.stringify(ret.figures) + ret.returnId).digest('hex');
+
+      const pkg: FilingPackageEntity = {
+        id: packageId,
+        packageId,
+        submissionId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        returnVersionId: returnId,
+        returnHash,
+        jurisdiction: jurisdiction || 'FEDERAL',
+        status: 'READY',
+        idempotencyKey,
+        signatureAuthorizationId: `sigauth_${returnId}`,
+        provider: 'IRS_MEF_TRANSMITTER',
+        attempts: [],
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      tx.set(this.db.doc(`${casePath(scope)}/filingsByIdempotency/${idempotencyKey}`), { packageId, status: 'READY', createdAt: timestamp });
+
+      return {
+        writes: [{ collection: 'filingPackages', id: packageId, data: pkg }],
+        packageId,
+        submissionId,
+        status: 'READY',
+      };
+    });
+  }
+
+  async submitFiling(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    packageId: string
+  ) {
+    safeId(packageId);
+    return this.mutate(scope, uid, version, operationId, { action: 'FILING_SUBMITTED', packageId }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+
+      const filingReadiness = ProviderReadinessRegistry.getProviderStatus('FILING');
+      if (!filingReadiness.isOperational) {
+        throw new AuthorityError('FILING_PROVIDER_NOT_CONFIGURED', 503);
+      }
+
+      const pkgRef = this.db.doc(`${casePath(scope)}/filingPackages/${packageId}`);
+      const pkg = (await tx.get(pkgRef)).data() as FilingPackageEntity | undefined;
+      if (!pkg) throw new AuthorityError('FILING_PACKAGE_NOT_FOUND', 404);
+
+      if (['SUBMITTED', 'ACKNOWLEDGED', 'ACCEPTED'].includes(pkg.status)) {
+        return { writes: [], packageId, status: pkg.status, alreadySubmitted: true };
+      }
+
+      const timestamp = new Date().toISOString();
+      const attempt: FilingAttempt = {
+        attemptNumber: (pkg.attempts?.length || 0) + 1,
+        provider: pkg.provider,
+        submittedAt: timestamp,
+        requestPayloadHash: createHash('sha256').update(pkg.packageId + timestamp).digest('hex'),
+        responseStatus: 'TRANSMITTED',
+      };
+
+      // Invariant: SUBMITTED DOES NOT MEAN ACCEPTED
+      tx.set(pkgRef, {
+        status: 'SUBMITTED',
+        submittedAt: timestamp,
+        attempts: [...(pkg.attempts || []), attempt],
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'filingSubmissions', id: operationId, data: { packageId, attempt, timestamp } }],
+        status: 'SUBMITTED',
+        submittedAt: timestamp,
+      };
+    });
+  }
+
+  async recordFilingAcknowledgement(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    packageId: string,
+    ack: FilingAcknowledgement
+  ) {
+    safeId(packageId);
+    return this.mutate(scope, uid, version, operationId, { action: 'FILING_ACKNOWLEDGED', packageId, ackStatus: ack.status }, async (tx) => {
+      const pkgRef = this.db.doc(`${casePath(scope)}/filingPackages/${packageId}`);
+      const pkg = (await tx.get(pkgRef)).data() as FilingPackageEntity | undefined;
+      if (!pkg) throw new AuthorityError('FILING_PACKAGE_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      const newStatus = ack.status === 'ACCEPTED' ? 'ACCEPTED' : ack.status === 'REJECTED' ? 'REJECTED' : 'ACKNOWLEDGED';
+
+      tx.set(pkgRef, {
+        status: newStatus,
+        acknowledgedAt: timestamp,
+        acknowledgement: ack,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'filingAcks', id: operationId, data: { packageId, ack, timestamp } }],
+        status: newStatus,
+      };
+    });
+  }
+
+  async getFilingPackage(scope: CaseScope, uid: string, packageId: string): Promise<FilingPackageEntity> {
+    safeId(packageId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/filingPackages/${packageId}`))).data() as FilingPackageEntity;
+      if (!doc) throw new AuthorityError('FILING_PACKAGE_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 13 — GOVERNMENT FEEDBACK METHODS
+  // ============================================================================
+
+  async recordGovernmentFeedback(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    feedbackInput: Partial<GovernmentFeedbackEntity>
+  ) {
+    return this.mutate(scope, uid, version, operationId, { action: 'GOVERNMENT_FEEDBACK_RECORDED' }, async (tx) => {
+      const feedbackId = feedbackInput.feedbackId || `fb_${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      const entity: GovernmentFeedbackEntity = {
+        id: feedbackId,
+        feedbackId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        submissionId: feedbackInput.submissionId || 'sub_external',
+        provider: feedbackInput.provider || 'IRS_MEF',
+        jurisdiction: feedbackInput.jurisdiction || 'FEDERAL',
+        status: feedbackInput.status || 'RECEIVED',
+        externalReference: feedbackInput.externalReference || `EXT-${Date.now()}`,
+        receivedTimestamp: feedbackInput.receivedTimestamp || timestamp,
+        payloadHash: feedbackInput.payloadHash || createHash('sha256').update(JSON.stringify(feedbackInput)).digest('hex'),
+        normalizedCode: feedbackInput.normalizedCode || 'GEN-001',
+        message: feedbackInput.message || 'Government processing feedback received',
+        severity: feedbackInput.severity || 'INFO',
+        requiredAction: feedbackInput.requiredAction,
+        provenance: { source: 'GOVERNMENT_MEF_TRANSMITTER', receivedAt: timestamp },
+        notices: feedbackInput.notices || [],
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'governmentFeedback', id: feedbackId, data: entity }],
+        feedbackId,
+        status: entity.status,
+      };
+    });
+  }
+
+  async getGovernmentFeedback(scope: CaseScope, uid: string, feedbackId: string): Promise<GovernmentFeedbackEntity> {
+    safeId(feedbackId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/governmentFeedback/${feedbackId}`))).data() as GovernmentFeedbackEntity;
+      if (!doc) throw new AuthorityError('FEEDBACK_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 14 — RESOLUTION METHODS
+  // ============================================================================
+
+  async createResolutionCase(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    resolutionInput: Partial<ResolutionCaseEntity>
+  ) {
+    return this.mutate(scope, uid, version, operationId, { action: 'RESOLUTION_CASE_CREATED' }, async (tx) => {
+      const resolutionId = resolutionInput.resolutionId || `res_${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      const entity: ResolutionCaseEntity = {
+        id: resolutionId,
+        resolutionId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        originatingFeedbackId: resolutionInput.originatingFeedbackId,
+        status: 'OPEN',
+        issueType: resolutionInput.issueType || 'GOVERNMENT_NOTICE',
+        description: resolutionInput.description || 'Resolution case opened',
+        issues: resolutionInput.issues || [],
+        actionsTaken: [{ action: 'CASE_OPENED', timestamp, actor: uid }],
+        evidenceIds: resolutionInput.evidenceIds || [],
+        assignedTo: resolutionInput.assignedTo || uid,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'resolutionCases', id: resolutionId, data: entity }],
+        resolutionId,
+        status: 'OPEN',
+      };
+    });
+  }
+
+  async resolveResolutionCase(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    resolutionId: string,
+    decision: { actionType: 'AMENDED_RETURN' | 'CORRECTION_STATEMENT' | 'NOTICE_RESPONSE' | 'NO_CHANGE'; rationale: string }
+  ) {
+    safeId(resolutionId);
+    return this.mutate(scope, uid, version, operationId, { action: 'RESOLUTION_CASE_RESOLVED', resolutionId }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+      const resRef = this.db.doc(`${casePath(scope)}/resolutionCases/${resolutionId}`);
+      const resCase = (await tx.get(resRef)).data() as ResolutionCaseEntity | undefined;
+      if (!resCase) throw new AuthorityError('RESOLUTION_CASE_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      const updatedDecision = {
+        actionType: decision.actionType,
+        rationale: decision.rationale,
+        decidedBy: uid,
+        decidedAt: timestamp,
+      };
+
+      tx.set(resRef, {
+        status: 'RESOLVED',
+        resolutionDecision: updatedDecision,
+        resolvedAt: timestamp,
+        actionsTaken: [...(resCase.actionsTaken || []), { action: `RESOLVED_${decision.actionType}`, timestamp, actor: uid }],
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'resolutionDecisions', id: operationId, data: { resolutionId, decision: updatedDecision, timestamp } }],
+        status: 'RESOLVED',
+      };
+    });
+  }
+
+  async getResolutionCase(scope: CaseScope, uid: string, resolutionId: string): Promise<ResolutionCaseEntity> {
+    safeId(resolutionId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/resolutionCases/${resolutionId}`))).data() as ResolutionCaseEntity;
+      if (!doc) throw new AuthorityError('RESOLUTION_CASE_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 15 — MONITORING METHODS
+  // ============================================================================
+
+  async createMonitoringItem(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    itemInput: Partial<MonitoringItemEntity>
+  ) {
+    return this.mutate(scope, uid, version, operationId, { action: 'MONITORING_ITEM_CREATED' }, async (tx) => {
+      const itemId = itemInput.itemId || `mon_${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      const entity: MonitoringItemEntity = {
+        id: itemId,
+        itemId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        itemType: itemInput.itemType || 'GOVERNMENT_DEADLINE',
+        title: itemInput.title || 'Tax Compliance Milestone',
+        description: itemInput.description || 'Statutory review requirement',
+        dueDate: itemInput.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: itemInput.status || 'OPEN',
+        followUpDate: itemInput.followUpDate,
+        assignedTo: itemInput.assignedTo || uid,
+        escalationCount: 0,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'monitoringItems', id: itemId, data: entity }],
+        itemId,
+        status: entity.status,
+      };
+    });
+  }
+
+  async updateMonitoringItemStatus(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    itemId: string,
+    status: any
+  ) {
+    safeId(itemId);
+    return this.mutate(scope, uid, version, operationId, { action: 'MONITORING_ITEM_STATUS_UPDATED', itemId, status }, async (tx) => {
+      const itemRef = this.db.doc(`${casePath(scope)}/monitoringItems/${itemId}`);
+      const item = (await tx.get(itemRef)).data() as MonitoringItemEntity | undefined;
+      if (!item) throw new AuthorityError('MONITORING_ITEM_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      tx.set(itemRef, {
+        status,
+        resolvedAt: status === 'RESOLVED' ? timestamp : item.resolvedAt,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'monitoringUpdates', id: operationId, data: { itemId, status, timestamp } }],
+        status,
+      };
+    });
+  }
+
+  async listMonitoringItems(scope: CaseScope, uid: string): Promise<MonitoringItemEntity[]> {
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const snap = await tx.get(this.db.collection(`${casePath(scope)}/monitoringItems`));
+      return snap.docs.map(d => d.data() as MonitoringItemEntity);
+    });
+  }
+
+  // ============================================================================
+  // STAGE 16 — ARCHIVE METHODS
+  // ============================================================================
+
+  async createArchiveManifest(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    manifestInput?: Partial<ArchiveManifestEntity>
+  ) {
+    return this.mutate(scope, uid, version, operationId, { action: 'CASE_ARCHIVED' }, async (tx, access) => {
+      this.reviewer(access, uid);
+
+      const manifestId = manifestInput?.manifestId || `arch_${scope.taxYear}_${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      const integrityHash = createHash('sha256')
+        .update(casePath(scope) + timestamp + (access.current.version || 1))
+        .digest('hex');
+
+      const manifest: ArchiveManifestEntity = {
+        id: manifestId,
+        manifestId,
+        status: 'ARCHIVED',
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        returnVersions: manifestInput?.returnVersions || ['v1'],
+        filingRecords: manifestInput?.filingRecords || [],
+        governmentFeedback: manifestInput?.governmentFeedback || [],
+        resolutionStatus: 'CLOSED',
+        documentManifest: manifestInput?.documentManifest || [],
+        auditManifest: manifestInput?.auditManifest || { totalEvents: 1, checksum: integrityHash },
+        retentionPolicy: {
+          minimumRetentionYears: 7,
+          eligibleForDestructionDate: new Date(Date.now() + 7 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+          legalHold: false,
+        },
+        integrityHash,
+        archivedAt: timestamp,
+        archivedBy: uid,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'archiveManifests', id: manifestId, data: manifest }],
+        manifestId,
+        integrityHash,
+        status: 'ARCHIVED',
+        patch: { status: 'ARCHIVED' },
+      };
+    });
+  }
+
+  async getArchiveManifest(scope: CaseScope, uid: string, manifestId: string): Promise<ArchiveManifestEntity> {
+    safeId(manifestId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/archiveManifests/${manifestId}`))).data() as ArchiveManifestEntity;
+      if (!doc) throw new AuthorityError('ARCHIVE_MANIFEST_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 17 — RENEWAL METHODS
+  // ============================================================================
+
+  async createRenewalRecord(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    nextTaxYear: number,
+    checklist: Array<{ item: string; completed: boolean }>,
+    carryForwardCandidates: CarryForwardCandidate[]
+  ) {
+    return this.mutate(scope, uid, version, operationId, { action: 'RENEWAL_RECORD_CREATED', nextTaxYear }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+
+      const renewalId = `ren_${scope.taxYear}_to_${nextTaxYear}`;
+      const timestamp = new Date().toISOString();
+
+      const record: RenewalRecordEntity = {
+        id: renewalId,
+        renewalId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        priorTaxYear: scope.taxYear,
+        nextTaxYear,
+        checklist: (checklist || []).map(c => ({ item: c.item, completed: c.completed, completedAt: c.completed ? timestamp : undefined })),
+        carryForwardCandidates: carryForwardCandidates || [],
+        status: 'PENDING',
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'renewalRecords', id: renewalId, data: record }],
+        renewalId,
+        status: 'PENDING',
+      };
+    });
+  }
+
+  async classifyCarryForwardCandidate(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    renewalId: string,
+    candidateId: string,
+    classification: CarryForwardClassification
+  ) {
+    safeId(renewalId);
+    safeId(candidateId);
+    return this.mutate(scope, uid, version, operationId, { action: 'CARRY_FORWARD_CLASSIFIED', candidateId, classification }, async (tx) => {
+      const renRef = this.db.doc(`${casePath(scope)}/renewalRecords/${renewalId}`);
+      const ren = (await tx.get(renRef)).data() as RenewalRecordEntity | undefined;
+      if (!ren) throw new AuthorityError('RENEWAL_RECORD_NOT_FOUND', 404);
+
+      const timestamp = new Date().toISOString();
+      const updatedCandidates = ren.carryForwardCandidates.map(c => {
+        if (c.id === candidateId) {
+          return {
+            ...c,
+            classification,
+            confirmedBy: classification === 'CONFIRMED' ? uid : undefined,
+            confirmedAt: classification === 'CONFIRMED' ? timestamp : undefined,
+          };
+        }
+        return c;
+      });
+
+      tx.set(renRef, {
+        carryForwardCandidates: updatedCandidates,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      }, { merge: true });
+
+      return {
+        writes: [{ collection: 'carryForwardUpdates', id: operationId, data: { candidateId, classification, timestamp } }],
+      };
+    });
+  }
+
+  async getRenewalRecord(scope: CaseScope, uid: string, renewalId: string): Promise<RenewalRecordEntity> {
+    safeId(renewalId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/renewalRecords/${renewalId}`))).data() as RenewalRecordEntity;
+      if (!doc) throw new AuthorityError('RENEWAL_RECORD_NOT_FOUND', 404);
+      return doc;
+    });
+  }
+
+  // ============================================================================
+  // STAGE 18 — REPEAT METHODS
+  // ============================================================================
+
+  async createRepeatTaxCase(
+    scope: CaseScope,
+    uid: string,
+    version: number,
+    operationId: string,
+    nextTaxYear: number,
+    confirmedCandidates: CarryForwardCandidate[]
+  ) {
+    return this.mutate(scope, uid, version, operationId, { action: 'REPEAT_CASE_INITIALIZED', nextTaxYear }, async (tx, access) => {
+      if (access.assignment.role === 'client') throw new AuthorityError('PROFESSIONAL_REQUIRED', 403);
+
+      const nextScope: CaseScope = {
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        taxYear: nextTaxYear,
+      };
+
+      // Invariant: check duplicate active case for next tax year
+      const nextCaseDoc = (await tx.get(this.db.doc(casePath(nextScope)))).data() as TaxCaseEntity | undefined;
+      if (nextCaseDoc && nextCaseDoc.status !== 'ARCHIVED') {
+        throw new AuthorityError('DUPLICATE_CASE', 409);
+      }
+
+      // Read engagement before any writes to adhere to strict read-before-write transactional invariants
+      const engRef = this.db.doc(casePath(nextScope).split('/years/')[0]);
+      const engSnap = await tx.get(engRef);
+
+      const timestamp = new Date().toISOString();
+      const repeatId = `rep_${scope.taxYear}_to_${nextTaxYear}`;
+      const newCaseId = casePath(nextScope);
+
+      // Create new next year case starting at Stage 1 (ONBOARD)
+      const newCase: TaxCaseEntity = {
+        id: newCaseId,
+        caseId: newCaseId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        taxYear: nextTaxYear,
+        status: 'ACTIVE',
+        activeStage: 1, // Strictly starts at Stage 01 ONBOARD
+        clientUid: access.current.clientUid,
+        preparerUid: access.current.preparerUid,
+        reviewerUid: access.current.reviewerUid,
+        openExceptions: 0,
+        externalSubmissionEnabled: false,
+        version: 1,
+        notes: `Repeated from tax year ${scope.taxYear} via Stage 18 Repeat Engine. Prior Case: ${casePath(scope)}`,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      };
+
+      tx.set(this.db.doc(casePath(nextScope)), newCase);
+
+      // Propagate case assignments to the next tax year case
+      for (const [role, assignedUid] of [
+        ['client', access.current.clientUid],
+        ['preparer', access.current.preparerUid],
+        ['reviewer', access.current.reviewerUid],
+      ]) {
+        if (assignedUid) {
+          tx.set(this.db.doc(`${casePath(nextScope)}/assignments/${assignedUid}`), {
+            uid: assignedUid,
+            role,
+            active: true,
+            assignedBy: uid,
+            assignedAt: timestamp,
+          });
+        }
+      }
+
+      // Ensure engagement includes the next tax year
+      if (engSnap.exists) {
+        const engData = engSnap.data();
+        if (Array.isArray(engData?.taxYears) && !engData.taxYears.includes(nextTaxYear)) {
+          tx.set(engRef, { ...engData, taxYears: [...engData.taxYears, nextTaxYear] });
+        }
+      }
+
+      // Initialize Stage 01 for the next year
+      const nextStageOneRef = this.db.doc(`${casePath(nextScope)}/stageStates/1`);
+      tx.set(nextStageOneRef, {
+        stage: 1,
+        status: 'IN_PROGRESS',
+        requirementsMet: false,
+        version: 1,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+      });
+
+      // Carry forward ONLY confirmed candidates with provenance
+      let carryForwardCount = 0;
+      for (const candidate of (confirmedCandidates || [])) {
+        if (candidate.classification === 'CONFIRMED') {
+          carryForwardCount++;
+          const recId = `cf_rec_${candidate.id}_${Date.now()}`;
+          const recRef = this.db.doc(`${casePath(nextScope)}/taxRecords/${recId}`);
+          tx.set(recRef, {
+            id: recId,
+            tenantId: scope.tenantId,
+            clientId: scope.clientId,
+            engagementId: scope.engagementId,
+            caseId: casePath(nextScope),
+            taxYear: nextTaxYear,
+            category: candidate.category,
+            description: `[Prior Year Carry-Forward] ${candidate.description}`,
+            originalValue: String(candidate.priorYearValue),
+            normalizedValue: Number(candidate.priorYearValue) || 0,
+            currency: 'USD',
+            confidence: 1.0,
+            status: 'RECORDED',
+            provenance: {
+              source: 'PRIOR_YEAR_REPEAT',
+              priorCaseId: casePath(scope),
+              priorTaxYear: scope.taxYear,
+              candidateId: candidate.id,
+            },
+            createdAt: timestamp,
+            createdBy: uid,
+            updatedAt: timestamp,
+            updatedBy: uid,
+            version: 1,
+          });
+        }
+      }
+
+      const repeatRecord: RepeatCaseEntity = {
+        id: repeatId,
+        repeatId,
+        tenantId: scope.tenantId,
+        clientId: scope.clientId,
+        engagementId: scope.engagementId,
+        caseId: casePath(scope),
+        taxYear: scope.taxYear,
+        previousCaseId: casePath(scope),
+        nextCaseId: newCaseId,
+        priorTaxYear: scope.taxYear,
+        nextTaxYear,
+        carryForwardCount,
+        initializedAt: timestamp,
+        createdAt: timestamp,
+        createdBy: uid,
+        updatedAt: timestamp,
+        updatedBy: uid,
+        version: 1,
+      };
+
+      return {
+        writes: [{ collection: 'repeatRecords', id: repeatId, data: repeatRecord }],
+        repeatId,
+        nextCaseId: newCaseId,
+        nextTaxYear,
+        carryForwardCount,
+        status: 'COMPLETE',
+      };
+    });
+  }
+
+  async getRepeatCase(scope: CaseScope, uid: string, repeatId: string): Promise<RepeatCaseEntity> {
+    safeId(repeatId);
+    return this.db.runTransaction(async tx => {
+      await this.access(tx, scope, uid);
+      const doc = (await tx.get(this.db.doc(`${casePath(scope)}/repeatRecords/${repeatId}`))).data() as RepeatCaseEntity;
+      if (!doc) throw new AuthorityError('REPEAT_CASE_NOT_FOUND', 404);
+      return doc;
+    });
+  }
 }
+
