@@ -35,13 +35,21 @@ import {
 import {
   loginWithEmail as supabaseLoginWithEmail,
   registerWithEmail as supabaseRegisterWithEmail,
-  logout as supabaseLogout
+  logout as supabaseLogout,
+  getSupabaseAccessToken,
+  resendVerificationEmail as supabaseResendVerificationEmail,
+  sanitizeAuthErrorMessage,
+  AuthLifecycleState,
+  RegistrationResultState,
+  ControlledAuthErrorCode
 } from '../supabase/auth';
-import { isSupabaseConfigured } from '../supabase/config';
+import { isSupabaseConfigured, supabase } from '../supabase/config';
 import { seedInitialServicesIfEmpty } from '../firebase/seed';
 import { testConnection } from '../firebase/firestore';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { StageOneOnboardingService } from '../services/stageOneOnboardingService';
+import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
+import { LiveWorkflowApi } from '../services/liveWorkflowApi';
 
 export type PageRoute =
   | 'home'
@@ -106,6 +114,22 @@ interface AppContextType {
   isSyncingWithBackend: boolean;
   isLoadingData: boolean;
   isInitialized: boolean;
+  authLifecycleState: AuthLifecycleState;
+  registrationState: RegistrationResultState;
+  setRegistrationState: (state: RegistrationResultState) => void;
+  pendingVerificationEmail: string | null;
+  setPendingVerificationEmail: (email: string | null) => void;
+  resendVerificationEmail: (email?: string) => Promise<{ success: boolean; message: string; error?: string }>;
+  provisionedOnboarding: {
+    tenantId?: string;
+    clientId?: string;
+    engagementId?: string;
+    taxYear?: number;
+    caseId?: string;
+    activeStage?: 1 | 2 | 3;
+    stageStates?: Record<string, string>;
+    resumed?: boolean;
+  } | null;
   dataError: string | null;
   users: User[];
   engagements: Engagement[];
@@ -127,8 +151,35 @@ interface AppContextType {
   onboardingProgress: { percentComplete: number; missingRequirements: string[]; nextAction: string } | null;
   legalRecords: LegalCoordinationRecord[];
   securityTestResults: SecurityTestResult[];
-  login: (email: string, password: string, mfaCode?: string) => Promise<{ success: boolean; mfaRequired?: boolean; error?: string; redirectPage?: PageRoute }>;
-  register: (payload: { name: string; email: string; password?: string; phone?: string; companyName?: string; company?: string; clientType?: 'individual' | 'business'; role?: UserRole; taxFilingType?: string }) => Promise<{ success: boolean; error?: string; verificationTokenSimulated?: string }>;
+  login: (email: string, password: string, mfaCode?: string) => Promise<{
+    success: boolean;
+    mfaRequired?: boolean;
+    emailVerificationRequired?: boolean;
+    code?: ControlledAuthErrorCode;
+    error?: string;
+    redirectPage?: PageRoute;
+  }>;
+  register: (payload: {
+    name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    companyName?: string;
+    company?: string;
+    clientType?: 'individual' | 'business';
+    role?: UserRole;
+    taxFilingType?: string;
+  }) => Promise<{
+    success: boolean;
+    status?: RegistrationResultState;
+    emailVerificationRequired?: boolean;
+    duplicateRegistration?: boolean;
+    code?: ControlledAuthErrorCode;
+    email?: string;
+    redirectPage?: PageRoute;
+    error?: string;
+    verificationTokenSimulated?: string;
+  }>;
   logout: () => Promise<void>;
   switchTestAccount: (userId: string) => Promise<void>;
   uploadDocument: (fileData: Partial<DocumentItem>, sampleText?: string) => Promise<DocumentItem | null>;
@@ -303,6 +354,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [authLifecycleState, setAuthLifecycleState] = useState<AuthLifecycleState>('INITIALIZING');
+  const [registrationState, setRegistrationState] = useState<RegistrationResultState>('IDLE');
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [provisionedOnboarding, setProvisionedOnboarding] = useState<{
+    tenantId?: string;
+    clientId?: string;
+    engagementId?: string;
+    taxYear?: number;
+    caseId?: string;
+    activeStage?: 1 | 2 | 3;
+    stageStates?: Record<string, string>;
+    resumed?: boolean;
+  } | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
   const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null);
   const [onboardingProgress, setOnboardingProgress] = useState<{ percentComplete: number; missingRequirements: string[]; nextAction: string } | null>(null);
@@ -487,6 +551,114 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [clearTaxpayerState, refreshBackendData]);
 
+  const establishSupabaseServerSession = useCallback(async (
+    accessToken: string,
+    options?: {
+      navigateIfAuthRoute?: boolean;
+      trackRegistrationStates?: boolean;
+    }
+  ): Promise<{ user: User; redirectPage: PageRoute }> => {
+    if (options?.trackRegistrationStates) {
+      setRegistrationState('ESTABLISHING_SESSION');
+    }
+
+    const liveSession = await api.auth.supabaseSession({ accessToken });
+    if (!liveSession?.token || !liveSession?.user) {
+      const err = new Error('A secure TaxGuard server session could not be established.') as Error & {
+        code?: ControlledAuthErrorCode;
+      };
+      err.code = 'SESSION_ESTABLISHMENT_FAILED';
+      throw err;
+    }
+
+    if (options?.trackRegistrationStates) {
+      setRegistrationState('INITIALIZING_CLIENT');
+    }
+
+    if (!liveSession.user.clientId && liveSession.user.role === 'client') {
+      const err = new Error('Your Client Tax Center profile could not be initialized.') as Error & {
+        code?: ControlledAuthErrorCode;
+      };
+      err.code = 'CLIENT_INITIALIZATION_FAILED';
+      throw err;
+    }
+
+    if (options?.trackRegistrationStates) {
+      setRegistrationState('INITIALIZING_CASE');
+    }
+
+    if (liveSession.workflow && liveSession.eligibility) {
+      LiveWorkflowAuthority.seedFromServerBundle(liveSession.workflow, liveSession.eligibility);
+      setProvisionedOnboarding({
+        tenantId: liveSession.tenantId,
+        clientId: liveSession.clientId,
+        engagementId: liveSession.engagementId,
+        taxYear: liveSession.taxYear,
+        caseId: liveSession.caseId,
+        activeStage: liveSession.activeStage,
+        stageStates: liveSession.stageStates,
+        resumed: liveSession.resumed
+      });
+    } else if (liveSession.user.role === 'client' && liveSession.user.clientId) {
+      try {
+        const bundle = await LiveWorkflowApi.provisionClientOnboarding(2025);
+        if (bundle?.workflow && bundle?.eligibility) {
+          LiveWorkflowAuthority.seedFromServerBundle(bundle.workflow, bundle.eligibility);
+          setProvisionedOnboarding({
+            tenantId: bundle.tenantId,
+            clientId: bundle.clientId,
+            engagementId: bundle.engagementId,
+            taxYear: bundle.taxYear,
+            caseId: bundle.caseId,
+            activeStage: bundle.activeStage,
+            stageStates: bundle.stageStates,
+            resumed: bundle.resumed
+          });
+        }
+      } catch {
+        const err = new Error('Your Stage 01 onboarding case could not be initialized.') as Error & {
+          code?: ControlledAuthErrorCode;
+        };
+        err.code = 'CASE_INITIALIZATION_FAILED';
+        throw err;
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('taxguard_environment', 'live');
+      localStorage.removeItem('demo_session');
+      sessionStorage.removeItem('demo_session');
+    }
+
+    setCurrentUser(liveSession.user);
+    setCurrentRoleState(liveSession.user.role);
+    setAuthLifecycleState('AUTHENTICATED');
+    setPendingVerificationEmail(null);
+
+    await refreshBackendData().catch(() => {});
+
+    const landingPage = getLiveClientLandingPage(liveSession.user);
+
+    if (options?.trackRegistrationStates) {
+      setRegistrationState('READY');
+    }
+
+    if (options?.navigateIfAuthRoute) {
+      setCurrentPageState(landingPage);
+      setPageParams({});
+      if (typeof window !== 'undefined') {
+        const targetPath = `/${landingPage}`;
+        try {
+          window.history.replaceState({ page: landingPage }, '', targetPath);
+        } catch {
+          window.location.hash = `#/${landingPage}`;
+        }
+      }
+    }
+
+    return { user: liveSession.user, redirectPage: landingPage };
+  }, [refreshBackendData]);
+
   useEffect(() => {
     testConnection().catch(() => {});
     seedInitialServicesIfEmpty().catch(() => {});
@@ -495,21 +667,128 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const expireSession = () => {
       clearStoredToken();
       clearTaxpayerState();
+      LiveWorkflowAuthority.clear();
       setCurrentUser(null);
       setCurrentRoleState('guest');
+      setAuthLifecycleState('UNAUTHENTICATED');
       setCurrentPageState('client_login');
-      localStorage.removeItem('taxguard_environment');
-      window.history.replaceState({ page: 'client_login' }, '', '/#/client/login');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('taxguard_environment');
+        try {
+          window.history.replaceState({ page: 'client_login' }, '', '/#/client/login');
+        } catch {
+          window.location.hash = '#/client/login';
+        }
+      }
       void firebaseLogout().catch(() => {});
     };
     window.addEventListener('taxguard:session-expired', expireSession);
 
+    const bootstrapSession = async () => {
+      try {
+        const existingToken = getStoredToken();
+        const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
+
+        // 1. If a durable TaxGuard session token already exists, verify & restore it
+        if (existingToken && environment === 'live') {
+          try {
+            await refreshBackendData();
+            if (active) {
+              setAuthLifecycleState('AUTHENTICATED');
+              setIsInitialized(true);
+            }
+            return;
+          } catch {
+            clearStoredToken();
+          }
+        }
+
+        // 2. Check for an active Supabase browser session (e.g. after refresh or email verification callback)
+        if (isSupabaseConfigured()) {
+          const sbAccessToken = await getSupabaseAccessToken();
+          if (sbAccessToken && active) {
+            try {
+              const currentRoute = getPageFromUrl() || 'home';
+              const isAuthEntryRoute = [
+                'login',
+                'register',
+                'client_login',
+                'client_register'
+              ].includes(currentRoute);
+
+              await establishSupabaseServerSession(sbAccessToken, {
+                navigateIfAuthRoute: isAuthEntryRoute
+              });
+              if (active) {
+                setAuthLifecycleState('AUTHENTICATED');
+                setIsInitialized(true);
+              }
+              return;
+            } catch (err) {
+              console.warn('[TaxGuard Auth] Supabase session restoration failed:', err);
+            }
+          }
+        }
+
+        if (active) {
+          if (environment !== 'live' && existingToken) {
+            clearStoredToken();
+          }
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+        }
+      } catch {
+        if (active) {
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+        }
+      }
+    };
+
+    void bootstrapSession();
+
+    // Subscribe to Supabase auth state changes (handles email verification callback & token refresh)
+    const { data: sbSubscription } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!active || authOperationInProgressRef.current) return;
+
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
+        const existingToken = getStoredToken();
+        if (!existingToken) {
+          try {
+            authOperationInProgressRef.current = true;
+            await establishSupabaseServerSession(session.access_token, {
+              navigateIfAuthRoute: true,
+              trackRegistrationStates: registrationState === 'EMAIL_VERIFICATION_REQUIRED'
+            });
+          } catch (err) {
+            console.warn('[TaxGuard Auth] Failed to bridge Supabase auth event:', err);
+          } finally {
+            authOperationInProgressRef.current = false;
+            if (active) setIsInitialized(true);
+          }
+        }
+      } else if (event === 'SIGNED_OUT') {
+        clearStoredToken();
+        clearTaxpayerState();
+        LiveWorkflowAuthority.clear();
+        setCurrentUser(null);
+        setCurrentRoleState('guest');
+        setAuthLifecycleState('UNAUTHENTICATED');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('taxguard_environment');
+        }
+      }
+    });
+
+    // Legacy Firebase listener: ONLY act when Firebase user is present AND Supabase is not configured
     const unsubscribeAuth = onAuthStateChanged(auth, async firebaseUser => {
       if (!active || authOperationInProgressRef.current) return;
+      if (isSupabaseConfigured()) return;
 
       if (firebaseUser) {
         try {
           await restoreFirebaseSession(firebaseUser, false);
+          if (active) setAuthLifecycleState('AUTHENTICATED');
         } catch (error) {
           console.warn('LIVE Firebase session restoration failed:', error);
           authOperationInProgressRef.current = true;
@@ -519,42 +798,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           clearTaxpayerState();
           setCurrentUser(null);
           setCurrentRoleState('guest');
+          setAuthLifecycleState('UNAUTHENTICATED');
           if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
           setIsInitialized(true);
         }
         return;
       }
-
-      let wasLive = false;
-      if (typeof window !== 'undefined') {
-        wasLive = localStorage.getItem('taxguard_environment') === 'live';
-      }
-
-      if (wasLive) {
-        clearStoredToken();
-        clearTaxpayerState();
-        setCurrentUser(null);
-        setCurrentRoleState('guest');
-        localStorage.removeItem('taxguard_environment');
-      }
-
-      setIsInitialized(true);
     });
-
-    const existingToken = getStoredToken();
-    const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
-
-    if (environment !== 'live') {
-      if (existingToken) clearStoredToken();
-      setIsInitialized(true);
-    }
 
     return () => {
       active = false;
       unsubscribeAuth();
+      sbSubscription?.subscription?.unsubscribe();
       window.removeEventListener('taxguard:session-expired', expireSession);
     };
-  }, [clearTaxpayerState, refreshBackendData, restoreFirebaseSession]);
+  }, [clearTaxpayerState, establishSupabaseServerSession, refreshBackendData, registrationState, restoreFirebaseSession]);
 
   const switchTestAccount = async (_userId: string) => {
     setIsSyncingWithBackend(true);
@@ -598,14 +856,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     void switchTestAccount(role);
   };
 
+  const resendVerificationEmail = useCallback(async (emailOverride?: string) => {
+    const targetEmail = (emailOverride || pendingVerificationEmail || '').trim().toLowerCase();
+    if (!targetEmail) {
+      return {
+        success: false,
+        message: '',
+        error: 'Please enter a valid email address to resend verification.'
+      };
+    }
+    return supabaseResendVerificationEmail(targetEmail);
+  }, [pendingVerificationEmail]);
+
   const login = async (
     email: string,
     password: string,
     _mfaCode?: string
-  ): Promise<{ success: boolean; mfaRequired?: boolean; error?: string; redirectPage?: PageRoute }> => {
+  ): Promise<{
+    success: boolean;
+    mfaRequired?: boolean;
+    emailVerificationRequired?: boolean;
+    code?: ControlledAuthErrorCode;
+    error?: string;
+    redirectPage?: PageRoute;
+  }> => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedEmail || !password) return { success: false, error: 'Email and password are required.' };
+    if (!normalizedEmail || !password) {
+      return {
+        success: false,
+        code: 'VALIDATION_FAILED',
+        error: 'Email and password are required.'
+      };
+    }
 
     authOperationInProgressRef.current = true;
 
@@ -621,26 +904,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (isSupabaseConfigured()) {
         const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
         if (!sbResult.success || !sbResult.accessToken) {
-          return { success: false, error: sbResult.error || 'Invalid email or password.' };
+          if (sbResult.emailVerificationRequired || sbResult.code === 'EMAIL_VERIFICATION_REQUIRED') {
+            setPendingVerificationEmail(normalizedEmail);
+            setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
+            return {
+              success: false,
+              emailVerificationRequired: true,
+              code: 'EMAIL_VERIFICATION_REQUIRED',
+              error: sbResult.error || 'Please verify your email address to activate your Client Tax Center.'
+            };
+          }
+          return {
+            success: false,
+            code: sbResult.code || 'INVALID_CREDENTIALS',
+            error: sbResult.error || 'Invalid email or password.'
+          };
         }
 
-        const liveSession = await api.auth.supabaseSession({ accessToken: sbResult.accessToken });
-        if (!liveSession.user) throw new Error('TaxGuard could not restore the LIVE client workspace.');
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('taxguard_environment', 'live');
-          localStorage.removeItem('demo_session');
-          sessionStorage.removeItem('demo_session');
-        }
-
-        setCurrentUser(liveSession.user);
-        setCurrentRoleState(liveSession.user.role);
-        await refreshBackendData();
-
-        const landingPage = getLiveClientLandingPage(liveSession.user);
-        setCurrentPageState(landingPage);
-        setPageParams({});
-        return { success: true, redirectPage: landingPage };
+        const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
+          navigateIfAuthRoute: true
+        });
+        return { success: true, redirectPage };
       }
 
       const firebaseResult = await loginWithEmail(normalizedEmail, password);
@@ -649,6 +933,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const restoredUser = await restoreFirebaseSession(auth.currentUser, true);
+      setAuthLifecycleState('AUTHENTICATED');
       return { success: true, redirectPage: getLiveClientLandingPage(restoredUser) };
     } catch (err: any) {
       await firebaseLogout().catch(() => {});
@@ -656,17 +941,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearTaxpayerState();
       setCurrentUser(null);
       setCurrentRoleState('guest');
+      setAuthLifecycleState('UNAUTHENTICATED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
-      return { success: false, error: err?.message || 'Invalid email or password.' };
+      const sanitized = sanitizeAuthErrorMessage(err, err?.code || 'SESSION_ESTABLISHMENT_FAILED');
+      return {
+        success: false,
+        code: sanitized.code,
+        error: sanitized.message
+      };
     } finally {
       authOperationInProgressRef.current = false;
     }
   };
 
-  const register = async (payload: { name: string; email: string; password?: string; phone?: string; companyName?: string; company?: string; clientType?: 'individual' | 'business'; role?: UserRole; taxFilingType?: string }) => {
-    if (!payload.password) return { success: false, error: 'Password is required.' };
+  const register = async (payload: {
+    name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    companyName?: string;
+    company?: string;
+    clientType?: 'individual' | 'business';
+    role?: UserRole;
+    taxFilingType?: string;
+  }): Promise<{
+    success: boolean;
+    status?: RegistrationResultState;
+    emailVerificationRequired?: boolean;
+    duplicateRegistration?: boolean;
+    code?: ControlledAuthErrorCode;
+    email?: string;
+    redirectPage?: PageRoute;
+    error?: string;
+    verificationTokenSimulated?: string;
+  }> => {
+    const normalizedEmail = (payload.email || '').trim().toLowerCase();
+
+    if (!payload.password) {
+      setRegistrationState('FAILED');
+      return {
+        success: false,
+        status: 'FAILED',
+        code: 'VALIDATION_FAILED',
+        error: 'Password is required.'
+      };
+    }
 
     authOperationInProgressRef.current = true;
+    setRegistrationState('SUBMITTING');
 
     try {
       clearStoredToken();
@@ -682,47 +1004,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (isSupabaseConfigured()) {
         const sbResult = await supabaseRegisterWithEmail(
           payload.name,
-          payload.email.trim().toLowerCase(),
+          normalizedEmail,
           payload.password,
           payload.phone,
           effectiveCompanyName
         );
 
         if (!sbResult.success) {
-          return { success: false, error: sbResult.error || 'Registration failed.' };
+          setRegistrationState('FAILED');
+          return {
+            success: false,
+            status: 'FAILED',
+            code: sbResult.code || 'REGISTRATION_FAILED',
+            duplicateRegistration: sbResult.duplicateRegistration,
+            error: sbResult.error || 'Registration could not be completed at this time.'
+          };
         }
 
-        if (sbResult.accessToken) {
-          const liveSession = await api.auth.supabaseSession({
-            accessToken: sbResult.accessToken,
-            name: payload.name,
-            phone: payload.phone,
-            companyName: effectiveCompanyName,
-            clientType: payload.clientType
-          });
+        setRegistrationState('ACCOUNT_CREATED');
 
-          if (liveSession.user) {
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('taxguard_environment', 'live');
-            }
-            setCurrentUser(liveSession.user);
-            setCurrentRoleState(liveSession.user.role);
-            await refreshBackendData();
-            const landingPage = getLiveClientLandingPage(liveSession.user);
-            setCurrentPageState(landingPage);
-            setPageParams({});
-          }
+        // CASE B — User created in Supabase, but email confirmation is required before a session is issued
+        if (sbResult.emailVerificationRequired || !sbResult.accessToken) {
+          setPendingVerificationEmail(normalizedEmail);
+          setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
+          setAuthLifecycleState('UNAUTHENTICATED');
+          return {
+            success: true,
+            status: 'EMAIL_VERIFICATION_REQUIRED',
+            emailVerificationRequired: true,
+            code: 'EMAIL_VERIFICATION_REQUIRED',
+            email: normalizedEmail
+          };
         }
+
+        // CASE A — Supabase returned a valid session immediately; establish TaxGuard server session & provision Stage 01
+        const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
+          navigateIfAuthRoute: true,
+          trackRegistrationStates: true
+        });
 
         return {
           success: true,
+          status: 'READY',
+          emailVerificationRequired: false,
+          redirectPage,
           verificationTokenSimulated: 'supabase-verified'
         };
       }
 
       const firebaseResult = await registerWithEmail(
         payload.name,
-        payload.email.trim().toLowerCase(),
+        normalizedEmail,
         payload.password,
         payload.phone,
         effectiveCompanyName
@@ -730,13 +1062,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!firebaseResult.success || !auth.currentUser) {
         await firebaseLogout().catch(() => {});
-        return { success: false, error: firebaseResult.error || 'Registration failed.' };
+        setRegistrationState('FAILED');
+        return {
+          success: false,
+          status: 'FAILED',
+          code: 'REGISTRATION_FAILED',
+          error: firebaseResult.error || 'Registration failed.'
+        };
       }
 
-      await restoreFirebaseSession(auth.currentUser, true);
+      setRegistrationState('ESTABLISHING_SESSION');
+      const restoredUser = await restoreFirebaseSession(auth.currentUser, true);
+      const landingPage = getLiveClientLandingPage(restoredUser);
+      setAuthLifecycleState('AUTHENTICATED');
+      setRegistrationState('READY');
 
       return {
         success: true,
+        status: 'READY',
+        emailVerificationRequired: false,
+        redirectPage: landingPage,
         verificationTokenSimulated: 'firebase-admin-verified'
       };
     } catch (err: any) {
@@ -745,8 +1090,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearTaxpayerState();
       setCurrentUser(null);
       setCurrentRoleState('guest');
+      setAuthLifecycleState('UNAUTHENTICATED');
+      setRegistrationState('FAILED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
-      return { success: false, error: err?.message || 'Registration failed.' };
+      const fallbackCode: ControlledAuthErrorCode = err?.code || 'SESSION_ESTABLISHMENT_FAILED';
+      const sanitized = sanitizeAuthErrorMessage(err, fallbackCode);
+      return {
+        success: false,
+        status: 'FAILED',
+        code: sanitized.code,
+        error: sanitized.message
+      };
     } finally {
       authOperationInProgressRef.current = false;
     }
@@ -766,8 +1120,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       clearStoredToken();
       clearTaxpayerState();
+      LiveWorkflowAuthority.clear();
       setCurrentUser(null);
       setCurrentRoleState('guest');
+      setAuthLifecycleState('UNAUTHENTICATED');
+      setRegistrationState('IDLE');
+      setPendingVerificationEmail(null);
+      setProvisionedOnboarding(null);
       setCurrentPageState('client_login');
 
       if (typeof window !== 'undefined') {
@@ -1220,6 +1579,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isSyncingWithBackend,
     isLoadingData,
     isInitialized,
+    authLifecycleState,
+    registrationState,
+    setRegistrationState,
+    pendingVerificationEmail,
+    setPendingVerificationEmail,
+    resendVerificationEmail,
+    provisionedOnboarding,
     dataError,
     users,
     engagements,
@@ -1280,11 +1646,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCookieModalOpen
   }), [
     currentUser, currentRole, currentPage, pageParams, isSyncingWithBackend, isLoadingData,
-    isInitialized, dataError, users, engagements, documents, appointments, servicePlans,
-    invoices, accountingConnections, messages, jobPostings, selectedJob, applyForJob,
-    applicants, auditLogs, notifications, onboardingState, onboardingProgress, legalRecords,
-    securityTestResults, refreshBackendData, addAuditLog, addNotification, updateServicePlanPrice,
-    toggleUserStatus, impersonateUser, reassignClient, cookieConsentAccepted, cookieModalOpen
+    isInitialized, authLifecycleState, registrationState, pendingVerificationEmail,
+    resendVerificationEmail, provisionedOnboarding, dataError, users, engagements, documents,
+    appointments, servicePlans, invoices, accountingConnections, messages, jobPostings,
+    selectedJob, applyForJob, applicants, auditLogs, notifications, onboardingState,
+    onboardingProgress, legalRecords, securityTestResults, refreshBackendData, addAuditLog,
+    addNotification, updateServicePlanPrice, toggleUserStatus, impersonateUser, reassignClient,
+    cookieConsentAccepted, cookieModalOpen
   ]);
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;

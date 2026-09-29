@@ -5,6 +5,12 @@ import { AuthorityError, TaxGuardAuthorityRepository, type CaseScope } from '../
 import { proposeDurableOpenAIReview } from '../ai/TaxGuardOpenAIService';
 import { ProviderReadinessRegistry } from '../taxguard/providerReadiness.service';
 import { StageNumber } from '../taxguard/persistence.types';
+import {
+  provisionOrResolveClientOnboarding,
+  deriveCanonicalStageStates,
+  evaluateLiveWorkflowEligibility
+} from '../taxguard/clientOnboardingProvisioner';
+import { LiveWorkflowRepository } from '../taxguard/liveWorkflow.repository';
 
 export const caseAuthorityRouter = Router();
 
@@ -20,6 +26,148 @@ caseAuthorityRouter.use(authenticateToken);
 caseAuthorityRouter.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
+});
+
+caseAuthorityRouter.post('/client-onboarding/provision', async (req: AuthenticatedRequest, res: any) => {
+  try {
+    if (!req.user || !req.user.id || !req.user.clientId) {
+      return res.status(403).json({
+        error: 'CLIENT_INITIALIZATION_FAILED',
+        code: 'CLIENT_INITIALIZATION_FAILED',
+      });
+    }
+    const taxYear = Number(req.body?.taxYear) || 2025;
+    const bundle = await provisionOrResolveClientOnboarding({
+      tenantId: process.env.TAXGUARD_TENANT_ID || 'tenantA',
+      user: req.user,
+      taxYear,
+    });
+    return res.status(200).json({
+      environment: 'live',
+      tenantId: bundle.tenant.tenantId,
+      clientId: bundle.client.clientId,
+      engagementId: bundle.engagement.engagementId,
+      taxYear: bundle.taxYearRecord.taxYear,
+      caseId: bundle.taxCase.caseId,
+      activeStage: bundle.taxCase.activeStage,
+      stageStates: bundle.stageStates,
+      resumed: bundle.resumed,
+      workflow: bundle.workflow,
+      eligibility: bundle.eligibility,
+    });
+  } catch (error: any) {
+    return res.status(503).json({
+      error: 'CASE_INITIALIZATION_FAILED',
+      code: 'CASE_INITIALIZATION_FAILED',
+    });
+  }
+});
+
+caseAuthorityRouter.get('/client-onboarding/workflow', async (req: AuthenticatedRequest, res: any) => {
+  try {
+    if (!req.user || !req.user.id || !req.user.clientId) {
+      return res.status(403).json({
+        error: 'CLIENT_INITIALIZATION_FAILED',
+        code: 'CLIENT_INITIALIZATION_FAILED',
+      });
+    }
+    const taxYear = Number(req.query.taxYear) || 2025;
+    const bundle = await provisionOrResolveClientOnboarding({
+      tenantId: process.env.TAXGUARD_TENANT_ID || 'tenantA',
+      user: req.user,
+      taxYear,
+    });
+    return res.status(200).json({
+      environment: 'live',
+      tenantId: bundle.tenant.tenantId,
+      clientId: bundle.client.clientId,
+      engagementId: bundle.engagement.engagementId,
+      taxYear: bundle.taxYearRecord.taxYear,
+      caseId: bundle.taxCase.caseId,
+      activeStage: bundle.taxCase.activeStage,
+      stageStates: bundle.stageStates,
+      resumed: bundle.resumed,
+      workflow: bundle.workflow,
+      eligibility: bundle.eligibility,
+    });
+  } catch (error: any) {
+    return res.status(503).json({
+      error: 'CASE_INITIALIZATION_FAILED',
+      code: 'CASE_INITIALIZATION_FAILED',
+    });
+  }
+});
+
+caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: AuthenticatedRequest, res: any) => {
+  try {
+    if (!req.user || !req.user.id || !req.user.clientId) {
+      return res.status(403).json({
+        error: 'CLIENT_INITIALIZATION_FAILED',
+        code: 'CLIENT_INITIALIZATION_FAILED',
+      });
+    }
+    const taxYear = Number(req.body?.taxYear) || 2025;
+    const bundle = await provisionOrResolveClientOnboarding({
+      tenantId: process.env.TAXGUARD_TENANT_ID || 'tenantA',
+      user: req.user,
+      taxYear,
+    });
+
+    let workflow = bundle.workflow;
+    if (req.body?.completeStage && workflow.stage1.status !== 'COMPLETED') {
+      workflow = await LiveWorkflowRepository.completeStage(
+        bundle.client.clientId,
+        taxYear,
+        1,
+        req.user.id,
+        req.user.role || 'client',
+        workflow.revision,
+        req.body?.payload || {}
+      );
+    }
+
+    const stageStates = deriveCanonicalStageStates(workflow);
+    const eligibilityCheck = evaluateLiveWorkflowEligibility(workflow);
+    const activeStage = (
+      workflow.activeStage === 1 || workflow.activeStage === 2 || workflow.activeStage === 3
+        ? workflow.activeStage
+        : 1
+    ) as 1 | 2 | 3;
+
+    return res.status(200).json({
+      environment: 'live',
+      tenantId: bundle.tenant.tenantId,
+      clientId: bundle.client.clientId,
+      engagementId: bundle.engagement.engagementId,
+      taxYear,
+      caseId: bundle.taxCase.caseId,
+      activeStage,
+      stageStates,
+      workflow,
+      eligibility: {
+        clientId: bundle.client.clientId,
+        taxYear,
+        revision: workflow.revision,
+        activeStage,
+        eligibility: {
+          stage1: eligibilityCheck.stage1Eligible,
+          stage2: eligibilityCheck.stage2Eligible,
+          stage3: eligibilityCheck.stage3Eligible,
+        },
+        status: {
+          stage1: workflow.stage1.status,
+          stage2: workflow.stage2.status,
+          stage3: workflow.stage3.status,
+        },
+        externalSubmissionEnabled: false,
+      },
+    });
+  } catch (error: any) {
+    return res.status(503).json({
+      error: 'CASE_INITIALIZATION_FAILED',
+      code: 'CASE_INITIALIZATION_FAILED',
+    });
+  }
 });
 
 const base = '/:tenantId/:clientId/:engagementId/:taxYear';

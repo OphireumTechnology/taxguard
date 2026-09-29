@@ -7,9 +7,83 @@ import {
 } from './liveWorkflow.types';
 
 import { getFirebaseAdminDb } from '../firebase-admin';
+import { isSupabaseServerConfigured } from '../supabase';
 
 const CASE_COLLECTION = 'taxguard_live_cases';
 const AUDIT_COLLECTION = 'taxguard_live_audit';
+
+const inMemoryCollections = new Map<string, Map<string, any>>();
+
+function getInMemoryCollection(name: string): Map<string, any> {
+  let col = inMemoryCollections.get(name);
+  if (!col) {
+    col = new Map<string, any>();
+    inMemoryCollections.set(name, col);
+  }
+  return col;
+}
+
+const inMemoryWorkflowDb = {
+  collection(collectionName: string) {
+    const col = getInMemoryCollection(collectionName);
+    return {
+      doc(docId: string) {
+        return {
+          _col: col,
+          _id: docId,
+          async get() {
+            const exists = col.has(docId);
+            const val = col.get(docId);
+            return {
+              exists,
+              data: () => (val ? structuredClone(val) : undefined),
+            };
+          },
+          async create(data: any) {
+            col.set(docId, structuredClone(data));
+          },
+          async set(data: any) {
+            col.set(docId, structuredClone(data));
+          },
+        };
+      },
+    };
+  },
+  async runTransaction<T>(fn: (transaction: any) => Promise<T>): Promise<T> {
+    const transaction = {
+      async get(ref: any) {
+        return ref.get();
+      },
+      create(ref: any, data: any) {
+        ref._col.set(ref._id, structuredClone(data));
+      },
+      set(ref: any, data: any) {
+        ref._col.set(ref._id, structuredClone(data));
+      },
+    };
+    return fn(transaction);
+  },
+};
+
+function getWorkflowDb(): any {
+  if (isSupabaseServerConfigured()) {
+    return inMemoryWorkflowDb;
+  }
+  const hasExplicitFirebaseAdmin = Boolean(
+    process.env.FIREBASE_ADMIN_PROJECT_ID ||
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS
+  );
+  if (!hasExplicitFirebaseAdmin) {
+    return inMemoryWorkflowDb;
+  }
+  return getFirebaseAdminDb() || inMemoryWorkflowDb;
+}
+
+export function clearInMemoryWorkflowCase(clientId: string, taxYear: number): void {
+  const col = getInMemoryCollection(CASE_COLLECTION);
+  col.delete(caseDocumentId(clientId, taxYear));
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -50,7 +124,7 @@ export class LiveWorkflowRepository {
     assertClientId(clientId);
     assertTaxYear(taxYear);
 
-    const db = getFirebaseAdminDb();
+    const db = getWorkflowDb();
 
     const snapshot = await db
       .collection(CASE_COLLECTION)
@@ -74,7 +148,7 @@ export class LiveWorkflowRepository {
     assertClientId(clientId);
     assertTaxYear(taxYear);
 
-    const db = getFirebaseAdminDb();
+    const db = getWorkflowDb();
 
     const ref = db
       .collection(CASE_COLLECTION)
@@ -160,7 +234,7 @@ export class LiveWorkflowRepository {
     assertClientId(clientId);
     assertTaxYear(taxYear);
 
-    const db = getFirebaseAdminDb();
+    const db = getWorkflowDb();
 
     const ref = db
       .collection(CASE_COLLECTION)
@@ -308,7 +382,7 @@ export class LiveWorkflowRepository {
     event: TaxGuardWorkflowAuditEvent
   ): Promise<void> {
 
-    const db = getFirebaseAdminDb();
+    const db = getWorkflowDb();
 
     await db
       .collection(AUDIT_COLLECTION)

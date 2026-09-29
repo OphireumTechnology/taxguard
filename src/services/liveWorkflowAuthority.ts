@@ -72,6 +72,28 @@ export class LiveWorkflowAuthority {
     };
   }
 
+  static seedFromServerBundle(
+    workflow: LiveWorkflowState,
+    eligibility: LiveWorkflowEligibility
+  ): LiveWorkflowAuthoritySnapshot {
+    if (
+      workflow &&
+      eligibility &&
+      workflow.clientId === eligibility.clientId &&
+      workflow.taxYear === eligibility.taxYear &&
+      workflow.revision === eligibility.revision
+    ) {
+      update({
+        status: 'ready',
+        taxYear: workflow.taxYear,
+        workflow,
+        eligibility,
+        error: null
+      });
+    }
+    return snapshot;
+  }
+
   static async hydrate(
     taxYear: number
   ): Promise<LiveWorkflowAuthoritySnapshot> {
@@ -83,21 +105,21 @@ export class LiveWorkflowAuthority {
     });
 
     try {
+      let workflow: LiveWorkflowState;
+      let eligibility: LiveWorkflowEligibility;
 
-      /*
-       * Both resources are read from authenticated
-       * server APIs.
-       *
-       * No browser workflow-completion flag is read.
-       */
-
-      const [
-        workflow,
-        eligibility
-      ] = await Promise.all([
-        LiveWorkflowApi.getState(taxYear),
-        LiveWorkflowApi.getEligibility(taxYear)
-      ]);
+      try {
+        const bundle = await LiveWorkflowApi.getScopedWorkflowBundle(taxYear);
+        workflow = bundle.workflow;
+        eligibility = bundle.eligibility;
+      } catch {
+        const [wf, elig] = await Promise.all([
+          LiveWorkflowApi.getState(taxYear),
+          LiveWorkflowApi.getEligibility(taxYear)
+        ]);
+        workflow = wf;
+        eligibility = elig;
+      }
 
       if (
         workflow.clientId !==

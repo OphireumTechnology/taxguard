@@ -150,7 +150,24 @@ export const api = {
         message: string;
         token: string;
         user: User;
+        tenantId?: string;
         clientId: string;
+        engagementId?: string;
+        taxYear?: number;
+        caseId?: string;
+        activeStage?: 1 | 2 | 3;
+        stageStates?: {
+          STAGE_01_IDENTITY: string;
+          STAGE_02_DOCUMENTS: string;
+          STAGE_03_EXTRACTION: string;
+          STAGE_04_PREPARATION: string;
+          STAGE_05_REVIEW: string;
+          STAGE_06_APPROVAL: string;
+          STAGE_07_FILING: string;
+        };
+        resumed?: boolean;
+        workflow?: any;
+        eligibility?: any;
         environment: string;
       }>('/api/auth/supabase-session', {
         method: 'POST',

@@ -1,35 +1,67 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
-import { requestPasswordReset as requestSupabasePasswordReset } from '../../supabase/auth';
-import { isSupabaseConfigured } from '../../supabase/config';
-import { 
-  Lock, 
-  Mail, 
-  Key, 
-  Fingerprint, 
-  UserCheck, 
-  ShieldCheck, 
-  ArrowRight, 
-  CheckCircle2, 
-  Building2, 
-  User,
+import {
+  requestPasswordReset as requestSupabasePasswordReset,
+  validateRegistrationInput,
+  ControlledAuthErrorCode,
+  RegistrationResultState
+} from '../../supabase/auth';
+import {
+  Lock,
+  Mail,
+  Key,
+  Fingerprint,
+  UserCheck,
+  ShieldCheck,
+  CheckCircle2,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 
+const REGISTRATION_STATE_LABELS: Record<RegistrationResultState, string> = {
+  IDLE: 'Ready to Register',
+  SUBMITTING: 'Creating Your TaxGuard Account...',
+  ACCOUNT_CREATED: 'Account Created — Verifying Session Policy...',
+  EMAIL_VERIFICATION_REQUIRED: 'Email Verification Required',
+  ESTABLISHING_SESSION: 'Establishing Server-Authoritative Session...',
+  INITIALIZING_CLIENT: 'Provisioning Client Profile & Tenant Membership...',
+  INITIALIZING_CASE: 'Initializing Tax Year & Stage 01 Onboarding Case...',
+  READY: 'Onboarding Workspace Ready — Redirecting...',
+  FAILED: 'Registration Could Not Be Completed'
+};
+
 export const ClientLoginPage: React.FC = () => {
-  const { login, setCurrentPage } = useApp();
+  const {
+    login,
+    setCurrentPage,
+    resendVerificationEmail,
+    setRegistrationState,
+    setPendingVerificationEmail
+  } = useApp();
+
   useEffect(() => {
-    // Authentication fallback must not leave the password form on an onboarding URL.
-    if (window.location.pathname !== '/' || window.location.hash !== '#/client/login') {
-      window.history.replaceState(null, '', '/#/client/login');
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname !== '/' || window.location.hash !== '#/client/login')
+    ) {
+      try {
+        window.history.replaceState(null, '', '/#/client/login');
+      } catch {
+        window.location.hash = '#/client/login';
+      }
     }
   }, []);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<ControlledAuthErrorCode | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   // Forgot Password State
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
@@ -40,13 +72,42 @@ export const ClientLoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setErrorCode(null);
+    setResendNotice(null);
     setLoading(true);
     const result = await login(email, password);
     setLoading(false);
+
     if (result.success) {
       setCurrentPage(result.redirectPage || 'stage_one_onboard');
+      return;
+    }
+
+    if (result.emailVerificationRequired || result.code === 'EMAIL_VERIFICATION_REQUIRED') {
+      setPendingVerificationEmail(email.trim().toLowerCase());
+      setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
+      setErrorCode('EMAIL_VERIFICATION_REQUIRED');
+      setError(
+        result.error ||
+          'Your TaxGuard account has been created. Please verify your email address to securely activate your Client Tax Center.'
+      );
+      return;
+    }
+
+    setErrorCode(result.code || 'INVALID_CREDENTIALS');
+    setError(result.error || 'Invalid client credentials. Please check your email and password.');
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) return;
+    setResendingVerification(true);
+    setResendNotice(null);
+    const res = await resendVerificationEmail(email.trim());
+    setResendingVerification(false);
+    if (res.success) {
+      setResendNotice(res.message);
     } else {
-      setError(result.error || 'Invalid client credentials. Please check your email and password.');
+      setError(res.error || 'Could not resend verification email. Please try again shortly.');
     }
   };
 
@@ -58,7 +119,10 @@ export const ClientLoginPage: React.FC = () => {
     setResetSuccess(null);
     const result = await requestSupabasePasswordReset(resetEmail.trim());
     setResetLoading(false);
-    setResetSuccess(result.message || 'If an account exists for this email address, password recovery instructions have been sent.');
+    setResetSuccess(
+      result.message ||
+        'If an account exists for this email address, password recovery instructions have been sent.'
+    );
   };
 
   return (
@@ -69,7 +133,7 @@ export const ClientLoginPage: React.FC = () => {
           {isForgotPasswordMode ? 'Reset Password' : 'Client Portal Login'}
         </h1>
         <p className="text-xs text-slate-300">
-          {isForgotPasswordMode 
+          {isForgotPasswordMode
             ? 'Enter your registered email address to receive an authorized password recovery link.'
             : 'Access your encrypted tax documents, live return status, and CPA messages.'}
         </p>
@@ -77,9 +141,40 @@ export const ClientLoginPage: React.FC = () => {
 
       <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-6">
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{error}</span>
+          <div
+            role="alert"
+            className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs space-y-2"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span>{error}</span>
+                {errorCode && (
+                  <div className="text-[10px] font-mono text-rose-300/80">
+                    Code: {errorCode}
+                  </div>
+                )}
+              </div>
+            </div>
+            {errorCode === 'EMAIL_VERIFICATION_REQUIRED' && (
+              <div className="pt-1 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendingVerification}
+                  className="px-3 py-1.5 rounded-lg bg-[#C6A15B] text-[#07172B] font-bold text-[11px] hover:bg-[#D9BF7A] transition-colors disabled:opacity-50"
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {resendNotice && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>{resendNotice}</span>
           </div>
         )}
 
@@ -97,7 +192,7 @@ export const ClientLoginPage: React.FC = () => {
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="text"
+                  type="email"
                   required
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
@@ -122,6 +217,7 @@ export const ClientLoginPage: React.FC = () => {
                 onClick={() => {
                   setIsForgotPasswordMode(false);
                   setError(null);
+                  setErrorCode(null);
                   setResetSuccess(null);
                 }}
                 className="w-full py-2.5 rounded-xl bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
@@ -139,7 +235,7 @@ export const ClientLoginPage: React.FC = () => {
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="text"
+                    type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -151,12 +247,13 @@ export const ClientLoginPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-semibold">Password</label>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => {
                       setIsForgotPasswordMode(true);
                       setResetEmail(email);
                       setError(null);
+                      setErrorCode(null);
                       setResetSuccess(null);
                     }}
                     className="text-[11px] text-[#C6A15B] hover:underline"
@@ -202,7 +299,11 @@ export const ClientLoginPage: React.FC = () => {
             <div className="text-center text-xs text-slate-400 pt-2">
               Don't have an account yet?{' '}
               <button
-                onClick={() => setCurrentPage('client_register')}
+                type="button"
+                onClick={() => {
+                  setRegistrationState('IDLE');
+                  setCurrentPage('client_register');
+                }}
                 className="text-[#C6A15B] font-semibold hover:underline"
               >
                 Register Client Account
@@ -216,7 +317,16 @@ export const ClientLoginPage: React.FC = () => {
 };
 
 export const ClientRegisterPage: React.FC = () => {
-  const { register, setCurrentPage } = useApp();
+  const {
+    register,
+    setCurrentPage,
+    registrationState,
+    setRegistrationState,
+    pendingVerificationEmail,
+    setPendingVerificationEmail,
+    resendVerificationEmail
+  } = useApp();
+
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -226,42 +336,200 @@ export const ClientRegisterPage: React.FC = () => {
   const [category, setCategory] = useState('individual');
   const [contactMethod, setContactMethod] = useState('portal');
   const [timeZone, setTimeZone] = useState('America/New_York');
-  const [referralSource, setReferralSource] = useState('Referral / Colleague');
+  const [referralSource, setReferralSource] = useState('Client Referral');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<ControlledAuthErrorCode | null>(null);
+  const [duplicateAccountDetected, setDuplicateAccountDetected] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!acceptedTerms) {
-      setError('Please accept the Terms of Service, Privacy Policy and IRC § 7216 disclosure to proceed.');
+    setError(null);
+    setErrorCode(null);
+    setDuplicateAccountDetected(false);
+    setResendMessage(null);
+
+    const validation = validateRegistrationInput({
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      confirmPassword,
+      requireConfirmPassword: true,
+      acceptedTerms,
+      requireTerms: true,
+      category,
+      company
+    });
+
+    if (!validation.valid) {
+      setRegistrationState('FAILED');
+      setErrorCode(validation.code || 'VALIDATION_FAILED');
+      setError(validation.message || 'Please review your registration details and try again.');
       return;
     }
-    setError(null);
+
     setLoading(true);
 
-    const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+    const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
 
-    const success = await register({
+    const result = await register({
       name: fullName,
-      email,
+      email: email.trim().toLowerCase(),
       password,
-      phone,
-      company: category !== 'individual' ? company : '',
+      phone: phone.trim(),
+      company: category !== 'individual' ? company.trim() : '',
       role: 'client',
       clientType: category === 'individual' ? 'individual' : 'business',
-      taxFilingType: category === 'scorp' ? 'Form 1120-S (S-Corporation)' : category === 'llc' ? 'LLC (Schedule C / Partnership)' : 'Form 1040 (Individual)',
+      taxFilingType:
+        category === 'scorp'
+          ? 'Form 1120-S (S-Corporation)'
+          : category === 'llc'
+            ? 'LLC (Schedule C / Partnership)'
+            : 'Form 1040 (Individual)'
     });
+
     setLoading(false);
 
-    if (success) {
-      // Immediately route to Identity Verification Wizard (Stage One Onboard)
-      setCurrentPage('stage_one_onboard');
+    // CASE B — User created, but Supabase requires email verification before issuing an active session
+    if (result.emailVerificationRequired || result.status === 'EMAIL_VERIFICATION_REQUIRED') {
+      setPendingVerificationEmail(email.trim().toLowerCase());
+      setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
+      return;
+    }
+
+    // CASE A — Authenticated session established and Stage 01 initialized
+    if (result.success && result.status === 'READY') {
+      setCurrentPage(result.redirectPage || 'stage_one_onboard');
+      return;
+    }
+
+    // CASE C — Registration or session/case initialization failed
+    setRegistrationState('FAILED');
+    setErrorCode(result.code || 'REGISTRATION_FAILED');
+    setDuplicateAccountDetected(Boolean(result.duplicateRegistration));
+    setError(
+      result.error ||
+        'Registration could not be completed at this time. Please verify your information and try again.'
+    );
+  };
+
+  const handleResendVerification = async () => {
+    const targetEmail = (pendingVerificationEmail || email).trim().toLowerCase();
+    if (!targetEmail) return;
+    setResendingEmail(true);
+    setError(null);
+    setResendMessage(null);
+    const res = await resendVerificationEmail(targetEmail);
+    setResendingEmail(false);
+    if (res.success) {
+      setResendMessage(res.message);
     } else {
-      setError('Unable to complete registration. Email may already be in use.');
+      setError(res.error || 'Unable to resend verification email right now. Please try again shortly.');
     }
   };
+
+  const handleReturnToRegistration = () => {
+    setRegistrationState('IDLE');
+    setPendingVerificationEmail(null);
+    setError(null);
+    setErrorCode(null);
+    setResendMessage(null);
+  };
+
+  const handleReturnToSignIn = () => {
+    setRegistrationState('IDLE');
+    setPendingVerificationEmail(null);
+    setError(null);
+    setErrorCode(null);
+    setResendMessage(null);
+    setCurrentPage('client_login');
+  };
+
+  // Dedicated VERIFY YOUR EMAIL screen when email confirmation is required
+  if (registrationState === 'EMAIL_VERIFICATION_REQUIRED') {
+    const targetEmail = pendingVerificationEmail || email.trim().toLowerCase();
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-slate-100 space-y-8" data-testid="verify-email-screen">
+        <div className="text-center space-y-3">
+          <BrandLogo variant="emblem" size="md" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#07172B] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold">
+            <ShieldCheck className="w-3 h-3" />
+            <span>ACCOUNT ACTIVATION REQUIRED</span>
+          </div>
+          <h1 className="font-serif text-3xl font-extrabold text-white">Verify Your Email</h1>
+        </div>
+
+        <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-6">
+          <div className="p-4 rounded-2xl bg-[#07172B] border border-[#C6A15B]/30 space-y-2 text-center">
+            <Mail className="w-8 h-8 text-[#C6A15B] mx-auto" />
+            <p className="text-sm text-white font-semibold">
+              Your TaxGuard account has been created. Please verify your email address to securely activate your Client Tax Center.
+            </p>
+            {targetEmail && (
+              <p className="text-xs text-slate-300">
+                Verification link sent to <strong className="text-[#C6A15B]">{targetEmail}</strong>
+              </p>
+            )}
+          </div>
+
+          {resendMessage && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{resendMessage}</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-3 pt-2">
+            <button
+              type="button"
+              onClick={handleResendVerification}
+              disabled={resendingEmail}
+              className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${resendingEmail ? 'animate-spin' : ''}`} />
+              <span>{resendingEmail ? 'Resending Verification Email...' : 'Resend Verification Email'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleReturnToRegistration}
+              className="w-full py-2.5 rounded-xl bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] text-slate-200 text-xs font-semibold transition-colors"
+            >
+              Change Email / Return to Registration
+            </button>
+
+            <button
+              type="button"
+              onClick={handleReturnToSignIn}
+              className="w-full py-2.5 rounded-xl bg-transparent hover:bg-[#07172B] border border-[#1E3A5F]/60 text-slate-300 text-xs font-semibold transition-colors"
+            >
+              Return to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isProcessingState =
+    loading ||
+    ['SUBMITTING', 'ACCOUNT_CREATED', 'ESTABLISHING_SESSION', 'INITIALIZING_CLIENT', 'INITIALIZING_CASE'].includes(
+      registrationState
+    );
 
   return (
     <div className="max-w-xl mx-auto px-4 py-12 text-slate-100 space-y-8">
@@ -278,10 +546,49 @@ export const ClientRegisterPage: React.FC = () => {
       </div>
 
       <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl">
+        {isProcessingState && (
+          <div
+            aria-live="polite"
+            className="mb-4 p-3.5 rounded-xl bg-[#07172B] border border-[#C6A15B]/40 text-[#C6A15B] text-xs flex items-center gap-2.5"
+          >
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <div>
+              <div className="font-bold">{REGISTRATION_STATE_LABELS[registrationState] || 'Processing...'}</div>
+              <div className="text-[11px] text-slate-300">
+                Please wait while TaxGuard provisions your encrypted Client Tax Center.
+              </div>
+            </div>
+          </div>
+        )}
+
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
+          <div
+            role="alert"
+            className="mb-4 p-3.5 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs space-y-2"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span>{error}</span>
+                {errorCode && (
+                  <div className="text-[10px] font-mono text-red-300/80">
+                    Status: {registrationState} &bull; Code: {errorCode}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {duplicateAccountDetected && (
+              <div className="pt-1 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleReturnToSignIn}
+                  className="px-3 py-1.5 rounded-lg bg-[#C6A15B] text-[#07172B] font-bold text-[11px] hover:bg-[#D9BF7A] transition-colors"
+                >
+                  Sign In to Existing Account
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -325,7 +632,7 @@ export const ClientRegisterPage: React.FC = () => {
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Email Address *</label>
               <input
-                type="text"
+                type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -423,17 +730,32 @@ export const ClientRegisterPage: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-slate-300 font-semibold mb-1">Secure Password *</label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 8 characters with letters, numbers, symbols"
-              className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Secure Password *</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 8 chars, upper, lower & number"
+                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Confirm Password *</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter your password"
+                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+              />
+            </div>
           </div>
 
           <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[#07172B] border border-[#1E3A5F] cursor-pointer text-[11px] text-slate-300">
@@ -451,10 +773,12 @@ export const ClientRegisterPage: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={loading}
+              disabled={isProcessingState}
               className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all shadow-lg disabled:opacity-50"
             >
-              {loading ? 'Initializing Encrypted Account...' : 'Register & Begin Onboarding Dossier'}
+              {isProcessingState
+                ? REGISTRATION_STATE_LABELS[registrationState] || 'Initializing Encrypted Account...'
+                : 'Register & Begin Onboarding Dossier'}
             </button>
           </div>
 
@@ -462,7 +786,7 @@ export const ClientRegisterPage: React.FC = () => {
             Already registered?{' '}
             <button
               type="button"
-              onClick={() => { window.location.hash = '#/client/login'; }}
+              onClick={handleReturnToSignIn}
               className="text-[#C6A15B] font-semibold hover:underline"
             >
               Sign In Here
@@ -477,7 +801,7 @@ export const ClientRegisterPage: React.FC = () => {
 export const StaffLoginPage: React.FC = () => {
   const { login, setCurrentPage } = useApp();
   const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation'>('signin');
-  
+
   // Sign in state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -545,7 +869,6 @@ export const StaffLoginPage: React.FC = () => {
       }
       const data = await res.json();
       localStorage.setItem('token', data.sessionToken);
-      // Launch staff onboarding wizard directly
       setCurrentPage('staff_onboarding');
     } catch (err: any) {
       setError(err.message);
@@ -569,12 +892,14 @@ export const StaffLoginPage: React.FC = () => {
       </div>
 
       <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-6">
-        
         {/* Mode switcher */}
         <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#07172B] border border-[#1E3A5F]">
           <button
             type="button"
-            onClick={() => { setLoginMode('signin'); setError(null); }}
+            onClick={() => {
+              setLoginMode('signin');
+              setError(null);
+            }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
               loginMode === 'signin' ? 'bg-[#C6A15B] text-[#07172B]' : 'text-slate-300 hover:text-white'
             }`}
@@ -583,7 +908,10 @@ export const StaffLoginPage: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => { setLoginMode('accept_invitation'); setError(null); }}
+            onClick={() => {
+              setLoginMode('accept_invitation');
+              setError(null);
+            }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
               loginMode === 'accept_invitation' ? 'bg-[#C6A15B] text-[#07172B]' : 'text-slate-300 hover:text-white'
             }`}
@@ -669,7 +997,6 @@ export const StaffLoginPage: React.FC = () => {
             </div>
           </>
         ) : (
-          /* ACCEPT INVITATION FLOW */
           <div className="space-y-4 text-xs">
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Administrative Invitation Token *</label>
@@ -734,6 +1061,3 @@ export const StaffLoginPage: React.FC = () => {
     </div>
   );
 };
-
-
-

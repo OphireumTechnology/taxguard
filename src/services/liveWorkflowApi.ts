@@ -1,4 +1,5 @@
 import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export interface LiveWorkflowEligibility {
   clientId: string;
@@ -55,7 +56,27 @@ export interface LiveWorkflowState {
   updatedAt: string;
 }
 
-import { apiEndpoint } from '../config/apiEndpoint';
+export interface ScopedOnboardingWorkflowResponse {
+  environment: 'live';
+  tenantId: string;
+  clientId: string;
+  engagementId: string;
+  taxYear: number;
+  caseId: string;
+  activeStage: 1 | 2 | 3;
+  stageStates: {
+    STAGE_01_IDENTITY: string;
+    STAGE_02_DOCUMENTS: string;
+    STAGE_03_EXTRACTION: string;
+    STAGE_04_PREPARATION: string;
+    STAGE_05_REVIEW: string;
+    STAGE_06_APPROVAL: string;
+    STAGE_07_FILING: string;
+  };
+  resumed: boolean;
+  workflow: LiveWorkflowState;
+  eligibility: LiveWorkflowEligibility;
+}
 
 function requireSessionToken(): string {
   const token = getStoredToken();
@@ -70,19 +91,23 @@ function requireSessionToken(): string {
 }
 
 async function requestLiveWorkflow<T>(
-  endpoint: string
+  endpoint: string,
+  method: 'GET' | 'POST' = 'GET',
+  body?: Record<string, unknown>
 ): Promise<T> {
   const token = requireSessionToken();
 
   const response = await fetch(
     apiEndpoint(endpoint),
     {
-      method: 'GET',
+      method,
       headers: {
         Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
         Authorization: `Bearer ${token}`,
         'x-session-token': token
-      }
+      },
+      ...(body ? { body: JSON.stringify(body) } : {})
     }
   );
 
@@ -110,9 +135,38 @@ async function requestLiveWorkflow<T>(
 }
 
 export class LiveWorkflowApi {
+  static async provisionClientOnboarding(
+    taxYear: number = 2025
+  ): Promise<ScopedOnboardingWorkflowResponse> {
+    return requestLiveWorkflow<ScopedOnboardingWorkflowResponse>(
+      '/api/case-authority/client-onboarding/provision',
+      'POST',
+      { taxYear }
+    );
+  }
+
+  static async getScopedWorkflowBundle(
+    taxYear: number
+  ): Promise<ScopedOnboardingWorkflowResponse> {
+    return requestLiveWorkflow<ScopedOnboardingWorkflowResponse>(
+      `/api/case-authority/client-onboarding/workflow?taxYear=${encodeURIComponent(
+        String(taxYear)
+      )}`
+    );
+  }
+
   static async getState(
     taxYear: number
   ): Promise<LiveWorkflowState> {
+    try {
+      const scoped = await this.getScopedWorkflowBundle(taxYear);
+      if (scoped?.workflow) {
+        return scoped.workflow;
+      }
+    } catch {
+      // Fall back to legacy workflow route in non-production environments if needed
+    }
+
     const payload =
       await requestLiveWorkflow<{
         workflow: LiveWorkflowState;
@@ -134,6 +188,15 @@ export class LiveWorkflowApi {
   static async getEligibility(
     taxYear: number
   ): Promise<LiveWorkflowEligibility> {
+    try {
+      const scoped = await this.getScopedWorkflowBundle(taxYear);
+      if (scoped?.eligibility) {
+        return scoped.eligibility;
+      }
+    } catch {
+      // Fall back to legacy workflow route in non-production environments if needed
+    }
+
     return requestLiveWorkflow<LiveWorkflowEligibility>(
       `/api/live-workflow/eligibility?taxYear=${encodeURIComponent(
         String(taxYear)

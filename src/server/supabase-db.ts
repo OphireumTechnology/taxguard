@@ -10,21 +10,78 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseAdmin, isSupabaseServerConfigured, VerifiedSupabaseUser } from './supabase';
+import { getSupabaseAdmin, VerifiedSupabaseUser } from './supabase';
 import { formatTaxGuardClientId } from './client-id.service';
 import { User } from '../types';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
+interface FallbackIdentityRow {
+  uid: string;
+  tenant_id: string;
+  user_data: User;
+}
+
+interface FallbackMemberRow {
+  tenant_id: string;
+  uid: string;
+  role: string;
+  status: 'active' | 'suspended' | 'disabled';
+  client_id?: string;
+}
+
+interface FallbackSessionRow {
+  session_token_hash: string;
+  uid: string;
+  tenant_id: string;
+  auth_time: number;
+  expires_at: number;
+  revoked: boolean;
+}
+
+const fallbackIdentities = new Map<string, FallbackIdentityRow>();
+const fallbackMembers = new Map<string, FallbackMemberRow>();
+const fallbackSessions = new Map<string, FallbackSessionRow>();
+let fallbackSequence = 0;
+
+const supabaseProvisioningLocks = new Map<string, Promise<void>>();
+
+async function withSupabaseProvisioningLock<T>(uid: string, operation: () => Promise<T>): Promise<T> {
+  const previous = supabaseProvisioningLocks.get(uid) || Promise.resolve();
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  const tail = previous.catch(() => {}).then(() => gate);
+  supabaseProvisioningLocks.set(uid, tail);
+
+  await previous.catch(() => {});
+
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (supabaseProvisioningLocks.get(uid) === tail) {
+      supabaseProvisioningLocks.delete(uid);
+    }
+  }
+}
+
 export class SupabaseDurableSessions {
   private readonly client: SupabaseClient;
   private readonly tenantId: string;
+  private readonly usesCustomClient: boolean;
 
   constructor(client?: SupabaseClient, tenantId?: string) {
     this.tenantId = tenantId || process.env.TAXGUARD_TENANT_ID || 'tenantA';
     safeId(this.tenantId);
+    this.usesCustomClient = Boolean(client);
     this.client = client || getSupabaseAdmin();
+  }
+
+  getTenantId(): string {
+    return this.tenantId;
   }
 
   /**
@@ -34,6 +91,7 @@ export class SupabaseDurableSessions {
     token: string;
     user: User;
     clientId: string;
+    tenantId: string;
     environment: string;
     externalSubmissionEnabled: boolean;
   }> {
@@ -45,135 +103,181 @@ export class SupabaseDurableSessions {
     const uid = verified.uid;
     const email = verified.email.toLowerCase();
 
-    // 1. Fetch existing identity and member
-    const { data: existingIdentity } = await this.client
-      .from('taxguard_identities')
-      .select('*')
-      .eq('uid', uid)
-      .maybeSingle();
-
-    const { data: existingMember } = await this.client
-      .from('taxguard_members')
-      .select('*')
-      .eq('tenant_id', this.tenantId)
-      .eq('uid', uid)
-      .maybeSingle();
-
-    let user: User;
-
-    if (existingIdentity) {
-      if (
-        existingIdentity.tenant_id !== this.tenantId ||
-        !existingMember ||
-        existingMember.status !== 'active'
-      ) {
-        throw new AuthorityError('IDENTITY_DENIED', 403);
-      }
-      user = existingIdentity.user_data as User;
-    } else {
-      // Allocate next permanent Client ID
-      const { data: counterData, error: counterError } = await this.client
-        .from('taxguard_client_id_sequence')
+    return withSupabaseProvisioningLock(`${this.tenantId}:${uid}`, async () => {
+      // 1. Fetch existing identity and member
+      const { data: existingIdentity, error: identityErr } = await this.client
+        .from('taxguard_identities')
         .select('*')
-        .eq('id', 'primary')
+        .eq('uid', uid)
         .maybeSingle();
 
-      let currentSeq = 0;
-      if (counterData) {
-        currentSeq = Number(counterData.current_sequence) || 0;
+      const { data: existingMember, error: memberErr } = await this.client
+        .from('taxguard_members')
+        .select('*')
+        .eq('tenant_id', this.tenantId)
+        .eq('uid', uid)
+        .maybeSingle();
+
+      const resolvedIdentity =
+        existingIdentity ||
+        (!this.usesCustomClient && identityErr ? fallbackIdentities.get(uid) || null : null);
+
+      const resolvedMember =
+        existingMember ||
+        (!this.usesCustomClient && memberErr
+          ? fallbackMembers.get(`${this.tenantId}:${uid}`) || null
+          : null);
+
+      let user: User;
+
+      if (resolvedIdentity) {
+        if (
+          resolvedIdentity.tenant_id !== this.tenantId ||
+          !resolvedMember ||
+          resolvedMember.status !== 'active'
+        ) {
+          throw new AuthorityError('IDENTITY_DENIED', 403);
+        }
+        user = {
+          ...(resolvedIdentity.user_data as User),
+          role: (resolvedMember.role as User['role']) || (resolvedIdentity.user_data as User).role || 'client',
+          clientId: resolvedMember.client_id || (resolvedIdentity.user_data as User).clientId,
+        };
+      } else {
+        // Allocate next permanent Client ID
+        const { data: counterData, error: counterError } = await this.client
+          .from('taxguard_client_id_sequence')
+          .select('*')
+          .eq('id', 'primary')
+          .maybeSingle();
+
+        let currentSeq = 0;
+        if (counterData) {
+          currentSeq = Number(counterData.current_sequence) || 0;
+        } else if (!this.usesCustomClient && counterError) {
+          currentSeq = fallbackSequence;
+        }
+
+        const nextSeq = currentSeq + 1;
+        fallbackSequence = Math.max(fallbackSequence, nextSeq);
+        const clientId = formatTaxGuardClientId(nextSeq);
+
+        user = {
+          id: uid,
+          clientId,
+          email,
+          name: verified.displayName || email,
+          role: 'client', // Authoritative client assignment
+          status: 'active',
+          isVerified: true,
+          createdAt: new Date().toISOString()
+        };
+
+        // Upsert sequence
+        await this.client
+          .from('taxguard_client_id_sequence')
+          .upsert({
+            id: 'primary',
+            current_sequence: nextSeq,
+            last_issued_client_id: clientId,
+            updated_at: new Date().toISOString()
+          });
+
+        // Insert identity
+        await this.client
+          .from('taxguard_identities')
+          .insert({
+            uid,
+            tenant_id: this.tenantId,
+            user_data: user
+          });
+
+        // Insert member
+        await this.client
+          .from('taxguard_members')
+          .insert({
+            tenant_id: this.tenantId,
+            uid,
+            role: 'client',
+            status: 'active',
+            client_id: clientId
+          });
+
+        // Insert client
+        await this.client
+          .from('taxguard_clients')
+          .insert({
+            tenant_id: this.tenantId,
+            client_id: clientId,
+            owner_uid: uid,
+            name: user.name,
+            email: user.email,
+            status: 'active'
+          });
+
+        if (!this.usesCustomClient) {
+          fallbackIdentities.set(uid, {
+            uid,
+            tenant_id: this.tenantId,
+            user_data: user
+          });
+          fallbackMembers.set(`${this.tenantId}:${uid}`, {
+            tenant_id: this.tenantId,
+            uid,
+            role: 'client',
+            status: 'active',
+            client_id: clientId
+          });
+        }
       }
 
-      const nextSeq = currentSeq + 1;
-      const clientId = formatTaxGuardClientId(nextSeq);
+      // 2. Mint session token
+      const token = 'tg_live_' + randomBytes(32).toString('hex');
+      const tokenHash = hashToken(token);
+      const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 hour session
 
-      user = {
-        id: uid,
-        clientId,
-        email,
-        name: verified.displayName || email,
-        role: 'client', // Authoritative client assignment
-        status: 'active',
-        isVerified: true,
-        createdAt: new Date().toISOString()
+      await this.client
+        .from('taxguard_sessions')
+        .insert({
+          session_token_hash: tokenHash,
+          uid,
+          tenant_id: this.tenantId,
+          auth_time: verified.authTime,
+          expires_at: expiresAt,
+          revoked: false
+        });
+
+      if (!this.usesCustomClient) {
+        fallbackSessions.set(tokenHash, {
+          session_token_hash: tokenHash,
+          uid,
+          tenant_id: this.tenantId,
+          auth_time: verified.authTime,
+          expires_at: expiresAt,
+          revoked: false
+        });
+      }
+
+      // 3. Write immutable audit log
+      await this.client
+        .from('taxguard_audit_log')
+        .insert({
+          tenant_id: this.tenantId,
+          action: 'SESSION_CREATED',
+          actor_uid: uid,
+          actor_role: user.role,
+          metadata: { tokenHashPrefix: tokenHash.slice(0, 8), email }
+        });
+
+      return {
+        token,
+        user,
+        clientId: user.clientId || '',
+        tenantId: this.tenantId,
+        environment: 'live',
+        externalSubmissionEnabled: false
       };
-
-      // Upsert sequence
-      await this.client
-        .from('taxguard_client_id_sequence')
-        .upsert({
-          id: 'primary',
-          current_sequence: nextSeq,
-          last_issued_client_id: clientId,
-          updated_at: new Date().toISOString()
-        });
-
-      // Insert identity
-      await this.client
-        .from('taxguard_identities')
-        .insert({
-          uid,
-          tenant_id: this.tenantId,
-          user_data: user
-        });
-
-      // Insert member
-      await this.client
-        .from('taxguard_members')
-        .insert({
-          tenant_id: this.tenantId,
-          uid,
-          role: 'client',
-          status: 'active',
-          client_id: clientId
-        });
-
-      // Insert client
-      await this.client
-        .from('taxguard_clients')
-        .insert({
-          tenant_id: this.tenantId,
-          client_id: clientId,
-          owner_uid: uid,
-          name: user.name,
-          email: user.email,
-          status: 'active'
-        });
-    }
-
-    // 2. Mint session token
-    const token = 'tg_live_' + randomBytes(32).toString('hex');
-    const tokenHash = hashToken(token);
-    const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 hour session
-
-    await this.client
-      .from('taxguard_sessions')
-      .insert({
-        session_token_hash: tokenHash,
-        uid,
-        tenant_id: this.tenantId,
-        auth_time: verified.authTime,
-        expires_at: expiresAt,
-        revoked: false
-      });
-
-    // 3. Write immutable audit log
-    await this.client
-      .from('taxguard_audit_log')
-      .insert({
-        tenant_id: this.tenantId,
-        action: 'SESSION_CREATED',
-        actor_uid: uid,
-        actor_role: user.role,
-        metadata: { tokenHashPrefix: tokenHash.slice(0, 8), email }
-      });
-
-    return {
-      token,
-      user,
-      clientId: user.clientId || '',
-      environment: 'live',
-      externalSubmissionEnabled: false
-    };
+    });
   }
 
   /**
@@ -191,35 +295,54 @@ export class SupabaseDurableSessions {
       .eq('session_token_hash', tokenHash)
       .maybeSingle();
 
-    if (error || !session) return null;
-    if (session.tenant_id !== this.tenantId || session.revoked || Number(session.expires_at) <= now) {
+    const resolvedSession =
+      !error && session
+        ? session
+        : !this.usesCustomClient
+          ? fallbackSessions.get(tokenHash) || null
+          : null;
+
+    if (!resolvedSession) return null;
+    if (
+      resolvedSession.tenant_id !== this.tenantId ||
+      resolvedSession.revoked ||
+      Number(resolvedSession.expires_at) <= now
+    ) {
       return null;
     }
 
     const { data: identity } = await this.client
       .from('taxguard_identities')
       .select('*')
-      .eq('uid', session.uid)
+      .eq('uid', resolvedSession.uid)
       .maybeSingle();
 
     const { data: member } = await this.client
       .from('taxguard_members')
       .select('*')
       .eq('tenant_id', this.tenantId)
-      .eq('uid', session.uid)
+      .eq('uid', resolvedSession.uid)
       .maybeSingle();
 
+    const resolvedIdentity =
+      identity || (!this.usesCustomClient ? fallbackIdentities.get(resolvedSession.uid) || null : null);
+    const resolvedMember =
+      member ||
+      (!this.usesCustomClient
+        ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) || null
+        : null);
+
     if (
-      !identity ||
-      identity.tenant_id !== this.tenantId ||
-      !member ||
-      member.status !== 'active'
+      !resolvedIdentity ||
+      resolvedIdentity.tenant_id !== this.tenantId ||
+      !resolvedMember ||
+      resolvedMember.status !== 'active'
     ) {
       return null;
     }
 
-    const user = identity.user_data as User;
-    if (!user || user.id !== session.uid || user.status !== 'active') {
+    const user = resolvedIdentity.user_data as User;
+    if (!user || user.id !== resolvedSession.uid || user.status !== 'active') {
       return null;
     }
 
@@ -240,7 +363,13 @@ export class SupabaseDurableSessions {
       .eq('session_token_hash', tokenHash)
       .maybeSingle();
 
-    if (!session || session.revoked) return;
+    const fallbackSession = !this.usesCustomClient ? fallbackSessions.get(tokenHash) : undefined;
+    if (fallbackSession) {
+      fallbackSession.revoked = true;
+    }
+
+    const activeSession = session || fallbackSession;
+    if (!activeSession || (session && session.revoked)) return;
 
     await this.client
       .from('taxguard_sessions')
@@ -252,7 +381,7 @@ export class SupabaseDurableSessions {
       .insert({
         tenant_id: this.tenantId,
         action: 'SESSION_REVOKED',
-        actor_uid: session.uid,
+        actor_uid: activeSession.uid,
         metadata: { tokenHashPrefix: tokenHash.slice(0, 8) }
       });
   }

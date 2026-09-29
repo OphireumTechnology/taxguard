@@ -20,7 +20,8 @@ interface PortalLayoutProps {
 }
 
 export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
-  const { currentUser, currentRole, logout, setCurrentPage, currentPage } = useApp();
+  const { currentUser, currentRole, logout, setCurrentPage, currentPage, authLifecycleState } = useApp();
+  const isAuthenticatedUser = Boolean(currentUser && authLifecycleState === 'AUTHENTICATED');
 
   const getWorkspaceTitle = () => {
     switch (currentPage) {
@@ -38,9 +39,10 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         return 'Client Consultation Calendar';
       case 'virtual_consultation_room':
         return 'Confidential Video Room';
+      case 'stage_one_onboard':
       case 'client_onboarding':
       case 'onboarding':
-        return 'Client Onboarding';
+        return 'Stage 01: Client Onboarding Workspace';
       case 'staff_onboarding':
         return 'Staff Onboarding';
       case 'client_portal':
@@ -50,6 +52,9 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
   };
 
   const getRoleBadge = () => {
+    if (!isAuthenticatedUser) {
+      return null;
+    }
     switch (currentRole) {
       case 'super_admin':
       case 'admin':
@@ -117,40 +122,59 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 <span>Public Website</span>
               </button>
 
-              {/* Dedicated 44x44 Notification Bell */}
-              <NotificationBell />
+              {isAuthenticatedUser && currentUser ? (
+                <>
+                  {/* Dedicated 44x44 Notification Bell */}
+                  <NotificationBell />
 
-              {/* User Identity Pill */}
-              {currentUser && (
-                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0B2748]/60 border border-[#1E3A5F] text-xs">
-                  <div className="w-7 h-7 rounded-lg bg-[#C99A3D]/20 text-[#E2BD67] border border-[#C99A3D]/40 font-bold flex items-center justify-center text-xs">
-                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                  {/* User Identity Pill */}
+                  <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0B2748]/60 border border-[#1E3A5F] text-xs">
+                    <div className="w-7 h-7 rounded-lg bg-[#C99A3D]/20 text-[#E2BD67] border border-[#C99A3D]/40 font-bold flex items-center justify-center text-xs">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="font-semibold text-slate-200 text-xs truncate max-w-[140px]">
+                        {currentUser.name || currentUser.email}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Client ID: #{currentUser.clientId || currentUser.id?.slice(-5) || 'USER'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col text-left">
-                    <span className="font-semibold text-slate-200 text-xs truncate max-w-[120px]">
-                      {currentUser.name || currentUser.email}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      ID: #{currentUser.id?.slice(-5) || 'USER'}
-                    </span>
-                  </div>
-                </div>
+
+                  {/* Sign Out Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      setCurrentPage('home');
+                    }}
+                    className="min-h-[44px] px-3 sm:px-3.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-rose-200 bg-[#0B2748]/80 hover:bg-rose-950/40 border border-[#1E3A5F] hover:border-rose-800/60 transition-all flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                    aria-label="Sign out of confidential session"
+                    title="End secure session"
+                  >
+                    <LogOut className="w-4 h-4 text-slate-400 hover:text-rose-400" />
+                    <span className="hidden sm:inline">Sign Out</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage('client_login')}
+                    className="min-h-[40px] px-3.5 rounded-xl text-xs font-semibold text-slate-200 hover:text-white bg-[#0B2748]/80 border border-[#1E3A5F] transition-colors"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage('client_register')}
+                    className="min-h-[40px] px-3.5 rounded-xl text-xs font-bold text-[#07172B] bg-[#C99A3D] hover:bg-[#E2BD67] transition-colors"
+                  >
+                    Register
+                  </button>
+                </>
               )}
-
-              {/* Sign Out Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  logout();
-                  setCurrentPage('home');
-                }}
-                className="min-h-[44px] px-3 sm:px-3.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-rose-200 bg-[#0B2748]/80 hover:bg-rose-950/40 border border-[#1E3A5F] hover:border-rose-800/60 transition-all flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
-                aria-label="Sign out of confidential session"
-                title="End secure session"
-              >
-                <LogOut className="w-4 h-4 text-slate-400 hover:text-rose-400" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </button>
 
             </div>
 

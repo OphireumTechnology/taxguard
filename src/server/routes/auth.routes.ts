@@ -33,6 +33,7 @@ import {
   VerifiedSupabaseUser
 } from '../supabase';
 import { SupabaseDurableSessions } from '../supabase-db';
+import { provisionOrResolveClientOnboarding } from '../taxguard/clientOnboardingProvisioner';
 
 export const authRouter = Router();
 authRouter.use((req, res, next) => {
@@ -45,7 +46,11 @@ authRouter.use((req, res, next) => {
 /**
  * Supabase -> TaxGuard LIVE session bridge.
  * Supabase proves external identity. TaxGuard restores or provisions the
- * permanent application identity and creates the application session.
+ * permanent application identity, tenant membership, client profile, engagement,
+ * tax year, tax case, and Stage 01 state, and creates the server-authoritative session.
+ *
+ * Security Invariant: Never trust role, tenantId, clientId, engagementId, or caseId
+ * supplied by the browser.
  */
 authRouter.post('/supabase-session', async (req: Request, res: Response) => {
   const { accessToken } = req.body || {};
@@ -76,8 +81,31 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
   try {
     const sessions = new SupabaseDurableSessions();
     const session = await sessions.create(verifiedUser);
+
+    let onboardingBundle = null;
+    if (session.user.role === 'client' && session.clientId) {
+      onboardingBundle = await provisionOrResolveClientOnboarding({
+        tenantId: session.tenantId,
+        user: session.user
+      });
+    }
+
     return res.status(200).json({
       ...session,
+      ...(onboardingBundle
+        ? {
+            tenantId: onboardingBundle.tenant.tenantId,
+            clientId: onboardingBundle.client.clientId,
+            engagementId: onboardingBundle.engagement.engagementId,
+            taxYear: onboardingBundle.taxYearRecord.taxYear,
+            caseId: onboardingBundle.taxCase.caseId,
+            activeStage: onboardingBundle.taxCase.activeStage,
+            stageStates: onboardingBundle.stageStates,
+            resumed: onboardingBundle.resumed,
+            workflow: onboardingBundle.workflow,
+            eligibility: onboardingBundle.eligibility
+          }
+        : {}),
       message: 'Live TaxGuard session established.'
     });
   } catch (error: any) {

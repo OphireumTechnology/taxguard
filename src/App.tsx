@@ -87,16 +87,27 @@ function isDemoRouteUrl(): boolean {
 }
 
 const AppContent: React.FC = () => {
-  const { currentPage, currentUser, setCurrentPage, pageParams } = useApp();
+  const {
+    currentPage,
+    currentUser,
+    setCurrentPage,
+    pageParams,
+    authLifecycleState,
+    isInitialized
+  } = useApp();
   const [liveTaxYear, setLiveTaxYear] = React.useState<number>(
     () => new Date().getFullYear() - 1
   );
   const [isPublicV2Route, setIsPublicV2Route] = React.useState(() => isPublicV2RouteUrl());
   const [isTaxGuardRoute, setIsTaxGuardRoute] = React.useState(() => isTaxGuardRouteUrl());
 
+  const isInitializingAuth = !isInitialized || authLifecycleState === 'INITIALIZING';
+  const hasLiveClientSession = Boolean(
+    authLifecycleState === 'AUTHENTICATED' && hasLiveClientWorkspace(currentUser)
+  );
+
   useEffect(() => {
     const handleUrlChange = () => {
-
       setIsPublicV2Route(isPublicV2RouteUrl());
       setIsTaxGuardRoute(isTaxGuardRouteUrl());
     };
@@ -110,10 +121,40 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log(`[DIAGNOSTIC] Router initialization: active page = "${currentPage}", isTaxGuardRoute = ${isTaxGuardRoute}, isPublicV2Route = ${isPublicV2Route}, authenticatedRole = "${currentUser?.role || 'none'}"`);
+      console.log(
+        `[DIAGNOSTIC] Router initialization: active page = "${currentPage}", authLifecycleState = "${authLifecycleState}", isTaxGuardRoute = ${isTaxGuardRoute}, isPublicV2Route = ${isPublicV2Route}, authenticatedRole = "${currentUser?.role || 'none'}"`
+      );
     }
-  }, [currentPage, isTaxGuardRoute, isPublicV2Route, currentUser?.role]);
-useEffect(() => {
+  }, [currentPage, authLifecycleState, isTaxGuardRoute, isPublicV2Route, currentUser?.role]);
+
+  useEffect(() => {
+    // Do not redirect while session initialization is still in progress
+    if (isInitializingAuth) return;
+
+    const isProtectedClientRoute = [
+      'stage_one_onboard',
+      'onboarding',
+      'client_onboarding',
+      'client_portal'
+    ].includes(currentPage);
+
+    const isPublicClientAuthRoute = [
+      'client_login',
+      'client_register',
+      'login',
+      'register'
+    ].includes(currentPage);
+
+    if (isProtectedClientRoute && !hasLiveClientSession) {
+      setCurrentPage('client_login');
+      return;
+    }
+
+    if (isPublicClientAuthRoute && hasLiveClientSession) {
+      setCurrentPage('stage_one_onboard');
+      return;
+    }
+
     let targetHash = '';
 
     if (currentPage === 'portals') {
@@ -134,16 +175,12 @@ useEffect(() => {
       currentPage === 'staff_portal'
     ) {
       targetHash = currentUser ? '#/accountant/dashboard' : '#/staff/login';
-    } else if (currentPage === 'client_portal') {
-      targetHash = hasLiveClientWorkspace(currentUser)
-        ? '#/client_portal'
-        : '#/client/login';
     }
 
     if (targetHash && window.location.hash !== targetHash) {
       window.location.hash = targetHash;
     }
-  }, [currentPage, currentUser]);
+  }, [currentPage, currentUser, hasLiveClientSession, isInitializingAuth, setCurrentPage]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -182,66 +219,34 @@ useEffect(() => {
 
   const isPublicV2 = isPublicV2Route || isPublicV2RouteUrl() || currentPage === 'public_v2';
   if (isPublicV2) return <PublicV2Router />;
-  const hasLiveClientSession = hasLiveClientWorkspace(currentUser);
 
-  const isLiveClientRoute =
-    hasLiveClientSession &&
-    (
-      isClientScopedRouteUrl() ||
-      [
-        'client_portal',
-        'stage_one_onboard',
-        'onboarding',
-        'client_onboarding'
-      ].includes(currentPage)
-    );
-const renderPage = () => {
-    if (currentPage === 'client_portal' && hasLiveClientSession) {
-      const permanentClientId = currentUser?.clientId?.trim();
+  const renderAuthInitializingState = () => (
+    <div
+      className="max-w-md mx-auto px-4 py-24 text-center space-y-4"
+      aria-live="polite"
+      data-testid="auth-initializing-screen"
+    >
+      <div className="w-10 h-10 border-2 border-[#C6A15B] border-t-transparent rounded-full animate-spin mx-auto" />
+      <h2 className="font-serif text-xl font-bold text-white">
+        Verifying Secure TaxGuard Session
+      </h2>
+      <p className="text-xs text-slate-300">
+        Restoring your encrypted Client Tax Center credentials and Stage 01 onboarding state...
+      </p>
+    </div>
+  );
 
-      if (!permanentClientId) {
-        return (
-          <div className="mx-auto mt-8 max-w-3xl rounded-xl border border-red-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-red-800">
-              LIVE Workspace Locked
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-700">
-              A permanent TaxGuard Client ID is required before the LIVE workflow can open.
-              TaxGuard will not substitute DEMO data or create a browser-side Client ID.
-            </p>
-          </div>
-        );
-      }
-
-      return (
-        <LiveClientWorkflowRouter
-          clientId={permanentClientId}
-          taxYear={liveTaxYear}
-          onTaxYearChange={setLiveTaxYear}
-        />
-      );
-    }
-
-    if (
-      currentPage === 'admin_dashboard' ||
-      currentPage === 'admin_portal' ||
-      currentPage === 'reviewer_workspace' ||
-      currentPage === 'senior_reviewer_workspace' ||
-      currentPage === 'reviewer_portal' ||
-      currentPage === 'accountant_workspace' ||
-      currentPage === 'staff_portal' ||
-      currentPage === 'client_portal' ||
-      currentPage === 'portals'
-    ) {
-      return null;
-    }
-
+  const renderPage = () => {
     if (
       currentPage === 'stage_one_onboard' ||
       currentPage === 'onboarding' ||
-      currentPage === 'client_onboarding'
+      currentPage === 'client_onboarding' ||
+      currentPage === 'client_portal'
     ) {
+      if (isInitializingAuth) {
+        return renderAuthInitializingState();
+      }
+
       if (!hasLiveClientSession) {
         return <ClientLoginPage />;
       }
@@ -261,7 +266,21 @@ const renderPage = () => {
       );
     }
 
+    if (
+      currentPage === 'admin_dashboard' ||
+      currentPage === 'admin_portal' ||
+      currentPage === 'reviewer_workspace' ||
+      currentPage === 'senior_reviewer_workspace' ||
+      currentPage === 'reviewer_portal' ||
+      currentPage === 'accountant_workspace' ||
+      currentPage === 'staff_portal' ||
+      currentPage === 'portals'
+    ) {
+      return null;
+    }
+
     if (currentPage === 'staff_onboarding') {
+      if (isInitializingAuth) return renderAuthInitializingState();
       if (!currentUser) return <StaffLoginPage />;
       return <StaffOnboardingWizard />;
     }
@@ -293,8 +312,12 @@ const renderPage = () => {
             onExit={() => setCurrentPage('stage_one_onboard')}
           />
         );
-      case 'client_login': return <ClientLoginPage />;
-      case 'client_register': return <ClientRegisterPage />;
+      case 'login':
+      case 'client_login':
+        return <ClientLoginPage />;
+      case 'register':
+      case 'client_register':
+        return <ClientRegisterPage />;
       case 'staff_login': return <StaffLoginPage />;
       case 'not_found':
       default:
@@ -319,7 +342,14 @@ const renderPage = () => {
     'virtual_consultation_room'
   ]);
 
-  if (portalRoutes.has(currentPage)) {
+  const isAuthenticatedPortalSession = Boolean(
+    !isInitializingAuth &&
+    authLifecycleState === 'AUTHENTICATED' &&
+    currentUser &&
+    (currentUser.role !== 'client' || hasLiveClientSession)
+  );
+
+  if (portalRoutes.has(currentPage) && isAuthenticatedPortalSession) {
     return (
       <PortalLayout>
         <Suspense fallback={<PageLoadingFallback />}>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp, PageRoute } from '../../context/AppContext';
 import { BrandLogo } from './BrandLogo';
 import { 
@@ -131,7 +131,7 @@ export const Navbar: React.FC = () => {
   const handlePortalAction = () => {
     if (currentUser && currentRole !== 'guest') {
       if (currentRole === 'client') {
-        window.location.hash = '#/client/login';
+        setCurrentPage('stage_one_onboard');
       } else if (currentRole === 'accountant') {
         window.location.hash = '#/accountant/dashboard';
       } else if (currentRole === 'senior_reviewer') {
@@ -139,15 +139,18 @@ export const Navbar: React.FC = () => {
       } else if (currentRole === 'admin' || currentRole === 'super_admin') {
         window.location.hash = '#/admin/dashboard';
       } else {
-        window.location.hash = '#/client/login';
+        setCurrentPage('stage_one_onboard');
       }
     } else {
-      window.location.hash = '#/client/login';
+      setCurrentPage('client_login');
     }
     setMobileMenuOpen(false);
   };
 
   const getPortalButtonLabel = () => {
+    if (currentUser && currentRole === 'client') {
+      return 'Client Tax Center';
+    }
     return 'Client Portal';
   };
 
