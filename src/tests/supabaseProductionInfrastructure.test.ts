@@ -552,5 +552,256 @@ describe('Supabase Production Infrastructure & Authority', () => {
         expect(existsPolicy).toContain('c.reviewer_uid = auth.uid()::text');
       }
     });
+
+    it(
+      'compiles and executes both migrations sequentially in a real PostgreSQL engine (PGlite), validates all Stage 10-18 structures, and verifies runtime RLS & retry safety',
+      async () => {
+        const fs = await import('node:fs');
+        const { PGlite } = await import('@electric-sql/pglite');
+
+        const coreSql = fs.readFileSync(`${migrationsDir}/${coreMigrationFile}`, 'utf8');
+        const lifecycleSql = fs.readFileSync(`${migrationsDir}/${lifecycleMigrationFile}`, 'utf8');
+
+        const pg = new PGlite();
+        try {
+          // Bootstrap Supabase-compatible auth schema and roles in PostgreSQL
+          await pg.exec(`
+            CREATE SCHEMA IF NOT EXISTS auth;
+            CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
+              SELECT COALESCE(
+                nullif(current_setting('request.jwt.claim.sub', true), '')::uuid,
+                '00000000-0000-0000-0000-000000000001'::uuid
+              );
+            $$;
+            DO $$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+                CREATE ROLE authenticated NOLOGIN;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+                CREATE ROLE service_role NOLOGIN;
+              END IF;
+            END
+            $$;
+            GRANT USAGE ON SCHEMA public, auth TO authenticated, service_role;
+          `);
+
+          // Verify PostgreSQL rejects unquoted "authorization" column with SQLSTATE 42601
+          await expect(
+            pg.exec('CREATE TABLE test_unquoted_kw (authorization JSONB);')
+          ).rejects.toThrow(/syntax error at or near "authorization"/i);
+
+          // Strip only CREATE EXTENSION lines if WASM build does not bundle contrib shared libraries
+          // (gen_random_uuid() is built into core PostgreSQL 13+)
+          const prepareForPglite = (sql: string) =>
+            sql.replace(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"[^"]+";/gi, '-- extension provided by core PG');
+
+          // 1. Execute Migration 1 (20260928000000_taxguard_core_schema.sql)
+          await pg.exec(prepareForPglite(coreSql));
+
+          // 2. Execute Migration 2 (20260929000000_taxguard_complete_lifecycle_schema.sql)
+          await pg.exec(prepareForPglite(lifecycleSql));
+
+          // 3. Verify all 31 tables exist in pg_tables with rowsecurity = true
+          const tablesRes = await pg.query<{ tablename: string; rowsecurity: boolean }>(`
+            SELECT tablename, rowsecurity
+            FROM pg_tables
+            WHERE schemaname = 'public' AND tablename LIKE 'taxguard_%'
+            ORDER BY tablename;
+          `);
+          expect(tablesRes.rows.length).toBe(31);
+          for (const row of tablesRes.rows) {
+            expect(row.rowsecurity, `Table ${row.tablename} must have RLS enabled in PostgreSQL`).toBe(true);
+          }
+
+          // 4. Verify Stage 11 taxguard_signature_packages has the "authorization" JSONB column
+          const sigColRes = await pg.query<{ column_name: string; data_type: string }>(`
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'taxguard_signature_packages'
+              AND column_name = 'authorization';
+          `);
+          expect(sigColRes.rows).toEqual([{ column_name: 'authorization', data_type: 'jsonb' }]);
+
+          // 5. Verify all 45 RLS policies are compiled in pg_policies
+          const policiesRes = await pg.query<{ policyname: string; tablename: string }>(`
+            SELECT policyname, tablename
+            FROM pg_policies
+            WHERE schemaname = 'public'
+            ORDER BY tablename, policyname;
+          `);
+          expect(policiesRes.rows.length).toBe(45); // 31 service_role + 14 authenticated
+
+          // 6. Grant table SELECT to authenticated role and test runtime RLS evaluation across all 14 authenticated tables
+          await pg.exec(`
+            GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;
+            GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+
+            INSERT INTO taxguard_tenants (id, name) VALUES ('tenant_1', 'A/R Tax Services');
+            INSERT INTO taxguard_members (tenant_id, uid, role) VALUES ('tenant_1', '00000000-0000-0000-0000-000000000001', 'client');
+            INSERT INTO taxguard_clients (tenant_id, client_id, owner_uid) VALUES ('tenant_1', '101', '00000000-0000-0000-0000-000000000001');
+            INSERT INTO taxguard_cases (
+              case_id, tenant_id, client_id, engagement_id, tax_year,
+              client_uid, preparer_uid, reviewer_uid, created_by, updated_by
+            ) VALUES (
+              'case_2025_1', 'tenant_1', '101', 'eng_2025', 2025,
+              '00000000-0000-0000-0000-000000000001', 'prep_1', 'rev_1', 'admin_1', 'admin_1'
+            );
+            INSERT INTO taxguard_documents (
+              document_id, tenant_id, client_id, engagement_id, tax_year, case_id,
+              hash, mime_type, created_by
+            ) VALUES (
+              'doc_1', 'tenant_1', '101', 'eng_2025', 2025, 'case_2025_1',
+              'h1', 'application/pdf', '00000000-0000-0000-0000-000000000001'
+            );
+            INSERT INTO taxguard_audit_log (
+              tenant_id, case_id, action, actor_uid
+            ) VALUES (
+              'tenant_1', 'case_2025_1', 'CASE_CREATED', '00000000-0000-0000-0000-000000000001'
+            );
+
+            -- Stage 10: Approvals
+            INSERT INTO taxguard_approvals (
+              approval_id, tenant_id, case_id, tax_year, return_version_id,
+              return_hash, prepared_by, reviewed_by, approved_by, credential, rationale
+            ) VALUES (
+              'appr_1', 'tenant_1', 'case_2025_1', 2025, 'v1',
+              'hash_1', 'prep_1', 'rev_1', 'rev_1', 'CPA', 'Verified'
+            );
+
+            -- Stage 11: Signature Packages (including "authorization" JSONB column)
+            INSERT INTO taxguard_signature_packages (
+              package_id, tenant_id, case_id, tax_year, return_version_id,
+              return_hash, provider, "authorization"
+            ) VALUES (
+              'sig_1', 'tenant_1', 'case_2025_1', 2025, 'v1',
+              'hash_1', 'DOCUSIGN', '{"eroPinVerified": true}'::jsonb
+            );
+
+            -- Stage 12: Filing Packages
+            INSERT INTO taxguard_filing_packages (
+              package_id, submission_id, tenant_id, case_id, tax_year,
+              return_version_id, return_hash, idempotency_key, signature_authorization_id, provider
+            ) VALUES (
+              'fil_1', 'sub_1', 'tenant_1', 'case_2025_1', 2025,
+              'v1', 'hash_1', 'idem_1', 'sig_auth_1', 'IRS_MEF'
+            );
+
+            -- Stage 13: Government Feedback
+            INSERT INTO taxguard_government_feedback (
+              feedback_id, tenant_id, case_id, tax_year, submission_id,
+              provider, payload_hash, normalized_code, message
+            ) VALUES (
+              'fb_1', 'tenant_1', 'case_2025_1', 2025, 'sub_1',
+              'IRS_MEF', 'phash_1', 'ACCEPTED', 'Return accepted'
+            );
+
+            -- Stage 14: Resolution Cases
+            INSERT INTO taxguard_resolution_cases (
+              resolution_id, tenant_id, case_id, tax_year, issue_type, description, assigned_to
+            ) VALUES (
+              'res_1', 'tenant_1', 'case_2025_1', 2025, 'NOTICE', 'Notice review', 'prep_1'
+            );
+
+            -- Stage 15: Monitoring Items
+            INSERT INTO taxguard_monitoring_items (
+              item_id, tenant_id, case_id, tax_year, item_type, title, description, due_date, assigned_to
+            ) VALUES (
+              'mon_1', 'tenant_1', 'case_2025_1', 2025, 'DEADLINE', 'Q1 Estimate', 'Check payment', NOW(), 'prep_1'
+            );
+
+            -- Stage 16: Archive Manifests
+            INSERT INTO taxguard_archive_manifests (
+              manifest_id, tenant_id, case_id, tax_year, integrity_hash, archived_by
+            ) VALUES (
+              'arch_1', 'tenant_1', 'case_2025_1', 2025, 'ihash_1', 'rev_1'
+            );
+
+            -- Stage 17: Renewal Records
+            INSERT INTO taxguard_renewal_records (
+              renewal_id, tenant_id, case_id, prior_tax_year, next_tax_year
+            ) VALUES (
+              'ren_1', 'tenant_1', 'case_2025_1', 2025, 2026
+            );
+
+            -- Stage 18: Repeat Cases
+            INSERT INTO taxguard_repeat_cases (
+              repeat_id, tenant_id, previous_case_id, next_case_id, client_id, prior_tax_year, next_tax_year
+            ) VALUES (
+              'rep_1', 'tenant_1', 'case_2025_1', 'case_2026_1', '101', 2025, 2026
+            );
+          `);
+
+          // Execute SELECTs across all 14 authenticated-policy tables as matching client_uid
+          await pg.exec(`
+            BEGIN;
+            SET LOCAL ROLE authenticated;
+            SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
+          `);
+          const authSigRes = await pg.query<{ package_id: string; authorization: { eroPinVerified: boolean } }>(
+            'SELECT package_id, "authorization" FROM taxguard_signature_packages;'
+          );
+          expect(authSigRes.rows).toEqual([
+            { package_id: 'sig_1', authorization: { eroPinVerified: true } }
+          ]);
+
+          for (const tbl of [
+            'taxguard_members',
+            'taxguard_clients',
+            'taxguard_cases',
+            'taxguard_documents',
+            'taxguard_audit_log',
+            'taxguard_approvals',
+            'taxguard_signature_packages',
+            'taxguard_filing_packages',
+            'taxguard_government_feedback',
+            'taxguard_resolution_cases',
+            'taxguard_monitoring_items',
+            'taxguard_archive_manifests',
+            'taxguard_renewal_records',
+            'taxguard_repeat_cases'
+          ]) {
+            const res = await pg.query(`SELECT count(*)::int AS cnt FROM ${tbl};`);
+            expect((res.rows[0] as { cnt: number }).cnt, `Authorized user should see 1 row in ${tbl}`).toBe(1);
+          }
+          await pg.exec('COMMIT;');
+
+          // Execute SELECTs as a different `authenticated` user and confirm 0 rows returned across all 14 tables
+          await pg.exec(`
+            BEGIN;
+            SET LOCAL ROLE authenticated;
+            SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000999';
+          `);
+          for (const tbl of [
+            'taxguard_members',
+            'taxguard_clients',
+            'taxguard_cases',
+            'taxguard_documents',
+            'taxguard_audit_log',
+            'taxguard_approvals',
+            'taxguard_signature_packages',
+            'taxguard_filing_packages',
+            'taxguard_government_feedback',
+            'taxguard_resolution_cases',
+            'taxguard_monitoring_items',
+            'taxguard_archive_manifests',
+            'taxguard_renewal_records',
+            'taxguard_repeat_cases'
+          ]) {
+            const res = await pg.query(`SELECT count(*)::int AS cnt FROM ${tbl};`);
+            expect((res.rows[0] as { cnt: number }).cnt, `Unauthorized user must see 0 rows in ${tbl}`).toBe(0);
+          }
+          await pg.exec('COMMIT;');
+
+          // 7. Verify Retry Safety for State B (Migration 1 already committed, Migration 2 re-applied) and full re-run
+          await expect(pg.exec(prepareForPglite(lifecycleSql))).resolves.not.toThrow();
+          await expect(pg.exec(prepareForPglite(coreSql))).resolves.not.toThrow();
+        } finally {
+          await pg.close();
+        }
+      },
+      30000
+    );
   });
 });

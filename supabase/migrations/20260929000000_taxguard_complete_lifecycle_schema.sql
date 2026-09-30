@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS taxguard_signature_packages (
   provider VARCHAR(64) NOT NULL,
   provider_envelope_id VARCHAR(255),
   completed_at TIMESTAMPTZ,
-  authorization JSONB,
+  "authorization" JSONB,
   events JSONB NOT NULL DEFAULT '[]'::jsonb,
   version INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
