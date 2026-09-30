@@ -435,8 +435,8 @@ describe('Post-Registration Client Routing, Session Establishment & Stage 01 Pro
       expect(workflowPayload.eligibility.eligibility.stage1).toBe(true);
       expect(workflowPayload.eligibility.eligibility.stage2).toBe(false);
 
-      // 2. Save & complete Stage 01 identity intake
-      const stage1Res = await fetch(
+      // 2. Verify Hard Exit Gate blocks incomplete draft payload when completion is requested
+      const incompleteRes = await fetch(
         `${origin}/api/case-authority/client-onboarding/stage-1`,
         {
           method: 'POST',
@@ -459,11 +459,109 @@ describe('Post-Registration Client Routing, Session Establishment & Stage 01 Pro
           })
         }
       );
+      expect(incompleteRes.status).toBe(422);
+      const incompleteBody = await incompleteRes.json();
+      expect(incompleteBody.code).toBe('STAGE_01_GATE_LOCKED');
+      expect(incompleteBody.blockingReasons.length).toBeGreaterThan(0);
+
+      // 3. Save & complete Stage 01 with fully satisfied authoritative synthetic requirements
+      const stage1Res = await fetch(
+        `${origin}/api/case-authority/client-onboarding/stage-1`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${serverToken}`,
+            Origin: 'https://artaxserv.com'
+          },
+          body: JSON.stringify({
+            taxYear: 2025,
+            completeStage: true,
+            payload: {
+              taxpayerFullName: 'Arthur Pendleton',
+              legalName: 'Arthur Pendleton',
+              taxpayerType: 'individual',
+              filingStatus: 'single',
+              residencyState: 'SC',
+              phone: '803-555-0199',
+              occupation: 'Executive Consultant',
+              identityAttested: true,
+              tinType: 'ssn',
+              maskedTIN: '***-**-9876',
+              tinLast4: '9876',
+              residentialOrPrincipalAddress: {
+                street: '100 Main Street',
+                city: 'Columbia',
+                state: 'SC',
+                zip: '29201',
+                country: 'United States'
+              },
+              supportingDocs: [
+                {
+                  id: 'doc-synthetic-001',
+                  name: 'synthetic_id_card.pdf',
+                  category: 'government_id',
+                  sha256Hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+                  uploadedAt: '2025-01-15T12:00:00.000Z',
+                  fileSize: '1.2MB',
+                  verified: true
+                }
+              ],
+              duplicateCheck: {
+                timestamp: '2025-01-15T12:00:00.000Z',
+                status: 'CLEARED',
+                matches: [],
+                routedToReview: false
+              },
+              engagementConsent: {
+                irc7216ConsentAccepted: true,
+                termsAndScopeAccepted: true,
+                pricingScheduleAcknowledged: true,
+                electronicSignatureConsentAccepted: true,
+                signerFullName: 'Arthur Pendleton',
+                signedAt: '2025-01-15T12:00:00.000Z',
+                ipAddress: '127.0.0.1',
+                consentVersion: '2025.1-IRC7216'
+              },
+              hardExitGatePassed: true,
+              identityComplete: true,
+              taxProfileComplete: true,
+              tinValid: true,
+              addressComplete: true,
+              representativeComplete: true,
+              supportingDocumentsComplete: true,
+              duplicateResolutionComplete: true,
+              consentComplete: true,
+              reviewComplete: true
+            }
+          })
+        }
+      );
       expect(stage1Res.status).toBe(200);
       const stage1Body = await stage1Res.json();
       expect(stage1Body.workflow.stage1.status).toBe('COMPLETED');
       expect(stage1Body.workflow.stage2.status).toBe('IN_PROGRESS');
       expect(stage1Body.eligibility.eligibility.stage2).toBe(true);
+
+      // 4. Re-fetch authoritative state and verify canonical transitions
+      const refreshedWorkflowRes = await fetch(
+        `${origin}/api/case-authority/client-onboarding/workflow?taxYear=2025`,
+        {
+          headers: {
+            Authorization: `Bearer ${serverToken}`,
+            Origin: 'https://artaxserv.com'
+          }
+        }
+      );
+      expect(refreshedWorkflowRes.status).toBe(200);
+      const refreshedPayload = await refreshedWorkflowRes.json();
+      expect(refreshedPayload.workflow.stage1.status).toBe('COMPLETED');
+      expect(refreshedPayload.workflow.stage2.status).toBe('IN_PROGRESS');
+      expect(refreshedPayload.workflow.stage3.status).toBe('LOCKED');
+      expect(refreshedPayload.workflow.activeStage).toBe(2);
+      expect(refreshedPayload.eligibility.eligibility.stage1).toBe(true);
+      expect(refreshedPayload.eligibility.eligibility.stage2).toBe(true);
+      expect(refreshedPayload.eligibility.eligibility.stage3).toBe(false);
     });
   });
 });

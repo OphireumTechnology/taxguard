@@ -119,18 +119,37 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
       if (workflow.stage1.status !== 'COMPLETED') {
         const payload = req.body?.payload || {};
         const snapshot = req.body?.snapshot || payload;
+        const effectiveDossier = snapshot.dossier || (snapshot.legalName || snapshot.taxpayerFullName ? snapshot : undefined);
         const gateDecision = evaluateStageOneServerGate({
-          hardExitGatePassed: Boolean(snapshot.hardExitGatePassed ?? true),
-          identityComplete: Boolean(snapshot.identityComplete ?? snapshot.dossier?.legalName),
-          taxProfileComplete: Boolean(snapshot.taxProfileComplete ?? snapshot.dossier?.taxpayerType),
-          tinValid: Boolean(snapshot.tinValid ?? (snapshot.dossier?.tinLast4 && snapshot.dossier.tinLast4 !== '0000')),
-          addressComplete: Boolean(snapshot.addressComplete ?? snapshot.dossier?.residentialOrPrincipalAddress?.street),
-          representativeComplete: Boolean(snapshot.representativeComplete ?? (snapshot.dossier?.taxpayerType === 'individual' || snapshot.dossier?.authorizedRep?.fullName)),
-          supportingDocumentsComplete: Boolean(snapshot.supportingDocumentsComplete ?? (snapshot.dossier?.supportingDocs && snapshot.dossier.supportingDocs.some((d: any) => d.verified))),
-          duplicateResolutionComplete: Boolean(snapshot.duplicateResolutionComplete ?? (snapshot.dossier?.duplicateCheck?.status === 'CLEARED' || snapshot.dossier?.duplicateCheck?.reviewDecision === 'override_approved')),
-          consentComplete: Boolean(snapshot.consentComplete ?? (snapshot.dossier?.engagementConsent?.irc7216ConsentAccepted && snapshot.dossier?.engagementConsent?.signerFullName?.length >= 3 && snapshot.dossier?.engagementConsent?.signedAt)),
-          reviewComplete: true,
-          dossier: snapshot.dossier,
+          hardExitGatePassed: snapshot.hardExitGatePassed !== undefined
+            ? Boolean(snapshot.hardExitGatePassed)
+            : true,
+          identityComplete: snapshot.identityComplete !== undefined
+            ? Boolean(snapshot.identityComplete)
+            : Boolean((effectiveDossier?.legalName || effectiveDossier?.taxpayerFullName) && (effectiveDossier?.taxpayerType || effectiveDossier?.filingStatus)),
+          taxProfileComplete: snapshot.taxProfileComplete !== undefined
+            ? Boolean(snapshot.taxProfileComplete)
+            : Boolean(effectiveDossier?.taxpayerType || effectiveDossier?.filingStatus),
+          tinValid: snapshot.tinValid !== undefined
+            ? Boolean(snapshot.tinValid)
+            : Boolean(effectiveDossier?.tinLast4 && effectiveDossier.tinLast4 !== '0000' && String(effectiveDossier.tinLast4).length === 4),
+          addressComplete: snapshot.addressComplete !== undefined
+            ? Boolean(snapshot.addressComplete)
+            : Boolean(effectiveDossier?.residentialOrPrincipalAddress?.street && effectiveDossier?.residentialOrPrincipalAddress?.city && effectiveDossier?.residentialOrPrincipalAddress?.zip),
+          representativeComplete: snapshot.representativeComplete !== undefined
+            ? Boolean(snapshot.representativeComplete)
+            : Boolean((effectiveDossier?.taxpayerType === 'individual' || effectiveDossier?.filingStatus) || (effectiveDossier?.authorizedRep?.fullName && effectiveDossier?.authorizedRep?.title)),
+          supportingDocumentsComplete: snapshot.supportingDocumentsComplete !== undefined
+            ? Boolean(snapshot.supportingDocumentsComplete)
+            : Boolean(effectiveDossier?.supportingDocs && Array.isArray(effectiveDossier.supportingDocs) && effectiveDossier.supportingDocs.some((d: any) => d.verified)),
+          duplicateResolutionComplete: snapshot.duplicateResolutionComplete !== undefined
+            ? Boolean(snapshot.duplicateResolutionComplete)
+            : Boolean(effectiveDossier?.duplicateCheck?.status === 'CLEARED' || effectiveDossier?.duplicateCheck?.reviewDecision === 'override_approved'),
+          consentComplete: snapshot.consentComplete !== undefined
+            ? Boolean(snapshot.consentComplete)
+            : Boolean(effectiveDossier?.engagementConsent?.irc7216ConsentAccepted && effectiveDossier?.engagementConsent?.signerFullName?.trim().length >= 3 && effectiveDossier?.engagementConsent?.signedAt),
+          reviewComplete: Boolean(snapshot.reviewComplete ?? true),
+          dossier: effectiveDossier,
           blockingReasons: snapshot.blockingReasons
         });
 

@@ -158,10 +158,25 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
 
   if (token.startsWith('tg_live_') || process.env.NODE_ENV === 'production') {
     try {
-      const sessions = isSupabaseServerConfigured() || hasFallbackSupabaseSession(token)
-        ? new SupabaseDurableSessions()
-        : new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '');
-      const user = await sessions.verify(token);
+      let user: any = null;
+      if (isSupabaseServerConfigured() || hasFallbackSupabaseSession(token)) {
+        try {
+          user = await new SupabaseDurableSessions().verify(token);
+        } catch {
+          // Fall through to Firestore
+        }
+      }
+      if (!user) {
+        const firestore = getFirebaseAdminDb();
+        const firebaseAuth = getFirebaseAdminAuth();
+        if (firestore && firebaseAuth) {
+          try {
+            user = await new DurableSessions(firestore, firebaseAuth, process.env.TAXGUARD_TENANT_ID || '').verify(token);
+          } catch {
+            // Fall through
+          }
+        }
+      }
       if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });
       req.user = user; req.token = token;
       return next();

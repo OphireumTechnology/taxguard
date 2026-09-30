@@ -37,14 +37,14 @@ export function evaluateStageOneServerGate(
     snapshot.identityComplete !== undefined
       ? snapshot.identityComplete === true
       : dossier
-        ? Boolean(dossier.legalName && dossier.taxpayerType)
+        ? Boolean((dossier.legalName || dossier.taxpayerFullName) && (dossier.taxpayerType || dossier.filingStatus))
         : false;
 
   const taxProfileComplete =
     snapshot.taxProfileComplete !== undefined
       ? snapshot.taxProfileComplete === true
       : dossier
-        ? Boolean(dossier.taxpayerType)
+        ? Boolean(dossier.taxpayerType || dossier.filingStatus)
         : false;
 
   const addressComplete =
@@ -58,7 +58,7 @@ export function evaluateStageOneServerGate(
     snapshot.representativeComplete !== undefined
       ? snapshot.representativeComplete === true
       : dossier
-        ? Boolean(dossier.taxpayerType === 'individual' || (dossier.authorizedRep?.fullName && dossier.authorizedRep?.title))
+        ? Boolean(dossier.taxpayerType === 'individual' || dossier.filingStatus || (dossier.authorizedRep?.fullName && dossier.authorizedRep?.title))
         : true;
 
   const supportingDocumentsComplete =

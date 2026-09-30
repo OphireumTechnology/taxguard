@@ -450,9 +450,20 @@ authRouter.post('/logout', authenticateToken, async (req: AuthenticatedRequest, 
   if (req.token?.startsWith('tg_live_')) {
     try {
       if (isSupabaseServerConfigured()) {
-        await new SupabaseDurableSessions().revoke(req.token);
-      } else {
-        await new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '').revoke(req.token);
+        try {
+          await new SupabaseDurableSessions().revoke(req.token);
+        } catch {
+          // Fall through
+        }
+      }
+      const firestore = getFirebaseAdminDb();
+      const firebaseAuth = getFirebaseAdminAuth();
+      if (firestore && firebaseAuth) {
+        try {
+          await new DurableSessions(firestore, firebaseAuth, process.env.TAXGUARD_TENANT_ID || '').revoke(req.token);
+        } catch {
+          // Fall through
+        }
       }
       return res.json({ message: 'Logged out successfully.' });
     } catch { return res.status(503).json({ error: 'Session revocation unavailable.' }); }

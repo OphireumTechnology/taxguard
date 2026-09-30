@@ -11,6 +11,10 @@ const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 let _supabaseClient: SupabaseClient | null = null;
 
+export function setSupabaseClient(client: SupabaseClient | null): void {
+  _supabaseClient = client;
+}
+
 export function getSupabase(): SupabaseClient {
   if (!_supabaseClient) {
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -20,7 +24,7 @@ export function getSupabase(): SupabaseClient {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: false
+          detectSessionInUrl: true
         }
       });
     } else {
@@ -36,7 +40,17 @@ export function getSupabase(): SupabaseClient {
   return _supabaseClient;
 }
 
-export const supabase = getSupabase();
+export const supabase = {
+  get auth() {
+    return getSupabase().auth;
+  },
+  get storage() {
+    return getSupabase().storage;
+  },
+  from(table: string) {
+    return getSupabase().from(table);
+  }
+} as unknown as SupabaseClient;
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co');

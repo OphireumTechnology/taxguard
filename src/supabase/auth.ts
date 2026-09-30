@@ -64,20 +64,36 @@ export function validateEmailFormat(email: string): { valid: boolean; message?: 
   return { valid: true };
 }
 
-export function validatePasswordStrength(password: string): { valid: boolean; message?: string } {
+export function validatePasswordStrength(password: string): {
+  valid: boolean;
+  isValid: boolean;
+  errors: string[];
+  message?: string;
+} {
+  const errors: string[] = [];
   if (!password || password.length < 8) {
-    return { valid: false, message: 'Password must be at least 8 characters long.' };
+    errors.push('Password must be at least 8 characters long.');
   }
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one uppercase letter.' };
+  if (!/[A-Z]/.test(password || '')) {
+    errors.push('Password must contain at least one uppercase letter.');
   }
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one lowercase letter.' };
+  if (!/[a-z]/.test(password || '')) {
+    errors.push('Password must contain at least one lowercase letter.');
   }
-  if (!/[0-9]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one number.' };
+  if (!/[0-9]/.test(password || '')) {
+    errors.push('Password must contain at least one number.');
   }
-  return { valid: true };
+  if (!/[^A-Za-z0-9]/.test(password || '')) {
+    errors.push('Password must contain at least one special character.');
+  }
+
+  const valid = errors.length === 0;
+  return {
+    valid,
+    isValid: valid,
+    errors,
+    message: errors[0]
+  };
 }
 
 export interface RegistrationValidationInput {
@@ -554,22 +570,39 @@ export async function logout(): Promise<void> {
 
 export const NEUTRAL_PASSWORD_RESET_MESSAGE =
   'If an account exists for this email address, password recovery instructions have been sent.';
+export const NEUTRAL_RECOVERY_MESSAGE = NEUTRAL_PASSWORD_RESET_MESSAGE;
 
 export async function requestPasswordReset(
   email: string,
   redirectTo?: string
-): Promise<{ success: boolean; message: string; error?: string }> {
+): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
+    const emailValidation = validateEmailFormat(email);
+    if (!emailValidation.valid) {
+      return {
+        success: false,
+        error: emailValidation.message || 'Please enter a valid email address.'
+      };
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
     const defaultOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://artaxserv.com';
     const redirectUrl = redirectTo || `${defaultOrigin}/#/client/reset-password`;
 
     // Dispatch Supabase password reset
-    await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: redirectUrl
-    }).catch(err => {
-      console.warn('[Supabase Auth] Password reset request dispatch note:', err?.message || err);
     });
+
+    if (error) {
+      const errMsg = (error.message || '').toLowerCase();
+      if (errMsg.includes('rate') || errMsg.includes('too many') || (error as any).status === 429) {
+        return {
+          success: false,
+          error: 'Access temporarily restricted due to excessive requests. Please try again later.'
+        };
+      }
+    }
 
     // Invariant: Always return neutral response to prevent account enumeration
     return {
@@ -577,7 +610,13 @@ export async function requestPasswordReset(
       message: NEUTRAL_PASSWORD_RESET_MESSAGE
     };
   } catch (err: any) {
-    console.warn('[Supabase Auth] Password reset processing note:', err?.message || err);
+    const errStr = (err?.message || String(err)).toLowerCase();
+    if (errStr.includes('rate') || errStr.includes('too many') || err?.status === 429) {
+      return {
+        success: false,
+        error: 'Access temporarily restricted due to excessive requests. Please try again later.'
+      };
+    }
     return {
       success: true,
       message: NEUTRAL_PASSWORD_RESET_MESSAGE
@@ -587,11 +626,11 @@ export async function requestPasswordReset(
 
 export async function completePasswordReset(
   newPass: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
     const check = validatePasswordStrength(newPass);
     if (!check.valid) {
-      return { success: false, error: check.message };
+      return { success: false, error: check.message || check.errors[0] };
     }
 
     const { error } = await supabase.auth.updateUser({
@@ -601,15 +640,66 @@ export async function completePasswordReset(
     if (error) {
       return {
         success: false,
-        error: 'Password update could not be completed. The recovery link may have expired or is invalid.'
+        error: 'Password update could not be completed. The recovery link is invalid or has expired.'
       };
     }
 
-    return { success: true };
+    return {
+      success: true,
+      message: 'Password successfully updated. You may now log in with your new password.'
+    };
   } catch (err: any) {
     return {
       success: false,
       error: 'Password reset could not be completed. Please try requesting a new link.'
+    };
+  }
+}
+
+export async function checkRecoverySession(): Promise<{
+  isValid: boolean;
+  email?: string;
+  isExpired?: boolean;
+  error?: string;
+}> {
+  try {
+    if (typeof window !== 'undefined' && window.location) {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const fullQuery = `${hash}&${search}`;
+      if (
+        fullQuery.includes('error=access_denied') ||
+        fullQuery.includes('otp_expired') ||
+        fullQuery.includes('expired')
+      ) {
+        const descMatch = fullQuery.match(/error_description=([^&]+)/);
+        const description = descMatch
+          ? decodeURIComponent(descMatch[1].replace(/\+/g, ' '))
+          : 'Email link is invalid or has expired.';
+        return {
+          isValid: false,
+          isExpired: true,
+          error: description
+        };
+      }
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data?.session?.user) {
+      return {
+        isValid: false,
+        error: 'No active recovery session found.'
+      };
+    }
+
+    return {
+      isValid: true,
+      email: data.session.user.email
+    };
+  } catch (err: any) {
+    return {
+      isValid: false,
+      error: err?.message || 'Failed to verify recovery session.'
     };
   }
 }
