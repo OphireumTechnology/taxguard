@@ -240,16 +240,16 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     const isCollapsed = !isMobile && sidebarCollapsed;
 
     return (
-      <div className="flex flex-col h-full bg-[#031323] text-slate-200 border-r border-[#1A365D] select-none">
+      <div className="flex flex-col h-full bg-[#071A2E] text-slate-200 border-r border-slate-700/60 select-none">
         {/* Brand & Client Workspace Header */}
-        <div className="p-4 border-b border-[#1A365D] flex items-center justify-between bg-[#020D1A]">
+        <div className="p-4 border-b border-slate-700/60 flex items-center justify-between bg-[#06182B]">
           {!isCollapsed ? (
             <div className="min-w-0">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-[#D7AC4A] font-bold">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-[#D4A843] font-bold">
                 A/R Tax Services, LLC
               </div>
               <div className="text-sm font-bold text-white truncate flex items-center gap-1.5 mt-0.5">
-                <ShieldCheck className="w-4 h-4 text-[#D7AC4A] shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-[#D4A843] shrink-0" />
                 <span>Client Dashboard</span>
               </div>
             </div>
@@ -767,6 +767,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             clientId={clientId}
             selectedTaxYear={selectedTaxYear}
             onTaxYearChange={onTaxYearChange}
+            userRole={currentUser?.role === 'cpa_admin' || currentUser?.role === 'tax_preparer' ? 'STAFF' : 'CLIENT'}
             serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
             onServerWorkflowRefresh={onServerWorkflowRefresh}
           />
@@ -795,6 +796,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             selectedTaxYear={selectedTaxYear}
             onTaxYearChange={onTaxYearChange}
             initialSubTab="vault"
+            userRole={currentUser?.role === 'cpa_admin' || currentUser?.role === 'tax_preparer' ? 'STAFF' : 'CLIENT'}
             serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
             onServerWorkflowRefresh={onServerWorkflowRefresh}
           />
@@ -906,17 +908,17 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   };
 
   return (
-    <div className="min-h-screen bg-[#07172B] text-slate-100 flex flex-col font-sans" id="authenticated-client-dashboard">
+    <div className="min-h-screen bg-[#06182B] text-slate-100 flex flex-col font-sans" id="authenticated-client-dashboard">
       {/* ========================================================================= */}
       {/* 1. TOP BAR */}
       {/* ========================================================================= */}
-      <header className="h-14 bg-[#031323] border-b border-[#1A365D] px-4 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
+      <header className="h-14 bg-[#071A2E] border-b border-slate-700/60 px-4 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
         {/* Left: Mobile Toggle & Brand / Active Context */}
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setMobileDrawerOpen(true)}
-            className="md:hidden p-1.5 rounded-lg border border-[#1A365D] hover:bg-[#0A2544] text-slate-300"
+            className="md:hidden p-1.5 rounded-lg border border-slate-700/60 hover:bg-[#0D2745] text-slate-300"
             aria-label="Open navigation menu"
           >
             <Menu className="w-4 h-4" />
@@ -927,7 +929,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               A/R Tax Services
             </span>
             <span className="text-slate-500 hidden sm:inline">&bull;</span>
-            <span className="text-xs text-[#C6A15B] font-mono font-semibold">
+            <span className="text-xs text-[#D4A843] font-mono font-semibold">
               TaxGuard Client Portal
             </span>
           </div>
@@ -936,17 +938,17 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         {/* Right: Client ID, Tax Year, Compliance Badge, Profile & Sign Out */}
         <div className="flex items-center gap-3">
           {/* Tax Year Selector */}
-          <div className="flex items-center gap-1.5 bg-[#07172B] border border-[#1A365D] px-2.5 py-1 rounded-lg">
-            <Calendar className="w-3 h-3 text-[#C6A15B]" />
+          <div className="flex items-center gap-1.5 bg-[#06182B] border border-slate-700/60 px-2.5 py-1 rounded-lg">
+            <Calendar className="w-3 h-3 text-[#D4A843]" />
             <select
               value={selectedTaxYear}
               onChange={(e) => onTaxYearChange?.(Number(e.target.value))}
-              className="bg-transparent font-mono text-xs font-bold text-[#E2BD67] cursor-pointer outline-none"
+              className="bg-transparent font-mono text-xs font-bold text-[#D4A843] cursor-pointer outline-none"
               aria-label="Select tax year"
             >
-              <option value={2026} className="bg-[#031323] text-slate-200">TY 2026 (Planning)</option>
-              <option value={2025} className="bg-[#031323] text-slate-200">TY 2025 (Active Filing)</option>
-              <option value={2024} className="bg-[#031323] text-slate-200">TY 2024 (Prior Year)</option>
+              <option value={2026} className="bg-[#071A2E] text-slate-200">TY 2026 (Planning)</option>
+              <option value={2025} className="bg-[#071A2E] text-slate-200">TY 2025 (Active Filing)</option>
+              <option value={2024} className="bg-[#071A2E] text-slate-200">TY 2024 (Prior Year)</option>
             </select>
           </div>
 
@@ -957,21 +959,21 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           </div>
 
           {/* User & Sign Out */}
-          <div className="flex items-center gap-2 pl-2 border-l border-[#1A365D]">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-700/60">
             <button
               type="button"
               onClick={() => handleSelectNav('profile')}
-              className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-1 rounded-lg hover:bg-[#0A2544] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-1 rounded-lg hover:bg-[#0D2745] transition-colors cursor-pointer"
               title="View Profile"
             >
-              <User className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <User className="w-3.5 h-3.5 text-[#D4A843]" />
               <span className="hidden sm:inline font-medium truncate max-w-[120px]">{clientName}</span>
             </button>
 
             <button
               type="button"
               onClick={handleSignOut}
-              className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-[#0A2544] transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-[#0D2745] transition-colors cursor-pointer"
               title="Sign Out"
               aria-label="Sign out of client portal"
             >
@@ -1009,7 +1011,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         )}
 
         {/* Main Workspace Area with Context Isolation */}
-        <main className="flex-1 overflow-y-auto bg-[#07172B]" id="main-workspace-content">
+        <main className="flex-1 overflow-y-auto bg-[#06182B]" id="main-workspace-content">
           {renderMainWorkspace()}
         </main>
       </div>

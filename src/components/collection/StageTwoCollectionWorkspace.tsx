@@ -73,12 +73,15 @@ import { StageTwoExceptionsView } from './StageTwoExceptionsView';
 import { StageTwoExitGateView } from './StageTwoExitGateView';
 import { StageTwoCollectionOperationsService } from '../../services/stageTwoCollectionOperationsService';
 import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
-interface StageTwoCollectionWorkspaceProps {
+import { AccountingDocumentIntakeAgentView } from './AccountingDocumentIntakeAgentView';
+
+export interface StageTwoCollectionWorkspaceProps {
   clientId?: string;
   selectedTaxYear: number;
   onTaxYearChange?: (year: number) => void;
   initialSubTab?: 'checklist' | 'upload' | 'vault' | 'missing' | 'requests' | 'processing' | 'security' | 'exceptions' | 'review' | 'readiness';
   onOpenAssistant?: () => void;
+  userRole?: 'CLIENT' | 'STAFF' | 'ADMIN' | string;
 
   /*
    * LIVE server-authoritative workflow controls.
@@ -96,6 +99,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
   onTaxYearChange,
   initialSubTab = 'checklist',
   onOpenAssistant,
+  userRole = 'CLIENT',
   serverStageThreeEligible = false,
   onServerWorkflowRefresh
 }) => {
@@ -103,6 +107,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
     'checklist' | 'upload' | 'vault' | 'missing' | 'requests' | 'processing' | 'security' | 'exceptions' | 'review' | 'readiness'
   >(initialSubTab);
   const [showStageThree, setShowStageThree] = useState(false);
+  const [showStaffOperationalTabs, setShowStaffOperationalTabs] = useState(false);
 
   const [workspaceVersion, setWorkspaceVersion] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -363,132 +368,255 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {/* ========================================================================= */}
       {/* 1. TOP CONTEXT BAR: Client ID + Engagement + Tax Year + Entity/Return Type */}
       {/* ========================================================================= */}
-      <div className="bg-[#061A2F] text-white border border-[#1A365D] rounded-xl p-6 shadow-md">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="px-2.5 py-0.5 text-xs font-mono font-bold bg-[#D7AC4A] text-[#061A2F] rounded-xs uppercase tracking-wider">
-                Stage 02: Collect
-              </span>
-              <span className="px-2 py-0.5 text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700 rounded-xs flex items-center gap-1">
-                <Hash className="w-3 h-3 text-slate-400" />
-                <span>Client ID: {context.clientId}</span>
-              </span>
-              <span className="px-2 py-0.5 text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700 rounded-xs">
-                {context.engagementId}
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                <Building2 className="w-6 h-6 text-[#D7AC4A] flex-shrink-0" />
-                <span>{context.entityName}</span>
+      {/* ========================================================================= */}
+      {/* 1. TOP CONTEXT / GUIDED WORKSPACE HEADER */}
+      {/* ========================================================================= */}
+      {userRole === 'CLIENT' ? (
+        <div className="bg-[#0D2745] text-white border border-slate-700/60 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/50 pb-5">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#D4A843]/20 text-[#D4A843] border border-[#D4A843]/40">
+                  STAGE 02 — COLLECT
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/40">
+                  Collection Status: In Progress
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#F8FAFC] flex items-center gap-2">
+                <Building2 className="w-6 h-6 text-[#D4A843] flex-shrink-0" />
+                <span>{context.entityName || 'Michael James Carter'}</span>
               </h1>
-              <span className="text-slate-400 hidden sm:inline">•</span>
-              <span className="text-sm text-slate-300 font-medium">
-                {context.returnType}
-              </span>
+              <p className="text-xs text-[#A9B7C8] mt-1 font-mono">
+                Tax Year: <strong className="text-[#D4A843]">{context.taxYear}</strong> &bull; Return: <strong className="text-slate-200">{context.returnType}</strong> &bull; Client ID: <strong className="text-slate-200">{context.clientId}</strong>
+              </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
-              <span>Jurisdictions: <strong className="text-slate-200">{context.jurisdictions.join(', ')}</strong></span>
-              <span>•</span>
-              <span>Assigned Preparer: <strong className="text-slate-200">{context.assignedPreparer}</strong></span>
-              <span>•</span>
-              <span>Assigned Reviewer: <strong className="text-slate-200">{context.assignedReviewer}</strong></span>
+            {/* Collection Progress */}
+            <div className="bg-[#06182B] border border-slate-700/80 p-4 rounded-xl min-w-[240px]">
+              <div className="text-[10px] text-[#A9B7C8] uppercase font-mono tracking-wider font-semibold">
+                Collection Progress
+              </div>
+              <div className="text-sm font-bold text-[#F8FAFC] mt-0.5 flex items-baseline justify-between gap-2">
+                <span>{readiness.receivedCount} of {readiness.requiredCount} required documents received</span>
+                <span className="text-xs font-mono text-[#D4A843] font-bold">{readiness.readinessScore}%</span>
+              </div>
+              <div className="w-full h-2 bg-[#102D4F] rounded-full overflow-hidden border border-slate-700 mt-2">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 via-[#D4A843] to-blue-500 transition-all duration-300"
+                  style={{ width: `${Math.min(100, Math.max(5, readiness.readinessScore))}%` }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Tax Year Selection & Readiness Summary */}
-          <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-3">
-            <div className="flex items-center gap-2">
-              <label htmlFor="tax-year-select" className="text-xs text-slate-400 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-[#D7AC4A]" />
-                <span>Tax Year:</span>
-              </label>
-              <select
-                id="tax-year-select"
-                value={context.taxYear}
-                onChange={(e) => onTaxYearChange && onTaxYearChange(parseInt(e.target.value, 10))}
-                className="px-3 py-1.5 bg-[#031323] border border-slate-700 rounded-md text-xs font-mono font-bold text-white focus:outline-hidden focus:border-[#D7AC4A]"
-              >
-                {[2025, 2024, 2023, 2022].map(yr => (
-                  <option key={yr} value={yr}>CY {yr}</option>
-                ))}
-              </select>
+          {/* NEXT REQUIRED ACTION Card */}
+          <div className="p-5 rounded-xl bg-[#102D4F] border border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#D4A843] font-bold flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#D4A843]" />
+                <span>NEXT REQUIRED ACTION</span>
+              </div>
+              <div className="text-sm font-bold text-[#F8FAFC]">
+                Upload the documents required to prepare your return.
+              </div>
+              <p className="text-xs text-[#A9B7C8]">
+                Submit your W-2s, 1099s, bank statements, and relevant tax schedules to complete Stage 02.
+              </p>
             </div>
 
-            <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-lg flex items-center gap-4 w-full sm:w-auto">
-              <div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                  Collection Readiness
-                </div>
-                <div className="flex items-baseline gap-2 mt-0.5">
-                  <span className="text-xl font-bold font-mono text-[#D7AC4A]">
-                    {readiness.readinessScore}%
-                  </span>
-                  <span className="text-xs text-slate-300">
-                    ({readiness.receivedCount} of {readiness.requiredCount} required received)
-                  </span>
-                </div>
-              </div>
-
+            <div className="flex items-center gap-3 shrink-0">
               <button
-                onClick={() => setActiveSubTab('readiness')}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors ml-auto"
+                type="button"
+                onClick={() => setActiveSubTab('checklist')}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#0D2745] hover:bg-[#153a66] border border-slate-700 transition-colors cursor-pointer"
               >
-                Gate Status
+                View Required Documents
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('upload')}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Upload Document</span>
               </button>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Staff / Administrative Header */
+        <div className="bg-[#0D2745] text-white border border-slate-700/60 rounded-xl p-6 shadow-md">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="px-2.5 py-0.5 text-xs font-mono font-bold bg-[#D4A843] text-[#06182B] rounded-xs uppercase tracking-wider">
+                  Stage 02: Collect (Staff View)
+                </span>
+                <span className="px-2 py-0.5 text-xs font-mono bg-[#102D4F] text-slate-300 border border-slate-700 rounded-xs flex items-center gap-1">
+                  <Hash className="w-3 h-3 text-slate-400" />
+                  <span>Client ID: {context.clientId}</span>
+                </span>
+                <span className="px-2 py-0.5 text-xs font-mono bg-[#102D4F] text-slate-300 border border-slate-700 rounded-xs">
+                  {context.engagementId}
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <Building2 className="w-6 h-6 text-[#D4A843] flex-shrink-0" />
+                  <span>{context.entityName}</span>
+                </h1>
+                <span className="text-slate-400 hidden sm:inline">•</span>
+                <span className="text-sm text-slate-300 font-medium">
+                  {context.returnType}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                <span>Jurisdictions: <strong className="text-slate-200">{context.jurisdictions.join(', ')}</strong></span>
+                <span>•</span>
+                <span>Assigned Preparer: <strong className="text-slate-200">{context.assignedPreparer}</strong></span>
+                <span>•</span>
+                <span>Assigned Reviewer: <strong className="text-slate-200">{context.assignedReviewer}</strong></span>
+              </div>
+            </div>
+
+            {/* Tax Year Selection & Readiness Summary */}
+            <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-3">
+              <div className="flex items-center gap-2">
+                <label htmlFor="tax-year-select" className="text-xs text-slate-400 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#D4A843]" />
+                  <span>Tax Year:</span>
+                </label>
+                <select
+                  id="tax-year-select"
+                  value={context.taxYear}
+                  onChange={(e) => onTaxYearChange && onTaxYearChange(parseInt(e.target.value, 10))}
+                  className="px-3 py-1.5 bg-[#06182B] border border-slate-700 rounded-md text-xs font-mono font-bold text-white focus:outline-hidden focus:border-[#D4A843]"
+                >
+                  {[2025, 2024, 2023, 2022].map(yr => (
+                    <option key={yr} value={yr}>CY {yr}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-3 bg-[#06182B] border border-slate-800 rounded-lg flex items-center gap-4 w-full sm:w-auto">
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    Collection Readiness
+                  </div>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-xl font-bold font-mono text-[#D4A843]">
+                      {readiness.readinessScore}%
+                    </span>
+                    <span className="text-xs text-slate-300">
+                      ({readiness.receivedCount} of {readiness.requiredCount} required received)
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveSubTab('readiness')}
+                  className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#153a66] text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors ml-auto cursor-pointer"
+                >
+                  Gate Status
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* 2. COLLECTION WORKSPACE SUB-NAVIGATION TABS */}
+      {/* 2. CONSOLIDATED CONTEXTUAL NAVIGATION (FOR CLIENT ROLE) */}
       {/* ========================================================================= */}
-      <div className="bg-white border border-neutral-300 rounded-lg p-1.5 flex flex-wrap items-center gap-1 shadow-xs">
-        {[
-          { id: 'checklist', label: 'Document Checklist', icon: CheckSquare, count: requirements.length },
-          { id: 'upload', label: 'Upload Center', icon: UploadCloud },
-          { id: 'vault', label: 'Document Vault', icon: FolderLock },
-          { id: 'missing', label: 'Missing Documents', icon: AlertCircle, count: readiness.missingCount, badgeColor: 'bg-rose-100 text-rose-800' },
-          { id: 'requests', label: 'Document Requests', icon: Inbox, count: openRequestsCount > 0 ? openRequestsCount : undefined, badgeColor: 'bg-blue-100 text-blue-900' },
-          { id: 'processing', label: 'Processing Status', icon: Sparkles, count: uploadedDocs.length },
-          { id: 'security', label: 'Security & Staging', icon: ShieldAlert, count: quarantinedDocs.length > 0 ? quarantinedDocs.length : undefined, badgeColor: 'bg-rose-100 text-rose-800' },
-          { id: 'exceptions', label: 'Exceptions', icon: AlertTriangle, count: openExceptionsCount > 0 ? openExceptionsCount : undefined, badgeColor: 'bg-rose-100 text-rose-800' },
-          { id: 'review', label: 'Human Review', icon: Eye, count: reviewQueue.filter(i => i.status === 'PENDING_REVIEW').length > 0 ? reviewQueue.filter(i => i.status === 'PENDING_REVIEW').length : undefined, badgeColor: 'bg-amber-100 text-amber-900' },
-          { id: 'readiness', label: 'Collection Readiness', icon: ShieldCheck }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeSubTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveSubTab(tab.id as any)}
-              className={`px-3 py-2 rounded-md text-xs font-semibold flex items-center gap-2 transition-colors ${
-                isActive
-                  ? 'bg-[#061A2F] text-white shadow-xs'
-                  : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#D7AC4A]' : 'text-neutral-500'}`} />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                    isActive
-                      ? 'bg-slate-800 text-slate-200'
-                      : tab.badgeColor || 'bg-neutral-200 text-neutral-800'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="bg-[#0D2745] border border-slate-700/60 rounded-xl p-1.5 flex flex-wrap items-center justify-between gap-2 shadow-md">
+        <div className="flex flex-wrap items-center gap-1">
+          {[
+            { id: 'checklist', label: 'Required Documents', icon: CheckSquare, count: requirements.length },
+            { id: 'upload', label: 'Upload Documents', icon: UploadCloud },
+            { id: 'vault', label: 'My Documents', icon: FolderLock, count: uploadedDocs.length },
+            { id: 'requests', label: 'Requests', icon: Inbox, count: openRequestsCount > 0 ? openRequestsCount : undefined, badgeColor: 'bg-blue-900 text-blue-200' }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeSubTab === tab.id || (tab.id === 'checklist' && activeSubTab === 'missing');
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveSubTab(tab.id as any)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#D4A843] text-[#06182B] shadow-md'
+                    : 'text-[#A9B7C8] hover:text-[#F8FAFC] hover:bg-[#102D4F]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#06182B]' : 'text-[#D4A843]'}`} />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                      isActive
+                        ? 'bg-[#06182B] text-[#D4A843]'
+                        : tab.badgeColor || 'bg-[#102D4F] text-[#A9B7C8]'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Staff Operations Toggle for authorized staff */}
+        {userRole !== 'CLIENT' && (
+          <button
+            type="button"
+            onClick={() => setShowStaffOperationalTabs(prev => !prev)}
+            className="px-3 py-1.5 rounded-lg text-xs font-mono text-[#A9B7C8] hover:text-white bg-[#102D4F] border border-slate-700 flex items-center gap-1.5 ml-auto cursor-pointer"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[#D4A843]" />
+            <span>{showStaffOperationalTabs ? 'Hide Staff Tools' : 'Staff Operations (5)'}</span>
+          </button>
+        )}
       </div>
+
+      {/* Staff Operational Controls (if enabled or staff role active on operational tab) */}
+      {(showStaffOperationalTabs || (userRole !== 'CLIENT' && ['processing', 'security', 'exceptions', 'review', 'readiness'].includes(activeSubTab))) && (
+        <div className="bg-[#102D4F] border border-slate-700/60 rounded-xl p-2 flex flex-wrap items-center gap-1 shadow-inner text-xs">
+          <span className="text-[10px] font-mono uppercase text-[#D4A843] px-2 font-bold">Staff Ops:</span>
+          {[
+            { id: 'processing', label: 'Processing Status', icon: Sparkles, count: uploadedDocs.length },
+            { id: 'security', label: 'Security & Staging', icon: ShieldAlert, count: quarantinedDocs.length > 0 ? quarantinedDocs.length : undefined },
+            { id: 'exceptions', label: 'Exceptions', icon: AlertTriangle, count: openExceptionsCount > 0 ? openExceptionsCount : undefined },
+            { id: 'review', label: 'Human Review', icon: Eye, count: reviewQueue.filter(i => i.status === 'PENDING_REVIEW').length > 0 ? reviewQueue.filter(i => i.status === 'PENDING_REVIEW').length : undefined },
+            { id: 'readiness', label: 'Collection Readiness', icon: ShieldCheck }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeSubTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveSubTab(tab.id as any)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  isActive ? 'bg-[#0D2745] text-white border border-[#D4A843]/50' : 'text-[#A9B7C8] hover:text-white hover:bg-[#0D2745]/60'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 text-[#D4A843]" />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 3. TAB CONTENT VIEWS */}
@@ -497,25 +625,25 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {/* SUB-TAB: CHECKLIST (TG-COL-002) */}
       {activeSubTab === 'checklist' && (
         <div className="space-y-4">
-          <div className="p-4 bg-white border border-neutral-300 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 flex-1">
               <div className="relative flex-1 min-w-[220px]">
-                <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#7F91A6] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search requirement by title, form number, or ID..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-300 rounded-md focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#06182B] border border-slate-700 rounded-lg text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <Filter className="w-3.5 h-3.5 text-neutral-500" />
+                <Filter className="w-3.5 h-3.5 text-[#A9B7C8]" />
                 <select
                   value={selectedStatusFilter}
                   onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                  className="text-xs border border-neutral-300 rounded-md px-2 py-1.5 bg-white text-neutral-700"
+                  className="text-xs border border-slate-700 rounded-lg px-2.5 py-1.5 bg-[#06182B] text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="Required">Required</option>
@@ -532,7 +660,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                  className="text-xs border border-neutral-300 rounded-md px-2 py-1.5 bg-white text-neutral-700"
+                  className="text-xs border border-slate-700 rounded-lg px-2.5 py-1.5 bg-[#06182B] text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
                 >
                   <option value="ALL">All Categories</option>
                   {categories.map(c => (
@@ -549,9 +677,9 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 setUploadFile(null);
                 setUploadModalOpen(true);
               }}
-              className="px-3 py-1.5 bg-[#061A2F] hover:bg-[#0A2544] text-white rounded-md text-xs font-semibold flex items-center gap-1.5 self-start md:self-auto"
+              className="px-4 py-2 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] rounded-xl text-xs font-bold flex items-center gap-1.5 self-start md:self-auto shadow-md transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 text-[#D7AC4A]" />
+              <Plus className="w-3.5 h-3.5 text-[#06182B]" />
               <span>Upload Document</span>
             </button>
           </div>
@@ -561,49 +689,49 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             {filteredRequirements.map((req) => (
               <div
                 key={req.requirementId}
-                className="p-4 bg-white border border-neutral-300 hover:border-neutral-400 rounded-lg shadow-xs transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="p-5 bg-[#0D2745] border border-slate-700/60 hover:border-[#D4A843]/50 rounded-xl shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
-                <div className="space-y-1.5 flex-1">
+                <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-neutral-100 text-neutral-800 border border-neutral-300 rounded">
+                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#102D4F] text-[#D4A843] border border-slate-700 rounded">
                       {req.requirementId}
                     </span>
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-800 rounded">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#102D4F] text-[#F8FAFC] rounded">
                       {req.formNumber}
                     </span>
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200 rounded">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#06182B] text-[#A9B7C8] border border-slate-800 rounded">
                       {req.category}
                     </span>
-                    <span className="px-2 py-0.5 text-[10px] font-mono text-neutral-600 bg-neutral-50 rounded">
+                    <span className="px-2 py-0.5 text-[10px] font-mono text-[#7F91A6] bg-[#06182B] rounded">
                       {req.jurisdiction}
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-neutral-900">{req.title}</h3>
-                  <p className="text-xs text-neutral-600 line-clamp-2">{req.description}</p>
+                  <h3 className="text-sm font-bold text-[#F8FAFC]">{req.title}</h3>
+                  <p className="text-xs text-[#A9B7C8] line-clamp-2 leading-relaxed">{req.description}</p>
 
                   {req.statutoryBasis && (
-                    <div className="text-[11px] font-mono text-neutral-500 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-[#D7AC4A]" />
+                    <div className="text-[11px] font-mono text-[#D4A843] flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-[#D4A843]" />
                       <span>Authority: {req.statutoryBasis}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex flex-row md:flex-col items-end justify-between md:justify-center gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-neutral-200">
+                <div className="flex flex-row md:flex-col items-end justify-between md:justify-center gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-700/50">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-neutral-500">Status:</span>
+                    <span className="text-[10px] text-[#A9B7C8]">Status:</span>
                     <select
                       value={req.status}
                       onChange={(e) => handleStatusChange(req.requirementId, e.target.value as CollectionDocumentStatus)}
-                      className={`text-xs font-semibold px-2 py-1 rounded border ${
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${
                         req.status === 'Accepted'
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          ? 'bg-emerald-950/70 text-emerald-300 border-emerald-600/40'
                           : req.status === 'Received' || req.status === 'Under Review'
-                          ? 'bg-blue-50 text-blue-800 border-blue-300'
+                          ? 'bg-blue-950/70 text-blue-300 border-blue-600/40'
                           : req.status === 'Missing' || req.status === 'Required'
-                          ? 'bg-amber-50 text-amber-900 border-amber-300'
-                          : 'bg-neutral-100 text-neutral-800 border-neutral-300'
+                          ? 'bg-amber-950/70 text-amber-300 border-amber-600/40'
+                          : 'bg-[#102D4F] text-[#A9B7C8] border-slate-700'
                       }`}
                     >
                       <option value="Required">Required</option>
@@ -621,9 +749,9 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
 
                   <button
                     onClick={() => handleOpenUploadForReq(req)}
-                    className="px-3 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-300 rounded text-xs font-medium flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                   >
-                    <UploadCloud className="w-3.5 h-3.5 text-neutral-600" />
+                    <UploadCloud className="w-3.5 h-3.5 text-[#D4A843]" />
                     <span>Attach Upload</span>
                   </button>
                 </div>
@@ -631,7 +759,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             ))}
 
             {filteredRequirements.length === 0 && (
-              <div className="p-8 text-center bg-neutral-50 border border-dashed border-neutral-300 rounded-lg text-neutral-500 text-xs">
+              <div className="p-8 text-center bg-[#0D2745]/60 border border-dashed border-slate-700 rounded-xl text-[#7F91A6] text-xs">
                 No checklist requirements matched your active filters.
               </div>
             )}
@@ -639,79 +767,84 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
         </div>
       )}
 
-      {/* SUB-TAB: UPLOAD CENTER (TG-COL-003) */}
+      {/* SUB-TAB: UPLOAD DOCUMENTS (TG-COL-003 & ACCOUNTING INTAKE AGENT) */}
       {activeSubTab === 'upload' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-neutral-300 bg-white p-6 shadow-sm">
-            <div className="flex items-start gap-3">
-              <UploadCloud className="h-5 w-5 text-[#061A2F]" />
-
-              <div className="flex-1">
-                <h2 className="text-base font-bold text-neutral-900">
-                  Secure Document Intake
-                </h2>
-
-                <p className="mt-1 text-sm text-neutral-600">
-                  Documents enter TaxGuard through the controlled Stage 02
-                  intake boundary. A document is not considered verified
-                  merely because it has been uploaded.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetRequirement(null);
-                    setUploadCategory('General Supporting Documentation');
-                    setUploadFile(null);
-                    setUploadModalOpen(true);
-                  }}
-                  className="mt-4 rounded-md bg-[#061A2F] px-4 py-2 text-xs font-semibold text-white"
-                >
-                  Select Document
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AccountingDocumentIntakeAgentView
+          clientId={context.clientId}
+          taxYear={context.taxYear}
+          clientName={context.entityName || 'Michael James Carter'}
+          onDocumentImported={() => setWorkspaceVersion(v => v + 1)}
+          onNavigateToVault={() => setActiveSubTab('vault')}
+          onNavigateToChecklist={() => setActiveSubTab('checklist')}
+        />
       )}
 
-      {/* SUB-TAB: DOCUMENT VAULT */}
+      {/* SUB-TAB: MY DOCUMENTS / DOCUMENT VAULT */}
       {activeSubTab === 'vault' && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-neutral-300 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-neutral-900">
-              Engagement Document Register
-            </h2>
+          <div className="rounded-2xl border border-slate-700/60 bg-[#0D2745] p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/50 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
+                  <FolderLock className="w-5 h-5 text-[#D4A843]" />
+                  <span>My Documents &amp; Engagement Register</span>
+                </h2>
+                <p className="mt-1 text-xs text-[#A9B7C8]">
+                  Verified records in your client vault. Documents are encrypted and tamper-verified.
+                </p>
+              </div>
 
-            <p className="mt-1 text-xs text-neutral-600">
-              This register reflects the current Stage 02 engagement records.
-            </p>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('upload')}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Upload New Document</span>
+              </button>
+            </div>
 
             {uploadedDocs.length === 0 ? (
-              <div className="mt-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm text-neutral-600">
-                No documents are currently available for this engagement.
+              <div className="mt-6 rounded-xl border border-dashed border-slate-700 bg-[#06182B]/60 p-10 text-center text-xs text-[#7F91A6]">
+                <FolderLock className="w-8 h-8 text-[#7F91A6] mx-auto mb-2 opacity-60" />
+                <p>No documents are currently available in your vault.</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('upload')}
+                  className="mt-3 text-xs font-bold text-[#D4A843] hover:underline cursor-pointer"
+                >
+                  Upload your first accounting document &rarr;
+                </button>
               </div>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-2.5">
                 {uploadedDocs.map(doc => (
                   <div
                     key={doc.documentId}
-                    className="rounded-lg border border-neutral-200 p-4"
+                    className="rounded-xl border border-slate-700/60 bg-[#102D4F] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-600 transition-colors"
                   >
-                    <div className="flex flex-col justify-between gap-2 md:flex-row">
-                      <div>
-                        <div className="text-sm font-semibold text-neutral-900">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="p-2 rounded-lg bg-[#0D2745] text-[#D4A843] shrink-0 mt-0.5">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-[#F8FAFC] truncate">
                           {doc.originalFileName}
                         </div>
-
-                        <div className="mt-1 font-mono text-xs text-neutral-500">
-                          {doc.documentId}
+                        <div className="mt-1 font-mono text-[11px] text-[#A9B7C8] flex flex-wrap items-center gap-2">
+                          <span>ID: {doc.documentId}</span>
+                          <span>&bull;</span>
+                          <span>Category: {doc.category}</span>
+                          <span>&bull;</span>
+                          <span>Uploaded: {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Active'}</span>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="text-xs font-semibold text-neutral-700">
-                        {doc.processingStatus}
-                      </div>
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                      <span className="px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-600/40">
+                        {doc.processingStatus || 'CLEARED'}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -1823,82 +1956,82 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {/* 4. DIRECT UPLOAD MODAL (TG-COL-003) */}
       {/* ========================================================================= */}
       {uploadModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-neutral-300 rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0D2745] border border-slate-700/70 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
               <div>
-                <h3 className="text-base font-bold text-neutral-900">Secure Document Ingestion</h3>
-                <p className="text-xs text-neutral-600 mt-0.5">
+                <h3 className="text-base font-bold text-[#F8FAFC]">Secure Document Ingestion</h3>
+                <p className="text-xs text-[#A9B7C8] mt-0.5">
                   Direct upload into Stage 02 Collection Workspace with SHA-256 verification.
                 </p>
               </div>
               <button
                 onClick={() => setUploadModalOpen(false)}
-                className="p-1 text-neutral-500 hover:text-neutral-900 rounded"
+                className="p-1 text-[#7F91A6] hover:text-[#F8FAFC] rounded cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {targetRequirement && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
-                <div className="font-bold text-slate-900">Target Requirement: {targetRequirement.title}</div>
-                <div className="text-[11px] font-mono text-slate-600">ID: {targetRequirement.requirementId} • Form: {targetRequirement.formNumber}</div>
+              <div className="p-3.5 bg-[#06182B] border border-slate-700/80 rounded-xl text-xs space-y-1">
+                <div className="font-bold text-[#F8FAFC]">Target Requirement: {targetRequirement.title}</div>
+                <div className="text-[11px] font-mono text-[#D4A843]">ID: {targetRequirement.requirementId} • Form: {targetRequirement.formNumber}</div>
               </div>
             )}
 
             <form onSubmit={handleExecuteUpload} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-neutral-800 mb-1">
+                <label className="block text-xs font-semibold text-[#A9B7C8] mb-1">
                   Document Category
                 </label>
                 <input
                   type="text"
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 bg-[#06182B] border border-slate-700 rounded-lg text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-800 mb-1">
-                  Select File (PDF, PNG, JPEG, TIFF)
+                <label className="block text-xs font-semibold text-[#A9B7C8] mb-1">
+                  Select File (PDF, CSV, XLS, XLSX, DOC, PNG, JPEG)
                 </label>
                 <input
                   type="file"
                   onChange={(e) => setUploadFile(e.target.files ? e.target.files[0] : null)}
-                  className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#061A2F] file:text-white hover:file:bg-[#0A2544]"
+                  className="w-full text-xs text-[#A9B7C8] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#102D4F] file:text-[#D4A843] hover:file:bg-[#153a66] file:cursor-pointer"
                   required
                 />
               </div>
 
               {uploadSuccessMessage && (
-                <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded text-xs">
+                <div className="p-3 bg-emerald-950/70 border border-emerald-600/40 text-emerald-300 rounded-xl text-xs">
                   {uploadSuccessMessage}
                 </div>
               )}
 
               {uploadErrorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-300 text-rose-900 rounded text-xs">
+                <div className="p-3 bg-rose-950/70 border border-rose-600/40 text-rose-300 rounded-xl text-xs">
                   {uploadErrorMessage}
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-200">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/60">
                 <button
                   type="button"
                   onClick={() => setUploadModalOpen(false)}
-                  className="px-4 py-2 border border-neutral-300 rounded text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                  className="px-4 py-2 border border-slate-700 rounded-xl text-xs font-semibold text-[#A9B7C8] hover:text-[#F8FAFC] hover:bg-[#102D4F] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingUpload || !uploadFile}
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2544] disabled:opacity-50 text-white rounded text-xs font-semibold flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#D4A843] hover:bg-[#E1BB60] disabled:opacity-50 text-[#06182B] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
                 >
-                  <UploadCloud className="w-4 h-4 text-[#D7AC4A]" />
+                  <UploadCloud className="w-4 h-4 text-[#06182B]" />
                   <span>{isSubmittingUpload ? 'Hashing & Ingesting...' : 'Ingest Document'}</span>
                 </button>
               </div>

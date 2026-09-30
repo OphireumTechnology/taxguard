@@ -247,49 +247,49 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 bg-white border border-neutral-200 rounded-lg shadow-2xs">
-          <div className="text-[10px] text-neutral-500 uppercase font-semibold">Total Requests</div>
-          <div className="text-2xl font-bold font-mono text-neutral-900 mt-1">{requests.length}</div>
+        <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md">
+          <div className="text-[10px] text-[#A9B7C8] uppercase font-semibold">Total Requests</div>
+          <div className="text-2xl font-bold font-mono text-[#F8FAFC] mt-1">{requests.length}</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-200 rounded-lg shadow-2xs">
-          <div className="text-[10px] text-blue-700 uppercase font-semibold">Active Open</div>
-          <div className="text-2xl font-bold font-mono text-blue-700 mt-1">
+        <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md">
+          <div className="text-[10px] text-blue-400 uppercase font-semibold">Active Open</div>
+          <div className="text-2xl font-bold font-mono text-blue-300 mt-1">
             {requests.filter(r => r.status === 'OPEN' || r.status === 'IN_PROGRESS').length}
           </div>
         </div>
-        <div className="p-4 bg-white border border-neutral-200 rounded-lg shadow-2xs">
-          <div className="text-[10px] text-emerald-700 uppercase font-semibold">Fulfilled</div>
-          <div className="text-2xl font-bold font-mono text-emerald-700 mt-1">
+        <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md">
+          <div className="text-[10px] text-emerald-400 uppercase font-semibold">Fulfilled</div>
+          <div className="text-2xl font-bold font-mono text-emerald-300 mt-1">
             {requests.filter(r => r.status === 'FULFILLED').length}
           </div>
         </div>
-        <div className="p-4 bg-white border border-neutral-200 rounded-lg shadow-2xs">
-          <div className="text-[10px] text-amber-700 uppercase font-semibold">Chasing Reminders Sent</div>
-          <div className="text-2xl font-bold font-mono text-amber-700 mt-1">
+        <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md">
+          <div className="text-[10px] text-amber-400 uppercase font-semibold">Chasing Reminders Sent</div>
+          <div className="text-2xl font-bold font-mono text-amber-300 mt-1">
             {reminders.length}
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 bg-white border border-neutral-300 rounded-lg shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#7F91A6] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search requests by title, document, ID..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#06182B] border border-slate-700 rounded-lg text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-hidden focus:border-[#D4A843]"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-neutral-500" />
+          <Filter className="w-4 h-4 text-[#A9B7C8]" />
           <select
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
-            className="text-xs px-3 py-1.5 border border-neutral-300 rounded bg-white font-medium"
+            className="text-xs px-3 py-1.5 border border-slate-700 rounded-lg bg-[#06182B] text-[#F8FAFC] font-medium focus:border-[#D4A843]"
           >
             <option value="ALL">All Requests ({requests.length})</option>
             <option value="OPEN">Open</option>
@@ -308,21 +308,21 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
           return (
             <div
               key={req.requestId}
-              className="p-5 bg-white border border-neutral-300 rounded-xl shadow-xs space-y-3 transition-colors hover:border-neutral-400"
+              className="p-5 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md space-y-3 transition-colors hover:border-[#D4A843]/50"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 text-xs font-mono font-bold bg-neutral-100 text-neutral-800 border border-neutral-300 rounded">
+                    <span className="px-2 py-0.5 text-xs font-mono font-bold bg-[#102D4F] text-[#D4A843] border border-slate-700 rounded">
                       {req.requestId}
                     </span>
-                    <span className="text-sm font-bold text-neutral-900">{req.title}</span>
+                    <span className="text-sm font-bold text-[#F8FAFC]">{req.title}</span>
                     <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
                       req.priority === 'URGENT'
-                        ? 'bg-red-100 text-red-900'
+                        ? 'bg-red-950/70 text-red-300 border border-red-600/40'
                         : req.priority === 'HIGH'
-                        ? 'bg-rose-100 text-rose-900'
-                        : 'bg-neutral-100 text-neutral-700'
+                        ? 'bg-rose-950/70 text-rose-300 border border-rose-600/40'
+                        : 'bg-[#102D4F] text-[#A9B7C8]'
                     }`}>
                       {req.priority} PRIORITY
                     </span>

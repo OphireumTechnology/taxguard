@@ -189,94 +189,94 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <div
           onClick={() => setSelectedStatusFilter('MISSING')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'MISSING' ? 'ring-2 ring-rose-500 bg-rose-50 border-rose-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'MISSING' ? 'ring-2 ring-rose-500 bg-rose-950/40 border-rose-600/50' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-rose-800">Missing</div>
-          <div className="text-2xl font-bold font-mono text-rose-700 mt-1">{counts.missing}</div>
+          <div className="text-[10px] uppercase font-bold text-rose-400">Missing</div>
+          <div className="text-2xl font-bold font-mono text-rose-300 mt-1">{counts.missing}</div>
         </div>
 
         <div
           onClick={() => setSelectedStatusFilter('REQUESTED')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'REQUESTED' ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'REQUESTED' ? 'ring-2 ring-blue-500 bg-blue-950/40 border-blue-600/50' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-blue-800">Requested</div>
-          <div className="text-2xl font-bold font-mono text-blue-700 mt-1">{counts.requested}</div>
+          <div className="text-[10px] uppercase font-bold text-blue-400">Requested</div>
+          <div className="text-2xl font-bold font-mono text-blue-300 mt-1">{counts.requested}</div>
         </div>
 
         <div
           onClick={() => setSelectedStatusFilter('UNDER_REVIEW')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'UNDER_REVIEW' ? 'ring-2 ring-amber-500 bg-amber-50 border-amber-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'UNDER_REVIEW' ? 'ring-2 ring-amber-500 bg-amber-950/40 border-amber-600/50' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-amber-800">Under Review</div>
-          <div className="text-2xl font-bold font-mono text-amber-700 mt-1">{counts.underReview}</div>
+          <div className="text-[10px] uppercase font-bold text-amber-400">Under Review</div>
+          <div className="text-2xl font-bold font-mono text-amber-300 mt-1">{counts.underReview}</div>
         </div>
 
         <div
           onClick={() => setSelectedStatusFilter('PROCESSING')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'PROCESSING' ? 'ring-2 ring-indigo-500 bg-indigo-50 border-indigo-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'PROCESSING' ? 'ring-2 ring-indigo-500 bg-indigo-950/40 border-indigo-600/50' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-indigo-800">Processing</div>
-          <div className="text-2xl font-bold font-mono text-indigo-700 mt-1">{counts.processing}</div>
+          <div className="text-[10px] uppercase font-bold text-indigo-400">Processing</div>
+          <div className="text-2xl font-bold font-mono text-indigo-300 mt-1">{counts.processing}</div>
         </div>
 
         <div
           onClick={() => setSelectedStatusFilter('ACCEPTED')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'ACCEPTED' ? 'ring-2 ring-emerald-500 bg-emerald-50 border-emerald-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'ACCEPTED' ? 'ring-2 ring-emerald-500 bg-emerald-950/40 border-emerald-600/50' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-emerald-800">Accepted</div>
-          <div className="text-2xl font-bold font-mono text-emerald-700 mt-1">{counts.accepted}</div>
+          <div className="text-[10px] uppercase font-bold text-emerald-400">Accepted</div>
+          <div className="text-2xl font-bold font-mono text-emerald-300 mt-1">{counts.accepted}</div>
         </div>
 
         <div
           onClick={() => setSelectedStatusFilter('REJECTED')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'REJECTED' ? 'ring-2 ring-red-500 bg-red-50 border-red-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'REJECTED' ? 'ring-2 ring-red-500 bg-red-950/40 border-red-600/50' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-red-800">Rejected</div>
-          <div className="text-2xl font-bold font-mono text-red-700 mt-1">{counts.rejected}</div>
+          <div className="text-[10px] uppercase font-bold text-red-400">Rejected</div>
+          <div className="text-2xl font-bold font-mono text-red-300 mt-1">{counts.rejected}</div>
         </div>
 
         <div
           onClick={() => setSelectedStatusFilter('SUPERSEDED')}
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            selectedStatusFilter === 'SUPERSEDED' ? 'ring-2 ring-neutral-500 bg-neutral-100 border-neutral-400' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          className={`p-3 rounded-xl border cursor-pointer transition-all ${
+            selectedStatusFilter === 'SUPERSEDED' ? 'ring-2 ring-slate-500 bg-slate-900 border-slate-600' : 'bg-[#0D2745] border-slate-700/60 hover:bg-[#102D4F]'
           }`}
         >
-          <div className="text-[10px] uppercase font-bold text-neutral-700">Superseded</div>
-          <div className="text-2xl font-bold font-mono text-neutral-800 mt-1">{counts.superseded}</div>
+          <div className="text-[10px] uppercase font-bold text-[#A9B7C8]">Superseded</div>
+          <div className="text-2xl font-bold font-mono text-[#F8FAFC] mt-1">{counts.superseded}</div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 bg-white border border-neutral-300 rounded-lg shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-4 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#7F91A6] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search missing requirements by title, form, or category..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#06182B] border border-slate-700 rounded-lg text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-hidden focus:border-[#D4A843]"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-neutral-500" />
+          <Filter className="w-4 h-4 text-[#A9B7C8]" />
           <select
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
-            className="text-xs px-3 py-1.5 border border-neutral-300 rounded bg-white font-medium"
+            className="text-xs px-3 py-1.5 border border-slate-700 rounded-lg bg-[#06182B] text-[#F8FAFC] font-medium focus:border-[#D4A843]"
           >
             <option value="ALL">All Evaluated Statuses ({evaluatedItems.length})</option>
             <option value="MISSING">Missing ({counts.missing})</option>
@@ -291,11 +291,11 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
       </div>
 
       {/* Requirement Items Table */}
-      <div className="bg-white border border-neutral-300 rounded-lg shadow-xs overflow-hidden">
+      <div className="bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-neutral-100 text-neutral-700 text-[11px] uppercase tracking-wider font-bold border-b border-neutral-200">
-              <th className="p-3">Requirement & Form</th>
+            <tr className="bg-[#102D4F] text-[#A9B7C8] text-[11px] uppercase tracking-wider font-bold border-b border-slate-700">
+              <th className="p-3">Requirement &amp; Form</th>
               <th className="p-3">Category</th>
               <th className="p-3">Priority</th>
               <th className="p-3">Evaluated Status</th>
@@ -367,10 +367,10 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
                         </button>
                         <button
                           onClick={() => onNavigateToUpload(requirement)}
-                          className="px-2.5 py-1 bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-300 rounded text-[11px] font-semibold flex items-center gap-1"
+                          className="px-2.5 py-1 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                           title="Direct Ingest Evidence"
                         >
-                          <UploadCloud className="w-3 h-3 text-neutral-600" />
+                          <UploadCloud className="w-3 h-3 text-[#D4A843]" />
                           <span>Upload</span>
                         </button>
                       </>
@@ -379,16 +379,16 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
                     {status === 'REQUESTED' && (
                       <button
                         onClick={() => onNavigateToRequests(requirement)}
-                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded text-[11px] font-semibold flex items-center gap-1"
+                        className="px-2.5 py-1 bg-blue-950/60 hover:bg-blue-900/80 text-blue-200 border border-blue-600/40 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                       >
-                        <Inbox className="w-3 h-3 text-blue-600" />
+                        <Inbox className="w-3 h-3 text-blue-400" />
                         <span>View Request</span>
                       </button>
                     )}
 
                     {status === 'ACCEPTED' && (
-                      <span className="px-2 py-1 text-emerald-800 text-[11px] font-medium flex items-center gap-1 justify-end">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="px-2 py-1 text-emerald-400 text-[11px] font-medium flex items-center gap-1 justify-end">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Satisfied</span>
                       </span>
                     )}
@@ -396,9 +396,9 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
                     {(status === 'UNDER_REVIEW' || status === 'REJECTED' || status === 'SUPERSEDED') && (
                       <button
                         onClick={() => onNavigateToUpload(requirement)}
-                        className="px-2.5 py-1 bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-300 rounded text-[11px] font-semibold flex items-center gap-1"
+                        className="px-2.5 py-1 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                       >
-                        <UploadCloud className="w-3 h-3 text-neutral-600" />
+                        <UploadCloud className="w-3 h-3 text-[#D4A843]" />
                         <span>Re-Upload</span>
                       </button>
                     )}
