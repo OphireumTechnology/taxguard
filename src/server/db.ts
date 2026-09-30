@@ -92,6 +92,54 @@ export interface SecurityEventRecord {
   timestamp: string;
 }
 
+export interface ProfileAmendmentRecord {
+  id: string;
+  clientId: string;
+  tenantId: string;
+  field: string;
+  fieldLabel: string;
+  previousValue: any;
+  proposedValue: any;
+  requestingUserId: string;
+  requestingUserEmail: string;
+  requestTimestamp: string;
+  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'INFO_REQUESTED';
+  reviewingUserId?: string;
+  reviewingUserEmail?: string;
+  dispositionTimestamp?: string;
+  dispositionNotes?: string;
+  resultingProfileVersion?: number;
+  auditEventId: string;
+  isSensitiveIdentityChange: boolean;
+  additionalVerificationRequired?: boolean;
+}
+
+export interface AuthoritativeProfileRecord {
+  clientId: string;
+  version: number;
+  originalDossier: any;
+  amendedFields: Record<string, any>;
+  effectiveAt: string;
+  lastAmendedAt?: string;
+  lastAmendedBy?: string;
+}
+
+export interface DocumentWithdrawalRecord {
+  withdrawalId: string;
+  documentId: string;
+  clientId: string;
+  taxYear: number;
+  withdrawnBy: string;
+  withdrawnByRole: string;
+  withdrawnAt: string;
+  reason: 'IRRELEVANT' | 'INCORRECT' | 'ACCIDENTAL_UPLOAD' | 'DUPLICATE' | 'SUPERSEDED' | 'CLIENT_REQUEST';
+  justification: string;
+  previousStatus: string;
+  lifecycleStatus: 'WITHDRAWN_BY_CLIENT' | 'SUPERSEDED' | 'DUPLICATE' | 'REJECTED' | 'ARCHIVED' | 'RETENTION_LOCKED';
+  retentionHoldUntil: string;
+  auditEventId: string;
+}
+
 class Database {
   users: Map<string, User> = new Map();
   userPasswords: Map<string, string> = new Map(); // email -> salt:hashedPassword
@@ -158,6 +206,11 @@ class Database {
   clientIntakeDossiers: Map<string, FullClientIntakeDossier> = new Map();
   accountingStagingRecords: Map<string, AccountingStagingRecord> = new Map();
   governedResearchRules: Map<string, GovernedResearchRule> = new Map();
+
+  // Profile Amendments & Document Lifecycle Collections
+  profileAmendments: Map<string, ProfileAmendmentRecord> = new Map();
+  authoritativeProfiles: Map<string, AuthoritativeProfileRecord> = new Map();
+  documentWithdrawals: Map<string, DocumentWithdrawalRecord> = new Map();
 
   auditEvents: Array<{
     id: string;
@@ -1297,6 +1350,187 @@ class Database {
     this.auditEvents.unshift(event);
     if (this.auditEvents.length > 1000) this.auditEvents.pop();
     return event;
+  }
+
+  // -------------------------------------------------------------
+  // PROFILE AMENDMENT & DOCUMENT WITHDRAWAL ENGINE (M3 / STAGE 01 & 02)
+  // -------------------------------------------------------------
+
+  recordProfileAmendment(params: {
+    clientId: string;
+    tenantId: string;
+    field: string;
+    fieldLabel: string;
+    previousValue: any;
+    proposedValue: any;
+    requestingUserId: string;
+    requestingUserEmail: string;
+    isSensitiveIdentityChange?: boolean;
+    additionalVerificationRequired?: boolean;
+    reason?: string;
+  }): ProfileAmendmentRecord {
+    const id = `amd_${randomUUID()}`;
+    const auditEvent = this.logAuditEvent(
+      params.requestingUserId,
+      'client',
+      'PROFILE_AMENDMENT_REQUESTED',
+      'clientProfile',
+      params.clientId,
+      {
+        field: params.field,
+        previousValue: params.previousValue,
+        proposedValue: params.proposedValue,
+        reason: params.reason
+      }
+    );
+
+    const record: ProfileAmendmentRecord = {
+      id,
+      clientId: params.clientId,
+      tenantId: params.tenantId,
+      field: params.field,
+      fieldLabel: params.fieldLabel,
+      previousValue: params.previousValue,
+      proposedValue: params.proposedValue,
+      requestingUserId: params.requestingUserId,
+      requestingUserEmail: params.requestingUserEmail,
+      requestTimestamp: new Date().toISOString(),
+      status: 'PENDING_REVIEW',
+      auditEventId: auditEvent.id,
+      isSensitiveIdentityChange: Boolean(params.isSensitiveIdentityChange),
+      additionalVerificationRequired: Boolean(params.additionalVerificationRequired)
+    };
+
+    this.profileAmendments.set(id, record);
+    return record;
+  }
+
+  reviewProfileAmendment(params: {
+    amendmentId: string;
+    reviewingUserId: string;
+    reviewingUserEmail: string;
+    disposition: 'APPROVED' | 'REJECTED' | 'INFO_REQUESTED';
+    notes?: string;
+  }): { success: boolean; amendment?: ProfileAmendmentRecord; error?: string } {
+    const amendment = this.profileAmendments.get(params.amendmentId);
+    if (!amendment) return { success: false, error: 'Amendment request not found.' };
+
+    const now = new Date().toISOString();
+    amendment.status = params.disposition;
+    amendment.reviewingUserId = params.reviewingUserId;
+    amendment.reviewingUserEmail = params.reviewingUserEmail;
+    amendment.dispositionTimestamp = now;
+    amendment.dispositionNotes = params.notes;
+
+    if (params.disposition === 'APPROVED') {
+      let authProfile = this.authoritativeProfiles.get(amendment.clientId);
+      if (!authProfile) {
+        const dossier = this.clientOnboarding.get(amendment.clientId);
+        authProfile = {
+          clientId: amendment.clientId,
+          version: 1,
+          originalDossier: dossier || {},
+          amendedFields: {},
+          effectiveAt: now
+        };
+      }
+
+      authProfile.version += 1;
+      authProfile.amendedFields[amendment.field] = amendment.proposedValue;
+      authProfile.lastAmendedAt = now;
+      authProfile.lastAmendedBy = params.reviewingUserEmail;
+      this.authoritativeProfiles.set(amendment.clientId, authProfile);
+      amendment.resultingProfileVersion = authProfile.version;
+    }
+
+    this.profileAmendments.set(amendment.id, amendment);
+
+    this.logAuditEvent(
+      params.reviewingUserId,
+      'reviewer',
+      `PROFILE_AMENDMENT_${params.disposition}`,
+      'clientProfile',
+      amendment.clientId,
+      {
+        amendmentId: amendment.id,
+        field: amendment.field,
+        disposition: params.disposition,
+        notes: params.notes,
+        resultingVersion: amendment.resultingProfileVersion
+      }
+    );
+
+    return { success: true, amendment };
+  }
+
+  getAuthoritativeProfile(clientId: string): AuthoritativeProfileRecord {
+    let profile = this.authoritativeProfiles.get(clientId);
+    if (!profile) {
+      const dossier = this.clientOnboarding.get(clientId);
+      profile = {
+        clientId,
+        version: 1,
+        originalDossier: dossier || {},
+        amendedFields: {},
+        effectiveAt: new Date().toISOString()
+      };
+      this.authoritativeProfiles.set(clientId, profile);
+    }
+    return profile;
+  }
+
+  withdrawDocument(params: {
+    documentId: string;
+    clientId: string;
+    taxYear: number;
+    withdrawnBy: string;
+    withdrawnByRole: string;
+    reason: DocumentWithdrawalRecord['reason'];
+    justification: string;
+  }): { success: boolean; document?: DocumentItem; error?: string } {
+    const doc = this.documents.get(params.documentId);
+    if (!doc) return { success: false, error: 'Document not found.' };
+
+    const previousStatus = doc.status;
+    const now = new Date().toISOString();
+    const holdUntil = new Date(Date.now() + 7 * 365 * 24 * 60 * 60 * 1000).toISOString(); // 7-year IRS retention
+
+    doc.status = 'withdrawn' as any;
+    doc.description = `[WITHDRAWN] ${params.justification}. Previously: ${previousStatus}`;
+    this.documents.set(doc.id, doc);
+
+    const auditEvent = this.logAuditEvent(
+      params.withdrawnBy,
+      params.withdrawnByRole,
+      'DOCUMENT_WITHDRAWN_BY_CLIENT',
+      'document',
+      doc.id,
+      {
+        fileName: doc.fileName,
+        reason: params.reason,
+        justification: params.justification,
+        previousStatus
+      }
+    );
+
+    const withdrawal: DocumentWithdrawalRecord = {
+      withdrawalId: `wth_${randomUUID()}`,
+      documentId: doc.id,
+      clientId: params.clientId,
+      taxYear: params.taxYear,
+      withdrawnBy: params.withdrawnBy,
+      withdrawnByRole: params.withdrawnByRole,
+      withdrawnAt: now,
+      reason: params.reason,
+      justification: params.justification,
+      previousStatus,
+      lifecycleStatus: 'WITHDRAWN_BY_CLIENT',
+      retentionHoldUntil: holdUntil,
+      auditEventId: auditEvent.id
+    };
+
+    this.documentWithdrawals.set(withdrawal.withdrawalId, withdrawal);
+    return { success: true, document: doc };
   }
 }
 

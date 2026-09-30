@@ -101,6 +101,14 @@ import {
   accountingIntakeRouter
 } from './src/server/routes/accounting-intake.routes';
 
+import {
+  profileAmendmentRouter
+} from './src/server/routes/profile-amendment.routes';
+
+import {
+  practiceConsoleRouter
+} from './src/server/routes/practice-console.routes';
+
 /**
  * TaxGuard LIVE server-authoritative workflow.
  *
@@ -433,6 +441,16 @@ app.use(
 app.use(
   '/api/accounting-intake',
   accountingIntakeRouter
+);
+
+app.use(
+  '/api/profile',
+  profileAmendmentRouter
+);
+
+app.use(
+  '/api/practice-console',
+  practiceConsoleRouter
 );
 
 /**

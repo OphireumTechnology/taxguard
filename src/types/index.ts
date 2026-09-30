@@ -273,6 +273,7 @@ export interface Message {
   recipientId?: string;
   recipientName?: string;
   engagementId?: string;
+  subject?: string;
   content: string;
   timestamp?: string;
   createdAt?: string;

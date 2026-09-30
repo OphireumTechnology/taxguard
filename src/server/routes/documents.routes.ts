@@ -328,3 +328,125 @@ documentsRouter.patch('/:id/review', authenticateToken, blockRecruiterFromTaxRec
 
   return res.json({ message: 'Document review updated successfully.', document: doc });
 });
+
+// Withdraw / Remove Document with retention policy and audit trail (Directive 10)
+documentsRouter.post('/:id/withdraw', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const doc = db.documents.get(req.params.id);
+  if (!doc) return res.status(404).json({ error: 'Document not found.' });
+
+  // Authorization check: only owner client or staff can withdraw
+  const isOwner = req.user.id === doc.clientId || (req.user.clientId && req.user.clientId === doc.clientId);
+  const isStaff = ['accountant', 'senior_reviewer', 'admin', 'super_admin'].includes(req.user.role);
+
+  if (!isOwner && !isStaff) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to withdraw this document.' });
+  }
+
+  const { reason = 'CLIENT_REQUEST', justification } = req.body;
+  if (!justification || typeof justification !== 'string' || justification.trim().length < 5) {
+    return res.status(400).json({ error: 'A mandatory justification (minimum 5 characters) is required to withdraw a tax record.' });
+  }
+
+  const result = db.withdrawDocument({
+    documentId: doc.id,
+    clientId: doc.clientId,
+    taxYear: doc.taxYear,
+    withdrawnBy: req.user.name || req.user.email,
+    withdrawnByRole: req.user.role,
+    reason,
+    justification
+  });
+
+  return res.json({
+    message: 'Document successfully withdrawn and archived under 7-year IRS compliance policy.',
+    document: result.document
+  });
+});
+
+// Multi-file batch upload (Directive 5 & 6)
+documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRecords, async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { files, taxYear = 2025 } = req.body;
+  if (!Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ error: 'Files array is required.' });
+  }
+
+  const targetClientId = (req.user.role === 'client' || req.user.role === 'prospective_client')
+    ? (req.user.clientId || req.user.id)
+    : (req.body.clientId || req.user.id);
+
+  const client = db.users.get(targetClientId);
+  const ingestedDocs: DocumentItem[] = [];
+
+  for (const item of files) {
+    const { fileName, fileSize, fileType, category, rawContentSample, sha256 } = item;
+    if (!fileName) continue;
+
+    // Check suspicious extension
+    const isSuspicious = fileName.toLowerCase().includes('.exe') ||
+                         fileName.toLowerCase().includes('.bat') ||
+                         fileName.toLowerCase().includes('.scr');
+    if (isSuspicious) {
+      db.logSecurityEvent({
+        eventType: 'MALWARE_SIGNATURE_DETECTED',
+        ipAddress: req.ip || 'unknown',
+        userId: req.user.id,
+        details: `Batch upload blocked suspicious file: ${fileName}`,
+        severity: 'critical'
+      });
+      continue;
+    }
+
+    const docId = `DOC-${taxYear}-${randomUUID().slice(0, 8).toUpperCase()}`;
+
+    // Extract proposed fields
+    const extraction = await processDocumentExtraction(
+      fileName,
+      rawContentSample || `Batch uploaded content for ${fileName}`,
+      category
+    );
+
+    const newDoc: DocumentItem = {
+      id: docId,
+      clientId: targetClientId,
+      clientName: client?.name || req.user.name,
+      fileName,
+      fileSize: fileSize ? (typeof fileSize === 'number' ? `${(fileSize / (1024 * 1024)).toFixed(2)} MB` : String(fileSize)) : '1.0 MB',
+      fileType: fileType || 'application/pdf',
+      category: (extraction.documentCategory as DocumentCategory) || category || 'other',
+      taxYear: Number(taxYear) || 2025,
+      status: 'uploaded',
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: req.user.name,
+      version: 1,
+      description: `Ingested via TaxGuard Secure Intake. SHA-256: ${(sha256 || 'computed').slice(0, 16)}...`,
+      isAiProcessed: true,
+      ocrConfidence: extraction.confidenceScore,
+      extractedData: extraction.extractedFields,
+      isEncrypted: true
+    };
+
+    db.documents.set(docId, newDoc);
+    ingestedDocs.push(newDoc);
+
+    db.logAudit({
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'DOCUMENT_UPLOADED_AES256',
+      resource: `Doc #${docId} (${fileName})`,
+      details: `Batch file ingested and queued for CPA review.`,
+      ipAddress: req.ip || 'unknown',
+      severity: 'info'
+    });
+  }
+
+  return res.status(201).json({
+    message: `Successfully ingested ${ingestedDocs.length} documents.`,
+    documents: ingestedDocs
+  });
+});
+
