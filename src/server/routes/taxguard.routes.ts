@@ -1,7 +1,7 @@
 /**
  * TaxGuard AI Server-Side Route Controller & Authorization Gate
  * Governs legacy route redirects, Maker-Checker authorization, credit metering,
- * statutory tax calculations (SC decoupling, IRC Ã‚Â§ 1367, IRC Ã‚Â§ 6654, Form 433-A),
+ * statutory tax calculations (SC decoupling, IRC § 1367, IRC § 6654, Form 433-A),
  * and provenance trace integrity.
  */
 
@@ -24,7 +24,7 @@ export const taxguardRouter = Router();
 const DEVELOPER_NOTICE = {
   developer: 'Ophireum Multimedia Production',
   phone: '+63 917 966 8814',
-  environment: 'Demonstration Environment Ã¢â‚¬â€œ No Live Filing, Payment, Signature, Banking Connection, or Government Submission',
+  environment: 'Demonstration Environment – No Live Filing, Payment, Signature, Banking Connection, or Government Submission',
   complianceNotice: 'Compliance-supporting technology. Final legal, regulatory, accounting, and tax requirements must be validated by qualified U.S. professionals.'
 };
 
@@ -116,7 +116,7 @@ const DEMO_WORKPAPERS: Map<string, WorkpaperField> = new Map([
       preparerId: 'usr_staff_001',
       preparerName: 'Marcus Vance, EA',
       version: 1,
-      internalReviewerNotes: 'Verify South Carolina non-conformity addback under SC Code Ã‚Â§ 12-6-40.',
+      internalReviewerNotes: 'Verify South Carolina non-conformity addback under SC Code § 12-6-40.',
       preparerNotes: 'Significant variance due to new Mini Excavator ($118.5k) and Ford F-250 ($68.4k).',
       history: []
     }
@@ -212,18 +212,18 @@ taxguardRouter.get('/status', (req, res) => {
     supportedForms: ['Form 1040', 'Form 1120-S', 'Form 1065', 'Form 4562', 'Form 433-A', 'SC1040ES', 'SC Form 1120S-WH'],
     activeEngines: {
       scDepreciationConformity: {
-        statutoryCode: 'SC Code Ã‚Â§ 12-6-40(A)(1)(a)',
+        statutoryCode: 'SC Code § 12-6-40(A)(1)(a)',
         section179Cap: 25000,
         bonusDepreciationAllowed: false,
         version: 'SC-2024.1'
       },
       shareholderBasisLimitation: {
-        statutoryCode: 'IRC Ã‚Â§ 1367 / IRC Ã‚Â§ 1366(d)',
+        statutoryCode: 'IRC § 1367 / IRC § 1366(d)',
         orderingRulesEnforced: true,
         version: 'IRC-1367-2024'
       },
       estimatedTaxSafeHarbor: {
-        statutoryCode: 'IRC Ã‚Â§ 6654(d)(1)(B)-(C)',
+        statutoryCode: 'IRC § 6654(d)(1)(B)-(C)',
         highAgiThreshold: 150000,
         highAgiSafeHarborPercent: 1.10,
         standardSafeHarborPercent: 1.00,
@@ -231,7 +231,7 @@ taxguardRouter.get('/status', (req, res) => {
         version: 'IRC-6654-2024'
       },
       offerInCompromiseRcp: {
-        statutoryCode: 'IRC Ã‚Â§ 7122 / Form 433-A(OIC)',
+        statutoryCode: 'IRC § 7122 / Form 433-A(OIC)',
         nationalStandardsApplied: true,
         version: 'IRS-OIC-2024.2'
       },
@@ -515,7 +515,7 @@ taxguardRouter.get('/provenance/field/:fieldId', authenticateToken, requireClien
 // 5. STATUTORY TAX CALCULATION ENGINES
 // ----------------------------------------------------------------------
 
-// South Carolina Depreciation Decoupling (SC Code Ã‚Â§ 12-6-40)
+// South Carolina Depreciation Decoupling (SC Code § 12-6-40)
 taxguardRouter.post('/calculations/depreciation', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { costBasis, category, recoveryYears, section179Claimed, bonusPercent } = req.body;
 
@@ -534,8 +534,8 @@ taxguardRouter.post('/calculations/depreciation', authenticateToken, (req: Authe
   const totalFederalDepreciation = Math.round(sec179 + bonusAmount + macrsDepreciation);
 
   // South Carolina State Rules:
-  // 1. SC Code Ã‚Â§ 12-6-40(A)(1)(a) caps Section 179 at $25,000
-  // 2. SC Code Ã‚Â§ 12-6-40(A)(1)(a) explicitly disallows federal bonus depreciation (IRC Ã‚Â§ 168(k))
+  // 1. SC Code § 12-6-40(A)(1)(a) caps Section 179 at $25,000
+  // 2. SC Code § 12-6-40(A)(1)(a) explicitly disallows federal bonus depreciation (IRC § 168(k))
   const scSec179 = Math.min(25000, sec179);
   const scBonus = 0;
   const scRemainingBasis = Math.max(0, basis - scSec179);
@@ -555,7 +555,7 @@ taxguardRouter.post('/calculations/depreciation', authenticateToken, (req: Authe
       totalDepreciation: totalFederalDepreciation
     },
     stateSC: {
-      statutoryAuthority: 'South Carolina Code Ã‚Â§ 12-6-40(A)(1)(a)',
+      statutoryAuthority: 'South Carolina Code § 12-6-40(A)(1)(a)',
       section179Cap: 25000,
       bonusDepreciationAllowed: false,
       section179Allowed: scSec179,
@@ -568,7 +568,7 @@ taxguardRouter.post('/calculations/depreciation', authenticateToken, (req: Authe
   });
 });
 
-// IRC Ã‚Â§ 1367 Shareholder Stock and Debt Basis Calculation
+// IRC § 1367 Shareholder Stock and Debt Basis Calculation
 taxguardRouter.post('/calculations/shareholder-basis', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const {
     beginningStockBasis,
@@ -616,12 +616,12 @@ taxguardRouter.post('/calculations/shareholder-basis', authenticateToken, (req: 
   const lossesAbsorbedByDebt = Math.min(debtBasis, remainingLosses);
   debtBasis -= lossesAbsorbedByDebt;
 
-  // Step 7: Suspended Losses under IRC Ã‚Â§ 1366(d) (Carry forward indefinitely)
+  // Step 7: Suspended Losses under IRC § 1366(d) (Carry forward indefinitely)
   const suspendedLosses = remainingLosses - lossesAbsorbedByDebt;
 
   res.json({
     taxYear: 2024,
-    statutoryAuthority: 'IRC Ã‚Â§ 1367 / Treas. Reg. Ã‚Â§ 1.1367-1',
+    statutoryAuthority: 'IRC § 1367 / Treas. Reg. § 1.1367-1',
     schedule: {
       beginningStockBasis: Number(beginningStockBasis) || 0,
       plusIncreases: totalIncreases,
@@ -640,7 +640,7 @@ taxguardRouter.post('/calculations/shareholder-basis', authenticateToken, (req: 
   });
 });
 
-// IRC Ã‚Â§ 6654 Estimated Tax Safe-Harbor
+// IRC § 6654 Estimated Tax Safe-Harbor
 taxguardRouter.post('/calculations/safe-harbor', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { priorYearTax, priorYearAgi, currentEstimatedTax } = req.body;
 
@@ -660,7 +660,7 @@ taxguardRouter.post('/calculations/safe-harbor', authenticateToken, (req: Authen
 
   res.json({
     taxYear: 2024,
-    statutoryAuthority: 'IRC Ã‚Â§ 6654(d)(1)(B)-(C)',
+    statutoryAuthority: 'IRC § 6654(d)(1)(B)-(C)',
     isHighIncome,
     priorYearSafeHarbor: {
       requiredPercentage: priorYearFactor * 100,
@@ -695,7 +695,7 @@ taxguardRouter.post('/calculations/rcp', authenticateToken, (req: AuthenticatedR
   const periodicPaymentOffer = equity + (24 * monthlyDisposableIncome);
 
   res.json({
-    statutoryAuthority: 'IRC Ã‚Â§ 7122 / Form 433-A(OIC)',
+    statutoryAuthority: 'IRC § 7122 / Form 433-A(OIC)',
     monthlyDisposableIncome,
     netRealizableEquity: equity,
     lumpSumOfferOption: {
@@ -730,7 +730,7 @@ taxguardRouter.post('/calculations/penalty-abatement', authenticateToken, (req: 
     qualifiedForFTA: isEligibleForFta,
     recommendedAction: isEligibleForFta
       ? 'Prepare Form 843 or oral administrative request to IRS requesting penalty relief under IRM 20.1.1.'
-      : 'Evaluate reasonable-cause relief under Treas. Reg. Ã‚Â§ 301.6651-1(c) based on ordinary business care and prudence.',
+      : 'Evaluate reasonable-cause relief under Treas. Reg. § 301.6651-1(c) based on ordinary business care and prudence.',
     ...DEVELOPER_NOTICE
   });
 });

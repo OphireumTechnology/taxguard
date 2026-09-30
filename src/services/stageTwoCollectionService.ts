@@ -1,6 +1,6 @@
 /**
  * A/R Tax Services, LLC - Stage Two Collection & Document Intake Engine
- * Unified 18-Stage Tax Operating Workflow Ã¢â‚¬â€ Milestone M2 / Stage 02: Collect
+ * Unified 18-Stage Tax Operating Workflow — Milestone M2 / Stage 02: Collect
  *
  * Implements:
  * - TG-COL-001: Centralized Tax-Year Collection Workspace Context (Client ID + Engagement + Tax Year + Entity/Return Type)
@@ -270,7 +270,7 @@ let entityType: EntityReturnType = 'individual';
         'Govt ID',
         'Identity & Dependents',
         'Federal',
-        'Valid unexpired DriverÃ¢â‚¬â„¢s License or Passport for taxpayer and spouse per IRS security verification requirements.',
+        'Valid unexpired Driver\'s License or Passport for taxpayer and spouse per IRS security verification requirements.',
         'Required',
         'IRS Pub 1345 / Identity Verification'
       );
@@ -283,7 +283,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal / ' + primaryJurisdiction,
         'All Form W-2 statements issued by employers reporting wages, tips, federal, and state income tax withholdings.',
         'Required',
-        'IRC Ã‚Â§ 6051'
+        'IRC § 6051'
       );
 
       addReq(
@@ -294,7 +294,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Interest income earned across bank accounts, credit unions, CDs, or municipal bonds.',
         'Required if applicable',
-        'IRC Ã‚Â§ 6049'
+        'IRC § 6049'
       );
 
       addReq(
@@ -305,7 +305,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Ordinary dividends, qualified dividends, and capital gain distributions from brokerage holdings.',
         'Required if applicable',
-        'IRC Ã‚Â§ 6042'
+        'IRC § 6042'
       );
 
       addReq(
@@ -316,7 +316,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Independent contractor, consulting, or freelance compensation earned during the tax year.',
         knownFacts.hasContractWork ? 'Required' : 'Required if applicable',
-        'IRC Ã‚Â§ 6041A'
+        'IRC § 6041A'
       );
 
       addReq(
@@ -327,7 +327,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Reports home mortgage interest, points, and real estate property taxes paid to lending institutions.',
         'Required if applicable',
-        'IRC Ã‚Â§ 6050H'
+        'IRC § 6050H'
       );
 
       addReq(
@@ -338,7 +338,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Required for reconciling federal Premium Tax Credit (Form 8962) if covered by Healthcare.gov or state exchange.',
         knownFacts.hasMarketplaceInsurance ? 'Required' : 'Required if applicable',
-        'IRC Ã‚Â§ 36B'
+        'IRC § 36B'
       );
 
       addReq(
@@ -349,7 +349,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Share of income, deductions, and credits from partnerships, S-corporations, or trusts.',
         knownFacts.hasPassThrough ? 'Required' : 'Required if applicable',
-        'IRC Ã‚Â§Ã‚Â§ 702, 1366'
+        'IRC §§ 702, 1366'
       );
 
       if (primaryJurisdiction === 'SC') {
@@ -361,7 +361,7 @@ let entityType: EntityReturnType = 'individual';
           'SC',
           'Documentation supporting South Carolina state tax credits, tuition tax credits, and county property tax credits.',
           'Recommended',
-          'SC Code Ann. Ã‚Â§ 12-6-40'
+          'SC Code Ann. § 12-6-40'
         );
       }
     }
@@ -378,7 +378,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Complete signed copy of the prior tax year Form 1120-S including all Schedules K-1, balance sheets, and depreciation schedules.',
         'Required',
-        'Treas. Reg. Ã‚Â§ 1.6037-1'
+        'Treas. Reg. § 1.6037-1'
       );
 
       addReq(
@@ -389,7 +389,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Year-end adjusted trial balance with debit/credit balance, chart of accounts, and detailed general ledger export.',
         'Required',
-        'IRC Ã‚Â§ 446 / Accounting Methods'
+        'IRC § 446 / Accounting Methods'
       );
 
       addReq(
@@ -400,7 +400,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'All business checking, savings, and credit card statements through December 31 with formal bank reconciliation tie-outs.',
         'Required',
-        'IRC Ã‚Â§ 6001 / Recordkeeping'
+        'IRC § 6001 / Recordkeeping'
       );
 
       addReq(
@@ -411,7 +411,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Reconciled federal employment tax returns and annual W-3 summary substantiating shareholder-officer reasonable compensation.',
         'Required',
-        'IRC Ã‚Â§ 3121 / Rev. Rul. 74-44'
+        'IRC § 3121 / Rev. Rul. 74-44'
       );
 
       addReq(
@@ -422,7 +422,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Cumulative stock and debt basis schedules tracking beginning basis, income additions, non-dividend distributions, and loss limits.',
         'Required',
-        'IRC Ã‚Â§ 1367 / Form 7203'
+        'IRC § 1367 / Form 7203'
       );
 
       addReq(
@@ -433,7 +433,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal / ' + primaryJurisdiction,
         'Invoices and settlement statements for all capital asset acquisitions, vehicle purchases, and machinery placed in service.',
         'Required',
-        'IRC Ã‚Â§Ã‚Â§ 168, 179'
+        'IRC §§ 168, 179'
       );
 
       if (primaryJurisdiction === 'SC') {
@@ -445,7 +445,7 @@ let entityType: EntityReturnType = 'individual';
           'SC',
           'State depreciation modification schedule disallowing federal bonus depreciation and capping Section 179 at $25,000.',
           'Required',
-          'SC Code Ann. Ã‚Â§ 12-6-40(A)(1)(a)'
+          'SC Code Ann. § 12-6-40(A)(1)(a)'
         );
       }
     }
@@ -462,7 +462,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Prior year Form 1120 with Schedule M-1/M-3 book-to-tax reconciliations and carryforward loss records.',
         'Required',
-        'IRC Ã‚Â§ 6012'
+        'IRC § 6012'
       );
 
       addReq(
@@ -473,7 +473,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Comparative balance sheet, income statement, statement of cash flows, and note disclosures.',
         'Required',
-        'IRC Ã‚Â§ 446'
+        'IRC § 446'
       );
 
       addReq(
@@ -484,7 +484,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Complete year-end adjusted trial balance mapped to corporate tax chart of accounts.',
         'Required',
-        'IRC Ã‚Â§ 6001'
+        'IRC § 6001'
       );
 
       addReq(
@@ -495,7 +495,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Permanent and temporary timing differences (meals limitation, officer life insurance, deferred compensation, depreciation).',
         'Required',
-        'Treas. Reg. Ã‚Â§ 1.6012-2'
+        'Treas. Reg. § 1.6012-2'
       );
 
       addReq(
@@ -506,7 +506,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal / ' + primaryJurisdiction,
         'Electronic Federal Tax Payment System (EFTPS) and state DOR confirmation receipts for quarterly tax installments.',
         'Required',
-        'IRC Ã‚Â§ 6655'
+        'IRC § 6655'
       );
     }
 
@@ -522,7 +522,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Prior year Form 1065 with all partner Schedules K-1 and tax basis capital account schedules.',
         'Required',
-        'IRC Ã‚Â§ 6031'
+        'IRC § 6031'
       );
 
       addReq(
@@ -533,7 +533,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Current executed Operating Agreement detailing profit/loss allocation percentages, guaranteed payments, and capital contributions.',
         'Required',
-        'IRC Ã‚Â§ 704(b)'
+        'IRC § 704(b)'
       );
 
       addReq(
@@ -555,7 +555,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Full adjusted trial balance substantiating all gross receipts, cost of goods sold, and deductible operating expenses.',
         'Required',
-        'IRC Ã‚Â§ 6001'
+        'IRC § 6001'
       );
 
       addReq(
@@ -564,9 +564,9 @@ let entityType: EntityReturnType = 'individual';
         'Partner Compensation',
         'Partner Compensation',
         'Federal',
-        'Itemized schedules of all guaranteed payments for services or capital paid to partners under IRC Ã‚Â§ 707(c).',
+        'Itemized schedules of all guaranteed payments for services or capital paid to partners under IRC § 707(c).',
         'Required if applicable',
-        'IRC Ã‚Â§ 707(c)'
+        'IRC § 707(c)'
       );
     }
 
@@ -582,7 +582,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Categorized annual summary of business gross revenues, merchant processing fees, advertising, supplies, and operating expenses.',
         'Required',
-        'IRC Ã‚Â§ 162'
+        'IRC § 162'
       );
 
       addReq(
@@ -593,7 +593,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'January through December business bank account statements demonstrating non-commingling of business and personal assets.',
         'Required',
-        'IRC Ã‚Â§ 6001'
+        'IRC § 6001'
       );
 
       addReq(
@@ -604,7 +604,7 @@ let entityType: EntityReturnType = 'individual';
         'Federal',
         'Statements issued by Stripe, Square, PayPal, or merchant processors reporting gross settlement volumes.',
         'Required if applicable',
-        'IRC Ã‚Â§ 6050W'
+        'IRC § 6050W'
       );
     }
 

@@ -1537,9 +1537,9 @@ Preserve role separation and canonical audit records.`
       "UI and Encoding Cleanup",
 
     terms: [
-      "Â§",
-      "â€”",
-      "â€¢",
+      "§",
+      "—",
+      "•",
       "StageOne",
       "workspace",
       "navigation",
@@ -1549,7 +1549,7 @@ Preserve role separation and canonical audit records.`
     objective:
 `Perform targeted UI integration cleanup.
 
-Repair confirmed mojibake such as IRC Â§ 7216, â€”, and â€¢ when present.
+Repair confirmed mojibake such as IRC § 7216, —, and • when present.
 
 Keep the client workspace clean and easy to navigate.
 

@@ -481,7 +481,7 @@ export const HomePage: React.FC = () => {
                 size="lg"
                 variant="portrait"
                 priority={false}
-                caption="Desmond Hinds â€¢ Founder & Chief Executive Officer"
+                caption="Desmond Hinds • Founder & Chief Executive Officer"
                 className="w-full"
               />
             </div>
@@ -724,7 +724,7 @@ export const HomePage: React.FC = () => {
             Tailored Engagement Structures
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            Every clientâ€™s financial blueprint is unique. Engagements are tailored to your entity complexity and filings required, with personalized proposals presented inside the secure client portal.
+            Every client's financial blueprint is unique. Engagements are tailored to your entity complexity and filings required, with personalized proposals presented inside the secure client portal.
           </p>
         </div>
 

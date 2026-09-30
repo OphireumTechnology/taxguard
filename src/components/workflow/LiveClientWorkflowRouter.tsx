@@ -1,4 +1,5 @@
 import { StageOneIdentityWizard } from '../portal/StageOneIdentityWizard';
+import { AuthenticatedClientDashboard } from '../portal/AuthenticatedClientDashboard';
 import React, {
   useCallback,
   useEffect,
@@ -44,6 +45,19 @@ React.FC<LiveClientWorkflowRouterProps> = ({
     selectedTaxYear,
     setSelectedTaxYear
   ] = useState(taxYear);
+
+  const [
+    viewMode,
+    setViewMode
+  ] = useState<'dashboard' | 'workspace' | 'review_stage1'>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.toLowerCase();
+      if (hash.includes('collect') || hash.includes('stage2') || hash.includes('workspace')) {
+        return 'workspace';
+      }
+    }
+    return 'dashboard';
+  });
 
   const handleTaxYearChange =
       (year: number) => {
@@ -246,8 +260,13 @@ React.FC<LiveClientWorkflowRouterProps> = ({
     return (
       <StageOneIdentityWizard
         initialClientId={clientId}
+        taxYear={selectedTaxYear}
+        authoritativeActiveStage={authority.workflow.activeStage}
         onExitGatePassed={refreshAuthority}
-        onNavigateToDashboard={refreshAuthority}
+        onNavigateToDashboard={() => {
+          refreshAuthority();
+          setViewMode('dashboard');
+        }}
       />
     );
   }
@@ -281,18 +300,69 @@ React.FC<LiveClientWorkflowRouterProps> = ({
       );
     }
 
+    if (viewMode === 'review_stage1') {
+      return (
+        <div className="space-y-4">
+          <div className="max-w-6xl mx-auto px-4 pt-4">
+            <button
+              onClick={() => setViewMode('dashboard')}
+              className="text-xs font-bold text-[#0D2340] hover:text-[#C6A15B] bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              &larr; Return to Client Dashboard
+            </button>
+          </div>
+          <StageOneIdentityWizard
+            initialClientId={clientId}
+            taxYear={selectedTaxYear}
+            authoritativeActiveStage={authority.workflow.activeStage}
+            onExitGatePassed={refreshAuthority}
+            onNavigateToDashboard={() => {
+              refreshAuthority();
+              setViewMode('dashboard');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (viewMode === 'workspace') {
+      return (
+        <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 pt-4 pb-1 flex items-center justify-between">
+            <button
+              onClick={() => setViewMode('dashboard')}
+              className="text-xs font-bold text-[#0D2340] hover:text-[#C6A15B] bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              &larr; Return to Client Dashboard
+            </button>
+            <span className="text-xs font-mono font-bold text-slate-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md">
+              Active: Stage 02 &mdash; Collect
+            </span>
+          </div>
+          <StageTwoCollectionWorkspace
+            clientId={clientId}
+            selectedTaxYear={selectedTaxYear}
+            onTaxYearChange={handleTaxYearChange}
+            serverStageThreeEligible={
+              authority.eligibility
+                .eligibility.stage3 === true
+            }
+            onServerWorkflowRefresh={
+              refreshAuthority
+            }
+          />
+        </div>
+      );
+    }
+
+    // Default view for Stage 02: Authenticated Client Dashboard
     return (
-      <StageTwoCollectionWorkspace
+      <AuthenticatedClientDashboard
         clientId={clientId}
         selectedTaxYear={selectedTaxYear}
         onTaxYearChange={handleTaxYearChange}
-        serverStageThreeEligible={
-          authority.eligibility
-            .eligibility.stage3 === true
-        }
-        onServerWorkflowRefresh={
-          refreshAuthority
-        }
+        onEnterStageTwo={() => setViewMode('workspace')}
+        onReviewStageOne={() => setViewMode('review_stage1')}
       />
     );
   }

@@ -8,7 +8,7 @@
  * - Address & authorized representative collection
  * - Supporting ID documents via secure upload
  * - 5-Point Duplicate Check (TIN, Name, Email, Phone, Address) with blocking & review routing
- * - Approved IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 engagement & consent
+ * - Approved IRC § 7216 engagement & consent
  * - Onboarding Readiness Card & Hard Exit Gate
  * - Stage Two activation upon pass
  */
@@ -50,15 +50,22 @@ import {
 import { DocumentUpload } from './DocumentUpload';
 import { EnvironmentConfigService, AppEnvironment } from '../../config/environmentConfig';
 import { useApp } from '../../context/AppContext';
+import { LiveWorkflowApi } from '../../services/liveWorkflowApi';
+import { LiveWorkflowAuthority } from '../../services/liveWorkflowAuthority';
+import { getStoredToken } from '../../services/api';
 
 interface StageOneIdentityWizardProps {
   initialClientId?: string;
+  taxYear?: number;
+  authoritativeActiveStage?: number;
   onExitGatePassed?: () => void;
   onNavigateToDashboard?: () => void;
 }
 
 export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   initialClientId,
+  taxYear = 2025,
+  authoritativeActiveStage,
   onExitGatePassed,
   onNavigateToDashboard
 }) => {
@@ -92,6 +99,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
   // Failure path / testing simulation state
   const [isSimulatingCheck, setIsSimulatingCheck] = useState(false);
+  const [isSubmittingGate, setIsSubmittingGate] = useState(false);
   const [gateErrorMessage, setGateErrorMessage] = useState<string | null>(null);
   const [gateSuccessMessage, setGateSuccessMessage] = useState<string | null>(null);
   const [initializationError, setInitializationError] = useState<string | null>(null);
@@ -245,23 +253,65 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   };
 
   // Hard Exit Gate Submission
-  const handleAttemptExitGate = () => {
-    if (!dossier) return;
+  const handleAttemptExitGate = async () => {
+    if (!dossier || isSubmittingGate) return;
     setGateErrorMessage(null);
     setGateSuccessMessage(null);
 
-    const result = StageOneOnboardingService.passHardExitGate(dossier.clientId);
-    if (!result.success) {
-      setGateErrorMessage(result.error || 'Hard Exit Gate Locked: Requirements unsatisfied.');
+    // 1. Client-side evaluation
+    const readiness = StageOneOnboardingService.evaluateReadiness(dossier);
+    if (!readiness.isReady) {
+      const pendingReasons = (readiness.blockingItems || [])
+        .filter(c => !c.satisfied)
+        .map(c => c.label)
+        .join(', ');
+      setGateErrorMessage(`Hard Exit Gate Locked: All 7 blocking items must be satisfied. Outstanding: ${pendingReasons}`);
       return;
     }
 
-    if (result.dossier) {
-      setDossier(result.dossier);
-      setGateSuccessMessage('Stage One Passed! Unified 18-Stage Operating Cycle advanced to Stage Two (Collect). Normal Client Dashboard is now active.');
-      if (onExitGatePassed) {
-        onExitGatePassed();
+    setIsSubmittingGate(true);
+
+    try {
+      // 2. Authoritative server-side gate evaluation and progression
+      let serverConfirmed = false;
+      try {
+        const serverResponse = await LiveWorkflowApi.completeStageOne(taxYear, dossier);
+        if (serverResponse?.workflow && serverResponse?.eligibility) {
+          LiveWorkflowAuthority.seedFromServerBundle(serverResponse.workflow, serverResponse.eligibility);
+          serverConfirmed = true;
+        }
+      } catch (serverErr: any) {
+        if (serverErr?.status === 422 || serverErr?.code === 'STAGE_01_GATE_LOCKED') {
+          const reasons = serverErr?.blockingReasons || [serverErr?.message || 'Server Hard Exit Gate rejected completion.'];
+          setGateErrorMessage(`Server Exit Gate Locked: ${reasons.join(', ')}`);
+          setIsSubmittingGate(false);
+          return;
+        }
+        // If live client with auth token, do not bypass server error
+        if (getStoredToken() && isLiveClient) {
+          setGateErrorMessage(serverErr?.message || 'Server-authoritative workflow validation failed. Please retry.');
+          setIsSubmittingGate(false);
+          return;
+        }
       }
+
+      // 3. Mark dossier passed and update local store
+      const result = StageOneOnboardingService.passHardExitGate(dossier.clientId);
+      if (!result.success) {
+        setGateErrorMessage(result.error || 'Hard Exit Gate Locked: Requirements unsatisfied.');
+        setIsSubmittingGate(false);
+        return;
+      }
+
+      if (result.dossier) {
+        setDossier(result.dossier);
+        setGateSuccessMessage('Stage One Passed! Unified 18-Stage Operating Cycle advanced to Stage Two (Collect). Normal Client Dashboard is now active.');
+        if (onExitGatePassed) {
+          onExitGatePassed();
+        }
+      }
+    } finally {
+      setIsSubmittingGate(false);
     }
   };
 
@@ -352,7 +402,11 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   }
 
   const readiness = dossier.readiness;
-  const isStageOneCompleted = dossier.stageOneCompleted;
+  const isServerConfirmedActive2 = Boolean(authoritativeActiveStage && authoritativeActiveStage >= 2);
+  const isStageOneCompleted = isLiveClient 
+    ? (isServerConfirmedActive2 || (Boolean(dossier.stageOneCompleted) && authoritativeActiveStage !== 1))
+    : Boolean(dossier.stageOneCompleted);
+  const isStageTwoActive = isLiveClient ? isServerConfirmedActive2 : (dossier.activeWorkflowStage >= 2);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 text-slate-100">
@@ -371,7 +425,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               {isStageOneCompleted ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/40 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  <span>EXIT GATE PASSED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â STAGE 02 (COLLECT) ACTIVE</span>
+                  <span>EXIT GATE PASSED — STAGE 02 (COLLECT) ACTIVE</span>
                 </span>
               ) : (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-900/40 text-amber-300 border border-amber-500/40 flex items-center gap-1">
@@ -384,7 +438,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               <span>Identity Verification Wizard</span>
             </h1>
             <p className="text-xs text-slate-300 mt-0.5">
-              Authoritative client onboarding, taxpayer validation, TIN masking, duplicate detection, and IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 consent.
+              Authoritative client onboarding, taxpayer validation, TIN masking, duplicate detection, and IRC § 7216 consent.
             </p>
           </div>
 
@@ -435,22 +489,22 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
         {/* Workflow Stage Map */}
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-xs">
-          <div className={`p-2.5 rounded-xl border ${dossier.stageOneCompleted ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' : 'bg-[#C6A15B]/10 border-[#C6A15B]/40 text-[#C6A15B]'}`}>
+          <div className={`p-2.5 rounded-xl border ${isStageOneCompleted ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' : 'bg-[#C6A15B]/10 border-[#C6A15B]/40 text-[#C6A15B]'}`}>
             <div className="flex items-center justify-between text-[10px] font-mono">
               <span>STAGE 01</span>
-              {dossier.stageOneCompleted ? <Check className="w-3 h-3 text-emerald-400" /> : <span className="w-2 h-2 rounded-full bg-[#C6A15B] animate-pulse" />}
+              {isStageOneCompleted ? <Check className="w-3 h-3 text-emerald-400" /> : <span className="w-2 h-2 rounded-full bg-[#C6A15B] animate-pulse" />}
             </div>
             <div className="font-bold text-xs mt-0.5">Onboard (Identity Wizard)</div>
-            <div className="text-[10px] text-slate-400">Exit Gate {dossier.stageOneCompleted ? 'Passed' : 'Pending'}</div>
+            <div className="text-[10px] text-slate-400">Exit Gate {isStageOneCompleted ? 'Passed' : 'Pending'}</div>
           </div>
 
-          <div className={`p-2.5 rounded-xl border ${dossier.activeWorkflowStage >= 2 ? 'bg-blue-950/40 border-blue-500/40 text-blue-300' : 'bg-[#07172B]/60 border-[#1E3A5F] text-slate-500'}`}>
+          <div className={`p-2.5 rounded-xl border ${isStageTwoActive ? 'bg-blue-950/40 border-blue-500/40 text-blue-300' : 'bg-[#07172B]/60 border-[#1E3A5F] text-slate-500'}`}>
             <div className="flex items-center justify-between text-[10px] font-mono">
               <span>STAGE 02</span>
-              {dossier.activeWorkflowStage >= 2 && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
+              {isStageTwoActive && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
             </div>
             <div className="font-bold text-xs mt-0.5">Collect (Intake & Vault)</div>
-            <div className="text-[10px] text-slate-400">{dossier.activeWorkflowStage >= 2 ? 'Active Stage' : 'Locked'}</div>
+            <div className="text-[10px] text-slate-400">{isStageTwoActive ? 'Active Stage' : 'Locked'}</div>
           </div>
 
           <div className="p-2.5 rounded-xl border bg-[#07172B]/40 border-[#1E3A5F]/50 text-slate-500">
@@ -473,7 +527,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
           <div className="p-2.5 rounded-xl border bg-[#07172B]/40 border-[#1E3A5F]/50 text-slate-500 hidden md:block">
             <div className="text-[10px] font-mono">STAGE 06-18</div>
-            <div className="font-bold text-xs mt-0.5">Review ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ File ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Archive</div>
+            <div className="font-bold text-xs mt-0.5">Review → File → Archive</div>
             <div className="text-[10px] text-slate-500">Unified 18-Stage</div>
           </div>
         </div>
@@ -591,7 +645,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>7. IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</span>
+          <span>7. IRC § 7216 Consent</span>
         </button>
 
         <button
@@ -1318,7 +1372,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 onClick={() => setActiveTab('consent')}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] flex items-center gap-1.5"
               >
-                <span>Next: IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</span>
+                <span>Next: IRC § 7216 Consent</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1329,7 +1383,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
         {activeTab === 'consent' && (
           <div className="space-y-6">
             <div className="border-b border-[#1E3A5F] pb-3">
-              <h2 className="font-serif text-lg font-bold text-white">7. Engagement Scope & IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</h2>
+              <h2 className="font-serif text-lg font-bold text-white">7. Engagement Scope & IRC § 7216 Consent</h2>
               <p className="text-xs text-slate-300">
                 Statutory disclosures governing taxpayer data confidentiality, electronic communications, and professional scope.
               </p>
@@ -1337,7 +1391,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
 
             <div className="p-4 rounded-2xl bg-[#07172B] border border-[#1E3A5F] space-y-4 text-xs text-slate-300 max-h-64 overflow-y-auto">
               <h4 className="font-bold text-white uppercase tracking-wider text-[11px] text-[#C6A15B]">
-                Statutory Disclosure Under Internal Revenue Code ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216
+                Statutory Disclosure Under Internal Revenue Code § 7216
               </h4>
               <p>
                 Federal law strictly prohibits tax return preparers from disclosing or using tax return information for purposes other than tax return preparation, unless expressly consented to by the taxpayer in writing.
@@ -1368,7 +1422,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                   className="mt-0.5 rounded text-[#C6A15B] focus:ring-[#C6A15B]"
                 />
                 <span>
-                  <strong>IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent:</strong> I formally authorize A/R Tax Services, LLC to process confidential tax return information under Treas. Reg. ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 301.7216-3.
+                  <strong>IRC § 7216 Consent:</strong> I formally authorize A/R Tax Services, LLC to process confidential tax return information under Treas. Reg. § 301.7216-3.
                 </span>
               </label>
 
@@ -1607,7 +1661,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1E3A5F] hover:bg-[#2A4D7A] text-white flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Previous: IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7216 Consent</span>
+                <span>Previous: IRC § 7216 Consent</span>
               </button>
             </div>
           </div>

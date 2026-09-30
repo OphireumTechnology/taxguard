@@ -304,9 +304,9 @@ Fix remaining mojibake/encoding problems.
 
 Examples:
 
-IRC Â§ 7216
-â€”
-â€¢
+IRC § 7216
+—
+•
 
 must become proper UTF-8.
 

@@ -212,7 +212,7 @@ export const OnboardingWizard: React.FC = () => {
             15-Step Client Intake Dossier
           </h1>
           <p className="text-xs sm:text-sm text-slate-300">
-            A/R TAX SERVICES, LLC â€¢ â€œPreserving Wealth. Building Legacies.â€ â€¢ Founder: Desmond Hinds
+            A/R TAX SERVICES, LLC • “Preserving Wealth. Building Legacies.” • Founder: Desmond Hinds
           </p>
         </div>
 
@@ -369,7 +369,7 @@ export const OnboardingWizard: React.FC = () => {
           <div className="space-y-6">
             <div className="border-b border-[#1E3A5F] pb-4">
               <span className="text-xs font-bold text-[#C6A15B] uppercase tracking-wider">Step 3 of 15</span>
-              <h2 className="font-serif text-2xl font-bold text-white mt-1">Identity Verification & Driverâ€™s License / Passport</h2>
+              <h2 className="font-serif text-2xl font-bold text-white mt-1">Identity Verification & Driver's License / Passport</h2>
               <p className="text-xs text-slate-300 mt-1">
                 IRS Circular 230 and Patriot Act compliance requires verified identification for all authorized tax signers.
               </p>
@@ -647,10 +647,10 @@ export const OnboardingWizard: React.FC = () => {
             </div>
 
             <div className="p-4 rounded-xl bg-[#07172B] border border-[#1E3A5F] text-xs text-slate-300 max-h-48 overflow-y-auto space-y-2">
-              <p className="font-bold text-white">A/R TAX SERVICES, LLC â€” PROFESSIONAL ENGAGEMENT AGREEMENT</p>
+              <p className="font-bold text-white">A/R TAX SERVICES, LLC — PROFESSIONAL ENGAGEMENT AGREEMENT</p>
               <p>This engagement confirms our understanding of the terms and objectives of our engagement to prepare the federal and applicable state income tax returns for the client.</p>
               <p>Our work does not include any procedures designed to discover defalcations, fraud, or irregularities. Management and taxpayers are responsible for the proper recording of transactions in books of account and for the safeguarding of assets.</p>
-              <p>â€œA/R Tax Services, LLC provides tax and accounting services. Legal document preparation and representation are handled through independent licensed attorneys.â€</p>
+              <p>“A/R Tax Services, LLC provides tax and accounting services. Legal document preparation and representation are handled through independent licensed attorneys.”</p>
             </div>
 
             <div className="space-y-3">
@@ -692,8 +692,8 @@ export const OnboardingWizard: React.FC = () => {
               <div className="p-4 rounded-xl bg-[#07172B] border border-[#1E3A5F] space-y-2">
                 <div className="font-bold text-[#C6A15B]">Mandatory AI and Legal Practice Disclosures:</div>
                 <ul className="list-disc pl-5 space-y-1 text-slate-300">
-                  <li>â€œA/R Tax Services, LLC provides tax and accounting services. Legal document preparation and representation are handled through independent licensed attorneys.â€</li>
-                  <li>â€œAI assistance is used for document intake, classification and preliminary extraction. All tax returns, calculations and deliverables are reviewed by qualified accounting professionals prior to filing.â€</li>
+                  <li>“A/R Tax Services, LLC provides tax and accounting services. Legal document preparation and representation are handled through independent licensed attorneys.”</li>
+                  <li>“AI assistance is used for document intake, classification and preliminary extraction. All tax returns, calculations and deliverables are reviewed by qualified accounting professionals prior to filing.”</li>
                 </ul>
               </div>
 

@@ -68,7 +68,7 @@ export const BookConsultationPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2340] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold">
             <CalendarIcon className="w-3.5 h-3.5" />
-            <span>Confidential Advisory â€¢ Columbia, SC</span>
+            <span>Confidential Advisory • Columbia, SC</span>
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
             Schedule a Consultation
@@ -228,7 +228,7 @@ export const BookConsultationPage: React.FC = () => {
               </div>
               <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#C6A15B]" />
-                <span>Firm business hours: Mondayâ€“Friday, 9:00 AMâ€“6:00 PM Eastern Time.</span>
+                <span>Firm business hours: Monday–Friday, 9:00 AM–6:00 PM Eastern Time.</span>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * A/R Tax Services, LLC - Unified Demonstration Dashboard Shell
  * Strict black-and-white minimalist architecture.
  * Shared across all 12 protected practice roles.
@@ -790,7 +790,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
                     </span>
                     {engagementName && (
                       <span className="text-[11px] text-[#667085] font-sans">
-                        â€¢ Connected to {engagementName}
+                        • Connected to {engagementName}
                       </span>
                     )}
                   </div>
@@ -798,7 +798,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
                     onClick={() => setShowCycleProgress(!showCycleProgress)}
                     className="text-[10px] font-mono text-[#667085] hover:text-[#1A2028] underline font-medium cursor-pointer"
                   >
-                    {showCycleProgress ? 'â–² Compact Summary' : 'â–¼ Expand Full 18 Stages'}
+                    {showCycleProgress ? '▲ Compact Summary' : '▼ Expand Full 18 Stages'}
                   </button>
                 </div>
                 {showCycleProgress ? (

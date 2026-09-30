@@ -11,6 +11,7 @@ import {
   evaluateLiveWorkflowEligibility
 } from '../taxguard/clientOnboardingProvisioner';
 import { LiveWorkflowRepository } from '../taxguard/liveWorkflow.repository';
+import { evaluateStageOneServerGate } from '../taxguard/stageOneServerGate';
 
 export const caseAuthorityRouter = Router();
 
@@ -114,16 +115,44 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
     });
 
     let workflow = bundle.workflow;
-    if (req.body?.completeStage && workflow.stage1.status !== 'COMPLETED') {
-      workflow = await LiveWorkflowRepository.completeStage(
-        bundle.client.clientId,
-        taxYear,
-        1,
-        req.user.id,
-        req.user.role || 'client',
-        workflow.revision,
-        req.body?.payload || {}
-      );
+    if (req.body?.completeStage) {
+      if (workflow.stage1.status !== 'COMPLETED') {
+        const payload = req.body?.payload || {};
+        const snapshot = req.body?.snapshot || payload;
+        const gateDecision = evaluateStageOneServerGate({
+          hardExitGatePassed: Boolean(snapshot.hardExitGatePassed ?? true),
+          identityComplete: Boolean(snapshot.identityComplete ?? snapshot.dossier?.legalName),
+          taxProfileComplete: Boolean(snapshot.taxProfileComplete ?? snapshot.dossier?.taxpayerType),
+          tinValid: Boolean(snapshot.tinValid ?? (snapshot.dossier?.tinLast4 && snapshot.dossier.tinLast4 !== '0000')),
+          addressComplete: Boolean(snapshot.addressComplete ?? snapshot.dossier?.residentialOrPrincipalAddress?.street),
+          representativeComplete: Boolean(snapshot.representativeComplete ?? (snapshot.dossier?.taxpayerType === 'individual' || snapshot.dossier?.authorizedRep?.fullName)),
+          supportingDocumentsComplete: Boolean(snapshot.supportingDocumentsComplete ?? (snapshot.dossier?.supportingDocs && snapshot.dossier.supportingDocs.some((d: any) => d.verified))),
+          duplicateResolutionComplete: Boolean(snapshot.duplicateResolutionComplete ?? (snapshot.dossier?.duplicateCheck?.status === 'CLEARED' || snapshot.dossier?.duplicateCheck?.reviewDecision === 'override_approved')),
+          consentComplete: Boolean(snapshot.consentComplete ?? (snapshot.dossier?.engagementConsent?.irc7216ConsentAccepted && snapshot.dossier?.engagementConsent?.signerFullName?.length >= 3 && snapshot.dossier?.engagementConsent?.signedAt)),
+          reviewComplete: true,
+          dossier: snapshot.dossier,
+          blockingReasons: snapshot.blockingReasons
+        });
+
+        if (!gateDecision.passed) {
+          return res.status(422).json({
+            error: 'STAGE_01_GATE_LOCKED',
+            code: 'STAGE_01_GATE_LOCKED',
+            gateName: gateDecision.gateName,
+            blockingReasons: gateDecision.evidence?.blockingReasons || ['Hard exit gate requirements unsatisfied.'],
+          });
+        }
+
+        workflow = await LiveWorkflowRepository.completeStage(
+          bundle.client.clientId,
+          taxYear,
+          1,
+          req.user.id,
+          req.user.role || 'client',
+          workflow.revision,
+          payload
+        );
+      }
     }
 
     const stageStates = deriveCanonicalStageStates(workflow);

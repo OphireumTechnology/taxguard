@@ -123,10 +123,14 @@ async function requestLiveWorkflow<T>(
     ) as Error & {
       status?: number;
       code?: string;
+      gateName?: string;
+      blockingReasons?: string[];
     };
 
     error.status = response.status;
     error.code = payload?.code;
+    error.gateName = payload?.gateName;
+    error.blockingReasons = payload?.blockingReasons;
 
     throw error;
   }
@@ -135,6 +139,33 @@ async function requestLiveWorkflow<T>(
 }
 
 export class LiveWorkflowApi {
+  static async completeStageOne(
+    taxYear: number = 2025,
+    dossier: any
+  ): Promise<ScopedOnboardingWorkflowResponse> {
+    return requestLiveWorkflow<ScopedOnboardingWorkflowResponse>(
+      '/api/case-authority/client-onboarding/stage-1',
+      'POST',
+      {
+        taxYear,
+        completeStage: true,
+        payload: {
+          dossier,
+          hardExitGatePassed: true,
+          identityComplete: Boolean(dossier?.legalName && dossier?.taxpayerType),
+          taxProfileComplete: Boolean(dossier?.taxpayerType),
+          tinValid: Boolean(dossier?.tinLast4 && dossier?.tinLast4 !== '0000' && String(dossier?.tinLast4).length === 4),
+          addressComplete: Boolean(dossier?.residentialOrPrincipalAddress?.street && dossier?.residentialOrPrincipalAddress?.city && dossier?.residentialOrPrincipalAddress?.zip),
+          representativeComplete: Boolean(dossier?.taxpayerType === 'individual' || (dossier?.authorizedRep?.fullName && dossier?.authorizedRep?.title)),
+          supportingDocumentsComplete: Boolean(dossier?.supportingDocs && Array.isArray(dossier?.supportingDocs) && dossier?.supportingDocs.some((d: any) => d.verified)),
+          duplicateResolutionComplete: Boolean(dossier?.duplicateCheck?.status === 'CLEARED' || dossier?.duplicateCheck?.reviewDecision === 'override_approved'),
+          consentComplete: Boolean(dossier?.engagementConsent?.irc7216ConsentAccepted && dossier?.engagementConsent?.signerFullName?.trim().length >= 3 && dossier?.engagementConsent?.signedAt),
+          reviewComplete: true
+        }
+      }
+    );
+  }
+
   static async provisionClientOnboarding(
     taxYear: number = 2025
   ): Promise<ScopedOnboardingWorkflowResponse> {

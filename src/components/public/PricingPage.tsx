@@ -141,7 +141,7 @@ export const PricingPage: React.FC = () => {
                   Select {plan.name}
                 </button>
                 <div className="text-center text-[10px] text-slate-400">
-                  Secure checkout â€¢ Year-round portal included
+                  Secure checkout • Year-round portal included
                 </div>
               </div>
             </div>
@@ -259,9 +259,9 @@ export const PricingPage: React.FC = () => {
                     <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
                       <div className="flex items-center gap-2 font-mono text-slate-300">
                         <CreditCard className="w-4 h-4 text-[#C6A15B]" />
-                        <span>â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ 4242</span>
+                        <span>•••• •••• •••• 4242</span>
                       </div>
-                      <span className="text-[11px] text-slate-400 font-mono">12/28 â€¢ 888</span>
+                      <span className="text-[11px] text-slate-400 font-mono">12/28 • 888</span>
                     </div>
                   </div>
                 </div>

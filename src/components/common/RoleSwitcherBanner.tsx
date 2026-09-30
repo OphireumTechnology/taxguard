@@ -28,7 +28,7 @@ export const RoleSwitcherBanner: React.FC = () => {
           <span className="hidden sm:inline text-slate-600">|</span>
           <div className="hidden sm:flex items-center gap-1.5 text-slate-400 whitespace-nowrap text-[11px] sm:text-xs">
             <span>Columbia, SC</span>
-            <span className="text-[#C99A3D]">â€¢</span>
+            <span className="text-[#C99A3D]">•</span>
             <a href="tel:678-205-9486" className="text-slate-300 hover:text-[#E2BD67] transition-colors">
               678-205-9486
             </a>

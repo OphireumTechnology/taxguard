@@ -1,5 +1,5 @@
 /**
- * TaxGuard AI ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Prepare Draft Return Engine
+ * TaxGuard AI — Prepare Draft Return Engine
  * Proposes return fields, compiles draft lead workpapers, runs 18 diagnostics,
  * and generates senior review package without autonomous filing or self-approval.
  */
@@ -51,7 +51,7 @@ const QUALITY_DIAGNOSTICS: QualityDiagnosticResult[] = [
   {
     id: 'diag_03',
     ruleCode: 'QC-103',
-    description: 'Officer Compensation vs Net Income (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 199A Reasonable Comp Heuristic)',
+    description: 'Officer Compensation vs Net Income (§ 199A Reasonable Comp Heuristic)',
     status: 'PASSED',
     severity: 'low',
     notes: 'Officer W-2 of $115,000 constitutes 46% of pre-salary ordinary profit ($250,000).'
@@ -67,7 +67,7 @@ const QUALITY_DIAGNOSTICS: QualityDiagnosticResult[] = [
   {
     id: 'diag_05',
     ruleCode: 'QC-105',
-    description: 'Section 179 Expense Limit & SC State Conformity Addback (SC Code ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 12-6-40)',
+    description: 'Section 179 Expense Limit & SC State Conformity Addback (SC Code § 12-6-40)',
     status: 'PASSED',
     severity: 'low',
     notes: 'Federal $70k expensed; SC state return properly reflects $45k addition for $25k cap.'
@@ -75,7 +75,7 @@ const QUALITY_DIAGNOSTICS: QualityDiagnosticResult[] = [
   {
     id: 'diag_06',
     ruleCode: 'QC-106',
-    description: 'Shareholder Stock & Debt Basis Limitation Check (IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 1366(d))',
+    description: 'Shareholder Stock & Debt Basis Limitation Check (IRC § 1366(d))',
     status: 'PASSED',
     severity: 'low',
     notes: 'Current shareholder basis ($485,000) exceeds distributions ($70,000). No gain on distribution.'
@@ -91,7 +91,7 @@ const QUALITY_DIAGNOSTICS: QualityDiagnosticResult[] = [
   {
     id: 'diag_08',
     ruleCode: 'QC-108',
-    description: 'Meals 50% Disallowance & Entertainment 100% Disallowance (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 274)',
+    description: 'Meals 50% Disallowance & Entertainment 100% Disallowance (§ 274)',
     status: 'PASSED',
     severity: 'low',
     notes: 'Schedule M-1 Line 5b contains verified $4,120 disallowance adjustment.'
@@ -107,7 +107,7 @@ const QUALITY_DIAGNOSTICS: QualityDiagnosticResult[] = [
   {
     id: 'diag_10',
     ruleCode: 'QC-110',
-    description: 'Contemporaneous Vehicle Mileage Log for Listed Property (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 280F)',
+    description: 'Contemporaneous Vehicle Mileage Log for Listed Property (§ 280F)',
     status: 'POSSIBLE_INCONSISTENCY',
     severity: 'high',
     notes: 'Ford F-250 claimed at 92% business use. Mileage log missing month of November.'
@@ -123,7 +123,7 @@ const QUALITY_DIAGNOSTICS: QualityDiagnosticResult[] = [
   {
     id: 'diag_12',
     ruleCode: 'QC-112',
-    description: 'Related-Party Loan AFR Interest Rate Test (IRC ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ 7872)',
+    description: 'Related-Party Loan AFR Interest Rate Test (IRC § 7872)',
     status: 'PASSED',
     severity: 'low',
     notes: 'Promissory note specifies 4.62% annual interest; exceeds minimum AFR.'
@@ -190,7 +190,7 @@ export const DraftReturnPreparer: React.FC<{ userRole: string; onCompleted?: () 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-4">
           <div>
             <div className="text-[10px] font-mono uppercase text-[#C99A32] font-bold tracking-wider">
-              A/R Tax Services, LLC ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ AI-Assisted Return Synthesis
+              A/R Tax Services, LLC • AI-Assisted Return Synthesis
             </div>
             <h2 className="text-base font-bold text-[#061A2F] uppercase tracking-wide flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#061A2F]" />
@@ -203,7 +203,7 @@ export const DraftReturnPreparer: React.FC<{ userRole: string; onCompleted?: () 
 
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 bg-neutral-100 border border-neutral-300 text-neutral-800 text-[11px] font-mono">
-              TY2024 Form 1120-S ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Summit Peak Construction
+              TY2024 Form 1120-S • Summit Peak Construction
             </span>
           </div>
         </div>
@@ -221,10 +221,10 @@ export const DraftReturnPreparer: React.FC<{ userRole: string; onCompleted?: () 
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>Strict Human Authority Guardrails Enforced:</span>
           </div>
-          <span className="text-neutral-500">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ No Autonomous Filing</span>
-          <span className="text-neutral-500">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ No Self-Approval</span>
-          <span className="text-neutral-500">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Requires Dual CPA Sign-Off</span>
-          <span className="text-neutral-500">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Append-Only Audit Logging</span>
+          <span className="text-neutral-500">• No Autonomous Filing</span>
+          <span className="text-neutral-500">• No Self-Approval</span>
+          <span className="text-neutral-500">• Requires Dual CPA Sign-Off</span>
+          <span className="text-neutral-500">• Append-Only Audit Logging</span>
         </div>
       </div>
 
@@ -296,7 +296,7 @@ export const DraftReturnPreparer: React.FC<{ userRole: string; onCompleted?: () 
             <span className="text-xs text-neutral-500">12 Verified Rules Evaluated</span>
           </div>
           <span className="text-xs font-mono px-2 py-0.5 bg-neutral-100 border border-neutral-300 text-neutral-800">
-            Pass Rate: 83.3% (10 Pass ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ 2 In Review)
+            Pass Rate: 83.3% (10 Pass • 2 In Review)
           </span>
         </div>
 

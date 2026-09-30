@@ -303,7 +303,7 @@ export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({
 
   // Helper to mask values if discretionMode is active
   const formatDiscreetAmount = (val: number | string) => {
-    if (discretionMode) return 'â€¢â€¢â€¢â€¢â€¢â€¢';
+    if (discretionMode) return '••••••';
     if (typeof val === 'number') {
       return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
@@ -404,7 +404,7 @@ export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({
             {currentTab === 'support' && 'Client Support, Tax Knowledge Base & Contacts'}
           </h2>
           <p className="text-xs text-[#667085]">
-            A/R Tax Services, LLC â€¢ Client Demonstration Portal
+            A/R Tax Services, LLC • Client Demonstration Portal
           </p>
         </div>
 
@@ -494,7 +494,7 @@ export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({
               </span>
             </div>
             <div className="font-semibold text-slate-200 text-xs">
-              Client Identity &amp; IRC Â§ 7216 Onboarding Dossier Cleared &bull; Hard Exit Gate Passed
+              Client Identity &amp; IRC § 7216 Onboarding Dossier Cleared &bull; Hard Exit Gate Passed
             </div>
           </div>
         </div>
@@ -952,9 +952,9 @@ export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({
 
             <div className="p-3 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-700 space-y-1">
               <div className="font-semibold text-neutral-900">Choose an action:</div>
-              <div>â€¢ <strong>Save Draft:</strong> Retain all in-progress answers and switch to CY{pendingTaxYear}.</div>
-              <div>â€¢ <strong>Discard:</strong> Abandon uncommitted entries and switch immediately.</div>
-              <div>â€¢ <strong>Cancel:</strong> Stay in CY{selectedTaxYear} to continue editing.</div>
+              <div>• <strong>Save Draft:</strong> Retain all in-progress answers and switch to CY{pendingTaxYear}.</div>
+              <div>• <strong>Discard:</strong> Abandon uncommitted entries and switch immediately.</div>
+              <div>• <strong>Cancel:</strong> Stay in CY{selectedTaxYear} to continue editing.</div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-neutral-200">

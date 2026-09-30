@@ -866,13 +866,13 @@ MANDATORY ARCHITECTURAL RULES:
 KNOWN LIVE WORKFLOW REQUIREMENT:
 
 Authenticated LIVE user
-â†’ permanent client identity
-â†’ persisted workflow state
-â†’ Stage 01 if incomplete
-â†’ LIVE workspace if Stage 01 complete
-â†’ Stage 02
-â†’ Stage 03 only after Stage 02 gate
-â†’ remaining workflow sequentially.
+→ permanent client identity
+→ persisted workflow state
+→ Stage 01 if incomplete
+→ LIVE workspace if Stage 01 complete
+→ Stage 02
+→ Stage 03 only after Stage 02 gate
+→ remaining workflow sequentially.
 
 KNOWN PREVIOUS ROUTING DEFECT:
 
@@ -1443,7 +1443,7 @@ async function executeMilestone(
   ) {
 
     log(
-      `${milestone.id}: already completed â€” skipping.`
+      `${milestone.id}: already completed — skipping.`
     );
 
     return;
@@ -1455,7 +1455,7 @@ async function executeMilestone(
   );
 
   log(
-    `${milestone.id} â€” ${milestone.name}`
+    `${milestone.id} — ${milestone.name}`
   );
 
   log(
@@ -1515,7 +1515,7 @@ async function executeMilestone(
     const patch =
       await askOpenAI({
         milestone:
-          `${milestone.id} â€” ${milestone.name}`,
+          `${milestone.id} — ${milestone.name}`,
 
         objective:
           milestone.objective,
@@ -1668,7 +1668,7 @@ NEEDS_TARGETED_DISCOVERY request with its exact identity.`;
     }
 
     log(
-      `${milestone.id}: TypeScript FAIL â€” rolling back OpenAI attempt.`
+      `${milestone.id}: TypeScript FAIL — rolling back OpenAI attempt.`
     );
 
     rollbackPatch(
@@ -2059,9 +2059,9 @@ Preserve role separation and canonical audit records.`
       "UI and Encoding Cleanup",
 
     terms: [
-      "Ã‚Â§",
-      "Ã¢â‚¬â€",
-      "Ã¢â‚¬Â¢",
+      "§",
+      "—",
+      "—¢",
       "StageOne",
       "workspace",
       "navigation",
@@ -2071,7 +2071,7 @@ Preserve role separation and canonical audit records.`
     objective:
 `Perform targeted UI integration cleanup.
 
-Repair confirmed mojibake such as IRC Ã‚Â§ 7216, Ã¢â‚¬â€, and Ã¢â‚¬Â¢ when present.
+Repair confirmed mojibake such as IRC § 7216, —, and —¢ when present.
 
 Keep the client workspace clean and easy to navigate.
 

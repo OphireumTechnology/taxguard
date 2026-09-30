@@ -142,7 +142,7 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <strong className="text-white block">Firm Business Hours:</strong>
-                    Monday â€“ Friday: 9:00 AM â€“ 6:00 PM EST<br />
+                    Monday – Friday: 9:00 AM – 6:00 PM EST<br />
                     Saturday: By Appointment Only<br />
                     Sunday: Closed (Secure Vault Active 24/7)
                   </div>

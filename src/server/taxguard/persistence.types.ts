@@ -47,6 +47,27 @@ export const STAGE_NAMES: Record<StageNumber, string> = {
   18: 'REPEAT',
 };
 
+export const CANONICAL_STAGE_LABELS: Record<StageNumber, string> = {
+  1: 'Stage 01 — Onboard',
+  2: 'Stage 02 — Collect',
+  3: 'Stage 03 — Validate',
+  4: 'Stage 04 — Record',
+  5: 'Stage 05 — Reconcile',
+  6: 'Stage 06 — Review',
+  7: 'Stage 07 — Report',
+  8: 'Stage 08 — Plan',
+  9: 'Stage 09 — Prepare Taxes',
+  10: 'Stage 10 — Approve',
+  11: 'Stage 11 — Sign',
+  12: 'Stage 12 — File',
+  13: 'Stage 13 — Government Feedback',
+  14: 'Stage 14 — Resolve',
+  15: 'Stage 15 — Monitor',
+  16: 'Stage 16 — Archive',
+  17: 'Stage 17 — Renew',
+  18: 'Stage 18 — Repeat',
+};
+
 export const STAGE_TITLES: Record<StageNumber, string> = {
   1: '01 Onboard',
   2: '02 Collect',

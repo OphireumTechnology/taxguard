@@ -425,7 +425,7 @@ export const DemoAppRouter: React.FC = () => {
       { id: 'resolution', label: 'Tax Resolution & Defense', icon: ShieldAlert },
       { id: 'taxguard_audit', label: 'TaxGuard Audit Ledger', icon: Activity },
       { id: 'ai_governance', label: 'AI Governance & Safety', icon: Lock },
-      { id: 'irc7216', label: 'IRC Â§ 7216 Consents', icon: FileText },
+      { id: 'irc7216', label: 'IRC § 7216 Consents', icon: FileText },
       { id: 'credentials', label: 'PTIN / EFIN Registry', icon: Key },
       { id: 'retention', label: 'Retention Schedule', icon: Folder }
     ],

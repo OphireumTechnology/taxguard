@@ -37,6 +37,7 @@ const LiveCalendarModule = lazy(() => import('./components/calendar/LiveCalendar
 const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
 
 import { PublicV2Router } from './public-v2/PublicV2Router';
+import { StageOneOnboardingService } from './services/stageOneOnboardingService';
 
 import { LiveClientWorkflowRouter } from './components/workflow/LiveClientWorkflowRouter';
 function getUrlTarget(): string {
@@ -159,7 +160,8 @@ const AppContent: React.FC = () => {
     }
 
     if (isPublicClientAuthRoute && hasLiveClientSession) {
-      setCurrentPage('stage_one_onboard');
+      const isCompleted = StageOneOnboardingService.hasPassedHardExitGate(currentUser?.clientId) || Boolean(provisionedOnboarding?.activeStage && provisionedOnboarding.activeStage >= 2);
+      setCurrentPage(isCompleted ? 'client_portal' : 'stage_one_onboard');
       return;
     }
 

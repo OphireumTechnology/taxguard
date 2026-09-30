@@ -7,12 +7,13 @@
  * 4. Addresses & Authorized Representative
  * 5. Supporting ID documents
  * 6. Duplicate check across TIN, Legal Name, Email, Phone, Address (block/route to review)
- * 7. Engagement & Consent with approved IRC Ã‚Â§ 7216 language
+ * 7. Engagement & Consent with approved IRC § 7216 language
  * 8. Onboarding Readiness Card & Hard Exit Gate
  * 9. Stage Two activation upon satisfaction
  */
 import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService';
 import { EnvironmentConfigService } from '../config/environmentConfig';
+import { LiveWorkflowAuthority } from './liveWorkflowAuthority';
 
 export type TaxpayerType = 'individual' | 'entity';
 
@@ -519,9 +520,9 @@ export class StageOneOnboardingService {
     );
     blockingItems.push({
       id: 'gate_consent',
-      label: 'Engagement Scope & IRC Ã‚Â§ 7216 Consent E-Signature',
+      label: 'Engagement Scope & IRC § 7216 Consent E-Signature',
       satisfied: consentSatisfied,
-      blockingReason: consentSatisfied ? undefined : 'IRC Ã‚Â§ 7216 consent, scope acknowledgment, and legal electronic signature required.'
+      blockingReason: consentSatisfied ? undefined : 'IRC § 7216 consent, scope acknowledgment, and legal electronic signature required.'
     });
 
     // Calculate percentage
@@ -619,6 +620,21 @@ export class StageOneOnboardingService {
   public static hasPassedHardExitGate(clientId: string | null | undefined): boolean {
     const permanentClientId = clientId?.trim();
     if (!permanentClientId) return false;
+
+    // Check server authoritative workflow snapshot first
+    try {
+      const snapshot = LiveWorkflowAuthority.getSnapshot();
+      if (
+        snapshot &&
+        snapshot.workflow &&
+        snapshot.workflow.clientId === permanentClientId &&
+        (snapshot.workflow.stage1?.status === 'COMPLETED' || snapshot.workflow.activeStage >= 2)
+      ) {
+        return true;
+      }
+    } catch {
+      // Ignore if authority snapshot is not ready yet
+    }
 
     const dossier = this.getDossier(permanentClientId);
     return Boolean(

@@ -14,7 +14,7 @@ export const NotFoundPage: React.FC = () => {
 
       <div className="space-y-3">
         <span className="text-xs font-mono font-bold text-[#C6A15B] tracking-widest uppercase">
-          Status Code 404 â€¢ Resource Not Located
+          Status Code 404 • Resource Not Located
         </span>
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
           Page Not Found
