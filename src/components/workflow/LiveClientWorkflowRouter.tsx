@@ -302,56 +302,31 @@ React.FC<LiveClientWorkflowRouterProps> = ({
 
     if (viewMode === 'review_stage1') {
       return (
-        <div className="space-y-4">
-          <div className="max-w-6xl mx-auto px-4 pt-4">
-            <button
-              onClick={() => setViewMode('dashboard')}
-              className="text-xs font-bold text-[#0D2340] hover:text-[#C6A15B] bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              &larr; Return to Client Dashboard
-            </button>
-          </div>
-          <StageOneIdentityWizard
-            initialClientId={clientId}
-            taxYear={selectedTaxYear}
-            authoritativeActiveStage={authority.workflow.activeStage}
-            onExitGatePassed={refreshAuthority}
-            onNavigateToDashboard={() => {
-              refreshAuthority();
-              setViewMode('dashboard');
-            }}
-          />
-        </div>
+        <AuthenticatedClientDashboard
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onTaxYearChange={handleTaxYearChange}
+          onEnterStageTwo={() => setViewMode('workspace')}
+          onReviewStageOne={() => setViewMode('review_stage1')}
+          initialNav="stage_01"
+          authority={authority}
+          onServerWorkflowRefresh={refreshAuthority}
+        />
       );
     }
 
     if (viewMode === 'workspace') {
       return (
-        <div className="space-y-4">
-          <div className="max-w-7xl mx-auto px-4 pt-4 pb-1 flex items-center justify-between">
-            <button
-              onClick={() => setViewMode('dashboard')}
-              className="text-xs font-bold text-[#0D2340] hover:text-[#C6A15B] bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              &larr; Return to Client Dashboard
-            </button>
-            <span className="text-xs font-mono font-bold text-slate-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md">
-              Active: Stage 02 &mdash; Collect
-            </span>
-          </div>
-          <StageTwoCollectionWorkspace
-            clientId={clientId}
-            selectedTaxYear={selectedTaxYear}
-            onTaxYearChange={handleTaxYearChange}
-            serverStageThreeEligible={
-              authority.eligibility
-                .eligibility.stage3 === true
-            }
-            onServerWorkflowRefresh={
-              refreshAuthority
-            }
-          />
-        </div>
+        <AuthenticatedClientDashboard
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onTaxYearChange={handleTaxYearChange}
+          onEnterStageTwo={() => setViewMode('workspace')}
+          onReviewStageOne={() => setViewMode('review_stage1')}
+          initialNav="stage_02"
+          authority={authority}
+          onServerWorkflowRefresh={refreshAuthority}
+        />
       );
     }
 
@@ -363,6 +338,9 @@ React.FC<LiveClientWorkflowRouterProps> = ({
         onTaxYearChange={handleTaxYearChange}
         onEnterStageTwo={() => setViewMode('workspace')}
         onReviewStageOne={() => setViewMode('review_stage1')}
+        initialNav="home"
+        authority={authority}
+        onServerWorkflowRefresh={refreshAuthority}
       />
     );
   }
