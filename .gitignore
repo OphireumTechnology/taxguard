@@ -46,3 +46,4 @@ functions/lib/
 
 # TaxGuard local recovery snapshots
 .taxguard-backups/
+supabase/.temp/
