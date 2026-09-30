@@ -892,7 +892,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </p>
           </div>
 
-          <ProfileSecurityView currentUser={currentUser} initialTab="statutory_consent" />
+          <ProfileSecurityView currentUser={currentUser} initialTab="privacy_consent" />
         </div>
       );
     }
