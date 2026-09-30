@@ -220,16 +220,6 @@ export class AccountingDocumentIntelligenceService {
     }
 
     // 5. ACCOUNTING WORKPAPERS & LEDGERS
-    if (textUpper.includes('TRIAL BALANCE') || textUpper.includes('DEBIT') && textUpper.includes('CREDIT') && textUpper.includes('NET BALANCE')) {
-      return {
-        classification: 'TRIAL_BALANCE',
-        isAccountingRelevant: true,
-        confidence: 0.96,
-        suggestedCategory: 'Workpapers / Trial Balance',
-        rationale: 'Adjusted Trial Balance workpapers identified.'
-      };
-    }
-
     if (textUpper.includes('GENERAL LEDGER') || textUpper.includes('GL DETAIL') || textUpper.includes('CHART OF ACCOUNTS')) {
       return {
         classification: 'GENERAL_LEDGER',
@@ -237,6 +227,16 @@ export class AccountingDocumentIntelligenceService {
         confidence: 0.96,
         suggestedCategory: 'Workpapers / General Ledger',
         rationale: 'General Ledger accounting register identified.'
+      };
+    }
+
+    if (textUpper.includes('TRIAL BALANCE') || (textUpper.includes('DEBIT') && textUpper.includes('CREDIT') && textUpper.includes('NET BALANCE'))) {
+      return {
+        classification: 'TRIAL_BALANCE',
+        isAccountingRelevant: true,
+        confidence: 0.96,
+        suggestedCategory: 'Workpapers / Trial Balance',
+        rationale: 'Adjusted Trial Balance workpapers identified.'
       };
     }
 

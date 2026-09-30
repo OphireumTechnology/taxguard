@@ -97,6 +97,10 @@ import {
   handleLegacyTaxGuardRoute
 } from './src/server/routes/taxguard.routes';
 
+import {
+  accountingIntakeRouter
+} from './src/server/routes/accounting-intake.routes';
+
 /**
  * TaxGuard LIVE server-authoritative workflow.
  *
@@ -424,6 +428,11 @@ app.use(
 app.use(
   '/api/taxguard',
   taxguardRouter
+);
+
+app.use(
+  '/api/accounting-intake',
+  accountingIntakeRouter
 );
 
 /**
