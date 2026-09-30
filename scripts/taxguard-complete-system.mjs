@@ -377,7 +377,7 @@ commissioning where applicable:
 - document quarantine
 - malware scanning
 - production OCR
-- Firebase production configuration
+- Supabase production configuration
 - IAM / Secret Manager
 - IRS MeF
 - state filing systems

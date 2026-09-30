@@ -5,7 +5,15 @@ import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { TransactionalFirestore } from './helpers/transactionalFirestore';
 import { casePath } from '../server/taxguard/authority.repository';
 const holder = vi.hoisted(() => ({ db: null as any }));
-vi.mock('../server/firebase-admin', () => ({ getFirebaseAdminDb: () => holder.db }));
+vi.mock('../server/taxguard/transactionalDatabase', async () => {
+  const actual = await vi.importActual<any>('../server/taxguard/transactionalDatabase');
+  return {
+    ...actual,
+    get globalAuthorityDatabase() {
+      return holder.db;
+    },
+  };
+});
 // HTTP tests isolate transport from Firebase token verification (tested separately).
 vi.mock('../server/auth', () => ({ authenticateToken: (req: any, res: any, next: any) => {
   if (!req.headers['x-test-user']) return res.status(401).json({ error: 'AUTH_REQUIRED' });

@@ -25,13 +25,6 @@ import {
 } from '../types';
 import { INITIAL_SERVICE_PLANS, INITIAL_JOBS } from '../data/mockData';
 import { api, getStoredToken, clearStoredToken } from '../services/api';
-import { auth, db } from '../firebase/config';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import {
-  loginWithEmail,
-  registerWithEmail,
-  logout as firebaseLogout
-} from '../firebase/auth';
 import {
   loginWithEmail as supabaseLoginWithEmail,
   registerWithEmail as supabaseRegisterWithEmail,
@@ -44,9 +37,6 @@ import {
   ControlledAuthErrorCode
 } from '../supabase/auth';
 import { isSupabaseConfigured, supabase } from '../supabase/config';
-import { seedInitialServicesIfEmpty } from '../firebase/seed';
-import { testConnection } from '../firebase/firestore';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { StageOneOnboardingService } from '../services/stageOneOnboardingService';
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
@@ -379,7 +369,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const authOperationInProgressRef = useRef(false);
   const registrationStateRef = useRef<RegistrationResultState>(registrationState);
   registrationStateRef.current = registrationState;
-  const firebaseSessionPromisesRef = useRef<Map<string, Promise<User>>>(new Map());
 
   const clearTaxpayerState = useCallback(() => {
     setUsers([]);
@@ -509,57 +498,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsInitialized(true);
     }
   }, []);
-
-  const restoreFirebaseSession = useCallback(async (firebaseUser: FirebaseUser, forceRefresh = false): Promise<User> => {
-    const pending = firebaseSessionPromisesRef.current.get(firebaseUser.uid);
-    if (pending) return pending;
-
-    const restoration = (async () => {
-      const idToken = await firebaseUser.getIdToken(forceRefresh);
-      if (!idToken) throw new Error('A verified Firebase identity token could not be obtained.');
-      clearTaxpayerState();
-      clearStoredToken();
-
-      const liveSession = await api.auth.firebaseSession({ idToken });
-      if (!liveSession.user) throw new Error('TaxGuard could not restore the LIVE client workspace.');
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('taxguard_environment', 'live');
-        localStorage.removeItem('demo_session');
-        sessionStorage.removeItem('demo_session');
-      }
-
-      setCurrentUser(liveSession.user);
-      setCurrentRoleState(liveSession.user.role);
-      await refreshBackendData();
-
-      if (liveSession.user.role === 'client' || liveSession.user.role === 'prospective_client') {
-        const landingPage = getLiveClientLandingPage(liveSession.user);
-        setCurrentPageState(landingPage);
-        setPageParams({});
-
-        if (typeof window !== 'undefined') {
-          try {
-            window.history.replaceState({ page: landingPage }, '', `/#/${landingPage}`);
-          } catch {
-            window.location.hash = `#/${landingPage}`;
-          }
-        }
-      }
-
-      return liveSession.user;
-    })();
-
-    firebaseSessionPromisesRef.current.set(firebaseUser.uid, restoration);
-
-    try {
-      return await restoration;
-    } finally {
-      if (firebaseSessionPromisesRef.current.get(firebaseUser.uid) === restoration) {
-        firebaseSessionPromisesRef.current.delete(firebaseUser.uid);
-      }
-    }
-  }, [clearTaxpayerState, refreshBackendData]);
 
   const establishSupabaseServerSession = useCallback(async (
     accessToken: string,
@@ -814,7 +752,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     authOperationInProgressRef.current = true;
 
     try {
-      await firebaseLogout().catch(() => {});
+      await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
@@ -836,7 +774,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setCurrentRole = (role: UserRole | 'guest') => {
     if (role === 'guest') {
       authOperationInProgressRef.current = true;
-      void firebaseLogout().catch(() => {}).finally(() => {
+      void supabaseLogout().catch(() => {}).finally(() => {
         authOperationInProgressRef.current = false;
       });
       clearStoredToken();
@@ -1063,7 +1001,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (isDemoSession) {
       } else {
         await supabaseLogout().catch(() => {});
-        await firebaseLogout().catch(() => {});
         await api.auth.logout().catch(() => {});
       }
     } finally {
@@ -1397,12 +1334,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createLegalRecord = async (record: Partial<LegalCoordinationRecord>): Promise<boolean> => {
     try {
-      const recordId = record.id || `legal_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      setDoc(doc(db, 'consentRecords', recordId), {
-        ...record,
-        id: recordId,
-        createdAt: serverTimestamp()
-      }).catch(error => console.warn('Firestore legal record sync notice:', error));
       const res = await api.legal.create(record);
       setLegalRecords(previous => [res.record, ...previous]);
       return true;

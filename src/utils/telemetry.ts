@@ -58,21 +58,6 @@ export async function reportAuthFailure(email: string, reason: string, attemptTy
   }
 }
 
-export async function reportFirebaseError(functionName: string, error: any): Promise<void> {
-  try {
-    const code = error?.code || 'UNKNOWN';
-    const message = error?.message || String(error);
-    await fetch(`${getBaseUrl()}/api/monitoring/firebase-error`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ functionName, code, message }),
-      keepalive: true
-    }).catch(() => {});
-  } catch {
-    // Non-blocking telemetry
-  }
-}
-
 export async function reportSuspiciousActivity(activityType: string, targetResource: string, reason: string): Promise<void> {
   try {
     await fetch(`${getBaseUrl()}/api/monitoring/suspicious-activity`, {

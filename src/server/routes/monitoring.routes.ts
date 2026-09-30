@@ -13,7 +13,7 @@ export const monitoringRouter = Router();
 // In-memory monitoring event store
 interface MonitoringMetric {
   id: string;
-  type: 'client_error' | 'api_failure' | 'auth_failure' | 'firebase_error' | 'email_failure' | 'suspicious_activity';
+  type: 'client_error' | 'api_failure' | 'auth_failure' | 'infrastructure_error' | 'email_failure' | 'suspicious_activity';
   message: string;
   details?: any;
   userId?: string;
@@ -105,15 +105,15 @@ monitoringRouter.post('/auth-failure', (req: Request, res: Response) => {
   return res.status(200).json({ status: 'logged', id: record.id });
 });
 
-// 4. Firebase Function Errors
-monitoringRouter.post('/firebase-error', (req: Request, res: Response) => {
-  const { functionName, code, message } = req.body;
+// 4. Infrastructure & Integration Errors
+monitoringRouter.post('/infrastructure-error', (req: Request, res: Response) => {
+  const { provider, functionName, code, message } = req.body;
   const ip = req.ip || 'unknown';
 
   const record = pushMonitoringEvent({
-    type: 'firebase_error',
-    message: `Firebase function failure [${functionName || 'unknown'}]: ${message || code || 'error'}`,
-    details: { functionName, code, message: String(message || '').slice(0, 250) },
+    type: 'infrastructure_error',
+    message: `Infrastructure failure [${provider || functionName || 'unknown'}]: ${message || code || 'error'}`,
+    details: { provider, functionName, code, message: String(message || '').slice(0, 250) },
     ipAddress: ip,
     severity: 'error'
   });
@@ -166,7 +166,7 @@ monitoringRouter.get('/telemetry', authenticateToken, requireRole('admin', 'supe
     client_error: monitoringEvents.filter(e => e.type === 'client_error').length,
     api_failure: monitoringEvents.filter(e => e.type === 'api_failure').length,
     auth_failure: monitoringEvents.filter(e => e.type === 'auth_failure').length,
-    firebase_error: monitoringEvents.filter(e => e.type === 'firebase_error').length,
+    infrastructure_error: monitoringEvents.filter(e => e.type === 'infrastructure_error').length,
     email_failure: monitoringEvents.filter(e => e.type === 'email_failure').length,
     suspicious_activity: monitoringEvents.filter(e => e.type === 'suspicious_activity').length
   };

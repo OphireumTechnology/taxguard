@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeFileName } from '../src/firebase/storage';
+import { sanitizeFileName } from '../src/supabase/storage';
 
 describe('Business Logic & Validation Suite', () => {
 

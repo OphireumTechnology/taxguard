@@ -564,8 +564,13 @@ export async function resendVerificationEmail(
   }
 }
 
-export async function logout(): Promise<void> {
-  await supabase.auth.signOut().catch(() => {});
+export async function logout(): Promise<boolean> {
+  try {
+    await supabase.auth.signOut();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export const NEUTRAL_PASSWORD_RESET_MESSAGE =

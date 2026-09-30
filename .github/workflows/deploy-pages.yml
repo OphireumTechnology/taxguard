@@ -38,9 +38,6 @@ jobs:
       - name: Install application dependencies
         run: npm install
 
-      - name: Install Functions test dependencies
-        run: npm install --prefix functions
-
       - name: Type check
         run: npm run typecheck
 

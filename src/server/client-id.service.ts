@@ -1,5 +1,3 @@
-﻿import { Firestore } from 'firebase-admin/firestore';
-
 const COUNTER_COLLECTION = 'system';
 const COUNTER_DOCUMENT = 'taxguard_client_id_sequence';
 
@@ -147,7 +145,7 @@ export function formatTaxGuardClientId(sequence: number): string {
  * - Allocation is atomic.
  */
 export async function allocateTaxGuardClientId(
-  db: Firestore
+  db?: any
 ): Promise<{
   clientId: string;
   sequence: number;

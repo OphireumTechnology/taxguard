@@ -14,7 +14,7 @@ import {
   Lock 
 } from 'lucide-react';
 import { DocumentItem, RequiredDocumentChecklistItem } from '../../../types';
-import { getSecureDownloadUrl } from '../../../firebase/storage';
+import { getSecureDownloadUrl } from '../../../supabase/storage';
 
 interface DocumentsViewProps {
   documents: DocumentItem[];

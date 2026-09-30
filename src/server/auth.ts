@@ -8,8 +8,6 @@ import { Request, Response, NextFunction } from 'express';
 import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 import { db } from './db';
 import { User, UserRole } from '../types';
-import { getFirebaseAdminAuth, getFirebaseAdminDb } from './firebase-admin';
-import { DurableSessions } from './durableSessions';
 import { isSupabaseServerConfigured } from './supabase';
 import { SupabaseDurableSessions, hasFallbackSupabaseSession } from './supabase-db';
 
@@ -163,18 +161,7 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
         try {
           user = await new SupabaseDurableSessions().verify(token);
         } catch {
-          // Fall through to Firestore
-        }
-      }
-      if (!user) {
-        const firestore = getFirebaseAdminDb();
-        const firebaseAuth = getFirebaseAdminAuth();
-        if (firestore && firebaseAuth) {
-          try {
-            user = await new DurableSessions(firestore, firebaseAuth, process.env.TAXGUARD_TENANT_ID || '').verify(token);
-          } catch {
-            // Fall through
-          }
+          // Verification failed
         }
       }
       if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });

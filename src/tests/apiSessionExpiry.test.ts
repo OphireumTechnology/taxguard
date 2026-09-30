@@ -18,17 +18,17 @@ it('does not destroy an authenticated session on temporary service failure', asy
 });
 it('translates HTTP 405 errors into controlled secure user-facing message', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>405 Not Allowed</html>', { status: 405 })));
-  await expect(api.auth.firebaseSession({ idToken: 'token123' })).rejects.toThrow(
+  await expect(api.auth.supabaseSession({ accessToken: 'token123' })).rejects.toThrow(
     'We could not securely connect to the TaxGuard authentication service. Please try again or contact support.'
   );
 });
-it('establishes session and stores token on successful firebaseSession call', async () => {
+it('establishes session and stores token on successful supabaseSession call', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
     message: 'Authorized',
     token: 'jwt-token-456',
     user: { id: 'u1', role: 'client' }
   }), { status: 200 })));
-  const result = await api.auth.firebaseSession({ idToken: 'valid-token' });
+  const result = await api.auth.supabaseSession({ accessToken: 'valid-token' });
   expect(result.token).toBe('jwt-token-456');
   expect(getStoredToken()).toBe('jwt-token-456');
 });

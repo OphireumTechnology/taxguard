@@ -14,8 +14,6 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { db } from '../../firebase/config';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 
 export interface DocumentUploadProps {
@@ -204,15 +202,9 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
           lineageStatus: 'SOURCE_CAPTURED',
           unsupportedSourceRepairsApplied: false
         },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
-
-      try {
-        await setDoc(doc(db, 'documents', docId), docMetadata);
-      } catch (firestoreErr) {
-        console.warn('[DocumentUpload] Firestore direct write notice:', firestoreErr);
-      }
 
       // Also register via AppContext uploadDocument to synchronize global context
       if (uploadDocument) {

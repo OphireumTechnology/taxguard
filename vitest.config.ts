@@ -17,7 +17,6 @@ export default defineConfig({
       '**/backups/**',
       '**/backup/**',
       '**/.git/**',
-      '**/.firebase/**',
       '**/coverage/**',
       '**/.cache/**',
     ],

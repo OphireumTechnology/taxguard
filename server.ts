@@ -144,7 +144,6 @@ import {
   AuthenticatedRequest
 } from './src/server/auth';
 
-import './src/server/firebase-admin';
 import { ProviderReadinessRegistry } from './src/server/taxguard/providerReadiness.service';
 import { ensureCanonicalTenantBootstrap } from './src/server/taxguard/tenantBootstrap';
 

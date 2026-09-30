@@ -6,7 +6,6 @@ import {
   TaxGuardWorkflowStage
 } from './liveWorkflow.types';
 
-import { getFirebaseAdminDb } from '../firebase-admin';
 import { isSupabaseServerConfigured } from '../supabase';
 
 const CASE_COLLECTION = 'taxguard_live_cases';
@@ -66,18 +65,7 @@ const inMemoryWorkflowDb = {
 };
 
 function getWorkflowDb(): any {
-  if (isSupabaseServerConfigured()) {
-    return inMemoryWorkflowDb;
-  }
-  const hasExplicitFirebaseAdmin = Boolean(
-    process.env.FIREBASE_ADMIN_PROJECT_ID ||
-    process.env.FIREBASE_ADMIN_CLIENT_EMAIL ||
-    process.env.GOOGLE_APPLICATION_CREDENTIALS
-  );
-  if (!hasExplicitFirebaseAdmin) {
-    return inMemoryWorkflowDb;
-  }
-  return getFirebaseAdminDb() || inMemoryWorkflowDb;
+  return inMemoryWorkflowDb;
 }
 
 export function clearInMemoryWorkflowCase(clientId: string, taxYear: number): void {

@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 
 /**
  * Security Rules Invariant and Access Control Verification Tests
- * Ensures the 8 Pillars of Hardened Rules and Zero-Trust isolation are verified.
+ * Ensures Row-Level Security (RLS) and Zero-Trust isolation are verified.
  */
-describe('Firestore Security Rules Invariants', () => {
+describe('PostgreSQL / Supabase Row-Level Security (RLS) Invariants', () => {
 
   // Rule verification helper models
   const checkAccess = (context: {

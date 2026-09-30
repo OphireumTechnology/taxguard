@@ -1,6 +1,6 @@
 /**
  * Authentication & Identity Routes
- * Firebase-backed LIVE identity, demonstration login, password management,
+ * Supabase-backed LIVE identity, demonstration login, password management,
  * brute-force lockout, session validation, and MFA.
  */
 
@@ -19,13 +19,6 @@ import {
   AuthenticatedRequest
 } from '../auth';
 import { User, OnboardingState } from '../../types';
-import {
-  getFirebaseAdminAuth,
-  getFirebaseAdminDb,
-  verifyFirebaseIdToken
-} from '../firebase-admin';
-import { allocateTaxGuardClientId } from '../client-id.service';
-import { DurableSessions } from '../durableSessions';
 import { AuthorityError } from '../taxguard/authority.repository';
 import {
   verifySupabaseAccessToken,
@@ -37,7 +30,7 @@ import { provisionOrResolveClientOnboarding } from '../taxguard/clientOnboarding
 
 export const authRouter = Router();
 authRouter.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production' && !['/supabase-session', '/firebase-session', '/me', '/logout'].includes(req.path)) {
+  if (process.env.NODE_ENV === 'production' && !['/supabase-session', '/me', '/logout'].includes(req.path)) {
     return res.status(410).json({ error: 'Use Supabase Authentication for live account operations.', code: 'SUPABASE_AUTH_REQUIRED' });
   }
   next();
@@ -120,253 +113,18 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
 });
 
 /**
- * LIVE public registration must be completed with Firebase Authentication and
- * then bridged through /firebase-session. The legacy endpoint must never mint
- * a LIVE session from caller-supplied profile data.
+ * Public registration must be completed with Supabase Authentication.
  */
 authRouter.post('/register', (_req: Request, res: Response) => {
   return res.status(410).json({
-    error: 'Public registration requires Firebase Authentication.',
-    code: 'FIREBASE_REGISTRATION_REQUIRED'
+    error: 'Public registration requires Supabase Authentication.',
+    code: 'SUPABASE_REGISTRATION_REQUIRED'
   });
 });
 
-const firebaseProvisioningLocks = new Map<string, Promise<void>>();
-
-async function withFirebaseProvisioningLock<T>(firebaseUid: string, operation: () => Promise<T>): Promise<T> {
-  const previous = firebaseProvisioningLocks.get(firebaseUid) || Promise.resolve();
-  let release: () => void = () => {};
-  const gate = new Promise<void>(resolve => {
-    release = resolve;
-  });
-  const tail = previous.catch(() => {}).then(() => gate);
-  firebaseProvisioningLocks.set(firebaseUid, tail);
-
-  await previous.catch(() => {});
-
-  try {
-    return await operation();
-  } finally {
-    release();
-    if (firebaseProvisioningLocks.get(firebaseUid) === tail) {
-      firebaseProvisioningLocks.delete(firebaseUid);
-    }
-  }
-}
-
-/**
- * Firebase -> TaxGuard LIVE session bridge.
- * Firebase proves external identity. TaxGuard restores or provisions the
- * permanent application identity and creates the application session.
- */
-authRouter.post('/firebase-session', async (req: Request, res: Response) => {
-  const { idToken } = req.body || {};
-
-  if (!idToken || typeof idToken !== 'string') {
-    return res.status(400).json({ error: 'Firebase ID token is required.' });
-  }
-
-  let decodedToken: Awaited<ReturnType<typeof verifyFirebaseIdToken>>;
-
-  try {
-    decodedToken = await verifyFirebaseIdToken(idToken);
-  } catch (error) {
-    console.warn('[Firebase Session] Token verification failed.');
-    return res.status(401).json({ error: 'Firebase authentication could not be verified.' });
-  }
-
-  const firebaseUid = decodedToken.uid;
-  const tokenEmail = typeof decodedToken.email === 'string'
-    ? decodedToken.email.trim().toLowerCase()
-    : '';
-
-  if (!firebaseUid || !tokenEmail) {
-    return res.status(401).json({
-      error: 'Verified Firebase identity does not contain a valid email.'
-    });
-  }
-
-  const firestore = getFirebaseAdminDb();
-  const firebaseAdminAuth = getFirebaseAdminAuth();
-
-  if (!firestore || !firebaseAdminAuth) {
-    return res.status(503).json({ error: 'Live account persistence is unavailable.' });
-  }
-
-  if (process.env.NODE_ENV === 'production') {
-    try {
-      const session = await new DurableSessions(firestore, firebaseAdminAuth, process.env.TAXGUARD_TENANT_ID || '').create(decodedToken);
-      return res.status(200).json({ ...session, message: 'Live TaxGuard session established.' });
-    } catch (error) {
-      return res.status(error instanceof AuthorityError ? error.status : 503).json({
-        error: 'Live identity could not be established. Contact support.',
-        code: error instanceof AuthorityError ? error.code : 'AUTH_UNAVAILABLE',
-      });
-    }
-  }
-
-  try {
-    const firebaseAccount = await firebaseAdminAuth.getUser(firebaseUid);
-    const verifiedEmail = (firebaseAccount.email || '').trim().toLowerCase();
-
-    if (!verifiedEmail || verifiedEmail !== tokenEmail) {
-      return res.status(401).json({ error: 'Verified Firebase identity is inconsistent.' });
-    }
-
-    const provisioned = await withFirebaseProvisioningLock(firebaseUid, async () => {
-      const userRef = firestore.collection('users').doc(firebaseUid);
-      const existingSnapshot = await userRef.get();
-      const existing = existingSnapshot.exists ? existingSnapshot.data() || {} : {};
-      const hadPermanentClientId = Boolean(existing.clientId);
-
-      let clientId: string;
-      let clientIdSequence: number | undefined;
-
-      if (hadPermanentClientId) {
-        clientId = String(existing.clientId);
-      } else {
-        const allocation = await allocateTaxGuardClientId(firestore);
-        clientId = allocation.clientId;
-        clientIdSequence = allocation.sequence;
-      }
-
-      const existingDbUser = db.users.get(firebaseUid);
-      const persistedStatus = existingDbUser?.status || existing.status;
-
-      if (persistedStatus === 'disabled' || persistedStatus === 'suspended') {
-        const blockedError = new Error('ACCOUNT_DISABLED') as Error & { status?: number };
-        blockedError.status = 403;
-        throw blockedError;
-      }
-
-      const verifiedName = firebaseAccount.displayName?.trim() || verifiedEmail;
-      const existingPhone = hadPermanentClientId && typeof existing.phone === 'string' ? existing.phone : '';
-      const existingCompany = hadPermanentClientId && typeof existing.companyName === 'string' ? existing.companyName : '';
-      const existingClientType = hadPermanentClientId && existing.clientType === 'business'
-        ? 'business'
-        : 'individual';
-      const createdAt = typeof existing.createdAt === 'string'
-        ? existing.createdAt
-        : firebaseAccount.metadata.creationTime || new Date().toISOString();
-
-      const user: User = {
-        id: firebaseUid,
-        clientId,
-        email: verifiedEmail,
-        name: verifiedName,
-        role: 'client',
-        phone: existingPhone || firebaseAccount.phoneNumber || '',
-        companyName: existingCompany,
-        company: existingCompany,
-        clientType: existingClientType,
-        status: 'active',
-        isVerified: true,
-        createdAt,
-        mfaEnabled: false
-      };
-
-      const persistedProfile: Record<string, unknown> = {
-        uid: firebaseUid,
-        clientId,
-        email: verifiedEmail,
-        fullName: verifiedName,
-        role: 'client',
-        phone: user.phone || '',
-        companyName: user.companyName || '',
-        clientType: existingClientType,
-        status: 'active',
-        environment: 'live',
-        externalSubmissionEnabled: false,
-        updatedAt: new Date().toISOString()
-      };
-
-      if (!hadPermanentClientId) {
-        persistedProfile.clientIdSequence = clientIdSequence;
-        persistedProfile.createdAt = createdAt;
-      }
-
-      await userRef.set(persistedProfile, { merge: true });
-      db.users.set(firebaseUid, user);
-
-      if (!db.onboardingStates.has(firebaseUid)) {
-        const onboardingState: OnboardingState = {
-          id: `onb_${randomBytes(16).toString('hex')}`,
-          userId: firebaseUid,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          step: 1,
-          percentComplete: 5,
-          entityType: existingClientType,
-          contactInfo: {
-            fullName: user.name,
-            email: user.email,
-            phone: user.phone || '',
-            address: '',
-            city: '',
-            state: '',
-            zipCode: ''
-          },
-          selectedServices: [],
-          intakeAnswers: {},
-          uploadedDocuments: [],
-          paymentMethodAuthorized: false,
-          engagementAgreementSigned: false,
-          privacyDisclaimerAccepted: false,
-          accountingSoftwareConnected: false,
-          consultationBooked: false,
-          status: 'draft',
-          missingRequirements: [
-            'Complete identity verification',
-            'Complete onboarding information'
-          ]
-        };
-        db.onboardingStates.set(firebaseUid, onboardingState);
-      }
-
-      return { user, clientId, restored: hadPermanentClientId };
-    });
-
-    const sessionToken = createSession(firebaseUid, 'client');
-
-    db.logAudit({
-      userId: provisioned.user.id,
-      userName: provisioned.user.name,
-      userRole: 'client',
-      action: provisioned.restored ? 'FIREBASE_SESSION_RESTORED' : 'FIREBASE_CLIENT_PROVISIONED',
-      resource: `User #${provisioned.user.id}`,
-      details: provisioned.restored
-        ? 'LIVE TaxGuard session restored from a verified Firebase identity.'
-        : 'LIVE TaxGuard client provisioned from a verified Firebase identity.',
-      ipAddress: req.ip || 'unknown',
-      severity: 'info'
-    });
-
-    return res.status(200).json({
-      message: provisioned.restored
-        ? 'Live TaxGuard session restored.'
-        : 'Live TaxGuard account provisioned.',
-      token: sessionToken,
-      user: provisioned.user,
-      clientId: provisioned.clientId,
-      environment: 'live',
-      externalSubmissionEnabled: false
-    });
-  } catch (error: any) {
-    if (error?.status === 403 || error?.message === 'ACCOUNT_DISABLED') {
-      return res.status(403).json({
-        error: 'Access denied because this TaxGuard account is disabled or suspended.',
-        code: 'ACCOUNT_DISABLED'
-      });
-    }
-
-    console.error('[Firebase Session] Provisioning failed.', error);
-    return res.status(503).json({ error: 'The LIVE TaxGuard session could not be provisioned.' });
-  }
-});
-
-// Secure demonstration/staff login. LIVE public clients use Firebase.
+// Secure demonstration/staff login. LIVE public clients use Supabase.
 authRouter.post('/login', async (req: Request, res: Response) => {
-  if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Firebase authentication is required.', code: 'FIREBASE_AUTH_REQUIRED' });
+  if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Supabase authentication is required.', code: 'SUPABASE_AUTH_REQUIRED' });
   const { email, password, mfaCode } = req.body;
   const ip = req.ip || 'unknown';
   const lockoutKey = `${ip}_${(email || '').toLowerCase()}`;
@@ -452,15 +210,6 @@ authRouter.post('/logout', authenticateToken, async (req: AuthenticatedRequest, 
       if (isSupabaseServerConfigured()) {
         try {
           await new SupabaseDurableSessions().revoke(req.token);
-        } catch {
-          // Fall through
-        }
-      }
-      const firestore = getFirebaseAdminDb();
-      const firebaseAuth = getFirebaseAdminAuth();
-      if (firestore && firebaseAuth) {
-        try {
-          await new DurableSessions(firestore, firebaseAuth, process.env.TAXGUARD_TENANT_ID || '').revoke(req.token);
         } catch {
           // Fall through
         }
@@ -648,11 +397,11 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
 
 /**
  * Caller-asserted Google profile data is not an authentication proof. Google
- * users must authenticate through Firebase and use /firebase-session.
+ * users must authenticate through Supabase OAuth and use /supabase-session.
  */
 authRouter.post('/google', (_req: Request, res: Response) => {
   return res.status(410).json({
-    error: 'Google authentication requires a verified Firebase provider token.',
-    code: 'FIREBASE_PROVIDER_TOKEN_REQUIRED'
+    error: 'Google authentication requires a verified Supabase provider token.',
+    code: 'SUPABASE_PROVIDER_TOKEN_REQUIRED'
   });
 });

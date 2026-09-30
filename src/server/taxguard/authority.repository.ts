@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+
+export type TransactionalDatabase = {
+  runTransaction: <T>(updateFunction: (transaction: any) => Promise<T>) => Promise<T>;
+  doc?: any;
+  collection?: any;
+  [key: string]: any;
+};
+export type DatabaseTransaction = any;
+
 import type { EvidencePackage, AiReasoningProposal } from '../../taxguard/intelligence/types';
 import type { StageGateEvidence } from './stageGate.types';
 import {
@@ -137,11 +145,11 @@ interface Write {
 
 /** Admin SDK only. Persistent multi-tenant tax authority engine. */
 export class TaxGuardAuthorityRepository {
-  constructor(private readonly db: Firestore) {
+  constructor(private readonly db: TransactionalDatabase) {
     if (!db) throw new AuthorityError('AUTHORITY_UNAVAILABLE', 503);
   }
 
-  private async access(tx: Transaction, scope: CaseScope, uid: string): Promise<Access> {
+  private async access(tx: DatabaseTransaction, scope: CaseScope, uid: string): Promise<Access> {
     safeId(uid);
     const path = casePath(scope);
     const memberDoc = await tx.get(this.db.doc(`taxguardTenants/${scope.tenantId}/members/${uid}`));
@@ -441,7 +449,7 @@ export class TaxGuardAuthorityRepository {
     revision: number,
     operationId: string,
     request: unknown,
-    build: (tx: Transaction, access: Access) => Promise<{ writes?: Write[]; patch?: Partial<CaseRecord>; [key: string]: any }>
+    build: (tx: DatabaseTransaction, access: Access) => Promise<{ writes?: Write[]; patch?: Partial<CaseRecord>; [key: string]: any }>
   ) {
     const path = casePath(scope);
     safeId(operationId);

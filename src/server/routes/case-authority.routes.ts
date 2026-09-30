@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, type AuthenticatedRequest } from '../auth';
-import { getFirebaseAdminDb } from '../firebase-admin';
+import { globalAuthorityDatabase } from '../taxguard/transactionalDatabase';
 import { AuthorityError, TaxGuardAuthorityRepository, type CaseScope } from '../taxguard/authority.repository';
 import { proposeDurableOpenAIReview } from '../ai/TaxGuardOpenAIService';
 import { ProviderReadinessRegistry } from '../taxguard/providerReadiness.service';
@@ -229,7 +229,7 @@ function handler(action: (repo: TaxGuardAuthorityRepository, scope: CaseScope, u
         engagementId: req.params.engagementId,
         taxYear: Number(req.params.taxYear),
       };
-      const result = await action(new TaxGuardAuthorityRepository(getFirebaseAdminDb()), scope, req.user!.id, req);
+      const result = await action(new TaxGuardAuthorityRepository(globalAuthorityDatabase), scope, req.user!.id, req);
       res.json(result);
     } catch (error) {
       res.status(error instanceof AuthorityError ? error.status : 503).json({
@@ -250,7 +250,7 @@ caseAuthorityRouter.get('/:tenantId/:clientId/:engagementId/cases', async (req: 
       clientId: req.params.clientId,
       engagementId: req.params.engagementId,
     };
-    const repo = new TaxGuardAuthorityRepository(getFirebaseAdminDb());
+    const repo = new TaxGuardAuthorityRepository(globalAuthorityDatabase);
     const result = await repo.listCases(scope, req.user!.id);
     res.json(result);
   } catch (error) {

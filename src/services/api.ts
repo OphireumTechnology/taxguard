@@ -181,31 +181,6 @@ export const api = {
       return res;
     },
 
-    firebaseSession: async (payload: {
-  idToken: string;
-  name?: string;
-  phone?: string;
-  companyName?: string;
-  clientType?: 'individual' | 'business';
-}) => {
-  const res = await request<{
-    message: string;
-    token: string;
-    user: User;
-  }>('/api/auth/firebase-session', {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  });
-
-  if (res.token) {
-    setStoredToken(res.token);
-  }
-
-  return res;
-},
-
-
-
     getMe: async () => {
       return request<{ user: User }>('/api/auth/me');
     },
