@@ -771,6 +771,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {activeSubTab === 'upload' && (
         <AccountingDocumentIntakeAgentView
           clientId={context.clientId}
+              engagementId={context.engagementId}
           taxYear={context.taxYear}
           clientName={context.entityName || 'Michael James Carter'}
           onDocumentImported={() => setWorkspaceVersion(v => v + 1)}
@@ -834,9 +835,9 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                         <div className="mt-1 font-mono text-[11px] text-[#A9B7C8] flex flex-wrap items-center gap-2">
                           <span>ID: {doc.documentId}</span>
                           <span>&bull;</span>
-                          <span>Category: {doc.category}</span>
+                          <span>Category: {doc.claimedCategory}</span>
                           <span>&bull;</span>
-                          <span>Uploaded: {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Active'}</span>
+                          <span>Uploaded: {doc.uploadTimestamp ? new Date(doc.uploadTimestamp).toLocaleDateString() : 'Active'}</span>
                         </div>
                       </div>
                     </div>

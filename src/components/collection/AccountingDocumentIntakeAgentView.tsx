@@ -50,6 +50,7 @@ import {
 
 interface AccountingDocumentIntakeAgentViewProps {
   clientId: string;
+  engagementId: string;
   taxYear: number;
   clientName?: string;
   onDocumentImported?: () => void;
@@ -76,6 +77,7 @@ export interface IngestedQueueDoc {
 
 export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntakeAgentViewProps> = ({
   clientId,
+  engagementId,
   taxYear,
   clientName = 'Michael James Carter',
   onDocumentImported,
@@ -265,11 +267,11 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
       setProcessingStatusText(`Scanning file ${i + 1} of ${files.length}: ${file.name}`);
 
       try {
-        // 1. Calculate SHA-256
-        const sha256 = await StageTwoIntakeSecurityService.calculateSha256(file);
+        // 1. Read browser File into canonical byte representation.
+        const fileBytes = new Uint8Array(await file.arrayBuffer());
 
-        // 2. Malware & security scan
-        const scanResult = await StageTwoIntakeSecurityService.scanFileForThreats(file, sha256);
+        // 2. Calculate SHA-256 using the canonical Stage 02 security service.
+        const sha256 = await StageTwoIntakeSecurityService.computeBytesSha256(fileBytes);
 
         // 3. Determine classification & relevance
         const lowerName = file.name.toLowerCase();
@@ -328,23 +330,39 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
           } : undefined
         };
 
-        // Also stage into collection service if relevant and clean
-        if (isRelevant && scanResult.cleared) {
-          try {
+        // Stage relevant documents through the canonical security pipeline.
+        // Uploading never means verified. The pipeline remains fail-closed.
+        if (isRelevant) {
+          const stagedSecurityDoc =
+            await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+              clientId,
+              engagementId,
+              taxYear,
+              uploader: clientName,
+              uploaderSource: 'client_portal',
+              originalFilename: file.name,
+              fileBytes,
+              claimedMimeType: file.type || 'application/octet-stream',
+              claimedCategory: classification,
+              notes: `Accounting intake source: ${source}`
+            });
+
+          // Register the collection record only when the canonical security
+          // pipeline itself marks the document ready for OCR.
+          if (stagedSecurityDoc.pipelineStage === 'READY_FOR_OCR') {
             StageTwoCollectionService.ingestDocumentUpload({
               clientId,
+              engagementId,
               taxYear,
+              uploaderSource: 'client_portal',
+              uploadedBy: clientName,
               originalFileName: file.name,
               fileSizeBytes: file.size,
               mimeType: file.type || 'application/octet-stream',
-              category: 'Accounting Document Intake',
-              source: source === 'GOOGLE_DRIVE' ? 'cloud_drive' : source === 'GMAIL' ? 'email_import' : 'local_upload',
-              uploaderIdentity: clientName,
-              taxpayerType: 'individual',
-              fileContent: file
+              claimedCategory: classification,
+              sha256Hash: sha256,
+              notes: `Accounting intake source: ${source}`
             });
-          } catch {
-            // Service record ingestion non-blocking
           }
         }
 

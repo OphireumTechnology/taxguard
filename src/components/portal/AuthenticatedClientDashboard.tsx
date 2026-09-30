@@ -767,7 +767,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             clientId={clientId}
             selectedTaxYear={selectedTaxYear}
             onTaxYearChange={onTaxYearChange}
-            userRole={currentUser?.role === 'cpa_admin' || currentUser?.role === 'tax_preparer' ? 'STAFF' : 'CLIENT'}
+            userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}
             serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
             onServerWorkflowRefresh={onServerWorkflowRefresh}
           />
@@ -796,7 +796,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             selectedTaxYear={selectedTaxYear}
             onTaxYearChange={onTaxYearChange}
             initialSubTab="vault"
-            userRole={currentUser?.role === 'cpa_admin' || currentUser?.role === 'tax_preparer' ? 'STAFF' : 'CLIENT'}
+            userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}
             serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
             onServerWorkflowRefresh={onServerWorkflowRefresh}
           />
