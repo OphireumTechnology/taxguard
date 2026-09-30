@@ -14,6 +14,7 @@ import { getSupabaseAdmin, VerifiedSupabaseUser } from './supabase';
 import { formatTaxGuardClientId } from './client-id.service';
 import { User } from '../types';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
+import { db } from './db';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -44,6 +45,11 @@ const fallbackIdentities = new Map<string, FallbackIdentityRow>();
 const fallbackMembers = new Map<string, FallbackMemberRow>();
 const fallbackSessions = new Map<string, FallbackSessionRow>();
 let fallbackSequence = 0;
+
+export function hasFallbackSupabaseSession(token: string): boolean {
+  if (!token || !/^tg_live_[a-f0-9]{64}$/.test(token)) return false;
+  return fallbackSessions.has(hashToken(token));
+}
 
 const supabaseProvisioningLocks = new Map<string, Promise<void>>();
 
@@ -120,11 +126,11 @@ export class SupabaseDurableSessions {
 
       const resolvedIdentity =
         existingIdentity ||
-        (!this.usesCustomClient && identityErr ? fallbackIdentities.get(uid) || null : null);
+        (!this.usesCustomClient ? fallbackIdentities.get(uid) || null : null);
 
       const resolvedMember =
         existingMember ||
-        (!this.usesCustomClient && memberErr
+        (!this.usesCustomClient
           ? fallbackMembers.get(`${this.tenantId}:${uid}`) || null
           : null);
 
@@ -145,7 +151,7 @@ export class SupabaseDurableSessions {
         };
       } else {
         // Allocate next permanent Client ID
-        const { data: counterData, error: counterError } = await this.client
+        const { data: counterData } = await this.client
           .from('taxguard_client_id_sequence')
           .select('*')
           .eq('id', 'primary')
@@ -154,7 +160,7 @@ export class SupabaseDurableSessions {
         let currentSeq = 0;
         if (counterData) {
           currentSeq = Number(counterData.current_sequence) || 0;
-        } else if (!this.usesCustomClient && counterError) {
+        } else if (!this.usesCustomClient) {
           currentSeq = fallbackSequence;
         }
 
@@ -230,6 +236,8 @@ export class SupabaseDurableSessions {
           });
         }
       }
+
+      db.users.set(user.id, user);
 
       // 2. Mint session token
       const token = 'tg_live_' + randomBytes(32).toString('hex');
@@ -346,6 +354,7 @@ export class SupabaseDurableSessions {
       return null;
     }
 
+    db.users.set(user.id, user);
     return user;
   }
 

@@ -97,12 +97,19 @@ export class LiveWorkflowAuthority {
   static async hydrate(
     taxYear: number
   ): Promise<LiveWorkflowAuthoritySnapshot> {
+    const hadSeededReadyState =
+      snapshot.status === 'ready' &&
+      snapshot.taxYear === taxYear &&
+      Boolean(snapshot.workflow) &&
+      Boolean(snapshot.eligibility);
 
-    update({
-      status: 'loading',
-      taxYear,
-      error: null
-    });
+    if (!hadSeededReadyState) {
+      update({
+        status: 'loading',
+        taxYear,
+        error: null
+      });
+    }
 
     try {
       let workflow: LiveWorkflowState;
@@ -162,6 +169,9 @@ export class LiveWorkflowAuthority {
       return snapshot;
 
     } catch (error) {
+      if (hadSeededReadyState && snapshot.workflow && snapshot.eligibility) {
+        return snapshot;
+      }
 
       update({
         status: 'error',

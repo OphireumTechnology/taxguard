@@ -93,10 +93,11 @@ const AppContent: React.FC = () => {
     setCurrentPage,
     pageParams,
     authLifecycleState,
-    isInitialized
+    isInitialized,
+    provisionedOnboarding
   } = useApp();
   const [liveTaxYear, setLiveTaxYear] = React.useState<number>(
-    () => new Date().getFullYear() - 1
+    () => provisionedOnboarding?.taxYear || 2025
   );
   const [isPublicV2Route, setIsPublicV2Route] = React.useState(() => isPublicV2RouteUrl());
   const [isTaxGuardRoute, setIsTaxGuardRoute] = React.useState(() => isTaxGuardRouteUrl());
@@ -107,17 +108,24 @@ const AppContent: React.FC = () => {
   );
 
   useEffect(() => {
+    if (provisionedOnboarding?.taxYear && provisionedOnboarding.taxYear !== liveTaxYear) {
+      setLiveTaxYear(provisionedOnboarding.taxYear);
+    }
+  }, [provisionedOnboarding?.taxYear, liveTaxYear]);
+
+  useEffect(() => {
     const handleUrlChange = () => {
       setIsPublicV2Route(isPublicV2RouteUrl());
       setIsTaxGuardRoute(isTaxGuardRouteUrl());
     };
+    handleUrlChange();
     window.addEventListener('hashchange', handleUrlChange);
     window.addEventListener('popstate', handleUrlChange);
     return () => {
       window.removeEventListener('hashchange', handleUrlChange);
       window.removeEventListener('popstate', handleUrlChange);
     };
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     if (import.meta.env.DEV) {

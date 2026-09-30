@@ -377,6 +377,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const authOperationInProgressRef = useRef(false);
+  const registrationStateRef = useRef<RegistrationResultState>(registrationState);
+  registrationStateRef.current = registrationState;
   const firebaseSessionPromisesRef = useRef<Map<string, Promise<User>>>(new Map());
 
   const clearTaxpayerState = useCallback(() => {
@@ -452,42 +454,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(sessionUser);
       setCurrentRoleState(sessionUser.role);
 
-      const [docsRes, engsRes, aptsRes, invRes, connRes, msgsRes, jobsRes, legalRes] = await Promise.all([
-        api.documents.list().catch(() => ({ documents: [] })),
-        api.engagements.list().catch(() => ({ engagements: [] })),
-        api.appointments.list().catch(() => ({ appointments: [] })),
-        api.payments.getInvoices().catch(() => ({ invoices: [] })),
-        api.integrations.list().catch(() => ({ connections: [] })),
-        api.messages.list().catch(() => ({ messages: [] })),
-        api.careers.getJobs().catch(() => ({ jobs: [] })),
-        api.legal.list().catch(() => ({ legalRecords: [] }))
-      ]);
-
-      setDocuments(docsRes.documents || []);
-      setEngagements(engsRes.engagements || []);
-      setAppointments(aptsRes.appointments || []);
-      setInvoices(invRes.invoices || []);
-      setAccountingConnections(connRes.connections || []);
-      setMessages(msgsRes.messages || []);
-      if (jobsRes.jobs?.length) setJobPostings(jobsRes.jobs as JobPosting[]);
-      setLegalRecords(legalRes.legalRecords || []);
-
-      if (sessionUser.role === 'client' || sessionUser.role === 'prospective_client') {
-        const onb = await api.onboarding.getState().catch(() => null);
-        if (onb) {
-          setOnboardingState(onb.state);
-          setOnboardingProgress(onb.progress);
+      if (sessionUser.role === 'client' && sessionUser.clientId) {
+        if (LiveWorkflowAuthority.getSnapshot().status !== 'ready') {
+          await LiveWorkflowAuthority.hydrate(2025).catch(() => {});
         }
       }
 
-      if (sessionUser.role === 'admin' || sessionUser.role === 'super_admin') {
-        const auditRes = await api.admin.getAuditLogs().catch(() => null);
-        if (auditRes?.auditLogs) setAuditLogs(auditRes.auditLogs);
-      }
+      if (!import.meta.env.PROD) {
+        const [docsRes, engsRes, aptsRes, invRes, connRes, msgsRes, jobsRes, legalRes] = await Promise.all([
+          api.documents.list().catch(() => ({ documents: [] })),
+          api.engagements.list().catch(() => ({ engagements: [] })),
+          api.appointments.list().catch(() => ({ appointments: [] })),
+          api.payments.getInvoices().catch(() => ({ invoices: [] })),
+          api.integrations.list().catch(() => ({ connections: [] })),
+          api.messages.list().catch(() => ({ messages: [] })),
+          api.careers.getJobs().catch(() => ({ jobs: [] })),
+          api.legal.list().catch(() => ({ legalRecords: [] }))
+        ]);
 
-      if (['recruiter', 'admin', 'super_admin'].includes(sessionUser.role)) {
-        const appsRes = await api.careers.getApplicants().catch(() => null);
-        if (appsRes?.applicants) setApplicants(appsRes.applicants);
+        setDocuments(docsRes.documents || []);
+        setEngagements(engsRes.engagements || []);
+        setAppointments(aptsRes.appointments || []);
+        setInvoices(invRes.invoices || []);
+        setAccountingConnections(connRes.connections || []);
+        setMessages(msgsRes.messages || []);
+        if (jobsRes.jobs?.length) setJobPostings(jobsRes.jobs as JobPosting[]);
+        setLegalRecords(legalRes.legalRecords || []);
+
+        if (sessionUser.role === 'client' || sessionUser.role === 'prospective_client') {
+          const onb = await api.onboarding.getState().catch(() => null);
+          if (onb) {
+            setOnboardingState(onb.state);
+            setOnboardingProgress(onb.progress);
+          }
+        }
+
+        if (sessionUser.role === 'admin' || sessionUser.role === 'super_admin') {
+          const auditRes = await api.admin.getAuditLogs().catch(() => null);
+          if (auditRes?.auditLogs) setAuditLogs(auditRes.auditLogs);
+        }
+
+        if (['recruiter', 'admin', 'super_admin'].includes(sessionUser.role)) {
+          const appsRes = await api.careers.getApplicants().catch(() => null);
+          if (appsRes?.applicants) setApplicants(appsRes.applicants);
+        }
       }
     } catch (err: any) {
       console.warn('Backend sync note:', err);
@@ -571,6 +581,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       throw err;
     }
 
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('taxguard_environment', 'live');
+      localStorage.removeItem('demo_session');
+      sessionStorage.removeItem('demo_session');
+    }
+
     if (options?.trackRegistrationStates) {
       setRegistrationState('INITIALIZING_CLIENT');
     }
@@ -624,18 +640,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('taxguard_environment', 'live');
-      localStorage.removeItem('demo_session');
-      sessionStorage.removeItem('demo_session');
-    }
-
     setCurrentUser(liveSession.user);
     setCurrentRoleState(liveSession.user.role);
     setAuthLifecycleState('AUTHENTICATED');
+    setIsInitialized(true);
     setPendingVerificationEmail(null);
 
-    await refreshBackendData().catch(() => {});
+    if (!import.meta.env.PROD) {
+      await refreshBackendData().catch(() => {});
+    }
 
     const landingPage = getLiveClientLandingPage(liveSession.user);
 
@@ -660,11 +673,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [refreshBackendData]);
 
   useEffect(() => {
-    testConnection().catch(() => {});
-    seedInitialServicesIfEmpty().catch(() => {});
-
     let active = true;
     const expireSession = () => {
+      if (authOperationInProgressRef.current) return;
       clearStoredToken();
       clearTaxpayerState();
       LiveWorkflowAuthority.clear();
@@ -680,11 +691,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           window.location.hash = '#/client/login';
         }
       }
-      void firebaseLogout().catch(() => {});
+      void supabaseLogout().catch(() => {});
     };
     window.addEventListener('taxguard:session-expired', expireSession);
 
     const bootstrapSession = async () => {
+      if (authOperationInProgressRef.current) return;
       try {
         const existingToken = getStoredToken();
         const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
@@ -693,44 +705,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (existingToken && environment === 'live') {
           try {
             await refreshBackendData();
-            if (active) {
+            if (active && !authOperationInProgressRef.current) {
               setAuthLifecycleState('AUTHENTICATED');
               setIsInitialized(true);
             }
             return;
           } catch {
-            clearStoredToken();
-          }
-        }
-
-        // 2. Check for an active Supabase browser session (e.g. after refresh or email verification callback)
-        if (isSupabaseConfigured()) {
-          const sbAccessToken = await getSupabaseAccessToken();
-          if (sbAccessToken && active) {
-            try {
-              const currentRoute = getPageFromUrl() || 'home';
-              const isAuthEntryRoute = [
-                'login',
-                'register',
-                'client_login',
-                'client_register'
-              ].includes(currentRoute);
-
-              await establishSupabaseServerSession(sbAccessToken, {
-                navigateIfAuthRoute: isAuthEntryRoute
-              });
-              if (active) {
-                setAuthLifecycleState('AUTHENTICATED');
-                setIsInitialized(true);
-              }
-              return;
-            } catch (err) {
-              console.warn('[TaxGuard Auth] Supabase session restoration failed:', err);
+            if (!authOperationInProgressRef.current) {
+              clearStoredToken();
             }
           }
         }
 
-        if (active) {
+        // 2. Check for an active Supabase browser session (e.g. after refresh or email verification callback)
+        const sbAccessToken = await getSupabaseAccessToken();
+        if (sbAccessToken && active && !authOperationInProgressRef.current) {
+          try {
+            const currentRoute = getPageFromUrl() || 'home';
+            const hasAuthCallbackInUrl =
+              typeof window !== 'undefined' &&
+              (window.location.hash.includes('access_token=') ||
+                window.location.hash.includes('type=signup') ||
+                window.location.search.includes('code='));
+            const isAuthEntryRoute =
+              hasAuthCallbackInUrl ||
+              [
+                'login',
+                'register',
+                'client_login',
+                'client_register',
+                'stage_one_onboard',
+                'onboarding',
+                'client_onboarding'
+              ].includes(currentRoute);
+
+            await establishSupabaseServerSession(sbAccessToken, {
+              navigateIfAuthRoute: isAuthEntryRoute
+            });
+            if (active) {
+              setAuthLifecycleState('AUTHENTICATED');
+              setIsInitialized(true);
+            }
+            return;
+          } catch (err) {
+            console.warn('[TaxGuard Auth] Supabase session restoration failed:', err);
+          }
+        }
+
+        if (active && !authOperationInProgressRef.current) {
           if (environment !== 'live' && existingToken) {
             clearStoredToken();
           }
@@ -738,7 +760,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setIsInitialized(true);
         }
       } catch {
-        if (active) {
+        if (active && !authOperationInProgressRef.current) {
           setAuthLifecycleState('UNAUTHENTICATED');
           setIsInitialized(true);
         }
@@ -758,7 +780,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             authOperationInProgressRef.current = true;
             await establishSupabaseServerSession(session.access_token, {
               navigateIfAuthRoute: true,
-              trackRegistrationStates: registrationState === 'EMAIL_VERIFICATION_REQUIRED'
+              trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED'
             });
           } catch (err) {
             console.warn('[TaxGuard Auth] Failed to bridge Supabase auth event:', err);
@@ -780,39 +802,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
-    // Legacy Firebase listener: ONLY act when Firebase user is present AND Supabase is not configured
-    const unsubscribeAuth = onAuthStateChanged(auth, async firebaseUser => {
-      if (!active || authOperationInProgressRef.current) return;
-      if (isSupabaseConfigured()) return;
-
-      if (firebaseUser) {
-        try {
-          await restoreFirebaseSession(firebaseUser, false);
-          if (active) setAuthLifecycleState('AUTHENTICATED');
-        } catch (error) {
-          console.warn('LIVE Firebase session restoration failed:', error);
-          authOperationInProgressRef.current = true;
-          await firebaseLogout().catch(() => {});
-          authOperationInProgressRef.current = false;
-          clearStoredToken();
-          clearTaxpayerState();
-          setCurrentUser(null);
-          setCurrentRoleState('guest');
-          setAuthLifecycleState('UNAUTHENTICATED');
-          if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
-          setIsInitialized(true);
-        }
-        return;
-      }
-    });
-
     return () => {
       active = false;
-      unsubscribeAuth();
       sbSubscription?.subscription?.unsubscribe();
       window.removeEventListener('taxguard:session-expired', expireSession);
     };
-  }, [clearTaxpayerState, establishSupabaseServerSession, refreshBackendData, registrationState, restoreFirebaseSession]);
+  }, [clearTaxpayerState, establishSupabaseServerSession, refreshBackendData]);
 
   const switchTestAccount = async (_userId: string) => {
     setIsSyncingWithBackend(true);
@@ -901,42 +896,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearStoredToken();
       clearTaxpayerState();
 
-      if (isSupabaseConfigured()) {
-        const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
-        if (!sbResult.success || !sbResult.accessToken) {
-          if (sbResult.emailVerificationRequired || sbResult.code === 'EMAIL_VERIFICATION_REQUIRED') {
-            setPendingVerificationEmail(normalizedEmail);
-            setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
-            return {
-              success: false,
-              emailVerificationRequired: true,
-              code: 'EMAIL_VERIFICATION_REQUIRED',
-              error: sbResult.error || 'Please verify your email address to activate your Client Tax Center.'
-            };
-          }
+      const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
+      if (!sbResult.success || !sbResult.accessToken) {
+        if (sbResult.emailVerificationRequired || sbResult.code === 'EMAIL_VERIFICATION_REQUIRED') {
+          setPendingVerificationEmail(normalizedEmail);
+          setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
           return {
             success: false,
-            code: sbResult.code || 'INVALID_CREDENTIALS',
-            error: sbResult.error || 'Invalid email or password.'
+            emailVerificationRequired: true,
+            code: 'EMAIL_VERIFICATION_REQUIRED',
+            error: sbResult.error || 'Please verify your email address to activate your Client Tax Center.'
           };
         }
-
-        const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
-          navigateIfAuthRoute: true
-        });
-        return { success: true, redirectPage };
+        return {
+          success: false,
+          code: sbResult.code || 'INVALID_CREDENTIALS',
+          error: sbResult.error || 'Invalid email or password.'
+        };
       }
 
-      const firebaseResult = await loginWithEmail(normalizedEmail, password);
-      if (!firebaseResult.success || !auth.currentUser) {
-        return { success: false, error: firebaseResult.error || 'Invalid email or password.' };
-      }
-
-      const restoredUser = await restoreFirebaseSession(auth.currentUser, true);
-      setAuthLifecycleState('AUTHENTICATED');
-      return { success: true, redirectPage: getLiveClientLandingPage(restoredUser) };
+      const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
+        navigateIfAuthRoute: true
+      });
+      return { success: true, redirectPage };
     } catch (err: any) {
-      await firebaseLogout().catch(() => {});
+      await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
@@ -1001,58 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const effectiveCompanyName = payload.companyName || payload.company || '';
 
-      if (isSupabaseConfigured()) {
-        const sbResult = await supabaseRegisterWithEmail(
-          payload.name,
-          normalizedEmail,
-          payload.password,
-          payload.phone,
-          effectiveCompanyName
-        );
-
-        if (!sbResult.success) {
-          setRegistrationState('FAILED');
-          return {
-            success: false,
-            status: 'FAILED',
-            code: sbResult.code || 'REGISTRATION_FAILED',
-            duplicateRegistration: sbResult.duplicateRegistration,
-            error: sbResult.error || 'Registration could not be completed at this time.'
-          };
-        }
-
-        setRegistrationState('ACCOUNT_CREATED');
-
-        // CASE B — User created in Supabase, but email confirmation is required before a session is issued
-        if (sbResult.emailVerificationRequired || !sbResult.accessToken) {
-          setPendingVerificationEmail(normalizedEmail);
-          setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
-          setAuthLifecycleState('UNAUTHENTICATED');
-          return {
-            success: true,
-            status: 'EMAIL_VERIFICATION_REQUIRED',
-            emailVerificationRequired: true,
-            code: 'EMAIL_VERIFICATION_REQUIRED',
-            email: normalizedEmail
-          };
-        }
-
-        // CASE A — Supabase returned a valid session immediately; establish TaxGuard server session & provision Stage 01
-        const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
-          navigateIfAuthRoute: true,
-          trackRegistrationStates: true
-        });
-
-        return {
-          success: true,
-          status: 'READY',
-          emailVerificationRequired: false,
-          redirectPage,
-          verificationTokenSimulated: 'supabase-verified'
-        };
-      }
-
-      const firebaseResult = await registerWithEmail(
+      const sbResult = await supabaseRegisterWithEmail(
         payload.name,
         normalizedEmail,
         payload.password,
@@ -1060,32 +993,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         effectiveCompanyName
       );
 
-      if (!firebaseResult.success || !auth.currentUser) {
-        await firebaseLogout().catch(() => {});
+      if (!sbResult.success) {
         setRegistrationState('FAILED');
         return {
           success: false,
           status: 'FAILED',
-          code: 'REGISTRATION_FAILED',
-          error: firebaseResult.error || 'Registration failed.'
+          code: sbResult.code || 'REGISTRATION_FAILED',
+          duplicateRegistration: sbResult.duplicateRegistration,
+          error: sbResult.error || 'Registration could not be completed at this time.'
         };
       }
 
-      setRegistrationState('ESTABLISHING_SESSION');
-      const restoredUser = await restoreFirebaseSession(auth.currentUser, true);
-      const landingPage = getLiveClientLandingPage(restoredUser);
-      setAuthLifecycleState('AUTHENTICATED');
-      setRegistrationState('READY');
+      setRegistrationState('ACCOUNT_CREATED');
+
+      // CASE B — User created in Supabase, but email confirmation is required before a session is issued
+      if (sbResult.emailVerificationRequired || !sbResult.accessToken) {
+        setPendingVerificationEmail(normalizedEmail);
+        setRegistrationState('EMAIL_VERIFICATION_REQUIRED');
+        setAuthLifecycleState('UNAUTHENTICATED');
+        return {
+          success: true,
+          status: 'EMAIL_VERIFICATION_REQUIRED',
+          emailVerificationRequired: true,
+          code: 'EMAIL_VERIFICATION_REQUIRED',
+          email: normalizedEmail
+        };
+      }
+
+      // CASE A — Supabase returned a valid session immediately; establish TaxGuard server session & provision Stage 01
+      const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
+        navigateIfAuthRoute: true,
+        trackRegistrationStates: true
+      });
 
       return {
         success: true,
         status: 'READY',
         emailVerificationRequired: false,
-        redirectPage: landingPage,
-        verificationTokenSimulated: 'firebase-admin-verified'
+        redirectPage,
+        verificationTokenSimulated: 'supabase-verified'
       };
     } catch (err: any) {
-      await firebaseLogout().catch(() => {});
+      await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);

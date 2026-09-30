@@ -11,7 +11,7 @@ import { User, UserRole } from '../types';
 import { getFirebaseAdminAuth, getFirebaseAdminDb } from './firebase-admin';
 import { DurableSessions } from './durableSessions';
 import { isSupabaseServerConfigured } from './supabase';
-import { SupabaseDurableSessions } from './supabase-db';
+import { SupabaseDurableSessions, hasFallbackSupabaseSession } from './supabase-db';
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -158,7 +158,7 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
 
   if (token.startsWith('tg_live_') || process.env.NODE_ENV === 'production') {
     try {
-      const sessions = isSupabaseServerConfigured()
+      const sessions = isSupabaseServerConfigured() || hasFallbackSupabaseSession(token)
         ? new SupabaseDurableSessions()
         : new DurableSessions(getFirebaseAdminDb(), getFirebaseAdminAuth(), process.env.TAXGUARD_TENANT_ID || '');
       const user = await sessions.verify(token);
