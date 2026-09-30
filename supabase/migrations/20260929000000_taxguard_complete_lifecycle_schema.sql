@@ -275,95 +275,132 @@ ALTER TABLE taxguard_repeat_cases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE taxguard_idempotency_records ENABLE ROW LEVEL SECURITY;
 
 -- Service Role full authority
+DROP POLICY IF EXISTS service_role_all_approvals ON taxguard_approvals;
 CREATE POLICY service_role_all_approvals ON taxguard_approvals FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_sig_packages ON taxguard_signature_packages;
 CREATE POLICY service_role_all_sig_packages ON taxguard_signature_packages FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_filings ON taxguard_filing_packages;
 CREATE POLICY service_role_all_filings ON taxguard_filing_packages FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_gov_feedback ON taxguard_government_feedback;
 CREATE POLICY service_role_all_gov_feedback ON taxguard_government_feedback FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_resolutions ON taxguard_resolution_cases;
 CREATE POLICY service_role_all_resolutions ON taxguard_resolution_cases FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_monitoring ON taxguard_monitoring_items;
 CREATE POLICY service_role_all_monitoring ON taxguard_monitoring_items FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_archives ON taxguard_archive_manifests;
 CREATE POLICY service_role_all_archives ON taxguard_archive_manifests FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_renewals ON taxguard_renewal_records;
 CREATE POLICY service_role_all_renewals ON taxguard_renewal_records FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_repeats ON taxguard_repeat_cases;
 CREATE POLICY service_role_all_repeats ON taxguard_repeat_cases FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_idempotency ON taxguard_idempotency_records;
 CREATE POLICY service_role_all_idempotency ON taxguard_idempotency_records FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- Authenticated Users: isolated by case association
+-- Authenticated Users: isolated by tenant_id and case association (auth.uid()::text for VARCHAR compatibility)
+DROP POLICY IF EXISTS tenant_isolation_approvals ON taxguard_approvals;
 CREATE POLICY tenant_isolation_approvals ON taxguard_approvals FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_approvals.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_approvals.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_sig_packages ON taxguard_signature_packages;
 CREATE POLICY tenant_isolation_sig_packages ON taxguard_signature_packages FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_signature_packages.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_signature_packages.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_filings ON taxguard_filing_packages;
 CREATE POLICY tenant_isolation_filings ON taxguard_filing_packages FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_filing_packages.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_filing_packages.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_gov_feedback ON taxguard_government_feedback;
 CREATE POLICY tenant_isolation_gov_feedback ON taxguard_government_feedback FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_government_feedback.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_government_feedback.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_resolutions ON taxguard_resolution_cases;
 CREATE POLICY tenant_isolation_resolutions ON taxguard_resolution_cases FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_resolution_cases.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_resolution_cases.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_monitoring ON taxguard_monitoring_items;
 CREATE POLICY tenant_isolation_monitoring ON taxguard_monitoring_items FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_monitoring_items.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_monitoring_items.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_archives ON taxguard_archive_manifests;
 CREATE POLICY tenant_isolation_archives ON taxguard_archive_manifests FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_archive_manifests.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_archive_manifests.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_renewals ON taxguard_renewal_records;
 CREATE POLICY tenant_isolation_renewals ON taxguard_renewal_records FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_renewal_records.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_renewal_records.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_repeats ON taxguard_repeat_cases;
 CREATE POLICY tenant_isolation_repeats ON taxguard_repeat_cases FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_repeat_cases.previous_case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_repeat_cases.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );

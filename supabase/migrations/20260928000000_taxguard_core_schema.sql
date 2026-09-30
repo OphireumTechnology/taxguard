@@ -389,53 +389,102 @@ ALTER TABLE taxguard_planning_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE taxguard_draft_returns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE taxguard_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE taxguard_identities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE taxguard_client_id_sequence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE taxguard_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Service Role has full administrative authority for server operations
+DROP POLICY IF EXISTS service_role_all_tenants ON taxguard_tenants;
 CREATE POLICY service_role_all_tenants ON taxguard_tenants FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_members ON taxguard_members;
 CREATE POLICY service_role_all_members ON taxguard_members FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_clients ON taxguard_clients;
 CREATE POLICY service_role_all_clients ON taxguard_clients FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_engagements ON taxguard_engagements;
 CREATE POLICY service_role_all_engagements ON taxguard_engagements FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_tax_years ON taxguard_tax_years;
 CREATE POLICY service_role_all_tax_years ON taxguard_tax_years FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_cases ON taxguard_cases;
 CREATE POLICY service_role_all_cases ON taxguard_cases FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_assignments ON taxguard_case_assignments;
 CREATE POLICY service_role_all_assignments ON taxguard_case_assignments FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_stages ON taxguard_stage_states;
 CREATE POLICY service_role_all_stages ON taxguard_stage_states FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_documents ON taxguard_documents;
 CREATE POLICY service_role_all_documents ON taxguard_documents FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_extracted ON taxguard_extracted_data;
 CREATE POLICY service_role_all_extracted ON taxguard_extracted_data FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_tax_records ON taxguard_tax_records;
 CREATE POLICY service_role_all_tax_records ON taxguard_tax_records FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_reconciliations ON taxguard_reconciliations;
 CREATE POLICY service_role_all_reconciliations ON taxguard_reconciliations FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_exceptions ON taxguard_exceptions;
 CREATE POLICY service_role_all_exceptions ON taxguard_exceptions FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_reviews ON taxguard_reviews;
 CREATE POLICY service_role_all_reviews ON taxguard_reviews FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_reports ON taxguard_reports;
 CREATE POLICY service_role_all_reports ON taxguard_reports FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_planning ON taxguard_planning_scenarios;
 CREATE POLICY service_role_all_planning ON taxguard_planning_scenarios FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_drafts ON taxguard_draft_returns;
 CREATE POLICY service_role_all_drafts ON taxguard_draft_returns FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_sessions ON taxguard_sessions;
 CREATE POLICY service_role_all_sessions ON taxguard_sessions FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_identities ON taxguard_identities;
 CREATE POLICY service_role_all_identities ON taxguard_identities FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_client_id_sequence ON taxguard_client_id_sequence;
+CREATE POLICY service_role_all_client_id_sequence ON taxguard_client_id_sequence FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS service_role_all_audit ON taxguard_audit_log;
 CREATE POLICY service_role_all_audit ON taxguard_audit_log FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- Authenticated Users: strictly isolated by tenant_id and UID matching
+-- Authenticated Users: strictly isolated by tenant_id and UID matching (auth.uid()::text for VARCHAR compatibility)
+DROP POLICY IF EXISTS tenant_isolation_members ON taxguard_members;
 CREATE POLICY tenant_isolation_members ON taxguard_members FOR SELECT TO authenticated
-  USING (uid = auth.uid());
+  USING (uid = auth.uid()::text);
 
+DROP POLICY IF EXISTS tenant_isolation_clients ON taxguard_clients;
 CREATE POLICY tenant_isolation_clients ON taxguard_clients FOR SELECT TO authenticated
-  USING (owner_uid = auth.uid());
+  USING (owner_uid = auth.uid()::text);
 
+DROP POLICY IF EXISTS tenant_isolation_cases ON taxguard_cases;
 CREATE POLICY tenant_isolation_cases ON taxguard_cases FOR SELECT TO authenticated
   USING (
-    client_uid = auth.uid() OR
-    preparer_uid = auth.uid() OR
-    reviewer_uid = auth.uid()
+    client_uid = auth.uid()::text OR
+    preparer_uid = auth.uid()::text OR
+    reviewer_uid = auth.uid()::text
   );
 
+DROP POLICY IF EXISTS tenant_isolation_documents ON taxguard_documents;
 CREATE POLICY tenant_isolation_documents ON taxguard_documents FOR SELECT TO authenticated
   USING (
-    created_by = auth.uid() OR
+    created_by = auth.uid()::text OR
     EXISTS (
       SELECT 1 FROM taxguard_cases c
       WHERE c.case_id = taxguard_documents.case_id
-      AND (c.client_uid = auth.uid() OR c.preparer_uid = auth.uid() OR c.reviewer_uid = auth.uid())
+      AND c.tenant_id = taxguard_documents.tenant_id
+      AND (c.client_uid = auth.uid()::text OR c.preparer_uid = auth.uid()::text OR c.reviewer_uid = auth.uid()::text)
     )
   );
 
+DROP POLICY IF EXISTS tenant_isolation_audit_read ON taxguard_audit_log;
 CREATE POLICY tenant_isolation_audit_read ON taxguard_audit_log FOR SELECT TO authenticated
-  USING (actor_uid = auth.uid());
+  USING (actor_uid = auth.uid()::text);

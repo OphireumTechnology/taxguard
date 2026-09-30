@@ -363,4 +363,194 @@ describe('Supabase Production Infrastructure & Authority', () => {
       expect(denied.status).toBe(403);
     });
   });
+
+  describe('5. Supabase Production Migrations — RLS UUID/VARCHAR Type Compatibility & Security Audit', () => {
+    const migrationsDir = `${process.cwd()}/supabase/migrations`;
+    const coreMigrationFile = '20260928000000_taxguard_core_schema.sql';
+    const lifecycleMigrationFile = '20260929000000_taxguard_complete_lifecycle_schema.sql';
+
+    it('maintains strict migration sequence with 20260928000000 first and 20260929000000 second', async () => {
+      const fs = await import('node:fs');
+      const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+      expect(files).toEqual([coreMigrationFile, lifecycleMigrationFile]);
+    });
+
+    it('ensures zero uncast auth.uid() comparisons against VARCHAR/TEXT identity columns (prevents SQLSTATE 42883)', async () => {
+      const fs = await import('node:fs');
+      const coreSql = fs.readFileSync(`${migrationsDir}/${coreMigrationFile}`, 'utf8');
+      const lifecycleSql = fs.readFileSync(`${migrationsDir}/${lifecycleMigrationFile}`, 'utf8');
+
+      for (const [fileName, sql] of [
+        [coreMigrationFile, coreSql],
+        [lifecycleMigrationFile, lifecycleSql]
+      ] as const) {
+        // Every occurrence of auth.uid() must be explicitly cast to ::text
+        const allAuthUidMatches: string[] = sql.match(/auth\.uid\(\)(::text)?/g) ?? [];
+        expect(allAuthUidMatches.length, `Expected auth.uid() usages in ${fileName}`).toBeGreaterThan(0);
+
+        for (const match of allAuthUidMatches) {
+          expect(match, `Uncast auth.uid() found in ${fileName}`).toBe('auth.uid()::text');
+        }
+
+        // Explicitly forbid bare `= auth.uid()` without `::text`
+        expect(sql).not.toMatch(/=\s*auth\.uid\(\)(?!::text)/);
+      }
+    });
+
+    it('executes both migrations sequentially against a clean schema and verifies PostgreSQL type compatibility and idempotency on retry', async () => {
+      const fs = await import('node:fs');
+      const coreSql = fs.readFileSync(`${migrationsDir}/${coreMigrationFile}`, 'utf8');
+      const lifecycleSql = fs.readFileSync(`${migrationsDir}/${lifecycleMigrationFile}`, 'utf8');
+
+      interface TableCatalog {
+        columns: Map<string, string>;
+        rlsEnabled: boolean;
+        policies: Map<string, { role: string; command: string; usingExpr: string }>;
+      }
+
+      const catalog = new Map<string, TableCatalog>();
+
+      const executeMigrationInCatalog = (sql: string) => {
+        // 1. Parse CREATE TABLE IF NOT EXISTS
+        const tableRegex = /CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+(\w+)\s*\(([\s\S]*?)\);/g;
+        let tableMatch: RegExpExecArray | null;
+        while ((tableMatch = tableRegex.exec(sql)) !== null) {
+          const tableName = tableMatch[1];
+          const body = tableMatch[2];
+          if (!catalog.has(tableName)) {
+            const columns = new Map<string, string>();
+            const lines = body.split('\n').map(l => l.trim()).filter(Boolean);
+            for (const line of lines) {
+              if (line.startsWith('CONSTRAINT') || line.startsWith('--')) continue;
+              const colMatch = line.match(/^(\w+)\s+([A-Z0-9_()]+)/i);
+              if (colMatch) {
+                columns.set(colMatch[1], colMatch[2].toUpperCase());
+              }
+              const fkMatch = line.match(/REFERENCES\s+(\w+)\((\w+)\)/i);
+              if (fkMatch && colMatch) {
+                const refTable = catalog.get(fkMatch[1]);
+                expect(refTable, `Foreign key target table ${fkMatch[1]} must exist before ${tableName}`).toBeDefined();
+                const refColType = refTable?.columns.get(fkMatch[2]);
+                expect(refColType, `Foreign key column type on ${fkMatch[1]}.${fkMatch[2]}`).toBe(colMatch[2].toUpperCase());
+              }
+            }
+            catalog.set(tableName, {
+              columns,
+              rlsEnabled: false,
+              policies: new Map()
+            });
+          }
+        }
+
+        // 2. Parse ALTER TABLE ... ENABLE ROW LEVEL SECURITY
+        const rlsRegex = /ALTER\s+TABLE\s+(\w+)\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY;/g;
+        let rlsMatch: RegExpExecArray | null;
+        while ((rlsMatch = rlsRegex.exec(sql)) !== null) {
+          const table = catalog.get(rlsMatch[1]);
+          expect(table, `Table ${rlsMatch[1]} must exist before enabling RLS`).toBeDefined();
+          if (table) table.rlsEnabled = true;
+        }
+
+        // 3. Parse DROP POLICY IF EXISTS and CREATE POLICY sequentially
+        const policyStmtRegex = /(DROP\s+POLICY\s+IF\s+EXISTS\s+(\w+)\s+ON\s+(\w+);)|(CREATE\s+POLICY\s+(\w+)\s+ON\s+(\w+)\s+FOR\s+(ALL|SELECT|INSERT|UPDATE|DELETE)\s+TO\s+(\w+)\s+USING\s*\(([\s\S]*?)\)(?:\s+WITH\s+CHECK\s*\([\s\S]*?\))?;)/g;
+        let stmtMatch: RegExpExecArray | null;
+        while ((stmtMatch = policyStmtRegex.exec(sql)) !== null) {
+          if (stmtMatch[1]) {
+            const policyName = stmtMatch[2];
+            const tableName = stmtMatch[3];
+            const table = catalog.get(tableName);
+            expect(table, `Table ${tableName} must exist for DROP POLICY ${policyName}`).toBeDefined();
+            table?.policies.delete(policyName);
+          } else if (stmtMatch[4]) {
+            const policyName = stmtMatch[5];
+            const tableName = stmtMatch[6];
+            const command = stmtMatch[7];
+            const role = stmtMatch[8];
+            const usingExpr = stmtMatch[9].trim();
+
+            const table = catalog.get(tableName);
+            expect(table, `Table ${tableName} must exist for CREATE POLICY ${policyName}`).toBeDefined();
+            // Non-idempotent guard: policy must not already exist when CREATE POLICY runs
+            expect(
+              table?.policies.has(policyName),
+              `Policy ${policyName} on ${tableName} was not dropped before CREATE POLICY (non-idempotent retry hazard)`
+            ).toBe(false);
+
+            // Type-check every equality comparison in USING expression
+            const comparisonRegex = /(?:(\w+)\.)?(\w+)\s*=\s*(auth\.uid\(\)(?:::text)?)/g;
+            let compMatch: RegExpExecArray | null;
+            while ((compMatch = comparisonRegex.exec(usingExpr)) !== null) {
+              const alias = compMatch[1];
+              const colName = compMatch[2];
+              const rhs = compMatch[3];
+
+              const targetTable = alias === 'c' ? catalog.get('taxguard_cases') : table;
+              expect(targetTable).toBeDefined();
+              const colType = targetTable?.columns.get(colName);
+              expect(colType, `Column ${colName} must exist on target table for policy ${policyName}`).toBeDefined();
+
+              // In PostgreSQL, VARCHAR(n) / TEXT columns require auth.uid()::text, whereas UUID requires auth.uid()
+              if (colType?.startsWith('VARCHAR') || colType === 'TEXT') {
+                expect(
+                  rhs,
+                  `Type mismatch on ${tableName}.${policyName}: column ${colName} (${colType}) compared with ${rhs}`
+                ).toBe('auth.uid()::text');
+              }
+            }
+
+            table?.policies.set(policyName, { role, command, usingExpr });
+          }
+        }
+      };
+
+      // First run on clean schema
+      executeMigrationInCatalog(coreSql);
+      executeMigrationInCatalog(lifecycleSql);
+
+      // Verify all 31 tables exist and have RLS enabled
+      expect(catalog.size).toBe(31);
+      for (const [tableName, tableInfo] of catalog.entries()) {
+        expect(tableInfo.rlsEnabled, `RLS must be enabled on ${tableName}`).toBe(true);
+        // Every table must have a service_role policy
+        const hasServiceRole = Array.from(tableInfo.policies.values()).some(p => p.role === 'service_role');
+        expect(hasServiceRole, `Table ${tableName} must have service_role authority policy`).toBe(true);
+      }
+
+      // Second run (simulating retry after partial execution) must succeed without duplicate policy errors
+      expect(() => {
+        executeMigrationInCatalog(coreSql);
+        executeMigrationInCatalog(lifecycleSql);
+      }).not.toThrow();
+    });
+
+    it('enforces all 10 RLS security invariants across both migrations without weakening tenant isolation', async () => {
+      const fs = await import('node:fs');
+      const coreSql = fs.readFileSync(`${migrationsDir}/${coreMigrationFile}`, 'utf8');
+      const lifecycleSql = fs.readFileSync(`${migrationsDir}/${lifecycleMigrationFile}`, 'utf8');
+      const combinedSql = `${coreSql}\n${lifecycleSql}`;
+
+      // 1. Authenticated policies never use USING (true)
+      const authPolicyMatches: string[] =
+        combinedSql.match(/CREATE\s+POLICY\s+\w+\s+ON\s+\w+\s+FOR\s+\w+\s+TO\s+authenticated\s+USING\s*\(([\s\S]*?)\);/g) ?? [];
+      expect(authPolicyMatches.length).toBe(14); // 5 in core + 9 in lifecycle
+
+      for (const policySql of authPolicyMatches) {
+        expect(policySql).not.toMatch(/USING\s*\(\s*true\s*\)/i);
+        // 2. Authenticated policies are strictly FOR SELECT (no direct client INSERT/UPDATE/DELETE)
+        expect(policySql).toMatch(/FOR\s+SELECT\s+TO\s+authenticated/);
+      }
+
+      // 3. Verify all 10 nested EXISTS policies enforce both case_id AND tenant_id joins plus client/preparer/reviewer UID checks
+      const existsPolicies = authPolicyMatches.filter((p: string) => p.includes('EXISTS'));
+      expect(existsPolicies.length).toBe(10); // 1 in core (documents) + 9 in lifecycle (stages 10-18)
+
+      for (const existsPolicy of existsPolicies) {
+        expect(existsPolicy).toContain('SELECT 1 FROM taxguard_cases c');
+        expect(existsPolicy).toMatch(/AND\s+c\.tenant_id\s*=\s*taxguard_\w+\.tenant_id/);
+        expect(existsPolicy).toContain('c.client_uid = auth.uid()::text');
+        expect(existsPolicy).toContain('c.preparer_uid = auth.uid()::text');
+        expect(existsPolicy).toContain('c.reviewer_uid = auth.uid()::text');
+      }
+    });
+  });
 });
