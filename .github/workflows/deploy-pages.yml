@@ -1,7 +1,10 @@
-name: Deploy Vite website to GitHub Pages
+name: Deploy TaxGuard Production to GitHub Pages
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -9,11 +12,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: taxguard-production-pages
   cancel-in-progress: true
 
 jobs:
   build:
+    name: Build and Validate Production
     runs-on: ubuntu-latest
 
     steps:
@@ -26,12 +30,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Show environment
+      - name: Show build environment
         run: |
+          echo "TaxGuard Production Build"
           node --version
           npm --version
 
-      - name: Install dependencies
+      - name: Install application dependencies
         run: npm ci
 
       - name: Install Functions test dependencies
@@ -43,22 +48,65 @@ jobs:
       - name: Run regression tests
         run: npm test -- --run
 
-      - name: Build production application
+      - name: Verify required production variables
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_PASSWORD_RESET_CONTINUE_URL: ${{ vars.VITE_PASSWORD_RESET_CONTINUE_URL }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_PASSWORD_RESET_CONTINUE_URL: ${{ vars.VITE_PASSWORD_RESET_CONTINUE_URL }}
+        run: |
+          test -n "$VITE_API_BASE_URL" || {
+            echo "ERROR: VITE_API_BASE_URL is missing."
+            exit 1
+          }
+
+          test -n "$VITE_SUPABASE_URL" || {
+            echo "ERROR: VITE_SUPABASE_URL is missing."
+            exit 1
+          }
+
+          test -n "$VITE_SUPABASE_ANON_KEY" || {
+            echo "ERROR: VITE_SUPABASE_ANON_KEY is missing."
+            exit 1
+          }
+
+          test -n "$VITE_PASSWORD_RESET_CONTINUE_URL" || {
+            echo "ERROR: VITE_PASSWORD_RESET_CONTINUE_URL is missing."
+            exit 1
+          }
+
+          echo "Required production frontend variables are configured."
+
+      - name: Build TaxGuard production application
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_PASSWORD_RESET_CONTINUE_URL: ${{ vars.VITE_PASSWORD_RESET_CONTINUE_URL }}
         run: |
           npx tsx scripts/verify-production-config.ts
           npm run build
 
-      - name: Verify build output
+      - name: Verify production build
         run: |
-          test -f dist/index.html
-          test -z "$(find dist -type f \( -name '*.cjs' -o -name '*.map' \) -print)"
+          test -f dist/index.html || {
+            echo "ERROR: dist/index.html was not generated."
+            exit 1
+          }
+
+          if find dist -type f \( -name '*.cjs' -o -name '*.map' \) -print | grep -q .; then
+            echo "ERROR: Server or source-map artifacts detected in public deployment."
+            exit 1
+          fi
+
           echo "artaxserv.com" > dist/CNAME
-          echo "Production build and CNAME verified."
+
+          test "$(cat dist/CNAME)" = "artaxserv.com" || {
+            echo "ERROR: Production CNAME is incorrect."
+            exit 1
+          }
+
+          echo "TaxGuard production build verified."
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -69,6 +117,7 @@ jobs:
           path: ./dist
 
   deploy:
+    name: Deploy Production
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -77,6 +126,6 @@ jobs:
     needs: build
 
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy TaxGuard to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
