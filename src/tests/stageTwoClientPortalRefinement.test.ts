@@ -42,7 +42,7 @@ describe('Stage 02 Collect & Client Portal UI/UX Refinement', () => {
     });
 
     it('passes client role from AuthenticatedClientDashboard', () => {
-      expect(dashboardSource).toContain("userRole={currentUser?.role === 'cpa_admin' || currentUser?.role === 'tax_preparer' ? 'STAFF' : 'CLIENT'}");
+      expect(dashboardSource).toContain("userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}");
     });
   });
 
