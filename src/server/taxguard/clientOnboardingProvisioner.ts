@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { db } from '../db';
 import { OnboardingState, User } from '../../types';
+import { SupabaseDurableSessions } from '../supabase-db';
 import {
   LiveWorkflowRepository,
   clearInMemoryWorkflowCase
@@ -306,12 +307,48 @@ export async function provisionOrResolveClientOnboarding(params: {
         user.role || 'client'
       ));
 
-    const stageStates = deriveCanonicalStageStates(workflow);
-
     const caseId = `case_${taxYear}_${clientId}`;
     const caseKey = `${tenantId}:${user.id}:${clientId}:${engagementId}:${taxYear}`;
     const existingTaxCase = taxCasesStore.get(caseKey);
     const resumed = Boolean(existingTaxCase || existingWorkflow);
+
+    // Harmonize onboarding completion across user record and workflow
+    const userIsCompleted =
+      (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+      (user.onboardingStatus || '').toUpperCase() === 'APPROVED' ||
+      (user.onboardingStatus || '').toUpperCase() === 'SUBMITTED' ||
+      Boolean(user.onboardingCompletedAt) ||
+      Boolean(existingTaxCase && (existingTaxCase.activeStage >= 2 || existingTaxCase.stageStates?.STAGE_01_IDENTITY === 'COMPLETED')) ||
+      Boolean(existingWorkflow && (existingWorkflow.activeStage >= 2 || existingWorkflow.stage1?.status === 'COMPLETED'));
+
+    if (userIsCompleted && workflow.stage1.status !== 'COMPLETED') {
+      workflow.stage1 = {
+        stage: 1,
+        status: 'COMPLETED',
+        completedAt: user.onboardingCompletedAt || workflow.stage1?.completedAt || now,
+        completedBy: user.id
+      };
+      if (workflow.activeStage < 2) {
+        workflow.activeStage = 2;
+        workflow.stage2 = {
+          stage: 2,
+          status: 'IN_PROGRESS'
+        };
+      }
+      workflow.updatedAt = now;
+    }
+
+    if (workflow.stage1.status === 'COMPLETED' || workflow.activeStage >= 2 || userIsCompleted) {
+      user.onboardingStatus = 'COMPLETED';
+      user.onboardingCompletedAt = user.onboardingCompletedAt || workflow.stage1.completedAt || now;
+      db.users.set(user.id, user);
+      new SupabaseDurableSessions(undefined, tenantId).updateUser(user.id, {
+        onboardingStatus: 'COMPLETED',
+        onboardingCompletedAt: user.onboardingCompletedAt
+      }).catch(() => {});
+    }
+
+    const stageStates = deriveCanonicalStageStates(workflow);
 
     const activeStage = (
       workflow.activeStage === 1 || workflow.activeStage === 2 || workflow.activeStage === 3
@@ -366,4 +403,25 @@ export async function provisionOrResolveClientOnboarding(params: {
       },
     };
   });
+}
+
+export function updateProvisionedCaseStage(
+  _tenantId: string,
+  clientId: string,
+  taxYear: number,
+  stage: 1 | 2 | 3,
+  _status: string
+) {
+  for (const [key, taxCase] of taxCasesStore.entries()) {
+    if (taxCase.clientId === clientId && taxCase.taxYear === taxYear) {
+      taxCase.activeStage = stage;
+      taxCase.status = 'ACTIVE';
+      taxCase.updatedAt = new Date().toISOString();
+      if (stage >= 2) {
+        taxCase.stageStates.STAGE_01_IDENTITY = 'COMPLETED';
+        taxCase.stageStates.STAGE_02_DOCUMENTS = 'IN_PROGRESS';
+      }
+      taxCasesStore.set(key, taxCase);
+    }
+  }
 }

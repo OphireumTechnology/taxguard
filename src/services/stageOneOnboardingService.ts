@@ -617,11 +617,24 @@ export class StageOneOnboardingService {
    * Resolve whether the persisted Stage 01 hard exit gate has passed.
    * Missing, inconsistent, or incomplete state fails closed.
    */
-  public static hasPassedHardExitGate(clientId: string | null | undefined): boolean {
+  public static hasPassedHardExitGate(clientId: string | null | undefined, user?: any | null): boolean {
     const permanentClientId = clientId?.trim();
     if (!permanentClientId) return false;
 
-    // Check server authoritative workflow snapshot first
+    // 1. Check user profile / database onboarding status
+    if (user) {
+      const status = (user.onboardingStatus || '').toUpperCase();
+      if (
+        status === 'COMPLETED' ||
+        status === 'APPROVED' ||
+        status === 'SUBMITTED' ||
+        Boolean(user.onboardingCompletedAt)
+      ) {
+        return true;
+      }
+    }
+
+    // 2. Check server authoritative workflow snapshot first
     try {
       const snapshot = LiveWorkflowAuthority.getSnapshot();
       if (
@@ -645,6 +658,44 @@ export class StageOneOnboardingService {
       dossier.readiness.isReady === true &&
       dossier.readiness.overallStatus === 'completed'
     );
+  }
+
+  /**
+   * Restores a dossier from persisted user data or creates a completed baseline dossier
+   * when onboarding status is verified COMPLETED.
+   */
+  public static restoreDossierFromUser(user: any): void {
+    if (!user || !user.clientId) return;
+    const cid = String(user.clientId).trim();
+    if (!cid) return;
+
+    if (user.stageOneDossier) {
+      this.saveDossier({ ...user.stageOneDossier, clientId: cid });
+      return;
+    }
+
+    const status = (user.onboardingStatus || '').toUpperCase();
+    if (status === 'COMPLETED' || status === 'APPROVED' || status === 'SUBMITTED' || Boolean(user.onboardingCompletedAt)) {
+      const existing = this.getDossier(cid);
+      if (!existing || !existing.stageOneCompleted) {
+        const completedDossier = this.createInitialDossier({
+          clientId: cid,
+          fullName: user.name || 'Client',
+          email: user.email || '',
+          phone: user.phone || ''
+        });
+        completedDossier.stageOneCompleted = true;
+        completedDossier.stageOneCompletedAt = user.onboardingCompletedAt || new Date().toISOString();
+        completedDossier.activeWorkflowStage = 2;
+        completedDossier.readiness = {
+          isReady: true,
+          completionPercentage: 100,
+          blockingItems: [],
+          overallStatus: 'completed'
+        };
+        this.saveDossier(completedDossier);
+      }
+    }
   }
 
   private static inMemoryDossiers: Map<string, StageOneDossier> = new Map();

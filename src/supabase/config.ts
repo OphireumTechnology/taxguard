@@ -6,7 +6,16 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+export function cleanSupabaseUrl(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  let url = rawUrl.trim();
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/rest\/v1\/?$/, '');
+  return url.replace(/\/+$/, '');
+}
+
+const rawSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const supabaseUrl = cleanSupabaseUrl(rawSupabaseUrl);
 const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 let _supabaseClient: SupabaseClient | null = null;

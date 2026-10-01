@@ -8,10 +8,13 @@ import { StageNumber } from '../taxguard/persistence.types';
 import {
   provisionOrResolveClientOnboarding,
   deriveCanonicalStageStates,
-  evaluateLiveWorkflowEligibility
+  evaluateLiveWorkflowEligibility,
+  updateProvisionedCaseStage
 } from '../taxguard/clientOnboardingProvisioner';
 import { LiveWorkflowRepository } from '../taxguard/liveWorkflow.repository';
 import { evaluateStageOneServerGate } from '../taxguard/stageOneServerGate';
+import { SupabaseDurableSessions } from '../supabase-db';
+import { db } from '../db';
 
 export const caseAuthorityRouter = Router();
 
@@ -171,6 +174,41 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
           workflow.revision,
           payload
         );
+
+        const completedAt = new Date().toISOString();
+        req.user.onboardingStatus = 'COMPLETED';
+        req.user.onboardingCompletedAt = completedAt;
+        req.user.onboardingStep = 2;
+        if (effectiveDossier) {
+          req.user.stageOneDossier = effectiveDossier;
+        }
+
+        const sessions = new SupabaseDurableSessions(undefined, bundle.tenant.tenantId);
+        await sessions.updateUser(req.user.id, {
+          onboardingStatus: 'COMPLETED',
+          onboardingCompletedAt: completedAt,
+          onboardingStep: 2,
+          ...(effectiveDossier ? { stageOneDossier: effectiveDossier } : {})
+        });
+
+        updateProvisionedCaseStage(bundle.tenant.tenantId, bundle.client.clientId, taxYear, 2, 'COMPLETED');
+        db.users.set(req.user.id, req.user);
+
+        const obState = db.onboardingStates.get(req.user.id);
+        if (obState) {
+          obState.status = 'approved';
+          obState.step = 2;
+          obState.percentComplete = 100;
+          obState.missingRequirements = [];
+        }
+
+        const existingDossier = db.clientOnboarding.get(bundle.client.clientId);
+        if (existingDossier) {
+          existingDossier.status = 'approved';
+          existingDossier.percentComplete = 100;
+          existingDossier.updatedAt = completedAt;
+          db.clientOnboarding.set(bundle.client.clientId, existingDossier);
+        }
       }
     }
 
@@ -192,6 +230,7 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
       activeStage,
       stageStates,
       workflow,
+      user: req.user,
       eligibility: {
         clientId: bundle.client.clientId,
         taxYear,

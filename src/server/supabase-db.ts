@@ -14,6 +14,7 @@ import { getSupabaseAdmin, VerifiedSupabaseUser } from './supabase';
 import { formatTaxGuardClientId } from './client-id.service';
 import { User } from '../types';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
+import { LiveWorkflowRepository } from './taxguard/liveWorkflow.repository';
 import { db } from './db';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -111,44 +112,147 @@ export class SupabaseDurableSessions {
 
     return withSupabaseProvisioningLock(`${this.tenantId}:${uid}`, async () => {
       // 1. Fetch existing identity and member
-      const { data: existingIdentity, error: identityErr } = await this.client
-        .from('taxguard_identities')
-        .select('*')
-        .eq('uid', uid)
-        .maybeSingle();
+      let existingIdentity: any = null;
+      let identityErr: any = null;
+      try {
+        const res = await this.client
+          .from('taxguard_identities')
+          .select('*')
+          .eq('uid', uid)
+          .maybeSingle();
+        existingIdentity = res.data;
+        identityErr = res.error;
+      } catch (err: any) {
+        identityErr = err;
+      }
 
-      const { data: existingMember, error: memberErr } = await this.client
-        .from('taxguard_members')
-        .select('*')
-        .eq('tenant_id', this.tenantId)
-        .eq('uid', uid)
-        .maybeSingle();
+      let existingMember: any = null;
+      try {
+        const res = await this.client
+          .from('taxguard_members')
+          .select('*')
+          .eq('tenant_id', this.tenantId)
+          .eq('uid', uid)
+          .maybeSingle();
+        existingMember = res.data;
+      } catch {
+        // Continue
+      }
+
+      let existingClientRow: any = null;
+      try {
+        const res = await this.client
+          .from('taxguard_clients')
+          .select('*')
+          .eq('tenant_id', this.tenantId)
+          .eq('owner_uid', uid)
+          .maybeSingle();
+        existingClientRow = res.data;
+      } catch {
+        // Continue
+      }
+
+      const inMemoryCached =
+        db.users.get(uid) ||
+        Array.from(db.users.values()).find(u => u.email?.toLowerCase() === email);
+
+      const fbIdentity =
+        fallbackIdentities.get(uid) ||
+        (inMemoryCached ? fallbackIdentities.get(inMemoryCached.id) : null) ||
+        Array.from(fallbackIdentities.values()).find(
+          fi => (fi.user_data as User)?.email?.toLowerCase() === email
+        );
+
+      const fbMember =
+        fallbackMembers.get(`${this.tenantId}:${uid}`) ||
+        (inMemoryCached ? fallbackMembers.get(`${this.tenantId}:${inMemoryCached.id}`) : null);
 
       const resolvedIdentity =
         existingIdentity ||
-        (!this.usesCustomClient ? fallbackIdentities.get(uid) || null : null);
+        fbIdentity ||
+        (inMemoryCached ? { uid, tenant_id: this.tenantId, user_data: inMemoryCached } : null);
 
       const resolvedMember =
         existingMember ||
-        (!this.usesCustomClient
-          ? fallbackMembers.get(`${this.tenantId}:${uid}`) || null
+        fbMember ||
+        (inMemoryCached?.clientId
+          ? {
+              tenant_id: this.tenantId,
+              uid,
+              role: inMemoryCached.role || 'client',
+              status: 'active',
+              client_id: inMemoryCached.clientId
+            }
           : null);
+
+      const knownClientId =
+        resolvedMember?.client_id ||
+        (resolvedIdentity?.user_data as User)?.clientId ||
+        existingClientRow?.client_id ||
+        inMemoryCached?.clientId;
 
       let user: User;
 
-      if (resolvedIdentity) {
+      if (resolvedIdentity || knownClientId) {
         if (
-          resolvedIdentity.tenant_id !== this.tenantId ||
-          !resolvedMember ||
-          resolvedMember.status !== 'active'
+          resolvedIdentity &&
+          resolvedIdentity.tenant_id !== this.tenantId
         ) {
           throw new AuthorityError('IDENTITY_DENIED', 403);
         }
+
+        const storedUserData = (resolvedIdentity?.user_data as User) || inMemoryCached || ({} as User);
+        const effectiveClientId = knownClientId || storedUserData.clientId;
+
         user = {
-          ...(resolvedIdentity.user_data as User),
-          role: (resolvedMember.role as User['role']) || (resolvedIdentity.user_data as User).role || 'client',
-          clientId: resolvedMember.client_id || (resolvedIdentity.user_data as User).clientId,
+          ...storedUserData,
+          id: uid,
+          email,
+          name: verified.displayName || storedUserData.name || email.split('@')[0],
+          role: (resolvedMember?.role as User['role']) || storedUserData.role || 'client',
+          clientId: effectiveClientId,
+          status: 'active',
+          isVerified: true
         };
+
+        const inMemUser = inMemoryCached || db.users.get(user.id);
+        const isDbCompleted = (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(user.onboardingCompletedAt);
+        const isInMemCompleted = (inMemUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(inMemUser?.onboardingCompletedAt);
+
+        if (isDbCompleted || isInMemCompleted) {
+          user.onboardingStatus = 'COMPLETED';
+          user.onboardingCompletedAt = user.onboardingCompletedAt || inMemUser?.onboardingCompletedAt || new Date().toISOString();
+        } else if (inMemUser?.onboardingStatus) {
+          user.onboardingStatus = inMemUser.onboardingStatus;
+        }
+
+        if (inMemUser?.stageOneDossier && !user.stageOneDossier) {
+          user.stageOneDossier = inMemUser.stageOneDossier;
+        }
+
+        // Authoritatively check workflow state for completed Stage 01
+        if (effectiveClientId) {
+          const wf = await LiveWorkflowRepository.getCase(effectiveClientId, 2025).catch(() => null);
+          if (wf && (wf.stage1?.status === 'COMPLETED' || wf.activeStage >= 2)) {
+            user.onboardingStatus = 'COMPLETED';
+            user.onboardingCompletedAt = user.onboardingCompletedAt || wf.stage1?.completedAt || new Date().toISOString();
+          }
+        }
+
+        fallbackIdentities.set(uid, {
+          uid,
+          tenant_id: this.tenantId,
+          user_data: user
+        });
+        if (effectiveClientId) {
+          fallbackMembers.set(`${this.tenantId}:${uid}`, {
+            tenant_id: this.tenantId,
+            uid,
+            role: user.role,
+            status: 'active',
+            client_id: effectiveClientId
+          });
+        }
       } else {
         // Allocate next permanent Client ID
         const { data: counterData } = await this.client
@@ -176,6 +280,8 @@ export class SupabaseDurableSessions {
           role: 'client', // Authoritative client assignment
           status: 'active',
           isVerified: true,
+          onboardingStatus: 'NOT_STARTED',
+          onboardingCompletedAt: null,
           createdAt: new Date().toISOString()
         };
 
@@ -221,20 +327,18 @@ export class SupabaseDurableSessions {
             status: 'active'
           });
 
-        if (!this.usesCustomClient) {
-          fallbackIdentities.set(uid, {
-            uid,
-            tenant_id: this.tenantId,
-            user_data: user
-          });
-          fallbackMembers.set(`${this.tenantId}:${uid}`, {
-            tenant_id: this.tenantId,
-            uid,
-            role: 'client',
-            status: 'active',
-            client_id: clientId
-          });
-        }
+        fallbackIdentities.set(uid, {
+          uid,
+          tenant_id: this.tenantId,
+          user_data: user
+        });
+        fallbackMembers.set(`${this.tenantId}:${uid}`, {
+          tenant_id: this.tenantId,
+          uid,
+          role: 'client',
+          status: 'active',
+          client_id: clientId
+        });
       }
 
       db.users.set(user.id, user);
@@ -255,16 +359,14 @@ export class SupabaseDurableSessions {
           revoked: false
         });
 
-      if (!this.usesCustomClient) {
-        fallbackSessions.set(tokenHash, {
-          session_token_hash: tokenHash,
-          uid,
-          tenant_id: this.tenantId,
-          auth_time: verified.authTime,
-          expires_at: expiresAt,
-          revoked: false
-        });
-      }
+      fallbackSessions.set(tokenHash, {
+        session_token_hash: tokenHash,
+        uid,
+        tenant_id: this.tenantId,
+        auth_time: verified.authTime,
+        expires_at: expiresAt,
+        revoked: false
+      });
 
       // 3. Write immutable audit log
       await this.client
@@ -306,9 +408,7 @@ export class SupabaseDurableSessions {
     const resolvedSession =
       !error && session
         ? session
-        : !this.usesCustomClient
-          ? fallbackSessions.get(tokenHash) || null
-          : null;
+        : fallbackSessions.get(tokenHash) || null;
 
     if (!resolvedSession) return null;
     if (
@@ -332,12 +432,24 @@ export class SupabaseDurableSessions {
       .eq('uid', resolvedSession.uid)
       .maybeSingle();
 
+    const inMemUserForVerify = db.users.get(resolvedSession.uid);
     const resolvedIdentity =
-      identity || (!this.usesCustomClient ? fallbackIdentities.get(resolvedSession.uid) || null : null);
+      identity ||
+      fallbackIdentities.get(resolvedSession.uid) ||
+      (inMemUserForVerify
+        ? { uid: resolvedSession.uid, tenant_id: this.tenantId, user_data: inMemUserForVerify }
+        : null);
     const resolvedMember =
       member ||
-      (!this.usesCustomClient
-        ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) || null
+      fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) ||
+      (inMemUserForVerify?.clientId
+        ? {
+            tenant_id: this.tenantId,
+            uid: resolvedSession.uid,
+            role: inMemUserForVerify.role || 'client',
+            status: 'active',
+            client_id: inMemUserForVerify.clientId
+          }
         : null);
 
     if (
@@ -349,13 +461,134 @@ export class SupabaseDurableSessions {
       return null;
     }
 
-    const user = resolvedIdentity.user_data as User;
+    const user = { ...(resolvedIdentity.user_data as User) };
+    const inMemUser = db.users.get(user.id);
+    if (inMemUser) {
+      const inMemCompleted = (inMemUser.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(inMemUser.onboardingCompletedAt);
+      const dbCompleted = (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(user.onboardingCompletedAt);
+      if (inMemCompleted || dbCompleted) {
+        user.onboardingStatus = 'COMPLETED';
+        user.onboardingCompletedAt = user.onboardingCompletedAt || inMemUser.onboardingCompletedAt || new Date().toISOString();
+      } else if (inMemUser.onboardingStatus) {
+        user.onboardingStatus = inMemUser.onboardingStatus;
+      }
+      if (inMemUser.stageOneDossier && !user.stageOneDossier) {
+        user.stageOneDossier = inMemUser.stageOneDossier;
+      }
+    }
+
+    if (user.clientId) {
+      const wf = await LiveWorkflowRepository.getCase(user.clientId, 2025).catch(() => null);
+      if (wf && (wf.stage1?.status === 'COMPLETED' || wf.activeStage >= 2)) {
+        user.onboardingStatus = 'COMPLETED';
+        user.onboardingCompletedAt = user.onboardingCompletedAt || wf.stage1?.completedAt || new Date().toISOString();
+      }
+    }
+
     if (!user || user.id !== resolvedSession.uid || user.status !== 'active') {
       return null;
     }
 
     db.users.set(user.id, user);
     return user;
+  }
+
+  /**
+   * Durably persists user profile and onboarding updates across Supabase and in-memory stores.
+   */
+  async updateUser(uid: string, patch: Partial<User>): Promise<User | null> {
+    safeId(uid);
+    const existing = db.users.get(uid);
+    const updated: User = {
+      ...(existing || ({} as User)),
+      ...patch,
+      id: uid,
+      updatedAt: new Date().toISOString()
+    };
+    db.users.set(uid, updated);
+
+    const fb = fallbackIdentities.get(uid);
+    if (fb) {
+      fb.user_data = {
+        ...fb.user_data,
+        ...patch,
+        updatedAt: updated.updatedAt
+      };
+    } else {
+      fallbackIdentities.set(uid, {
+        uid,
+        tenant_id: this.tenantId,
+        user_data: updated
+      });
+    }
+
+    try {
+      const { data: existingIdentity } = await this.client
+        .from('taxguard_identities')
+        .select('*')
+        .eq('uid', uid)
+        .maybeSingle();
+
+      if (existingIdentity) {
+        const merged = {
+          ...(existingIdentity.user_data || {}),
+          ...patch,
+          updatedAt: updated.updatedAt
+        };
+        await this.client
+          .from('taxguard_identities')
+          .update({
+            user_data: merged,
+            updated_at: updated.updatedAt
+          })
+          .eq('uid', uid);
+      } else {
+        await this.client
+          .from('taxguard_identities')
+          .upsert({
+            uid,
+            tenant_id: this.tenantId,
+            user_data: updated,
+            updated_at: updated.updatedAt
+          });
+      }
+    } catch {
+      // Continue with in-memory persistence
+    }
+
+    if (updated.clientId) {
+      try {
+        await this.client
+          .from('taxguard_clients')
+          .update({
+            name: updated.name,
+            phone: updated.phone || '',
+            updated_at: updated.updatedAt
+          })
+          .eq('tenant_id', this.tenantId)
+          .eq('client_id', updated.clientId);
+      } catch {
+        // Fall through
+      }
+
+      if (updated.onboardingStatus === 'COMPLETED') {
+        try {
+          await this.client
+            .from('taxguard_cases')
+            .update({
+              active_stage: 2,
+              status: 'ACTIVE',
+              updated_at: updated.updatedAt
+            })
+            .eq('tenant_id', this.tenantId)
+            .eq('client_id', updated.clientId);
+        } catch {
+          // Fall through
+        }
+      }
+    }
+
+    return updated;
   }
 
   /**

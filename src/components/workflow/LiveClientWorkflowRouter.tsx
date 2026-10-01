@@ -6,6 +6,8 @@ import React, {
   useMemo,
   useState
 } from 'react';
+import { useApp } from '../../context/AppContext';
+import { StageOneOnboardingService } from '../../services/stageOneOnboardingService';
 
 
 
@@ -40,6 +42,7 @@ React.FC<LiveClientWorkflowRouterProps> = ({
   onTaxYearChange: externalTaxYearChange,
   onNavigateToPortal
 }) => {
+  const { currentUser } = useApp();
 
   const [
     selectedTaxYear,
@@ -256,6 +259,45 @@ React.FC<LiveClientWorkflowRouterProps> = ({
   if (
     authority.workflow.activeStage === 1
   ) {
+    const isCompleted =
+      StageOneOnboardingService.hasPassedHardExitGate(clientId, currentUser) ||
+      (currentUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+      (currentUser?.onboardingStatus || '').toUpperCase() === 'APPROVED' ||
+      (currentUser?.onboardingStatus || '').toUpperCase() === 'SUBMITTED' ||
+      Boolean(currentUser?.onboardingCompletedAt) ||
+      authority.workflow.stage1.status === 'COMPLETED';
+
+    if (isCompleted) {
+      return (
+        <AuthenticatedClientDashboard
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onTaxYearChange={handleTaxYearChange}
+          onEnterStageTwo={() => setViewMode('workspace')}
+          onReviewStageOne={() => setViewMode('review_stage1')}
+          initialNav="home"
+          authority={{
+            ...authority,
+            workflow: {
+              ...authority.workflow,
+              activeStage: 2,
+              stage1: { ...authority.workflow.stage1, status: 'COMPLETED' },
+              stage2: { ...authority.workflow.stage2, status: 'IN_PROGRESS' }
+            },
+            eligibility: authority.eligibility
+              ? {
+                  ...authority.eligibility,
+                  eligibility: {
+                    ...authority.eligibility.eligibility,
+                    stage2: true
+                  }
+                }
+              : null
+          }}
+          onServerWorkflowRefresh={refreshAuthority}
+        />
+      );
+    }
 
     return (
       <StageOneIdentityWizard

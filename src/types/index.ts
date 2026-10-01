@@ -44,8 +44,10 @@ export interface User {
   assignedAccountantName?: string;
   assignedReviewerId?: string;
   assignedReviewerName?: string;
-  onboardingStatus?: 'not_started' | 'in_progress' | 'submitted' | 'approved';
+  onboardingStatus?: 'not_started' | 'in_progress' | 'submitted' | 'approved' | 'completed' | 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  onboardingCompletedAt?: string | null;
   onboardingStep?: number;
+  stageOneDossier?: any;
   mustResetPassword?: boolean;
   createdAt: string;
   updatedAt?: string;

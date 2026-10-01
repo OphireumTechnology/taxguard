@@ -241,6 +241,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const aliasMap: Record<string, PageRoute> = {
       'portals': 'portals',
       'portal': 'portals',
+      'dashboard': 'client_portal',
+      'client/dashboard': 'client_portal',
+      'client-dashboard': 'client_portal',
       'home': 'home',
       'about': 'about',
       'founder': 'founder',
@@ -319,10 +322,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const getLiveClientLandingPage = (user: User): PageRoute => {
-    if (user.role !== 'client' && user.role !== 'prospective_client') return 'home';
-    return StageOneOnboardingService.hasPassedHardExitGate(user.clientId)
-      ? 'client_portal'
-      : 'stage_one_onboard';
+    if (user.role !== 'client' && user.role !== 'prospective_client') {
+      if (user.role === 'admin' || user.role === 'super_admin') return 'admin_dashboard';
+      if (['reviewer', 'senior_reviewer'].includes(user.role)) return 'reviewer_workspace';
+      if (['accountant', 'preparer'].includes(user.role)) return 'accountant_workspace';
+      return 'home';
+    }
+    const isCompleted =
+      StageOneOnboardingService.hasPassedHardExitGate(user.clientId, user) ||
+      (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+      (user.onboardingStatus || '').toUpperCase() === 'APPROVED' ||
+      (user.onboardingStatus || '').toUpperCase() === 'SUBMITTED' ||
+      Boolean(user.onboardingCompletedAt);
+
+    return isCompleted ? 'client_portal' : 'stage_one_onboard';
   };
 
   const [currentPage, setCurrentPageState] = useState<PageRoute>(() => getPageFromUrl() || 'home');
@@ -440,14 +453,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!sessionUser) throw new Error('Authenticated TaxGuard session could not be restored.');
 
-      setCurrentUser(sessionUser);
-      setCurrentRoleState(sessionUser.role);
-
       if (sessionUser.role === 'client' && sessionUser.clientId) {
         if (LiveWorkflowAuthority.getSnapshot().status !== 'ready') {
           await LiveWorkflowAuthority.hydrate(2025).catch(() => {});
         }
+        const snap = LiveWorkflowAuthority.getSnapshot();
+        if (
+          snap.workflow?.stage1?.status === 'COMPLETED' ||
+          (snap.workflow?.activeStage && snap.workflow.activeStage >= 2) ||
+          (sessionUser.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+          (currentUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+          Boolean(sessionUser.onboardingCompletedAt) ||
+          Boolean(currentUser?.onboardingCompletedAt) ||
+          StageOneOnboardingService.hasPassedHardExitGate(sessionUser.clientId, sessionUser)
+        ) {
+          sessionUser.onboardingStatus = 'COMPLETED';
+          sessionUser.onboardingCompletedAt = sessionUser.onboardingCompletedAt || currentUser?.onboardingCompletedAt || new Date().toISOString();
+        }
+        StageOneOnboardingService.restoreDossierFromUser(sessionUser);
       }
+
+      setCurrentUser({ ...sessionUser });
+      setCurrentRoleState(sessionUser.role);
 
       if (!import.meta.env.PROD) {
         const [docsRes, engsRes, aptsRes, invRes, connRes, msgsRes, jobsRes, legalRes] = await Promise.all([
@@ -576,6 +603,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         err.code = 'CASE_INITIALIZATION_FAILED';
         throw err;
       }
+    }
+
+    if (liveSession.user) {
+      if (
+        liveSession.workflow?.stage1?.status === 'COMPLETED' ||
+        (liveSession.activeStage && liveSession.activeStage >= 2) ||
+        (liveSession.user.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+        Boolean(liveSession.user.onboardingCompletedAt) ||
+        StageOneOnboardingService.hasPassedHardExitGate(liveSession.user.clientId, liveSession.user)
+      ) {
+        liveSession.user.onboardingStatus = 'COMPLETED';
+        liveSession.user.onboardingCompletedAt = liveSession.user.onboardingCompletedAt || new Date().toISOString();
+      }
+      StageOneOnboardingService.restoreDossierFromUser(liveSession.user);
     }
 
     setCurrentUser(liveSession.user);

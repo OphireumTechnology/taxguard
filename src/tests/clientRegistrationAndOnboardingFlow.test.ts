@@ -86,6 +86,10 @@ function createMockSupabaseBackend() {
             const s = store.sessions.get(val);
             if (s) Object.assign(s, pendingUpdates);
           }
+          if (pendingUpdates && table === 'taxguard_identities') {
+            const id = store.identities.get(val);
+            if (id) Object.assign(id, pendingUpdates);
+          }
           return builder;
         }),
         maybeSingle: vi.fn(async () => {
@@ -125,6 +129,10 @@ function createMockSupabaseBackend() {
           if (filterVal && table === 'taxguard_sessions') {
             const s = store.sessions.get(filterVal);
             if (s) Object.assign(s, updates);
+          }
+          if (filterVal && table === 'taxguard_identities') {
+            const id = store.identities.get(filterVal);
+            if (id) Object.assign(id, updates);
           }
           return builder;
         }),

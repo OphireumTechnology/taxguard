@@ -93,6 +93,8 @@ const AppContent: React.FC = () => {
     pageParams,
     authLifecycleState,
     isInitialized,
+    isSyncingWithBackend,
+    isLoadingData,
     provisionedOnboarding
   } = useApp();
   const [liveTaxYear, setLiveTaxYear] = React.useState<number>(
@@ -101,7 +103,13 @@ const AppContent: React.FC = () => {
   const [isPublicV2Route, setIsPublicV2Route] = React.useState(() => isPublicV2RouteUrl());
   const [isTaxGuardRoute, setIsTaxGuardRoute] = React.useState(() => isTaxGuardRouteUrl());
 
-  const isInitializingAuth = !isInitialized || authLifecycleState === 'INITIALIZING';
+  const isInitializingAuth =
+    !isInitialized ||
+    authLifecycleState === 'INITIALIZING' ||
+    (authLifecycleState === 'AUTHENTICATED' && !currentUser) ||
+    isSyncingWithBackend ||
+    isLoadingData;
+
   const hasLiveClientSession = Boolean(
     authLifecycleState === 'AUTHENTICATED' && hasLiveClientWorkspace(currentUser)
   );
@@ -157,9 +165,30 @@ const AppContent: React.FC = () => {
       return;
     }
 
+    const isCompleted =
+      StageOneOnboardingService.hasPassedHardExitGate(currentUser?.clientId, currentUser) ||
+      (currentUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
+      (currentUser?.onboardingStatus || '').toUpperCase() === 'APPROVED' ||
+      (currentUser?.onboardingStatus || '').toUpperCase() === 'SUBMITTED' ||
+      Boolean(currentUser?.onboardingCompletedAt) ||
+      Boolean(provisionedOnboarding?.activeStage && provisionedOnboarding.activeStage >= 2);
+
     if (isPublicClientAuthRoute && hasLiveClientSession) {
-      const isCompleted = StageOneOnboardingService.hasPassedHardExitGate(currentUser?.clientId) || Boolean(provisionedOnboarding?.activeStage && provisionedOnboarding.activeStage >= 2);
       setCurrentPage(isCompleted ? 'client_portal' : 'stage_one_onboard');
+      return;
+    }
+
+    if (currentPage === 'client_portal' && hasLiveClientSession && !isCompleted) {
+      setCurrentPage('stage_one_onboard');
+      return;
+    }
+
+    if (
+      ['stage_one_onboard', 'onboarding', 'client_onboarding'].includes(currentPage) &&
+      hasLiveClientSession &&
+      isCompleted
+    ) {
+      setCurrentPage('client_portal');
       return;
     }
 

@@ -69,7 +69,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   onExitGatePassed,
   onNavigateToDashboard
 }) => {
-  const { currentUser, setCurrentPage } = useApp();
+  const { currentUser, setCurrentPage, refreshBackendData } = useApp();
 
   /*
    * HARD ENVIRONMENT BOUNDARY
@@ -306,8 +306,18 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
       if (result.dossier) {
         setDossier(result.dossier);
         setGateSuccessMessage('Stage One Passed! Unified 18-Stage Operating Cycle advanced to Stage Two (Collect). Normal Client Dashboard is now active.');
+        if (currentUser) {
+          currentUser.onboardingStatus = 'COMPLETED';
+          currentUser.onboardingCompletedAt = new Date().toISOString();
+        }
+        await refreshBackendData().catch(() => {});
         if (onExitGatePassed) {
           onExitGatePassed();
+        }
+        if (onNavigateToDashboard) {
+          onNavigateToDashboard();
+        } else {
+          setCurrentPage('client_portal');
         }
       }
     } finally {

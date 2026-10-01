@@ -9,6 +9,7 @@ import { Router, Response } from 'express';
 import { randomUUID, createHash } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, requireRole, hashPassword } from '../auth';
+import { SupabaseDurableSessions } from '../supabase-db';
 import { 
   ClientOnboardingDossier, 
   StaffInvitation, 
@@ -371,8 +372,13 @@ onboardingRouter.post('/client/submit', authenticateToken, (req: AuthenticatedRe
   // Update user record
   const user = db.users.get(req.user.id);
   if (user) {
-    user.onboardingStatus = 'submitted';
+    user.onboardingStatus = 'COMPLETED';
+    user.onboardingCompletedAt = new Date().toISOString();
     db.users.set(user.id, user);
+    new SupabaseDurableSessions().updateUser(user.id, {
+      onboardingStatus: 'COMPLETED',
+      onboardingCompletedAt: user.onboardingCompletedAt
+    }).catch(() => {});
   }
 
   // Record audit log

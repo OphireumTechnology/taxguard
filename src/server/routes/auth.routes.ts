@@ -81,10 +81,27 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
         tenantId: session.tenantId,
         user: session.user
       });
+      if (
+        onboardingBundle.workflow?.stage1?.status === 'COMPLETED' ||
+        onboardingBundle.taxCase.activeStage >= 2 ||
+        (session.user.onboardingStatus || '').toUpperCase() === 'COMPLETED'
+      ) {
+        session.user.onboardingStatus = 'COMPLETED';
+        session.user.onboardingCompletedAt =
+          session.user.onboardingCompletedAt ||
+          onboardingBundle.workflow.stage1.completedAt ||
+          new Date().toISOString();
+        db.users.set(session.user.id, session.user);
+        sessions.updateUser(session.user.id, {
+          onboardingStatus: 'COMPLETED',
+          onboardingCompletedAt: session.user.onboardingCompletedAt
+        }).catch(() => {});
+      }
     }
 
     return res.status(200).json({
       ...session,
+      user: session.user,
       ...(onboardingBundle
         ? {
             tenantId: onboardingBundle.tenant.tenantId,
@@ -201,6 +218,18 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 });
 
 authRouter.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  if (req.user && req.user.role === 'client' && req.user.clientId) {
+    const existing = db.users.get(req.user.id);
+    if (existing) {
+      if ((existing.onboardingStatus || '').toUpperCase() === 'COMPLETED') {
+        req.user.onboardingStatus = 'COMPLETED';
+      } else if (existing.onboardingStatus) {
+        req.user.onboardingStatus = existing.onboardingStatus;
+      }
+      if (existing.onboardingCompletedAt) req.user.onboardingCompletedAt = existing.onboardingCompletedAt;
+      if (existing.stageOneDossier) req.user.stageOneDossier = existing.stageOneDossier;
+    }
+  }
   return res.json({ user: req.user });
 });
 

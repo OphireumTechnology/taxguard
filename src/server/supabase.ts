@@ -8,13 +8,21 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let _supabaseAdmin: SupabaseClient | null = null;
 
+export function cleanSupabaseUrl(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  let url = rawUrl.trim();
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/rest\/v1\/?$/, '');
+  return url.replace(/\/+$/, '');
+}
+
 export function setSupabaseAdmin(client: SupabaseClient | null): void {
   _supabaseAdmin = client;
 }
 
 export function getSupabaseAdmin(): SupabaseClient {
   if (!_supabaseAdmin) {
-    const url = process.env.SUPABASE_URL;
+    const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
     if (!url || !serviceRoleKey) {
