@@ -64,7 +64,7 @@ describe('TaxGuard Restored Client Dashboard Architecture', () => {
   });
 
   it('renders correct IRC § 7216 statutory disclosure and no mojibake', () => {
-    expect(dashboardSource).toContain('IRC § 7216 Certified');
+    expect(dashboardSource).toContain('IRC § 7216 Consent');
     expect(dashboardSource).not.toContain('\uFFFD');
     expect(dashboardSource).not.toContain('localhost');
   });

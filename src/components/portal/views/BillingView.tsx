@@ -26,32 +26,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
   const [showPaymentModal, setShowPaymentModal] = useState<Invoice | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
 
-  const sampleInvoices: Invoice[] = invoices.length > 0 ? invoices : [
-    {
-      id: 'inv_1042',
-      invoiceNumber: 'INV-2026-1042',
-      clientId: 'client_1',
-      clientName: 'Robert & Sarah Perotti',
-      amount: 1450,
-      currency: 'USD',
-      description: '2025 Annual Tax Engagement: Form 1040, Schedule C, Schedule E, Form SC1040, and Section 179 Advisory',
-      status: 'paid',
-      dueDate: '2026-03-01',
-      issuedDate: '2026-02-15'
-    },
-    {
-      id: 'inv_1099',
-      invoiceNumber: 'INV-2026-1099',
-      clientId: 'client_1',
-      clientName: 'Robert & Sarah Perotti',
-      amount: 450,
-      currency: 'USD',
-      description: '2026 Estimated Tax Planning & Q1-Q4 1040-ES Voucher Schedule Calculation',
-      status: 'paid',
-      dueDate: '2026-03-15',
-      issuedDate: '2026-03-01'
-    }
-  ];
+  const actualInvoices: Invoice[] = invoices || [];
 
   const handleExecutePayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +65,14 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const totalOutstanding = actualInvoices
+    .filter(i => i.status !== 'paid' && !paidIds[i.id])
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const totalPaid = actualInvoices
+    .filter(i => i.status === 'paid' || paidIds[i.id])
+    .reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <div className="space-y-6" id="client-billing-container">
@@ -147,23 +130,29 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-5 shadow">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Current Balance Due</div>
-          <div className="text-2xl font-serif font-bold text-white mt-1">$0.00</div>
+          <div className="text-2xl font-serif font-bold text-white mt-1">${totalOutstanding.toFixed(2)}</div>
           <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> All invoices paid in full
+            {totalOutstanding === 0 ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" /> No balance due
+              </>
+            ) : (
+              <span className="text-amber-400">Payment pending</span>
+            )}
           </div>
         </div>
 
         <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-5 shadow">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total 2025 Fees Paid</div>
-          <div className="text-2xl font-serif font-bold text-[#E2BD67] mt-1">$1,900.00</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Fees Paid</div>
+          <div className="text-2xl font-serif font-bold text-[#E2BD67] mt-1">${totalPaid.toFixed(2)}</div>
           <div className="text-[11px] text-slate-300 mt-1">
-            Includes Individual 1040, S-Corp &amp; State Returns
+            Settled client payments
           </div>
         </div>
 
         <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-5 shadow">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tax Deductibility</div>
-          <div className="text-2xl font-serif font-bold text-white mt-1">Schedule C / 1120-S</div>
+          <div className="text-2xl font-serif font-bold text-white mt-1">IRC § 162 / 212</div>
           <div className="text-[11px] text-slate-300 mt-1">
             Business advisory portion deductible as professional fees
           </div>
@@ -184,59 +173,69 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
             </p>
           </div>
 
-          <div className="space-y-3">
-            {sampleInvoices.map((inv) => {
-              const isPaid = inv.status === 'paid' || paidIds[inv.id];
-              return (
-                <div
-                  key={inv.id}
-                  className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] text-xs space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm">{inv.invoiceNumber}</span>
-                        <span className="text-slate-400">&bull; Issued {inv.issuedDate}</span>
+          {actualInvoices.length === 0 ? (
+            <div className="p-8 text-center bg-[#06172C] rounded-xl border border-dashed border-slate-700 space-y-2">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+              <div className="text-sm font-bold text-white">No Invoices Issued</div>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                No invoices or professional fee statements have been billed for this engagement yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {actualInvoices.map((inv) => {
+                const isPaid = inv.status === 'paid' || paidIds[inv.id];
+                return (
+                  <div
+                    key={inv.id}
+                    className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] text-xs space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">{inv.invoiceNumber}</span>
+                          <span className="text-slate-400">&bull; Issued {inv.issuedDate}</span>
+                        </div>
+                        <p className="text-slate-300 mt-1 leading-relaxed max-w-2xl">{inv.description}</p>
                       </div>
-                      <p className="text-slate-300 mt-1 leading-relaxed max-w-2xl">{inv.description}</p>
+
+                      <div className="flex sm:flex-col sm:items-end justify-between items-center gap-1">
+                        <span className="font-serif text-lg font-bold text-white">${inv.amount.toFixed(2)}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          isPaid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                        }`}>
+                          {isPaid ? '✓ Paid in Full' : 'Pending Payment'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex sm:flex-col sm:items-end justify-between items-center gap-1">
-                      <span className="font-serif text-lg font-bold text-white">${inv.amount.toFixed(2)}</span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        isPaid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                      }`}>
-                        {isPaid ? '✓ Paid in Full' : 'Pending Payment'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-[#1E3A5F]/60 text-[11px] text-slate-400">
-                    <span>Payment Terms: Net 15 &bull; Practice Lead: Desmond Hinds</span>
-                    <div className="flex items-center gap-2 self-start sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadReceipt(inv)}
-                        className="px-3 py-1.5 rounded-lg bg-[#0B2748] hover:bg-[#11355F] text-white border border-[#C99A3D]/40 font-semibold flex items-center gap-1 transition-colors"
-                      >
-                        <Download className="w-3 h-3 text-[#C99A3D]" />
-                        <span>Download Receipt</span>
-                      </button>
-                      {!isPaid && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-[#1E3A5F]/60 text-[11px] text-slate-400">
+                      <span>Payment Terms: Net 15 &bull; Practice Lead: Desmond Hinds</span>
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
                         <button
                           type="button"
-                          onClick={() => setShowPaymentModal(inv)}
-                          className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#C99A3D] to-[#E2BD67] text-[#06172C] font-bold transition-all shadow"
+                          onClick={() => handleDownloadReceipt(inv)}
+                          className="px-3 py-1.5 rounded-lg bg-[#0B2748] hover:bg-[#11355F] text-white border border-[#C99A3D]/40 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                         >
-                          Pay Online
+                          <Download className="w-3 h-3 text-[#C99A3D]" />
+                          <span>Download Receipt</span>
                         </button>
-                      )}
+                        {!isPaid && (
+                          <button
+                            type="button"
+                            onClick={() => setShowPaymentModal(inv)}
+                            className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#C99A3D] to-[#E2BD67] text-[#06172C] font-bold transition-all shadow cursor-pointer"
+                          >
+                            Pay Online
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -250,22 +249,19 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
               Annual Engagement Proposal &amp; Fee Schedule
             </h2>
             <p className="text-xs text-slate-300 mt-0.5">
-              Fixed fee scope agreed upon in your 2025 Annual Engagement Agreement.
+              Fixed fee scope agreed upon in your Annual Engagement Agreement.
             </p>
           </div>
 
           <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-3 text-xs">
-            <div className="font-bold text-white text-sm">2025 Comprehensive Tax &amp; Advisory Retainer</div>
+            <div className="font-bold text-white text-sm">Comprehensive Tax &amp; Advisory Retainer</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-300">
-              <div>&bull; Federal Form 1040 Individual Tax Return</div>
-              <div>&bull; South Carolina Form SC1040 Resident Return</div>
-              <div>&bull; Schedule C Business Profit or Loss &amp; Depreciation</div>
-              <div>&bull; Schedule K-1 Pass-Through Integration</div>
-              <div>&bull; Section 179 Fixed Asset Advisory</div>
-              <div>&bull; Year-Round Practice Leader Access (Desmond Hinds)</div>
-            </div>
-            <div className="pt-2 border-t border-[#1E3A5F] text-[11px] text-slate-400">
-              Contract Reference: ENG-2025-PEROTTI-SIGNED &bull; Signed Jan 10, 2026
+              <div>&bull; Federal &amp; State Tax Return Preparation</div>
+              <div>&bull; Verified Stage 01 &mdash; Stage 18 Process Integration</div>
+              <div>&bull; Schedule C / E / Pass-Through Reconciliation</div>
+              <div>&bull; IRC § 7216 Secure Data Confidentiality</div>
+              <div>&bull; Year-Round Practice Leader Access</div>
+              <div>&bull; Direct CPA Review &amp; E-Filing Authorization</div>
             </div>
           </div>
         </div>
@@ -285,27 +281,39 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
             </p>
           </div>
 
-          <div className="space-y-3 text-xs">
-            {sampleInvoices.map((inv) => (
-              <div
-                key={inv.id}
-                className="p-3.5 rounded-xl bg-[#06172C] border border-[#1E3A5F] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-              >
-                <div>
-                  <div className="font-bold text-white">Official Receipt: REC-{inv.invoiceNumber}</div>
-                  <div className="text-slate-400 text-[11px] mt-0.5">Paid on {inv.dueDate} &bull; ${inv.amount.toFixed(2)} USD</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDownloadReceipt(inv)}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#0B2748] hover:bg-[#11355F] text-white border border-[#C99A3D]/40 font-semibold flex items-center gap-1.5 self-start sm:self-auto"
-                >
-                  <Download className="w-3.5 h-3.5 text-[#C99A3D]" />
-                  <span>Download Statement</span>
-                </button>
-              </div>
-            ))}
-          </div>
+          {actualInvoices.filter(i => i.status === 'paid' || paidIds[i.id]).length === 0 ? (
+            <div className="p-8 text-center bg-[#06172C] rounded-xl border border-dashed border-slate-700 space-y-2">
+              <CheckCircle2 className="w-8 h-8 text-slate-500 mx-auto" />
+              <div className="text-sm font-bold text-white">No Payment Receipts On File</div>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Official payment receipts will be generated here automatically when invoices are settled.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 text-xs">
+              {actualInvoices
+                .filter(i => i.status === 'paid' || paidIds[i.id])
+                .map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="p-3.5 rounded-xl bg-[#06172C] border border-[#1E3A5F] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  >
+                    <div>
+                      <div className="font-bold text-white">Official Receipt: REC-{inv.invoiceNumber}</div>
+                      <div className="text-slate-400 text-[11px] mt-0.5">Paid on {inv.dueDate} &bull; ${inv.amount.toFixed(2)} USD</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadReceipt(inv)}
+                      className="px-3.5 py-1.5 rounded-lg bg-[#0B2748] hover:bg-[#11355F] text-white border border-[#C99A3D]/40 font-semibold flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-[#C99A3D]" />
+                      <span>Download Statement</span>
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
 

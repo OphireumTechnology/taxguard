@@ -79,7 +79,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
   clientId,
   engagementId,
   taxYear,
-  clientName = 'Michael James Carter',
+  clientName = '',
   onDocumentImported,
   onNavigateToVault,
   onNavigateToChecklist
@@ -102,155 +102,24 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
   const [queueFilter, setQueueFilter] = useState<'ALL' | 'RELEVANT' | 'NEEDS_REVIEW' | 'DUPLICATES' | 'NON_ACCOUNTING'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Local state for ingested documents in this session with preloaded baseline demonstration numbers
-  // matching specification: Documents Found 147, Accounting Relevant 63, Needs Review 7, Duplicates 4, Not Accounting Related 73
-  const [queueDocs, setQueueDocs] = useState<IngestedQueueDoc[]>(() => {
-    const sampleDocs: IngestedQueueDoc[] = [
-      {
-        id: 'DOC-INT-001',
-        filename: '2025_Form_W2_Perotti_Technologies.pdf',
-        size: 342110,
-        mimeType: 'application/pdf',
-        sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-        classification: 'FORM_W2',
-        isAccountingRelevant: true,
-        needsReview: false,
-        isDuplicate: false,
-        confidence: 0.98,
-        extraction: {
-          documentType: 'FORM_W2',
-          entityName: clientName,
-          taxYear: taxYear,
-          payerName: 'Perotti Technologies, LLC',
-          payerTINMasked: '••-•••4912',
-          wageAmount: 185000,
-          withholdingAmount: 38400,
-          currency: 'USD'
-        },
-        uploadedAt: '2026-03-28 10:14 AM',
-        source: 'LOCAL_UPLOAD'
-      },
-      {
-        id: 'DOC-INT-002',
-        filename: 'Chase_Business_Checking_Dec2025.pdf',
-        size: 890420,
-        mimeType: 'application/pdf',
-        sha256: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
-        classification: 'BANK_STATEMENT',
-        isAccountingRelevant: true,
-        needsReview: false,
-        isDuplicate: false,
-        confidence: 0.97,
-        extraction: {
-          documentType: 'BANK_STATEMENT',
-          entityName: 'Perotti Advisory Group, Inc.',
-          taxYear: taxYear,
-          beginningBalance: 42150.80,
-          endingBalance: 88720.45,
-          currency: 'USD'
-        },
-        uploadedAt: '2026-03-28 10:18 AM',
-        source: 'GOOGLE_DRIVE'
-      },
-      {
-        id: 'DOC-INT-003',
-        filename: 'Consulting_Invoice_INV-8821.pdf',
-        size: 154200,
-        mimeType: 'application/pdf',
-        sha256: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
-        classification: 'INVOICE',
-        isAccountingRelevant: true,
-        needsReview: true,
-        isDuplicate: false,
-        confidence: 0.84,
-        extraction: {
-          documentType: 'INVOICE',
-          invoiceNumber: 'INV-8821',
-          grossAmount: 14250.00,
-          vendorName: 'Apex Advisory Partners',
-          taxYear: taxYear,
-          currency: 'USD'
-        },
-        uploadedAt: '2026-03-28 10:20 AM',
-        source: 'GMAIL'
-      },
-      {
-        id: 'DOC-INT-004',
-        filename: 'Consulting_Invoice_INV-8821_Copy.pdf',
-        size: 154200,
-        mimeType: 'application/pdf',
-        sha256: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
-        classification: 'INVOICE',
-        isAccountingRelevant: true,
-        needsReview: false,
-        isDuplicate: true,
-        confidence: 0.99,
-        extraction: {
-          documentType: 'INVOICE',
-          invoiceNumber: 'INV-8821',
-          grossAmount: 14250.00,
-          vendorName: 'Apex Advisory Partners',
-          taxYear: taxYear,
-          currency: 'USD'
-        },
-        uploadedAt: '2026-03-28 10:22 AM',
-        source: 'LOCAL_UPLOAD'
-      },
-      {
-        id: 'DOC-INT-005',
-        filename: 'Office_Supplies_Receipt_Staples.jpg',
-        size: 245100,
-        mimeType: 'image/jpeg',
-        sha256: 'ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d',
-        classification: 'EXPENSE_RECEIPT',
-        isAccountingRelevant: true,
-        needsReview: false,
-        isDuplicate: false,
-        confidence: 0.95,
-        extraction: {
-          documentType: 'EXPENSE_RECEIPT',
-          grossAmount: 384.20,
-          vendorName: 'Staples Store #1402',
-          taxYear: taxYear,
-          currency: 'USD'
-        },
-        uploadedAt: '2026-03-28 10:25 AM',
-        source: 'LOCAL_UPLOAD'
-      },
-      {
-        id: 'DOC-INT-006',
-        filename: 'Family_Vacation_Itinerary_Flight.pdf',
-        size: 198000,
-        mimeType: 'application/pdf',
-        sha256: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
-        classification: 'NON_ACCOUNTING',
-        isAccountingRelevant: false,
-        needsReview: false,
-        isDuplicate: false,
-        confidence: 0.96,
-        uploadedAt: '2026-03-28 10:28 AM',
-        source: 'LOCAL_FOLDER'
-      }
-    ];
-    return sampleDocs;
-  });
+  // Zero-demo-data: Newly registered client starts with 0 ingested documents.
+  // Documents only populate upon real upload or authorized connector import.
+  const [queueDocs, setQueueDocs] = useState<IngestedQueueDoc[]>([]);
 
-  // Calculate live statistics
-  // Canonical spec baseline: Documents Found 147, Accounting Relevant 63, Needs Review 7, Duplicates 4, Not Accounting Related 73
+  // Calculate live statistics strictly derived from real queue documents
   const stats = useMemo(() => {
-    const additionalFound = queueDocs.length - 6;
-    const relevantCount = 63 + queueDocs.filter(d => d.isAccountingRelevant).length - 5;
-    const reviewCount = 7 + queueDocs.filter(d => d.needsReview).length - 1;
-    const duplicateCount = 4 + queueDocs.filter(d => d.isDuplicate).length - 1;
-    const nonAccountingCount = 73 + queueDocs.filter(d => !d.isAccountingRelevant).length - 1;
-    const totalFound = 147 + (additionalFound > 0 ? additionalFound : 0);
+    const totalFound = queueDocs.length;
+    const relevantCount = queueDocs.filter(d => d.isAccountingRelevant).length;
+    const reviewCount = queueDocs.filter(d => d.needsReview).length;
+    const duplicateCount = queueDocs.filter(d => d.isDuplicate).length;
+    const nonAccountingCount = queueDocs.filter(d => !d.isAccountingRelevant).length;
 
     return {
-      totalFound: Math.max(totalFound, queueDocs.length),
-      relevant: Math.max(relevantCount, 0),
-      needsReview: Math.max(reviewCount, 0),
-      duplicates: Math.max(duplicateCount, 0),
-      nonAccounting: Math.max(nonAccountingCount, 0)
+      totalFound,
+      relevant: relevantCount,
+      needsReview: reviewCount,
+      duplicates: duplicateCount,
+      nonAccounting: nonAccountingCount
     };
   }, [queueDocs]);
 
@@ -577,9 +446,9 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
           </button>
         </div>
 
-        {/* Specification 5 KPI Counts */}
+        {/* Live KPI Counts */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {/* Documents Found: 147 */}
+          {/* Documents Found */}
           <div
             onClick={() => setQueueFilter('ALL')}
             className={`p-4 rounded-xl border cursor-pointer transition-all ${
@@ -596,7 +465,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             </div>
           </div>
 
-          {/* Accounting Relevant: 63 */}
+          {/* Accounting Relevant */}
           <div
             onClick={() => setQueueFilter('RELEVANT')}
             className={`p-4 rounded-xl border cursor-pointer transition-all ${
@@ -614,7 +483,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             </div>
           </div>
 
-          {/* Needs Review: 7 */}
+          {/* Needs Review */}
           <div
             onClick={() => setQueueFilter('NEEDS_REVIEW')}
             className={`p-4 rounded-xl border cursor-pointer transition-all ${
@@ -632,7 +501,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             </div>
           </div>
 
-          {/* Duplicates: 4 */}
+          {/* Duplicates */}
           <div
             onClick={() => setQueueFilter('DUPLICATES')}
             className={`p-4 rounded-xl border cursor-pointer transition-all ${
@@ -650,7 +519,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             </div>
           </div>
 
-          {/* Not Accounting Related: 73 */}
+          {/* Not Accounting Related */}
           <div
             onClick={() => setQueueFilter('NON_ACCOUNTING')}
             className={`p-4 rounded-xl border cursor-pointer transition-all ${
@@ -803,7 +672,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
                   </div>
                   <div>
                     <div className="text-xs font-bold text-[#F8FAFC]">Google Drive Accounting Folder</div>
-                    <div className="text-[10px] text-[#A9B7C8] font-mono">/Taxes_2025/Tax_Records_Carter</div>
+                    <div className="text-[10px] text-[#A9B7C8] font-mono">/Taxes_{taxYear}/Accounting_Records</div>
                   </div>
                 </div>
                 <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-600/40">
@@ -892,8 +761,8 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             <div className="space-y-3">
               <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-bold text-[#F8FAFC]">Carter Family Tax Ingestion Alias</div>
-                  <div className="text-[10px] text-[#A9B7C8] font-mono">carter-tax2025@vault.taxguard.internal</div>
+                  <div className="text-xs font-bold text-[#F8FAFC]">Client Tax Ingestion Secure Forwarder</div>
+                  <div className="text-[10px] text-[#A9B7C8] font-mono">intake-{taxYear}@vault.taxguard.internal</div>
                 </div>
                 <span className="text-[10px] font-mono text-sky-400 font-bold bg-sky-950/60 px-2 py-0.5 rounded border border-sky-600/40">
                   Active Forwarder

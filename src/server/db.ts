@@ -104,6 +104,7 @@ export interface ProfileAmendmentRecord {
   requestingUserEmail: string;
   requestTimestamp: string;
   status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'INFO_REQUESTED';
+  disposition?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'INFO_REQUESTED';
   reviewingUserId?: string;
   reviewingUserEmail?: string;
   dispositionTimestamp?: string;
@@ -1396,6 +1397,7 @@ class Database {
       requestingUserEmail: params.requestingUserEmail,
       requestTimestamp: new Date().toISOString(),
       status: 'PENDING_REVIEW',
+      disposition: 'PENDING',
       auditEventId: auditEvent.id,
       isSensitiveIdentityChange: Boolean(params.isSensitiveIdentityChange),
       additionalVerificationRequired: Boolean(params.additionalVerificationRequired)
@@ -1417,6 +1419,7 @@ class Database {
 
     const now = new Date().toISOString();
     amendment.status = params.disposition;
+    amendment.disposition = params.disposition;
     amendment.reviewingUserId = params.reviewingUserId;
     amendment.reviewingUserEmail = params.reviewingUserEmail;
     amendment.dispositionTimestamp = now;

@@ -207,7 +207,113 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
           existingDossier.status = 'approved';
           existingDossier.percentComplete = 100;
           existingDossier.updatedAt = completedAt;
+          if (effectiveDossier) {
+            Object.assign(existingDossier, effectiveDossier);
+          }
           db.clientOnboarding.set(bundle.client.clientId, existingDossier);
+        } else if (effectiveDossier) {
+          db.clientOnboarding.set(bundle.client.clientId, {
+            id: `onb_${bundle.client.clientId}`,
+            clientId: bundle.client.clientId,
+            status: 'approved',
+            currentSection: 'I',
+            percentComplete: 100,
+            maskedTIN: effectiveDossier.maskedTIN,
+            tinType: effectiveDossier.tinType,
+            tinLast4: effectiveDossier.tinLast4,
+            dateOfBirth: effectiveDossier.dateOfBirth,
+            taxpayerType: effectiveDossier.taxpayerType,
+            authorizedRep: effectiveDossier.authorizedRep,
+            supportingDocs: effectiveDossier.supportingDocs,
+            duplicateCheck: effectiveDossier.duplicateCheck,
+            identityContact: {
+              legalFirstName: effectiveDossier.legalName?.split(' ')[0] || effectiveDossier.legalName || 'Client',
+              legalLastName: effectiveDossier.legalName?.split(' ').slice(1).join(' ') || '',
+              email: effectiveDossier.email || req.user.email,
+              mobilePhone: effectiveDossier.phone || req.user.phone || '',
+              residentialAddress: {
+                street: effectiveDossier.residentialOrPrincipalAddress?.street || '',
+                unit: effectiveDossier.residentialOrPrincipalAddress?.unit || '',
+                city: effectiveDossier.residentialOrPrincipalAddress?.city || '',
+                state: effectiveDossier.residentialOrPrincipalAddress?.state || '',
+                zip: effectiveDossier.residentialOrPrincipalAddress?.zip || '',
+                country: effectiveDossier.residentialOrPrincipalAddress?.country || 'United States'
+              },
+              mailingAddressSameAsResidential: Boolean(effectiveDossier.mailingSameAsResidential),
+              mailingAddress: effectiveDossier.mailingAddress || effectiveDossier.residentialOrPrincipalAddress,
+              preferredLanguage: 'English',
+              preferredChannel: 'portal',
+              timeZone: 'America/New_York'
+            },
+            entityClassification: {
+              isBusiness: effectiveDossier.taxpayerType === 'entity',
+              legalEntityName: effectiveDossier.legalName,
+              dbaName: effectiveDossier.dbaName,
+              entityType: effectiveDossier.entityClassification || (effectiveDossier.taxpayerType === 'entity' ? 'llc' : 'individual'),
+              dateOfIncorporation: '',
+              stateOfIncorporation: effectiveDossier.residentialOrPrincipalAddress?.state || '',
+              naicsCode: '',
+              taxClassification: 'passthrough'
+            },
+            taxProfile: {
+              filingStatus: effectiveDossier.taxpayerType === 'entity' ? 'Single Member LLC / Form 1040' : 'single',
+              hasPriorYearReturn: true,
+              priorYearAGI: 0,
+              hasStateFilingObligations: true,
+              filingStates: [effectiveDossier.residentialOrPrincipalAddress?.state || 'SC'],
+              hasForeignIncomeOrAccounts: false,
+              hasCryptoTransactions: false,
+              hasDependents: false,
+              numDependents: 0
+            },
+            engagementAgreements: {
+              termsAccepted: true,
+              termsAcceptedAt: completedAt,
+              termsVersion: 'v2025.1.0',
+              feeScheduleAcknowledged: true,
+              eSignConsentAccepted: true,
+              clientSignature: effectiveDossier.engagementConsent?.signerFullName || req.user.name,
+              signatureTimestamp: completedAt,
+              ipAddress: effectiveDossier.engagementConsent?.ipAddress || '127.0.0.1'
+            },
+            reviewSubmission: {
+              submittedAt: completedAt,
+              submittedBy: req.user.id,
+              certifiedAccurate: true,
+              signatureText: effectiveDossier.engagementConsent?.signerFullName || req.user.name,
+              lockedForClient: true
+            },
+            auditTrail: [
+              {
+                id: `adt_${Date.now()}`,
+                dossierId: `onb_${bundle.client.clientId}`,
+                actorId: req.user.id,
+                actorRole: req.user.role || 'client',
+                action: 'STAGE_01_ONBOARDING_COMPLETED',
+                section: 'I',
+                timestamp: completedAt,
+                details: 'Unified Stage 01 Onboarding hard exit gate passed and profile certified.'
+              }
+            ]
+          } as any);
+        }
+
+        // Authoritative Profile record seeded at version 1
+        const existingProfile = db.authoritativeProfiles.get(bundle.client.clientId);
+        if (!existingProfile) {
+          db.authoritativeProfiles.set(bundle.client.clientId, {
+            clientId: bundle.client.clientId,
+            version: 1,
+            originalDossier: effectiveDossier || existingDossier || {},
+            amendedFields: {},
+            effectiveAt: completedAt
+          });
+        } else {
+          existingProfile.originalDossier = {
+            ...existingProfile.originalDossier,
+            ...(effectiveDossier || existingDossier || {})
+          };
+          db.authoritativeProfiles.set(bundle.client.clientId, existingProfile);
         }
       }
     }

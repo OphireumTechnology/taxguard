@@ -413,8 +413,12 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
         })}
 
         {filteredRequests.length === 0 && (
-          <div className="p-8 text-center text-neutral-500 text-xs bg-white border border-neutral-300 rounded-lg">
-            No document requests found for the selected criteria.
+          <div className="p-8 text-center text-[#A9B7C8] text-xs bg-[#0D2745] border border-slate-700/60 rounded-xl space-y-1">
+            <Inbox className="w-8 h-8 text-[#7F91A6] mx-auto" />
+            <div className="font-bold text-[#F8FAFC]">No Document Requests Found</div>
+            <p className="text-[11px] text-[#A9B7C8]">
+              No active or historical document clarification requests exist for this tax cycle.
+            </p>
           </div>
         )}
       </div>

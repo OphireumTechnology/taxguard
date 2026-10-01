@@ -385,7 +385,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[#F8FAFC] flex items-center gap-2">
                 <Building2 className="w-6 h-6 text-[#D4A843] flex-shrink-0" />
-                <span>{context.entityName || 'Michael James Carter'}</span>
+                <span>{context.entityName || 'Valued Client'}</span>
               </h1>
               <p className="text-xs text-[#A9B7C8] mt-1 font-mono">
                 Tax Year: <strong className="text-[#D4A843]">{context.taxYear}</strong> &bull; Return: <strong className="text-slate-200">{context.returnType}</strong> &bull; Client ID: <strong className="text-slate-200">{context.clientId}</strong>
@@ -773,7 +773,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
           clientId={context.clientId}
               engagementId={context.engagementId}
           taxYear={context.taxYear}
-          clientName={context.entityName || 'Michael James Carter'}
+          clientName={context.entityName || 'Valued Client'}
           onDocumentImported={() => setWorkspaceVersion(v => v + 1)}
           onNavigateToVault={() => setActiveSubTab('vault')}
           onNavigateToChecklist={() => setActiveSubTab('checklist')}

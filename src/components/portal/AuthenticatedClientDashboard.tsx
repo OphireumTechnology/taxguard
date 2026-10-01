@@ -39,6 +39,10 @@ import { TaxGuardDiscrepanciesView } from '../../taxguard/views/TaxGuardDiscrepa
 import { MessagesView } from './views/MessagesView';
 import { AuditActivityView } from './views/AuditActivityView';
 import { ProfileSecurityView } from './views/ProfileSecurityView';
+import { ClientProfileView } from './views/ClientProfileView';
+import { StepByStepTaxPreparationHome } from './views/StepByStepTaxPreparationHome';
+import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
+import { GuidedTaxQuestionnaireModal } from './views/GuidedTaxQuestionnaireModal';
 import { useLiveWorkflowAuthority } from '../../hooks/useLiveWorkflowAuthority';
 
 interface WorkflowStageItem {
@@ -124,8 +128,34 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         return 'security';
       }
     }
+    // RETURNING CLIENT ROUTING:
+    // When a client logs in with Stage 01 = COMPLETED:
+    // Determine Current Active Stage:
+    // If Stage 02 is active, automatically present Stage 02 COLLECT / DOCUMENT INTAKE.
+    // If the client has legitimately progressed beyond Stage 02, route to current authorized stage.
+    if (initialNav === 'home' || !initialNav) {
+      const activeStage = propAuthority?.workflow?.activeStage ?? 2;
+      if (activeStage === 2) {
+        return 'stage_02';
+      }
+      if (activeStage > 2) {
+        return `stage_${String(activeStage).padStart(2, '0')}`;
+      }
+    }
     return initialNav;
   });
+
+  // Ensure returning client is automatically routed to current active stage (e.g. Stage 02 Collect)
+  useEffect(() => {
+    if (activeNavId === 'home') {
+      const activeStage = authority?.workflow?.activeStage ?? 2;
+      if (activeStage === 2) {
+        setActiveNavId('stage_02');
+      } else if (activeStage > 2) {
+        setActiveNavId(`stage_${String(activeStage).padStart(2, '0')}`);
+      }
+    }
+  }, [authority?.workflow?.activeStage]);
 
   // Collapsible sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
@@ -137,6 +167,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
   const [selectedLockedStage, setSelectedLockedStage] = useState<WorkflowStageItem | null>(null);
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState<boolean>(false);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => {
@@ -153,13 +184,13 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   const clientName =
     dossier?.legalName ||
     (currentUser?.name && currentUser.name !== 'Client Taxpayer' ? currentUser.name : null) ||
-    'Michael James Carter';
+    'Valued Client';
   const taxpayerType = dossier?.taxpayerType === 'entity' ? 'Entity / Business' : 'Individual / Family';
   const signerName =
     dossier?.engagementConsent?.signerFullName ||
     dossier?.authorizedRep?.fullName ||
     currentUser?.name ||
-    'Michael James Carter';
+    'Valued Client';
 
   // Determine stage status authoritatively from workflow persistence
   const getStageStatus = (stageNum: StageNumber): 'completed' | 'active' | 'locked' => {
@@ -562,143 +593,19 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 2. CLIENT DASHBOARD HOME (Overview & Essential Case Info)
+    // 2. CLIENT DASHBOARD HOME (Overview & Action-Oriented Step-by-Step Experience)
     if (activeNavId === 'home') {
       return (
-        <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
-          {/* Header Case Information */}
-          <div className="rounded-2xl bg-[#0D2340] border border-[#1E3A5F] p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#C6A15B]/20 text-[#C6A15B] border border-[#C6A15B]/40">
-                  TAXGUARD CLIENT DASHBOARD
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-900/40 text-blue-300 border border-blue-500/40 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                  <span>ACTIVE FILING CYCLE</span>
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                <Building2 className="w-6 h-6 text-[#C6A15B]" />
-                <span>{clientName}</span>
-              </h1>
-              <p className="text-xs text-slate-400 mt-1 font-mono">
-                Client ID: <strong className="text-slate-200">{clientId}</strong> &bull; Tax Year: <strong className="text-[#E2BD67]">{selectedTaxYear}</strong> &bull; Filing Profile: <strong className="text-slate-200">{taxpayerType}</strong>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="bg-[#07172B] border border-[#1E3A5F] px-4 py-2.5 rounded-xl text-right">
-                <div className="text-[10px] font-mono uppercase text-slate-400">Statutory Consent</div>
-                <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1 justify-end mt-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>IRC § 7216 Certified</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Primary Focused Case Status Card */}
-          <div className="rounded-2xl bg-gradient-to-br from-[#0B2545] via-[#0D2E57] to-[#081B33] border-2 border-blue-500/40 p-6 sm:p-8 shadow-2xl space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-blue-400/20 pb-4">
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-wider text-[#C6A15B] font-bold">
-                  Current Stage
-                </div>
-                <div className="text-2xl font-bold text-white tracking-tight flex items-center gap-2 mt-0.5">
-                  <span>02 — Collect</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-900/70 text-blue-200 border border-blue-400/40">
-                    IN PROGRESS
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-left md:text-right">
-                <div className="text-[10px] font-mono uppercase text-slate-400">Overall Workflow Progress</div>
-                <div className="text-sm font-bold text-slate-200 mt-0.5 flex items-center md:justify-end gap-2">
-                  <span>Stage 2 of 18 (1 Completed)</span>
-                  <span className="text-xs font-mono text-[#E2BD67]">5.5%</span>
-                </div>
-                {/* Progress bar */}
-                <div className="w-48 h-2 bg-[#07172B] rounded-full overflow-hidden border border-[#1E3A5F] mt-1.5">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 via-[#C6A15B] to-blue-500" style={{ width: '5.5%' }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Next Required Action & Blocking Items */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#07172B]/80 border border-[#1E3A5F] p-4 rounded-xl space-y-1.5">
-                <div className="text-[10px] font-mono uppercase text-[#C6A15B] font-bold flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-[#C6A15B]" />
-                  <span>Next Required Action</span>
-                </div>
-                <div className="text-sm font-semibold text-white">
-                  Complete required document collection.
-                </div>
-                <p className="text-xs text-slate-300">
-                  Upload all required tax documents, W-2s, 1099s, and prior-year workpapers into the secure encrypted vault.
-                </p>
-              </div>
-
-              <div className="bg-[#07172B]/80 border border-[#1E3A5F] p-4 rounded-xl space-y-1.5">
-                <div className="text-[10px] font-mono uppercase text-amber-400 font-bold flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Hard Gate Pre-Condition</span>
-                </div>
-                <div className="text-sm font-semibold text-white">
-                  Stage 03 Validate Gate Locked
-                </div>
-                <p className="text-xs text-slate-300">
-                  All mandatory intake checklist items and identity proofs must pass automated checksums before Stage 03 unlocks.
-                </p>
-              </div>
-            </div>
-
-            {/* Single Primary Action Button */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-xs text-slate-300 font-mono">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Stage 01 Passed
-                </span>
-                <span>&bull;</span>
-                <span className="flex items-center gap-1 text-blue-300">
-                  <FolderLock className="w-3.5 h-3.5" />
-                  Vault Ready
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleSelectNav('stage_02')}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm font-bold text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl cursor-pointer"
-              >
-                <span>Continue Stage 02</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Support & Practice Team Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl bg-[#0D2340] border border-[#1E3A5F] p-4 space-y-2">
-              <div className="text-[10px] font-mono uppercase text-[#C6A15B] font-bold">Assigned Practice Reviewer</div>
-              <div className="text-sm font-bold text-white">Elena Rostova, CPA</div>
-              <div className="text-xs text-slate-400">
-                Senior Preparer &amp; Reviewer &bull; A/R Tax Services, LLC (Columbia, SC)
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-[#0D2340] border border-[#1E3A5F] p-4 space-y-2">
-              <div className="text-[10px] font-mono uppercase text-[#C6A15B] font-bold">Client Support &amp; Governance</div>
-              <div className="text-sm font-bold text-white">Desmond Hinds, Founder &amp; CEO</div>
-              <div className="text-xs text-slate-400">
-                NIST AI RMF 1.0 Aligned &bull; IRC § 7216 &amp; Circular 230 Protected
-              </div>
-            </div>
-          </div>
-        </div>
+        <StepByStepTaxPreparationHome
+          clientId={clientId}
+          clientName={clientName}
+          selectedTaxYear={selectedTaxYear}
+          userEmail={currentUser?.email}
+          onNavigateToStageTwo={() => handleSelectNav('stage_02')}
+          onNavigateToVault={() => handleSelectNav('documents')}
+          onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
+          onSelectRequirementForUpload={() => handleSelectNav('stage_02')}
+        />
       );
     }
 
@@ -861,21 +768,15 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 9. PROFILE (Context: Profile)
+    // 9. PROFILE (Context: Authoritative Client Profile)
     if (activeNavId === 'profile') {
       return (
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[#1E3A5F] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-[#C6A15B]" />
-              <span>Taxpayer Profile &amp; Organizational Structure</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Verified legal name, authorized representative designations, and tax contact records.
-            </p>
-          </div>
-
-          <ProfileSecurityView currentUser={currentUser} initialTab="taxpayer_profile" />
+          <ClientProfileView
+            currentUser={currentUser}
+            onNavigateToDocuments={() => handleSelectNav('documents')}
+            onNavigateToStageTwo={() => handleSelectNav('stage_02')}
+          />
         </div>
       );
     }
@@ -955,7 +856,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           {/* Compliance Badge */}
           <div className="hidden lg:flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>IRC § 7216 Certified</span>
+            <span>IRC § 7216 Consent Protected</span>
           </div>
 
           {/* User & Sign Out */}

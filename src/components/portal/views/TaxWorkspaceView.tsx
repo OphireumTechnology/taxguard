@@ -75,13 +75,13 @@ interface TaxWorkspaceViewProps {
 
 export const TaxWorkspaceView: React.FC<TaxWorkspaceViewProps> = ({
   currentUser,
-  activeEngagement = MOCK_ENGAGEMENT,
+  activeEngagement,
   selectedTaxYear = 2025,
-  documents = MOCK_DOCUMENTS,
-  accountingConnectors = MOCK_ACCOUNTING_CONNECTORS,
-  strategies = MOCK_STRATEGIES,
-  businessClosure = MOCK_BUSINESS_CLOSURE,
-  filingDetails = MOCK_FILING_DETAILS,
+  documents = [],
+  accountingConnectors = [],
+  strategies = [],
+  businessClosure,
+  filingDetails,
   initialTab = 'return_review',
   onOpenUpload = () => {},
   onNavigate,
@@ -100,97 +100,18 @@ export const TaxWorkspaceView: React.FC<TaxWorkspaceViewProps> = ({
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<TaxWorkspaceTab>(initialTab);
 
   // Client comment on locked return draft
-  const [returnComments, setReturnComments] = useState<Array<{ id: string; author: string; timestamp: string; text: string; status: 'open' | 'resolved' }>>([
-    {
-      id: 'comm_1',
-      author: 'Robert Perotti',
-      timestamp: '2026-03-11T10:15:00Z',
-      text: 'Verified Schedule C consulting income matches 1099-NEC. Can you verify whether line 13 depreciation includes the new monitor setup?',
-      status: 'resolved'
-    },
-    {
-      id: 'comm_2',
-      author: 'Desmond Hinds, Founder & CEO',
-      timestamp: '2026-03-11T14:30:00Z',
-      text: 'Yes Robert, the monitor setup is included under Section 179 expensing on Form 4562 Line 6 ($2,450 workstation package).',
-      status: 'resolved'
-    }
-  ]);
+  const [returnComments, setReturnComments] = useState<Array<{ id: string; author: string; timestamp: string; text: string; status: 'open' | 'resolved' }>>([]);
   const [newCommentText, setNewCommentText] = useState('');
 
   // Strategy acknowledgment state
   const [strategyList, setStrategyList] = useState<TaxStrategyItem[]>(strategies);
 
   // Business closure interactive step toggle
-  const [closureWorkflow, setClosureWorkflow] = useState<BusinessClosureWorkflow>(businessClosure);
+  const [closureWorkflow, setClosureWorkflow] = useState<BusinessClosureWorkflow | undefined>(businessClosure);
   const [closureSuccessNotice, setClosureSuccessNotice] = useState<string | null>(null);
 
-  // AI Extraction Sample Facts with Provenance
-  const sampleExtractedFacts: ExtractedFact[] = [
-    {
-      id: 'fact_01',
-      documentId: 'doc_w2_01',
-      documentName: '2025_W2_Employer_Primary.pdf',
-      pageNumber: 1,
-      boundingBox: { x: 140, y: 220, width: 180, height: 40 },
-      fieldKey: 'box_1_wages',
-      fieldLabel: 'Box 1: Wages, tips, other compensation',
-      extractedValue: '$148,250.00',
-      confidenceScore: 99.4,
-      extractionTimestamp: '2026-01-20T11:46:12Z',
-      modelIdentifier: 'ar-tax-ocr-v2.4-mef-certified',
-      reviewerStatus: 'confirmed_by_accountant'
-    },
-    {
-      id: 'fact_02',
-      documentId: 'doc_w2_01',
-      documentName: '2025_W2_Employer_Primary.pdf',
-      pageNumber: 1,
-      boundingBox: { x: 340, y: 220, width: 180, height: 40 },
-      fieldKey: 'box_2_fed_withholding',
-      fieldLabel: 'Box 2: Federal income tax withheld',
-      extractedValue: '$26,410.00',
-      confidenceScore: 98.8,
-      extractionTimestamp: '2026-01-20T11:46:12Z',
-      modelIdentifier: 'ar-tax-ocr-v2.4-mef-certified',
-      reviewerStatus: 'confirmed_by_accountant'
-    },
-    {
-      id: 'fact_03',
-      documentId: 'doc_1099_01',
-      documentName: '1099_NEC_Consulting_Client.pdf',
-      pageNumber: 1,
-      boundingBox: { x: 120, y: 190, width: 160, height: 35 },
-      fieldKey: 'box_1_nonemployee_compensation',
-      fieldLabel: 'Box 1: Nonemployee compensation',
-      extractedValue: '$42,500.00',
-      confidenceScore: 97.2,
-      extractionTimestamp: '2026-02-10T14:12:00Z',
-      modelIdentifier: 'ar-tax-ocr-v2.4-mef-certified',
-      reviewerStatus: 'confirmed_by_accountant'
-    },
-    {
-      id: 'fact_04',
-      documentId: 'doc_k1_01',
-      documentName: '2025_Schedule_K1_PassThrough.pdf',
-      pageNumber: 1,
-      boundingBox: { x: 210, y: 310, width: 140, height: 30 },
-      fieldKey: 'box_1_ordinary_business_income',
-      fieldLabel: 'Box 1: Ordinary business income (loss)',
-      extractedValue: '$31,840.00',
-      confidenceScore: 89.1,
-      extractionTimestamp: '2026-02-15T09:20:00Z',
-      modelIdentifier: 'ar-tax-ocr-v2.4-mef-certified',
-      reviewerStatus: 'confirmed_by_accountant',
-      humanCorrection: {
-        correctedBy: 'Desmond Hinds, Founder & CEO',
-        originalValue: '$31,840.00',
-        correctedValue: '$31,840.00',
-        correctionTimestamp: '2026-02-15T10:11:00Z',
-        correctionReason: 'Verified against final Schedule K-1 Statement A footnote.'
-      }
-    }
-  ];
+  // AI Extraction Live Facts with Provenance
+  const sampleExtractedFacts: ExtractedFact[] = [];
 
   const handleAcknowledgeStrategy = (strategyId: string) => {
     setStrategyList(prev => prev.map(s => s.id === strategyId ? {
@@ -382,38 +303,47 @@ export const TaxWorkspaceView: React.FC<TaxWorkspaceViewProps> = ({
                 <span className="text-[11px] text-slate-400">All low-confidence values require human CPA review</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {sampleExtractedFacts.map((fact) => (
-                  <div
-                    key={fact.id}
-                    className="p-3.5 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">{fact.fieldLabel}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                        {fact.confidenceScore}% Confidence
-                      </span>
-                    </div>
-
-                    <div className="text-base font-serif font-bold text-[#E2BD67]">
-                      {fact.extractedValue}
-                    </div>
-
-                    <div className="text-[11px] text-slate-400 space-y-0.5">
-                      <div>Source: <span className="text-slate-300">{fact.documentName} (Page {fact.pageNumber})</span></div>
-                      <div>Document ID: <span className="font-mono text-slate-300">{fact.documentId}</span></div>
-                      <div>
-                        Bounding Box:{' '}
-                        <span className="font-mono text-slate-300">
-                          x={fact.boundingBox.x}, y={fact.boundingBox.y}, w={fact.boundingBox.width}, h={fact.boundingBox.height}
+              {sampleExtractedFacts.length === 0 ? (
+                <div className="p-6 rounded-xl bg-[#06172C] border border-dashed border-slate-700 text-center space-y-1">
+                  <div className="text-xs font-bold text-white">No Document Extractions Yet</div>
+                  <p className="text-[11px] text-slate-400">
+                    Uploaded W-2s, 1099s, and tax documents will have verified field values extracted and mapped here automatically.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {sampleExtractedFacts.map((fact) => (
+                    <div
+                      key={fact.id}
+                      className="p-3.5 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white">{fact.fieldLabel}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                          {fact.confidenceScore}% Confidence
                         </span>
                       </div>
-                      <div>Extraction Engine: <span className="font-mono text-slate-300">{fact.modelIdentifier}</span></div>
-                      <div className="text-emerald-400 font-medium">✓ Reviewer status: {fact.reviewerStatus}</div>
+
+                      <div className="text-base font-serif font-bold text-[#E2BD67]">
+                        {fact.extractedValue}
+                      </div>
+
+                      <div className="text-[11px] text-slate-400 space-y-0.5">
+                        <div>Source: <span className="text-slate-300">{fact.documentName} (Page {fact.pageNumber})</span></div>
+                        <div>Document ID: <span className="font-mono text-slate-300">{fact.documentId}</span></div>
+                        <div>
+                          Bounding Box:{' '}
+                          <span className="font-mono text-slate-300">
+                            x={fact.boundingBox.x}, y={fact.boundingBox.y}, w={fact.boundingBox.width}, h={fact.boundingBox.height}
+                          </span>
+                        </div>
+                        <div>Extraction Engine: <span className="font-mono text-slate-300">{fact.modelIdentifier}</span></div>
+                        <div className="text-emerald-400 font-medium">✓ Reviewer status: {fact.reviewerStatus}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

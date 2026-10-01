@@ -571,33 +571,10 @@ export class StageTwoCollectionOperationsService {
       }
     }
 
-    // Seed realistic default requests for demonstration if empty
-    const seeded: DocumentRequest[] = [
-      {
-        requestId: `REQ-DOC-${taxYear}-1001`,
-        clientId,
-        engagementId: `ENG-${taxYear}-${clientId.toUpperCase()}`,
-        taxYear,
-        requirementId: `REQ-${taxYear}-IND-W2`,
-        title: 'Form W-2 Wage & Tax Statement',
-        requestedDocument: 'Official W-2 Wage Statement from primary employer',
-        requestedBy: 'Sarah Jenkins, CPA',
-        requestedByRole: 'cpa',
-        requestDate: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-        dueDate: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
-        status: 'OPEN',
-        priority: 'HIGH',
-        instructions: 'Please upload the copy received from employer payroll or ADP/Workday download.',
-        reminderCount: 1,
-        lastReminderDate: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-        nextReminderDate: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
-        deliveryChannel: 'EMAIL',
-        escalationStatus: 'NORMAL'
-      }
-    ];
-
-    this.requestsStore.set(key, seeded);
-    return seeded;
+    // Zero-demo-data: Newly registered client starts with 0 requests unless explicitly created by staff
+    const initialRequests: DocumentRequest[] = [];
+    this.requestsStore.set(key, initialRequests);
+    return initialRequests;
   }
 
   public static resolveDocumentRequest(params: {

@@ -443,7 +443,7 @@ app.use(
 );
 
 app.use(
-  '/api/profile',
+  ['/api/profile', '/api/profile-amendment'],
   profileAmendmentRouter
 );
 

@@ -285,6 +285,56 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify(payload)
       });
+    },
+
+    withdraw: async (documentId: string, payload: { reason?: string; justification: string }) => {
+      return request<{ message: string; document: DocumentItem }>(`/api/documents/${documentId}/withdraw`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+  },
+
+  // Authoritative Profile & Versioned Amendments (Directives 3 & 4)
+  profile: {
+    getAuthoritative: async (clientId?: string) => {
+      const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
+      return request<any>(`/api/profile/authoritative${q}`);
+    },
+
+    updateOrdinary: async (payload: { phone?: string; mailingAddress?: any; communicationPreferences?: any; companyName?: string; notes?: string }) => {
+      return request<{ success: boolean; message: string; amendedFields: any; user: User }>('/api/profile/ordinary', {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    listAmendments: async (clientId?: string) => {
+      const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
+      return request<{ totalCount: number; amendments: any[] }>(`/api/profile/amendments${q}`);
+    },
+
+    requestAmendment: async (payload: {
+      field: string;
+      fieldLabel?: string;
+      previousValue?: any;
+      proposedValue: any;
+      reason: string;
+      isSensitiveIdentityChange?: boolean;
+      verificationDocumentId?: string;
+      clientId?: string;
+    }) => {
+      return request<{ message: string; amendment: any }>('/api/profile/amendments', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+
+    reviewAmendment: async (amendmentId: string, payload: { disposition: 'APPROVED' | 'REJECTED' | 'INFO_REQUESTED'; notes?: string }) => {
+      return request<{ message: string; amendment: any }>(`/api/profile/amendments/${amendmentId}/review`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
     }
   },
 

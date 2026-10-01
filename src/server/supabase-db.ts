@@ -175,13 +175,13 @@ export class SupabaseDurableSessions {
       const resolvedMember =
         existingMember ||
         fbMember ||
-        (inMemoryCached?.clientId
+        (inMemoryCached
           ? {
               tenant_id: this.tenantId,
               uid,
               role: inMemoryCached.role || 'client',
-              status: 'active',
-              client_id: inMemoryCached.clientId
+              status: inMemoryCached.status || 'active',
+              client_id: inMemoryCached.clientId || ''
             }
           : null);
 
@@ -442,13 +442,13 @@ export class SupabaseDurableSessions {
     const resolvedMember =
       member ||
       fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) ||
-      (inMemUserForVerify?.clientId
+      (inMemUserForVerify
         ? {
             tenant_id: this.tenantId,
             uid: resolvedSession.uid,
             role: inMemUserForVerify.role || 'client',
-            status: 'active',
-            client_id: inMemUserForVerify.clientId
+            status: inMemUserForVerify.status || 'active',
+            client_id: inMemUserForVerify.clientId || ''
           }
         : null);
 
