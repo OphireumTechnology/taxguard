@@ -217,6 +217,60 @@ export class ServerStageGateOrchestrator {
       { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-nine-v1' });
   }
 
+  static async commitScopedStageTen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageTenGateSnapshot) {
+    const decision = evaluateStageTenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-ten-v1' });
+  }
+
+  static async commitScopedStageEleven(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageElevenGateSnapshot) {
+    const decision = evaluateStageElevenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-eleven-v1' });
+  }
+
+  static async commitScopedStageTwelve(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageTwelveGateSnapshot) {
+    const decision = evaluateStageTwelveServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-twelve-v1' });
+  }
+
+  static async commitScopedStageThirteen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageThirteenGateSnapshot) {
+    const decision = evaluateStageThirteenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-thirteen-v1' });
+  }
+
+  static async commitScopedStageFourteen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageFourteenGateSnapshot) {
+    const decision = evaluateStageFourteenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-fourteen-v1' });
+  }
+
+  static async commitScopedStageFifteen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageFifteenGateSnapshot) {
+    const decision = evaluateStageFifteenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-fifteen-v1' });
+  }
+
+  static async commitScopedStageSixteen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageSixteenGateSnapshot) {
+    const decision = evaluateStageSixteenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-sixteen-v1' });
+  }
+
+  static async commitScopedStageSeventeen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageSeventeenGateSnapshot) {
+    const decision = evaluateStageSeventeenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-seventeen-v1' });
+  }
+
+  static async commitScopedStageEighteen(repository: TaxGuardAuthorityRepository, context: ScopedGateContext, snapshot: StageEighteenGateSnapshot) {
+    const decision = evaluateStageEighteenServerGate(snapshot);
+    return repository.recordStageGate(context.scope, context.actorUid, context.expectedRevision, context.operationId,
+      { ...decision, approvalId: context.approvalId, evaluatorVersion: 'stage-eighteen-v1' });
+  }
+
   static async commitStageOne(context: StageTransitionContext, snapshot: StageOneGateSnapshot) {
     const decision = evaluateStageOneServerGate(snapshot);
     return StageTransitionCoordinator.persistDecision(context, decision);
