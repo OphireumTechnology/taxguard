@@ -81,7 +81,15 @@ export class SupabaseDurableSessions {
   private readonly usesCustomClient: boolean;
 
   constructor(client?: SupabaseClient, tenantId?: string) {
-    this.tenantId = tenantId || process.env.TAXGUARD_TENANT_ID || 'tenantA';
+    const resolved = (tenantId || process.env.TAXGUARD_TENANT_ID || '').trim();
+    if (!resolved) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new AuthorityError('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.', 500);
+      }
+      this.tenantId = 'tenantA';
+    } else {
+      this.tenantId = resolved;
+    }
     safeId(this.tenantId);
     this.usesCustomClient = Boolean(client);
     this.client = client || getSupabaseAdmin();

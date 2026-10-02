@@ -44,10 +44,14 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   }
 }
 
-// Initialize seed user passwords
+// Initialize seed user passwords (strictly development and testing only)
 export function initSeedPasswords() {
-  const clientSeed = process.env.SEED_CLIENT_PASSWORD || (process.env.NODE_ENV === 'production' ? randomBytes(16).toString('hex') : 'ClientPass123!');
-  const staffSeed = process.env.SEED_STAFF_PASSWORD || (process.env.NODE_ENV === 'production' ? randomBytes(24).toString('hex') : 'FirmPass123!');
+  if (process.env.NODE_ENV === 'production') {
+    // In production, seed credentials and demo users/data are strictly prohibited
+    return;
+  }
+  const clientSeed = process.env.SEED_CLIENT_PASSWORD || 'ClientPass123!';
+  const staffSeed = process.env.SEED_STAFF_PASSWORD || 'FirmPass123!';
 
   const clientHash = hashPassword(clientSeed);
   db.userPasswords.set('m.perotti@example.com', clientHash);
@@ -61,13 +65,6 @@ export function initSeedPasswords() {
   db.userPasswords.set('recruiter@artaxservices.com', staffHash);
   db.userPasswords.set('admin@artaxservices.com', staffHash);
   db.userPasswords.set('security@artaxservices.com', staffHash);
-
-  // In production, flag accounts for mandatory password reset upon first login
-  if (process.env.NODE_ENV === 'production') {
-    db.users.forEach(user => {
-      user.mustResetPassword = true;
-    });
-  }
 }
 
 // Check brute-force lockout status

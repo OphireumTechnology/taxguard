@@ -17,6 +17,17 @@ export const profileAmendmentRouter = Router();
 
 profileAmendmentRouter.use(authenticateToken);
 
+function resolveProfileAmendmentTenantId(): string {
+  const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.');
+    }
+    return 'tenantA';
+  }
+  return configured;
+}
+
 const SENSITIVE_FIELDS = [
   'legalName',
   'tin',
@@ -309,7 +320,7 @@ profileAmendmentRouter.patch('/ordinary', async (req: AuthenticatedRequest, res:
   db.users.set(user.id, user);
 
   try {
-    const sessions = new SupabaseDurableSessions(undefined, process.env.TAXGUARD_TENANT_ID || 'tenantA');
+    const sessions = new SupabaseDurableSessions(undefined, resolveProfileAmendmentTenantId());
     await sessions.updateUser(user.id, {
       ...(sanitizedUpdates.phone ? { phone: sanitizedUpdates.phone } : {}),
       ...(sanitizedUpdates.companyName ? { companyName: sanitizedUpdates.companyName } : {})
@@ -385,7 +396,7 @@ profileAmendmentRouter.post('/amendments', (req: AuthenticatedRequest, res: Resp
   }
 
   const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.id);
-  const tenantId = process.env.TAXGUARD_TENANT_ID || 'tenantA';
+  const tenantId = resolveProfileAmendmentTenantId();
 
   // High-risk identity change check (e.g. legal name change, SSN/TIN update, entity status)
   const isSensitive = Boolean(isSensitiveIdentityChange || SENSITIVE_FIELDS.includes(field));

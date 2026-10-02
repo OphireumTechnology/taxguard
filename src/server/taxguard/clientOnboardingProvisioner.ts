@@ -164,7 +164,11 @@ export async function provisionOrResolveClientOnboarding(params: {
   user: User;
   taxYear?: number;
 }): Promise<ProvisionedClientOnboardingBundle> {
-  const tenantId = (params.tenantId || process.env.TAXGUARD_TENANT_ID || 'tenantA').trim();
+  const resolvedTenant = (params.tenantId || process.env.TAXGUARD_TENANT_ID || '').trim();
+  if (!resolvedTenant && process.env.NODE_ENV === 'production') {
+    throw new Error('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.');
+  }
+  const tenantId = resolvedTenant || 'tenantA';
   const user = params.user;
   const clientId = (user.clientId || '').trim();
 

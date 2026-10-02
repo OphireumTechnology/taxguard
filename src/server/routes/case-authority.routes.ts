@@ -32,6 +32,17 @@ caseAuthorityRouter.use((_req, res, next) => {
   next();
 });
 
+function resolveCaseAuthorityTenantId(): string {
+  const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.');
+    }
+    return 'tenantA';
+  }
+  return configured;
+}
+
 caseAuthorityRouter.post('/client-onboarding/provision', async (req: AuthenticatedRequest, res: any) => {
   try {
     if (!req.user || !req.user.id || !req.user.clientId) {
@@ -42,7 +53,7 @@ caseAuthorityRouter.post('/client-onboarding/provision', async (req: Authenticat
     }
     const taxYear = Number(req.body?.taxYear) || 2025;
     const bundle = await provisionOrResolveClientOnboarding({
-      tenantId: process.env.TAXGUARD_TENANT_ID || 'tenantA',
+      tenantId: resolveCaseAuthorityTenantId(),
       user: req.user,
       taxYear,
     });
@@ -77,7 +88,7 @@ caseAuthorityRouter.get('/client-onboarding/workflow', async (req: Authenticated
     }
     const taxYear = Number(req.query.taxYear) || 2025;
     const bundle = await provisionOrResolveClientOnboarding({
-      tenantId: process.env.TAXGUARD_TENANT_ID || 'tenantA',
+      tenantId: resolveCaseAuthorityTenantId(),
       user: req.user,
       taxYear,
     });
@@ -112,7 +123,7 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
     }
     const taxYear = Number(req.body?.taxYear) || 2025;
     const bundle = await provisionOrResolveClientOnboarding({
-      tenantId: process.env.TAXGUARD_TENANT_ID || 'tenantA',
+      tenantId: resolveCaseAuthorityTenantId(),
       user: req.user,
       taxYear,
     });
