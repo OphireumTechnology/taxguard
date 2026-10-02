@@ -885,13 +885,13 @@ export const FUTURE_INTEGRATION_REGISTRY: IntegrationRegistryItem[] = [
     productionReadiness: 'Planned Future Integration'
   },
   {
-    id: 'int_gemini_docai',
-    name: 'Google Gemini 2.5 Flash / Document AI Engine',
+    id: 'int_openai_reasoning',
+    name: 'OpenAI Reasoning Gateway / Document Intelligence',
     category: 'AI & OCR',
     businessPurpose: 'Automated OCR extraction, W-2/1099 box parsing, and reconciliation anomaly detection.',
     currentStatus: 'Not Configured',
-    requiredCredentials: ['GEMINI_API_KEY', 'GCP_DOCAI_PROCESSOR_ID'],
-    requiredAuthorization: 'Enterprise Cloud Run / GenAI Private Endpoints',
+    requiredCredentials: ['OPENAI_API_KEY'],
+    requiredAuthorization: 'Enterprise Server-Side AI Gateway',
     dataExchanged: 'Sanitized text snippets, structured JSON field mappings, confidence metrics',
     webhookRequirement: 'Asynchronous document batch completion webhooks',
     securityReviewStatus: 'Pending Phase 2 Architecture Review',

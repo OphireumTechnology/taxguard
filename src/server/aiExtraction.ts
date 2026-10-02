@@ -1,25 +1,10 @@
 /**
  * AI Document Extraction Pipeline for A/R Tax Services, LLC
- * Leverages Gemini 3.8 Flash via @google/genai for classification and structured extraction,
- * backed by deterministic accounting validation, confidence scoring, duplicate detection,
+ * Deterministic accounting validation, confidence scoring, duplicate detection,
  * and strict maker-checker professional review requirements.
  */
 
-import { GoogleGenAI } from '@google/genai';
 import { ExtractedField } from '../types';
-
-let genAIClient: GoogleGenAI | null = null;
-
-function getGenAI(): GoogleGenAI | null {
-  if (!genAIClient && process.env.GEMINI_API_KEY) {
-    try {
-      genAIClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    } catch (err) {
-      console.warn('Failed to initialize GoogleGenAI client:', err);
-    }
-  }
-  return genAIClient;
-}
 
 export interface ExtractionResult {
   documentCategory: string;
@@ -87,80 +72,11 @@ export async function processDocumentExtraction(
   rawTextPreview: string,
   categoryHint?: string
 ): Promise<ExtractionResult> {
-  const ai = getGenAI();
   let aiClassifiedCategory = categoryHint || 'tax_form_w2';
   let fields: ExtractedField[] = [];
   let overallConfidence = 94;
 
-  if (ai && process.env.GEMINI_API_KEY) {
-    try {
-      const prompt = `You are a high-precision corporate tax document extraction engine for A/R Tax Services, LLC.
-Analyze the following document metadata and OCR text:
-File Name: "${fileName}"
-Category Hint: "${categoryHint || 'unknown'}"
-Content Preview:
-"""
-${rawTextPreview.slice(0, 2000)}
-"""
-
-Classify the document into one of these types:
-- tax_form_w2
-- tax_form_1099
-- tax_form_1098
-- bank_statement
-- profit_and_loss
-- balance_sheet
-- receipt_expense
-- prior_year_return
-- payroll_summary
-- other
-
-Extract the key financial fields as JSON:
-{
-  "category": "tax_form_w2",
-  "confidence": 95,
-  "fields": [
-    { "key": "wages", "label": "Wages, tips, other compensation (Box 1)", "value": "$78,500.00", "confidence": 96 },
-    { "key": "fed_tax", "label": "Federal income tax withheld (Box 2)", "value": "$11,200.00", "confidence": 95 },
-    { "key": "ss_wages", "label": "Social security wages (Box 3)", "value": "$78,500.00", "confidence": 96 },
-    { "key": "ss_tax", "label": "Social security tax withheld (Box 4)", "value": "$4,867.00", "confidence": 95 },
-    { "key": "med_wages", "label": "Medicare wages and tips (Box 5)", "value": "$78,500.00", "confidence": 96 },
-    { "key": "med_tax", "label": "Medicare tax withheld (Box 6)", "value": "$1,138.25", "confidence": 95 },
-    { "key": "payer_ein", "label": "Employer Identification Number (Box b)", "value": "57-8912401", "confidence": 98 }
-  ]
-}
-RULES:
-1. NEVER hallucinate or invent numbers not explicitly visible in text. If missing, omit the field.
-2. Provide numeric confidence 0-100 for each field.
-3. Output strictly raw JSON, no markdown blocks.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: prompt
-      });
-
-      const responseText = response.text ? response.text.trim() : '';
-      const cleanJson = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-      const parsed = JSON.parse(cleanJson);
-
-      if (parsed && Array.isArray(parsed.fields)) {
-        aiClassifiedCategory = parsed.category || aiClassifiedCategory;
-        overallConfidence = parsed.confidence || 92;
-        fields = parsed.fields.map((f: any) => ({
-          key: f.key,
-          label: f.label,
-          value: f.value,
-          confidence: f.confidence || 90,
-          needsAttention: (f.confidence || 90) < 85,
-          reviewed: false
-        }));
-      }
-    } catch (error) {
-      console.warn('Gemini extraction error, using deterministic rules fallback:', error);
-    }
-  }
-
-  // If Gemini was unavailable or returned empty fields, use deterministic high-precision template
+  // Use deterministic high-precision template
   if (fields.length === 0) {
     const lowerName = fileName.toLowerCase();
     if (lowerName.includes('w2') || lowerName.includes('w-2') || categoryHint === 'tax_form_w2') {
@@ -216,7 +132,7 @@ RULES:
     extractedFields: fields,
     complianceNotice: 'PROFESSIONAL REVIEW REQUIRED: AI extraction is an advisory intake aid. All figures must be inspected and verified by an assigned A/R Tax Services CPA or registered tax preparer before IRS filing.',
     deterministicAudit: audit,
-    processedBy: ai ? 'Gemini 3.8 Flash + Deterministic Accounting Validator' : 'Deterministic OCR & Math Rules Engine',
+    processedBy: 'Deterministic OCR & Math Rules Engine',
     processedAt: new Date().toISOString()
   };
 }

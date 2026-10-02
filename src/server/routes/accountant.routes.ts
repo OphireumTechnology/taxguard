@@ -776,7 +776,7 @@ accountantRouter.post('/bookkeeping/transactions/batch-categorize', (req: Authen
 
 /**
  * POST /api/accountant/bookkeeping/suggest
- * Gemini-powered categorization suggestion with rule-based fallback
+ * Deterministic Chart of Accounts categorization suggestion
  */
 accountantRouter.post('/bookkeeping/suggest', async (req: AuthenticatedRequest, res) => {
   const { description, amount, payee, entityType } = req.body;
@@ -828,54 +828,6 @@ accountantRouter.post('/bookkeeping/suggest', async (req: AuthenticatedRequest, 
     confidence = 95;
     rationale = 'Ordinary and necessary legal or accounting advisory fees under IRC §162.';
     taxMapping = 'Form 1120-S Line 19 / 1040 Sch C Line 17';
-  }
-
-  // Try Gemini for enhanced context if API key is configured
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `You are a Senior Tax Accountant at A/R Tax Services, LLC.
-Given this transaction:
-- Description: "${description}"
-- Amount: $${amount || 'unknown'}
-- Payee: "${payee || 'unknown'}"
-- Client Entity: "${entityType || 'S-Corporation'}"
-
-Select the best account from this Chart of Accounts:
-1010 Operating Checking
-1050 Accounts Receivable
-1510 Office Furniture & Equipment (Capital Asset)
-2010 Accounts Payable
-3020 Shareholder Distributions
-4010 Professional Tax & Advisory Services (Revenue)
-5010 Direct Subcontractor Labor (COGS)
-6010 Officer Compensation
-6110 Office Rent & Facilities
-6120 Professional Legal & CPA Fees
-6150 Advertising & Digital Marketing
-6180 Cloud Software & IT Subscriptions
-6220 Business Meals (50% Deductible)
-
-Output strictly JSON with format:
-{"accountCode": "6180", "accountName": "Cloud Software & IT Subscriptions", "confidence": 95, "rationale": "Reason for selection citing IRS rules if applicable", "taxMapping": "Form 1120-S Line 19"}`;
-
-      const resp = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: prompt
-      });
-      const clean = (resp.text || '').replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-      const parsed = JSON.parse(clean);
-      if (parsed.accountCode) {
-        suggestedCode = parsed.accountCode;
-        suggestedName = parsed.accountName;
-        confidence = parsed.confidence || confidence;
-        rationale = parsed.rationale || rationale;
-        taxMapping = parsed.taxMapping || taxMapping;
-      }
-    } catch {
-      // Fallback cleanly to deterministic rule
-    }
   }
 
   res.json({
@@ -1202,7 +1154,7 @@ accountantRouter.post('/journal-entries/:id/post', (req: AuthenticatedRequest, r
 
 /**
  * POST /api/accountant/ai-tax-assistant
- * Server-side Gemini AI Tax & Accounting Advisory Assistant
+ * Server-side Tax & Accounting Advisory Assistant
  */
 accountantRouter.post('/ai-tax-assistant', async (req: AuthenticatedRequest, res) => {
   const user = req.user!;
@@ -1215,36 +1167,6 @@ accountantRouter.post('/ai-tax-assistant', async (req: AuthenticatedRequest, res
   const disclaimer = 'DISCLAIMER: AI-generated research and synthesis is intended exclusively for authorized accounting professionals of A/R Tax Services, LLC. It does not constitute formal legal or tax opinion under Treasury Department Circular 230. All citations and conclusions must be independently verified with the Internal Revenue Code (IRC), Treasury Regulations, and applicable state statutes.';
 
   let answer = `Regarding your inquiry: "${query}":\n\nUnder Internal Revenue Code (IRC) §162, ordinary and necessary business expenses are deductible in the taxable year paid or incurred. For pass-through entities (${entityType || 'S-Corporation'}), ensure proper substantiation under IRC §274, verify reasonable officer compensation under Rev. Rul. 74-44 prior to shareholder distributions, and evaluate applicable state income/sales tax withholding with SC Department of Revenue.`;
-
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `You are the Lead Tax Research Assistant at A/R Tax Services, LLC (Columbia, SC), supporting licensed CPAs and Enrolled Agents.
-Answer the following professional tax & accounting inquiry:
-Query: "${query}"
-Client Entity Context: "${clientContext || entityType || 'S-Corporation / Pass-through'}"
-
-Provide a structured, rigorous accounting response including:
-1. Executive Technical Summary
-2. Relevant IRC Codes & Treasury Regulations (e.g. IRC §179, §199A, §162, §274, Rev. Rulings)
-3. General Ledger / Bookkeeping Treatment (Debits and Credits recommendation)
-4. Key Practitioner Due Diligence Checklist
-
-Keep the tone authoritative, clear, and professional.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: prompt
-      });
-
-      if (response.text) {
-        answer = response.text.trim();
-      }
-    } catch (err: any) {
-      console.warn('Gemini Assistant fallback:', err.message);
-    }
-  }
 
   db.logAudit({
     userId: user.id,

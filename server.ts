@@ -3,7 +3,7 @@ import { createProductionApp } from './src/server/productionApp';
  * A/R Tax Services, LLC - Production Server Entry Point
  * Full-stack Express + Vite application with enterprise security headers,
  * role-based access control, cryptographic session handling, LIVE workflow,
- * and TaxGuard Gemini AI integration.
+ * and TaxGuard AI integration.
  */
 
 import express from 'express';
@@ -122,14 +122,14 @@ import liveWorkflowRouter
   from './src/server/routes/live-workflow.routes';
 
 /**
- * M16 — TaxGuard Gemini Intelligence Layer.
+ * M16 — TaxGuard AI Intelligence Layer.
  *
  * Final routes:
  *
  * GET  /api/taxguard-ai/health
  * POST /api/taxguard-ai/propose
  *
- * Gemini remains proposal-only.
+ * AI remains proposal-only.
  * It does not replace TaxGuard deterministic calculations,
  * verified authority, governance, or human approval.
  */
@@ -309,10 +309,10 @@ app.get(
         new Date()
           .toISOString(),
 
-      geminiConfigured:
+      aiConfigured:
         Boolean(
           process.env
-            .GEMINI_API_KEY
+            .OPENAI_API_KEY
         )
     });
   }
@@ -473,13 +473,13 @@ app.use(
 
 /**
  * ============================================================
- * M16 — TAXGUARD GEMINI INTELLIGENCE
+ * M16 — TAXGUARD AI INTELLIGENCE
  * ============================================================
  *
  * Server-side only.
  *
- * GEMINI_API_KEY is read from the Render/server environment.
- * It is never exposed to the Vite frontend.
+ * Server-side AI gateway credentials are read from the server environment.
+ * They are never exposed to the Vite frontend.
  *
  * Final endpoints:
  *
@@ -746,10 +746,10 @@ async function startServer() {
       );
 
       console.log(
-        `[TaxGuard AI] Gemini configured: ${
+        `[TaxGuard AI] OpenAI configured: ${
           Boolean(
             process.env
-              .GEMINI_API_KEY
+              .OPENAI_API_KEY
           )
             ? 'YES'
             : 'NO'

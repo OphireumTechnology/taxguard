@@ -120,8 +120,7 @@ export class ProviderReadinessRegistry {
 
       case 'AI': {
         const hasAi = Boolean(
-          process.env.OPENAI_API_KEY ||
-          process.env.GEMINI_API_KEY
+          process.env.OPENAI_API_KEY
         );
         const status: ProviderReadinessStatus = hasAi ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {

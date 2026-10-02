@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import { TaxGuardAiPolicy } from './TaxGuardAiPolicy';
 
 export type TaxGuardAiRisk =
@@ -163,126 +162,16 @@ function extractText(
 }
 
 export class TaxGuardGeminiGateway {
-  static readonly model =
-    process.env.GEMINI_MODEL?.trim() ||
-    'gemini-2.5-flash';
+  static readonly model = 'gemini-2.5-flash';
 
   static isConfigured(): boolean {
-    return Boolean(
-      process.env.GEMINI_API_KEY?.trim()
-    );
+    return false;
   }
 
   static async propose(
     request: TaxGuardAiRequest
   ): Promise<TaxGuardAiProposal> {
     TaxGuardAiPolicy.validate(request);
-    const apiKey =
-      required(
-        process.env.GEMINI_API_KEY,
-        'TAXGUARD_AI_NOT_CONFIGURED'
-      );
-
-    const ai =
-      new GoogleGenAI({
-        apiKey
-      });
-
-    const controller =
-      new AbortController();
-
-    const timeout =
-      setTimeout(
-        () => {
-          controller.abort();
-        },
-        30000
-      );
-
-    try {
-      const response =
-        await ai.models.generateContent({
-          model:
-            this.model,
-
-          contents:
-            buildPrompt(request),
-
-          config: {
-            temperature:
-              0.1,
-
-            maxOutputTokens:
-              2048,
-
-            abortSignal:
-              controller.signal
-          }
-        });
-
-      const proposal =
-        extractText(response);
-
-      if (!proposal) {
-        throw new Error(
-          'TAXGUARD_AI_EMPTY_RESPONSE'
-        );
-      }
-
-      return {
-        provider:
-          'GOOGLE_GEMINI',
-
-        model:
-          this.model,
-
-        proposal,
-
-        isAiProposedOnly:
-          true,
-
-        requiresHumanReview:
-          true,
-
-        authorityVerified:
-          false,
-
-        externalSubmissionAllowed:
-          false,
-
-        riskLevel:
-          request.riskLevel ??
-          'material',
-
-        generatedAt:
-          new Date()
-            .toISOString()
-      };
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.name ===
-          'AbortError'
-      ) {
-        throw new Error(
-          'TAXGUARD_AI_TIMEOUT'
-        );
-      }
-
-      if (
-        error instanceof Error &&
-        error.message.startsWith(
-          'TAXGUARD_AI_'
-        )
-      ) {
-        throw error;
-      }
-
-      throw new Error(
-        'TAXGUARD_AI_PROVIDER_FAILURE'
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
+    throw new Error('TAXGUARD_AI_NOT_CONFIGURED');
   }
 }
