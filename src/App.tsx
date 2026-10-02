@@ -36,6 +36,10 @@ const VirtualConsultationRoom = lazy(() => import('./components/consultation/Vir
 
 import { PublicV2Router } from './public-v2/PublicV2Router';
 import { StageOneOnboardingService } from './services/stageOneOnboardingService';
+import { PortalDirectoryPage } from './components/portal/PortalDirectoryPage';
+import { AccountantWorkspace } from './components/workspace/AccountantWorkspace';
+import { ReviewerWorkspace } from './components/workspace/ReviewerWorkspace';
+import { PracticeAdminWorkspace } from './components/admin/PracticeAdminWorkspace';
 
 import { LiveClientWorkflowRouter } from './components/workflow/LiveClientWorkflowRouter';
 function getUrlTarget(): string {
@@ -192,30 +196,30 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    let targetHash = '';
-
     if (currentPage === 'portals') {
-      targetHash = '#/public-v2/portals';
+      // Clean production portal route; no hash redirection needed
     } else if (
       currentPage === 'admin_dashboard' ||
       currentPage === 'admin_portal'
     ) {
-      targetHash = currentUser ? '#/admin/dashboard' : '#/staff/login';
+      if (!currentUser && window.location.hash !== '#/staff/login') {
+        window.location.hash = '#/staff/login';
+      }
     } else if (
       currentPage === 'reviewer_workspace' ||
       currentPage === 'senior_reviewer_workspace' ||
       currentPage === 'reviewer_portal'
     ) {
-      targetHash = currentUser ? '#/reviewer/dashboard' : '#/staff/login';
+      if (!currentUser && window.location.hash !== '#/staff/login') {
+        window.location.hash = '#/staff/login';
+      }
     } else if (
       currentPage === 'accountant_workspace' ||
       currentPage === 'staff_portal'
     ) {
-      targetHash = currentUser ? '#/accountant/dashboard' : '#/staff/login';
-    }
-
-    if (targetHash && window.location.hash !== targetHash) {
-      window.location.hash = targetHash;
+      if (!currentUser && window.location.hash !== '#/staff/login') {
+        window.location.hash = '#/staff/login';
+      }
     }
   }, [currentPage, currentUser, hasLiveClientSession, isInitializingAuth, setCurrentPage]);
 
@@ -303,17 +307,36 @@ const AppContent: React.FC = () => {
       );
     }
 
+    if (currentPage === 'portals') {
+      return <PortalDirectoryPage onNavigate={setCurrentPage} />;
+    }
+
     if (
-      currentPage === 'admin_dashboard' ||
-      currentPage === 'admin_portal' ||
+      currentPage === 'accountant_workspace' ||
+      currentPage === 'staff_portal'
+    ) {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (!currentUser) return <StaffLoginPage />;
+      return <AccountantWorkspace />;
+    }
+
+    if (
       currentPage === 'reviewer_workspace' ||
       currentPage === 'senior_reviewer_workspace' ||
-      currentPage === 'reviewer_portal' ||
-      currentPage === 'accountant_workspace' ||
-      currentPage === 'staff_portal' ||
-      currentPage === 'portals'
+      currentPage === 'reviewer_portal'
     ) {
-      return null;
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (!currentUser) return <StaffLoginPage />;
+      return <ReviewerWorkspace />;
+    }
+
+    if (
+      currentPage === 'admin_dashboard' ||
+      currentPage === 'admin_portal'
+    ) {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (!currentUser) return <StaffLoginPage />;
+      return <PracticeAdminWorkspace />;
     }
 
     if (currentPage === 'staff_onboarding') {

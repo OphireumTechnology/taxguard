@@ -46,7 +46,8 @@ import {
   Edit3,
   Tag,
   Ban,
-  Check
+  Check,
+  HelpCircle
 } from 'lucide-react';
 
 import {
@@ -74,6 +75,8 @@ import { StageTwoExitGateView } from './StageTwoExitGateView';
 import { StageTwoCollectionOperationsService } from '../../services/stageTwoCollectionOperationsService';
 import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
 import { AccountingDocumentIntakeAgentView } from './AccountingDocumentIntakeAgentView';
+import { TaxQuestionnaireModal } from './TaxQuestionnaireModal';
+import { NotApplicableModal } from './NotApplicableModal';
 
 export interface StageTwoCollectionWorkspaceProps {
   clientId?: string;
@@ -123,6 +126,10 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
   const [isSubmittingUpload, setIsSubmittingUpload] = useState(false);
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string | null>(null);
   const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null);
+
+  // Questionnaire & Not-Applicable Modal States
+  const [questionnaireOpen, setQuestionnaireOpen] = useState(false);
+  const [notApplicableReq, setNotApplicableReq] = useState<ChecklistRequirement | null>(null);
 
   // Reusable vault service
   // 1. Resolve Workspace Context (TG-COL-001)
@@ -670,18 +677,63 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setTargetRequirement(null);
-                setUploadCategory('General Supporting Documentation');
-                setUploadFile(null);
-                setUploadModalOpen(true);
-              }}
-              className="px-4 py-2 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] rounded-xl text-xs font-bold flex items-center gap-1.5 self-start md:self-auto shadow-md transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5 text-[#06182B]" />
-              <span>Upload Document</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQuestionnaireOpen(true)}
+                className="px-3.5 py-2 bg-[#102D4F] hover:bg-[#153a66] text-[#D4A843] border border-[#D4A843]/50 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#D4A843]" />
+                <span>Tax Questionnaire</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetRequirement(null);
+                  setUploadCategory('General Supporting Documentation');
+                  setUploadFile(null);
+                  setUploadModalOpen(true);
+                }}
+                className="px-4 py-2 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] rounded-xl text-xs font-bold flex items-center gap-1.5 self-start md:self-auto shadow-md transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#06182B]" />
+                <span>Upload Document</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Client Clarity & Orientation Guide */}
+          <div className="bg-[#06182B] border border-slate-700/60 rounded-xl p-4 text-xs space-y-3 shadow-inner">
+            <div className="flex items-center gap-2 text-slate-200 font-bold">
+              <HelpCircle className="w-4 h-4 text-[#D4A843]" />
+              <span>Client Collection Roadmap &amp; Taxpayer Q&amp;A</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px]">
+              <div className="p-2.5 rounded-lg bg-[#0D2745] border border-slate-800 space-y-1">
+                <span className="font-bold text-[#D4A843] block">What do I need?</span>
+                <p className="text-slate-300">
+                  {readiness.requiredCount} items tailored to your {context.taxYear} tax profile. Irrelevant items are hidden.
+                </p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#0D2745] border border-slate-800 space-y-1">
+                <span className="font-bold text-[#D4A843] block">What is missing?</span>
+                <p className="text-slate-300">
+                  {readiness.missingCount} remaining documents. Attach each directly or upload folders in bulk.
+                </p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#0D2745] border border-slate-800 space-y-1">
+                <span className="font-bold text-[#D4A843] block">What is being reviewed?</span>
+                <p className="text-slate-300">
+                  {readiness.underReviewCount} files currently undergoing security checks and accountant validation.
+                </p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#0D2745] border border-slate-800 space-y-1">
+                <span className="font-bold text-[#D4A843] block">What happens next?</span>
+                <p className="text-slate-300">
+                  Once all items are accepted, Stage 03 Validation and preparation will unlock automatically.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Requirements Table / Grid */}
@@ -747,13 +799,23 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                     </select>
                   </div>
 
-                  <button
-                    onClick={() => handleOpenUploadForReq(req)}
-                    className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <UploadCloud className="w-3.5 h-3.5 text-[#D4A843]" />
-                    <span>Attach Upload</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setNotApplicableReq(req)}
+                      className="px-2.5 py-1.5 bg-[#06182B] hover:bg-[#0D2745] text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Not Applicable
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenUploadForReq(req)}
+                      className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5 text-[#D4A843]" />
+                      <span>Attach Upload</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -2040,6 +2102,25 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
           </div>
         </div>
       )}
+
+      {/* Tax Questionnaire Modal */}
+      <TaxQuestionnaireModal
+        isOpen={questionnaireOpen}
+        onClose={() => setQuestionnaireOpen(false)}
+        clientId={context.clientId}
+        taxYear={context.taxYear}
+        onSaved={() => setWorkspaceVersion(v => v + 1)}
+      />
+
+      {/* Not Applicable Modal */}
+      <NotApplicableModal
+        isOpen={Boolean(notApplicableReq)}
+        onClose={() => setNotApplicableReq(null)}
+        requirement={notApplicableReq}
+        taxYear={context.taxYear}
+        clientId={context.clientId}
+        onSuccess={() => setWorkspaceVersion(v => v + 1)}
+      />
     </div>
   );
 };

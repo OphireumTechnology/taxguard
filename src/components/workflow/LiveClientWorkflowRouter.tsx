@@ -429,6 +429,28 @@ React.FC<LiveClientWorkflowRouterProps> = ({
   }
 
   /*
+   * Stages 04 through 18: Authoritative Client Workflow
+   */
+  if (
+    authority.workflow.activeStage >= 4 &&
+    authority.workflow.activeStage <= 18
+  ) {
+    const stageNumStr = String(authority.workflow.activeStage).padStart(2, '0');
+    return (
+      <AuthenticatedClientDashboard
+        clientId={clientId}
+        selectedTaxYear={selectedTaxYear}
+        onTaxYearChange={handleTaxYearChange}
+        onEnterStageTwo={() => setViewMode('workspace')}
+        onReviewStageOne={() => setViewMode('review_stage1')}
+        initialNav={`stage_${stageNumStr}`}
+        authority={authority}
+        onServerWorkflowRefresh={refreshAuthority}
+      />
+    );
+  }
+
+  /*
    * Fail closed for an unknown server stage.
    */
 

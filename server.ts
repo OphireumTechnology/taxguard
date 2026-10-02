@@ -109,6 +109,10 @@ import {
   practiceConsoleRouter
 } from './src/server/routes/practice-console.routes';
 
+import {
+  stageTwoThreeRouter
+} from './src/server/routes/stage-two-three.routes';
+
 /**
  * TaxGuard LIVE server-authoritative workflow.
  *
@@ -450,6 +454,11 @@ app.use(
 app.use(
   '/api/practice-console',
   practiceConsoleRouter
+);
+
+app.use(
+  ['/api/stage-two-three', '/api/stage-workflow'],
+  stageTwoThreeRouter
 );
 
 /**

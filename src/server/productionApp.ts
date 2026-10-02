@@ -2,6 +2,7 @@ import express from 'express';
 import { authRouter } from './routes/auth.routes';
 import { caseAuthorityRouter } from './routes/case-authority.routes';
 import { profileAmendmentRouter } from './routes/profile-amendment.routes';
+import { stageTwoThreeRouter } from './routes/stage-two-three.routes';
 import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service';
 
 /** Shared Node/Cloud Functions boundary. Only durable APIs are released. */
@@ -43,6 +44,7 @@ export function createProductionApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/case-authority', caseAuthorityRouter);
   app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
+  app.use(['/api/stage-two-three', '/api/stage-workflow'], stageTwoThreeRouter);
   app.use('/api', (_req, res) => res.status(503).json({ code: 'API_NOT_RELEASED', error: 'This service is not available for production use yet.' }));
   app.use((_req, res) => res.status(404).json({ code: 'NOT_FOUND' }));
   app.use((error: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

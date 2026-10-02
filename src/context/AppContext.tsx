@@ -268,11 +268,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'stage-one-onboard': 'stage_one_onboard',
       'staff-onboarding': 'staff_onboarding',
       'client-portal': 'client_portal',
+      'accountant/dashboard': 'accountant_workspace',
       'accountant-workspace': 'accountant_workspace',
       'staff-portal': 'accountant_workspace',
-      'reviewer-workspace': 'senior_reviewer_workspace',
-      'reviewer-portal': 'senior_reviewer_workspace',
-      'senior-reviewer-workspace': 'senior_reviewer_workspace',
+      'reviewer/dashboard': 'reviewer_workspace',
+      'reviewer-workspace': 'reviewer_workspace',
+      'reviewer-portal': 'reviewer_workspace',
+      'senior-reviewer-workspace': 'reviewer_workspace',
+      'admin/dashboard': 'admin_dashboard',
       'admin-dashboard': 'admin_dashboard',
       'admin-portal': 'admin_dashboard',
       'live-calendar': 'live_calendar',
@@ -295,10 +298,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isDemoUrl = (raw: string): boolean => {
     const clean = raw.replace(/^#\/?/, '').replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase().trim();
     if (clean === 'client/login' || clean === 'client/register') return false;
+    if (clean === 'portal' || clean === 'portals' || clean === 'staff/login') return false;
+    if (clean === 'accountant/dashboard' || clean === 'reviewer/dashboard' || clean === 'admin/dashboard') return false;
     if (clean.startsWith('error/')) return true;
-    if (clean === 'portals' || clean.startsWith('portals/')) return true;
-    if (clean.includes('/login') || clean.includes('/dashboard')) return true;
-    return ['client-portal', 'reviewer-portal', 'staff-portal', 'cpa-portal', 'admin-dashboard', 'admin-portal', 'reviewer-workspace', 'accountant-workspace', 'portals'].includes(clean);
+    if (clean.startsWith('demo') || clean.startsWith('demo/')) return true;
+    return false;
   };
 
   const getPageFromUrl = (): PageRoute | null => {
