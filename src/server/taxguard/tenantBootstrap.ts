@@ -23,6 +23,19 @@ export interface TenantBootstrapResult {
   timestamp: string;
 }
 
+function isNetworkOrUnavailableError(error: any): boolean {
+  if (!error) return false;
+  const msg = (error.message || String(error)).toLowerCase();
+  return (
+    msg.includes('fetch failed') ||
+    msg.includes('econnrefused') ||
+    msg.includes('enotfound') ||
+    msg.includes('network') ||
+    msg.includes('connection') ||
+    msg.includes('timeout')
+  );
+}
+
 export async function ensureCanonicalTenantBootstrap(
   client?: SupabaseClient
 ): Promise<TenantBootstrapResult> {
@@ -39,54 +52,87 @@ export async function ensureCanonicalTenantBootstrap(
     };
   }
 
-  // 1. Check if canonical tenant exists
-  const { data: existing, error: selectError } = await admin
-    .from('taxguard_tenants')
-    .select('*')
-    .eq('id', CANONICAL_TENANT_ID)
-    .maybeSingle();
+  const runBootstrap = async (): Promise<TenantBootstrapResult> => {
+    // 1. Check if canonical tenant exists
+    const { data: existing, error: selectError } = await admin
+      .from('taxguard_tenants')
+      .select('*')
+      .eq('id', CANONICAL_TENANT_ID)
+      .maybeSingle();
 
-  if (selectError) {
-    console.warn('[Tenant Bootstrap] Query check error:', selectError.message);
-  }
-
-  if (existing) {
-    return {
-      tenantId: existing.id,
-      name: existing.name,
-      status: 'active',
-      provisioned: false,
-      timestamp: existing.created_at || new Date().toISOString(),
-    };
-  }
-
-  // 2. Idempotent insert with ON CONFLICT ignore
-  const { data: inserted, error: insertError } = await admin
-    .from('taxguard_tenants')
-    .upsert(
-      {
-        id: CANONICAL_TENANT_ID,
+    if (selectError) {
+      if (!isNetworkOrUnavailableError(selectError)) {
+        console.warn('[Tenant Bootstrap] Query check error:', selectError.message);
+      }
+      return {
+        tenantId: CANONICAL_TENANT_ID,
         name: CANONICAL_TENANT_NAME,
         status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    )
-    .select()
-    .single();
+        provisioned: false,
+        timestamp: new Date().toISOString(),
+      };
+    }
 
-  if (insertError) {
-    console.warn('[Tenant Bootstrap] Upsert warning:', insertError.message);
-  }
+    if (existing) {
+      return {
+        tenantId: existing.id,
+        name: existing.name,
+        status: 'active',
+        provisioned: false,
+        timestamp: existing.created_at || new Date().toISOString(),
+      };
+    }
 
-  return {
-    tenantId: CANONICAL_TENANT_ID,
-    name: CANONICAL_TENANT_NAME,
-    status: 'active',
-    provisioned: true,
-    timestamp: inserted?.created_at || new Date().toISOString(),
+    // 2. Idempotent insert with ON CONFLICT ignore
+    const { data: inserted, error: insertError } = await admin
+      .from('taxguard_tenants')
+      .upsert(
+        {
+          id: CANONICAL_TENANT_ID,
+          name: CANONICAL_TENANT_NAME,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .maybeSingle();
+
+    if (insertError) {
+      if (!isNetworkOrUnavailableError(insertError)) {
+        console.warn('[Tenant Bootstrap] Upsert warning:', insertError.message);
+      }
+    }
+
+    return {
+      tenantId: CANONICAL_TENANT_ID,
+      name: CANONICAL_TENANT_NAME,
+      status: 'active',
+      provisioned: true,
+      timestamp: inserted?.created_at || new Date().toISOString(),
+    };
   };
+
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      const timer = setTimeout(() => reject(new Error('connection timeout')), 1500);
+      if (typeof timer.unref === 'function') timer.unref();
+    });
+
+    return await Promise.race([runBootstrap(), timeoutPromise]);
+  } catch (err: any) {
+    if (!isNetworkOrUnavailableError(err)) {
+      console.warn('[Tenant Bootstrap] Unexpected error:', err?.message || err);
+    }
+    return {
+      tenantId: CANONICAL_TENANT_ID,
+      name: CANONICAL_TENANT_NAME,
+      status: 'active',
+      provisioned: false,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 export function isCanonicalTenant(tenantId: string): boolean {
