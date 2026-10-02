@@ -16,6 +16,10 @@ import {
   evaluateStageThreeServerGate
 } from '../server/taxguard/stageThreeServerGate';
 
+import {
+  ServerStageGateOrchestrator
+} from '../server/taxguard/serverStageGateOrchestrator';
+
 describe(
   'TaxGuard M5.3 server stage gates',
   () => {
@@ -181,6 +185,41 @@ describe(
           });
 
         expect(result.passed).toBe(true);
+      }
+    );
+
+    it(
+      'exposes commitScopedStage methods for all 18 lifecycle stages',
+      () => {
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageOne).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageTwo).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageThree).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageFour).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageFive).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageSix).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageSeven).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageEight).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageNine).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageTen).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageEleven).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageTwelve).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageThirteen).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageFourteen).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageFifteen).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageSixteen).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageSeventeen).toBe('function');
+        expect(typeof ServerStageGateOrchestrator.commitScopedStageEighteen).toBe('function');
+      }
+    );
+
+    it(
+      'enforces stage unlocking prerequisites for downstream stages',
+      () => {
+        expect(ServerStageGateOrchestrator.isStageFourUnlocked({ requirementsMet: true, status: 'COMPLETE' })).toBe(true);
+        expect(ServerStageGateOrchestrator.isStageFourUnlocked({ requirementsMet: false, status: 'IN_PROGRESS' })).toBe(false);
+        expect(ServerStageGateOrchestrator.isStageTenUnlocked({ requirementsMet: true, status: 'COMPLETE' })).toBe(true);
+        expect(ServerStageGateOrchestrator.isStageTenUnlocked({ requirementsMet: true, status: 'PENDING' })).toBe(false);
+        expect(ServerStageGateOrchestrator.isStageEighteenUnlocked({ requirementsMet: true, status: 'COMPLETE' })).toBe(true);
       }
     );
   }
