@@ -49,6 +49,10 @@ export function getSupabaseAdmin(): SupabaseClient {
 }
 
 export function isSupabaseServerConfigured(): boolean {
+  const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
+  if (!url || url.includes('your-project') || url.includes('placeholder')) {
+    return false;
+  }
   return Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY));
 }
 
