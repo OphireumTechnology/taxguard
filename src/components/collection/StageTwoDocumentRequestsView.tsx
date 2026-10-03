@@ -204,10 +204,10 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
   return (
     <div className="space-y-6" id="tg-col-022-document-requests-view">
       {/* Header Banner */}
-      <div className="p-5 bg-gradient-to-r from-[#061A2F] to-[#0A2E5C] text-white rounded-xl shadow-md border border-[#1A365D] space-y-3">
+      <div className="p-5 bg-gradient-to-r from-[#06182B] to-[#102D4F] text-white rounded-xl shadow-md border border-[rgba(148,163,184,0.18)] space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#D7AC4A]/20 text-[#D7AC4A] rounded-lg">
+            <div className="p-2.5 bg-[#D4A843]/20 text-[#D4A843] rounded-lg">
               <Inbox className="w-6 h-6" />
             </div>
             <div>
@@ -229,7 +229,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                 setFormErrorMessage(null);
                 setCreateModalOpen(true);
               }}
-              className="px-3 py-1.5 bg-[#D7AC4A] hover:bg-[#c49a3c] text-[#061A2F] rounded text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+              className="px-3 py-1.5 bg-[#D4A843] hover:bg-[#c49a3c] text-[#06182B] rounded text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>New Document Request</span>
@@ -239,7 +239,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
 
         {reminderStatusMessage && (
           <div className="p-3 bg-blue-900/60 border border-blue-400 text-blue-100 rounded text-xs font-medium flex items-center gap-2">
-            <Bell className="w-4 h-4 text-[#D7AC4A] flex-shrink-0" />
+            <Bell className="w-4 h-4 text-[#D4A843] flex-shrink-0" />
             <span>{reminderStatusMessage}</span>
           </div>
         )}
@@ -370,9 +370,9 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                           setResolutionNotes('');
                           setResolutionError(null);
                         }}
-                        className="px-3 py-1.5 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                        className="px-3 py-1.5 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#D7AC4A]" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#D4A843]" />
                         <span>Disposition Request</span>
                       </button>
                     </>
@@ -458,7 +458,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                       setRequestedDocDescription(`Official copy of ${target.title} (${target.formNumber})`);
                     }
                   }}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544] bg-white"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F] bg-white"
                   required
                 >
                   <option value="">Select a Requirement...</option>
@@ -478,7 +478,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                   type="text"
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                   required
                 />
               </div>
@@ -491,7 +491,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                   value={requestedDocDescription}
                   onChange={(e) => setRequestedDocDescription(e.target.value)}
                   rows={3}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                   required
                 />
               </div>
@@ -537,7 +537,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                     id="allowDuplicateOverride"
                     checked={allowDuplicateOverride}
                     onChange={(e) => setAllowDuplicateOverride(e.target.checked)}
-                    className="rounded text-[#0A2544] focus:ring-[#0A2544]"
+                    className="rounded text-[#102D4F] focus:ring-[#102D4F]"
                   />
                   <label htmlFor="allowDuplicateOverride" className="font-semibold text-amber-900 cursor-pointer">
                     Explicit Duplicate Override
@@ -565,9 +565,9 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                 >
-                  <Inbox className="w-4 h-4 text-[#D7AC4A]" />
+                  <Inbox className="w-4 h-4 text-[#D4A843]" />
                   <span>Create Request</span>
                 </button>
               </div>
@@ -620,7 +620,7 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                   onChange={(e) => setResolutionNotes(e.target.value)}
                   placeholder="State evidence reference or business justification for closing this request..."
                   rows={3}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                   required
                 />
               </div>
@@ -641,9 +641,9 @@ export const StageTwoDocumentRequestsView: React.FC<StageTwoDocumentRequestsView
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-[#D7AC4A]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#D4A843]" />
                   <span>Execute Disposition</span>
                 </button>
               </div>

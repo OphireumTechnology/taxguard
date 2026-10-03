@@ -186,10 +186,10 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
   return (
     <div className="space-y-6" id="tg-col-024-exceptions-view">
       {/* Header Banner */}
-      <div className="p-5 bg-gradient-to-r from-[#061A2F] to-[#0A2E5C] text-white rounded-xl shadow-md border border-[#1A365D] space-y-3">
+      <div className="p-5 bg-gradient-to-r from-[#06182B] to-[#102D4F] text-white rounded-xl shadow-md border border-[rgba(148,163,184,0.18)] space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#D7AC4A]/20 text-[#D7AC4A] rounded-lg">
+            <div className="p-2.5 bg-[#D4A843]/20 text-[#D4A843] rounded-lg">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
@@ -205,7 +205,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCreateModalOpen(true)}
-              className="px-3 py-1.5 bg-[#D7AC4A] hover:bg-[#c49a3c] text-[#061A2F] rounded text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+              className="px-3 py-1.5 bg-[#D4A843] hover:bg-[#c49a3c] text-[#06182B] rounded text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Log Manual Exception</span>
@@ -215,7 +215,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
 
         {/* Governance note */}
         <div className="p-3 bg-black/30 border border-white/10 rounded-lg text-xs text-slate-200 leading-relaxed flex items-start gap-2.5">
-          <ShieldAlert className="w-4 h-4 text-[#D7AC4A] shrink-0 mt-0.5" />
+          <ShieldAlert className="w-4 h-4 text-[#D4A843] shrink-0 mt-0.5" />
           <span>
             <strong>Authoritative Persistence Invariant:</strong> Open blocking exceptions cannot disappear merely because
             a user navigates away or uploads another document. Every waiver or resolution requires professional
@@ -253,7 +253,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search exceptions by ID, description, document..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
           />
         </div>
 
@@ -354,9 +354,9 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                         setEvidenceReference('');
                         setResolutionError(null);
                       }}
-                      className="px-3 py-1.5 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                      className="px-3 py-1.5 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                     >
-                      <UserCheck className="w-3.5 h-3.5 text-[#D7AC4A]" />
+                      <UserCheck className="w-3.5 h-3.5 text-[#D4A843]" />
                       <span>Resolve or Waive</span>
                     </button>
                   )}
@@ -442,7 +442,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                   onChange={(e) => setJustification(e.target.value)}
                   placeholder="Explain why this exception is resolved or why a formal waiver applies..."
                   rows={3}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                   required
                 />
               </div>
@@ -456,7 +456,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                   value={evidenceReference}
                   onChange={(e) => setEvidenceReference(e.target.value)}
                   placeholder="e.g., Workpaper WP-2025-W2, Client Email 03/15/2025"
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                 />
               </div>
 
@@ -476,9 +476,9 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-[#D7AC4A]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#D4A843]" />
                   <span>Confirm Disposition</span>
                 </button>
               </div>
@@ -552,7 +552,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g., Form 1099-INT Tax Year 2024 uploaded for 2025 engagement"
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                   required
                 />
               </div>
@@ -566,7 +566,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                   onChange={(e) => setNewDescription(e.target.value)}
                   placeholder="Describe the discrepancy and actions required to remedy..."
                   rows={3}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                   required
                 />
               </div>
@@ -580,7 +580,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                   value={newSourceDocId}
                   onChange={(e) => setNewSourceDocId(e.target.value)}
                   placeholder="e.g., DOC-2025-10023"
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                 />
               </div>
 
@@ -590,7 +590,7 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                   id="newIsBlocking"
                   checked={newIsBlocking}
                   onChange={(e) => setNewIsBlocking(e.target.checked)}
-                  className="rounded text-[#0A2544] focus:ring-[#0A2544]"
+                  className="rounded text-[#102D4F] focus:ring-[#102D4F]"
                 />
                 <label htmlFor="newIsBlocking" className="text-xs font-semibold text-neutral-800 cursor-pointer">
                   Gate 2 Blocking Condition (Prevents Stage 02 Exit Clearance)
@@ -613,9 +613,9 @@ export const StageTwoExceptionsView: React.FC<StageTwoExceptionsViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                 >
-                  <Plus className="w-4 h-4 text-[#D7AC4A]" />
+                  <Plus className="w-4 h-4 text-[#D4A843]" />
                   <span>Log Exception</span>
                 </button>
               </div>

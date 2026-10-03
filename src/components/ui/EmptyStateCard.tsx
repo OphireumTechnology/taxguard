@@ -27,7 +27,7 @@ export const EmptyStateCard: React.FC<EmptyStateCardProps> = ({
   primaryAction,
   secondaryActionLabel,
   onSecondaryAction,
-  variant = 'light',
+  variant = 'dark',
   className = '',
 }) => {
   const isLight = variant === 'light';
@@ -39,14 +39,14 @@ export const EmptyStateCard: React.FC<EmptyStateCardProps> = ({
       className={`py-12 px-6 text-center rounded-2xl border flex flex-col items-center justify-center space-y-3 ${
         isLight
           ? 'bg-[#FBF8F1] border-[#D8C9A5] text-[#10233D]'
-          : 'bg-[#081E36] border-[#244567] text-[#F7F1E5]'
+          : 'bg-[#0D2745] border border-[rgba(148,163,184,0.18)] text-[#F8FAFC]'
       } ${className}`}
     >
       <div
         className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1 border ${
           isLight
             ? 'bg-[#F4E7C3] border-[#B98B32] text-[#10233D]'
-            : 'bg-[#0D2746] border-[#C99A3D] text-[#E2B957]'
+            : 'bg-[rgba(212,168,67,0.10)] border border-[rgba(212,168,67,0.40)] text-[#D4A843]'
         }`}
       >
         {icon || <Calendar className="w-7 h-7" />}
@@ -54,7 +54,7 @@ export const EmptyStateCard: React.FC<EmptyStateCardProps> = ({
 
       <h3
         className={`font-serif text-base sm:text-lg font-bold ${
-          isLight ? 'text-[#10233D]' : 'text-[#F7F1E5]'
+          isLight ? 'text-[#10233D]' : 'text-[#F8FAFC]'
         }`}
       >
         {title}
@@ -62,7 +62,7 @@ export const EmptyStateCard: React.FC<EmptyStateCardProps> = ({
 
       <p
         className={`text-xs sm:text-sm max-w-md leading-relaxed ${
-          isLight ? 'text-[#52657B]' : 'text-slate-300'
+          isLight ? 'text-[#52657B]' : 'text-[#A9B7C8]'
         }`}
       >
         {description}

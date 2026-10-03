@@ -331,7 +331,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             type="button"
             onClick={() => folderInputRef.current?.click()}
             disabled={isProcessing}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#153a66] border border-slate-700/70 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#143657] border border-slate-700/70 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
           >
             <FolderUp className="w-4 h-4 text-[#D4A843] shrink-0" />
             <span>Select Folder</span>
@@ -342,7 +342,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             type="button"
             onClick={() => setCloudModalOpen(true)}
             disabled={isProcessing}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#153a66] border border-slate-700/70 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#143657] border border-slate-700/70 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
           >
             <Cloud className="w-4 h-4 text-sky-400 shrink-0" />
             <span>Connect Cloud Storage</span>
@@ -353,7 +353,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             type="button"
             onClick={() => setEmailModalOpen(true)}
             disabled={isProcessing}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#153a66] border border-slate-700/70 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#143657] border border-slate-700/70 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
           >
             <Mail className="w-4 h-4 text-amber-400 shrink-0" />
             <span>Connect Email</span>
@@ -622,7 +622,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
                 <button
                   type="button"
                   onClick={() => setSelectedDocForDetails(doc)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#A9B7C8] hover:text-[#F8FAFC] bg-[#102D4F] hover:bg-[#153a66] border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#A9B7C8] hover:text-[#F8FAFC] bg-[#102D4F] hover:bg-[#143657] border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>Inspect</span>
@@ -984,7 +984,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
                     setReviewModalOpen(false);
                     onNavigateToVault?.();
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#153a66] border border-slate-700"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#102D4F] hover:bg-[#143657] border border-slate-700"
                 >
                   Open Document Vault
                 </button>

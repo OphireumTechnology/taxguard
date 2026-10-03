@@ -7,11 +7,8 @@ import {
   Phone, 
   Building2, 
   CheckCircle2, 
-  User, 
   ShieldCheck, 
-  MapPin, 
-  ArrowRight,
-  Sparkles
+  Check
 } from 'lucide-react';
 import { LiveCalendarModule } from '../calendar/LiveCalendarModule';
 
@@ -22,7 +19,11 @@ export const BookConsultationPage: React.FC = () => {
   const [serviceType, setServiceType] = useState('Individual Tax Strategy & Year-End Planning');
   const [consultationType, setConsultationType] = useState<'virtual' | 'phone' | 'in_office'>('virtual');
   const [requestFounder, setRequestFounder] = useState(true);
-  const [selectedDate, setSelectedDate] = useState('2026-09-16');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    return d.toISOString().slice(0, 10);
+  });
   const [selectedTime, setSelectedTime] = useState('10:00 AM - 11:00 AM EST');
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
@@ -61,164 +62,168 @@ export const BookConsultationPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-16 pb-20 text-slate-100">
-      
-      {/* Header Banner */}
-      <section className="relative pt-12 pb-14 border-b border-[#1E3A5F]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2340] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold">
-            <CalendarIcon className="w-3.5 h-3.5" />
-            <span>Confidential Advisory • Columbia, SC</span>
-          </div>
-          <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
+    <div className="min-h-screen bg-[#06182B] text-[#F8FAFC] pb-20 font-sans selection:bg-[#D4A843]/20 selection:text-[#F8FAFC]">
+      {/* A. PAGE INTRODUCTION */}
+      <section className="pt-10 pb-8 text-center">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2">
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#F8FAFC] tracking-tight">
             Schedule a Consultation
           </h1>
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Reserve a dedicated strategy session with Founder Desmond Hinds or our senior tax specialists. 
-            Select your preferred consultation medium and appointment time below.
+          <p className="text-sm sm:text-base text-[#A9B7C8] max-w-xl mx-auto leading-relaxed">
+            Reserve a dedicated strategy session with our senior tax specialists.
           </p>
         </div>
       </section>
 
-      {/* Booking Mode Switcher */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-3 p-1.5 rounded-2xl bg-[#0D2340] border border-[#1E3A5F]">
+      {/* B. BOOKING METHOD (Compact segmented control) */}
+      <div className="max-w-md mx-auto px-4 mb-8">
+        <div className="grid grid-cols-2 p-1 rounded-xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)]">
           <button
             type="button"
             onClick={() => setBookingMode('live_calendar')}
-            className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               bookingMode === 'live_calendar'
-                ? 'bg-[#C6A15B] text-[#07172B] shadow-md'
-                : 'text-slate-300 hover:text-white'
+                ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-xs'
+                : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
             }`}
           >
-            <CalendarIcon className="w-4 h-4" />
-            <span>Interactive Live Calendar & Slot Locks</span>
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>Schedule Online</span>
           </button>
           <button
             type="button"
             onClick={() => setBookingMode('fast_form')}
-            className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               bookingMode === 'fast_form'
-                ? 'bg-[#C6A15B] text-[#07172B] shadow-md'
-                : 'text-slate-300 hover:text-white'
+                ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-xs'
+                : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Express Intake Form</span>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Express Intake</span>
           </button>
         </div>
       </div>
 
+      {/* C. BOOKING WORKFLOW */}
       {bookingMode === 'live_calendar' ? (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <LiveCalendarModule />
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <LiveCalendarModule embedded={true} />
         </section>
       ) : (
-        /* Main Form or Confirmation */
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {!isSubmitted ? (
-          <form onSubmit={handleSubmit} className="p-8 sm:p-10 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-8">
-            
-            {/* 1. Consultation Medium */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#C6A15B]">
-                Step 1: Choose Consultation Type
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                  { id: 'virtual', label: 'Virtual Meeting', sub: 'Google Meet Video', icon: Video },
-                  { id: 'phone', label: 'Phone Consultation', sub: 'Direct Call to You', icon: Phone },
-                  { id: 'in_office', label: 'In-Office Meeting', sub: 'Columbia, SC Office', icon: Building2 },
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setConsultationType(type.id as any)}
-                    className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                      consultationType === type.id
-                        ? 'bg-[#07172B] border-[#C6A15B] ring-1 ring-[#C6A15B]'
-                        : 'bg-[#07172B]/60 border-[#1E3A5F] hover:border-slate-500'
-                    }`}
-                  >
-                    <type.icon className="w-5 h-5 text-[#C6A15B] mb-2" />
-                    <div>
-                      <div className="text-xs font-bold text-white">{type.label}</div>
-                      <div className="text-[11px] text-slate-400">{type.sub}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. Service & Specialist Preference */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        /* Express Intake Workflow */
+        <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          {!isSubmitted ? (
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-2xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] space-y-6">
+              
+              {/* How would you like to meet? */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#C6A15B]">
-                  Step 2: Service Focus
+                <label className="block text-xs font-semibold text-[#A9B7C8]">
+                  How would you like to meet?
                 </label>
-                <select
-                  value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value)}
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-[#C6A15B]"
-                >
-                  <option value="Individual Tax Strategy & Year-End Planning">Individual Tax Strategy (Form 1040)</option>
-                  <option value="Business Entity Filings (S-Corp / LLC / 1120-S)">Business Entity Filings (S-Corp / LLC)</option>
-                  <option value="Monthly Bookkeeping & Financial Organization">Monthly Bookkeeping & Accounting</option>
-                  <option value="Prior-Year Back Taxes & IRS Transcript Audit">Prior-Year Back Taxes / IRS Transcripts</option>
-                  <option value="Financial Protection & Estate Coordination">Financial Protection & Estate Coordination</option>
-                  <option value="Credit Solutions & Financial Consultation">Credit & Financial Consultation</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#C6A15B]">
-                  Specialist Preference
-                </label>
-                <div className="p-3 rounded-xl bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-white">Desmond Hinds, Founder</div>
-                    <div className="text-[10px] text-[#C6A15B]">Senior Tax Strategist</div>
-                  </div>
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={requestFounder} 
-                      onChange={(e) => setRequestFounder(e.target.checked)} 
-                      className="rounded accent-[#C6A15B] h-4 w-4"
-                    />
-                    <span>Request Directly</span>
-                  </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: 'virtual', label: 'Video Meeting', sub: 'Google Meet Video', icon: Video },
+                    { id: 'phone', label: 'Phone Call', sub: 'Direct phone outbound', icon: Phone },
+                    { id: 'in_office', label: 'Office Visit', sub: 'Columbia, SC Office', icon: Building2 },
+                  ].map((type) => {
+                    const Icon = type.icon;
+                    const isSelected = consultationType === type.id;
+                    return (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setConsultationType(type.id as any)}
+                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-[rgba(212,168,67,0.10)] border-[rgba(212,168,67,0.80)] text-[#F8FAFC] ring-1 ring-[#D4A843]'
+                            : 'bg-[#102D4F] border-[rgba(148,163,184,0.18)] text-[#A9B7C8] hover:border-slate-500 hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <Icon className={`w-4 h-4 ${isSelected ? 'text-[#D4A843]' : 'text-[#7F91A6]'}`} />
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#D4A843]" />}
+                        </div>
+                        <div>
+                          <div className={`text-xs font-semibold ${isSelected ? 'text-[#F8FAFC]' : 'text-slate-200'}`}>
+                            {type.label}
+                          </div>
+                          <div className="text-[10px] text-[#7F91A6]">{type.sub}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
 
-            {/* 3. Date & Time Selection */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#C6A15B]">
-                Step 3: Choose Date & Available Slot
-              </label>
+              {/* Consultation type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="booking-date" className="block text-[11px] text-slate-400 mb-1">Appointment Date (Mon-Fri)</label>
+                <div className="space-y-1.5">
+                  <label htmlFor="intake-service-type" className="block text-xs font-semibold text-[#A9B7C8]">
+                    Consultation type
+                  </label>
+                  <select
+                    id="intake-service-type"
+                    value={serviceType}
+                    onChange={(e) => setServiceType(e.target.value)}
+                    className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
+                  >
+                    <option value="Individual Tax Strategy & Year-End Planning">Individual Tax Strategy (Form 1040)</option>
+                    <option value="Business Entity Filings (S-Corp / LLC / 1120-S)">Business Entity Filings (S-Corp / LLC)</option>
+                    <option value="Monthly Bookkeeping & Financial Organization">Monthly Bookkeeping & Accounting</option>
+                    <option value="Prior-Year Back Taxes & IRS Transcript Audit">Prior-Year Back Taxes / IRS Transcripts</option>
+                    <option value="Financial Protection & Estate Coordination">Financial Protection & Estate Coordination</option>
+                    <option value="Credit Solutions & Financial Consultation">Credit & Financial Consultation</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#A9B7C8]">
+                    Specialist preference
+                  </label>
+                  <div className="min-h-[44px] p-2.5 rounded-xl bg-[#102D4F] border border-[rgba(148,163,184,0.18)] flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-[#F8FAFC]">Desmond Hinds, Founder</div>
+                      <div className="text-[10px] text-[#D4A843]">Senior Tax Strategist</div>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs text-[#A9B7C8] cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={requestFounder} 
+                        onChange={(e) => setRequestFounder(e.target.checked)} 
+                        className="rounded accent-[#D4A843] h-4 w-4"
+                      />
+                      <span>Request</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="intake-date" className="block text-xs font-semibold text-[#A9B7C8]">
+                    Date
+                  </label>
                   <input
-                    id="booking-date"
+                    id="intake-date"
                     type="date"
                     value={selectedDate}
-                    min="2026-09-09"
-                    max="2026-12-31"
+                    min={new Date().toISOString().slice(0, 10)}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
+                    className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="booking-time" className="block text-[11px] text-slate-400 mb-1">Available Eastern Time (EST) Slot</label>
+                <div className="space-y-1.5">
+                  <label htmlFor="intake-time" className="block text-xs font-semibold text-[#A9B7C8]">
+                    Preferred time
+                  </label>
                   <select
-                    id="booking-time"
+                    id="intake-time"
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
+                    className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
                   >
                     {availableTimes.map((slot) => (
                       <option key={slot} value={slot}>{slot}</option>
@@ -226,173 +231,115 @@ export const BookConsultationPage: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#C6A15B]" />
-                <span>Firm business hours: Monday–Friday, 9:00 AM–6:00 PM Eastern Time.</span>
+
+              {/* Client Contact Details */}
+              <div className="space-y-4 pt-4 border-t border-[rgba(148,163,184,0.18)]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label htmlFor="intake-name" className="block text-[#A9B7C8] font-semibold mb-1">
+                      Full Name <span className="text-[#D4A843]">*</span>
+                    </label>
+                    <input
+                      id="intake-name"
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. John Doe"
+                      className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3 py-2 text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-none focus:border-[#D4A843]"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="intake-email" className="block text-[#A9B7C8] font-semibold mb-1">
+                      Email Address <span className="text-[#D4A843]">*</span>
+                    </label>
+                    <input
+                      id="intake-email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3 py-2 text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-none focus:border-[#D4A843]"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="intake-phone" className="block text-[#A9B7C8] font-semibold mb-1">
+                      Phone Number <span className="text-[#D4A843]">*</span>
+                    </label>
+                    <input
+                      id="intake-phone"
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 803-555-0123"
+                      className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3 py-2 text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-none focus:border-[#D4A843]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="intake-notes" className="block text-xs text-[#A9B7C8] font-semibold mb-1">
+                    What would you like to discuss? (optional)
+                  </label>
+                  <textarea
+                    id="intake-notes"
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Briefly state your tax questions, entity types, or filing goals..."
+                    className="w-full bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl p-3 text-xs text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-none focus:border-[#D4A843]"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* 4. Client Contact Details */}
-            <div className="space-y-4 pt-4 border-t border-[#1E3A5F]">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#C6A15B]">
-                Step 4: Your Contact Information
-              </label>
+              {/* Submit CTA */}
+              <div className="pt-4 border-t border-[rgba(148,163,184,0.18)] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-xs text-[#7F91A6]">
+                  <ShieldCheck className="w-4 h-4 text-[#D4A843]" />
+                  <span>Confidential intake session.</span>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors shadow-sm"
+                >
+                  Book Consultation
+                </button>
+              </div>
 
-              {/* Sensitive Information Warning Banner */}
-              <div className="p-3.5 rounded-xl bg-[#07172B] border border-amber-500/40 text-xs text-amber-200/90 space-y-1">
-                <strong className="text-white block font-semibold">Important Privacy &amp; Data Notice:</strong>
-                <p>
-                  Please do not submit Social Security numbers, tax documents, banking information, or other sensitive personal information through this form. Existing clients should use the{' '}
-                  <a
-                    href="/portal"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setCurrentPage('portal');
-                    }}
-                    className="text-[#C6A15B] underline hover:text-[#E2BD67] font-semibold"
-                    role="link"
-                  >
-                    secure client portal
-                  </a>.
+            </form>
+          ) : (
+            <div className="p-8 rounded-2xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] text-center space-y-4 shadow-xl">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-serif text-xl font-bold text-[#F8FAFC]">
+                  Consultation Request Received
+                </h3>
+                <p className="text-xs text-[#A9B7C8] max-w-md mx-auto">
+                  Thank you, <strong className="text-[#F8FAFC]">{name}</strong>. A tax specialist has received your request and will contact you via {email} or {phone} to confirm your appointment.
                 </p>
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div>
-                  <label htmlFor="booking-name" className="block text-slate-300 font-semibold mb-1">
-                    Full Name <span className="text-amber-400">*</span>
-                  </label>
-                  <input
-                    id="booking-name"
-                    type="text"
-                    required
-                    aria-required="true"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. John Doe"
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
-                  />
-                </div>
 
-                <div>
-                  <label htmlFor="booking-email" className="block text-slate-300 font-semibold mb-1">
-                    Email Address <span className="text-amber-400">*</span>
-                  </label>
-                  <input
-                    id="booking-email"
-                    type="email"
-                    required
-                    aria-required="true"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="booking-phone" className="block text-slate-300 font-semibold mb-1">
-                    Phone Number <span className="text-amber-400">*</span>
-                  </label>
-                  <input
-                    id="booking-phone"
-                    type="tel"
-                    required
-                    aria-required="true"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 803-555-0123"
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="booking-notes" className="block text-xs text-slate-300 font-semibold mb-1">
-                  Briefly Explain Your Goals or Filing Needs (Optional)
-                </label>
-                <textarea
-                  id="booking-notes"
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g., S-Corp election for 2026, W-2 plus rental property deductions, multi-state filing questions..."
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg p-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
-                />
-              </div>
-
-              {/* Engagement Letter Disclaimer */}
-              <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F] text-[11px] text-slate-400 leading-relaxed">
-                <strong>No Professional Relationship Created:</strong> Submitting this consultation request does not establish an accountant-client relationship. A professional engagement commences only upon the mutual execution of a formal written engagement letter specifying services and terms.
+              <div className="pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsSubmitted(false)}
+                  className="text-xs font-semibold text-[#D4A843] hover:text-[#E1BB60] underline"
+                >
+                  Book another session
+                </button>
               </div>
             </div>
-
-            {/* Submit CTA */}
-            <div className="pt-4 border-t border-[#1E3A5F] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <ShieldCheck className="w-4 h-4 text-[#C6A15B]" />
-                <span>Encrypted booking. No payment required for initial intake.</span>
-              </div>
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-bold text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all shadow-xl"
-              >
-                Confirm Appointment Request
-              </button>
-            </div>
-
-          </form>
-        ) : (
-          <div className="p-10 rounded-3xl bg-[#0D2340] border border-[#C6A15B]/50 text-center space-y-6 shadow-2xl">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#C6A15B]">
-                Consultation Confirmed
-              </span>
-              <h2 className="font-serif text-3xl font-bold text-white">
-                We Look Forward to Speaking With You!
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-                Your consultation has been reserved for <strong className="text-white">{selectedDate}</strong> at <strong className="text-white">{selectedTime}</strong> with <strong className="text-[#C6A15B]">{requestFounder ? 'Desmond Hinds' : 'our Senior Tax Team'}</strong>.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#07172B] border border-[#1E3A5F] max-w-md mx-auto text-left text-xs space-y-2 text-slate-300">
-              <div><strong>Format:</strong> {consultationType === 'virtual' ? 'Virtual Google Meet' : consultationType === 'phone' ? 'Direct Telephone Call' : 'Executive Suite in Columbia, SC'}</div>
-              <div><strong>Client Name:</strong> {name}</div>
-              <div><strong>Email:</strong> {email}</div>
-              <div><strong>Status:</strong> Confirmed & Synchronized with Calendar</div>
-            </div>
-
-            <div className="pt-4 flex flex-wrap justify-center gap-4">
-              <a
-                href="/portal"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage('portal');
-                }}
-                className="px-6 py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A]"
-                role="link"
-              >
-                View in Client Portal
-              </a>
-              <button
-                onClick={() => setIsSubmitted(false)}
-                className="px-6 py-3 rounded-xl font-semibold text-xs text-slate-300 hover:text-white border border-[#1E3A5F]"
-              >
-                Book Another Time
-              </button>
-            </div>
-          </div>
-        )}
+          )}
         </section>
       )}
-
     </div>
   );
 };
-
-
+export default BookConsultationPage;

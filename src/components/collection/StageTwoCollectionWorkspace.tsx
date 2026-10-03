@@ -436,7 +436,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
               <button
                 type="button"
                 onClick={() => setActiveSubTab('checklist')}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#0D2745] hover:bg-[#153a66] border border-slate-700 transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#0D2745] hover:bg-[#143657] border border-slate-700 transition-colors cursor-pointer"
               >
                 View Required Documents
               </button>
@@ -525,7 +525,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
 
                 <button
                   onClick={() => setActiveSubTab('readiness')}
-                  className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#153a66] text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors ml-auto cursor-pointer"
+                  className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#143657] text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors ml-auto cursor-pointer"
                 >
                   Gate Status
                 </button>
@@ -681,7 +681,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
               <button
                 type="button"
                 onClick={() => setQuestionnaireOpen(true)}
-                className="px-3.5 py-2 bg-[#102D4F] hover:bg-[#153a66] text-[#D4A843] border border-[#D4A843]/50 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                className="px-3.5 py-2 bg-[#102D4F] hover:bg-[#143657] text-[#D4A843] border border-[#D4A843]/50 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5 text-[#D4A843]" />
                 <span>Tax Questionnaire</span>
@@ -810,7 +810,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                     <button
                       type="button"
                       onClick={() => handleOpenUploadForReq(req)}
-                      className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#143657] text-[#F8FAFC] border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <UploadCloud className="w-3.5 h-3.5 text-[#D4A843]" />
                       <span>Attach Upload</span>
@@ -953,10 +953,10 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {activeSubTab === 'processing' && (
         <div className="space-y-6">
           {/* AI Intelligence & Governance Header */}
-          <div className="p-5 bg-gradient-to-r from-[#061A2F] to-[#0A2E5C] text-white rounded-xl shadow-md border border-[#1A365D] space-y-3">
+          <div className="p-5 bg-gradient-to-r from-[#06182B] to-[#102D4F] text-white rounded-xl shadow-md border border-[rgba(148,163,184,0.18)] space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-[#D7AC4A]/20 text-[#D7AC4A] rounded-lg">
+                <div className="p-2 bg-[#D4A843]/20 text-[#D4A843] rounded-lg">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
@@ -969,7 +969,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-[#1A365D] text-[#D7AC4A] border border-[#D7AC4A]/40 rounded">
+                <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-[rgba(148,163,184,0.18)] text-[#D4A843] border border-[#D4A843]/40 rounded">
                   ENGINE: SECURE DOCUMENT PROCESSING
                 </span>
                 <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-white/10 text-white rounded">
@@ -979,7 +979,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             </div>
 
             <div className="p-3 bg-black/25 border border-white/10 rounded-lg text-xs text-slate-300 leading-relaxed flex items-start gap-2.5">
-              <Info className="w-4 h-4 text-[#D7AC4A] shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-[#D4A843] shrink-0 mt-0.5" />
               <span>
                 <strong>Strict AI Governance Mandate:</strong> AI operates strictly as an intake extraction and decision-support tool. Proposed data does <strong>NOT</strong> verify tax returns, confirm tax positions, approve deductions, or sign returns. Professional CPA/preparer review remains the sole authoritative record.
               </span>
@@ -1020,7 +1020,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                           <>
                             <span>•</span>
                             <span className="flex items-center gap-1">
-                              AI Detected: <strong className="text-[#0A2544]">{intel.aiDetectedCategory}</strong>
+                              AI Detected: <strong className="text-[#102D4F]">{intel.aiDetectedCategory}</strong>
                               <span className="text-[10px] font-mono text-neutral-500">
                                 ({(intel.classificationConfidence * 100).toFixed(0)}% conf)
                               </span>
@@ -1166,7 +1166,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                     <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <FileSpreadsheet className="w-4 h-4 text-[#0A2544]" />
+                          <FileSpreadsheet className="w-4 h-4 text-[#102D4F]" />
                           <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
                             Normalized Structured Data Schema ({intel.aiDetectedCategory})
                           </h4>
@@ -1252,15 +1252,15 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
       {activeSubTab === 'security' && (
         <div className="space-y-6">
           {/* 1. Critical Invariants Callout */}
-          <div className="p-4 bg-[#061A2F] border border-[#1A365D] rounded-xl text-white shadow-sm space-y-3">
+          <div className="p-4 bg-[#06182B] border border-[rgba(148,163,184,0.18)] rounded-xl text-white shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#D7AC4A]">
+              <div className="flex items-center gap-2 text-[#D4A843]">
                 <ShieldAlert className="w-5 h-5" />
                 <h2 className="text-sm font-bold uppercase tracking-wider">
                   M2 Stage 02 Security Pipeline & Invariant Boundaries
                 </h2>
               </div>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#1A365D] text-slate-200 border border-slate-600 rounded">
+              <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[rgba(148,163,184,0.18)] text-slate-200 border border-slate-600 rounded">
                 Sprint 2 Active
               </span>
             </div>
@@ -1438,7 +1438,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
-                  <FolderLock className="w-5 h-5 text-[#0A2544]" />
+                  <FolderLock className="w-5 h-5 text-[#102D4F]" />
                   <span>Isolated File Staging Registry</span>
                 </h3>
                 <p className="text-xs text-neutral-600 mt-0.5">
@@ -1564,8 +1564,8 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
           {/* 4. Subsystems Specifications Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-white border border-neutral-300 rounded-lg shadow-2xs space-y-2">
-              <div className="flex items-center gap-2 text-[#0A2544]">
-                <ShieldCheck className="w-4 h-4 text-[#D7AC4A]" />
+              <div className="flex items-center gap-2 text-[#102D4F]">
+                <ShieldCheck className="w-4 h-4 text-[#D4A843]" />
                 <h4 className="text-xs font-bold uppercase tracking-wider">MIME Magic Byte Validation</h4>
               </div>
               <p className="text-xs text-neutral-600 leading-relaxed">
@@ -1574,8 +1574,8 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             </div>
 
             <div className="p-4 bg-white border border-neutral-300 rounded-lg shadow-2xs space-y-2">
-              <div className="flex items-center gap-2 text-[#0A2544]">
-                <Layers className="w-4 h-4 text-[#D7AC4A]" />
+              <div className="flex items-center gap-2 text-[#102D4F]">
+                <Layers className="w-4 h-4 text-[#D4A843]" />
                 <h4 className="text-xs font-bold uppercase tracking-wider">Archive Bomb Protection</h4>
               </div>
               <p className="text-xs text-neutral-600 leading-relaxed">
@@ -1584,8 +1584,8 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             </div>
 
             <div className="p-4 bg-white border border-neutral-300 rounded-lg shadow-2xs space-y-2">
-              <div className="flex items-center gap-2 text-[#0A2544]">
-                <FolderLock className="w-4 h-4 text-[#D7AC4A]" />
+              <div className="flex items-center gap-2 text-[#102D4F]">
+                <FolderLock className="w-4 h-4 text-[#D4A843]" />
                 <h4 className="text-xs font-bold uppercase tracking-wider">7-Year IRS Preservation</h4>
               </div>
               <p className="text-xs text-neutral-600 leading-relaxed">
@@ -1619,10 +1619,10 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
           )}
 
           {/* AI Governance & Professional Control Header */}
-          <div className="p-5 bg-gradient-to-r from-[#061A2F] to-[#0A2E5C] text-white rounded-xl shadow-md border border-[#1A365D] space-y-3">
+          <div className="p-5 bg-gradient-to-r from-[#06182B] to-[#102D4F] text-white rounded-xl shadow-md border border-[rgba(148,163,184,0.18)] space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-[#D7AC4A]/20 text-[#D7AC4A] rounded-lg">
+                <div className="p-2 bg-[#D4A843]/20 text-[#D4A843] rounded-lg">
                   <Eye className="w-5 h-5" />
                 </div>
                 <div>
@@ -1641,7 +1641,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 <select
                   value={reviewRole}
                   onChange={(e) => setReviewRole(e.target.value as any)}
-                  className="px-2.5 py-1 text-xs font-semibold bg-[#1A365D] text-[#D7AC4A] border border-[#D7AC4A]/40 rounded focus:outline-none"
+                  className="px-2.5 py-1 text-xs font-semibold bg-[rgba(148,163,184,0.18)] text-[#D4A843] border border-[#D4A843]/40 rounded focus:outline-none"
                 >
                   <option value="cpa">CPA (Level 2 Reviewer)</option>
                   <option value="preparer">Tax Preparer</option>
@@ -1652,7 +1652,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             </div>
 
             <div className="p-3 bg-black/25 border border-white/10 rounded-lg text-xs text-slate-300 leading-relaxed flex items-start gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-[#D7AC4A] shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-[#D4A843] shrink-0 mt-0.5" />
               <span>
                 <strong>Authoritative Review Mandate:</strong> In accordance with Circular 230 and TaxGuard compliance controls, AI extractions are purely advisory. An authorized human tax professional must independently accept, correct, reclassify, or reject all flagged records before Gate 2 clearance.
               </span>
@@ -1730,7 +1730,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                         <div className="text-xs">
                           Claimed: <span className="font-semibold text-neutral-700">{item.clientClaimedCategory}</span>
                         </div>
-                        <div className="text-xs text-[#0A2544]">
+                        <div className="text-xs text-[#102D4F]">
                           Detected: <span className="font-semibold">{item.aiDetectedCategory}</span>
                         </div>
                       </td>
@@ -1794,7 +1794,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                             setFieldCorrectionValue('');
                             setReclassifiedCategory(item.aiDetectedCategory);
                           }}
-                          className="px-3 py-1.5 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold shadow-xs"
+                          className="px-3 py-1.5 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold shadow-xs"
                         >
                           Review & Action
                         </button>
@@ -1819,7 +1819,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
               <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-neutral-300 overflow-hidden max-h-[90vh] flex flex-col">
                 {/* Modal Header */}
-                <div className="p-5 bg-[#061A2F] text-white flex items-center justify-between border-b border-[#1A365D]">
+                <div className="p-5 bg-[#06182B] text-white flex items-center justify-between border-b border-[rgba(148,163,184,0.18)]">
                   <div className="space-y-0.5">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-white">
                       Human Review Disposition —  {selectedReviewItem.documentId}
@@ -1896,7 +1896,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                     <select
                       value={reviewAction}
                       onChange={(e) => setReviewAction(e.target.value as HumanReviewAction)}
-                      className="w-full p-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#061A2F]"
+                      className="w-full p-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#06182B]"
                     >
                       <option value="ACCEPT">ACCEPT —  Accept AI extraction as verified proposed data</option>
                       <option value="CORRECT">CORRECT —  Override extracted field with human-verified figure</option>
@@ -1968,7 +1968,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                       onChange={(e) => setReviewJustification(e.target.value)}
                       placeholder="Detail the reason for this action, professional findings, or client communications..."
                       rows={3}
-                      className="w-full p-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#061A2F]"
+                      className="w-full p-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#06182B]"
                     />
                   </div>
                 </div>
@@ -1983,7 +1983,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                   </button>
                   <button
                     onClick={handleExecuteReviewAction}
-                    className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5"
+                    className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5"
                   >
                     <Check className="w-4 h-4" />
                     <span>Execute Human Disposition</span>
@@ -2064,7 +2064,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                 <input
                   type="file"
                   onChange={(e) => setUploadFile(e.target.files ? e.target.files[0] : null)}
-                  className="w-full text-xs text-[#A9B7C8] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#102D4F] file:text-[#D4A843] hover:file:bg-[#153a66] file:cursor-pointer"
+                  className="w-full text-xs text-[#A9B7C8] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#102D4F] file:text-[#D4A843] hover:file:bg-[#143657] file:cursor-pointer"
                   required
                 />
               </div>

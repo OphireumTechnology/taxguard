@@ -1,14 +1,12 @@
 /**
- * A/R TAX SERVICES, LLC - Live Synchronized Calendar & Availability Engine
- * Production-ready component covering Parts 5, 6, 7, 8, 9, 10:
- * - Google Calendar & Microsoft Outlook 2-Way Sync
- * - External Event Masking ("Unavailable") for Client Privacy
- * - Real-Time Availability Engine with Buffer & Holiday Awareness
- * - Concurrency Protection with 10-Minute Atomic Slot Holds
- * - 13 Standard Consultation Types & Deposit Handling
- * - Reschedule and Cancellation Workflows
- * - Founder Calendar Controls (Desmond Hinds)
- * - Administrative Calendar Firm Overview & Override Booking
+ * A/R TAX SERVICES, LLC - Live Availability & Consultation Scheduling Engine
+ * Production-ready component covering:
+ * - Real-time availability calculation with buffer & holiday awareness
+ * - 10-minute atomic concurrency slot holding
+ * - Executive founder sessions & standard consultation tracks
+ * - Multi-modality meeting selection (Video, Phone, Office)
+ * - Reschedule and cancellation workflows
+ * - Canonical dark navy & gold design system
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,31 +15,23 @@ import {
   Clock, 
   Video, 
   Phone, 
-  MapPin, 
-  ShieldCheck, 
+  Building2, 
   CheckCircle2, 
   AlertCircle, 
   RefreshCw, 
-  Settings, 
+  ShieldCheck, 
   User, 
-  Lock, 
-  ChevronRight, 
   X, 
-  DollarSign,
-  Plus,
-  Building,
   Check
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
   AppointmentTypeCode, 
   AvailableTimeSlot, 
-  CalendarConnection,
-  SynchronizedAppointment 
+  CalendarConnection 
 } from '../../types/calendar';
 import { BrandedSelect, BrandedSelectOption } from '../ui/BrandedSelect';
 import { BrandedButton } from '../ui/BrandedButton';
-import { EmptyStateCard } from '../ui/EmptyStateCard';
 import { getStoredToken } from '../../services/api';
 
 const APPOINTMENT_TYPES: Array<{
@@ -60,14 +50,44 @@ const APPOINTMENT_TYPES: Array<{
   { code: 'bookkeeping_consultation', title: 'Monthly Bookkeeping & Ledger Maintenance', duration: 30, price: 0, depositRequired: false },
   { code: 'payroll_consultation', title: 'Payroll Compliance & W-2/941 Advisory', duration: 30, price: 0, depositRequired: false },
   { code: 'irs_notice_consultation', title: 'IRS / State Audit Notice Resolution', duration: 45, price: 150, depositRequired: true },
-  { code: 'accounting_software_setup', title: 'QuickBooks Online / Xero Setup Session', duration: 60, price: 200, depositRequired: false },
+  { code: 'accounting_software_setup', title: 'Accounting Software Setup (QBO/Xero)', duration: 60, price: 200, depositRequired: false },
   { code: 'document_review', title: 'Tax Document Review Meeting', duration: 30, price: 0, depositRequired: false },
   { code: 'return_review', title: 'Form 8879 & Tax Return Final Review', duration: 45, price: 0, depositRequired: false },
   { code: 'follow_up_meeting', title: 'Engagement Follow-Up Meeting', duration: 30, price: 0, depositRequired: false },
   { code: 'internal_staff_meeting', title: 'Internal Staff Quality Review', duration: 30, price: 0, depositRequired: false }
 ];
 
-export const LiveCalendarModule: React.FC = () => {
+export interface LiveCalendarModuleProps {
+  embedded?: boolean;
+}
+
+function formatFriendlyDate(isoDate: string): string {
+  if (!isoDate) return '';
+  const parts = isoDate.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+  return isoDate;
+}
+
+function formatFriendlyMonthDay(isoDate: string): string {
+  if (!isoDate) return '';
+  const parts = isoDate.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  }
+  return isoDate;
+}
+
+export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded = false }) => {
   const { currentUser, setCurrentPage } = useApp();
   const [activeTab, setActiveTab] = useState<'book' | 'my_appointments' | 'sync' | 'founder' | 'admin'>('book');
 
@@ -168,14 +188,21 @@ export const LiveCalendarModule: React.FC = () => {
     try {
       setIsLoadingSlots(true);
       setBookingError(null);
-      const isFounderReq = selectedServiceCode === 'founder_consultation';
-      const res = await fetch(`/api/calendar/available-slots?date=${selectedDate}&serviceTypeCode=${selectedServiceCode}&requestedFounder=${isFounderReq}`);
+      const token = getStoredToken();
+      const res = await fetch(`/api/calendar/available-slots?date=${encodeURIComponent(selectedDate)}&serviceType=${encodeURIComponent(selectedServiceCode)}`, {
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'x-session-token': token || ''
+        }
+      });
       if (res.ok) {
         const data = await res.json();
-        setAvailableSlots(data.availableSlots || []);
+        setAvailableSlots(data.slots || []);
+      } else {
+        setAvailableSlots([]);
       }
-    } catch (err: any) {
-      setBookingError('Unable to load availability slots');
+    } catch {
+      setAvailableSlots([]);
     } finally {
       setIsLoadingSlots(false);
     }
@@ -185,7 +212,7 @@ export const LiveCalendarModule: React.FC = () => {
     try {
       setIsLoadingAppointments(true);
       const token = getStoredToken();
-      const res = await fetch('/api/appointments', {
+      const res = await fetch('/api/calendar/appointments', {
         headers: {
           'Authorization': `Bearer ${token || ''}`,
           'x-session-token': token || ''
@@ -195,8 +222,8 @@ export const LiveCalendarModule: React.FC = () => {
         const data = await res.json();
         setAppointments(data.appointments || []);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setAppointments([]);
     } finally {
       setIsLoadingAppointments(false);
     }
@@ -215,8 +242,8 @@ export const LiveCalendarModule: React.FC = () => {
         const data = await res.json();
         setConnections(data.connections || []);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Graceful error handling
     }
   };
 
@@ -233,8 +260,8 @@ export const LiveCalendarModule: React.FC = () => {
         const data = await res.json();
         setFounderControls(data.controls || {});
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Graceful error handling
     }
   };
 
@@ -251,12 +278,12 @@ export const LiveCalendarModule: React.FC = () => {
         const data = await res.json();
         setAdminOverview(data);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Graceful error handling
     }
   };
 
-  // Step 1: Hold Slot (10-minute concurrency lock)
+  // Hold Slot (10-minute concurrency lock)
   const handleHoldSlot = async (slot: AvailableTimeSlot) => {
     try {
       setIsHolding(true);
@@ -287,15 +314,15 @@ export const LiveCalendarModule: React.FC = () => {
 
       setSelectedSlot(slot);
       setHeldSlotKey(slot.slotKey);
-      setHoldCountdown(600); // 10 minutes
+      setHoldCountdown(600);
     } catch (err: any) {
-      setBookingError(err.message);
+      setBookingError(err.message || 'We could not reserve this time. Please try another.');
     } finally {
       setIsHolding(false);
     }
   };
 
-  // Step 2: Confirm Booking & Sync with Google/Outlook
+  // Confirm Booking
   const handleConfirmBooking = async () => {
     if (!selectedSlot) return;
     try {
@@ -323,7 +350,7 @@ export const LiveCalendarModule: React.FC = () => {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Failed to complete appointment booking.');
+        throw new Error(errData.error || 'We could not complete your booking. Please try again.');
       }
 
       const data = await res.json();
@@ -333,13 +360,13 @@ export const LiveCalendarModule: React.FC = () => {
       setSelectedSlot(null);
       loadAppointments();
     } catch (err: any) {
-      setBookingError(err.message);
+      setBookingError(err.message || 'Booking could not be finalized. Please try again.');
     } finally {
       setIsHolding(false);
     }
   };
 
-  // Connect Google / Outlook
+  // Connect Provider
   const handleConnectProvider = async (provider: 'google_calendar' | 'microsoft_outlook') => {
     try {
       setIsConnecting(true);
@@ -356,8 +383,8 @@ export const LiveCalendarModule: React.FC = () => {
       if (res.ok) {
         await loadConnections();
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Graceful error
     } finally {
       setIsConnecting(false);
     }
@@ -387,16 +414,16 @@ export const LiveCalendarModule: React.FC = () => {
         loadAppointments();
       } else {
         const err = await res.json();
-        alert(err.error || 'Reschedule failed');
+        setBookingError(err.error || 'Unable to reschedule.');
       }
-    } catch (err) {
-      alert('Error during reschedule');
+    } catch {
+      setBookingError('Error during reschedule. Please try again.');
     }
   };
 
   // Cancel
   const handleCancelAppointment = async (aptId: string) => {
-    if (!confirm('Are you sure you want to cancel this consultation? Your time slot will be immediately released.')) return;
+    if (!window.confirm('Are you sure you want to cancel this consultation? Your time slot will be released.')) return;
     try {
       const token = getStoredToken();
       const res = await fetch('/api/calendar/cancel', {
@@ -411,8 +438,8 @@ export const LiveCalendarModule: React.FC = () => {
       if (res.ok) {
         loadAppointments();
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Graceful error
     }
   };
 
@@ -433,8 +460,8 @@ export const LiveCalendarModule: React.FC = () => {
       if (res.ok) {
         alert('Founder availability controls updated successfully.');
       }
-    } catch (err) {
-      alert('Failed to save controls');
+    } catch {
+      alert('Failed to save controls.');
     } finally {
       setIsSavingFounderControls(false);
     }
@@ -449,118 +476,190 @@ export const LiveCalendarModule: React.FC = () => {
     description: `${srv.duration} minutes ${srv.founderOnly ? '• Led by Desmond Hinds, Founder' : '• Certified Tax Professional'}`
   }));
 
+  const meetingOptions = [
+    { id: 'virtual', title: 'Video Meeting', sub: 'Google Meet Video', icon: Video },
+    { id: 'telephone', title: 'Phone Call', sub: 'Direct phone outbound', icon: Phone },
+    { id: 'in_office', title: 'Office Visit', sub: 'Columbia, SC Executive Office', icon: Building2 },
+  ];
+
+  const friendlySelectedDate = formatFriendlyDate(selectedDate);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Top Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-8 shadow-xl border border-amber-500/20 relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
-              <CalendarIcon className="w-3.5 h-3.5" />
-              <span>Live Synchronized Calendar & Availability Engine</span>
+      {/* Header Banner - shown only if not embedded inside BookConsultationPage */}
+      {!embedded && (
+        <div className="bg-[#0D2745] text-[#F8FAFC] rounded-2xl p-6 md:p-8 border border-[rgba(148,163,184,0.18)] relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[rgba(212,168,67,0.10)] border border-[rgba(212,168,67,0.40)] text-[#D4A843] text-xs font-semibold mb-3">
+                <CalendarIcon className="w-3.5 h-3.5" />
+                <span>Live Availability</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold font-serif text-[#F8FAFC]">
+                Schedule a Consultation
+              </h1>
+              <p className="text-[#A9B7C8] text-sm mt-1 max-w-2xl">
+                Choose an available time for your consultation.
+              </p>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold font-serif text-white">
-              Consultation & Executive Scheduling
-            </h1>
-            <p className="text-slate-300 text-sm mt-1 max-w-2xl">
-              Real-time availability calculated with firm business hours, external calendar sync (Google & Outlook), and automatic conflict protection.
-            </p>
-          </div>
 
-          <div className="flex items-center space-x-2 bg-slate-800/80 p-2 rounded-xl border border-slate-700/60 text-xs">
-            <button
-              onClick={() => setActiveTab('book')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                activeTab === 'book' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              Book Session
-            </button>
-            <button
-              onClick={() => setActiveTab('my_appointments')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                activeTab === 'my_appointments' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              Appointments
-            </button>
-            {isStaffOrAdmin && (
+            {/* Role Tab Navigation */}
+            <div className="flex items-center space-x-1.5 bg-[#071A2E] p-1.5 rounded-xl border border-[rgba(148,163,184,0.18)] text-xs">
               <button
-                onClick={() => setActiveTab('sync')}
+                type="button"
+                onClick={() => setActiveTab('book')}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                  activeTab === 'sync' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                  activeTab === 'book' ? 'bg-[#D4A843] text-[#06182B] shadow-xs' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
                 }`}
               >
-                Calendar Sync
+                Book Session
               </button>
-            )}
-            {(isFounder || isAdmin) && (
               <button
-                onClick={() => setActiveTab('founder')}
+                type="button"
+                onClick={() => setActiveTab('my_appointments')}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                  activeTab === 'founder' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                  activeTab === 'my_appointments' ? 'bg-[#D4A843] text-[#06182B] shadow-xs' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
                 }`}
               >
-                Founder Controls
+                Appointments
               </button>
-            )}
-            {isAdmin && (
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                  activeTab === 'admin' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                Admin Overview
-              </button>
-            )}
+              {isStaffOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('sync')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                    activeTab === 'sync' ? 'bg-[#D4A843] text-[#06182B] shadow-xs' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+                  }`}
+                >
+                  Calendar Sync
+                </button>
+              )}
+              {(isFounder || isAdmin) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('founder')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                    activeTab === 'founder' ? 'bg-[#D4A843] text-[#06182B] shadow-xs' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+                  }`}
+                >
+                  Founder Controls
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('admin')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                    activeTab === 'admin' ? 'bg-[#D4A843] text-[#06182B] shadow-xs' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+                  }`}
+                >
+                  Admin Overview
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* SUCCESS CONFIRMATION MODAL / BANNER */}
+      {/* Staff tab navigation if embedded but user is staff */}
+      {embedded && isStaffOrAdmin && (
+        <div className="flex items-center space-x-1.5 bg-[#0D2745] p-1.5 rounded-xl border border-[rgba(148,163,184,0.18)] text-xs max-w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab('book')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+              activeTab === 'book' ? 'bg-[#D4A843] text-[#06182B]' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+            }`}
+          >
+            Book Session
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('my_appointments')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+              activeTab === 'my_appointments' ? 'bg-[#D4A843] text-[#06182B]' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+            }`}
+          >
+            Appointments
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('sync')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+              activeTab === 'sync' ? 'bg-[#D4A843] text-[#06182B]' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+            }`}
+          >
+            Calendar Sync
+          </button>
+          {(isFounder || isAdmin) && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('founder')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                activeTab === 'founder' ? 'bg-[#D4A843] text-[#06182B]' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+              }`}
+            >
+              Founder Controls
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('admin')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                activeTab === 'admin' ? 'bg-[#D4A843] text-[#06182B]' : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+              }`}
+            >
+              Admin Overview
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* SUCCESS CONFIRMATION BANNER */}
       {bookingSuccess && (
-        <div className="p-6 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-950 space-y-3 shadow-md animate-fade-in">
+        <div className="p-6 bg-[#0D2745] border border-emerald-500/40 rounded-2xl text-[#F8FAFC] space-y-4 shadow-xl">
           <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-7 h-7 text-emerald-400 shrink-0" />
             <div>
-              <h3 className="font-bold text-base">Consultation Confirmed & Synchronized!</h3>
-              <p className="text-xs text-emerald-800">
-                Reference Code: <strong className="font-mono">{bookingSuccess.referenceCode}</strong> • External Calendar Event created as &ldquo;A/R Tax Services Appointment&rdquo;
+              <h3 className="font-bold text-base text-[#F8FAFC]">Consultation Confirmed</h3>
+              <p className="text-xs text-[#A9B7C8]">
+                Reference Code: <strong className="font-mono text-[#D4A843]">{bookingSuccess.referenceCode}</strong>
               </p>
             </div>
           </div>
 
-          <div className="p-4 bg-white/80 rounded-xl border border-emerald-200 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
             <div>
-              <span className="text-slate-500 block">Date & Time</span>
-              <span className="font-bold text-slate-900">{bookingSuccess.date} at {bookingSuccess.timeSlot}</span>
+              <span className="text-[#7F91A6] block">Date &amp; Time</span>
+              <span className="font-bold text-[#F8FAFC]">{formatFriendlyDate(bookingSuccess.date)} at {bookingSuccess.timeSlot}</span>
             </div>
             <div>
-              <span className="text-slate-500 block">Assigned Advisor</span>
-              <span className="font-bold text-slate-900">{bookingSuccess.accountantName}</span>
+              <span className="text-[#7F91A6] block">Assigned Advisor</span>
+              <span className="font-bold text-[#F8FAFC]">{bookingSuccess.accountantName}</span>
             </div>
             <div>
-              <span className="text-slate-500 block">Meeting Access</span>
+              <span className="text-[#7F91A6] block">Meeting Format</span>
               {bookingSuccess.virtualMeetingUrl ? (
                 <a
                   href={bookingSuccess.virtualMeetingUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-bold text-amber-700 underline flex items-center space-x-1"
+                  className="font-bold text-[#D4A843] underline hover:text-[#E1BB60] flex items-center space-x-1"
                 >
                   <Video className="w-3.5 h-3.5" />
                   <span>Join Google Meet</span>
                 </a>
               ) : (
-                <span className="font-bold text-slate-900">{bookingSuccess.officeLocationAddress || 'Direct Telephone'}</span>
+                <span className="font-bold text-[#F8FAFC]">{bookingSuccess.officeLocationAddress || 'Direct Telephone'}</span>
               )}
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => setBookingSuccess(null)}
-            className="text-xs font-bold text-emerald-800 underline hover:text-emerald-950"
+            className="text-xs font-semibold text-[#D4A843] hover:text-[#E1BB60] underline"
           >
             Close confirmation
           </button>
@@ -570,12 +669,19 @@ export const LiveCalendarModule: React.FC = () => {
       {/* TAB 1: BOOKING WORKFLOW */}
       {activeTab === 'book' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Service & Date Selection */}
-          <div className="bg-[#FBF8F1] rounded-2xl p-6 shadow-md border-2 border-[#D8C9A5] text-[#10233D] space-y-5">
+          {/* Left Column: Appointment Details Panel */}
+          <div className="bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-5">
+            <h2 className="text-base font-bold text-[#F8FAFC] font-serif border-b border-[rgba(148,163,184,0.18)] pb-3">
+              Appointment Details
+            </h2>
+
+            {/* 1. Consultation Type */}
             <div>
+              <label className="block text-xs font-semibold text-[#A9B7C8] mb-1.5">
+                Consultation type
+              </label>
               <BrandedSelect
                 id="consultation-service-selector"
-                label="1. Select Consultation Service"
                 options={appointmentOptions}
                 value={selectedServiceCode}
                 onChange={val => {
@@ -583,22 +689,25 @@ export const LiveCalendarModule: React.FC = () => {
                   setSelectedSlot(null);
                   setHeldSlotKey(null);
                 }}
+                variant="dark"
                 searchable
               />
             </div>
 
             {selectedServiceObj?.founderOnly && (
-              <div className="p-3.5 bg-[#F4E7C3] border border-[#B98B32] rounded-xl text-[#06172C] text-xs leading-relaxed">
-                <ShieldCheck className="w-4 h-4 text-[#B98B32] inline mr-1.5" />
-                <strong>Direct Founder Consultation:</strong> Executive session led by Desmond Hinds, Founder & Senior Managing Accountant. Subject to daily capacity limits.
+              <div className="p-3 bg-[rgba(212,168,67,0.10)] border border-[rgba(212,168,67,0.40)] rounded-xl text-[#F8FAFC] text-xs leading-relaxed">
+                <ShieldCheck className="w-4 h-4 text-[#D4A843] inline mr-1.5" />
+                <strong className="text-[#D4A843]">Founder Consultation:</strong> Executive session led by Desmond Hinds, Founder &amp; Senior Managing Accountant.
               </div>
             )}
 
+            {/* 2. Date */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#10233D] mb-2">
-                2. Select Date
+              <label htmlFor="consultation-date-input" className="block text-xs font-semibold text-[#A9B7C8] mb-1.5">
+                Date
               </label>
               <input
+                id="consultation-date-input"
                 type="date"
                 min={new Date().toISOString().slice(0, 10)}
                 value={selectedDate}
@@ -607,29 +716,29 @@ export const LiveCalendarModule: React.FC = () => {
                   setSelectedSlot(null);
                   setHeldSlotKey(null);
                 }}
-                className="w-full p-2.5 border-2 border-[#D8C9A5] focus:border-[#B98B32] rounded-xl text-xs font-mono bg-white text-[#10233D] font-bold outline-none"
+                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs font-mono bg-[#102D4F] border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] focus:border-[#D4A843] focus:ring-1 focus:ring-[#D4A843] outline-none transition-all"
               />
+              <div className="text-[11px] text-[#7F91A6] mt-1">
+                {friendlySelectedDate}
+              </div>
             </div>
 
+            {/* 3. Meeting Modality */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#10233D] mb-2">
-                3. Meeting Modality
+              <label className="block text-xs font-semibold text-[#A9B7C8] mb-2">
+                How would you like to meet?
               </label>
               <div className="space-y-2">
-                {[
-                  { id: 'virtual', title: 'Virtual HD Video (A/R Virtual SafeRoom & Meet)', icon: Video },
-                  { id: 'telephone', title: 'Direct Phone Outbound', icon: Phone },
-                  { id: 'in_office', title: 'Columbia, SC Executive Office', icon: MapPin }
-                ].map(m => {
+                {meetingOptions.map(m => {
                   const Icon = m.icon;
                   const isSelected = meetingType === m.id;
                   return (
                     <label
                       key={m.id}
-                      className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer text-xs font-semibold transition-all ${
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer text-xs transition-all ${
                         isSelected
-                          ? 'border-[#B98B32] bg-[#F4E7C3] text-[#10233D] shadow-sm'
-                          : 'border-[#D8C9A5] bg-white text-[#52657B] hover:bg-[#F4E7C3]/50'
+                          ? 'border-[rgba(212,168,67,0.80)] bg-[rgba(212,168,67,0.12)] text-[#F8FAFC] shadow-xs'
+                          : 'border-[rgba(148,163,184,0.18)] bg-[#102D4F] text-[#A9B7C8] hover:border-slate-500 hover:text-white'
                       }`}
                     >
                       <input
@@ -639,107 +748,147 @@ export const LiveCalendarModule: React.FC = () => {
                         onChange={() => setMeetingType(m.id as any)}
                         className="hidden"
                       />
-                      <Icon className="w-4 h-4 text-[#B98B32] shrink-0" />
-                      <span>{m.title}</span>
+                      <div className="flex items-center space-x-2.5">
+                        <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-[#D4A843]' : 'text-[#7F91A6]'}`} />
+                        <div>
+                          <div className={`font-semibold ${isSelected ? 'text-[#F8FAFC]' : 'text-slate-200'}`}>
+                            {m.title}
+                          </div>
+                          <div className="text-[10px] text-[#7F91A6]">{m.sub}</div>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-[#D4A843] shrink-0" />
+                      )}
                     </label>
                   );
                 })}
               </div>
             </div>
 
+            {/* 4. Notes */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#10233D] mb-1">
-                Consultation Agenda / Notes (Optional)
+              <label htmlFor="consultation-notes-input" className="block text-xs font-semibold text-[#A9B7C8] mb-1.5">
+                What would you like to discuss? (optional)
               </label>
               <textarea
+                id="consultation-notes-input"
                 rows={2}
-                placeholder="Briefly state your primary tax question, tax years involved, or goals..."
+                placeholder="Briefly state your primary tax question or filing needs..."
                 value={clientNotes}
                 onChange={e => setClientNotes(e.target.value)}
-                className="w-full p-2.5 border-2 border-[#D8C9A5] focus:border-[#B98B32] rounded-xl text-xs bg-white text-[#10233D] outline-none placeholder-[#718096]"
+                className="w-full p-3 rounded-xl text-xs bg-[#102D4F] border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] placeholder-[#7F91A6] focus:border-[#D4A843] outline-none transition-all"
               />
             </div>
           </div>
 
-          {/* Right Column: Live Slot Browser & Atomic Lock */}
-          <div className="lg:col-span-2 bg-[#FBF8F1] rounded-2xl p-6 shadow-md border-2 border-[#D8C9A5] text-[#10233D] flex flex-col justify-between space-y-6">
+          {/* Right Column: Available Times Panel */}
+          <div className="lg:col-span-2 bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] flex flex-col justify-between space-y-6">
             <div>
-              <div className="flex items-center justify-between border-b border-[#D8C9A5] pb-4 mb-4">
+              <div className="flex items-center justify-between border-b border-[rgba(148,163,184,0.18)] pb-4 mb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-[#10233D] font-serif">Available Consultation Slots</h2>
-                  <p className="text-xs text-[#52657B]">Live availability synchronized against CPA calendars with 10-minute lock protection.</p>
+                  <h2 className="text-base sm:text-lg font-bold text-[#F8FAFC] font-serif">Available times</h2>
+                  <p className="text-xs text-[#A9B7C8] mt-0.5">
+                    Choose a time that works for you • <span className="text-[#D4A843] font-medium">{friendlySelectedDate}</span>
+                  </p>
                 </div>
                 <button
+                  type="button"
                   onClick={loadSlots}
                   disabled={isLoadingSlots}
-                  className="p-2 text-[#52657B] hover:text-[#10233D] rounded-lg hover:bg-[#F4E7C3] transition-colors"
+                  className="p-2 text-[#A9B7C8] hover:text-[#F8FAFC] rounded-lg hover:bg-[#102D4F] transition-colors"
                   title="Refresh slots"
+                  aria-label="Refresh availability"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoadingSlots ? 'animate-spin' : ''}`} />
                 </button>
               </div>
 
-              {/* Concurrency 10-Minute Hold Banner */}
+              {/* Temporary Hold Banner */}
               {heldSlotKey && holdCountdown && (
-                <div className="mb-4 flex items-center justify-between bg-[#F4E7C3] border border-[#B98B32] text-[#06172C] px-4 py-3 rounded-xl text-xs font-semibold shadow-sm">
+                <div className="mb-4 flex items-center justify-between bg-[rgba(212,168,67,0.10)] border border-[rgba(212,168,67,0.40)] text-[#F8FAFC] px-4 py-2.5 rounded-xl text-xs font-semibold">
                   <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4 text-[#B98B32]" />
+                    <Clock className="w-4 h-4 text-[#D4A843]" />
                     <span>
-                      Slot Temporarily Held: <strong>{selectedSlot?.clientLocalDisplay}</strong> ({selectedSlot?.staffName})
+                      Time Reserved: <strong>{selectedSlot?.clientLocalDisplay}</strong> ({selectedSlot?.staffName})
                     </span>
                   </div>
-                  <div className="font-mono bg-[#06172C] px-2.5 py-1 rounded-lg text-[#E2B957] font-bold">
+                  <div className="font-mono bg-[#071A2E] px-2.5 py-1 rounded-lg text-[#D4A843] text-xs font-bold border border-[rgba(148,163,184,0.18)]">
                     Hold: {Math.floor(holdCountdown / 60)}:{(holdCountdown % 60).toString().padStart(2, '0')}
                   </div>
                 </div>
               )}
 
               {bookingError && (
-                <div className="mb-4 p-3.5 bg-[#FFF1F0] border border-[#B42318]/40 text-[#B42318] text-xs rounded-xl flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 text-[#B42318] shrink-0" />
-                  <span className="font-semibold">{bookingError}</span>
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/40 text-red-200 text-xs rounded-xl flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span className="font-medium">{bookingError}</span>
                 </div>
               )}
 
               {isLoadingSlots ? (
-                <div className="py-12 text-center text-[#52657B] text-xs flex flex-col items-center space-y-2">
-                  <RefreshCw className="w-6 h-6 animate-spin text-[#B98B32]" />
-                  <span className="font-medium">Checking advisor availability and external calendars...</span>
+                <div className="py-12 text-center text-[#A9B7C8] text-xs flex flex-col items-center space-y-3">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#D4A843]" />
+                  <span className="font-medium">Checking available times...</span>
                 </div>
               ) : availableSlots.length === 0 ? (
-                <EmptyStateCard
-                  title={`No open consultation slots on ${selectedDate}`}
-                  description="All certified tax advisors are booked or in external sessions. Please select another date from the left calendar selector."
-                  primaryAction={{
-                    label: "Select Next Business Day",
-                    onClick: () => {
-                      const next = new Date(selectedDate);
-                      next.setDate(next.getDate() + 1);
-                      setSelectedDate(next.toISOString().slice(0, 10));
-                    }
-                  }}
-                />
+                <div className="py-10 px-6 text-center rounded-2xl border border-[rgba(148,163,184,0.18)] bg-[#102D4F] flex flex-col items-center justify-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-1 border border-[rgba(212,168,67,0.30)] bg-[rgba(212,168,67,0.10)] text-[#D4A843]">
+                    <CalendarIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#F8FAFC]">
+                    No times available on {formatFriendlyMonthDay(selectedDate)}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#A9B7C8] max-w-md leading-relaxed">
+                    Choose another date or view the next available day.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = new Date(selectedDate);
+                        next.setDate(next.getDate() + 1);
+                        setSelectedDate(next.toISOString().slice(0, 10));
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors"
+                    >
+                      Next available day
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const dateInput = document.getElementById('consultation-date-input') as HTMLInputElement | null;
+                        dateInput?.focus();
+                        dateInput?.showPicker?.();
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#143657] border border-[rgba(148,163,184,0.18)] hover:border-[#D4A843]/50 transition-colors"
+                    >
+                      Choose another date
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                   {availableSlots.map(slot => {
                     const isSelected = selectedSlot?.slotKey === slot.slotKey || heldSlotKey === slot.slotKey;
                     return (
                       <button
                         key={slot.slotKey}
+                        type="button"
                         disabled={isHolding}
                         onClick={() => handleHoldSlot(slot)}
-                        className={`p-3.5 rounded-xl border-2 text-left transition-all ${
+                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                           isSelected
-                            ? 'bg-[#C99A3D] text-[#06172C] font-bold border-[#B98B32] shadow-md ring-2 ring-[#E2B957]'
-                            : 'bg-white border-[#D8C9A5] hover:border-[#B98B32] hover:bg-[#F4E7C3]/50 text-[#10233D]'
+                            ? 'border-[rgba(212,168,67,0.80)] bg-[rgba(212,168,67,0.14)] text-[#F8FAFC] shadow-sm ring-1 ring-[#D4A843]'
+                            : 'bg-[#102D4F] border-[rgba(148,163,184,0.18)] hover:border-[rgba(212,168,67,0.40)] text-[#F8FAFC]'
                         }`}
                       >
-                        <div className="font-bold text-sm">{slot.clientLocalDisplay}</div>
-                        <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#06172C]/80 font-medium' : 'text-[#52657B]'}`}>
-                          {slot.staffName}
+                        <div className="flex items-center justify-between w-full">
+                          <span className="font-bold text-xs sm:text-sm text-[#F8FAFC]">{slot.clientLocalDisplay}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#D4A843]" />}
                         </div>
-                        <div className={`text-[9px] uppercase tracking-wider font-bold mt-1 ${isSelected ? 'text-[#06172C]' : 'text-[#B98B32]'}`}>
-                          {slot.isFounder ? 'Founder Executive' : 'Senior Staff CPA'}
+                        <div className="text-[10px] text-[#A9B7C8] mt-1 truncate">
+                          {slot.staffName}
                         </div>
                       </button>
                     );
@@ -749,20 +898,20 @@ export const LiveCalendarModule: React.FC = () => {
             </div>
 
             {/* Bottom Action Section */}
-            <div className="pt-4 border-t border-[#D8C9A5] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-xs text-[#52657B]">
+            <div className="pt-4 border-t border-[rgba(148,163,184,0.18)] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs text-[#A9B7C8]">
                 {selectedSlot ? (
                   <span>
-                    Selected: <strong className="text-[#10233D]">{selectedSlot.clientLocalDisplay}</strong> with <strong className="text-[#10233D]">{selectedSlot.staffName}</strong>
+                    Selected: <strong className="text-[#F8FAFC]">{selectedSlot.clientLocalDisplay}</strong> with <strong className="text-[#F8FAFC]">{selectedSlot.staffName}</strong>
                   </span>
                 ) : (
-                  <span>Select a time slot above to reserve it with a 10-minute hold.</span>
+                  <span>Select a time above to reserve your consultation.</span>
                 )}
               </div>
 
               <BrandedButton
                 variant="primary"
-                size="lg"
+                size="md"
                 disabled={!selectedSlot || isHolding}
                 disabledReason={!selectedSlot ? "Please select an available consultation slot above" : undefined}
                 isLoading={isHolding}
@@ -770,7 +919,7 @@ export const LiveCalendarModule: React.FC = () => {
                 icon={<Check className="w-4 h-4" />}
                 className="w-full sm:w-auto"
               >
-                Confirm & Synchronize Appointment
+                Confirm Appointment
               </BrandedButton>
             </div>
           </div>
@@ -779,15 +928,16 @@ export const LiveCalendarModule: React.FC = () => {
 
       {/* TAB 2: MY APPOINTMENTS */}
       {activeTab === 'my_appointments' && (
-        <div className="bg-[#FBF8F1] rounded-2xl p-6 shadow-md border-2 border-[#D8C9A5] text-[#10233D] space-y-4">
-          <div className="border-b border-[#D8C9A5] pb-4 flex items-center justify-between">
+        <div className="bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-4">
+          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-[#10233D] font-serif">Scheduled Appointments</h2>
-              <p className="text-xs text-[#52657B]">Upcoming and historic consultations with calendar sync status and video access.</p>
+              <h2 className="text-base sm:text-lg font-bold text-[#F8FAFC] font-serif">Scheduled Appointments</h2>
+              <p className="text-xs text-[#A9B7C8]">Your upcoming and historic consultations.</p>
             </div>
             <button
+              type="button"
               onClick={loadAppointments}
-              className="p-2 text-[#52657B] hover:text-[#10233D] rounded-lg hover:bg-[#F4E7C3] transition-colors"
+              className="p-2 text-[#A9B7C8] hover:text-[#F8FAFC] rounded-lg hover:bg-[#102D4F] transition-colors"
               title="Refresh appointments"
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingAppointments ? 'animate-spin' : ''}`} />
@@ -795,52 +945,54 @@ export const LiveCalendarModule: React.FC = () => {
           </div>
 
           {appointments.length === 0 ? (
-            <EmptyStateCard
-              title="No Scheduled Consultations"
-              description="You do not have any active appointments booked at this time. Book a complimentary 30-minute consultation or strategic tax planning session."
-              primaryAction={{
-                label: "Book Your First Session",
-                onClick: () => setActiveTab('book')
-              }}
-            />
+            <div className="py-10 px-6 text-center rounded-2xl border border-[rgba(148,163,184,0.18)] bg-[#102D4F] flex flex-col items-center justify-center space-y-3">
+              <CalendarIcon className="w-8 h-8 text-[#D4A843] mb-1" />
+              <h3 className="font-serif text-base font-bold text-[#F8FAFC]">No Scheduled Consultations</h3>
+              <p className="text-xs text-[#A9B7C8] max-w-sm">
+                You do not have any active appointments booked at this time.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('book')}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors mt-2"
+              >
+                Book a Session
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {appointments.map(apt => (
-                <div key={apt.id} className="p-4 rounded-xl border border-[#D8C9A5] bg-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-[#B98B32] transition-all">
+                <div key={apt.id} className="p-4 rounded-xl border border-[rgba(148,163,184,0.18)] bg-[#102D4F] flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold text-sm text-[#10233D]">{apt.serviceType}</span>
-                      <span className="text-[10px] font-mono bg-[#EAD7A3]/50 px-2 py-0.5 rounded text-[#06172C] font-semibold">
+                      <span className="font-bold text-sm text-[#F8FAFC]">{apt.serviceType}</span>
+                      <span className="text-[10px] font-mono bg-[#071A2E] px-2 py-0.5 rounded text-[#D4A843] border border-[rgba(148,163,184,0.18)] font-semibold">
                         {apt.referenceCode || apt.id}
                       </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
-                        apt.status === 'confirmed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-slate-200 text-slate-800'
+                        apt.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-700 text-slate-300'
                       }`}>
                         {apt.status.replace(/_/g, ' ')}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 text-xs text-[#52657B]">
+                    <div className="flex flex-wrap items-center gap-x-4 text-xs text-[#A9B7C8]">
                       <span className="flex items-center space-x-1">
-                        <Clock className="w-3.5 h-3.5 text-[#B98B32]" />
-                        <span>{apt.date} at {apt.timeSlot}</span>
+                        <Clock className="w-3.5 h-3.5 text-[#D4A843]" />
+                        <span>{formatFriendlyDate(apt.date)} at {apt.timeSlot}</span>
                       </span>
                       <span className="flex items-center space-x-1">
-                        <User className="w-3.5 h-3.5 text-[#B98B32]" />
+                        <User className="w-3.5 h-3.5 text-[#D4A843]" />
                         <span>{apt.accountantName || 'Tax Strategist'}</span>
                       </span>
                       <button
+                        type="button"
                         onClick={() => setCurrentPage('virtual_consultation_room', { appointmentId: apt.id, roomId: apt.id })}
-                        className="text-[#B98B32] hover:text-[#9A7020] font-bold underline flex items-center space-x-1"
+                        className="text-[#D4A843] hover:text-[#E1BB60] font-semibold underline flex items-center space-x-1"
                       >
                         <Video className="w-3.5 h-3.5" />
-                        <span>Enter Virtual SafeRoom</span>
+                        <span>Virtual SafeRoom</span>
                       </button>
-                      {apt.meetingLink && (
-                        <a href={apt.meetingLink} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-slate-700 underline text-[11px] flex items-center space-x-1">
-                          <span>(Google Meet)</span>
-                        </a>
-                      )}
                     </div>
                   </div>
 
@@ -848,18 +1000,20 @@ export const LiveCalendarModule: React.FC = () => {
                     {apt.status === 'confirmed' && (
                       <>
                         <button
+                          type="button"
                           onClick={() => {
                             setRescheduleModalApt(apt);
                             setNewRescheduleDate(apt.date);
                             setNewRescheduleTime(apt.timeSlot);
                           }}
-                          className="px-3 py-1.5 bg-[#FBF8F1] border border-[#D8C9A5] rounded-lg text-xs font-bold text-[#10233D] hover:bg-[#F4E7C3] transition-colors"
+                          className="px-3 py-1.5 bg-[#143657] border border-[rgba(148,163,184,0.18)] rounded-lg text-xs font-semibold text-[#F8FAFC] hover:border-[#D4A843]/50 transition-colors"
                         >
                           Reschedule
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleCancelAppointment(apt.id)}
-                          className="px-3 py-1.5 bg-white border border-[#B42318]/30 text-[#B42318] rounded-lg text-xs font-bold hover:bg-[#FFF1F0] transition-colors"
+                          className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors"
                         >
                           Cancel
                         </button>
@@ -875,74 +1029,76 @@ export const LiveCalendarModule: React.FC = () => {
 
       {/* TAB 3: CALENDAR SYNC (STAFF & ADVISORS) */}
       {activeTab === 'sync' && isStaffOrAdmin && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
-          <div className="border-b border-slate-200 pb-4">
-            <h2 className="text-lg font-bold text-slate-900 font-serif">External Calendar Synchronization</h2>
-            <p className="text-xs text-slate-500">
+        <div className="bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-6">
+          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
+            <h2 className="text-lg font-bold text-[#F8FAFC] font-serif">External Calendar Synchronization</h2>
+            <p className="text-xs text-[#A9B7C8]">
               Connect Google Calendar and Microsoft Outlook for two-way free/busy synchronization.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Google Calendar Card */}
-            <div className="p-5 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
+            <div className="p-5 rounded-xl border border-[rgba(148,163,184,0.18)] bg-[#102D4F] space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
                     G
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">Google Calendar</h3>
-                    <p className="text-xs text-slate-500">OAuth 2.0 Free/Busy & Event Creation</p>
+                    <h3 className="font-bold text-sm text-[#F8FAFC]">Google Calendar</h3>
+                    <p className="text-xs text-[#A9B7C8]">OAuth 2.0 Free/Busy &amp; Event Creation</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   Connected
                 </span>
               </div>
 
-              <div className="text-xs text-slate-600 space-y-1">
+              <div className="text-xs text-[#A9B7C8] space-y-1">
                 <div>• Automatic busy block masking as &ldquo;Unavailable&rdquo;</div>
                 <div>• Neutral appointment creation (&ldquo;A/R Tax Services Appointment&rdquo;)</div>
                 <div>• Automatic Google Meet link synthesis</div>
               </div>
 
               <button
+                type="button"
                 disabled={isConnecting}
                 onClick={() => handleConnectProvider('google_calendar')}
-                className="w-full py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100"
+                className="w-full py-2 bg-[#143657] border border-[rgba(148,163,184,0.18)] rounded-lg text-xs font-semibold text-[#F8FAFC] hover:border-[#D4A843]/50 transition-colors"
               >
                 Sync Now / Refresh Connection
               </button>
             </div>
 
             {/* Microsoft Outlook Card */}
-            <div className="p-5 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
+            <div className="p-5 rounded-xl border border-[rgba(148,163,184,0.18)] bg-[#102D4F] space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-lg bg-sky-700 text-white flex items-center justify-center font-bold">
                     O
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">Microsoft Outlook / Office 365</h3>
-                    <p className="text-xs text-slate-500">Microsoft Graph Calendar Sync</p>
+                    <h3 className="font-bold text-sm text-[#F8FAFC]">Microsoft Outlook</h3>
+                    <p className="text-xs text-[#A9B7C8]">Microsoft Graph Calendar Sync</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
                   Available
                 </span>
               </div>
 
-              <div className="text-xs text-slate-600 space-y-1">
+              <div className="text-xs text-[#A9B7C8] space-y-1">
                 <div>• Sync personal Outlook calendar busy times</div>
                 <div>• Microsoft Teams meeting integration</div>
                 <div>• Enterprise tenant delegation</div>
               </div>
 
               <button
+                type="button"
                 disabled={isConnecting}
                 onClick={() => handleConnectProvider('microsoft_outlook')}
-                className="w-full py-2 bg-sky-700 text-white rounded-lg text-xs font-bold hover:bg-sky-800"
+                className="w-full py-2 bg-sky-700 hover:bg-sky-800 text-white rounded-lg text-xs font-semibold transition-colors"
               >
                 Connect Microsoft Outlook
               </button>
@@ -953,72 +1109,73 @@ export const LiveCalendarModule: React.FC = () => {
 
       {/* TAB 4: FOUNDER CALENDAR CONTROLS */}
       {activeTab === 'founder' && (isFounder || isAdmin) && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
-          <div className="border-b border-slate-200 pb-4">
-            <h2 className="text-lg font-bold text-slate-900 font-serif">Founder Calendar Controls — Desmond Hinds</h2>
-            <p className="text-xs text-slate-500">
+        <div className="bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-6">
+          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
+            <h2 className="text-lg font-bold text-[#F8FAFC] font-serif">Founder Calendar Controls — Desmond Hinds</h2>
+            <p className="text-xs text-[#A9B7C8]">
               Configure executive availability, referral requirements, daily booking limits, and consultation fees.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <label className="flex items-center space-x-3 p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={founderControls.acceptsNewClients}
                 onChange={e => setFounderControls({ ...founderControls, acceptsNewClients: e.target.checked })}
-                className="rounded text-amber-600 focus:ring-amber-500"
+                className="rounded accent-[#D4A843]"
               />
               <div>
-                <div className="text-sm font-bold text-slate-900">Accept New Client Bookings</div>
-                <div className="text-xs text-slate-500">Allow prospective clients to book direct founder sessions</div>
+                <div className="text-sm font-bold text-[#F8FAFC]">Accept New Client Bookings</div>
+                <div className="text-xs text-[#A9B7C8]">Allow prospective clients to book direct founder sessions</div>
               </div>
             </label>
 
-            <label className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <label className="flex items-center space-x-3 p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={founderControls.referralRequired}
                 onChange={e => setFounderControls({ ...founderControls, referralRequired: e.target.checked })}
-                className="rounded text-amber-600 focus:ring-amber-500"
+                className="rounded accent-[#D4A843]"
               />
               <div>
-                <div className="text-sm font-bold text-slate-900">Referral Required</div>
-                <div className="text-xs text-slate-500">Must have validated referral code or existing client introduction</div>
+                <div className="text-sm font-bold text-[#F8FAFC]">Referral Required</div>
+                <div className="text-xs text-[#A9B7C8]">Must have validated referral code or existing client introduction</div>
               </div>
             </label>
 
-            <label className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <label className="flex items-center space-x-3 p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={founderControls.adminApprovalRequired}
                 onChange={e => setFounderControls({ ...founderControls, adminApprovalRequired: e.target.checked })}
-                className="rounded text-amber-600 focus:ring-amber-500"
+                className="rounded accent-[#D4A843]"
               />
               <div>
-                <div className="text-sm font-bold text-slate-900">Executive Approval Required</div>
-                <div className="text-xs text-slate-500">Holds slot pending managing partner review before confirmation</div>
+                <div className="text-sm font-bold text-[#F8FAFC]">Executive Approval Required</div>
+                <div className="text-xs text-[#A9B7C8]">Holds slot pending managing partner review before confirmation</div>
               </div>
             </label>
 
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            <div className="p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)] space-y-1">
+              <label className="block text-xs font-semibold text-[#A9B7C8]">
                 Max Daily Founder Meetings
               </label>
               <input
                 type="number"
                 value={founderControls.maxMeetingsPerDay || 5}
                 onChange={e => setFounderControls({ ...founderControls, maxMeetingsPerDay: parseInt(e.target.value, 10) })}
-                className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-mono"
+                className="w-full p-2 border border-[rgba(148,163,184,0.18)] rounded-lg text-sm bg-[#071A2E] text-[#F8FAFC] font-mono outline-none"
               />
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-200">
+          <div className="flex justify-end pt-4 border-t border-[rgba(148,163,184,0.18)]">
             <button
+              type="button"
               disabled={isSavingFounderControls}
               onClick={handleSaveFounderControls}
-              className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs transition-all flex items-center space-x-2"
+              className="px-6 py-2.5 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] font-bold rounded-xl text-xs transition-all flex items-center space-x-2"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>Save Founder Controls</span>
@@ -1027,30 +1184,30 @@ export const LiveCalendarModule: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 5: ADMIN FIRM OVERVIEW & OVERRIDE */}
+      {/* TAB 5: ADMIN FIRM OVERVIEW */}
       {activeTab === 'admin' && isAdmin && adminOverview && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
-          <div className="border-b border-slate-200 pb-4">
-            <h2 className="text-lg font-bold text-slate-900 font-serif">Firm Calendar Administration</h2>
-            <p className="text-xs text-slate-500">Firm-wide scheduling metrics, holiday management, and manual overrides.</p>
+        <div className="bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-6">
+          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
+            <h2 className="text-lg font-bold text-[#F8FAFC] font-serif">Firm Calendar Administration</h2>
+            <p className="text-xs text-[#A9B7C8]">Firm-wide scheduling metrics and active holds.</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-slate-500 text-xs block">Total Appointments</span>
-              <span className="text-2xl font-bold text-slate-900">{adminOverview.totalAppointments}</span>
+            <div className="p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)]">
+              <span className="text-[#7F91A6] text-xs block">Total Appointments</span>
+              <span className="text-2xl font-bold text-[#F8FAFC]">{adminOverview.totalAppointments}</span>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-slate-500 text-xs block">Active Confirmed</span>
-              <span className="text-2xl font-bold text-emerald-600">{adminOverview.confirmedAppointments}</span>
+            <div className="p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)]">
+              <span className="text-[#7F91A6] text-xs block">Active Confirmed</span>
+              <span className="text-2xl font-bold text-emerald-400">{adminOverview.confirmedAppointments}</span>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-slate-500 text-xs block">Active Staff Practitioners</span>
-              <span className="text-2xl font-bold text-slate-900">{adminOverview.staffCount}</span>
+            <div className="p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)]">
+              <span className="text-[#7F91A6] text-xs block">Staff Practitioners</span>
+              <span className="text-2xl font-bold text-[#F8FAFC]">{adminOverview.staffCount}</span>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-slate-500 text-xs block">Active Concurrency Holds</span>
-              <span className="text-2xl font-bold text-amber-600">{adminOverview.activeHoldsCount}</span>
+            <div className="p-4 bg-[#102D4F] rounded-xl border border-[rgba(148,163,184,0.18)]">
+              <span className="text-[#7F91A6] text-xs block">Active Holds</span>
+              <span className="text-2xl font-bold text-[#D4A843]">{adminOverview.activeHoldsCount}</span>
             </div>
           </div>
         </div>
@@ -1058,33 +1215,37 @@ export const LiveCalendarModule: React.FC = () => {
 
       {/* RESCHEDULE MODAL */}
       {rescheduleModalApt && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-base text-slate-900">Reschedule Consultation</h3>
-              <button onClick={() => setRescheduleModalApt(null)} className="text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0D2745] rounded-2xl max-w-md w-full p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[rgba(148,163,184,0.18)] pb-3">
+              <h3 className="font-bold text-base text-[#F8FAFC]">Reschedule Consultation</h3>
+              <button
+                type="button"
+                onClick={() => setRescheduleModalApt(null)}
+                className="text-[#7F91A6] hover:text-[#F8FAFC]"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">New Date</label>
+                <label className="block font-semibold text-[#A9B7C8] mb-1">New Date</label>
                 <input
                   type="date"
                   min={new Date().toISOString().slice(0, 10)}
                   value={newRescheduleDate}
                   onChange={e => setNewRescheduleDate(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg bg-white"
+                  className="w-full p-2.5 border border-[rgba(148,163,184,0.18)] rounded-xl bg-[#102D4F] text-[#F8FAFC] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">New Timeslot</label>
+                <label className="block font-semibold text-[#A9B7C8] mb-1">New Time</label>
                 <select
                   value={newRescheduleTime}
                   onChange={e => setNewRescheduleTime(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg bg-white"
+                  className="w-full p-2.5 border border-[rgba(148,163,184,0.18)] rounded-xl bg-[#102D4F] text-[#F8FAFC] outline-none"
                 >
                   <option value="09:00">09:00 AM (EDT)</option>
                   <option value="10:00">10:00 AM (EDT)</option>
@@ -1097,27 +1258,29 @@ export const LiveCalendarModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Reason for Rescheduling</label>
+                <label className="block font-semibold text-[#A9B7C8] mb-1">Reason for Rescheduling</label>
                 <textarea
                   rows={2}
-                  placeholder="e.g., Client scheduling conflict, awaiting additional W-2 slips..."
+                  placeholder="e.g., Client schedule conflict..."
                   value={rescheduleReason}
                   onChange={e => setRescheduleReason(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2.5 border border-[rgba(148,163,184,0.18)] rounded-xl bg-[#102D4F] text-[#F8FAFC] placeholder-[#7F91A6] outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-200">
+            <div className="flex justify-end space-x-2 pt-3 border-t border-[rgba(148,163,184,0.18)]">
               <button
+                type="button"
                 onClick={() => setRescheduleModalApt(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-xs font-semibold text-[#A9B7C8] hover:text-[#F8FAFC] rounded-lg"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleRescheduleSubmit}
-                className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg shadow-sm"
+                className="px-5 py-2 text-xs font-bold bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] rounded-xl shadow-xs"
               >
                 Confirm Reschedule
               </button>
@@ -1128,3 +1291,4 @@ export const LiveCalendarModule: React.FC = () => {
     </div>
   );
 };
+export default LiveCalendarModule;

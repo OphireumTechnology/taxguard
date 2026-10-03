@@ -161,15 +161,15 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
       {/* 1. TOP GATE CERTIFICATION BANNER */}
       <div className={`p-6 rounded-xl border shadow-md space-y-4 ${
         isGateCleared
-          ? 'bg-gradient-to-r from-emerald-950 to-[#061A2F] text-white border-emerald-500/40'
+          ? 'bg-gradient-to-r from-emerald-950 to-[#06182B] text-white border-emerald-500/40'
           : isReopened
-          ? 'bg-gradient-to-r from-rose-950 to-[#061A2F] text-white border-rose-500/40'
-          : 'bg-gradient-to-r from-[#061A2F] to-[#0A2E5C] text-white border-[#1A365D]'
+          ? 'bg-gradient-to-r from-rose-950 to-[#06182B] text-white border-rose-500/40'
+          : 'bg-gradient-to-r from-[#06182B] to-[#102D4F] text-white border-[rgba(148,163,184,0.18)]'
       }`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 text-xs font-mono font-bold bg-[#D7AC4A] text-[#061A2F] rounded uppercase">
+              <span className="px-2.5 py-0.5 text-xs font-mono font-bold bg-[#D4A843] text-[#06182B] rounded uppercase">
                 Stage 02 Hard Exit Gate
               </span>
               <span className={`px-2.5 py-0.5 text-xs font-mono font-bold rounded border ${
@@ -206,7 +206,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
               <button
                 onClick={() => setCertModalOpen(true)}
                 disabled={!completeness.isComplete}
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#D7AC4A] hover:bg-[#c49a3c] disabled:opacity-40 disabled:hover:bg-[#D7AC4A] text-[#061A2F] rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#D4A843] hover:bg-[#c49a3c] disabled:opacity-40 disabled:hover:bg-[#D4A843] text-[#06182B] rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Certify Stage 02 Exit Gate</span>
@@ -243,7 +243,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
-              <SlidersHorizontal className="w-5 h-5 text-[#0A2544]" />
+              <SlidersHorizontal className="w-5 h-5 text-[#102D4F]" />
               <span>TG-COL-026: Deterministic Collection Completeness Evaluator</span>
             </h3>
             <p className="text-xs text-neutral-600 mt-0.5">
@@ -254,7 +254,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="text-[10px] text-neutral-500 uppercase font-semibold">Completeness Factor</div>
-              <div className="text-2xl font-bold font-mono text-[#0A2544]">
+              <div className="text-2xl font-bold font-mono text-[#102D4F]">
                 {completeness.readinessPercentage}%
               </div>
             </div>
@@ -366,7 +366,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
-              <Link className="w-5 h-5 text-[#0A2544]" />
+              <Link className="w-5 h-5 text-[#102D4F]" />
               <span>TG-COL-025: Source Tie-Out Reconciliation Layer</span>
             </h3>
             <p className="text-xs text-neutral-600 mt-0.5">
@@ -480,7 +480,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
       {/* 4. TG-COL-028: UPSTREAM INVALIDATION INFORMATION */}
       <div className="p-6 bg-white border border-neutral-300 rounded-xl shadow-xs space-y-3">
         <div className="flex items-center gap-2">
-          <ShieldAlert className="w-5 h-5 text-[#0A2544]" />
+          <ShieldAlert className="w-5 h-5 text-[#102D4F]" />
           <h3 className="text-base font-bold text-neutral-900">
             TG-COL-028: Upstream Change Invalidation Safeguards
           </h3>
@@ -529,7 +529,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
                   value={certStatement}
                   onChange={(e) => setCertStatement(e.target.value)}
                   rows={4}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544] font-medium"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F] font-medium"
                   required
                 />
               </div>
@@ -550,9 +550,9 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                 >
-                  <ShieldCheck className="w-4 h-4 text-[#D7AC4A]" />
+                  <ShieldCheck className="w-4 h-4 text-[#D4A843]" />
                   <span>Execute Exit Gate Certification</span>
                 </button>
               </div>
@@ -609,7 +609,7 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
                   onChange={(e) => setTieOutNotes(e.target.value)}
                   placeholder="Notes on Box 1 wages, EIN match, or schedule linkage..."
                   rows={2}
-                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#0A2544]"
+                  className="w-full text-xs px-3 py-2 border border-neutral-300 rounded focus:outline-hidden focus:border-[#102D4F]"
                 />
               </div>
 
@@ -623,9 +623,9 @@ export const StageTwoExitGateView: React.FC<StageTwoExitGateViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-xs"
                 >
-                  <Check className="w-4 h-4 text-[#D7AC4A]" />
+                  <Check className="w-4 h-4 text-[#D4A843]" />
                   <span>Save Tie-Out</span>
                 </button>
               </div>

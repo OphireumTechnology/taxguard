@@ -23,7 +23,7 @@ export interface BrandedSelectProps {
   error?: string;
   helpText?: string;
   searchable?: boolean;
-  variant?: 'light' | 'dark'; // 'light' for ivory surface (#FBF8F1), 'dark' for deep navy (#0D2746)
+  variant?: 'light' | 'dark'; // 'light' for legacy light, 'dark' for canonical navy (#0D2745)
   className?: string;
 }
 
@@ -39,7 +39,7 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
   error,
   helpText,
   searchable,
-  variant = 'light',
+  variant = 'dark',
   className = '',
 }) => {
   const generatedId = useId();
@@ -175,7 +175,7 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
         <label
           htmlFor={selectId}
           className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
-            isLight ? 'text-[#10233D]' : 'text-[#E2B957]'
+            isLight ? 'text-[#10233D]' : 'text-[#D4A843]'
           }`}
         >
           {label}
@@ -204,7 +204,7 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
           disabled
             ? isLight
               ? 'bg-[#EAD7A3]/30 text-[#718096] border-[#D8C9A5] cursor-not-allowed'
-              : 'bg-[#081E36]/50 text-[#718096] border-[#244567] cursor-not-allowed'
+              : 'bg-[#071A2E]/50 text-[#7F91A6] border-[rgba(148,163,184,0.12)] cursor-not-allowed'
             : isLight
               ? error
                 ? 'bg-[#FBF8F1] text-[#10233D] border-[#B42318] ring-1 ring-[#B42318]'
@@ -212,24 +212,24 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
                   ? 'bg-[#FBF8F1] text-[#10233D] border-[#B98B32] ring-2 ring-[#C99A3D]'
                   : 'bg-[#FBF8F1] text-[#10233D] border-[#D8C9A5] hover:border-[#B98B32] hover:bg-[#F7F1E5]'
               : error
-                ? 'bg-[#0D2746] text-[#F7F1E5] border-[#B42318] ring-1 ring-[#B42318]'
+                ? 'bg-[#0D2745] text-[#F8FAFC] border-red-500 ring-1 ring-red-500'
                 : isOpen
-                  ? 'bg-[#0D2746] text-[#F7F1E5] border-[#E2B957] ring-2 ring-[#C99A3D]'
-                  : 'bg-[#0D2746] text-[#F7F1E5] border-[#244567] hover:border-[#C99A3D]'
+                  ? 'bg-[#0D2745] text-[#F8FAFC] border-[#D4A843] ring-1 ring-[#D4A843]'
+                  : 'bg-[#102D4F] text-[#F8FAFC] border-[rgba(148,163,184,0.18)] hover:border-[#D4A843]/50'
         }`}
       >
         <span className="truncate">
           {selectedOption ? (
             <span className="font-bold">{selectedOption.label}</span>
           ) : (
-            <span className={isLight ? 'text-[#52657B]' : 'text-slate-400'}>
+            <span className={isLight ? 'text-[#52657B]' : 'text-[#7F91A6]'}>
               {placeholder}
             </span>
           )}
         </span>
         <ChevronDown
           className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-            isLight ? 'text-[#10233D]' : 'text-[#E2B957]'
+            isLight ? 'text-[#10233D]' : 'text-[#D4A843]'
           } ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
@@ -240,14 +240,14 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
           className={`absolute left-0 right-0 mt-1.5 rounded-xl border shadow-2xl z-[80] overflow-hidden ${
             isLight
               ? 'bg-[#FBF8F1] border-[#B98B32] text-[#10233D]'
-              : 'bg-[#0D2746] border-[#C99A3D]/60 text-[#F7F1E5]'
+              : 'bg-[#0D2745] border border-[rgba(148,163,184,0.25)] text-[#F8FAFC]'
           }`}
         >
           {/* Quick search input if more than 8 choices */}
           {showSearch && (
-            <div className={`p-2 border-b ${isLight ? 'border-[#D8C9A5] bg-[#F7F1E5]' : 'border-[#244567] bg-[#081E36]'}`}>
+            <div className={`p-2 border-b ${isLight ? 'border-[#D8C9A5] bg-[#F7F1E5]' : 'border-[rgba(148,163,184,0.18)] bg-[#071A2E]'}`}>
               <div className="relative flex items-center">
-                <Search className={`w-3.5 h-3.5 absolute left-2.5 ${isLight ? 'text-[#52657B]' : 'text-slate-400'}`} />
+                <Search className={`w-3.5 h-3.5 absolute left-2.5 ${isLight ? 'text-[#52657B]' : 'text-[#7F91A6]'}`} />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -258,7 +258,7 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
                   className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border outline-none font-medium ${
                     isLight
                       ? 'bg-white border-[#D8C9A5] text-[#10233D] placeholder-[#52657B] focus:border-[#C99A3D]'
-                      : 'bg-[#06172C] border-[#244567] text-[#F7F1E5] placeholder-slate-400 focus:border-[#E2B957]'
+                      : 'bg-[#102D4F] border-[rgba(148,163,184,0.18)] text-[#F8FAFC] placeholder-[#7F91A6] focus:border-[#D4A843]'
                   }`}
                 />
               </div>
@@ -274,7 +274,7 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
             className="max-h-60 overflow-y-auto py-1 text-xs focus:outline-none"
           >
             {filteredOptions.length === 0 ? (
-              <li className={`px-4 py-3 text-center text-xs font-medium ${isLight ? 'text-[#52657B]' : 'text-slate-400'}`}>
+              <li className={`px-4 py-3 text-center text-xs font-medium ${isLight ? 'text-[#52657B]' : 'text-[#7F91A6]'}`}>
                 No matching options found
               </li>
             ) : (
@@ -294,14 +294,14 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
                       opt.disabled
                         ? 'opacity-40 cursor-not-allowed'
                         : isSelected
-                          ? 'bg-[#E2B957] text-[#06172C] font-bold shadow-sm'
+                          ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-xs'
                           : isFocused
                             ? isLight
                               ? 'bg-[#F4E7C3] text-[#10233D]'
-                              : 'bg-[#14375D] text-[#F7F1E5]'
+                              : 'bg-[#143657] text-[#F8FAFC]'
                             : isLight
                               ? 'text-[#10233D] hover:bg-[#F4E7C3]'
-                              : 'text-[#F7F1E5] hover:bg-[#14375D]'
+                              : 'text-[#F8FAFC] hover:bg-[#143657]'
                     }`}
                   >
                     <div className="flex flex-col min-w-0">
@@ -310,10 +310,10 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
                         {opt.badge && (
                           <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
                             isSelected
-                              ? 'bg-[#06172C] text-[#E2B957]'
+                              ? 'bg-[#06182B] text-[#D4A843]'
                               : isLight
                                 ? 'bg-[#F7F1E5] text-[#B87319] border border-[#D8C9A5]'
-                                : 'bg-[#06172C] text-[#E2B957] border border-[#244567]'
+                                : 'bg-[#071A2E] text-[#D4A843] border border-[rgba(148,163,184,0.18)]'
                           }`}>
                             {opt.badge}
                           </span>
@@ -322,10 +322,10 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
                       {opt.description && (
                         <span className={`text-[11px] truncate mt-0.5 ${
                           isSelected
-                            ? 'text-[#06172C]/80 font-medium'
+                            ? 'text-[#06182B]/80 font-medium'
                             : isLight
                               ? 'text-[#52657B]'
-                              : 'text-slate-300'
+                              : 'text-[#A9B7C8]'
                         }`}>
                           {opt.description}
                         </span>
@@ -333,7 +333,7 @@ export const BrandedSelect: React.FC<BrandedSelectProps> = ({
                     </div>
 
                     {isSelected && (
-                      <Check className="w-4 h-4 shrink-0 text-[#06172C]" />
+                      <Check className="w-4 h-4 shrink-0 text-[#06182B]" />
                     )}
                   </li>
                 );

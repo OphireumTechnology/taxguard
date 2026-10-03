@@ -147,10 +147,10 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
   return (
     <div className="space-y-6" id="tg-col-021-missing-documents-view">
       {/* Header Banner */}
-      <div className="p-5 bg-gradient-to-r from-[#061A2F] to-[#0A2E5C] text-white rounded-xl shadow-md border border-[#1A365D] space-y-3">
+      <div className="p-5 bg-gradient-to-r from-[#06182B] to-[#102D4F] text-white rounded-xl shadow-md border border-[rgba(148,163,184,0.18)] space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#D7AC4A]/20 text-[#D7AC4A] rounded-lg">
+            <div className="p-2.5 bg-[#D4A843]/20 text-[#D4A843] rounded-lg">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
@@ -176,7 +176,7 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
 
         {/* Governance invariant notice */}
         <div className="p-3 bg-black/30 border border-white/10 rounded-lg text-xs text-slate-200 leading-relaxed flex items-start gap-2.5">
-          <ShieldAlert className="w-4 h-4 text-[#D7AC4A] shrink-0 mt-0.5" />
+          <ShieldAlert className="w-4 h-4 text-[#D4A843] shrink-0 mt-0.5" />
           <span>
             <strong>Strict Evidence Invariant:</strong> A requirement is satisfied <em>only</em> by accepted, clean evidence.
             Quarantined files, failed MIME signatures, unreviewed extraction discrepancies, and superseded revisions
@@ -359,15 +359,15 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
                       <>
                         <button
                           onClick={() => onNavigateToRequests(requirement)}
-                          className="px-2.5 py-1 bg-[#061A2F] hover:bg-[#0A2E5C] text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs"
+                          className="px-2.5 py-1 bg-[#06182B] hover:bg-[#102D4F] text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs"
                           title="Create Document Request for Client"
                         >
-                          <Inbox className="w-3 h-3 text-[#D7AC4A]" />
+                          <Inbox className="w-3 h-3 text-[#D4A843]" />
                           <span>Request</span>
                         </button>
                         <button
                           onClick={() => onNavigateToUpload(requirement)}
-                          className="px-2.5 py-1 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 bg-[#102D4F] hover:bg-[#143657] text-[#F8FAFC] border border-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                           title="Direct Ingest Evidence"
                         >
                           <UploadCloud className="w-3 h-3 text-[#D4A843]" />
@@ -396,7 +396,7 @@ export const StageTwoMissingDocumentsView: React.FC<StageTwoMissingDocumentsView
                     {(status === 'UNDER_REVIEW' || status === 'REJECTED' || status === 'SUPERSEDED') && (
                       <button
                         onClick={() => onNavigateToUpload(requirement)}
-                        className="px-2.5 py-1 bg-[#102D4F] hover:bg-[#153a66] text-[#F8FAFC] border border-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 bg-[#102D4F] hover:bg-[#143657] text-[#F8FAFC] border border-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                       >
                         <UploadCloud className="w-3 h-3 text-[#D4A843]" />
                         <span>Re-Upload</span>

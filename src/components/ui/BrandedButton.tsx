@@ -30,17 +30,17 @@ export const BrandedButton: React.FC<BrandedButtonProps> = ({
 
   const variantClasses = {
     primary: isDisabled
-      ? 'bg-[#EAD7A3]/50 text-[#52657B] border border-[#D8C9A5] cursor-not-allowed shadow-none'
-      : 'bg-gradient-to-r from-[#C99A3D] to-[#E2B957] text-[#06172C] font-bold shadow-md hover:brightness-105 active:scale-[0.98] border border-[#B98B32]',
+      ? 'bg-[#102D4F] text-[#7F91A6] border border-[rgba(148,163,184,0.18)] cursor-not-allowed shadow-none'
+      : 'bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] font-bold shadow-md active:scale-[0.98] border border-[#D4A843]',
     secondary: isDisabled
-      ? 'bg-[#081E36]/40 text-[#718096] border border-[#244567]/50 cursor-not-allowed'
-      : 'bg-[#0D2746] text-[#F7F1E5] font-semibold border border-[#244567] hover:border-[#C99A3D] hover:bg-[#14375D] shadow-sm',
+      ? 'bg-[#071A2E]/60 text-[#7F91A6] border border-[rgba(148,163,184,0.12)] cursor-not-allowed'
+      : 'bg-[#102D4F] text-[#F8FAFC] font-semibold border border-[rgba(148,163,184,0.18)] hover:border-[#D4A843]/50 hover:bg-[#143657] shadow-xs',
     outline: isDisabled
-      ? 'bg-transparent text-[#718096] border border-[#D8C9A5]/50 cursor-not-allowed'
-      : 'bg-transparent text-[#10233D] hover:text-[#06172C] border border-[#B98B32] hover:bg-[#F4E7C3] font-bold',
+      ? 'bg-transparent text-[#7F91A6] border border-[rgba(148,163,184,0.12)] cursor-not-allowed'
+      : 'bg-transparent text-[#F8FAFC] hover:text-[#D4A843] border border-[rgba(148,163,184,0.30)] hover:border-[#D4A843] font-semibold',
     danger: isDisabled
-      ? 'bg-[#FFF1F0] text-[#718096] border border-[#B42318]/30 cursor-not-allowed'
-      : 'bg-[#B42318] text-white font-bold hover:bg-[#911d14] border border-[#B42318] shadow-sm',
+      ? 'bg-red-950/20 text-[#7F91A6] border border-red-900/30 cursor-not-allowed'
+      : 'bg-[#EF4444] text-white font-bold hover:bg-[#DC2626] border border-[#EF4444] shadow-xs',
   }[variant];
 
   return (

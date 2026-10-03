@@ -139,7 +139,7 @@ export const ClientLoginPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-6">
+      <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
         {error && (
           <div
             role="alert"
@@ -162,7 +162,7 @@ export const ClientLoginPage: React.FC = () => {
                   type="button"
                   onClick={handleResendVerification}
                   disabled={resendingVerification}
-                  className="px-3 py-1.5 rounded-lg bg-[#C6A15B] text-[#07172B] font-bold text-[11px] hover:bg-[#D9BF7A] transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-[#D4A843] text-[#071A2E] font-bold text-[11px] hover:bg-[#E1BB60] transition-colors disabled:opacity-50"
                 >
                   {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
                 </button>
@@ -197,7 +197,7 @@ export const ClientLoginPage: React.FC = () => {
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#C6A15B]"
+                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
             </div>
@@ -206,7 +206,7 @@ export const ClientLoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={resetLoading}
-                className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
               >
                 <Mail className="w-4 h-4" />
                 {resetLoading ? 'Dispatching Reset Link...' : 'Send Password Reset Email'}
@@ -220,7 +220,7 @@ export const ClientLoginPage: React.FC = () => {
                   setErrorCode(null);
                   setResetSuccess(null);
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-[#071A2E] hover:bg-[#132E52] border border-[rgba(148,163,184,0.18)] text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Back to Sign In
@@ -239,7 +239,7 @@ export const ClientLoginPage: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#C6A15B]"
+                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                   />
                 </div>
               </div>
@@ -256,7 +256,7 @@ export const ClientLoginPage: React.FC = () => {
                       setErrorCode(null);
                       setResetSuccess(null);
                     }}
-                    className="text-[11px] text-[#C6A15B] hover:underline"
+                    className="text-[11px] text-[#D4A843] hover:underline"
                   >
                     Forgot Password?
                   </button>
@@ -268,7 +268,7 @@ export const ClientLoginPage: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#C6A15B]"
+                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                   />
                 </div>
               </div>
@@ -277,7 +277,7 @@ export const ClientLoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                  className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                 >
                   <Lock className="w-4 h-4" />
                   {loading ? 'Authenticating...' : 'Sign In Securely'}
@@ -286,8 +286,8 @@ export const ClientLoginPage: React.FC = () => {
             </form>
 
             {/* Biometric / Passkey Hardware Authentication (Uncommissioned) */}
-            <div className="pt-4 border-t border-[#1E3A5F] space-y-2 text-center opacity-65">
-              <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#07172B] border border-[#1E3A5F] text-slate-400 text-xs select-none">
+            <div className="pt-4 border-t border-[rgba(148,163,184,0.18)] space-y-2 text-center opacity-65">
+              <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)] text-slate-400 text-xs select-none">
                 <Fingerprint className="w-4 h-4 text-slate-400" />
                 <span>Touch ID / Face ID Biometric Login (Not Configured)</span>
               </div>
@@ -304,7 +304,7 @@ export const ClientLoginPage: React.FC = () => {
                   setRegistrationState('IDLE');
                   setCurrentPage('client_register');
                 }}
-                className="text-[#C6A15B] font-semibold hover:underline"
+                className="text-[#D4A843] font-semibold hover:underline"
               >
                 Register Client Account
               </button>
@@ -472,22 +472,22 @@ export const ClientRegisterPage: React.FC = () => {
       <div className="max-w-xl mx-auto px-4 py-16 text-slate-100 space-y-8" data-testid="verify-email-screen">
         <div className="text-center space-y-3">
           <BrandLogo variant="emblem" size="md" />
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#07172B] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
             <ShieldCheck className="w-3 h-3" />
             <span>ACCOUNT ACTIVATION REQUIRED</span>
           </div>
           <h1 className="font-serif text-3xl font-extrabold text-white">Verify Your Email</h1>
         </div>
 
-        <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-6">
-          <div className="p-4 rounded-2xl bg-[#07172B] border border-[#C6A15B]/30 space-y-2 text-center">
-            <Mail className="w-8 h-8 text-[#C6A15B] mx-auto" />
+        <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
+          <div className="p-4 rounded-2xl bg-[#071A2E] border border-[#D4A843]/30 space-y-2 text-center">
+            <Mail className="w-8 h-8 text-[#D4A843] mx-auto" />
             <p className="text-sm text-white font-semibold">
               Your TaxGuard account has been created. Please verify your email address to securely activate your Client Tax Center.
             </p>
             {targetEmail && (
               <p className="text-xs text-slate-300">
-                Verification link sent to <strong className="text-[#C6A15B]">{targetEmail}</strong>
+                Verification link sent to <strong className="text-[#D4A843]">{targetEmail}</strong>
               </p>
             )}
           </div>
@@ -511,7 +511,7 @@ export const ClientRegisterPage: React.FC = () => {
               type="button"
               onClick={handleResendVerification}
               disabled={resendingEmail}
-              className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+              className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${resendingEmail ? 'animate-spin' : ''}`} />
               <span>{resendingEmail ? 'Resending Verification Email...' : 'Resend Verification Email'}</span>
@@ -520,7 +520,7 @@ export const ClientRegisterPage: React.FC = () => {
             <button
               type="button"
               onClick={handleReturnToRegistration}
-              className="w-full py-2.5 rounded-xl bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] text-slate-200 text-xs font-semibold transition-colors"
+              className="w-full py-2.5 rounded-xl bg-[#071A2E] hover:bg-[#132E52] border border-[rgba(148,163,184,0.18)] text-slate-200 text-xs font-semibold transition-colors"
             >
               Change Email / Return to Registration
             </button>
@@ -528,7 +528,7 @@ export const ClientRegisterPage: React.FC = () => {
             <button
               type="button"
               onClick={handleReturnToSignIn}
-              className="w-full py-2.5 rounded-xl bg-transparent hover:bg-[#07172B] border border-[#1E3A5F]/60 text-slate-300 text-xs font-semibold transition-colors"
+              className="w-full py-2.5 rounded-xl bg-transparent hover:bg-[#071A2E] border border-[rgba(148,163,184,0.18)]/60 text-slate-300 text-xs font-semibold transition-colors"
             >
               Return to Sign In
             </button>
@@ -548,7 +548,7 @@ export const ClientRegisterPage: React.FC = () => {
     <div className="max-w-xl mx-auto px-4 py-12 text-slate-100 space-y-8">
       <div className="text-center space-y-3">
         <BrandLogo variant="emblem" size="md" />
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#07172B] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
           <ShieldCheck className="w-3 h-3" />
           <span>STAGE 01: ONBOARD &bull; UNIFIED 18-STAGE WORKFLOW</span>
         </div>
@@ -558,11 +558,11 @@ export const ClientRegisterPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl">
+      <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl">
         {isProcessingState && (
           <div
             aria-live="polite"
-            className="mb-4 p-3.5 rounded-xl bg-[#07172B] border border-[#C6A15B]/40 text-[#C6A15B] text-xs flex items-center gap-2.5"
+            className="mb-4 p-3.5 rounded-xl bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs flex items-center gap-2.5"
           >
             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
             <div>
@@ -596,7 +596,7 @@ export const ClientRegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleReturnToSignIn}
-                  className="px-3 py-1.5 rounded-lg bg-[#C6A15B] text-[#07172B] font-bold text-[11px] hover:bg-[#D9BF7A] transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-[#D4A843] text-[#071A2E] font-bold text-[11px] hover:bg-[#E1BB60] transition-colors"
                 >
                   Sign In to Existing Account
                 </button>
@@ -615,7 +615,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="Eleanor"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
             <div>
@@ -625,7 +625,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={middleName}
                 onChange={(e) => setMiddleName(e.target.value)}
                 placeholder="Marie"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
             <div>
@@ -636,7 +636,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Vance"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
           </div>
@@ -650,7 +650,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="eleanor@example.com"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
 
@@ -662,7 +662,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="678-205-9486"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
           </div>
@@ -673,7 +673,7 @@ export const ClientRegisterPage: React.FC = () => {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               >
                 <option value="individual">Individual / Household (Form 1040)</option>
                 <option value="sole_prop">Sole Proprietorship / 1099</option>
@@ -689,7 +689,7 @@ export const ClientRegisterPage: React.FC = () => {
               <select
                 value={contactMethod}
                 onChange={(e) => setContactMethod(e.target.value)}
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               >
                 <option value="portal">Secure Portal Message (Recommended)</option>
                 <option value="email">Direct Email</option>
@@ -708,7 +708,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g. Vance Global Logistics LLC"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
           )}
@@ -719,7 +719,7 @@ export const ClientRegisterPage: React.FC = () => {
               <select
                 value={timeZone}
                 onChange={(e) => setTimeZone(e.target.value)}
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               >
                 <option value="America/New_York">Eastern Time (US & Canada)</option>
                 <option value="America/Chicago">Central Time (US & Canada)</option>
@@ -733,7 +733,7 @@ export const ClientRegisterPage: React.FC = () => {
               <select
                 value={referralSource}
                 onChange={(e) => setReferralSource(e.target.value)}
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               >
                 <option value="Client Referral">Existing Client Referral</option>
                 <option value="Google Search">Online / Search Engine</option>
@@ -753,7 +753,7 @@ export const ClientRegisterPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 8 chars, upper, lower & number"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
 
@@ -766,17 +766,17 @@ export const ClientRegisterPage: React.FC = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your password"
-                className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
               />
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[#07172B] border border-[#1E3A5F] cursor-pointer text-[11px] text-slate-300">
+          <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)] cursor-pointer text-[11px] text-slate-300">
             <input
               type="checkbox"
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 rounded text-[#C6A15B] focus:ring-[#C6A15B]"
+              className="mt-0.5 rounded text-[#D4A843] focus:ring-[#D4A843]"
             />
             <span>
               I agree to the <strong>Terms of Service</strong>, <strong>Privacy Policy</strong>, and acknowledge disclosure under <strong>IRC § 7216</strong> regarding taxpayer data protection and electronic communications.
@@ -787,7 +787,7 @@ export const ClientRegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={isProcessingState}
-              className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all shadow-lg disabled:opacity-50"
+              className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg disabled:opacity-50"
             >
               {isProcessingState
                 ? REGISTRATION_STATE_LABELS[registrationState] || 'Initializing Encrypted Account...'
@@ -800,7 +800,7 @@ export const ClientRegisterPage: React.FC = () => {
             <button
               type="button"
               onClick={handleReturnToSignIn}
-              className="text-[#C6A15B] font-semibold hover:underline"
+              className="text-[#D4A843] font-semibold hover:underline"
             >
               Sign In Here
             </button>
@@ -903,7 +903,7 @@ export const StaffLoginPage: React.FC = () => {
     <div className="max-w-md mx-auto px-4 py-16 text-slate-100 space-y-8">
       <div className="text-center space-y-3">
         <BrandLogo variant="emblem" size="md" />
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#07172B] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
           <Lock className="w-3 h-3" />
           <span>Internal Staff Access Only</span>
         </div>
@@ -913,9 +913,9 @@ export const StaffLoginPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="p-8 rounded-3xl bg-[#0D2340] border border-[#1E3A5F] shadow-2xl space-y-6">
+      <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
         {/* Mode switcher */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#07172B] border border-[#1E3A5F]">
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
           <button
             type="button"
             onClick={() => {
@@ -923,7 +923,7 @@ export const StaffLoginPage: React.FC = () => {
               setError(null);
             }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
-              loginMode === 'signin' ? 'bg-[#C6A15B] text-[#07172B]' : 'text-slate-300 hover:text-white'
+              loginMode === 'signin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
             }`}
           >
             Staff Sign In
@@ -935,7 +935,7 @@ export const StaffLoginPage: React.FC = () => {
               setError(null);
             }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
-              loginMode === 'accept_invitation' ? 'bg-[#C6A15B] text-[#07172B]' : 'text-slate-300 hover:text-white'
+              loginMode === 'accept_invitation' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
             }`}
           >
             Accept Staff Invite
@@ -951,12 +951,12 @@ export const StaffLoginPage: React.FC = () => {
 
         {loginMode === 'signin' ? (
           <>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#07172B] border border-[#1E3A5F]">
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
               <button
                 type="button"
                 onClick={() => setTargetRole('accountant')}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                  targetRole === 'accountant' ? 'bg-[#C6A15B] text-[#07172B]' : 'text-slate-400 hover:text-white'
+                  targetRole === 'accountant' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Staff Accountant
@@ -965,7 +965,7 @@ export const StaffLoginPage: React.FC = () => {
                 type="button"
                 onClick={() => setTargetRole('admin')}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                  targetRole === 'admin' ? 'bg-[#C6A15B] text-[#07172B]' : 'text-slate-400 hover:text-white'
+                  targetRole === 'admin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Compliance Admin
@@ -981,7 +981,7 @@ export const StaffLoginPage: React.FC = () => {
                   placeholder="practitioner@artaxservices.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#C6A15B]"
+                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
 
@@ -993,7 +993,7 @@ export const StaffLoginPage: React.FC = () => {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#C6A15B]"
+                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
 
@@ -1001,7 +1001,7 @@ export const StaffLoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />
                   {loading ? 'Validating Token...' : `Enter ${targetRole === 'admin' ? 'Admin Control' : 'Staff Workspace'}`}
@@ -1009,7 +1009,7 @@ export const StaffLoginPage: React.FC = () => {
               </div>
             </form>
 
-            <div className="pt-2 border-t border-[#1E3A5F] text-center space-y-1">
+            <div className="pt-2 border-t border-[rgba(148,163,184,0.18)] text-center space-y-1">
               <p className="text-[11px] text-slate-400">
                 Authorized practitioners and compliance reviewers only.
               </p>
@@ -1029,13 +1029,13 @@ export const StaffLoginPage: React.FC = () => {
                   placeholder="inv_seed_marcus_2026"
                   value={invitationToken}
                   onChange={(e) => setInvitationToken(e.target.value)}
-                  className="flex-1 bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 font-mono text-white focus:outline-none focus:border-[#C6A15B]"
+                  className="flex-1 bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 font-mono text-white focus:outline-none focus:border-[#D4A843]"
                 />
                 <button
                   type="button"
                   onClick={handleLookupInvitation}
                   disabled={inviteChecking}
-                  className="px-3 py-2 bg-[#1E3A5F] hover:bg-[#2B4E7E] text-white font-bold rounded-lg text-xs"
+                  className="px-3 py-2 bg-[rgba(148,163,184,0.18)] hover:bg-[#2B4E7E] text-white font-bold rounded-lg text-xs"
                 >
                   Verify
                 </button>
@@ -1043,7 +1043,7 @@ export const StaffLoginPage: React.FC = () => {
             </div>
 
             {invitationDetails && (
-              <div className="p-3 bg-[#07172B] rounded-xl border border-emerald-500/40 text-[11px] space-y-1.5 text-slate-300">
+              <div className="p-3 bg-[#071A2E] rounded-xl border border-emerald-500/40 text-[11px] space-y-1.5 text-slate-300">
                 <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Verified Invitation from Desmond Hinds</span>
@@ -1064,14 +1064,14 @@ export const StaffLoginPage: React.FC = () => {
                   placeholder="Create your practitioner password"
                   value={invitePassword}
                   onChange={(e) => setInvitePassword(e.target.value)}
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#C6A15B]"
+                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || !invitationToken || !invitePassword}
-                className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{loading ? 'Activating Credentials...' : 'Accept Invitation & Launch Onboarding'}</span>
