@@ -193,13 +193,13 @@ export const TaxStrategiesPage: React.FC = () => {
   const categories = Object.keys(STRATEGY_CATEGORIES_MAP) as StrategyCategory[];
 
   return (
-    <div className="min-h-screen bg-[#07172B] text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#06182B] text-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-10">
         
         {/* Header / Hero Section */}
-        <header className="space-y-5 border-b border-[#1E3A5F] pb-8 sm:pb-10">
+        <header className="space-y-5 border-b border-[rgba(148,163,184,0.18)] pb-8 sm:pb-10">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D2340] border border-[#C6A15B]/40 text-[#C6A15B] text-xs font-semibold tracking-wide">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D2745] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold tracking-wide">
               <Award className="w-3.5 h-3.5 flex-shrink-0" />
               <span>U.S. Tax Planning Resource Center</span>
             </div>
@@ -207,7 +207,7 @@ export const TaxStrategiesPage: React.FC = () => {
             {isStaff && (
               <button
                 onClick={() => handleOpenCms()}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#C6A15B] text-[#07172B] text-xs font-bold hover:bg-[#D4AF37] transition shadow-md active:scale-95"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#D4A843] text-[#06182B] text-xs font-bold hover:bg-[#E1BB60] transition shadow-md active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Strategy (Staff CMS)</span>
@@ -217,35 +217,51 @@ export const TaxStrategiesPage: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-4">
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#F8FAFC] tracking-tight leading-tight">
                 Comprehensive Tax Strategy Center
               </h1>
-              <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-normal">
+              <p className="text-base sm:text-lg text-[#A9B7C8] leading-relaxed font-normal">
                 Explore professionally governed U.S. tax-planning strategies organized by entity type, industry, jurisdiction, and planning objective. Every strategy requires eligibility review and approval by an authorized tax professional.
               </p>
 
               {/* Statutory Notice & Circular 230 Disclaimers Banner */}
-              <div className="p-4 rounded-xl bg-[#0D2340]/90 border border-[#C6A15B]/40 flex items-start gap-3.5 text-xs text-slate-300 shadow-sm">
-                <AlertTriangle className="w-5 h-5 text-[#C6A15B] flex-shrink-0 mt-0.5" />
+              <div className="p-4 rounded-xl bg-[#0D2745] border border-[#D4A843]/40 flex items-start gap-3.5 text-xs text-[#A9B7C8] shadow-sm">
+                <AlertTriangle className="w-5 h-5 text-[#D4A843] flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h2 className="text-xs font-semibold text-white tracking-wide">
+                  <h2 className="text-xs font-semibold text-[#F8FAFC] tracking-wide">
                     Statutory Notice &amp; Professional Review Requirement (IRS Circular 230)
                   </h2>
-                  <p className="text-slate-300 text-xs leading-relaxed">
+                  <p className="text-[#A9B7C8] text-xs leading-relaxed">
                     The tax planning strategies indexed below represent general educational frameworks under the Internal Revenue Code and South Carolina Department of Revenue guidelines. No strategy may be claimed on a return without human CPA eligibility verification.
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Corporate Tax Strategy Workspace Photo */}
             <div className="lg:col-span-5">
-              <EditorialSplitImage
-                src={BRAND_ASSETS.taxAdvisoryPlanningJpg}
-                webpSrc={BRAND_ASSETS.taxAdvisoryPlanningWebp}
-                alt="Professional tax advisor discussing strategic tax planning with a client"
-                badgeText="IRC Strategy Governance"
-                className="w-full min-h-[260px]"
-              />
+              <div className="relative rounded-2xl overflow-hidden border border-[rgba(148,163,184,0.18)] bg-[#0D2745] shadow-2xl group">
+                <picture>
+                  <source srcSet={BRAND_ASSETS.taxStrategyWorkspaceWebp} type="image/webp" />
+                  <img
+                    src={BRAND_ASSETS.taxStrategyWorkspaceJpg}
+                    alt="A/R Tax Services professional tax strategy and financial analysis workspace"
+                    width={1280}
+                    height={720}
+                    loading="eager"
+                    decoding="async"
+                    className="w-full aspect-[16/9] object-cover object-center group-hover:scale-102 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                </picture>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#06182B]/90 via-[#06182B]/20 to-transparent pointer-events-none" />
+                <div className="absolute bottom-3.5 left-4 right-4 flex items-center justify-between text-xs text-white">
+                  <div className="flex items-center gap-1.5 font-semibold text-[#F8FAFC]">
+                    <ShieldCheck className="w-4 h-4 text-[#D4A843] shrink-0" />
+                    <span>Structured Tax Strategy &amp; CPA Review</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </header>
@@ -254,18 +270,18 @@ export const TaxStrategiesPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7F91A6]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search strategies by name, IRS code (e.g. § 179, § 1031, § 280A), objective, or entity type..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0B1E36] border border-[#1E3A5F] text-sm text-white placeholder-slate-400 focus:outline-none focus:border-[#C6A15B]"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#102D4F] border border-[rgba(148,163,184,0.18)] text-sm text-[#F8FAFC] placeholder-[#7F91A6] focus:outline-none focus:border-[#D4A843]"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7F91A6] hover:text-[#F8FAFC]"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -273,8 +289,8 @@ export const TaxStrategiesPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 whitespace-nowrap">Showing:</span>
-              <span className="text-xs font-bold text-[#C6A15B] bg-[#0D2340] px-3 py-2 rounded-xl border border-[#1E3A5F]">
+              <span className="text-xs text-[#7F91A6] whitespace-nowrap">Showing:</span>
+              <span className="text-xs font-bold text-[#D4A843] bg-[#0D2745] px-3 py-2 rounded-xl border border-[rgba(148,163,184,0.18)]">
                 {filteredStrategies.length} Strategies
               </span>
             </div>
@@ -286,8 +302,8 @@ export const TaxStrategiesPage: React.FC = () => {
               onClick={() => setSelectedCategory('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 selectedCategory === 'all'
-                  ? 'bg-[#C6A15B] text-[#07172B] font-bold shadow'
-                  : 'bg-[#0B1E36] text-slate-300 border border-[#1E3A5F] hover:border-slate-500'
+                  ? 'bg-[#D4A843] text-[#06182B] font-bold shadow'
+                  : 'bg-[#0D2745] text-[#A9B7C8] border border-[rgba(148,163,184,0.18)] hover:bg-[#143657] hover:text-[#F8FAFC]'
               }`}
             >
               All 16 Categories ({strategies.length})
@@ -301,12 +317,12 @@ export const TaxStrategiesPage: React.FC = () => {
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-[#C6A15B] text-[#07172B] font-bold shadow'
-                      : 'bg-[#0B1E36] text-slate-300 border border-[#1E3A5F] hover:border-slate-500'
+                      ? 'bg-[#D4A843] text-[#06182B] font-bold shadow'
+                      : 'bg-[#0D2745] text-[#A9B7C8] border border-[rgba(148,163,184,0.18)] hover:bg-[#143657] hover:text-[#F8FAFC]'
                   }`}
                 >
                   <span>{STRATEGY_CATEGORIES_MAP[cat]?.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-[#07172B] text-[#C6A15B]' : 'bg-[#0D2340] text-slate-400'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-[#06182B] text-[#D4A843]' : 'bg-[#102D4F] text-[#7F91A6]'}`}>
                     {count}
                   </span>
                 </button>
@@ -321,43 +337,43 @@ export const TaxStrategiesPage: React.FC = () => {
             return (
               <div
                 key={strat.id}
-                className="bg-[#0B1E36] border border-[#1E3A5F] rounded-2xl p-6 flex flex-col justify-between hover:border-[#C6A15B]/60 transition group shadow-lg"
+                className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 flex flex-col justify-between hover:border-[#D4A843]/60 transition group shadow-lg"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold tracking-wider uppercase text-[#C6A15B] bg-[#0D2340] px-2.5 py-1 rounded-md border border-[#C6A15B]/30">
+                    <span className="text-[11px] font-bold tracking-wider uppercase text-[#D4A843] bg-[#102D4F] px-2.5 py-1 rounded-md border border-[#D4A843]/30">
                       {STRATEGY_CATEGORIES_MAP[strat.category]?.label || strat.category}
                     </span>
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
+                    <span className="text-[10px] text-[#7F91A6] flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#7F91A6]" />
                       <span>TY {strat.applicableTaxYear}</span>
                     </span>
                   </div>
 
-                  <h3 className="font-serif text-lg font-bold text-white group-hover:text-[#C6A15B] transition leading-snug">
+                  <h3 className="font-serif text-lg font-bold text-[#F8FAFC] group-hover:text-[#E1BB60] transition leading-snug">
                     {strat.strategyName}
                   </h3>
 
-                  <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
+                  <p className="text-xs text-[#A9B7C8] line-clamp-3 leading-relaxed">
                     {strat.plainLanguageSummary}
                   </p>
 
-                  <div className="pt-2 border-t border-[#1E3A5F]/70 space-y-1.5 text-xs">
-                    <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                      <Building2 className="w-3.5 h-3.5 text-[#C6A15B] flex-shrink-0" />
+                  <div className="pt-2 border-t border-[rgba(148,163,184,0.18)] space-y-1.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-[#A9B7C8] text-[11px]">
+                      <Building2 className="w-3.5 h-3.5 text-[#D4A843] flex-shrink-0" />
                       <span className="truncate"><strong>Eligibility:</strong> {strat.eligibleTaxpayerType}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                      <FileText className="w-3.5 h-3.5 text-[#C6A15B] flex-shrink-0" />
+                    <div className="flex items-center gap-1.5 text-[#A9B7C8] text-[11px]">
+                      <FileText className="w-3.5 h-3.5 text-[#D4A843] flex-shrink-0" />
                       <span className="truncate"><strong>Authority:</strong> {strat.officialAuthority.codeCitation}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-5 mt-4 border-t border-[#1E3A5F] flex items-center justify-between gap-3">
+                <div className="pt-5 mt-4 border-t border-[rgba(148,163,184,0.18)] flex items-center justify-between gap-3">
                   <button
                     onClick={() => setSelectedStrategy(strat)}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C6A15B] hover:text-[#D4AF37] transition"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#D4A843] hover:text-[#E1BB60] transition"
                   >
                     <span>View Dossier & Checklist</span>
                     <ChevronRight className="w-4 h-4" />
@@ -366,7 +382,7 @@ export const TaxStrategiesPage: React.FC = () => {
                   {isStaff && (
                     <button
                       onClick={() => handleOpenCms(strat)}
-                      className="p-1.5 rounded-lg bg-[#0D2340] text-slate-300 hover:text-white hover:bg-[#1E3A5F] transition"
+                      className="p-1.5 rounded-lg bg-[#102D4F] text-[#A9B7C8] hover:text-[#F8FAFC] hover:bg-[#143657] transition"
                       title="Edit Strategy (Staff)"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
@@ -379,15 +395,15 @@ export const TaxStrategiesPage: React.FC = () => {
         </div>
 
         {filteredStrategies.length === 0 && (
-          <div className="text-center py-16 bg-[#0B1E36] rounded-2xl border border-[#1E3A5F] space-y-4">
-            <BookOpen className="w-10 h-10 text-slate-500 mx-auto" />
+          <div className="text-center py-16 bg-[#0D2745] rounded-2xl border border-[rgba(148,163,184,0.18)] space-y-4">
+            <BookOpen className="w-10 h-10 text-[#7F91A6] mx-auto" />
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">No strategies match your criteria</h3>
-              <p className="text-xs text-slate-400">Try adjusting your keyword search or select "All 16 Categories".</p>
+              <h3 className="text-base font-bold text-[#F8FAFC]">No strategies match your criteria</h3>
+              <p className="text-xs text-[#A9B7C8]">Try adjusting your keyword search or select "All 16 Categories".</p>
             </div>
             <button
               onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
-              className="px-4 py-2 rounded-xl bg-[#0D2340] border border-[#1E3A5F] text-xs font-semibold text-[#C6A15B] hover:bg-[#1E3A5F] transition"
+              className="px-4 py-2 rounded-xl bg-[#102D4F] border border-[rgba(148,163,184,0.18)] text-xs font-semibold text-[#D4A843] hover:bg-[#143657] transition"
             >
               Reset Filters
             </button>
@@ -395,18 +411,18 @@ export const TaxStrategiesPage: React.FC = () => {
         )}
 
         {/* Consultation Call to Action */}
-        <div className="rounded-2xl bg-gradient-to-r from-[#0D2340] to-[#0B1E36] border border-[#C6A15B]/40 p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="rounded-2xl bg-gradient-to-r from-[#0D2745] to-[#102D4F] border border-[#D4A843]/40 p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="space-y-2 text-center sm:text-left">
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#F8FAFC]">
               Ready to Formulate Your Personalized Tax Strategy?
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#A9B7C8] max-w-2xl leading-relaxed">
               Book a direct consultation with Founder Desmond Hinds or our Senior Reviewers in Columbia, SC or via secure virtual video meeting. We review your entity structures, prior returns, and long-term financial legacy.
             </p>
           </div>
           <button
             onClick={() => setCurrentPage('book_consultation')}
-            className="px-6 py-3 rounded-xl bg-[#C6A15B] text-[#07172B] font-bold text-xs sm:text-sm hover:bg-[#D4AF37] transition whitespace-nowrap shadow-lg flex items-center gap-2"
+            className="px-6 py-3 rounded-xl bg-[#D4A843] text-[#06182B] font-bold text-xs sm:text-sm hover:bg-[#E1BB60] transition whitespace-nowrap shadow-lg flex items-center gap-2"
           >
             <span>Schedule Strategy Consultation</span>
             <ArrowRight className="w-4 h-4" />

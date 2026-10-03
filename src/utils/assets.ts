@@ -100,6 +100,12 @@ export const BRAND_ASSETS = {
   aboutClientAdvisoryWebp: getAssetUrl('images/about/about-client-advisory.webp'),
   aboutClientAdvisoryJpg: getAssetUrl('images/about/about-client-advisory.jpg'),
 
+  // Tax Strategies Corporate Editorial Assets
+  taxStrategyWorkspaceWebp: getAssetUrl('images/tax-strategies/tax-strategy-workspace.webp'),
+  taxStrategyWorkspaceJpg: getAssetUrl('images/tax-strategies/tax-strategy-workspace.jpg'),
+  taxStrategiesHeroWebp: getAssetUrl('images/tax-strategies/tax-strategies-hero.webp'),
+  taxStrategiesHeroJpg: getAssetUrl('images/tax-strategies/tax-strategies-hero.jpg'),
+
   // Backward compatibility alias
   columbiaSkylineWebp: getAssetUrl('images/about/about-tax-advisory-office.webp'),
   columbiaSkylineJpg: getAssetUrl('images/about/about-tax-advisory-office.jpg'),

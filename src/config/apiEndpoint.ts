@@ -24,5 +24,7 @@ function isStaticHost(hostOrUrl: string): boolean {
 }
 export function apiEndpoint(path: string): string {
   if (!path.startsWith('/api/')) throw new Error('Invalid API path.');
-  return resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, import.meta.env.PROD, import.meta.env.VITE_API_SAME_ORIGIN === 'true', typeof window !== 'undefined' ? window.location.origin : undefined) + path;
+  const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
+  const sameOrigin = import.meta.env.VITE_API_SAME_ORIGIN === 'true' || Boolean(origin && !isStaticHost(origin));
+  return resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, import.meta.env.PROD, sameOrigin, origin) + path;
 }
