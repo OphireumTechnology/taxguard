@@ -70,7 +70,7 @@ export const BookConsultationPage: React.FC = () => {
     <div className="min-h-screen bg-[#06182B] text-[#F8FAFC] pb-24 font-sans selection:bg-[#D4A843]/20 selection:text-[#F8FAFC]">
       {/* A. HERO SECTION WITH CINEMATIC PHOTOGRAPHIC BACKGROUND & READABILITY OVERLAYS */}
       <section 
-        className="relative overflow-hidden border-b border-[rgba(148,163,184,0.18)]"
+        className="relative overflow-hidden"
         style={{
           backgroundImage: `url('/images/consultation/consultation-hero.webp')`,
           backgroundPosition: 'center',
@@ -85,8 +85,8 @@ export const BookConsultationPage: React.FC = () => {
             backgroundImage: `linear-gradient(90deg, rgba(6,24,43,0.96) 0%, rgba(6,24,43,0.88) 40%, rgba(6,24,43,0.66) 72%, rgba(6,24,43,0.76) 100%)`,
           }}
         />
-        {/* Vignette merging top with navigation header and bottom with page body */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#071A2E]/80 via-transparent to-[#06182B] pointer-events-none" />
+        {/* Vignette merging top with navigation header and bottom with trust strip */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#071A2E]/80 via-transparent to-[#071A2E] pointer-events-none" />
 
         <div className="relative max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18 lg:py-20 min-h-[380px] sm:min-h-[420px] lg:min-h-[460px] flex flex-col justify-center">
           <div className="max-w-2xl space-y-3">
@@ -110,7 +110,7 @@ export const BookConsultationPage: React.FC = () => {
       </section>
 
       {/* TRUST STRIP (Between hero and booking workspace) */}
-      <section className="border-b border-[rgba(148,163,184,0.12)] bg-[#071A2E]/80 backdrop-blur-xs py-4">
+      <section className="border-b border-[rgba(148,163,184,0.12)] bg-[#071A2E] py-4">
         <div className="max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div className="flex items-center gap-2.5 text-[#A9B7C8]">

@@ -249,6 +249,14 @@ describe('A/R Tax Services — Consultation UX & Canonical Brand Tokens Suite', 
       expect(consultationPageSource).toContain('PRIVATE TAX & ADVISORY SERVICES');
       expect(consultationPageSource).toContain('w-16 h-1 bg-[#D4A843] rounded-full');
     });
+
+    it('eliminates border-b line artifact on hero section to seamlessly transition into trust strip', () => {
+      expect(consultationPageSource).not.toMatch(/<section[^>]*border-b[^>]*style=\{\{\s*backgroundImage/i);
+    });
+
+    it('ensures vignette seamlessly merges to deep navy #071A2E trust strip background', () => {
+      expect(consultationPageSource).toContain('to-[#071A2E] pointer-events-none');
+    });
   });
 
   // 12. Trust Strip & Governance
@@ -258,6 +266,12 @@ describe('A/R Tax Services — Consultation UX & Canonical Brand Tokens Suite', 
       expect(consultationPageSource).toContain('Secure Process');
       expect(consultationPageSource).toContain('Personalized Service');
       expect(consultationPageSource).toContain('Clear Next Steps');
+    });
+
+    it('ensures no conflicting border-top on trust strip and no cream dividers', () => {
+      expect(consultationPageSource).not.toMatch(/<section[^>]*border-t[^>]*>\s*<div[^>]*>\s*<div[^>]*>\s*<div[^>]*>\s*<ShieldCheck/);
+      expect(consultationPageSource).not.toContain('border-[#FBF8F1]');
+      expect(consultationPageSource).not.toContain('border-white');
     });
 
     it('avoids unverified marketing claims like IRS Certified or CPA Certified', () => {
