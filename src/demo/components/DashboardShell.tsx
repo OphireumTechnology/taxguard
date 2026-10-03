@@ -317,18 +317,30 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
 
       await taxGuardLogout();
 
-      window.location.hash = '#/client/login';
+      try {
+        window.history.pushState(null, '', '/portal/login');
+      } catch {
+        window.location.href = '/portal/login';
+      }
 
       return;
     }
 
     DemoAuthService.logout(role);
 
-    window.location.hash = roleConfig.loginPath;
+    try {
+      window.history.pushState(null, '', roleConfig.loginPath.startsWith('#') ? '/portal/login' : roleConfig.loginPath);
+    } catch {
+      window.location.hash = roleConfig.loginPath;
+    }
   };
 
   const handleReturnHome = () => {
-    window.location.hash = '#/';
+    try {
+      window.history.pushState(null, '', '/');
+    } catch {
+      window.location.href = '/';
+    }
   };
 
   return (

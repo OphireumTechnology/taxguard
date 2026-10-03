@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Phone, 
@@ -182,13 +182,17 @@ export const ContactPage: React.FC = () => {
                     <div>
                       <strong className="text-white block font-semibold">Important Privacy &amp; Document Notice:</strong>
                       Please do not submit Social Security numbers, tax documents, banking information, or other sensitive personal information through this form. Existing clients should use the{' '}
-                      <button
-                        type="button"
-                        onClick={() => window.location.hash = '#/client/login'}
+                      <a
+                        href="/portal"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage('portal');
+                        }}
                         className="text-[#C6A15B] underline hover:text-[#E2BD67] font-semibold"
+                        role="link"
                       >
                         secure client portal
-                      </button>.
+                      </a>.
                     </div>
                   </div>
 

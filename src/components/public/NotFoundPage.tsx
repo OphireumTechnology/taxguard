@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
 import { Compass, Home, Phone, ArrowLeft, Lock } from 'lucide-react';
@@ -33,13 +33,18 @@ export const NotFoundPage: React.FC = () => {
           Return to Homepage
         </button>
 
-        <button
-          onClick={() => window.location.hash = '#/client/login'}
+        <a
+          href="/portal"
+          onClick={(e) => {
+            e.preventDefault();
+            setCurrentPage('portal');
+          }}
           className="px-6 py-3 rounded-xl font-semibold text-xs text-white bg-[#0D2340] hover:bg-[#132E52] border border-[#1E3A5F] transition-all flex items-center gap-2"
+          role="link"
         >
           <Lock className="w-4 h-4 text-[#C6A15B]" />
           Client Portal Login
-        </button>
+        </a>
 
         <button
           onClick={() => setCurrentPage('contact')}

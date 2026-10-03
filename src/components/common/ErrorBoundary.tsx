@@ -199,7 +199,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
       sanitizedMessage: null,
       componentStack: null
     });
-    window.location.hash = '#/client/login';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/portal/login';
+    }
   };
 
   private toggleDevDiagnostics = () => {

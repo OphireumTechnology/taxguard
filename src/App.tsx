@@ -42,6 +42,14 @@ import { ReviewerWorkspace } from './components/workspace/ReviewerWorkspace';
 import { PracticeAdminWorkspace } from './components/admin/PracticeAdminWorkspace';
 
 import { LiveClientWorkflowRouter } from './components/workflow/LiveClientWorkflowRouter';
+import {
+  CANONICAL_ROUTES,
+  normalizeLegacyUrl,
+  canAccessStaffWorkspace,
+  resolveAuthoritativeStaffWorkspace,
+  applyCanonicalUrl
+} from './config/canonicalRouting';
+
 function getUrlTarget(): string {
   if (typeof window === 'undefined') return '';
   const hash = (window.location.hash || '').replace(/^#\/?/, '').replace(/^\/+/, '').toLowerCase();
@@ -59,7 +67,15 @@ function isPublicV2RouteUrl(): boolean {
 
 function isCanonicalLiveAuthRouteUrl(): boolean {
   const target = getUrlTarget().replace(/\/+$/, '');
-  return target === 'client/login' || target === 'client/register';
+  return (
+    target === 'portal' ||
+    target === 'portal/login' ||
+    target === 'portal/register' ||
+    target === 'staff' ||
+    target === 'staff/login' ||
+    target === 'client/login' ||
+    target === 'client/register'
+  );
 }
 
 function isClientScopedRouteUrl(): boolean {
@@ -82,6 +98,7 @@ function isDemoRouteUrl(): boolean {
   const target = getUrlTarget();
   if (target.startsWith('taxguard') || target.startsWith('public-v2')) return false;
   if (isCanonicalLiveAuthRouteUrl()) return false;
+  if (target === 'portal' || target === 'staff') return false;
   if (target.startsWith('error/')) return true;
   if (target === 'portals' || target.startsWith('portals/')) return true;
   if (target.endsWith('/login') || target.endsWith('/dashboard')) return true;
@@ -147,10 +164,21 @@ const AppContent: React.FC = () => {
   }, [currentPage, authLifecycleState, isTaxGuardRoute, isPublicV2Route, currentUser?.role]);
 
   useEffect(() => {
+    // Legacy normalization check on each render / URL change
+    const legacy = normalizeLegacyUrl(window.location.hash, window.location.pathname);
+    if (legacy) {
+      applyCanonicalUrl(legacy.canonicalPath, legacy.page);
+      if (currentPage !== legacy.page) {
+        setCurrentPage(legacy.page);
+        return;
+      }
+    }
+
     // Do not redirect while session initialization is still in progress
     if (isInitializingAuth) return;
 
-    const isProtectedClientRoute = [
+    const isClientWorkspaceRoute = [
+      'portal',
       'stage_one_onboard',
       'onboarding',
       'client_onboarding',
@@ -164,62 +192,48 @@ const AppContent: React.FC = () => {
       'register'
     ].includes(currentPage);
 
-    if (isProtectedClientRoute && !hasLiveClientSession) {
+    const isStaffWorkspaceRoute = [
+      'staff',
+      'staff_portal',
+      'accountant_workspace',
+      'reviewer_workspace',
+      'senior_reviewer_workspace',
+      'reviewer_portal',
+      'admin_dashboard',
+      'admin_portal'
+    ].includes(currentPage);
+
+    // Client route guarding
+    if (isClientWorkspaceRoute && !hasLiveClientSession) {
       setCurrentPage('client_login');
       return;
     }
 
-    const isCompleted =
-      StageOneOnboardingService.hasPassedHardExitGate(currentUser?.clientId, currentUser) ||
-      (currentUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
-      (currentUser?.onboardingStatus || '').toUpperCase() === 'APPROVED' ||
-      (currentUser?.onboardingStatus || '').toUpperCase() === 'SUBMITTED' ||
-      Boolean(currentUser?.onboardingCompletedAt) ||
-      Boolean(provisionedOnboarding?.activeStage && provisionedOnboarding.activeStage >= 2);
-
     if (isPublicClientAuthRoute && hasLiveClientSession) {
-      setCurrentPage(isCompleted ? 'client_portal' : 'stage_one_onboard');
+      setCurrentPage('portal');
       return;
     }
 
-    if (currentPage === 'client_portal' && hasLiveClientSession && !isCompleted) {
-      setCurrentPage('stage_one_onboard');
-      return;
+    // Staff route guarding
+    if (isStaffWorkspaceRoute) {
+      if (!currentUser) {
+        setCurrentPage('staff_login');
+        return;
+      }
+      // SECURITY: Client is strictly prohibited from accessing staff workspaces
+      if (currentUser.role === 'client' || currentUser.role === 'prospective_client') {
+        setCurrentPage('portal');
+        return;
+      }
     }
 
-    if (
-      ['stage_one_onboard', 'onboarding', 'client_onboarding'].includes(currentPage) &&
-      hasLiveClientSession &&
-      isCompleted
-    ) {
-      setCurrentPage('client_portal');
+    if (currentPage === 'staff_login' && currentUser) {
+      if (currentUser.role === 'client' || currentUser.role === 'prospective_client') {
+        setCurrentPage('portal');
+        return;
+      }
+      setCurrentPage('staff');
       return;
-    }
-
-    if (currentPage === 'portals') {
-      // Clean production portal route; no hash redirection needed
-    } else if (
-      currentPage === 'admin_dashboard' ||
-      currentPage === 'admin_portal'
-    ) {
-      if (!currentUser && window.location.hash !== '#/staff/login') {
-        window.location.hash = '#/staff/login';
-      }
-    } else if (
-      currentPage === 'reviewer_workspace' ||
-      currentPage === 'senior_reviewer_workspace' ||
-      currentPage === 'reviewer_portal'
-    ) {
-      if (!currentUser && window.location.hash !== '#/staff/login') {
-        window.location.hash = '#/staff/login';
-      }
-    } else if (
-      currentPage === 'accountant_workspace' ||
-      currentPage === 'staff_portal'
-    ) {
-      if (!currentUser && window.location.hash !== '#/staff/login') {
-        window.location.hash = '#/staff/login';
-      }
     }
   }, [currentPage, currentUser, hasLiveClientSession, isInitializingAuth, setCurrentPage]);
 
@@ -241,16 +255,16 @@ const AppContent: React.FC = () => {
           </p>
           <div className="pt-2 flex gap-3">
             <button
-              onClick={() => { window.location.hash = '#/'; }}
+              onClick={() => setCurrentPage('home')}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition"
             >
               Return Home
             </button>
             <button
-              onClick={() => { window.location.hash = '#/portals'; }}
+              onClick={() => setCurrentPage('portal')}
               className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition"
             >
-              Go to Portals
+              Go to Portal
             </button>
           </div>
         </div>
@@ -279,6 +293,7 @@ const AppContent: React.FC = () => {
 
   const renderPage = () => {
     if (
+      currentPage === 'portal' ||
       currentPage === 'stage_one_onboard' ||
       currentPage === 'onboarding' ||
       currentPage === 'client_onboarding' ||
@@ -312,31 +327,39 @@ const AppContent: React.FC = () => {
     }
 
     if (
+      currentPage === 'staff' ||
       currentPage === 'accountant_workspace' ||
-      currentPage === 'staff_portal'
-    ) {
-      if (isInitializingAuth) return renderAuthInitializingState();
-      if (!currentUser) return <StaffLoginPage />;
-      return <AccountantWorkspace />;
-    }
-
-    if (
+      currentPage === 'staff_portal' ||
       currentPage === 'reviewer_workspace' ||
       currentPage === 'senior_reviewer_workspace' ||
-      currentPage === 'reviewer_portal'
-    ) {
-      if (isInitializingAuth) return renderAuthInitializingState();
-      if (!currentUser) return <StaffLoginPage />;
-      return <ReviewerWorkspace />;
-    }
-
-    if (
+      currentPage === 'reviewer_portal' ||
       currentPage === 'admin_dashboard' ||
       currentPage === 'admin_portal'
     ) {
       if (isInitializingAuth) return renderAuthInitializingState();
       if (!currentUser) return <StaffLoginPage />;
-      return <PracticeAdminWorkspace />;
+
+      // SECURITY: Client is strictly denied from staff workspaces
+      if (currentUser.role === 'client' || currentUser.role === 'prospective_client') {
+        const permanentClientId = currentUser?.clientId?.trim();
+        if (!permanentClientId) return <ClientLoginPage />;
+        return (
+          <LiveClientWorkflowRouter
+            clientId={permanentClientId}
+            taxYear={liveTaxYear}
+            onTaxYearChange={setLiveTaxYear}
+          />
+        );
+      }
+
+      const workspace = resolveAuthoritativeStaffWorkspace(currentUser.role);
+      if (workspace === 'admin_dashboard') {
+        return <PracticeAdminWorkspace />;
+      }
+      if (workspace === 'reviewer_workspace') {
+        return <ReviewerWorkspace />;
+      }
+      return <AccountantWorkspace />;
     }
 
     if (currentPage === 'staff_onboarding') {
@@ -386,6 +409,8 @@ const AppContent: React.FC = () => {
   };
 
   const portalRoutes = new Set<string>([
+    'portal',
+    'staff',
     'stage_one_onboard',
     'client_portal',
     'client_onboarding',

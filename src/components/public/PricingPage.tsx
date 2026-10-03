@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ServicePlan } from '../../types';
 import { 
@@ -297,15 +297,18 @@ export const PricingPage: React.FC = () => {
                   An encrypted receipt and client portal activation instructions were sent to your email.
                 </p>
                 <div className="pt-2 flex flex-col gap-2">
-                  <button
-                    onClick={() => {
+                  <a
+                    href="/portal"
+                    onClick={(e) => {
+                      e.preventDefault();
                       setSelectedPlan(null);
-                      window.location.hash = '#/client/login';
+                      setCurrentPage('portal');
                     }}
-                    className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A]"
+                    className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] text-center block"
+                    role="link"
                   >
                     Open Client Portal
-                  </button>
+                  </a>
                 </div>
               </div>
             )}

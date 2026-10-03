@@ -9,28 +9,28 @@ interface PublicV2PortalsPageProps {
 const PUBLIC_PORTAL_LINKS = [
   {
     role: 'client',
-    dashboardPath: '#/client/login',
+    dashboardPath: '/portal',
     title: 'Client Portal',
     description:
       'Secure access for clients to onboarding, document collection, tax workflow status, review and authorized communications.',
   },
   {
     role: 'staff',
-    dashboardPath: '#/staff/login',
+    dashboardPath: '/staff',
     title: 'Staff Portal',
     description:
       'Secure access for authorized tax preparers, accountants and operations staff.',
   },
   {
     role: 'reviewer',
-    dashboardPath: '#/staff/login',
+    dashboardPath: '/staff',
     title: 'Reviewer Portal',
     description:
       'Secure access for authorized reviewers and professional quality-control workflows.',
   },
   {
     role: 'admin',
-    dashboardPath: '#/staff/login',
+    dashboardPath: '/staff',
     title: 'Administration',
     description:
       'Restricted administrative access for authorized TaxGuard personnel.',
@@ -45,28 +45,28 @@ export const PublicV2PortalsPage: React.FC<PublicV2PortalsPageProps> = ({
       title: 'Secure Client Portal',
       audience: 'Individual & Corporate Tax Clients',
       description: 'Encrypted document uploads, questionnaire completion, tax return draft review, digital Form 8879 signatures, and real-time status tracking.',
-      route: '#/client/login',
+      route: '/portal',
       badge: 'Client Access'
     },
     {
       title: 'Staff & Accountant Workspace',
       audience: 'Staff Accountants, Bookkeepers & Preparers',
       description: 'Primary workpapers management, general ledger entry, trial balance reconciliations, and draft return assembly.',
-      route: '#/accountant/login',
+      route: '/staff',
       badge: 'Staff Practice'
     },
     {
       title: 'Senior Reviewer Workspace',
       audience: 'Senior CPAs, Reviewers & Quality Managers',
       description: 'Second-tier technical audit, statutory tax code compliance checks, M-1 adjustments, and return approval for filing.',
-      route: '#/reviewer/login',
+      route: '/staff',
       badge: 'Review Tier'
     },
     {
       title: 'Administrative Practice Console',
       audience: 'Practice Managers & Partners',
       description: 'Global engagement tracking, user lifecycle management, billing authorizations, and compliance telemetry.',
-      route: '#/admin/login',
+      route: '/staff',
       badge: 'Executive Admin'
     }
   ];
@@ -128,7 +128,7 @@ export const PublicV2PortalsPage: React.FC<PublicV2PortalsPageProps> = ({
             </h2>
           </div>
           <a
-            href="#/portals"
+            href="/portals"
             className="px-5 py-2 bg-white text-black border border-black text-xs font-semibold hover:bg-black hover:text-white transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto"
           >
             <span>Open All 29 Role Directory</span>
@@ -145,7 +145,7 @@ export const PublicV2PortalsPage: React.FC<PublicV2PortalsPageProps> = ({
           {PUBLIC_PORTAL_LINKS.slice(0, 18).map((r) => (
             <a
               key={r.role}
-              href={`#${r.dashboardPath}`}
+              href={r.dashboardPath}
               className="p-2 border border-neutral-300 hover:border-black bg-white hover:bg-neutral-100 text-[11px] font-medium text-black transition-colors block text-center truncate"
               title={r.title}
             >

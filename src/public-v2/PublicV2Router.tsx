@@ -47,7 +47,11 @@ export const PublicV2Router: React.FC = () => {
   const handleNavigate = (targetPath: string) => {
     // If navigating back to primary site:
     if (targetPath === '/' || targetPath === '#/' || targetPath === 'home') {
-      window.location.hash = '#/';
+      try {
+        window.history.pushState(null, '', '/');
+      } catch {
+        // fallback
+      }
       window.location.pathname = '/';
       return;
     }

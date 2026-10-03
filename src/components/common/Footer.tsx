@@ -150,20 +150,28 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <button 
-                  onClick={() => { window.location.hash = '#/client/login'; }} 
+                <a 
+                  href="/portal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNav('portal');
+                  }} 
                   className="hover:text-white transition-colors flex items-center gap-1 text-slate-300 font-semibold text-[#C6A15B]"
                 >
                   Client Portal <ArrowRight className="w-3 h-3" />
-                </button>
+                </a>
               </li>
               <li>
-                <button 
-                  onClick={() => { window.location.hash = '#/accountant/login'; }} 
-                  className="hover:text-white transition-colors flex items-center gap-1"
+                <a 
+                  href="/staff"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNav('staff');
+                  }} 
+                  className="hover:text-white transition-colors flex items-center gap-1 text-slate-400 hover:text-slate-200"
                 >
                   Staff Portal
-                </button>
+                </a>
               </li>
             </ul>
           </div>

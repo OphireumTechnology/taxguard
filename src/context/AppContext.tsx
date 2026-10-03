@@ -40,6 +40,7 @@ import { isSupabaseConfigured, supabase } from '../supabase/config';
 import { StageOneOnboardingService } from '../services/stageOneOnboardingService';
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
+import { normalizeLegacyUrl } from '../config/canonicalRouting';
 
 export type PageRoute =
   | 'home'
@@ -81,6 +82,8 @@ export type PageRoute =
   | 'cookies'
   | 'portals'
   | 'public_v2'
+  | 'portal'
+  | 'staff'
   | 'not_found';
 
 export interface AppNotification {
@@ -213,7 +216,12 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const resolveRoute = (rawInput: string): PageRoute | null => {
     if (!rawInput) return null;
-    const clean = rawInput
+
+    const legacy = normalizeLegacyUrl(rawInput);
+    if (legacy) return legacy.page;
+
+    const pathOnly = rawInput.split('?')[0].split('#')[0];
+    const clean = pathOnly
       .replace(/^#\/?/, '')
       .replace(/^\/+/, '')
       .replace(/\/+$/, '')
@@ -221,6 +229,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .trim();
 
     if (!clean || clean === 'index.html') return 'home';
+    if (clean === 'portal') return 'portal';
+    if (clean === 'portal/login') return 'client_login';
+    if (clean === 'portal/register') return 'client_register';
+    if (clean === 'staff') return 'staff';
+    if (clean === 'staff/login') return 'staff_login';
     if (clean === 'client/login') return 'client_login';
     if (clean === 'client/register') return 'client_register';
 
@@ -232,7 +245,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'senior_reviewer_workspace', 'reviewer_portal', 'admin_dashboard', 'admin_portal',
       'live_calendar', 'virtual_consultation_room', 'client_login', 'client_register',
       'staff_login', 'privacy', 'terms', 'accessibility', 'security', 'disclaimers',
-      'cookies', 'portals', 'public_v2', 'not_found'
+      'cookies', 'portals', 'public_v2', 'portal', 'staff', 'not_found'
     ];
 
     if (validRoutes.includes(clean as PageRoute)) return clean as PageRoute;
@@ -240,7 +253,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const normalized = clean.replace(/_/g, '-');
     const aliasMap: Record<string, PageRoute> = {
       'portals': 'portals',
-      'portal': 'portals',
+      'portal': 'portal',
+      'portal/login': 'client_login',
+      'portal/register': 'client_register',
+      'staff': 'staff',
+      'staff/login': 'staff_login',
       'dashboard': 'client_portal',
       'client/dashboard': 'client_portal',
       'client-dashboard': 'client_portal',
@@ -297,8 +314,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const isDemoUrl = (raw: string): boolean => {
     const clean = raw.replace(/^#\/?/, '').replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase().trim();
-    if (clean === 'client/login' || clean === 'client/register') return false;
-    if (clean === 'portal' || clean === 'portals' || clean === 'staff/login') return false;
+    if (
+      clean === 'portal' ||
+      clean === 'portal/login' ||
+      clean === 'portal/register' ||
+      clean === 'staff' ||
+      clean === 'staff/login' ||
+      clean === 'client/login' ||
+      clean === 'client/register' ||
+      clean === 'portals'
+    ) return false;
     if (clean === 'accountant/dashboard' || clean === 'reviewer/dashboard' || clean === 'admin/dashboard') return false;
     if (clean.startsWith('error/')) return true;
     if (clean.startsWith('demo') || clean.startsWith('demo/')) return true;
@@ -310,15 +335,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const hash = window.location.hash || '';
     const pathname = window.location.pathname || '';
 
+    // Check legacy normalization
+    const legacy = normalizeLegacyUrl(hash, pathname);
+    if (legacy) {
+      if (typeof window !== 'undefined') {
+        try {
+          window.history.replaceState({ page: legacy.page }, '', legacy.canonicalPath);
+        } catch {
+          // ignore
+        }
+      }
+      return legacy.page;
+    }
+
     if (isDemoUrl(hash) || isDemoUrl(pathname)) return null;
 
-    if (hash) {
-      const match = resolveRoute(hash);
+    if (pathname && pathname !== '/' && pathname !== '/index.html') {
+      const match = resolveRoute(pathname);
       if (match) return match;
     }
 
-    if (pathname && pathname !== '/') {
-      const match = resolveRoute(pathname);
+    if (hash) {
+      const match = resolveRoute(hash);
       if (match) return match;
     }
 
@@ -423,18 +461,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (params) setPageParams(params);
 
     if (typeof window !== 'undefined') {
-      const targetPath = page === 'home'
-        ? '/'
-        : page === 'client_login'
-          ? '/#/client/login'
-          : page === 'client_register'
-            ? '/#/client/register'
-            : `/${page}`;
+      let targetPath = `/${page}`;
+      if (page === 'home') {
+        targetPath = '/';
+      } else if (
+        page === 'portal' ||
+        page === 'client_portal' ||
+        page === 'stage_one_onboard' ||
+        page === 'onboarding' ||
+        page === 'client_onboarding'
+      ) {
+        targetPath = '/portal';
+      } else if (page === 'client_login' || page === 'login') {
+        targetPath = '/portal/login';
+      } else if (page === 'client_register' || page === 'register') {
+        targetPath = '/portal/register';
+      } else if (
+        page === 'staff' ||
+        page === 'staff_portal' ||
+        page === 'accountant_workspace' ||
+        page === 'reviewer_workspace' ||
+        page === 'senior_reviewer_workspace' ||
+        page === 'admin_dashboard' ||
+        page === 'admin_portal'
+      ) {
+        targetPath = '/staff';
+      } else if (page === 'staff_login') {
+        targetPath = '/staff/login';
+      } else {
+        targetPath = `/${page.replace(/_/g, '-')}`;
+      }
 
       try {
-        window.history.pushState({ page }, '', targetPath);
+        if (window.location.pathname !== targetPath || window.location.hash) {
+          window.history.pushState({ page }, '', targetPath);
+        }
       } catch {
-        window.location.hash = `#/${page}`;
+        // fallback
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -643,11 +706,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentPageState(landingPage);
       setPageParams({});
       if (typeof window !== 'undefined') {
-        const targetPath = `/${landingPage}`;
+        const targetPath =
+          landingPage === 'client_portal' || landingPage === 'stage_one_onboard'
+            ? '/portal'
+            : landingPage === 'accountant_workspace' || landingPage === 'reviewer_workspace' || landingPage === 'admin_dashboard'
+              ? '/staff'
+              : `/${landingPage}`;
         try {
           window.history.replaceState({ page: landingPage }, '', targetPath);
         } catch {
-          window.location.hash = `#/${landingPage}`;
+          // fallback
         }
       }
     }
@@ -669,9 +737,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (typeof window !== 'undefined') {
         localStorage.removeItem('taxguard_environment');
         try {
-          window.history.replaceState({ page: 'client_login' }, '', '/#/client/login');
+          window.history.replaceState({ page: 'client_login' }, '', '/portal/login');
         } catch {
-          window.location.hash = '#/client/login';
+          // fallback
         }
       }
       void supabaseLogout().catch(() => {});
@@ -1041,6 +1109,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = async () => {
     authOperationInProgressRef.current = true;
     const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('taxguard_environment') === 'demo';
+    const isStaffSession = Boolean(currentUser && ['accountant', 'preparer', 'reviewer', 'senior_reviewer', 'admin', 'super_admin', 'billing', 'compliance', 'operations'].includes(currentUser.role));
+    const logoutTargetPage: PageRoute = isStaffSession ? 'staff_login' : 'client_login';
+    const logoutTargetPath = isStaffSession ? '/staff/login' : '/portal/login';
 
     try {
       if (isDemoSession) {
@@ -1058,14 +1129,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRegistrationState('IDLE');
       setPendingVerificationEmail(null);
       setProvisionedOnboarding(null);
-      setCurrentPageState('client_login');
+      setCurrentPageState(logoutTargetPage);
 
       if (typeof window !== 'undefined') {
         localStorage.removeItem('taxguard_environment');
         localStorage.removeItem('demo_session');
         sessionStorage.removeItem('demo_session');
-        window.history.replaceState({ page: 'client_login' }, '', '/#/client/login');
-        window.location.hash = '#/client/login';
+        try {
+          window.history.replaceState({ page: logoutTargetPage }, '', logoutTargetPath);
+        } catch {
+          // fallback
+        }
       }
 
       authOperationInProgressRef.current = false;

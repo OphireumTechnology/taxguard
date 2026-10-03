@@ -27,14 +27,11 @@ interface PortalDirectoryPageProps {
 export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavigate }) => {
   const { currentUser, setCurrentPage } = useApp();
 
-  const handleGo = (page: PageRoute, hash?: string) => {
+  const handleGo = (page: PageRoute) => {
     if (onNavigate) {
       onNavigate(page);
     } else {
       setCurrentPage(page);
-    }
-    if (hash) {
-      window.location.hash = hash;
     }
   };
 
@@ -49,7 +46,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
       iconColor: 'text-[#D4A843]',
       description: 'Upload tax documents, complete the guided questionnaire, review draft returns, sign Form 8879, and track e-filing status.',
       primaryActionLabel: currentUser?.role === 'client' ? 'Enter Client Tax Center' : 'Sign In as Client',
-      primaryTarget: currentUser?.role === 'client' ? 'client_portal' : 'client_login',
+      primaryTarget: (currentUser?.role === 'client' ? 'portal' : 'client_login') as PageRoute,
       secondaryActionLabel: !currentUser ? 'New Client Registration' : undefined,
       secondaryTarget: 'client_register' as PageRoute,
       features: ['Secure document vault', 'Action-oriented dashboard', 'E-signature authorization', 'Real-time filing tracker']
@@ -64,8 +61,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
       iconColor: 'text-blue-400',
       description: 'Manage assigned client tax dossiers, conduct document side-by-side validation, reconcile accounts, and prepare returns.',
       primaryActionLabel: ['accountant', 'preparer'].includes(currentUser?.role || '') ? 'Open Accountant Workspace' : 'Staff Sign In',
-      primaryTarget: ['accountant', 'preparer'].includes(currentUser?.role || '') ? 'accountant_workspace' : 'staff_login',
-      hashTarget: ['accountant', 'preparer'].includes(currentUser?.role || '') ? '#/accountant/dashboard' : undefined,
+      primaryTarget: (['accountant', 'preparer'].includes(currentUser?.role || '') ? 'staff' : 'staff_login') as PageRoute,
       features: ['Assigned dossier queue', 'Side-by-side document review', 'Categorization & recording', 'Discrepancy resolution']
     },
     {
@@ -78,8 +74,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
       iconColor: 'text-purple-400',
       description: 'Independent quality control, maker-checker return certification, workpaper review, variance diagnostics, and approval gating.',
       primaryActionLabel: ['reviewer', 'senior_reviewer'].includes(currentUser?.role || '') ? 'Open Reviewer Workspace' : 'Reviewer Sign In',
-      primaryTarget: ['reviewer', 'senior_reviewer'].includes(currentUser?.role || '') ? 'reviewer_workspace' : 'staff_login',
-      hashTarget: ['reviewer', 'senior_reviewer'].includes(currentUser?.role || '') ? '#/reviewer/dashboard' : undefined,
+      primaryTarget: (['reviewer', 'senior_reviewer'].includes(currentUser?.role || '') ? 'staff' : 'staff_login') as PageRoute,
       features: ['Independent sign-off', 'Maker-checker validation', 'Immutable version seal', 'Regulatory compliance checks']
     },
     {
@@ -92,8 +87,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
       iconColor: 'text-emerald-400',
       description: 'Practice oversight, tenant and user authorization, external provider readiness monitoring, and compliance audit trail inspection.',
       primaryActionLabel: ['admin', 'super_admin'].includes(currentUser?.role || '') ? 'Open Admin Console' : 'Administrator Sign In',
-      primaryTarget: ['admin', 'super_admin'].includes(currentUser?.role || '') ? 'admin_dashboard' : 'staff_login',
-      hashTarget: ['admin', 'super_admin'].includes(currentUser?.role || '') ? '#/admin/dashboard' : undefined,
+      primaryTarget: (['admin', 'super_admin'].includes(currentUser?.role || '') ? 'staff' : 'staff_login') as PageRoute,
       features: ['Provider readiness status', 'Role & user governance', 'Case & engagement tracking', 'Tamper-evident audit logs']
     }
   ];
@@ -159,7 +153,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
                 <div className="pt-6 space-y-2">
                   <button
                     type="button"
-                    onClick={() => handleGo(card.primaryTarget as PageRoute, card.hashTarget)}
+                    onClick={() => handleGo(card.primaryTarget as PageRoute)}
                     className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
                   >
                     <span>{card.primaryActionLabel}</span>

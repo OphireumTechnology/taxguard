@@ -63,15 +63,23 @@ export function sanitizeAndValidateRecoveryUrl(candidate: string): string {
     throw new Error('Unauthorized recovery URL: user credentials in URL are prohibited.');
   }
 
-  if (url.pathname !== '/' && url.pathname !== '') {
+  const allowedCleanPaths = ['/portal', '/portal/login', '/portal/reset-password', '/staff', '/staff/login'];
+  const cleanPath = url.pathname.replace(/\/+$/, '');
+
+  const isCleanPath = allowedCleanPaths.includes(cleanPath);
+  const isRootPath = url.pathname === '/' || url.pathname === '';
+
+  if (!isCleanPath && !isRootPath) {
     throw new Error(`Unauthorized recovery target route: ${url.pathname}`);
   }
 
-  // Ensure path points to client recovery or login hash
-  const hash = url.hash.toLowerCase();
-  const allowedHashes = ['#/client/reset-password', '#/client/login', '#client/reset-password', '#client/login'];
-  if (!hash || !allowedHashes.some(h => hash.startsWith(h))) {
-    throw new Error(`Unauthorized recovery target route: ${url.hash || 'missing-recovery-hash'}`);
+  // If root path was used, ensure hash points to client recovery or login hash
+  if (isRootPath) {
+    const hash = url.hash.toLowerCase();
+    const allowedHashes = ['#/client/reset-password', '#/client/login', '#client/reset-password', '#client/login'];
+    if (!hash || !allowedHashes.some(h => hash.startsWith(h))) {
+      throw new Error(`Unauthorized recovery target route: ${url.hash || 'missing-recovery-hash'}`);
+    }
   }
 
   return url.href;

@@ -259,9 +259,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   const handleSignOut = () => {
     logout();
-    if (typeof window !== 'undefined') {
-      window.location.hash = '#/client_login';
-    }
   };
 
   // Render Left Navigation Sidebar Content

@@ -80,14 +80,19 @@ export const HomePage: React.FC = () => {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
 
-                <button
-                  onClick={() => window.location.hash = '#/client/login'}
+                <a
+                  href="/portal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentPage('portal');
+                  }}
                   className="px-6 py-4 rounded-xl font-semibold text-sm text-slate-100 bg-[#0D2340] hover:bg-[#132E52] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                   id="hero-portal-btn"
+                  role="link"
                 >
                   <Lock className="w-4 h-4 text-[#C99A3D]" />
                   <span>Secure Client Portal</span>
-                </button>
+                </a>
               </div>
 
               {/* 4 Trust & Governance Indicators (Factual, Verified Standards) */}
@@ -688,14 +693,19 @@ export const HomePage: React.FC = () => {
             </div>
 
             <div className="pt-2 flex items-center gap-4">
-              <button
-                onClick={() => window.location.hash = '#/client/login'}
+              <a
+                href="/portal"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentPage('portal');
+                }}
                 className="px-6 py-3.5 rounded-xl font-bold text-xs text-[#07172B] bg-[#C99A3D] hover:bg-[#E2BD67] transition-all flex items-center gap-2"
                 id="portal-upload-btn"
+                role="link"
               >
                 <span>Upload Documents via Client Portal</span>
                 <UploadCloud className="w-4 h-4" />
-              </button>
+              </a>
             </div>
           </div>
 

@@ -3,10 +3,26 @@ import {
   Lock, 
   Phone, 
   MapPin, 
-  Clock
+  Clock,
+  Briefcase
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 export const TopUtilityBar: React.FC = () => {
+  const { setCurrentPage } = useApp();
+
+  const handleClientPortalClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    setCurrentPage('portal');
+  };
+
+  const handleStaffPortalClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    setCurrentPage('staff');
+  };
+
   return (
     <div 
       className="bg-[#050E1A] border-b border-[#0B2748] text-xs text-slate-300 py-1.5 sm:py-2 relative z-50 select-none min-h-[38px] flex items-center"
@@ -48,26 +64,29 @@ export const TopUtilityBar: React.FC = () => {
         {/* Public marketing pages show ONLY clean public links. Never authenticated state, names, or session controls. */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 justify-end flex-shrink-0 text-[11px] sm:text-xs">
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={() => { window.location.hash = '#/client/login'; }}
+            <a
+              href="/portal"
+              onClick={handleClientPortalClick}
               className="text-slate-300 hover:text-[#E2BD67] font-medium transition-colors inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
               aria-label="Access Client Portal"
+              role="link"
             >
               <Lock className="w-3 h-3 text-[#C99A3D]" />
               <span>Client Portal</span>
-            </button>
+            </a>
 
-            <span className="text-slate-600 hidden sm:inline" aria-hidden="true">&bull;</span>
+            <span className="text-slate-600 inline" aria-hidden="true">&bull;</span>
 
-            <button
-              type="button"
-              onClick={() => { window.location.hash = '#/accountant/login'; }}
-              className="text-slate-400 hover:text-slate-200 font-medium transition-colors hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+            <a
+              href="/staff"
+              onClick={handleStaffPortalClick}
+              className="text-slate-400 hover:text-[#E2BD67] font-medium transition-colors inline-flex items-center gap-1 px-1.5 py-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
               aria-label="Access Staff Portal"
+              role="link"
             >
+              <Briefcase className="w-3 h-3 text-slate-400" />
               <span>Staff Portal</span>
-            </button>
+            </a>
           </div>
         </div>
 

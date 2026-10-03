@@ -111,15 +111,27 @@ interface ErrorPageViewProps {
 export const ErrorPageView: React.FC<ErrorPageViewProps> = ({
   type,
   customMessage,
-  onNavigateHome = () => { window.location.hash = '#/'; },
-  onNavigateLogin = (path = '#/client/login') => { window.location.hash = path; }
+  onNavigateHome = () => {
+    try {
+      window.history.pushState(null, '', '/');
+    } catch {
+      window.location.href = '/';
+    }
+  },
+  onNavigateLogin = (path = '/portal/login') => {
+    try {
+      window.history.pushState(null, '', path);
+    } catch {
+      window.location.href = path;
+    }
+  }
 }) => {
   const config = ERROR_CONFIGS[type] || ERROR_CONFIGS['404'];
 
   // Route directly to login page if 401 Unauthorized occurs
   React.useEffect(() => {
     if (type === '401') {
-      onNavigateLogin(config.recommendedRoleLogin || '#/client/login');
+      onNavigateLogin(config.recommendedRoleLogin || '/portal/login');
     }
   }, [type, onNavigateLogin, config.recommendedRoleLogin]);
 

@@ -102,22 +102,22 @@ export const PublicV2Footer: React.FC<PublicV2FooterProps> = ({
                 </button>
               </li>
               <li>
-                <a href="#/client/login" className="text-neutral-700 hover:text-black hover:underline">
+                <a href="/portal" className="text-neutral-700 hover:text-black hover:underline">
                   Secure Client Portal Login
                 </a>
               </li>
               <li>
-                <a href="#/accountant/login" className="text-neutral-700 hover:text-black hover:underline">
-                  Staff & Accountant Workspace
+                <a href="/staff" className="text-neutral-700 hover:text-black hover:underline">
+                  Staff &amp; Accountant Workspace
                 </a>
               </li>
               <li>
-                <a href="#/reviewer/login" className="text-neutral-700 hover:text-black hover:underline">
+                <a href="/staff" className="text-neutral-700 hover:text-black hover:underline">
                   Reviewer Workspace
                 </a>
               </li>
               <li>
-                <a href="#/admin/login" className="text-neutral-700 hover:text-black hover:underline">
+                <a href="/staff" className="text-neutral-700 hover:text-black hover:underline">
                   Administrative Practice Console
                 </a>
               </li>

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Calendar as CalendarIcon, 
@@ -243,13 +243,17 @@ export const BookConsultationPage: React.FC = () => {
                 <strong className="text-white block font-semibold">Important Privacy &amp; Data Notice:</strong>
                 <p>
                   Please do not submit Social Security numbers, tax documents, banking information, or other sensitive personal information through this form. Existing clients should use the{' '}
-                  <button
-                    type="button"
-                    onClick={() => window.location.hash = '#/client/login'}
+                  <a
+                    href="/portal"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage('portal');
+                    }}
                     className="text-[#C6A15B] underline hover:text-[#E2BD67] font-semibold"
+                    role="link"
                   >
                     secure client portal
-                  </button>.
+                  </a>.
                 </p>
               </div>
               
@@ -364,12 +368,17 @@ export const BookConsultationPage: React.FC = () => {
             </div>
 
             <div className="pt-4 flex flex-wrap justify-center gap-4">
-              <button
-                onClick={() => window.location.hash = '#/client/login'}
+              <a
+                href="/portal"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentPage('portal');
+                }}
                 className="px-6 py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A]"
+                role="link"
               >
                 View in Client Portal
-              </button>
+              </a>
               <button
                 onClick={() => setIsSubmitted(false)}
                 className="px-6 py-3 rounded-xl font-semibold text-xs text-slate-300 hover:text-white border border-[#1E3A5F]"

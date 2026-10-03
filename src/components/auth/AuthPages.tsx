@@ -45,12 +45,12 @@ export const ClientLoginPage: React.FC = () => {
   useEffect(() => {
     if (
       typeof window !== 'undefined' &&
-      (window.location.pathname !== '/' || window.location.hash !== '#/client/login')
+      (window.location.pathname !== '/portal/login' || window.location.hash)
     ) {
       try {
-        window.history.replaceState(null, '', '/#/client/login');
+        window.history.replaceState(null, '', '/portal/login');
       } catch {
-        window.location.hash = '#/client/login';
+        // fallback
       }
     }
   }, []);
@@ -79,7 +79,7 @@ export const ClientLoginPage: React.FC = () => {
     setLoading(false);
 
     if (result.success) {
-      setCurrentPage(result.redirectPage || 'stage_one_onboard');
+      setCurrentPage('portal');
       return;
     }
 
@@ -347,6 +347,19 @@ export const ClientRegisterPage: React.FC = () => {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendingEmail, setResendingEmail] = useState(false);
 
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname !== '/portal/register' || window.location.hash)
+    ) {
+      try {
+        window.history.replaceState(null, '', '/portal/register');
+      } catch {
+        // fallback
+      }
+    }
+  }, []);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -406,7 +419,7 @@ export const ClientRegisterPage: React.FC = () => {
 
     // CASE A — Authenticated session established and Stage 01 initialized
     if (result.success && result.status === 'READY') {
-      setCurrentPage(result.redirectPage || 'stage_one_onboard');
+      setCurrentPage('portal');
       return;
     }
 
@@ -815,6 +828,19 @@ export const StaffLoginPage: React.FC = () => {
   const [invitePassword, setInvitePassword] = useState('');
   const [inviteChecking, setInviteChecking] = useState(false);
 
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname !== '/staff/login' || window.location.hash)
+    ) {
+      try {
+        window.history.replaceState(null, '', '/staff/login');
+      } catch {
+        // fallback
+      }
+    }
+  }, []);
+
   const handleStaffLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -822,11 +848,7 @@ export const StaffLoginPage: React.FC = () => {
     const result: any = await login(email, password, targetRole);
     setLoading(false);
     if (result === true || (result && result.success)) {
-      if (targetRole === 'admin') {
-        setCurrentPage('admin_dashboard');
-      } else {
-        setCurrentPage('accountant_workspace');
-      }
+      setCurrentPage('staff');
     } else {
       setError(result?.error || 'Invalid staff credentials. Please check your credentials or contact firm compliance.');
     }

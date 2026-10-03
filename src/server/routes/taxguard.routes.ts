@@ -166,23 +166,23 @@ export function handleLegacyTaxGuardRoute(req: AuthenticatedRequest, res: Respon
   // If user is authenticated, redirect to their designated role dashboard
   if (req.user) {
     const role = req.user.role as string;
-    let targetHash = '#/client/dashboard';
+    let targetPath = '/portal';
 
     if (role === 'admin' || role === 'administrator' || role === 'super_admin') {
-      targetHash = '#/admin/dashboard';
+      targetPath = '/staff';
     } else if (role === 'senior_reviewer' || role === 'reviewer') {
-      targetHash = '#/reviewer/dashboard';
+      targetPath = '/staff';
     } else if (role === 'accountant' || role === 'staff') {
-      targetHash = '#/accountant/dashboard';
+      targetPath = '/staff';
     } else if (role === 'billing') {
-      targetHash = '#/billing/dashboard';
+      targetPath = '/staff';
     } else if (role === 'compliance') {
-      targetHash = '#/compliance/dashboard';
+      targetPath = '/staff';
     } else if (role === 'client' || role === 'prospective_client') {
-      targetHash = '#/client/dashboard';
+      targetPath = '/portal';
     }
 
-    return res.redirect(302, `/${targetHash}`);
+    return res.redirect(302, targetPath);
   }
 
   // If unauthenticated: Reject with 401
@@ -191,7 +191,7 @@ export function handleLegacyTaxGuardRoute(req: AuthenticatedRequest, res: Respon
     code: 'AUTH_REQUIRED',
     message: 'Standalone TaxGuard AI console has been deprecated. TaxGuard AI operates as an integrated service layer within authorized role dashboards. Please authenticate with your designated role credentials.',
     ...DEVELOPER_NOTICE,
-    loginUrl: '/#/client/login'
+    loginUrl: '/portal/login'
   });
 }
 

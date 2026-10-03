@@ -141,22 +141,34 @@ const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
     canonicalPath: '/meeting',
     ogType: 'website'
   },
+  portal: {
+    title: 'Client Portal | A/R Tax Services, LLC',
+    description: 'Encrypted client portal for tax document exchange, return reviews, e-signatures, and real-time filing status tracking.',
+    canonicalPath: '/portal',
+    ogType: 'website'
+  },
   client_portal: {
     title: 'Client Portal | A/R Tax Services, LLC',
     description: 'Encrypted client portal for tax document exchange, return reviews, e-signatures, and real-time filing status tracking.',
-    canonicalPath: '/client/portal',
+    canonicalPath: '/portal',
     ogType: 'website'
   },
   client_login: {
     title: 'Client Portal Sign In | A/R Tax Services, LLC',
     description: 'Secure client sign-in for tax organizers, documents, and status tracking.',
-    canonicalPath: '/client/login',
+    canonicalPath: '/portal/login',
     ogType: 'website'
   },
   client_register: {
     title: 'Client Account Registration | A/R Tax Services, LLC',
     description: 'Register for a new secure client account with A/R Tax Services, LLC.',
-    canonicalPath: '/client/register',
+    canonicalPath: '/portal/register',
+    ogType: 'website'
+  },
+  staff: {
+    title: 'Staff Portal | A/R Tax Services, LLC',
+    description: 'Authorized workspace for accountants, reviewers, and practice staff.',
+    canonicalPath: '/staff',
     ogType: 'website'
   },
   staff_login: {
