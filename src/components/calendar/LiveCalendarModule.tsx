@@ -670,7 +670,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
       {activeTab === 'book' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Appointment Details Panel */}
-          <div className="bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-5">
+          <div className="bg-[rgba(13,39,69,0.94)] backdrop-blur-xs bg-[#0D2745] rounded-2xl p-6 sm:p-7 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-5 shadow-xl">
             <h2 className="text-base font-bold text-[#F8FAFC] font-serif border-b border-[rgba(148,163,184,0.18)] pb-3">
               Appointment Details
             </h2>
@@ -783,7 +783,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
           </div>
 
           {/* Right Column: Available Times Panel */}
-          <div className="lg:col-span-2 bg-[#0D2745] rounded-2xl p-6 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] flex flex-col justify-between space-y-6">
+          <div className="lg:col-span-2 bg-[rgba(13,39,69,0.94)] backdrop-blur-xs bg-[#0D2745] rounded-2xl p-6 sm:p-7 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] flex flex-col justify-between space-y-6 shadow-xl">
             <div>
               <div className="flex items-center justify-between border-b border-[rgba(148,163,184,0.18)] pb-4 mb-4">
                 <div>
@@ -905,7 +905,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
                     Selected: <strong className="text-[#F8FAFC]">{selectedSlot.clientLocalDisplay}</strong> with <strong className="text-[#F8FAFC]">{selectedSlot.staffName}</strong>
                   </span>
                 ) : (
-                  <span>Select a time above to reserve your consultation.</span>
+                  <span>Select an available time to continue.</span>
                 )}
               </div>
 

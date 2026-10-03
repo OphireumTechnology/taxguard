@@ -231,4 +231,51 @@ describe('A/R Tax Services — Consultation UX & Canonical Brand Tokens Suite', 
       expect(emptyStateCardSource).toContain("variant = 'dark'");
     });
   });
+
+  // 11. Hero Background & Cinematic Presentation
+  describe('11. Hero Background & Cinematic Presentation', () => {
+    it('uses photographic background in consultation hero', () => {
+      expect(consultationPageSource).toContain('/images/consultation/consultation-hero.webp');
+      expect(consultationPageSource).toContain("backgroundPosition: 'center'");
+      expect(consultationPageSource).toContain("backgroundSize: 'cover'");
+      expect(consultationPageSource).toContain("backgroundRepeat: 'no-repeat'");
+    });
+
+    it('applies readability overlays to preserve text contrast', () => {
+      expect(consultationPageSource).toContain('linear-gradient(90deg, rgba(6,24,43,0.96) 0%');
+    });
+
+    it('contains eyebrow "PRIVATE TAX & ADVISORY SERVICES" and restrained gold divider', () => {
+      expect(consultationPageSource).toContain('PRIVATE TAX & ADVISORY SERVICES');
+      expect(consultationPageSource).toContain('w-16 h-1 bg-[#D4A843] rounded-full');
+    });
+  });
+
+  // 12. Trust Strip & Governance
+  describe('12. Trust Strip & Professional Restraint', () => {
+    it('renders the 4 trust items', () => {
+      expect(consultationPageSource).toContain('Expert Guidance');
+      expect(consultationPageSource).toContain('Secure Process');
+      expect(consultationPageSource).toContain('Personalized Service');
+      expect(consultationPageSource).toContain('Clear Next Steps');
+    });
+
+    it('avoids unverified marketing claims like IRS Certified or CPA Certified', () => {
+      expect(consultationPageSource).not.toContain('IRS Certified');
+      expect(consultationPageSource).not.toContain('CPA Certified');
+      expect(consultationPageSource).not.toContain('§7216 Certified');
+    });
+  });
+
+  // 13. Canonical Route & Client Assistance
+  describe('13. Route and Disabled CTA Assistance', () => {
+    it('provides clear explanation when no slot is selected', () => {
+      expect(liveCalendarSource).toContain('Select an available time to continue.');
+    });
+
+    it('Express Intake preserves confidential intake badge and clear fields', () => {
+      expect(consultationPageSource).toContain('Confidential intake session.');
+      expect(consultationPageSource).toContain('Book Consultation');
+    });
+  });
 });

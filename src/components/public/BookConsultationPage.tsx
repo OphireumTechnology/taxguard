@@ -8,7 +8,11 @@ import {
   Building2, 
   CheckCircle2, 
   ShieldCheck, 
-  Check
+  Check,
+  Lock,
+  UserCheck,
+  CalendarCheck,
+  Sparkles
 } from 'lucide-react';
 import { LiveCalendarModule } from '../calendar/LiveCalendarModule';
 
@@ -62,29 +66,82 @@ export const BookConsultationPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#06182B] text-[#F8FAFC] pb-20 font-sans selection:bg-[#D4A843]/20 selection:text-[#F8FAFC]">
-      {/* A. PAGE INTRODUCTION */}
-      <section className="pt-10 pb-8 text-center">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2">
-          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#F8FAFC] tracking-tight">
-            Schedule a Consultation
-          </h1>
-          <p className="text-sm sm:text-base text-[#A9B7C8] max-w-xl mx-auto leading-relaxed">
-            Reserve a dedicated strategy session with our senior tax specialists.
-          </p>
+    <div className="min-h-screen bg-[#06182B] text-[#F8FAFC] pb-24 font-sans selection:bg-[#D4A843]/20 selection:text-[#F8FAFC]">
+      {/* A. HERO SECTION WITH CINEMATIC PHOTOGRAPHIC BACKGROUND & READABILITY OVERLAYS */}
+      <section 
+        className="relative overflow-hidden border-b border-[rgba(148,163,184,0.18)]"
+        style={{
+          backgroundImage: `url('/images/consultation/consultation-hero.webp')`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {/* Readability Overlays: Deep navy gradient protecting text contrast on desktop, high opacity on mobile */}
+        <div 
+          className="absolute inset-0 bg-[#06182B]/92 sm:bg-transparent"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(6,24,43,0.96) 0%, rgba(6,24,43,0.88) 40%, rgba(6,24,43,0.66) 72%, rgba(6,24,43,0.76) 100%)`,
+          }}
+        />
+        {/* Vignette merging top with navigation header and bottom with page body */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#071A2E]/80 via-transparent to-[#06182B] pointer-events-none" />
+
+        <div className="relative max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18 lg:py-20 min-h-[380px] sm:min-h-[420px] lg:min-h-[460px] flex flex-col justify-center">
+          <div className="max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(212,168,67,0.12)] border border-[rgba(212,168,67,0.30)] text-[#D4A843] text-[11px] sm:text-xs font-semibold tracking-[0.18em] uppercase">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>PRIVATE TAX & ADVISORY SERVICES</span>
+            </div>
+
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#F8FAFC] tracking-tight leading-tight">
+              Schedule a Consultation
+            </h1>
+
+            {/* Restrained gold divider */}
+            <div className="w-16 h-1 bg-[#D4A843] rounded-full my-3" />
+
+            <p className="text-sm sm:text-base text-[#A9B7C8] max-w-xl leading-relaxed">
+              Reserve a dedicated strategy session with our senior tax specialists. Choose a time and meeting option that works for you.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* B. BOOKING METHOD (Compact segmented control) */}
-      <div className="max-w-md mx-auto px-4 mb-8">
-        <div className="grid grid-cols-2 p-1 rounded-xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)]">
+      {/* TRUST STRIP (Between hero and booking workspace) */}
+      <section className="border-b border-[rgba(148,163,184,0.12)] bg-[#071A2E]/80 backdrop-blur-xs py-4">
+        <div className="max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div className="flex items-center gap-2.5 text-[#A9B7C8]">
+              <ShieldCheck className="w-4 h-4 text-[#D4A843] shrink-0" />
+              <span className="font-medium text-[#F8FAFC]">Expert Guidance</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-[#A9B7C8]">
+              <Lock className="w-4 h-4 text-[#D4A843] shrink-0" />
+              <span className="font-medium text-[#F8FAFC]">Secure Process</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-[#A9B7C8]">
+              <UserCheck className="w-4 h-4 text-[#D4A843] shrink-0" />
+              <span className="font-medium text-[#F8FAFC]">Personalized Service</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-[#A9B7C8]">
+              <CalendarCheck className="w-4 h-4 text-[#D4A843] shrink-0" />
+              <span className="font-medium text-[#F8FAFC]">Clear Next Steps</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* B. BOOKING METHOD (Refined segmented selector) */}
+      <div className="max-w-md mx-auto px-4 mt-8 mb-8 sm:mb-10">
+        <div className="grid grid-cols-2 p-1.5 rounded-xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-md">
           <button
             type="button"
             onClick={() => setBookingMode('live_calendar')}
-            className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+            className={`py-2.5 px-3.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               bookingMode === 'live_calendar'
                 ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-xs'
-                : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+                : 'bg-transparent text-[#A9B7C8] hover:text-[#F8FAFC]'
             }`}
           >
             <CalendarIcon className="w-3.5 h-3.5" />
@@ -93,10 +150,10 @@ export const BookConsultationPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setBookingMode('fast_form')}
-            className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+            className={`py-2.5 px-3.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               bookingMode === 'fast_form'
                 ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-xs'
-                : 'text-[#A9B7C8] hover:text-[#F8FAFC]'
+                : 'bg-transparent text-[#A9B7C8] hover:text-[#F8FAFC]'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -107,14 +164,14 @@ export const BookConsultationPage: React.FC = () => {
 
       {/* C. BOOKING WORKFLOW */}
       {bookingMode === 'live_calendar' ? (
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8">
           <LiveCalendarModule embedded={true} />
         </section>
       ) : (
         /* Express Intake Workflow */
         <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           {!isSubmitted ? (
-            <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-2xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-2xl bg-[rgba(13,39,69,0.94)] backdrop-blur-xs bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-xl space-y-6">
               
               {/* How would you like to meet? */}
               <div className="space-y-2">
