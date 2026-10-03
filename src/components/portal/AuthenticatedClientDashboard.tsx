@@ -116,6 +116,22 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   const [activeNavId, setActiveNavId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.toLowerCase();
+      const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+      if (pathname === '/portal/documents') {
+        return 'documents';
+      }
+      if (pathname === '/portal/requests') {
+        return 'exceptions';
+      }
+      if (pathname === '/portal/appointments') {
+        return 'messages';
+      }
+      if (pathname === '/portal/profile') {
+        return 'profile';
+      }
+      if (pathname === '/portal/dashboard') {
+        return 'home';
+      }
       if (hash.includes('collect') || hash.includes('stage2') || hash.includes('workspace')) {
         return 'stage_02';
       }

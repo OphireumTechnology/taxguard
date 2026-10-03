@@ -54,7 +54,9 @@ export class TaxGuardProductionRequestRouter {
 
     if (
       path === '/api' ||
-      path.startsWith('/api/')
+      path.startsWith('/api/') ||
+      path === '/webhooks' ||
+      path.startsWith('/webhooks/')
     ) {
       return Object.freeze({
         runtime: 'NODE_API',

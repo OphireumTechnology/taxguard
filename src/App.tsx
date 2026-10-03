@@ -71,8 +71,16 @@ function isCanonicalLiveAuthRouteUrl(): boolean {
     target === 'portal' ||
     target === 'portal/login' ||
     target === 'portal/register' ||
+    target === 'portal/dashboard' ||
+    target === 'portal/documents' ||
+    target === 'portal/requests' ||
+    target === 'portal/appointments' ||
+    target === 'portal/profile' ||
+    target.startsWith('portal/') ||
     target === 'staff' ||
     target === 'staff/login' ||
+    target === 'staff/workspace' ||
+    target.startsWith('staff/') ||
     target === 'client/login' ||
     target === 'client/register'
   );

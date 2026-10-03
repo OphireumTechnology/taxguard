@@ -8,7 +8,14 @@ import { createProductionApp } from './src/server/productionApp';
 
 import express from 'express';
 import path from 'path';
-import { protectServerBuildArtifacts } from './src/server/staticAssetPolicy';
+import {
+  protectServerBuildArtifacts,
+  isApiOrServerOnlyPath,
+  resolveProductionDistPath,
+  resolvePublicAssetsPath,
+  resolveProductionIndexHtmlPath,
+  createSpaFallbackHandler,
+} from './src/server/staticAssetPolicy';
 import { caseAuthorityRouter } from './src/server/routes/case-authority.routes';
 import { createServer as createViteServer } from 'vite';
 
@@ -159,6 +166,14 @@ import {
 import { ProviderReadinessRegistry } from './src/server/taxguard/providerReadiness.service';
 import { ensureCanonicalTenantBootstrap } from './src/server/taxguard/tenantBootstrap';
 
+if (
+  !process.env.NODE_ENV &&
+  typeof __filename !== 'undefined' &&
+  __filename.endsWith('server.cjs')
+) {
+  process.env.NODE_ENV = 'production';
+}
+
 const app =
   express();
 
@@ -175,7 +190,14 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
 if (process.env.NODE_ENV !== 'production') initSeedPasswords();
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    if (req.path === '/api' || req.path.startsWith('/api/')) return productionApi(req, res, next);
+    if (
+      req.path === '/api' ||
+      req.path.startsWith('/api/') ||
+      req.path === '/webhooks' ||
+      req.path.startsWith('/webhooks/')
+    ) {
+      return productionApi(req, res, next);
+    }
     next();
   });
 }
@@ -644,6 +666,35 @@ app.use(
   }
 );
 
+app.use(
+  '/api/case-authority',
+  caseAuthorityRouter
+);
+
+/**
+ * API & Webhook 404 boundaries:
+ * Never allow unknown /api or /webhooks routes to reach static or SPA fallback.
+ */
+app.use(
+  ['/webhooks', '/webhooks/*'],
+  (_req, res) => {
+    res.status(404).json({
+      code: 'WEBHOOK_NOT_FOUND',
+      error: 'The requested webhook endpoint is not configured.'
+    });
+  }
+);
+
+app.use(
+  '/api',
+  (_req, res) => {
+    res.status(404).json({
+      code: 'API_ROUTE_NOT_FOUND',
+      error: 'The requested API endpoint does not exist.'
+    });
+  }
+);
+
 /**
  * Centralized API error handler to prevent internal stack or secret leaks.
  */
@@ -675,10 +726,7 @@ app.use(
 app.use(
   protectServerBuildArtifacts,
   express.static(
-    path.join(
-      process.cwd(),
-      'public'
-    ),
+    resolvePublicAssetsPath(),
     {
       setHeaders: (
         res,
@@ -707,7 +755,6 @@ app.use(
 
 async function startServer() {
   await ensureCanonicalTenantBootstrap().catch(err => console.warn('[Tenant Bootstrap] Warning:', err?.message || err));
-  app.use('/api/case-authority', caseAuthorityRouter);
   /**
    * Development:
    * Vite runs as Express middleware.
@@ -738,10 +785,7 @@ async function startServer() {
      */
 
     const distPath =
-      path.join(
-        process.cwd(),
-        'dist'
-      );
+      resolveProductionDistPath();
 
     /**
      * Redirect legacy /ar-tax-portal URLs.
@@ -801,22 +845,15 @@ async function startServer() {
      * SPA fallback.
      *
      * Registered API routes are above this fallback.
+     * Serves dist/index.html for clean frontend routes while excluding /api and /webhooks.
      */
 
     app.get(
       '*',
-      (
-        _req,
-        res
-      ) => {
-        res.sendFile(
-          path.join(
-            distPath,
-            'index.html'
-          )
-        );
-      }
+      createSpaFallbackHandler(distPath)
     );
+
+    app.use((_req, res) => res.status(404).json({ code: 'NOT_FOUND' }));
   }
 
   /**

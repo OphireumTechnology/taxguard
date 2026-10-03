@@ -15,11 +15,22 @@ import { PageRoute } from '../context/AppContext';
 
 export const CANONICAL_ROUTES = {
   HOME: '/',
+  ABOUT: '/about',
+  SERVICES: '/services',
+  INDUSTRIES: '/industries',
+  TAX_STRATEGIES: '/tax-strategies',
+  BOOK_CONSULTATION: '/book-consultation',
   PORTAL: '/portal',
   PORTAL_LOGIN: '/portal/login',
   PORTAL_REGISTER: '/portal/register',
+  PORTAL_DASHBOARD: '/portal/dashboard',
+  PORTAL_DOCUMENTS: '/portal/documents',
+  PORTAL_REQUESTS: '/portal/requests',
+  PORTAL_APPOINTMENTS: '/portal/appointments',
+  PORTAL_PROFILE: '/portal/profile',
   STAFF: '/staff',
   STAFF_LOGIN: '/staff/login',
+  STAFF_WORKSPACE: '/staff/workspace',
   PORTALS_DIRECTORY: '/portals'
 } as const;
 
@@ -211,12 +222,40 @@ export function resolveCanonicalPageRoute(
 
   if (!clean || clean === 'index.html') return 'home';
 
+  // Canonical public routes
+  if (clean === 'about') return 'about';
+  if (clean === 'founder') return 'founder';
+  if (clean === 'services') return 'services';
+  if (clean === 'pricing') return 'pricing';
+  if (clean === 'industries') return 'industries';
+  if (clean === 'tax-strategies' || clean === 'tax_strategies') return 'tax_strategies';
+  if (clean === 'book-consultation' || clean === 'book_consultation' || clean === 'consultation') return 'book_consultation';
+  if (clean === 'resources' || clean === 'faq') return 'resources';
+  if (clean === 'careers') return 'careers';
+  if (clean === 'contact') return 'contact';
+  if (clean === 'privacy' || clean === 'privacy-policy' || clean === 'privacy_policy') return 'privacy';
+  if (clean === 'terms' || clean === 'terms-of-service' || clean === 'terms_of_service') return 'terms';
+  if (clean === 'accessibility' || clean === 'accessibility-statement' || clean === 'accessibility_statement') return 'accessibility';
+  if (clean === 'security' || clean === 'security-compliance' || clean === 'security_compliance' || clean === 'security-data-handling' || clean === 'security_data_handling') return 'security';
+  if (clean === 'disclaimers' || clean === 'circular-230' || clean === 'circular_230' || clean === 'professional-disclaimers' || clean === 'professional_disclaimers') return 'disclaimers';
+  if (clean === 'cookies') return 'cookies';
+
   // Canonical paths
   if (clean === 'portal') return 'portal';
   if (clean === 'portal/login') return 'client_login';
   if (clean === 'portal/register') return 'client_register';
+  if (
+    clean === 'portal/dashboard' ||
+    clean === 'portal/documents' ||
+    clean === 'portal/requests' ||
+    clean === 'portal/appointments' ||
+    clean === 'portal/profile'
+  ) {
+    return 'portal';
+  }
   if (clean === 'staff') return 'staff';
   if (clean === 'staff/login') return 'staff_login';
+  if (clean === 'staff/workspace') return 'staff';
 
   return 'not_found';
 }

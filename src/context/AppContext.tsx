@@ -230,9 +230,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (!clean || clean === 'index.html') return 'home';
     if (clean === 'portal') return 'portal';
+    if (
+      clean === 'portal/dashboard' ||
+      clean === 'portal/documents' ||
+      clean === 'portal/requests' ||
+      clean === 'portal/appointments' ||
+      clean === 'portal/profile'
+    ) {
+      return 'portal';
+    }
     if (clean === 'portal/login') return 'client_login';
     if (clean === 'portal/register') return 'client_register';
     if (clean === 'staff') return 'staff';
+    if (clean === 'staff/workspace') return 'staff';
     if (clean === 'staff/login') return 'staff_login';
     if (clean === 'client/login') return 'client_login';
     if (clean === 'client/register') return 'client_register';
