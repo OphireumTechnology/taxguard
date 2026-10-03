@@ -673,6 +673,7 @@ app.use(
  */
 
 app.use(
+  protectServerBuildArtifacts,
   express.static(
     path.join(
       process.cwd(),

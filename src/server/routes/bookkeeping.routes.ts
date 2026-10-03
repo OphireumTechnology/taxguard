@@ -136,6 +136,18 @@ bookkeepingRouter.post('/journal-entries/:id/approve', authenticateToken, blockR
 
   try {
     const approved = globalBookkeepingEngine.reviewAndApproveJournalEntry(req.params.id, user.id);
+
+    db.logAudit({
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      action: 'ADJUSTING_JOURNAL_ENTRY_APPROVED',
+      resource: `Journal Entry #${approved.entryNumber}`,
+      details: `Independent maker-checker review approved by ${user.name} (${user.role}). Entry status changed from PREPARED to POSTED.`,
+      ipAddress: req.ip || 'unknown',
+      severity: 'info',
+    });
+
     return res.json({ message: 'Journal entry successfully approved by reviewer.', entry: approved });
   } catch (err: any) {
     return res.status(400).json({ error: err?.message || 'Failed to approve journal entry.' });

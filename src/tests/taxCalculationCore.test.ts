@@ -451,5 +451,45 @@ describe(
         ).toBe(true);
       }
     );
+
+    describe('Section 13 Financial Precision & Invariants', () => {
+      it('handles 0.01 values and prevents floating point drift over repeated summation', () => {
+        let sum = TaxDecimal.zero(2);
+        const oneCent = TaxDecimal.parse('0.01', 2);
+        for (let i = 0; i < 1000; i++) {
+          sum = sum.add(oneCent);
+        }
+        expect(sum.toFixed()).toBe('10.00');
+        expect(sum.unscaledValue).toBe(1000n);
+      });
+
+      it('handles large amounts without precision overflow', () => {
+        const largeVal1 = TaxDecimal.parse('15000000000.50', 2);
+        const largeVal2 = TaxDecimal.parse('8750000000.75', 2);
+        const total = largeVal1.add(largeVal2);
+        expect(total.toFixed()).toBe('23750000001.25');
+      });
+
+      it('computes negative adjustments deterministically', () => {
+        const grossIncome = TaxDecimal.parse('50000.00', 2);
+        const negativeAdjustment = TaxDecimal.parse('-3500.50', 2);
+        const adjustedGross = grossIncome.add(negativeAdjustment);
+        expect(adjustedGross.toFixed()).toBe('46499.50');
+      });
+
+      it('evaluates exact zero variance and detects one-cent imbalance', () => {
+        const totalDebits = TaxDecimal.parse('125000.50', 2);
+        const equalCredits = TaxDecimal.parse('125000.50', 2);
+        const imbalancedCredits = TaxDecimal.parse('125000.51', 2);
+
+        const balancedVariance = totalDebits.subtract(equalCredits);
+        expect(balancedVariance.isZero()).toBe(true);
+        expect(balancedVariance.toFixed()).toBe('0.00');
+
+        const oneCentVariance = totalDebits.subtract(imbalancedCredits);
+        expect(oneCentVariance.isZero()).toBe(false);
+        expect(oneCentVariance.toFixed()).toBe('-0.01');
+      });
+    });
   }
 );

@@ -52,7 +52,7 @@ interface ReviewQueueItem {
 }
 
 export const ReviewerWorkspace: React.FC = () => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, engagements, logout } = useApp();
   const [selectedCaseId, setSelectedCaseId] = useState<string>('case_rev_001');
   const [activeTab, setActiveTab] = useState<'queue' | 'workpaper' | 'certification' | 'accounting' | 'audit'>('queue');
   const [returnNotes, setReturnNotes] = useState<string>('');
@@ -96,6 +96,32 @@ export const ReviewerWorkspace: React.FC = () => {
       approvalStatus: 'PENDING_REVIEW'
     }
   ]);
+
+  useEffect(() => {
+    if (engagements && engagements.length > 0) {
+      const mapped: ReviewQueueItem[] = engagements
+        .filter(e => e.status === 'under_review' || e.reviewerId === currentUser?.id)
+        .map(e => ({
+          caseId: e.id,
+          clientId: e.clientId,
+          clientName: e.clientName,
+          taxYear: e.taxYear,
+          returnType: e.serviceTitle || (e.serviceType.includes('1040') ? 'Form 1040 & SC 1040' : 'Form 1120-S'),
+          preparerName: e.assignedAccountantName || 'Assigned Preparer',
+          preparerUid: e.assignedAccountantId || '',
+          submittedAt: e.updatedAt || e.createdAt,
+          computedTax: 0,
+          effectiveRate: 0,
+          returnHash: `hash_${e.id}`,
+          approvalStatus: (e.status === 'completed' ? 'APPROVED' : 'PENDING_REVIEW') as ReviewQueueItem['approvalStatus'],
+          notes: e.internalNotes
+        }));
+      if (mapped.length > 0) {
+        setQueue(mapped);
+        setSelectedCaseId(mapped[0].caseId);
+      }
+    }
+  }, [engagements, currentUser?.id]);
 
   const selectedItem = queue.find(q => q.caseId === selectedCaseId) || queue[0];
 
@@ -184,7 +210,7 @@ export const ReviewerWorkspace: React.FC = () => {
       return {
         ...item,
         approvalStatus: 'APPROVED',
-        notes: `Officially certified and approved by Elena Rostova, CPA on ${new Date().toISOString()}`
+        notes: `Officially certified and approved by ${currentUser?.name || 'Authorized Reviewer'} on ${new Date().toISOString()}`
       };
     }));
 
@@ -240,7 +266,7 @@ export const ReviewerWorkspace: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 pl-2 border-l border-slate-700/60">
-            <span className="text-xs text-slate-300 font-medium">{currentUser?.name || 'Elena Rostova, CPA'}</span>
+            <span className="text-xs text-slate-300 font-medium">{currentUser?.name || 'Authorized Reviewer'}</span>
             <button
               type="button"
               onClick={logout}
