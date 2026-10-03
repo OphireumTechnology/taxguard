@@ -32,6 +32,7 @@ import {
   StageTwoCollectionSummaryReport
 } from '../services/stageTwoOrchestratorService';
 import { StageTwoMatchingEngine } from '../services/stageTwoMatchingEngine';
+import { StageTwoDocumentIntelligenceService } from '../services/stageTwoDocumentIntelligenceService';
 import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService';
 
 describe('Stage 02 — Final Live Production Verification (Sections 1–14, 18, 20)', () => {
@@ -877,5 +878,123 @@ describe('Stage 02 — Final Live Production Verification (Sections 1–14, 18, 
     const logs = TaxGuardAuditService.getLogs();
     const reopenLog = logs.find(l => l.action === 'STAGE_02_REQUIREMENT_REOPENED');
     expect(reopenLog).toBeDefined();
+  });
+
+  // ==========================================================================
+  // SECTION 15: PRODUCTION OCR / DOCUMENT INTELLIGENCE ACTIVATION
+  // ==========================================================================
+  it('15. Production OCR: Scanned image end-to-end extraction, matching, and failure safety', async () => {
+    StageTwoDocumentIntelligenceService.setProviderMode('CLOUD');
+
+    // Register simulated cloud document intelligence transport handler
+    StageTwoDocumentIntelligenceService.setCloudTransportHandler(async ({ documentId, processor }) => {
+      expect(processor).toBeDefined();
+      return {
+        text: `
+          Form W-2 Wage and Tax Statement 2025
+          Employer: ABC Corporation EIN: 12-3456789
+          Employee: Alex Mercer SSN: XXX-XX-4455
+          Box 1 Wages: 98500.00 Box 2 Federal Tax: 14750.00
+          Box 15 State: SC State wages: 98500.00 State tax: 4925.00
+        `,
+        pageCount: 1,
+        entities: [
+          { type: 'employer_name', mentionText: 'ABC Corporation', confidence: 0.98, boundingBox: { x: 0.1, y: 0.1, width: 0.3, height: 0.05 } },
+          { type: 'wages', mentionText: '98500.00', confidence: 0.97, boundingBox: { x: 0.4, y: 0.2, width: 0.2, height: 0.04 } }
+        ],
+        confidenceAverage: 0.96,
+        orientationDegrees: 0,
+        dpi: 300
+      };
+    });
+
+    const manifest = TaxRequirementManifestEngine.getOrCreateManifest(TEST_CLIENT_ID, TAX_YEAR, TEST_ENGAGEMENT_ID);
+    manifest.requirements = [
+      {
+        requirementId: 'REQ-2025-W2-CLOUD',
+        engagementId: TEST_ENGAGEMENT_ID,
+        taxYear: TAX_YEAR,
+        taxpayerOrEntity: 'Alex Mercer',
+        category: 'Employment Income',
+        jurisdiction: 'Federal',
+        documentType: 'W-2',
+        expectedSource: 'ABC Corporation',
+        title: 'Form W-2 — ABC Corporation',
+        description: 'Wage and Tax Statement',
+        formNumber: 'W-2',
+        reasonRequired: 'IRC § 6051',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['Form W-2'],
+        status: 'MISSING',
+        requestStatus: 'NOT_REQUESTED',
+        matchedDocumentIds: [],
+        reviewStatus: 'NOT_REQUIRED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRC § 6051'
+      }
+    ];
+    TaxRequirementManifestEngine.saveManifest(manifest);
+
+    // Image-only raster bytes (no embedded text)
+    const scannedImagePdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x00, 0x89, 0x50, 0x4e, 0x47]);
+
+    const uploadRes = await StageTwoCollectionService.ingestDocumentUpload({
+      clientId: TEST_CLIENT_ID,
+      engagementId: TEST_ENGAGEMENT_ID,
+      taxYear: TAX_YEAR,
+      uploaderSource: 'client_portal',
+      uploadedBy: 'Alex Mercer',
+      originalFileName: 'scanned_w2_raster_only.pdf',
+      fileSizeBytes: scannedImagePdfBytes.length,
+      mimeType: 'application/pdf',
+      claimedCategory: 'W-2',
+      fileBytes: scannedImagePdfBytes
+    });
+
+    expect(uploadRes.documentId).toBeDefined();
+    expect(uploadRes.isVerified).toBe(false);
+
+    // Retrieve intelligence record
+    const intelRec = StageTwoDocumentIntelligenceService.getIntelligenceRecord(uploadRes.documentId);
+    expect(intelRec).toBeDefined();
+    expect(intelRec?.providerMode).toBe('CLOUD');
+    expect(intelRec?.ocrArtifact?.providerName).toBe('Google Cloud Document AI');
+    expect(intelRec?.ocrArtifact?.isProduction).toBe(true);
+    expect(intelRec?.ocrArtifact?.processingResult).toBe('SUCCESS');
+
+    // Verify requirement matched and progress recalculated
+    const updatedReq = TaxRequirementManifestEngine.getOrCreateManifest(TEST_CLIENT_ID, TAX_YEAR).requirements.find(
+      r => r.requirementId === 'REQ-2025-W2-CLOUD'
+    );
+    expect(updatedReq?.status).toBe('RECEIVED');
+    expect(updatedReq?.matchedDocumentIds).toContain(uploadRes.documentId);
+
+    const report = StageTwoOrchestratorService.generateCollectionReport(TEST_CLIENT_ID, TAX_YEAR);
+    expect(report.receivedCount).toBe(1);
+    expect(report.missingCount).toBe(0);
+    expect(report.collectionProgressPercent).toBe(100);
+
+    // OCR FAILURE GATING TEST: Disabling cloud credentials
+    StageTwoDocumentIntelligenceService.setCloudTransportHandler(undefined);
+
+    const failedUpload = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+      clientId: TEST_CLIENT_ID,
+      engagementId: TEST_ENGAGEMENT_ID,
+      taxYear: TAX_YEAR,
+      uploader: 'Alex Mercer',
+      originalFilename: 'scanned_w2_failure.pdf',
+      fileBytes: scannedImagePdfBytes,
+      claimedMimeType: 'application/pdf',
+      claimedCategory: 'W-2'
+    });
+
+    const failedIntel = await StageTwoDocumentIntelligenceService.processDocumentThroughOcr(failedUpload);
+    expect(failedIntel.ocrState).toBe('OCR_SERVICE_UNAVAILABLE');
+    expect(failedIntel.ocrArtifact?.processingResult).toBe('SERVICE_UNAVAILABLE');
+    expect(failedIntel.ocrArtifact?.retryState).toBe('RETRY_PENDING');
+    expect(failedIntel.staffReviewRequired).toBe(true);
   });
 });

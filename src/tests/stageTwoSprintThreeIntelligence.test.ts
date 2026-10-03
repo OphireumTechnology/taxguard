@@ -382,4 +382,150 @@ describe('Milestone M2 / Stage 02: Collect — Sprint 3 Document Intelligence', 
       ).toThrow(/Unauthorized/);
     });
   });
+
+  // ==========================================================================
+  // TG-COL-OCR-PROD: PRODUCTION CLOUD DOCUMENT INTELLIGENCE & IMAGE TESTS
+  // ==========================================================================
+  describe('TG-COL-OCR-PROD: Production Cloud Document Intelligence & Image Tests', () => {
+    it('processes a real image-based scanned W-2 without searchable text via Cloud Document AI', async () => {
+      StageTwoDocumentIntelligenceService.setProviderMode('CLOUD');
+
+      // Configure mock Cloud Document AI transport handler representing cloud extraction
+      StageTwoDocumentIntelligenceService.setCloudTransportHandler(async ({ documentId, processor }) => {
+        expect(processor).toBeDefined();
+        return {
+          text: `
+            Form W-2 Wage and Tax Statement 2025
+            Employer: Apex Technical Solutions, Inc. EIN: 12-3456789
+            Employee: Michael S. Reynolds SSN: XXX-XX-4819
+            Box 1 Wages: 142500.00 Box 2 Federal Withholding: 28500.00
+            Box 15 State: SC State wages: 142500.00 State tax: 9262.50
+          `,
+          pageCount: 1,
+          entities: [
+            { type: 'employer_name', mentionText: 'Apex Technical Solutions, Inc.', confidence: 0.98, page: 1, boundingBox: { x: 0.1, y: 0.2, width: 0.3, height: 0.05 } },
+            { type: 'wages', mentionText: '142500.00', confidence: 0.97, page: 1, boundingBox: { x: 0.5, y: 0.3, width: 0.2, height: 0.04 } }
+          ],
+          confidenceAverage: 0.96,
+          orientationDegrees: 0,
+          dpi: 300
+        };
+      });
+
+      // Pure raster bytes simulating non-searchable image-only PDF
+      const rasterBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x00, 0xff, 0xd8, 0xff, 0xe0, 0x00]);
+
+      const stagedDoc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+        clientId: CLIENT_ID,
+        engagementId: ENGAGEMENT_ID,
+        taxYear: TAX_YEAR,
+        uploader: 'Client User',
+        originalFilename: 'scanned_image_w2_no_text.pdf',
+        fileBytes: rasterBytes,
+        claimedMimeType: 'application/pdf',
+        claimedCategory: 'W-2'
+      });
+
+      const intel = await StageTwoDocumentIntelligenceService.processDocumentThroughOcr(stagedDoc);
+
+      expect(intel.ocrState).toBe('COMPLETED');
+      expect(intel.providerMode).toBe('CLOUD');
+      expect(intel.ocrArtifact?.providerName).toBe('Google Cloud Document AI');
+      expect(intel.ocrArtifact?.isProduction).toBe(true);
+      expect(intel.ocrArtifact?.processingResult).toBe('SUCCESS');
+      expect(intel.ocrArtifact?.boundingBoxCount).toBeGreaterThanOrEqual(2);
+      expect(intel.aiDetectedCategory).toBe('W-2');
+
+      const w2Data = intel.extractedData as any;
+      expect(w2Data.employerName.extractedValue).toBe('Apex Technical Solutions, Inc.');
+      expect(w2Data.wages.extractedValue).toBe(142500.00);
+      expect(w2Data.wages.confidenceTier).toBe('HIGH_CONFIDENCE');
+      expect(w2Data.wages.provider).toBe('Google Cloud Document AI');
+    });
+
+    it('routes low-confidence or partially obscured scanned image to human review', async () => {
+      StageTwoDocumentIntelligenceService.setProviderMode('CLOUD');
+
+      StageTwoDocumentIntelligenceService.setCloudTransportHandler(async () => ({
+        text: 'W-2 Wage Statement ... [obscured]',
+        pageCount: 1,
+        entities: [],
+        confidenceAverage: 0.52, // Below 0.65 threshold
+        isObscured: true,
+        orientationDegrees: 90
+      }));
+
+      const imageBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]);
+
+      const stagedDoc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+        clientId: CLIENT_ID,
+        engagementId: ENGAGEMENT_ID,
+        taxYear: TAX_YEAR,
+        uploader: 'Client User',
+        originalFilename: 'blurry_rotated_photo_w2.png',
+        fileBytes: imageBytes,
+        claimedMimeType: 'image/png',
+        claimedCategory: 'W-2'
+      });
+
+      const intel = await StageTwoDocumentIntelligenceService.processDocumentThroughOcr(stagedDoc);
+
+      expect(intel.ocrState).toBe('REQUIRES_REVIEW');
+      expect(intel.humanReviewRequired).toBe(true);
+      expect(intel.staffReviewRequired).toBe(true);
+      expect(intel.ocrArtifact?.processingResult).toBe('PARTIAL');
+      expect(intel.ocrArtifact?.errorInfo).toContain('Low visual confidence or partially obscured');
+    });
+
+    it('enforces OCR_SERVICE_UNAVAILABLE and RETRY_PENDING without silent local fallback when cloud is unavailable', async () => {
+      StageTwoDocumentIntelligenceService.setProviderMode('CLOUD');
+      StageTwoDocumentIntelligenceService.setCloudTransportHandler(undefined); // No cloud credentials/transport
+
+      const pdfBytes = new TextEncoder().encode('%PDF-1.7 image document');
+      const stagedDoc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+        clientId: CLIENT_ID,
+        engagementId: ENGAGEMENT_ID,
+        taxYear: TAX_YEAR,
+        uploader: 'Client User',
+        originalFilename: 'scanned_1099.pdf',
+        fileBytes: pdfBytes,
+        claimedMimeType: 'application/pdf',
+        claimedCategory: '1099-NEC'
+      });
+
+      const intel = await StageTwoDocumentIntelligenceService.processDocumentThroughOcr(stagedDoc);
+
+      // Must NOT silently fallback to LOCAL in production CLOUD mode
+      expect(intel.ocrState).toBe('OCR_SERVICE_UNAVAILABLE');
+      expect(intel.ocrArtifact?.processingResult).toBe('SERVICE_UNAVAILABLE');
+      expect(intel.ocrArtifact?.retryState).toBe('RETRY_PENDING');
+      expect(intel.ocrArtifact?.staffReviewRequired).toBe(true);
+      expect(intel.ocrArtifact?.retryCount).toBe(1);
+      expect(intel.ocrArtifact?.nextRetryTimestamp).toBeDefined();
+      expect(intel.humanReviewRequired).toBe(true);
+    });
+
+    it('supports FAIL_SAFE mode with mandatory human review for business continuity', async () => {
+      StageTwoDocumentIntelligenceService.setProviderMode('FAIL_SAFE');
+
+      const pdfBytes = new TextEncoder().encode('%PDF-1.7 standard w2');
+      const stagedDoc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+        clientId: CLIENT_ID,
+        engagementId: ENGAGEMENT_ID,
+        taxYear: TAX_YEAR,
+        uploader: 'Client User',
+        originalFilename: 'w2_failsafe.pdf',
+        fileBytes: pdfBytes,
+        claimedMimeType: 'application/pdf',
+        claimedCategory: 'W-2'
+      });
+
+      const intel = await StageTwoDocumentIntelligenceService.processDocumentThroughOcr(stagedDoc);
+
+      expect(intel.ocrState).toBe('REQUIRES_REVIEW');
+      expect(intel.ocrArtifact?.providerName).toBe('TaxGuard Document Fail-Safe OCR');
+      expect(intel.ocrArtifact?.staffReviewRequired).toBe(true);
+      expect(intel.humanReviewRequired).toBe(true);
+    });
+  });
 });

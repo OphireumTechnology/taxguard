@@ -136,6 +136,23 @@ export class StageTwoMatchingEngine {
     rawText?: string;
     activeTaxYear: number;
     expectedTaxpayerName: string;
+    extractedHint?: {
+      detectedType?: RecognizedDocumentType;
+      formNumber?: string;
+      detectedTaxYear?: number;
+      taxpayerName?: string;
+      employerName?: string;
+      payerName?: string;
+      jurisdiction?: string;
+      stateCodes?: string[];
+      grossAmount?: number;
+      federalWithholding?: number;
+      stateWithholding?: number;
+      pageCount?: number;
+      classificationConfidence?: number;
+      extractionConfidence?: number;
+      isObscured?: boolean;
+    };
   }): DocumentExtractionEnvelope {
     const filename = params.originalFileName || '';
     const nameLower = filename.toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
@@ -153,93 +170,97 @@ export class StageTwoMatchingEngine {
     const combinedText = `${filename} ${text}`;
     const upperCombined = combinedText.toUpperCase();
 
+    const hint = params.extractedHint;
+
     // 1. Detect Document Type
-    let detectedType: RecognizedDocumentType = 'Other / Unknown';
-    let formNumber = 'Unknown';
-    let classificationConfidence = 0.90;
+    let detectedType: RecognizedDocumentType = hint?.detectedType || 'Other / Unknown';
+    let formNumber = hint?.formNumber || 'Unknown';
+    let classificationConfidence = hint?.classificationConfidence ?? 0.90;
     let correctedIndicator = false;
 
-    if (upperCombined.includes('W-2C') || upperCombined.includes('W2C') || upperCombined.includes('CORRECTED WAGE AND TAX')) {
-      detectedType = 'W-2C';
-      formNumber = 'Form W-2C';
-      correctedIndicator = true;
-      classificationConfidence = 0.98;
-    } else if (upperCombined.includes('W-2') || upperCombined.includes('W2') || upperCombined.includes('WAGE AND TAX STATEMENT')) {
-      detectedType = 'W-2';
-      formNumber = 'Form W-2';
-      classificationConfidence = 0.98;
-    } else if (upperCombined.includes('1099-NEC') || upperCombined.includes('1099NEC') || upperCombined.includes('NONEMPLOYEE COMPENSATION')) {
-      detectedType = '1099-NEC';
-      formNumber = 'Form 1099-NEC';
-      classificationConfidence = 0.96;
-    } else if (upperCombined.includes('1099-MISC') || upperCombined.includes('1099MISC') || upperCombined.includes('MISCELLANEOUS INFORMATION')) {
-      detectedType = '1099-MISC';
-      formNumber = 'Form 1099-MISC';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('1099-INT') || upperCombined.includes('1099INT') || upperCombined.includes('INTEREST INCOME')) {
-      detectedType = '1099-INT';
-      formNumber = 'Form 1099-INT';
-      classificationConfidence = 0.96;
-    } else if (upperCombined.includes('1099-DIV') || upperCombined.includes('1099DIV') || upperCombined.includes('DIVIDENDS AND DISTRIBUTIONS')) {
-      detectedType = '1099-DIV';
-      formNumber = 'Form 1099-DIV';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('1099-B') || upperCombined.includes('1099B') || upperCombined.includes('PROCEEDS FROM BROKER') || upperCombined.includes('BARTER EXCHANGE')) {
-      detectedType = '1099-B';
-      formNumber = 'Form 1099-B';
-      classificationConfidence = 0.96;
-    } else if (upperCombined.includes('1099-K') || upperCombined.includes('1099K') || upperCombined.includes('MERCHANT CARD') || upperCombined.includes('THIRD PARTY NETWORK')) {
-      detectedType = '1099-K';
-      formNumber = 'Form 1099-K';
-      classificationConfidence = 0.94;
-    } else if (upperCombined.includes('1099-R') || upperCombined.includes('1099R') || upperCombined.includes('DISTRIBUTIONS FROM PENSIONS')) {
-      detectedType = '1099-R';
-      formNumber = 'Form 1099-R';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('1099-SA') || upperCombined.includes('1099SA') || upperCombined.includes('DISTRIBUTIONS FROM AN HSA')) {
-      detectedType = '1099-SA';
-      formNumber = 'Form 1099-SA';
-      classificationConfidence = 0.94;
-    } else if (upperCombined.includes('1098-T') || upperCombined.includes('1098T') || upperCombined.includes('TUITION STATEMENT')) {
-      detectedType = '1098-T';
-      formNumber = 'Form 1098-T';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('1098-E') || upperCombined.includes('1098E') || upperCombined.includes('STUDENT LOAN INTEREST')) {
-      detectedType = '1098-E';
-      formNumber = 'Form 1098-E';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('1098') || upperCombined.includes('MORTGAGE INTEREST')) {
-      detectedType = '1098';
-      formNumber = 'Form 1098';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('K-1') || upperCombined.includes('K1') || upperCombined.includes('SCHEDULE K-1')) {
-      detectedType = 'Schedule K-1';
-      formNumber = 'Schedule K-1';
-      classificationConfidence = 0.95;
-    } else if (upperCombined.includes('SSA-1099') || upperCombined.includes('SOCIAL SECURITY BENEFIT')) {
-      detectedType = 'SSA-1099';
-      formNumber = 'Form SSA-1099';
-      classificationConfidence = 0.97;
-    } else if (upperCombined.includes('TRIAL BALANCE') || upperCombined.includes('TB ') || nameLower.includes('trial balance')) {
-      detectedType = 'Trial Balance';
-      formNumber = 'Trial Balance';
-      classificationConfidence = 0.94;
-    } else if (upperCombined.includes('GENERAL LEDGER') || upperCombined.includes('GL ') || nameLower.includes('general ledger')) {
-      detectedType = 'General Ledger';
-      formNumber = 'General Ledger';
-      classificationConfidence = 0.94;
-    } else if (upperCombined.includes('BANK') || upperCombined.includes('STATEMENT') || upperCombined.includes('CHECKING') || nameLower.includes('bank statement')) {
-      detectedType = 'Bank Statement';
-      formNumber = 'Bank Statement';
-      classificationConfidence = 0.92;
-    } else if (upperCombined.includes('PRIOR RETURN') || upperCombined.includes('FORM 1040') || upperCombined.includes('FORM 1120')) {
-      detectedType = 'Prior-Year Return';
-      formNumber = 'Form 1040 / 1120';
-      classificationConfidence = 0.92;
-    } else {
-      detectedType = 'Other / Unknown';
-      formNumber = 'Unclassified Document';
-      classificationConfidence = 0.45;
+    if (!hint?.detectedType) {
+      if (upperCombined.includes('W-2C') || upperCombined.includes('W2C') || upperCombined.includes('CORRECTED WAGE AND TAX')) {
+        detectedType = 'W-2C';
+        formNumber = 'Form W-2C';
+        correctedIndicator = true;
+        classificationConfidence = 0.98;
+      } else if (upperCombined.includes('W-2') || upperCombined.includes('W2') || upperCombined.includes('WAGE AND TAX STATEMENT')) {
+        detectedType = 'W-2';
+        formNumber = 'Form W-2';
+        classificationConfidence = 0.98;
+      } else if (upperCombined.includes('1099-NEC') || upperCombined.includes('1099NEC') || upperCombined.includes('NONEMPLOYEE COMPENSATION')) {
+        detectedType = '1099-NEC';
+        formNumber = 'Form 1099-NEC';
+        classificationConfidence = 0.96;
+      } else if (upperCombined.includes('1099-MISC') || upperCombined.includes('1099MISC') || upperCombined.includes('MISCELLANEOUS INFORMATION')) {
+        detectedType = '1099-MISC';
+        formNumber = 'Form 1099-MISC';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('1099-INT') || upperCombined.includes('1099INT') || upperCombined.includes('INTEREST INCOME')) {
+        detectedType = '1099-INT';
+        formNumber = 'Form 1099-INT';
+        classificationConfidence = 0.96;
+      } else if (upperCombined.includes('1099-DIV') || upperCombined.includes('1099DIV') || upperCombined.includes('DIVIDENDS AND DISTRIBUTIONS')) {
+        detectedType = '1099-DIV';
+        formNumber = 'Form 1099-DIV';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('1099-B') || upperCombined.includes('1099B') || upperCombined.includes('PROCEEDS FROM BROKER') || upperCombined.includes('BARTER EXCHANGE')) {
+        detectedType = '1099-B';
+        formNumber = 'Form 1099-B';
+        classificationConfidence = 0.96;
+      } else if (upperCombined.includes('1099-K') || upperCombined.includes('1099K') || upperCombined.includes('MERCHANT CARD') || upperCombined.includes('THIRD PARTY NETWORK')) {
+        detectedType = '1099-K';
+        formNumber = 'Form 1099-K';
+        classificationConfidence = 0.94;
+      } else if (upperCombined.includes('1099-R') || upperCombined.includes('1099R') || upperCombined.includes('DISTRIBUTIONS FROM PENSIONS')) {
+        detectedType = '1099-R';
+        formNumber = 'Form 1099-R';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('1099-SA') || upperCombined.includes('1099SA') || upperCombined.includes('DISTRIBUTIONS FROM AN HSA')) {
+        detectedType = '1099-SA';
+        formNumber = 'Form 1099-SA';
+        classificationConfidence = 0.94;
+      } else if (upperCombined.includes('1098-T') || upperCombined.includes('1098T') || upperCombined.includes('TUITION STATEMENT')) {
+        detectedType = '1098-T';
+        formNumber = 'Form 1098-T';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('1098-E') || upperCombined.includes('1098E') || upperCombined.includes('STUDENT LOAN INTEREST')) {
+        detectedType = '1098-E';
+        formNumber = 'Form 1098-E';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('1098') || upperCombined.includes('MORTGAGE INTEREST')) {
+        detectedType = '1098';
+        formNumber = 'Form 1098';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('K-1') || upperCombined.includes('K1') || upperCombined.includes('SCHEDULE K-1')) {
+        detectedType = 'Schedule K-1';
+        formNumber = 'Schedule K-1';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('SSA-1099') || upperCombined.includes('SOCIAL SECURITY BENEFIT')) {
+        detectedType = 'SSA-1099';
+        formNumber = 'Form SSA-1099';
+        classificationConfidence = 0.97;
+      } else if (upperCombined.includes('TRIAL BALANCE') || upperCombined.includes('TB ') || nameLower.includes('trial balance')) {
+        detectedType = 'Trial Balance';
+        formNumber = 'Trial Balance';
+        classificationConfidence = 0.94;
+      } else if (upperCombined.includes('GENERAL LEDGER') || upperCombined.includes('GL ') || nameLower.includes('general ledger')) {
+        detectedType = 'General Ledger';
+        formNumber = 'General Ledger';
+        classificationConfidence = 0.94;
+      } else if (upperCombined.includes('BANK') || upperCombined.includes('STATEMENT') || upperCombined.includes('CHECKING') || nameLower.includes('bank statement')) {
+        detectedType = 'Bank Statement';
+        formNumber = 'Bank Statement';
+        classificationConfidence = 0.92;
+      } else if (upperCombined.includes('PRIOR RETURN') || upperCombined.includes('FORM 1040') || upperCombined.includes('FORM 1120')) {
+        detectedType = 'Prior-Year Return';
+        formNumber = 'Form 1040 / 1120';
+        classificationConfidence = 0.92;
+      } else {
+        detectedType = 'Other / Unknown';
+        formNumber = 'Unclassified Document';
+        classificationConfidence = 0.45;
+      }
     }
 
     if (upperCombined.includes('CORRECTED') || upperCombined.includes('REVISED') || upperCombined.includes('AMENDED')) {
@@ -247,76 +268,86 @@ export class StageTwoMatchingEngine {
     }
 
     // 2. Tax Year Detection
-    let detectedTaxYear: number | undefined;
-    const yearMatches = upperCombined.match(/\b(202[0-9])\b/g);
-    if (yearMatches && yearMatches.length > 0) {
-      // Pick the most prominently repeated year, or first match
-      detectedTaxYear = parseInt(yearMatches[0], 10);
-    } else {
-      detectedTaxYear = params.activeTaxYear;
+    let detectedTaxYear: number | undefined = hint?.detectedTaxYear;
+    if (!detectedTaxYear) {
+      const yearMatches = upperCombined.match(/\b(202[0-9])\b/g);
+      if (yearMatches && yearMatches.length > 0) {
+        // Pick the most prominently repeated year, or first match
+        detectedTaxYear = parseInt(yearMatches[0], 10);
+      } else {
+        detectedTaxYear = params.activeTaxYear;
+      }
     }
 
     // 3. Taxpayer Name Extraction
-    let taxpayerName = params.expectedTaxpayerName;
-    const employeeMatch = text.match(/(?:Employee|Taxpayer|Recipient|Borrower|Client):\s*([A-Za-z]+(?:\s+[A-Za-z]+)+)/i);
-    if (employeeMatch && employeeMatch[1]) {
-      taxpayerName = employeeMatch[1].trim();
-    } else if (filename.toLowerCase().includes('david') && filename.toLowerCase().includes('robinson')) {
-      taxpayerName = 'David Robinson';
-    } else if (upperCombined.includes('MICHAEL PEROTTI') || upperCombined.includes('PEROTTI')) {
-      taxpayerName = 'Michael Perotti';
-    } else if (upperCombined.includes('JOHN SMITH') || upperCombined.includes('SMITH')) {
-      taxpayerName = 'John Smith';
-    } else if (upperCombined.includes('JANE DOE')) {
-      taxpayerName = 'Jane Doe';
+    let taxpayerName = hint?.taxpayerName || params.expectedTaxpayerName;
+    if (!hint?.taxpayerName) {
+      const employeeMatch = text.match(/(?:Employee|Taxpayer|Recipient|Borrower|Client):\s*([A-Za-z]+(?:\s+[A-Za-z]+)+)/i);
+      if (employeeMatch && employeeMatch[1]) {
+        taxpayerName = employeeMatch[1].trim();
+      } else if (filename.toLowerCase().includes('david') && filename.toLowerCase().includes('robinson')) {
+        taxpayerName = 'David Robinson';
+      } else if (upperCombined.includes('MICHAEL PEROTTI') || upperCombined.includes('PEROTTI')) {
+        taxpayerName = 'Michael Perotti';
+      } else if (upperCombined.includes('JOHN SMITH') || upperCombined.includes('SMITH')) {
+        taxpayerName = 'John Smith';
+      } else if (upperCombined.includes('JANE DOE')) {
+        taxpayerName = 'Jane Doe';
+      }
     }
 
     // 4. Payer / Employer Name Extraction
-    let employerOrPayerName: string | undefined;
-    if (upperCombined.includes('ABC CORPORATION') || upperCombined.includes('ABC CORP') || upperCombined.includes('ABC_CORP')) {
-      employerOrPayerName = 'ABC Corporation';
-    } else if (upperCombined.includes('XYZ CORPORATION') || upperCombined.includes('XYZ CORP')) {
-      employerOrPayerName = 'XYZ Corporation';
-    } else if (upperCombined.includes('PALMETTO TECH') || upperCombined.includes('PALMETTO COMMERCIAL')) {
-      employerOrPayerName = 'Palmetto Tech Ventures';
-    } else if (upperCombined.includes('FIDELITY') || upperCombined.includes('FIDELITY INVESTMENTS')) {
-      employerOrPayerName = 'Fidelity Investments';
-    } else if (upperCombined.includes('FIRST CITIZENS') || upperCombined.includes('FIRST CITIZENS BANK')) {
-      employerOrPayerName = 'First Citizens Bank';
-    } else if (upperCombined.includes('GOOGLE') || upperCombined.includes('GOOGLE LLC')) {
-      employerOrPayerName = 'Google LLC';
-    } else if (upperCombined.includes('AMAZON')) {
-      employerOrPayerName = 'Amazon Commercial Services';
-    } else if (upperCombined.includes('WELLS FARGO')) {
-      employerOrPayerName = 'Wells Fargo Bank';
-    } else if (upperCombined.includes('CHARLES SCHWAB') || upperCombined.includes('SCHWAB')) {
-      employerOrPayerName = 'Charles Schwab & Co.';
+    let employerOrPayerName: string | undefined = hint?.employerName || hint?.payerName;
+    if (!employerOrPayerName) {
+      if (upperCombined.includes('ABC CORPORATION') || upperCombined.includes('ABC CORP') || upperCombined.includes('ABC_CORP')) {
+        employerOrPayerName = 'ABC Corporation';
+      } else if (upperCombined.includes('XYZ CORPORATION') || upperCombined.includes('XYZ CORP')) {
+        employerOrPayerName = 'XYZ Corporation';
+      } else if (upperCombined.includes('PALMETTO TECH') || upperCombined.includes('PALMETTO COMMERCIAL')) {
+        employerOrPayerName = 'Palmetto Tech Ventures';
+      } else if (upperCombined.includes('FIDELITY') || upperCombined.includes('FIDELITY INVESTMENTS')) {
+        employerOrPayerName = 'Fidelity Investments';
+      } else if (upperCombined.includes('FIRST CITIZENS') || upperCombined.includes('FIRST CITIZENS BANK')) {
+        employerOrPayerName = 'First Citizens Bank';
+      } else if (upperCombined.includes('GOOGLE') || upperCombined.includes('GOOGLE LLC')) {
+        employerOrPayerName = 'Google LLC';
+      } else if (upperCombined.includes('AMAZON')) {
+        employerOrPayerName = 'Amazon Commercial Services';
+      } else if (upperCombined.includes('WELLS FARGO')) {
+        employerOrPayerName = 'Wells Fargo Bank';
+      } else if (upperCombined.includes('CHARLES SCHWAB') || upperCombined.includes('SCHWAB')) {
+        employerOrPayerName = 'Charles Schwab & Co.';
+      }
     }
 
     // 5. State / Jurisdiction Detection
-    const stateCodes: string[] = [];
-    const stateRegex = /\b(SC|NC|GA|FL|CA|NY|TX|VA|TN|IL|OH|NJ|PA)\b/g;
-    const foundStates = upperCombined.match(stateRegex);
-    if (foundStates) {
-      foundStates.forEach(s => {
-        if (!stateCodes.includes(s)) stateCodes.push(s);
-      });
+    const stateCodes: string[] = hint?.stateCodes && hint.stateCodes.length > 0 ? [...hint.stateCodes] : [];
+    if (stateCodes.length === 0) {
+      const stateRegex = /\b(SC|NC|GA|FL|CA|NY|TX|VA|TN|IL|OH|NJ|PA)\b/g;
+      const foundStates = upperCombined.match(stateRegex);
+      if (foundStates) {
+        foundStates.forEach(s => {
+          if (!stateCodes.includes(s)) stateCodes.push(s);
+        });
+      }
     }
 
-    let jurisdiction = 'Federal';
-    if (stateCodes.length > 0) {
+    let jurisdiction = hint?.jurisdiction || 'Federal';
+    if (!hint?.jurisdiction && stateCodes.length > 0) {
       jurisdiction = `Federal / ${stateCodes.join(', ')}`;
     }
 
     // 6. Numbers & Withholding Extraction
-    let grossAmount = 85000.00;
-    let federalWithholding = 12450.00;
-    let stateWithholding = 4120.00;
+    let grossAmount = hint?.grossAmount ?? 85000.00;
+    let federalWithholding = hint?.federalWithholding ?? 12450.00;
+    let stateWithholding = hint?.stateWithholding ?? 4120.00;
 
-    const wageMatch = upperCombined.match(/(?:WAGES|TIPS|COMPENSATION|BOX 1)[\s:]*\$?([0-9,]+\.?[0-9]{0,2})/);
-    if (wageMatch && wageMatch[1]) {
-      const val = parseFloat(wageMatch[1].replace(/,/g, ''));
-      if (!isNaN(val) && val > 0) grossAmount = val;
+    if (hint?.grossAmount === undefined) {
+      const wageMatch = upperCombined.match(/(?:WAGES|TIPS|COMPENSATION|BOX 1)[\s:]*\$?([0-9,]+\.?[0-9]{0,2})/);
+      if (wageMatch && wageMatch[1]) {
+        const val = parseFloat(wageMatch[1].replace(/,/g, ''));
+        if (!isNaN(val) && val > 0) grossAmount = val;
+      }
     }
 
     return {
@@ -337,9 +368,9 @@ export class StageTwoMatchingEngine {
       federalWithholding,
       stateWithholding,
       correctedIndicator,
-      pageCount: 1,
+      pageCount: hint?.pageCount || 1,
       classificationConfidence,
-      extractionConfidence: 0.94,
+      extractionConfidence: hint?.extractionConfidence ?? 0.94,
       rawExtractedText: text
     };
   }
