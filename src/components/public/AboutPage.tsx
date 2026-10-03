@@ -96,31 +96,28 @@ export const AboutPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Architectural Building Photo */}
+            {/* Corporate Tax Advisory Office Photo */}
             <div className="lg:col-span-5">
-              <div className="relative rounded-2xl overflow-hidden border border-[#C6A15B]/40 bg-[#0D2340] shadow-2xl group">
+              <div className="relative rounded-2xl overflow-hidden border border-[rgba(148,163,184,0.18)] bg-[#0D2340] shadow-2xl group">
                 <picture>
-                  <source srcSet={BRAND_ASSETS.columbiaSkylineWebp} type="image/webp" />
+                  <source srcSet={BRAND_ASSETS.aboutTaxAdvisoryOfficeWebp} type="image/webp" />
                   <img
-                    src={BRAND_ASSETS.columbiaSkylineJpg}
-                    alt="A/R Tax Services headquarters in Columbia, South Carolina"
-                    width={600}
-                    height={400}
+                    src={BRAND_ASSETS.aboutTaxAdvisoryOfficeJpg}
+                    alt="A/R Tax Services professional tax and accounting advisory workspace"
+                    width={1280}
+                    height={720}
                     loading="eager"
                     decoding="async"
-                    className="w-full h-64 sm:h-72 object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full aspect-[16/9] object-cover object-center group-hover:scale-102 transition-transform duration-500"
                     referrerPolicy="no-referrer"
                   />
                 </picture>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#06172C] via-transparent to-transparent" />
-                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-white">
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <MapPin className="w-4 h-4 text-[#C6A15B]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#06182B]/90 via-[#06182B]/20 to-transparent pointer-events-none" />
+                <div className="absolute bottom-3.5 left-4 right-4 flex items-center justify-between text-xs text-white">
+                  <div className="flex items-center gap-1.5 font-semibold text-[#F8FAFC]">
+                    <MapPin className="w-4 h-4 text-[#D4A843] shrink-0" />
                     <span>Columbia, South Carolina Headquarters</span>
                   </div>
-                  <span className="text-[10px] text-[#C6A15B] font-mono uppercase bg-[#06172C]/80 px-2 py-0.5 rounded border border-[#1E3A5F]">
-                    Established
-                  </span>
                 </div>
               </div>
             </div>
@@ -331,9 +328,9 @@ export const AboutPage: React.FC = () => {
 
             <div className="lg:col-span-5 h-full min-h-[300px] p-6 flex items-center">
               <EditorialSplitImage
-                src={BRAND_ASSETS.privateConsultationExpJpg}
-                webpSrc={BRAND_ASSETS.privateConsultationExpWebp}
-                alt="A/R Tax Services professional advisory network and strategic collaboration framework"
+                src={BRAND_ASSETS.aboutClientAdvisoryJpg}
+                webpSrc={BRAND_ASSETS.aboutClientAdvisoryWebp}
+                alt="A/R Tax Services professional client advisory and strategic collaboration consultation suite"
                 badgeText="Collaborative Advisory"
                 className="w-full h-full min-h-[280px]"
               />

@@ -95,6 +95,12 @@ export const BRAND_ASSETS = {
   smallBusinessGrowthWebp: getAssetUrl('images/small-business-growth.webp'),
   smallBusinessGrowthJpg: getAssetUrl('images/small-business-growth.jpg'),
 
-  columbiaSkylineWebp: getAssetUrl('images/columbia-sc-skyline.webp'),
-  columbiaSkylineJpg: getAssetUrl('images/columbia-sc-skyline.jpg'),
+  aboutTaxAdvisoryOfficeWebp: getAssetUrl('images/about/about-tax-advisory-office.webp'),
+  aboutTaxAdvisoryOfficeJpg: getAssetUrl('images/about/about-tax-advisory-office.jpg'),
+  aboutClientAdvisoryWebp: getAssetUrl('images/about/about-client-advisory.webp'),
+  aboutClientAdvisoryJpg: getAssetUrl('images/about/about-client-advisory.jpg'),
+
+  // Backward compatibility alias
+  columbiaSkylineWebp: getAssetUrl('images/about/about-tax-advisory-office.webp'),
+  columbiaSkylineJpg: getAssetUrl('images/about/about-tax-advisory-office.jpg'),
 };
