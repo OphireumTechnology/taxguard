@@ -15,6 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { LiveCalendarModule } from '../calendar/LiveCalendarModule';
+import { BrandedDatePicker } from '../ui/BrandedDatePicker';
 
 export const BookConsultationPage: React.FC = () => {
   const { bookAppointment, currentUser, setCurrentPage } = useApp();
@@ -262,13 +263,11 @@ export const BookConsultationPage: React.FC = () => {
                   <label htmlFor="intake-date" className="block text-xs font-semibold text-[#A9B7C8]">
                     Date
                   </label>
-                  <input
+                  <BrandedDatePicker
                     id="intake-date"
-                    type="date"
                     value={selectedDate}
-                    min={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full min-h-[44px] bg-[#102D4F] border border-[rgba(148,163,184,0.18)] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#D4A843]"
+                    minDate={new Date().toISOString().slice(0, 10)}
+                    onChange={setSelectedDate}
                   />
                 </div>
 

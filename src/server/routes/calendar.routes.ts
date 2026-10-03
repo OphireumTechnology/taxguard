@@ -41,18 +41,20 @@ function formatSlotUtc(dateStr: string, timeStr: string, timeZone: string = 'Ame
 // PART 6 & 8: CALCULATE REAL-TIME AVAILABILITY
 // -------------------------------------------------------------
 
-calendarRouter.get('/available-slots', (req, res) => {
-  const { 
-    serviceTypeCode = 'new_client_consultation', 
-    staffId, 
-    requestedFounder, 
-    date, 
-    clientTimeZone = 'America/New_York' 
-  } = req.query as Record<string, string>;
-
-  if (!date) {
-    return res.status(400).json({ error: 'Query parameter "date" (YYYY-MM-DD) is required.' });
-  }
+export function computeAvailableSlotsForDate(params: {
+  date: string;
+  serviceTypeCode?: string;
+  staffId?: string;
+  requestedFounder?: boolean;
+  clientTimeZone?: string;
+}): { availableSlots: AvailableTimeSlot[]; holiday?: string; message?: string } {
+  const {
+    date,
+    serviceTypeCode = 'new_client_consultation',
+    staffId,
+    requestedFounder = false,
+    clientTimeZone = 'America/New_York'
+  } = params;
 
   // Clean expired holds
   db.cleanExpiredSlotHolds();
@@ -60,17 +62,16 @@ calendarRouter.get('/available-slots', (req, res) => {
   // Check if requested date is a firm holiday
   const holiday = Array.from(db.firmHolidays.values()).find(h => h.date === date && h.isFirmClosed);
   if (holiday) {
-    return res.json({
-      date,
+    return {
       holiday: holiday.name,
       availableSlots: [],
       message: `Firm offices are closed for ${holiday.name}.`
-    });
+    };
   }
 
   // Determine target staff
   let targetStaffId = staffId;
-  const isFounderRequested = requestedFounder === 'true' || serviceTypeCode === 'founder_consultation';
+  const isFounderRequested = requestedFounder || serviceTypeCode === 'founder_consultation';
 
   if (isFounderRequested) {
     targetStaffId = 'user_accountant_desmond';
@@ -162,11 +163,86 @@ calendarRouter.get('/available-slots', (req, res) => {
     }
   }
 
+  return { availableSlots: results };
+}
+
+calendarRouter.get('/available-slots', (req, res) => {
+  const { 
+    serviceTypeCode = 'new_client_consultation', 
+    staffId, 
+    requestedFounder, 
+    date, 
+    clientTimeZone = 'America/New_York' 
+  } = req.query as Record<string, string>;
+
+  if (!date) {
+    return res.status(400).json({ error: 'Query parameter "date" (YYYY-MM-DD) is required.' });
+  }
+
+  const { availableSlots, holiday, message } = computeAvailableSlotsForDate({
+    date,
+    serviceTypeCode,
+    staffId,
+    requestedFounder: requestedFounder === 'true',
+    clientTimeZone
+  });
+
   return res.json({
     date,
     serviceTypeCode,
     clientTimeZone,
-    availableSlots: results
+    availableSlots,
+    ...(holiday ? { holiday, message } : {})
+  });
+});
+
+// Server-authoritative next available day lookup
+calendarRouter.get('/next-available', (req, res) => {
+  const {
+    date,
+    startDate,
+    serviceTypeCode = 'new_client_consultation',
+    staffId,
+    requestedFounder,
+    clientTimeZone = 'America/New_York'
+  } = req.query as Record<string, string>;
+
+  const initialDateStr = date || startDate || new Date().toISOString().slice(0, 10);
+  const parts = initialDateStr.split('-').map(p => parseInt(p, 10));
+  const baseDate = new Date(parts[0], parts[1] - 1, parts[2]);
+
+  // Scan up to 30 consecutive business days forward for first day with real availability
+  for (let offset = 1; offset <= 30; offset++) {
+    const scanDate = new Date(baseDate);
+    scanDate.setDate(scanDate.getDate() + offset);
+    const y = scanDate.getFullYear();
+    const m = String(scanDate.getMonth() + 1).padStart(2, '0');
+    const d = String(scanDate.getDate()).padStart(2, '0');
+    const checkDateStr = `${y}-${m}-${d}`;
+
+    const { availableSlots } = computeAvailableSlotsForDate({
+      date: checkDateStr,
+      serviceTypeCode,
+      staffId,
+      requestedFounder: requestedFounder === 'true',
+      clientTimeZone
+    });
+
+    if (availableSlots.length > 0) {
+      return res.json({
+        found: true,
+        date: checkDateStr,
+        availableSlots,
+        serviceTypeCode
+      });
+    }
+  }
+
+  return res.json({
+    found: false,
+    date: null,
+    availableSlots: [],
+    message: 'No consultation openings available within the next 30 days.'
   });
 });
 

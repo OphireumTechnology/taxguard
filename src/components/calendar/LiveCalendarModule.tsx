@@ -32,6 +32,7 @@ import {
 } from '../../types/calendar';
 import { BrandedSelect, BrandedSelectOption } from '../ui/BrandedSelect';
 import { BrandedButton } from '../ui/BrandedButton';
+import { BrandedDatePicker } from '../ui/BrandedDatePicker';
 import { getStoredToken } from '../../services/api';
 
 const APPOINTMENT_TYPES: Array<{
@@ -189,7 +190,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
       setIsLoadingSlots(true);
       setBookingError(null);
       const token = getStoredToken();
-      const res = await fetch(`/api/calendar/available-slots?date=${encodeURIComponent(selectedDate)}&serviceType=${encodeURIComponent(selectedServiceCode)}`, {
+      const res = await fetch(`/api/calendar/available-slots?date=${encodeURIComponent(selectedDate)}&serviceTypeCode=${encodeURIComponent(selectedServiceCode)}${selectedServiceObj?.founderOnly ? '&requestedFounder=true' : ''}`, {
         headers: {
           'Authorization': `Bearer ${token || ''}`,
           'x-session-token': token || ''
@@ -197,12 +198,46 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
       });
       if (res.ok) {
         const data = await res.json();
-        setAvailableSlots(data.slots || []);
+        setAvailableSlots(data.availableSlots || data.slots || []);
       } else {
         setAvailableSlots([]);
       }
     } catch {
       setAvailableSlots([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  const handleNextAvailableDay = async () => {
+    try {
+      setIsLoadingSlots(true);
+      setBookingError(null);
+      const token = getStoredToken();
+      const res = await fetch(`/api/calendar/next-available?date=${encodeURIComponent(selectedDate)}&serviceTypeCode=${encodeURIComponent(selectedServiceCode)}${selectedServiceObj?.founderOnly ? '&requestedFounder=true' : ''}`, {
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'x-session-token': token || ''
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.found && data.date) {
+          setSelectedDate(data.date);
+          setAvailableSlots(data.availableSlots || data.slots || []);
+          setSelectedSlot(null);
+          setHeldSlotKey(null);
+          return;
+        }
+      }
+      // If no slot found in 30-day lookahead or on error, fallback to advancing 1 calendar day
+      const next = new Date(selectedDate);
+      next.setDate(next.getDate() + 1);
+      setSelectedDate(next.toISOString().slice(0, 10));
+    } catch {
+      const next = new Date(selectedDate);
+      next.setDate(next.getDate() + 1);
+      setSelectedDate(next.toISOString().slice(0, 10));
     } finally {
       setIsLoadingSlots(false);
     }
@@ -668,7 +703,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
 
       {/* TAB 1: BOOKING WORKFLOW */}
       {activeTab === 'book' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,36%)_minmax(0,1fr)] gap-6 items-start">
           {/* Left Column: Appointment Details Panel */}
           <div className="bg-[rgba(13,39,69,0.94)] backdrop-blur-xs bg-[#0D2745] rounded-2xl p-6 sm:p-7 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] space-y-5 shadow-xl">
             <h2 className="text-base font-bold text-[#F8FAFC] font-serif border-b border-[rgba(148,163,184,0.18)] pb-3">
@@ -706,21 +741,16 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
               <label htmlFor="consultation-date-input" className="block text-xs font-semibold text-[#A9B7C8] mb-1.5">
                 Date
               </label>
-              <input
+              <BrandedDatePicker
                 id="consultation-date-input"
-                type="date"
-                min={new Date().toISOString().slice(0, 10)}
                 value={selectedDate}
-                onChange={e => {
-                  setSelectedDate(e.target.value);
+                minDate={new Date().toISOString().slice(0, 10)}
+                onChange={newDate => {
+                  setSelectedDate(newDate);
                   setSelectedSlot(null);
                   setHeldSlotKey(null);
                 }}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs font-mono bg-[#102D4F] border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] focus:border-[#D4A843] focus:ring-1 focus:ring-[#D4A843] outline-none transition-all"
               />
-              <div className="text-[11px] text-[#7F91A6] mt-1">
-                {friendlySelectedDate}
-              </div>
             </div>
 
             {/* 3. Meeting Modality */}
@@ -783,7 +813,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
           </div>
 
           {/* Right Column: Available Times Panel */}
-          <div className="lg:col-span-2 bg-[rgba(13,39,69,0.94)] backdrop-blur-xs bg-[#0D2745] rounded-2xl p-6 sm:p-7 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] flex flex-col justify-between space-y-6 shadow-xl">
+          <div className="bg-[rgba(13,39,69,0.94)] backdrop-blur-xs bg-[#0D2745] rounded-2xl p-6 sm:p-7 border border-[rgba(148,163,184,0.18)] text-[#F8FAFC] flex flex-col justify-between space-y-6 shadow-xl">
             <div>
               <div className="flex items-center justify-between border-b border-[rgba(148,163,184,0.18)] pb-4 mb-4">
                 <div>
@@ -832,7 +862,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
                   <span className="font-medium">Checking available times...</span>
                 </div>
               ) : availableSlots.length === 0 ? (
-                <div className="py-10 px-6 text-center rounded-2xl border border-[rgba(148,163,184,0.18)] bg-[#102D4F] flex flex-col items-center justify-center space-y-3">
+                <div className="py-12 px-6 text-center rounded-2xl border border-[rgba(148,163,184,0.14)] bg-[#102D4F]/60 flex flex-col items-center justify-center space-y-3 min-h-[260px]">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-1 border border-[rgba(212,168,67,0.30)] bg-[rgba(212,168,67,0.10)] text-[#D4A843]">
                     <CalendarIcon className="w-6 h-6" />
                   </div>
@@ -845,11 +875,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        const next = new Date(selectedDate);
-                        next.setDate(next.getDate() + 1);
-                        setSelectedDate(next.toISOString().slice(0, 10));
-                      }}
+                      onClick={handleNextAvailableDay}
                       className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors"
                     >
                       Next available day
@@ -857,9 +883,9 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
                     <button
                       type="button"
                       onClick={() => {
-                        const dateInput = document.getElementById('consultation-date-input') as HTMLInputElement | null;
+                        const dateInput = document.getElementById('consultation-date-input') as HTMLButtonElement | null;
                         dateInput?.focus();
-                        dateInput?.showPicker?.();
+                        dateInput?.click();
                       }}
                       className="px-4 py-2 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#143657] border border-[rgba(148,163,184,0.18)] hover:border-[#D4A843]/50 transition-colors"
                     >
@@ -1231,12 +1257,10 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
             <div className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-[#A9B7C8] mb-1">New Date</label>
-                <input
-                  type="date"
-                  min={new Date().toISOString().slice(0, 10)}
+                <BrandedDatePicker
                   value={newRescheduleDate}
-                  onChange={e => setNewRescheduleDate(e.target.value)}
-                  className="w-full p-2.5 border border-[rgba(148,163,184,0.18)] rounded-xl bg-[#102D4F] text-[#F8FAFC] outline-none"
+                  minDate={new Date().toISOString().slice(0, 10)}
+                  onChange={setNewRescheduleDate}
                 />
               </div>
 
