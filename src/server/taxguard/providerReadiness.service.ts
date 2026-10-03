@@ -13,12 +13,32 @@ import {
   ProviderReadinessStatus,
 } from './persistence.types';
 
+export type DatabaseSchemaReadinessState =
+  | 'DATABASE_UNAVAILABLE'
+  | 'DATABASE_REACHABLE'
+  | 'DATABASE_SCHEMA_INCOMPLETE'
+  | 'DATABASE_MIGRATION_REQUIRED'
+  | 'DATABASE_READY';
+
+export interface DatabaseSchemaReadinessResult {
+  state: DatabaseSchemaReadinessState;
+  verifiedTablesCount: number;
+  totalRequiredTables: number;
+  description: string;
+  checkedAt: string;
+}
+
 export class ProviderReadinessRegistry {
   private static mockOverrideStatuses?: Partial<Record<ProviderType, ProviderReadinessStatus>>;
+  private static mockSchemaReadinessOverride?: DatabaseSchemaReadinessResult;
 
   /** Set testing overrides (for unit tests only) */
-  static setTestingOverrides(overrides?: Partial<Record<ProviderType, ProviderReadinessStatus>>) {
+  static setTestingOverrides(
+    overrides?: Partial<Record<ProviderType, ProviderReadinessStatus>>,
+    schemaOverride?: DatabaseSchemaReadinessResult
+  ) {
     this.mockOverrideStatuses = overrides;
+    this.mockSchemaReadinessOverride = schemaOverride;
   }
 
   static getProviderStatus(type: ProviderType): ProviderReadinessInfo {
@@ -220,5 +240,139 @@ export class ProviderReadinessRegistry {
       'XERO',
     ];
     return providers.map((p) => this.getProviderStatus(p));
+  }
+
+  /**
+   * Evaluates database schema readiness without leaking SQL, passwords, or connection URLs.
+   * Distinguishes:
+   * - DATABASE_UNAVAILABLE: Connection or transport failure / unconfigured
+   * - DATABASE_REACHABLE: Database responded, evaluating table structure
+   * - DATABASE_SCHEMA_INCOMPLETE: Core tables missing
+   * - DATABASE_MIGRATION_REQUIRED: Migrations pending execution
+   * - DATABASE_READY: All required relational tables present and queryable
+   */
+  static async checkDatabaseSchemaReadiness(clientInstance?: any): Promise<DatabaseSchemaReadinessResult> {
+    if (this.mockSchemaReadinessOverride) {
+      return this.mockSchemaReadinessOverride;
+    }
+
+    const now = new Date().toISOString();
+    const hasSupabaseConfig = Boolean(
+      process.env.SUPABASE_URL &&
+      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+    );
+
+    if (!hasSupabaseConfig && !clientInstance) {
+      return {
+        state: 'DATABASE_UNAVAILABLE',
+        verifiedTablesCount: 0,
+        totalRequiredTables: 6,
+        description: 'Database connection parameters not configured in runtime environment.',
+        checkedAt: now,
+      };
+    }
+
+    const REQUIRED_CORE_TABLES = [
+      'taxguard_tenants',
+      'taxguard_cases',
+      'taxguard_documents',
+      'taxguard_durable_jobs',
+      'taxguard_journal_entries',
+      'taxguard_retention_policies',
+    ];
+
+    try {
+      let client = clientInstance;
+      if (!client) {
+        const { getSupabaseAdmin, isSupabaseServerConfigured } = await import('../supabase');
+        if (!isSupabaseServerConfigured()) {
+          return {
+            state: 'DATABASE_UNAVAILABLE',
+            verifiedTablesCount: 0,
+            totalRequiredTables: REQUIRED_CORE_TABLES.length,
+            description: 'Supabase server credentials not configured.',
+            checkedAt: now,
+          };
+        }
+        client = getSupabaseAdmin();
+      }
+
+      let verifiedCount = 0;
+      let missingTable = false;
+
+      for (const table of REQUIRED_CORE_TABLES) {
+        try {
+          const { error } = await client
+            .from(table)
+            .select('*', { count: 'exact', head: true });
+
+          if (error) {
+            const errCode = (error.code || '').toUpperCase();
+            const msg = (error.message || '').toLowerCase();
+            if (errCode === '42P01' || msg.includes('does not exist') || msg.includes('relation')) {
+              missingTable = true;
+            } else if (msg.includes('fetch failed') || msg.includes('network') || msg.includes('econnrefused')) {
+              return {
+                state: 'DATABASE_UNAVAILABLE',
+                verifiedTablesCount: verifiedCount,
+                totalRequiredTables: REQUIRED_CORE_TABLES.length,
+                description: 'Database server is unreachable or offline.',
+                checkedAt: now,
+              };
+            }
+          } else {
+            verifiedCount += 1;
+          }
+        } catch (tableErr: any) {
+          const msg = (tableErr?.message || '').toLowerCase();
+          if (msg.includes('network') || msg.includes('fetch') || msg.includes('econnrefused')) {
+            return {
+              state: 'DATABASE_UNAVAILABLE',
+              verifiedTablesCount: verifiedCount,
+              totalRequiredTables: REQUIRED_CORE_TABLES.length,
+              description: 'Database connection failed during schema verification.',
+              checkedAt: now,
+            };
+          }
+          missingTable = true;
+        }
+      }
+
+      if (missingTable && verifiedCount === 0) {
+        return {
+          state: 'DATABASE_MIGRATION_REQUIRED',
+          verifiedTablesCount: 0,
+          totalRequiredTables: REQUIRED_CORE_TABLES.length,
+          description: 'Database is reachable but schema migrations have not been applied.',
+          checkedAt: now,
+        };
+      }
+
+      if (missingTable || verifiedCount < REQUIRED_CORE_TABLES.length) {
+        return {
+          state: 'DATABASE_SCHEMA_INCOMPLETE',
+          verifiedTablesCount: verifiedCount,
+          totalRequiredTables: REQUIRED_CORE_TABLES.length,
+          description: `Schema is incomplete. Verified ${verifiedCount} of ${REQUIRED_CORE_TABLES.length} core tables.`,
+          checkedAt: now,
+        };
+      }
+
+      return {
+        state: 'DATABASE_READY',
+        verifiedTablesCount: verifiedCount,
+        totalRequiredTables: REQUIRED_CORE_TABLES.length,
+        description: 'All core relational schema tables verified and ready.',
+        checkedAt: now,
+      };
+    } catch {
+      return {
+        state: 'DATABASE_UNAVAILABLE',
+        verifiedTablesCount: 0,
+        totalRequiredTables: REQUIRED_CORE_TABLES.length,
+        description: 'Database readiness check encountered an unexpected connectivity issue.',
+        checkedAt: now,
+      };
+    }
   }
 }

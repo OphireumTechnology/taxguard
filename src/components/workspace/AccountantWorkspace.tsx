@@ -30,10 +30,12 @@ import {
   HelpCircle,
   FolderLock,
   DollarSign,
-  Scale
+  Scale,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getStoredToken } from '../../services/api';
+import { AccountantBookkeepingSection } from './AccountantBookkeepingSection';
 
 interface AssignedCase {
   caseId: string;
@@ -71,7 +73,7 @@ interface ReviewDocument {
 
 export const AccountantWorkspace: React.FC = () => {
   const { currentUser, logout } = useApp();
-  const [activeTab, setActiveTab] = useState<'cases' | 'doc_review' | 'requests' | 'records' | 'reconciliation'>('cases');
+  const [activeTab, setActiveTab] = useState<'cases' | 'doc_review' | 'requests' | 'records' | 'reconciliation' | 'bookkeeping'>('cases');
   const [selectedCaseId, setSelectedCaseId] = useState<string>('case_2025_001');
   const [selectedDocId, setSelectedDocId] = useState<string | null>('doc_001');
   const [filterTaxYear, setFilterTaxYear] = useState<number>(2025);
@@ -334,6 +336,17 @@ export const AccountantWorkspace: React.FC = () => {
             >
               <Scale className="w-4 h-4" />
               <span>Stage 05: Reconcile</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('bookkeeping')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'bookkeeping' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Bookkeeping &amp; Ledger</span>
             </button>
           </div>
 
@@ -677,6 +690,15 @@ export const AccountantWorkspace: React.FC = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB 6: BOOKKEEPING & GENERAL LEDGER COMMAND CENTER */}
+          {activeTab === 'bookkeeping' && (
+            <AccountantBookkeepingSection
+              clientId={selectedCase.clientId}
+              clientName={selectedCase.clientName}
+              taxYear={selectedCase.taxYear}
+            />
           )}
         </main>
       </div>
