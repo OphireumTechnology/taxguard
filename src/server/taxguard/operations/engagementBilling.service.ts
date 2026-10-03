@@ -90,7 +90,22 @@ export class EngagementBillingService {
   // ============================================================
 
   getServiceCatalog(tenantId: string): ServiceCatalogItem[] {
-    return Array.from(this.catalog.values()).filter((c) => c.tenantId === tenantId && c.isActive);
+    const existing = Array.from(this.catalog.values()).filter((c) => c.tenantId === tenantId && c.isActive);
+    if (existing.length === 0 && tenantId) {
+      const templateItems = Array.from(this.catalog.values()).filter((c) => c.tenantId === 'tenantA' && c.isActive);
+      const now = new Date().toISOString();
+      for (const item of templateItems) {
+        this.catalog.set(`${tenantId}::${item.serviceCode}`, {
+          ...item,
+          id: `cat_${tenantId}_${item.serviceCode}`,
+          tenantId,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      return Array.from(this.catalog.values()).filter((c) => c.tenantId === tenantId && c.isActive);
+    }
+    return existing;
   }
 
   async addServiceToCatalog(params: Omit<ServiceCatalogItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<ServiceCatalogItem> {
@@ -362,10 +377,17 @@ export class EngagementBillingService {
 
     const event = JSON.parse(payloadString) as { id: string; type: string; data?: any };
     const idempotencyKey = `stripe_event_${event.id}`;
+    const invoiceId = event.data?.object?.metadata?.invoiceId;
+    const matchedInv = invoiceId ? this.invoices.get(invoiceId) : undefined;
+    const configuredTenant = (process.env.TAXGUARD_TENANT_ID || '').trim();
+    if (process.env.NODE_ENV === 'production' && !configuredTenant && !matchedInv?.tenantId) {
+      throw new Error('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.');
+    }
+    const webhookTenantId = matchedInv?.tenantId || configuredTenant || 'tenantA';
 
     // Durable idempotency check
     const acquire = await globalDurableIdempotencyService.acquire(
-      'tenantA',
+      webhookTenantId,
       'STRIPE_WEBHOOK',
       'STRIPE',
       idempotencyKey,
@@ -378,7 +400,6 @@ export class EngagementBillingService {
 
     // Process event
     if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
-      const invoiceId = event.data?.object?.metadata?.invoiceId;
       const amount = (event.data?.object?.amount || 0) / 100;
       if (invoiceId && amount > 0) {
         const inv = this.invoices.get(invoiceId);
@@ -399,7 +420,7 @@ export class EngagementBillingService {
 
     if (acquire.status === 'ACQUIRED') {
       await globalDurableIdempotencyService.complete(
-        'tenantA',
+        webhookTenantId,
         'STRIPE_WEBHOOK',
         idempotencyKey,
         { eventId: event.id, eventType: event.type }

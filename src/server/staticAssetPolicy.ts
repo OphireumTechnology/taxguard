@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import type { RequestHandler } from 'express';
 
-const BLOCKED_ARTIFACT_PATTERN = /\.(?:cjs|map|zip|tar|gz|tgz|bak)(?:[\\/]|$)/i;
+const BLOCKED_ARTIFACT_PATTERN =
+  /(?:^|[\\/])(?:\.env(?:\.[^\\/]*)?|.*\.(?:cjs|map|zip|tar|gz|tgz|bak|pem|key|sql|sqlite|db))(?:[\\/]|$)/i;
 
 // The current build puts the Node bundle next to public assets in dist.
 // Never serve executable server bundles, source maps, internal archives, or backups from public directories.

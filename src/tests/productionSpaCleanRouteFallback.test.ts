@@ -101,12 +101,44 @@ describe('Production SPA Clean-Route Fallback & Routing Boundary Suite', () => {
     });
 
     it('never swallows unknown /api/* routes into dist/index.html', async () => {
-      const res = await fetch(`${baseUrl}/api/this-route-does-not-exist`);
-      expect(res.status).toBe(503);
-      expect(res.headers.get('content-type')).toContain('application/json');
-      expect(res.headers.get('content-type')).not.toContain('text/html');
-      const body = await res.json();
-      expect(body.code).toBe('API_NOT_RELEASED');
+      for (const unknownApi of ['/api/this-route-does-not-exist', '/api/this-route-must-not-exist', '/api/nonexistent']) {
+        const res = await fetch(`${baseUrl}${unknownApi}`);
+        expect(res.status).toBe(503);
+        expect(res.headers.get('content-type')).toContain('application/json');
+        expect(res.headers.get('content-type')).not.toContain('text/html');
+        const body = await res.json();
+        expect(body.code).toBe('API_NOT_RELEASED');
+      }
+    });
+
+    it('enforces PRODUCTION_TENANT_REQUIRED and blocks cross-tenant headers on /api/bookkeeping and /api/operations in production', async () => {
+      const savedTenant = process.env.TAXGUARD_TENANT_ID;
+      try {
+        delete process.env.TAXGUARD_TENANT_ID;
+        const bkNoTenant = await fetch(`${baseUrl}/api/bookkeeping/chart-of-accounts`);
+        expect(bkNoTenant.status).toBe(500);
+        expect((await bkNoTenant.json()).code).toBe('PRODUCTION_TENANT_REQUIRED');
+
+        const opsNoTenant = await fetch(`${baseUrl}/api/operations/jobs`);
+        expect(opsNoTenant.status).toBe(500);
+        expect((await opsNoTenant.json()).code).toBe('PRODUCTION_TENANT_REQUIRED');
+
+        process.env.TAXGUARD_TENANT_ID = 'ar-tax-services';
+        const bkCrossTenant = await fetch(`${baseUrl}/api/bookkeeping/chart-of-accounts`, {
+          headers: { 'x-tenant-id': 'rival-tenant' },
+        });
+        expect(bkCrossTenant.status).toBe(403);
+        expect((await bkCrossTenant.json()).code).toBe('CROSS_TENANT_ACCESS_DENIED');
+
+        const opsCrossTenant = await fetch(`${baseUrl}/api/operations/jobs`, {
+          headers: { 'x-tenant-id': 'rival-tenant' },
+        });
+        expect(opsCrossTenant.status).toBe(403);
+        expect((await opsCrossTenant.json()).code).toBe('CROSS_TENANT_ACCESS_DENIED');
+      } finally {
+        if (savedTenant === undefined) delete process.env.TAXGUARD_TENANT_ID;
+        else process.env.TAXGUARD_TENANT_ID = savedTenant;
+      }
     });
 
     it('never swallows /webhooks or /webhooks/* routes into dist/index.html', async () => {
@@ -154,7 +186,21 @@ describe('Production SPA Clean-Route Fallback & Routing Boundary Suite', () => {
     });
 
     it('blocks executable server bundles, source maps, and archives from being served or falling back to SPA', async () => {
-      for (const blockedPath of ['/server.cjs', '/assets/index.js.map', '/backup.zip', '/bundle.tar.gz']) {
+      for (const blockedPath of [
+        '/server.cjs',
+        '/server.cjs.map',
+        '/assets/index.js.map',
+        '/backup.zip',
+        '/bundle.tar',
+        '/bundle.gz',
+        '/bundle.tgz',
+        '/config.bak',
+        '/.env',
+        '/.env.production',
+        '/private.key',
+        '/cert.pem',
+        '/schema.sql',
+      ]) {
         const res = await fetch(`${baseUrl}${blockedPath}`);
         expect(res.status).toBe(404);
       }

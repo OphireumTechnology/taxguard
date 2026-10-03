@@ -471,6 +471,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (params) setPageParams(params);
 
     if (typeof window !== 'undefined') {
+      const currentPathname = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+      const isPortalSubroute = [
+        '/portal/dashboard',
+        '/portal/documents',
+        '/portal/requests',
+        '/portal/appointments',
+        '/portal/profile',
+      ].includes(currentPathname);
+      const isStaffSubroute = currentPathname === '/staff/workspace';
+
       let targetPath = `/${page}`;
       if (page === 'home') {
         targetPath = '/';
@@ -482,6 +492,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         page === 'client_onboarding'
       ) {
         targetPath = '/portal';
+        if (isPortalSubroute && !window.location.hash) {
+          targetPath = currentPathname;
+        }
       } else if (page === 'client_login' || page === 'login') {
         targetPath = '/portal/login';
       } else if (page === 'client_register' || page === 'register') {
@@ -496,6 +509,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         page === 'admin_portal'
       ) {
         targetPath = '/staff';
+        if (isStaffSubroute && !window.location.hash) {
+          targetPath = currentPathname;
+        }
       } else if (page === 'staff_login') {
         targetPath = '/staff/login';
       } else {

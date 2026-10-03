@@ -32,8 +32,35 @@ import { globalDurableIdempotencyService } from '../taxguard/operations/durableI
 
 export const practiceOperationsRouter = Router();
 
+practiceOperationsRouter.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
+    if (!configured) {
+      return res.status(500).json({
+        code: 'PRODUCTION_TENANT_REQUIRED',
+        error: 'PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.',
+      });
+    }
+    const headerTenant = ((req.headers['x-tenant-id'] as string) || '').trim();
+    if (headerTenant && headerTenant !== configured) {
+      return res.status(403).json({
+        code: 'CROSS_TENANT_ACCESS_DENIED',
+        error: 'CROSS_TENANT_ACCESS_DENIED: Request tenant does not match authoritative production tenant.',
+      });
+    }
+  }
+  next();
+});
+
 function getTenantId(req: AuthenticatedRequest): string {
-  return (req.user as any)?.tenantId || process.env.TAXGUARD_TENANT_ID || 'tenantA';
+  const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
+  if (process.env.NODE_ENV === 'production') {
+    if (!configured) {
+      throw new Error('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.');
+    }
+    return configured;
+  }
+  return (req.user as any)?.tenantId || configured || 'tenantA';
 }
 
 // ==============================================================================

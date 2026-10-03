@@ -4,6 +4,7 @@ import { caseAuthorityRouter } from './routes/case-authority.routes';
 import { profileAmendmentRouter } from './routes/profile-amendment.routes';
 import { stageTwoThreeRouter } from './routes/stage-two-three.routes';
 import { bookkeepingRouter } from './routes/bookkeeping.routes';
+import { practiceOperationsRouter } from './routes/practice-operations.routes';
 import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service';
 import {
   protectServerBuildArtifacts,
@@ -96,6 +97,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
   app.use(['/api/stage-two-three', '/api/stage-workflow'], stageTwoThreeRouter);
   app.use('/api/bookkeeping', bookkeepingRouter);
+  app.use('/api/operations', practiceOperationsRouter);
 
   // API production boundary: never allow unknown /api or /webhooks routes to reach SPA fallback
   app.use('/api', (_req, res) =>

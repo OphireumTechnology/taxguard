@@ -175,8 +175,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   });
 
   // Ensure returning client is automatically routed to current active stage (e.g. Stage 02 Collect)
+  // unless they explicitly navigated to /portal/dashboard
   useEffect(() => {
-    if (activeNavId === 'home') {
+    const pathname = typeof window !== 'undefined' ? window.location.pathname.toLowerCase().replace(/\/+$/, '') : '';
+    if (activeNavId === 'home' && pathname !== '/portal/dashboard') {
       const activeStage = authority?.workflow?.activeStage ?? 2;
       if (activeStage === 2) {
         setActiveNavId('stage_02');
@@ -185,6 +187,20 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       }
     }
   }, [authority?.workflow?.activeStage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => {
+      const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+      if (pathname === '/portal/documents') setActiveNavId('documents');
+      else if (pathname === '/portal/requests') setActiveNavId('exceptions');
+      else if (pathname === '/portal/appointments') setActiveNavId('messages');
+      else if (pathname === '/portal/profile') setActiveNavId('profile');
+      else if (pathname === '/portal/dashboard') setActiveNavId('home');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Collapsible sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
