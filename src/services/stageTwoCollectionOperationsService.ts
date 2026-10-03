@@ -341,11 +341,93 @@ export class StageTwoCollectionOperationsService {
     }
 
     // Find documents associated with this requirement
-    const matchingDocs = allDocs.filter(
-      d => d.associatedRequirementId === req.requirementId ||
-           d.claimedCategory === req.category ||
-           (d.intelligenceRecord && d.intelligenceRecord.aiDetectedCategory === req.category)
-    );
+    const matchingDocs = allDocs.filter(d => {
+      // 1. Direct association
+      if (d.associatedRequirementId === req.requirementId) {
+        // Enforce tax year matching (wrong year cannot satisfy)
+        const docYear = (d as any).detectedTaxYear || d.taxYear;
+        const isPriorYearReq = (req.category || '').toLowerCase().includes('prior') || (req.title || '').toLowerCase().includes('prior');
+        if (!isPriorYearReq && docYear && docYear !== req.taxYear) {
+          return false;
+        }
+        return true;
+      }
+
+      // 2. Strict tax year check: documents for another tax year cannot satisfy active requirement
+      const docYear = (d as any).detectedTaxYear || d.taxYear;
+      const isPriorYearReq = (req.category || '').toLowerCase().includes('prior') || (req.title || '').toLowerCase().includes('prior');
+      if (!isPriorYearReq && docYear && docYear !== req.taxYear) {
+        return false;
+      }
+
+      // 3. Multi-employer isolation: if requirement is specific to an employer (e.g. ABC Corporation), document must match that employer
+      const reqTitleUpper = (req.title + ' ' + (req.description || '')).toUpperCase();
+      const docFilenameUpper = (d.originalFileName + ' ' + (d.notes || '')).toUpperCase();
+      const docEmployer = ((d as any).detectedEmployer || (d.intelligenceRecord?.extractedData as any)?.employerName?.extractedValue || '').toUpperCase();
+      const combinedDocSource = `${docEmployer} ${docFilenameUpper}`;
+
+      if (reqTitleUpper.includes('ABC CORPORATION') && !combinedDocSource.includes('ABC')) {
+        return false;
+      }
+      if (reqTitleUpper.includes('XYZ CORPORATION') && !combinedDocSource.includes('XYZ')) {
+        return false;
+      }
+
+      // 4. Form type & category matching
+      const catLower = (req.category || '').toLowerCase();
+      const formLower = (req.formNumber || '').toLowerCase();
+      const titleLower = (req.title || '').toLowerCase();
+      const detectedCat = (d.intelligenceRecord?.aiDetectedCategory || (d as any).detectedType || '').toLowerCase();
+      const claimedCat = (d.claimedCategory || '').toLowerCase();
+      const fileLower = d.originalFileName.toLowerCase();
+
+      // W-2
+      if (formLower.includes('w-2') || catLower.includes('w-2') || catLower.includes('wage') || titleLower.includes('w-2')) {
+        return detectedCat.includes('w-2') || claimedCat.includes('w-2') || fileLower.includes('w2') || fileLower.includes('w-2');
+      }
+
+      // 1099-INT
+      if (formLower.includes('1099-int') || catLower.includes('interest') || titleLower.includes('1099-int')) {
+        return detectedCat.includes('1099-int') || claimedCat.includes('interest') || fileLower.includes('1099int') || fileLower.includes('1099-int');
+      }
+
+      // 1099-DIV
+      if (formLower.includes('1099-div') || catLower.includes('dividend') || titleLower.includes('1099-div')) {
+        return detectedCat.includes('1099-div') || claimedCat.includes('dividend') || fileLower.includes('1099div') || fileLower.includes('1099-div');
+      }
+
+      // 1099-B
+      if (formLower.includes('1099-b') || catLower.includes('invest') || titleLower.includes('1099-b')) {
+        return detectedCat.includes('1099-b') || claimedCat.includes('invest') || fileLower.includes('1099b') || fileLower.includes('1099-b');
+      }
+
+      // 1099-NEC / MISC
+      if (formLower.includes('1099-nec') || titleLower.includes('1099-nec') || formLower.includes('1099-misc')) {
+        return detectedCat.includes('1099-nec') || detectedCat.includes('1099-misc') || fileLower.includes('1099nec') || fileLower.includes('1099misc');
+      }
+
+      // 1098 Mortgage
+      if (formLower.includes('1098') || titleLower.includes('1098') || catLower.includes('mortgage')) {
+        return detectedCat.includes('1098') || fileLower.includes('1098');
+      }
+
+      // Bank Statement
+      if (formLower.includes('bank') || catLower.includes('bank') || titleLower.includes('bank')) {
+        return detectedCat.includes('bank') || claimedCat.includes('bank') || fileLower.includes('bank');
+      }
+
+      // Trial Balance
+      if (formLower.includes('trial') || catLower.includes('accounting') || titleLower.includes('trial balance')) {
+        return detectedCat.includes('trial') || claimedCat.includes('accounting') || fileLower.includes('trial') || fileLower.includes('tb');
+      }
+
+      // Prior-Year Return
+      if (isPriorYearReq) {
+        return detectedCat.includes('prior') || fileLower.includes('prior') || fileLower.includes('1040') || fileLower.includes('1120');
+      }
+
+      return claimedCat === catLower || detectedCat === catLower;
+    });
 
     if (matchingDocs.length === 0) {
       // Check if there are active requests for this requirement

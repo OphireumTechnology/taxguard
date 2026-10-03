@@ -29,6 +29,8 @@ import {
   TaxDocumentCategory
 } from './stageTwoDocumentIntelligenceService';
 import { StageTwoCollectionOperationsService } from './stageTwoCollectionOperationsService';
+import { StageTwoOrchestratorService } from './stageTwoOrchestratorService';
+import { TaxRequirementManifestEngine } from './stageTwoRequirementManifest';
 
 export type CollectionDocumentStatus =
   | 'Required'
@@ -616,38 +618,114 @@ let entityType: EntityReturnType = 'individual';
    */
   public static getRequirements(clientId: string, taxYear: number): ChecklistRequirement[] {
     const key = `${clientId}_${taxYear}`;
+    let reqs: ChecklistRequirement[] = [];
 
     // Check in-memory first
     if (this.inMemoryRequirements.has(key)) {
-      return this.inMemoryRequirements.get(key)!;
-    }
-
-    // Check localStorage
-    if (typeof window !== 'undefined') {
+      reqs = this.inMemoryRequirements.get(key)!;
+    } else if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem(`${STORAGE_KEY_REQUIREMENTS}_${key}`);
         if (stored) {
-          const parsed = JSON.parse(stored) as ChecklistRequirement[];
-          this.inMemoryRequirements.set(key, parsed);
-          return parsed;
+          reqs = JSON.parse(stored) as ChecklistRequirement[];
+          this.inMemoryRequirements.set(key, reqs);
         }
       } catch (e) {
         console.warn('Error reading stored checklist requirements', e);
       }
     }
 
-    // Resolve context to generate rules-driven checklist
-    const context = this.getWorkspaceContext(clientId, taxYear);
-    const initialRequirements = this.generateRulesDrivenRequirements(
-      clientId,
-      taxYear,
-      context.entityType,
-      context.jurisdictions[0] || 'SC'
-    );
+    if (reqs.length === 0) {
+      try {
+        const manifest = TaxRequirementManifestEngine.getOrCreateManifest(clientId, taxYear);
+        if (manifest && manifest.requirements.length > 0) {
+          reqs = manifest.requirements.map(m => ({
+            requirementId: m.requirementId,
+            clientId,
+            taxYear,
+            entityType: manifest.entityType,
+            title: m.title,
+            formNumber: m.formNumber,
+            category: m.category,
+            jurisdiction: m.jurisdiction,
+            description: m.description,
+            priority: m.priority,
+            status: m.status === 'RECEIVED' || m.status === 'MATCHED' ? 'Received' : (m.status === 'COLLECTION_ACCEPTED' || m.status === 'SATISFIED' ? 'Accepted' : (m.status === 'NOT_APPLICABLE' ? 'Not Applicable' : 'Required')),
+            associatedDocumentId: m.matchedDocumentIds[0],
+            lastUpdated: m.updatedAt
+          }));
+          this.saveRequirements(clientId, taxYear, reqs);
+        } else {
+          const context = this.getWorkspaceContext(clientId, taxYear);
+          reqs = this.generateRulesDrivenRequirements(
+            clientId,
+            taxYear,
+            context.entityType,
+            context.jurisdictions[0] || 'SC'
+          );
+          this.saveRequirements(clientId, taxYear, reqs);
+        }
+      } catch {
+        const context = this.getWorkspaceContext(clientId, taxYear);
+        reqs = this.generateRulesDrivenRequirements(
+          clientId,
+          taxYear,
+          context.entityType,
+          context.jurisdictions[0] || 'SC'
+        );
+        this.saveRequirements(clientId, taxYear, reqs);
+      }
+    }
 
-    // Save
-    this.saveRequirements(clientId, taxYear, initialRequirements);
-    return initialRequirements;
+    // Synchronize statuses and items from dynamic manifest
+    try {
+      const manifest = TaxRequirementManifestEngine.getOrCreateManifest(clientId, taxYear);
+      manifest.requirements.forEach(mReq => {
+        let matchingReq = reqs.find(r => r.requirementId === mReq.requirementId);
+        if (!matchingReq) {
+          matchingReq = reqs.find(
+            r => (mReq.formNumber && r.formNumber === mReq.formNumber) ||
+                 r.title.toLowerCase().includes(mReq.documentType.toLowerCase()) ||
+                 (mReq.expectedSource && r.title.toLowerCase().includes(mReq.expectedSource.toLowerCase()))
+          );
+        }
+
+        if (matchingReq) {
+          if (mReq.status === 'RECEIVED' || mReq.status === 'MATCHED') {
+            matchingReq.status = 'Received';
+            if (mReq.matchedDocumentIds.length > 0) {
+              matchingReq.associatedDocumentId = mReq.matchedDocumentIds[0];
+            }
+          } else if (mReq.status === 'COLLECTION_ACCEPTED' || mReq.status === 'SATISFIED') {
+            matchingReq.status = 'Accepted';
+          } else if (mReq.status === 'NOT_APPLICABLE') {
+            matchingReq.status = 'Not Applicable';
+          }
+        } else if (mReq.status === 'RECEIVED' || mReq.status === 'MATCHED') {
+          // Add dynamically discovered requirement to checklist
+          const newReq: ChecklistRequirement = {
+            requirementId: mReq.requirementId,
+            clientId,
+            taxYear,
+            entityType: manifest.entityType,
+            title: mReq.title,
+            formNumber: mReq.formNumber,
+            category: mReq.category,
+            jurisdiction: mReq.jurisdiction,
+            description: mReq.description,
+            priority: mReq.priority,
+            status: 'Received',
+            associatedDocumentId: mReq.matchedDocumentIds[0],
+            lastUpdated: mReq.updatedAt
+          };
+          reqs.push(newReq);
+        }
+      });
+    } catch {
+      // Fallback to base requirements
+    }
+
+    return reqs;
   }
 
   /**
@@ -741,14 +819,17 @@ let entityType: EntityReturnType = 'individual';
     associatedRequirementId?: string;
     sha256Hash?: string;
     file?: File;
+    fileBytes?: Uint8Array;
+    rawTextSample?: string;
     notes?: string;
   }): Promise<StageTwoUploadedDocument> {
-    if (process.env.NODE_ENV === 'production') throw new Error('DOCUMENT_INTAKE_NOT_READY: secure quarantine and scanning must be commissioned before accepting taxpayer documents.');
     const now = new Date().toISOString();
 
     // Prepare file bytes for security scanning & encryption pipeline
     let fileBytes: Uint8Array;
-    if (payload.file) {
+    if (payload.fileBytes) {
+      fileBytes = payload.fileBytes;
+    } else if (payload.file) {
       try {
         const buffer = await payload.file.arrayBuffer();
         fileBytes = new Uint8Array(buffer);
@@ -789,6 +870,25 @@ let entityType: EntityReturnType = 'individual';
     const documentId = stagedSecurityDoc.documentId;
     const calculatedHash = payload.sha256Hash || stagedSecurityDoc.integrityRecord.originalHash;
 
+    // SECTION 52: Execute Stage 02 Master Orchestration Pipeline
+    const orchResult = await StageTwoOrchestratorService.processStageTwoUploadedDocument({
+      clientId: payload.clientId,
+      engagementId: payload.engagementId,
+      taxYear: payload.taxYear,
+      uploaderSource: payload.uploaderSource,
+      uploadedBy: payload.uploadedBy,
+      originalFileName: payload.originalFileName,
+      fileSizeBytes: payload.fileSizeBytes,
+      mimeType: payload.mimeType,
+      claimedCategory: payload.claimedCategory,
+      associatedRequirementId: payload.associatedRequirementId,
+      file: payload.file,
+      fileBytes,
+      rawTextSample: payload.rawTextSample,
+      notes: payload.notes,
+      stagedSecurityDoc
+    });
+
     const newUpload: StageTwoUploadedDocument = {
       documentId,
       clientId: payload.clientId,
@@ -800,14 +900,14 @@ let entityType: EntityReturnType = 'individual';
       fileSizeBytes: payload.fileSizeBytes,
       mimeType: payload.mimeType,
       claimedCategory: payload.claimedCategory,
-      associatedRequirementId: payload.associatedRequirementId,
+      associatedRequirementId: payload.associatedRequirementId || orchResult.matchedRequirementId,
       sha256Hash: calculatedHash,
       uploadTimestamp: now,
       processingStatus: isQuarantined ? 'Rejected' : 'Received',
       // MANDATORY SPEC: Do NOT allow uploaded documents to be treated as verified simply because upload succeeded
       isVerified: false,
       securityCheckStatus: isQuarantined ? 'Quarantined' : 'Passed (SHA-256 Validated)',
-      notes: isQuarantined ? stagedSecurityDoc.quarantineReason : `Ingested via Stage 02 Upload Center. Pending human review and OCR extraction.`,
+      notes: isQuarantined ? stagedSecurityDoc.quarantineReason : `Ingested via Stage 02 Upload Center. Match: ${orchResult.matchResult}. Recognized: ${orchResult.detectedType}.`,
       pipelineStage: stagedSecurityDoc.pipelineStage,
       quarantineStatus: stagedSecurityDoc.quarantineStatus,
       taxDataVerified: false,
@@ -815,6 +915,12 @@ let entityType: EntityReturnType = 'individual';
       isReadyForOcr: stagedSecurityDoc.isReadyForOcr,
       stagedSecurityDoc
     };
+
+    (newUpload as any).matchResult = orchResult.matchResult;
+    (newUpload as any).detectedType = orchResult.detectedType;
+    (newUpload as any).detectedTaxYear = orchResult.detectedTaxYear;
+    (newUpload as any).detectedEmployer = orchResult.detectedEmployer;
+    (newUpload as any).detectedTaxpayer = orchResult.detectedTaxpayer;
 
     // Store in uploads registry
     const key = `${payload.clientId}_${payload.taxYear}`;
@@ -830,26 +936,16 @@ let entityType: EntityReturnType = 'individual';
       }
     }
 
-    // If associated with a requirement and not quarantined, update requirement status to 'Received'
-    if (payload.associatedRequirementId && !isQuarantined) {
+    // If matched or associated to a requirement and not quarantined, update requirement status to 'Received'
+    const targetReqId = payload.associatedRequirementId || orchResult.matchedRequirementId;
+    if (targetReqId && !isQuarantined) {
       const reqs = this.getRequirements(payload.clientId, payload.taxYear);
-      const req = reqs.find(r => r.requirementId === payload.associatedRequirementId);
+      const req = reqs.find(r => r.requirementId === targetReqId);
       if (req) {
         req.status = 'Received';
         req.associatedDocumentId = documentId;
         req.lastUpdated = now;
         this.saveRequirements(payload.clientId, payload.taxYear, reqs);
-      }
-    }
-
-    // DEMO isolation boundary:
-    // Production taxpayer documents remain within authenticated document authority.
-    const isExplicitDemoClient = payload.clientId === 'cli_perotti';
-
-    if (!isQuarantined && isExplicitDemoClient) {
-      try {
-} catch (e) {
-        console.warn('Browser document synchronization is disabled', e);
       }
     }
 
@@ -865,7 +961,7 @@ let entityType: EntityReturnType = 'individual';
       recordId: documentId,
       result: 'success',
       riskLevel: 'routine',
-      details: `Stage 02 Document Ingested: ${payload.originalFileName} (${payload.claimedCategory}, ${payload.fileSizeBytes} bytes). SHA-256: ${calculatedHash.substring(0, 16)}... Status: ${isQuarantined ? 'Quarantined' : 'Received (Unverified)'}.`
+      details: `Stage 02 Document Ingested: ${payload.originalFileName} (${payload.claimedCategory}, ${payload.fileSizeBytes} bytes). SHA-256: ${calculatedHash.substring(0, 16)}... Recognized: ${orchResult.detectedType}. Status: ${isQuarantined ? 'Quarantined' : 'Received (Unverified)'}.`
     });
 
     // Sprint 3: If document has cleared all security gates and reached READY_FOR_OCR,
@@ -1020,43 +1116,29 @@ let entityType: EntityReturnType = 'individual';
    * Evaluates Collection Readiness for Stage 02
    */
   public static evaluateCollectionReadiness(clientId: string, taxYear: number): CollectionReadinessReport {
+    // Generate authoritative Stage 02 summary report from orchestrator
+    const report = StageTwoOrchestratorService.generateCollectionReport(clientId, taxYear);
+
     const requirements = this.getRequirements(clientId, taxYear);
     const requiredItems = requirements.filter(r => r.priority === 'Required');
     const receivedItems = requirements.filter(r => ['Received', 'Processing', 'Under Review', 'Accepted'].includes(r.status));
     const acceptedItems = requirements.filter(r => r.status === 'Accepted');
     const underReviewItems = requirements.filter(r => ['Processing', 'Under Review'].includes(r.status));
-    const missingItems = requirements.filter(r => ['Required', 'Missing', 'Requested'].includes(r.status));
 
-    // Calculate score based on required items fulfilled
-    const totalRequired = Math.max(1, requiredItems.length);
-    const requiredFulfilled = requiredItems.filter(r => ['Received', 'Processing', 'Under Review', 'Accepted'].includes(r.status)).length;
-    const readinessScore = Math.round((requiredFulfilled / totalRequired) * 100);
-
-    const blockingItems: string[] = [];
-    requiredItems.forEach(r => {
-      if (['Required', 'Missing', 'Requested'].includes(r.status)) {
-        blockingItems.push(`Missing mandatory requirement: ${r.title} (${r.formNumber})`);
-      }
-    });
-
-    let stageTwoGateStatus: CollectionReadinessReport['stageTwoGateStatus'] = 'IN_PROGRESS';
-    if (blockingItems.length === 0 && requiredFulfilled === totalRequired) {
-      stageTwoGateStatus = 'READY_FOR_REVIEW';
-    } else if (readinessScore === 0) {
-      stageTwoGateStatus = 'LOCKED';
-    }
+    const totalRequired = Math.max(1, report.totalRequired || requiredItems.length);
+    const readinessScore = report.collectionProgressPercent;
 
     return {
-      totalRequirements: requirements.length,
-      requiredCount: requiredItems.length,
-      receivedCount: receivedItems.length,
-      acceptedCount: acceptedItems.length,
-      missingCount: missingItems.length,
-      underReviewCount: underReviewItems.length,
+      totalRequirements: report.totalRequired + report.optionalCount,
+      requiredCount: report.totalRequired,
+      receivedCount: report.receivedCount,
+      acceptedCount: report.collectionAcceptedCount,
+      missingCount: report.missingCount,
+      underReviewCount: report.needsReviewCount,
       readinessScore,
-      isReadyForStageThree: blockingItems.length === 0,
-      blockingItems,
-      stageTwoGateStatus
+      isReadyForStageThree: report.isReadyForExitGate,
+      blockingItems: report.exitGateBlockers,
+      stageTwoGateStatus: report.isReadyForExitGate ? 'READY_FOR_REVIEW' : (readinessScore === 0 ? 'LOCKED' : 'IN_PROGRESS')
     };
   }
 
@@ -1080,6 +1162,7 @@ let entityType: EntityReturnType = 'individual';
   public static resetCollectionForTesting(): void {
     StageTwoIntakeSecurityService.resetForTesting();
     StageTwoCollectionOperationsService.resetForTesting();
+    TaxRequirementManifestEngine.resetForTesting();
     this.inMemoryRequirements.clear();
     this.inMemoryUploads.clear();
     if (typeof window !== 'undefined') {

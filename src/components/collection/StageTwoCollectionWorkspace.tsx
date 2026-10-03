@@ -77,12 +77,14 @@ import { StageThreeValidationWorkspace } from '../validation/StageThreeValidatio
 import { AccountingDocumentIntakeAgentView } from './AccountingDocumentIntakeAgentView';
 import { TaxQuestionnaireModal } from './TaxQuestionnaireModal';
 import { NotApplicableModal } from './NotApplicableModal';
+import { StageTwoVaultView } from './StageTwoVaultView';
+import { StageTwoCollectionReportView } from './StageTwoCollectionReportView';
 
 export interface StageTwoCollectionWorkspaceProps {
   clientId?: string;
   selectedTaxYear: number;
   onTaxYearChange?: (year: number) => void;
-  initialSubTab?: 'checklist' | 'upload' | 'vault' | 'missing' | 'requests' | 'processing' | 'security' | 'exceptions' | 'review' | 'readiness';
+  initialSubTab?: 'checklist' | 'upload' | 'vault' | 'missing' | 'requests' | 'processing' | 'security' | 'exceptions' | 'review' | 'readiness' | 'report';
   onOpenAssistant?: () => void;
   userRole?: 'CLIENT' | 'STAFF' | 'ADMIN' | string;
 
@@ -107,7 +109,7 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
   onServerWorkflowRefresh
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<
-    'checklist' | 'upload' | 'vault' | 'missing' | 'requests' | 'processing' | 'security' | 'exceptions' | 'review' | 'readiness'
+    'checklist' | 'upload' | 'vault' | 'missing' | 'requests' | 'processing' | 'security' | 'exceptions' | 'review' | 'readiness' | 'report'
   >(initialSubTab);
   const [showStageThree, setShowStageThree] = useState(false);
   const [showStaffOperationalTabs, setShowStaffOperationalTabs] = useState(false);
@@ -523,12 +525,21 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setActiveSubTab('readiness')}
-                  className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#143657] text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors ml-auto cursor-pointer"
-                >
-                  Gate Status
-                </button>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <button
+                    onClick={() => setActiveSubTab('report')}
+                    className="px-2.5 py-1.5 bg-[#102D4F] hover:bg-[#143657] text-[#D4A843] border border-slate-700 rounded text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-[#D4A843]" />
+                    <span>Report</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab('readiness')}
+                    className="px-3 py-1.5 bg-[#102D4F] hover:bg-[#143657] text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    Gate Status
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -585,13 +596,13 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             className="px-3 py-1.5 rounded-lg text-xs font-mono text-[#A9B7C8] hover:text-white bg-[#102D4F] border border-slate-700 flex items-center gap-1.5 ml-auto cursor-pointer"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#D4A843]" />
-            <span>{showStaffOperationalTabs ? 'Hide Staff Tools' : 'Staff Operations (5)'}</span>
+            <span>{showStaffOperationalTabs ? 'Hide Staff Tools' : 'Staff Operations (6)'}</span>
           </button>
         )}
       </div>
 
       {/* Staff Operational Controls (if enabled or staff role active on operational tab) */}
-      {(showStaffOperationalTabs || (userRole !== 'CLIENT' && ['processing', 'security', 'exceptions', 'review', 'readiness'].includes(activeSubTab))) && (
+      {(showStaffOperationalTabs || (userRole !== 'CLIENT' && ['processing', 'security', 'exceptions', 'review', 'readiness', 'report'].includes(activeSubTab))) && (
         <div className="bg-[#102D4F] border border-slate-700/60 rounded-xl p-2 flex flex-wrap items-center gap-1 shadow-inner text-xs">
           <span className="text-[10px] font-mono uppercase text-[#D4A843] px-2 font-bold">Staff Ops:</span>
           {[
@@ -599,7 +610,8 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             { id: 'security', label: 'Security & Staging', icon: ShieldAlert, count: quarantinedDocs.length > 0 ? quarantinedDocs.length : undefined },
             { id: 'exceptions', label: 'Exceptions', icon: AlertTriangle, count: openExceptionsCount > 0 ? openExceptionsCount : undefined },
             { id: 'review', label: 'Human Review', icon: Eye, count: reviewQueue.filter(i => i.status === 'PENDING_REVIEW').length > 0 ? reviewQueue.filter(i => i.status === 'PENDING_REVIEW').length : undefined },
-            { id: 'readiness', label: 'Collection Readiness', icon: ShieldCheck }
+            { id: 'readiness', label: 'Collection Readiness', icon: ShieldCheck },
+            { id: 'report', label: 'Collection Report', icon: FileText }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -842,79 +854,22 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
         />
       )}
 
-      {/* SUB-TAB: MY DOCUMENTS / DOCUMENT VAULT */}
+      {/* SUB-TAB: MY DOCUMENTS / DOCUMENT VAULT (SECTION 16) */}
       {activeSubTab === 'vault' && (
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-700/60 bg-[#0D2745] p-6 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/50 pb-4">
-              <div>
-                <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                  <FolderLock className="w-5 h-5 text-[#D4A843]" />
-                  <span>My Documents &amp; Engagement Register</span>
-                </h2>
-                <p className="mt-1 text-xs text-[#A9B7C8]">
-                  Verified records in your client vault. Documents are encrypted and tamper-verified.
-                </p>
-              </div>
+        <StageTwoVaultView
+          documents={uploadedDocs}
+          currentTaxYear={context.taxYear}
+          onRefresh={() => setWorkspaceVersion(v => v + 1)}
+        />
+      )}
 
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('upload')}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-              >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>Upload New Document</span>
-              </button>
-            </div>
-
-            {uploadedDocs.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-slate-700 bg-[#06182B]/60 p-10 text-center text-xs text-[#7F91A6]">
-                <FolderLock className="w-8 h-8 text-[#7F91A6] mx-auto mb-2 opacity-60" />
-                <p>No documents are currently available in your vault.</p>
-                <button
-                  type="button"
-                  onClick={() => setActiveSubTab('upload')}
-                  className="mt-3 text-xs font-bold text-[#D4A843] hover:underline cursor-pointer"
-                >
-                  Upload your first accounting document &rarr;
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-2.5">
-                {uploadedDocs.map(doc => (
-                  <div
-                    key={doc.documentId}
-                    className="rounded-xl border border-slate-700/60 bg-[#102D4F] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-600 transition-colors"
-                  >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="p-2 rounded-lg bg-[#0D2745] text-[#D4A843] shrink-0 mt-0.5">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-[#F8FAFC] truncate">
-                          {doc.originalFileName}
-                        </div>
-                        <div className="mt-1 font-mono text-[11px] text-[#A9B7C8] flex flex-wrap items-center gap-2">
-                          <span>ID: {doc.documentId}</span>
-                          <span>&bull;</span>
-                          <span>Category: {doc.claimedCategory}</span>
-                          <span>&bull;</span>
-                          <span>Uploaded: {doc.uploadTimestamp ? new Date(doc.uploadTimestamp).toLocaleDateString() : 'Active'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-                      <span className="px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-600/40">
-                        {doc.processingStatus || 'CLEARED'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* SUB-TAB: ACCOUNTANT COLLECTION REPORT (SECTION 44) */}
+      {activeSubTab === 'report' && (
+        <StageTwoCollectionReportView
+          clientId={context.clientId}
+          taxYear={context.taxYear}
+          onRefresh={() => setWorkspaceVersion(v => v + 1)}
+        />
       )}
 
       {/* SUB-TAB: MISSING DOCUMENTS (TG-COL-021) */}
