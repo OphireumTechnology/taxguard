@@ -41,17 +41,21 @@ async function checkDatabaseReadiness() {
     console.log(`[+] Database: REACHABLE`);
 
     // 2. Verify Canonical Tenant Presence
-    const tenantId = (process.env.TAXGUARD_TENANT_ID || 'ar-tax-services').trim();
-    const { data: tenant, error: tenantErr } = await client
-      .from('taxguard_tenants')
-      .select('id, name, status')
-      .eq('id', tenantId)
-      .maybeSingle();
-
-    if (tenantErr || !tenant) {
-      console.log(`[!] Tenant Verification: Configured tenant '${tenantId}' NOT FOUND in restored dataset.`);
+    const tenantId = (process.env.TAXGUARD_TENANT_ID || '').trim();
+    if (!tenantId) {
+      console.log(`[!] Tenant Verification: TAXGUARD_TENANT_ID not specified in environment.`);
     } else {
-      console.log(`[+] Tenant Verification: '${tenant.id}' (${tenant.name}) present and status=${tenant.status}.`);
+      const { data: tenant, error: tenantErr } = await client
+        .from('taxguard_tenants')
+        .select('id, name, status')
+        .eq('id', tenantId)
+        .maybeSingle();
+
+      if (tenantErr || !tenant) {
+        console.log(`[!] Tenant Verification: Configured tenant '${tenantId}' NOT FOUND in restored dataset.`);
+      } else {
+        console.log(`[+] Tenant Verification: '${tenant.id}' (${tenant.name}) present and status=${tenant.status}.`);
+      }
     }
 
     // 3. Verify Critical Relational Tables

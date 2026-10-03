@@ -1,0 +1,169 @@
+{
+  "releaseIdentifier": "TAXGUARD-AI-2026.10.02-RELEASE-CANDIDATE",
+  "generatedAt": "2026-10-02T20:10:00.000Z",
+  "organization": "A/R Tax Services LLC",
+  "targetRepository": "OphireumTechnology/taxguard",
+  "summary": "Authoritative cumulative release dependencies spanning Bookkeeping Development, Practice Operations Development, RC Hardening, and Latest Production Hardening.",
+  "subsystemDependencies": {
+    "bookkeepingDevelopment": {
+      "migrations": [
+        "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql"
+      ],
+      "serverModules": [
+        "src/server/taxguard/bookkeeping/types.ts",
+        "src/server/taxguard/bookkeeping/defaultAccounts.ts",
+        "src/server/taxguard/bookkeeping/bookkeeping.engine.ts",
+        "src/server/taxguard/bookkeeping/accountingSync.service.ts"
+      ],
+      "routes": [
+        "src/server/routes/bookkeeping.routes.ts"
+      ],
+      "services": [
+        "src/services/bookkeepingService.ts"
+      ],
+      "components": [
+        "src/components/portal/views/AccountingView.tsx",
+        "src/components/workspace/AccountantWorkspace.tsx",
+        "src/components/workspace/ReviewerWorkspace.tsx"
+      ],
+      "tests": [
+        "src/tests/taxGuardBookkeepingEngine.test.ts"
+      ]
+    },
+    "practiceOperationsDevelopment": {
+      "migrations": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql"
+      ],
+      "serverModules": [
+        "src/server/taxguard/operations/types.ts",
+        "src/server/taxguard/operations/durableIdempotency.service.ts",
+        "src/server/taxguard/operations/durableJobQueue.service.ts",
+        "src/server/taxguard/operations/practiceTask.service.ts",
+        "src/server/taxguard/operations/staffAssignment.service.ts",
+        "src/server/taxguard/operations/deadlineEscalation.service.ts",
+        "src/server/taxguard/operations/clientCommunication.service.ts",
+        "src/server/taxguard/operations/clientRequest.service.ts",
+        "src/server/taxguard/operations/notificationOrchestrator.service.ts",
+        "src/server/taxguard/operations/engagementBilling.service.ts",
+        "src/server/taxguard/operations/operationalSearch.service.ts",
+        "src/server/taxguard/operations/practiceAnalytics.service.ts",
+        "src/server/taxguard/operations/dataRetentionRecovery.service.ts"
+      ],
+      "routes": [
+        "src/server/routes/practice-operations.routes.ts"
+      ],
+      "components": [
+        "src/components/admin/PracticeAdminWorkspace.tsx"
+      ],
+      "tests": [
+        "src/tests/taxGuardPracticeOperations.test.ts",
+        "src/tests/supabaseProductionInfrastructure.test.ts"
+      ]
+    },
+    "rcHardening": {
+      "migrations": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "supabase/migrations/20260929000000_taxguard_complete_lifecycle_schema.sql"
+      ],
+      "serverModules": [
+        "src/server/productionApp.ts",
+        "src/server/taxguard/authority.repository.ts",
+        "src/server/taxguard/providerReadiness.service.ts",
+        "src/server/taxguard/tenantBootstrap.ts",
+        "src/server/taxguard/transactionalDatabase.ts"
+      ],
+      "routes": [
+        "src/server/routes/monitoring.routes.ts"
+      ],
+      "tests": [
+        "src/tests/deploymentCandidateIntegrationAndSecurity.test.ts",
+        "src/tests/taxGuardProductionHardening.test.ts",
+        "src/tests/taxGuardProductionIntegration.test.ts",
+        "src/tests/taxGuardProductionDeployment.test.ts"
+      ]
+    },
+    "latestProductionHardening": {
+      "serverModules": [
+        "server.ts"
+      ],
+      "configuration": [
+        ".env.example",
+        "package.json",
+        "package-lock.json",
+        "metadata.json"
+      ],
+      "scripts": [
+        "scripts/production-smoke-test.mjs",
+        "scripts/verify-post-restore.mjs",
+        "scripts/verify-production-config.ts"
+      ],
+      "documentation": [
+        "docs/DISASTER_RECOVERY.md",
+        "docs/PRODUCTION_DEPLOYMENT.md",
+        "docs/PRODUCTION_SECURITY.md",
+        "docs/PROVIDER_COMMISSIONING.md",
+        "docs/RELEASE_CHECKLIST.md"
+      ],
+      "tests": [
+        "src/tests/productionReleaseHardeningSuite.test.ts"
+      ]
+    }
+  },
+  "cumulativeRequiredFiles": [
+    "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+    "supabase/migrations/20260929000000_taxguard_complete_lifecycle_schema.sql",
+    "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql",
+    "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+    "server.ts",
+    ".env.example",
+    "metadata.json",
+    "package.json",
+    "package-lock.json",
+    "src/server/productionApp.ts",
+    "src/server/taxguard/authority.repository.ts",
+    "src/server/taxguard/providerReadiness.service.ts",
+    "src/server/taxguard/tenantBootstrap.ts",
+    "src/server/taxguard/transactionalDatabase.ts",
+    "src/server/taxguard/bookkeeping/types.ts",
+    "src/server/taxguard/bookkeeping/defaultAccounts.ts",
+    "src/server/taxguard/bookkeeping/bookkeeping.engine.ts",
+    "src/server/taxguard/bookkeeping/accountingSync.service.ts",
+    "src/server/taxguard/operations/types.ts",
+    "src/server/taxguard/operations/durableIdempotency.service.ts",
+    "src/server/taxguard/operations/durableJobQueue.service.ts",
+    "src/server/taxguard/operations/practiceTask.service.ts",
+    "src/server/taxguard/operations/staffAssignment.service.ts",
+    "src/server/taxguard/operations/deadlineEscalation.service.ts",
+    "src/server/taxguard/operations/clientCommunication.service.ts",
+    "src/server/taxguard/operations/clientRequest.service.ts",
+    "src/server/taxguard/operations/notificationOrchestrator.service.ts",
+    "src/server/taxguard/operations/engagementBilling.service.ts",
+    "src/server/taxguard/operations/operationalSearch.service.ts",
+    "src/server/taxguard/operations/practiceAnalytics.service.ts",
+    "src/server/taxguard/operations/dataRetentionRecovery.service.ts",
+    "src/server/routes/bookkeeping.routes.ts",
+    "src/server/routes/practice-operations.routes.ts",
+    "src/server/routes/monitoring.routes.ts",
+    "src/services/bookkeepingService.ts",
+    "src/components/portal/views/AccountingView.tsx",
+    "src/components/workspace/AccountantWorkspace.tsx",
+    "src/components/workspace/ReviewerWorkspace.tsx",
+    "src/components/admin/PracticeAdminWorkspace.tsx",
+    "src/tests/taxGuardBookkeepingEngine.test.ts",
+    "src/tests/taxGuardPracticeOperations.test.ts",
+    "src/tests/supabaseProductionInfrastructure.test.ts",
+    "src/tests/deploymentCandidateIntegrationAndSecurity.test.ts",
+    "src/tests/taxGuardProductionHardening.test.ts",
+    "src/tests/taxGuardProductionIntegration.test.ts",
+    "src/tests/taxGuardProductionDeployment.test.ts",
+    "src/tests/productionReleaseHardeningSuite.test.ts",
+    "scripts/production-smoke-test.mjs",
+    "scripts/verify-post-restore.mjs",
+    "scripts/verify-production-config.ts",
+    "docs/DISASTER_RECOVERY.md",
+    "docs/PRODUCTION_DEPLOYMENT.md",
+    "docs/PRODUCTION_SECURITY.md",
+    "docs/PROVIDER_COMMISSIONING.md",
+    "docs/RELEASE_CHECKLIST.md"
+  ]
+}
