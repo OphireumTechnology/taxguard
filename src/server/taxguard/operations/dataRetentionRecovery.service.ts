@@ -1,14 +1,22 @@
 /**
  * TaxGuard Data Retention, Legal Hold, Archive Integrity & Annual Rollover Service
- * Enforces statutory retention policies, immutable SHA-256 archive verification,
- * legal hold blocking, Stage 17 renewal proposals, and safe Stage 18 annual rollover.
+ * Enforces firm-configured and jurisdiction-sensitive retention policies,
+ * immutable SHA-256 archive verification, legal hold blocking (overriding all
+ * automated deletion), Stage 17 renewal proposals, and safe Stage 18 annual rollover.
+ *
+ * Retention periods are governed as firm-configured policy, jurisdiction-sensitive
+ * policy, and record-type policy rather than fixed statutory assertions.
  */
 
 import { createHash } from 'node:crypto';
 
+export type RetentionPolicyBasis = 'FIRM_CONFIGURED_POLICY' | 'JURISDICTION_POLICY' | 'CUSTOM_ENGAGEMENT_POLICY';
+
 export interface RetentionPolicyItem {
   recordCategory: 'TAX_RETURN' | 'WORKPAPERS' | 'COMMUNICATIONS' | 'AUDIT_LOGS' | 'INVOICES';
   retentionYears: number;
+  policyBasis: RetentionPolicyBasis;
+  jurisdiction?: string;
   legalHoldActive: boolean;
   holdReason?: string;
   holdPlacedBy?: string;
@@ -50,11 +58,11 @@ export class DataRetentionRecoveryService {
 
   private seedDefaultPolicies(): void {
     const defaults: RetentionPolicyItem[] = [
-      { recordCategory: 'TAX_RETURN', retentionYears: 7, legalHoldActive: false },
-      { recordCategory: 'WORKPAPERS', retentionYears: 7, legalHoldActive: false },
-      { recordCategory: 'COMMUNICATIONS', retentionYears: 5, legalHoldActive: false },
-      { recordCategory: 'AUDIT_LOGS', retentionYears: 10, legalHoldActive: false },
-      { recordCategory: 'INVOICES', retentionYears: 7, legalHoldActive: false },
+      { recordCategory: 'TAX_RETURN', retentionYears: 7, policyBasis: 'FIRM_CONFIGURED_POLICY', jurisdiction: 'US_FEDERAL_DEFAULT', legalHoldActive: false },
+      { recordCategory: 'WORKPAPERS', retentionYears: 7, policyBasis: 'FIRM_CONFIGURED_POLICY', jurisdiction: 'US_FEDERAL_DEFAULT', legalHoldActive: false },
+      { recordCategory: 'COMMUNICATIONS', retentionYears: 5, policyBasis: 'FIRM_CONFIGURED_POLICY', jurisdiction: 'US_FEDERAL_DEFAULT', legalHoldActive: false },
+      { recordCategory: 'AUDIT_LOGS', retentionYears: 10, policyBasis: 'FIRM_CONFIGURED_POLICY', jurisdiction: 'US_FEDERAL_DEFAULT', legalHoldActive: false },
+      { recordCategory: 'INVOICES', retentionYears: 7, policyBasis: 'FIRM_CONFIGURED_POLICY', jurisdiction: 'US_FEDERAL_DEFAULT', legalHoldActive: false },
     ];
     for (const p of defaults) {
       this.retentionPolicies.set(p.recordCategory, p);
@@ -66,7 +74,33 @@ export class DataRetentionRecoveryService {
   }
 
   /**
-   * Place or remove a legal hold
+   * Configure or update policy for a record category (firm or jurisdiction specific)
+   */
+  configurePolicy(
+    recordCategory: RetentionPolicyItem['recordCategory'],
+    retentionYears: number,
+    policyBasis: RetentionPolicyBasis = 'FIRM_CONFIGURED_POLICY',
+    jurisdiction = 'US_FEDERAL_DEFAULT'
+  ): RetentionPolicyItem {
+    if (retentionYears < 1 || retentionYears > 50) {
+      throw new Error(`INVALID_RETENTION_DURATION: Retention years must be between 1 and 50.`);
+    }
+    const current = this.retentionPolicies.get(recordCategory) || {
+      recordCategory,
+      retentionYears,
+      policyBasis,
+      jurisdiction,
+      legalHoldActive: false,
+    };
+    current.retentionYears = retentionYears;
+    current.policyBasis = policyBasis;
+    current.jurisdiction = jurisdiction;
+    this.retentionPolicies.set(recordCategory, current);
+    return current;
+  }
+
+  /**
+   * Place or remove a legal hold (unconditionally overrides automated deletion)
    */
   setLegalHold(
     recordCategory: RetentionPolicyItem['recordCategory'],
@@ -80,7 +114,7 @@ export class DataRetentionRecoveryService {
     policy.legalHoldActive = active;
     if (active) {
       policy.holdPlacedBy = placedBy;
-      policy.holdReason = reason || 'Statutory/Regulatory Inquiry';
+      policy.holdReason = reason || 'Firm Legal Hold / Pending Regulatory Inquiry';
       policy.holdPlacedAt = new Date().toISOString();
     } else {
       policy.holdPlacedBy = undefined;

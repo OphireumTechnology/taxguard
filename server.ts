@@ -345,20 +345,31 @@ app.get(
 
 app.get(
   '/api/readiness',
-  (
+  async (
     _req,
     res
   ) => {
     res.setHeader('Cache-Control', 'no-store');
     const dbStatus = ProviderReadinessRegistry.getProviderStatus('DATABASE');
     const authStatus = ProviderReadinessRegistry.getProviderStatus('AUTHENTICATION');
-    const isReady = process.env.NODE_ENV !== 'production' || (dbStatus.isOperational && authStatus.isOperational);
+    const schemaResult = await ProviderReadinessRegistry.checkDatabaseSchemaReadiness().catch(() => ({
+      state: 'DATABASE_UNAVAILABLE' as const,
+      verifiedTablesCount: 0,
+      totalRequiredTables: 6,
+      description: 'Schema verification check failed.',
+      checkedAt: new Date().toISOString(),
+    }));
+
+    const isReady =
+      process.env.NODE_ENV !== 'production' ||
+      (dbStatus.isOperational && authStatus.isOperational && schemaResult.state === 'DATABASE_READY');
 
     res.status(isReady ? 200 : 503).json({
       status: isReady ? 'ready' : 'degraded',
       process: 'healthy',
       dependencies: {
         database: dbStatus.status,
+        schema: schemaResult.state,
         authentication: authStatus.status,
         ai: ProviderReadinessRegistry.getProviderStatus('AI').status
       },
@@ -627,6 +638,28 @@ app.use(
       req,
       res
     );
+  }
+);
+
+/**
+ * Centralized API error handler to prevent internal stack or secret leaks.
+ */
+app.use(
+  '/api',
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    const correlationId = 'ERR-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    console.error(`[TaxGuard API Error ${correlationId}]`, err?.message || 'Internal Error');
+    res.status(status).json({
+      code: err?.code || 'INTERNAL_SERVER_ERROR',
+      message: status < 500 ? (err?.message || 'Bad Request') : 'An unexpected error occurred. Please contact support with correlation ID.',
+      correlationId
+    });
   }
 );
 
