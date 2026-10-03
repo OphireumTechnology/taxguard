@@ -117,6 +117,10 @@ import {
   bookkeepingRouter
 } from './src/server/routes/bookkeeping.routes';
 
+import {
+  practiceOperationsRouter
+} from './src/server/routes/practice-operations.routes';
+
 /**
  * TaxGuard LIVE server-authoritative workflow.
  *
@@ -511,6 +515,11 @@ app.use(
 app.use(
   '/api/bookkeeping',
   bookkeepingRouter
+);
+
+app.use(
+  '/api/operations',
+  practiceOperationsRouter
 );
 
 /**

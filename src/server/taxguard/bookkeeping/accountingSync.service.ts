@@ -5,6 +5,7 @@
  */
 
 import { AccountingSyncState, SyncConflictState } from './types';
+import { globalDurableIdempotencyService } from '../operations/durableIdempotency.service';
 
 export class AccountingSyncService {
   private syncStates = new Map<string, AccountingSyncState>();
@@ -188,14 +189,45 @@ export class AccountingSyncService {
     auditStatus: 'AUDIT_RECORDED';
     auditEventId: string;
   }> {
+    // 1. Check in-memory store
     if (this.idempotencyStore.has(idempotencyKey)) {
       return this.idempotencyStore.get(idempotencyKey)!;
+    }
+
+    // 2. Check durable PostgreSQL-backed idempotency service
+    const durableCheck = await globalDurableIdempotencyService.acquire(
+      tenantId,
+      `ACCOUNTING_WRITE_${provider}`,
+      provider,
+      idempotencyKey,
+      `${clientId}:${journalEntryIds.join(',')}`
+    );
+
+    if (durableCheck.status === 'COMPLETED' && durableCheck.resultReference) {
+      const replayed = durableCheck.resultReference as {
+        success: boolean;
+        provider: string;
+        committedEntriesCount: number;
+        idempotencyKey: string;
+        auditStatus: 'AUDIT_RECORDED';
+        auditEventId: string;
+      };
+      this.idempotencyStore.set(idempotencyKey, replayed);
+      return replayed;
     }
 
     const state = this.getSyncState(provider, tenantId, clientId);
     const auth = state.writeAuthorization;
 
     if (!auth.clientAuthorized || !auth.accountantPrepared || !auth.reviewerApproved || !auth.explicitlyConfirmed) {
+      if (durableCheck.status === 'ACQUIRED') {
+        await globalDurableIdempotencyService.fail(
+          tenantId,
+          `ACCOUNTING_WRITE_${provider}`,
+          idempotencyKey,
+          'WRITE_PIPELINE_INCOMPLETE'
+        );
+      }
       throw new Error('WRITE_PIPELINE_INCOMPLETE: All 4 prior security checkpoints must be satisfied before remote write execution.');
     }
 
@@ -213,6 +245,18 @@ export class AccountingSyncService {
     };
 
     this.idempotencyStore.set(idempotencyKey, result);
+
+    // Persist result into durable idempotency store
+    if (durableCheck.status === 'ACQUIRED') {
+      await globalDurableIdempotencyService.complete(
+        tenantId,
+        `ACCOUNTING_WRITE_${provider}`,
+        idempotencyKey,
+        result,
+        result.auditEventId
+      );
+    }
+
     return result;
   }
 

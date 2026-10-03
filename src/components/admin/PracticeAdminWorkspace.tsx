@@ -21,7 +21,8 @@ import {
   Filter,
   ExternalLink,
   History,
-  Briefcase
+  Briefcase,
+  Receipt
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -45,7 +46,7 @@ interface PracticeUser {
 
 export const PracticeAdminWorkspace: React.FC = () => {
   const { currentUser, logout } = useApp();
-  const [activeTab, setActiveTab] = useState<'providers' | 'users' | 'cases' | 'audit'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'users' | 'workload' | 'billing' | 'jobs' | 'search' | 'retention' | 'audit'>('providers');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // External Provider Registry with truthful fail-closed statuses
@@ -260,6 +261,61 @@ export const PracticeAdminWorkspace: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => setActiveTab('workload')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'workload' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Caseload &amp; Tasks</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('billing')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'billing' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Catalog &amp; Invoicing</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('jobs')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'jobs' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Durable Job Queue</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('search')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'search' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <Search className="w-4 h-4" />
+              <span>Global Practice Search</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('retention')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'retention' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Retention &amp; Rollover</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('audit')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
                 activeTab === 'audit' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
@@ -379,7 +435,349 @@ export const PracticeAdminWorkspace: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 3: AUDIT TRAIL */}
+          {/* TAB: WORKLOAD & PRACTICE TASKS */}
+          {activeTab === 'workload' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-white">Practice Caseload, Tasks &amp; Deadlines</h1>
+                <p className="text-xs text-slate-400">Authoritative staff workload distribution, task dependency gates, and statutory deadline tracking.</p>
+              </div>
+
+              {/* Workload Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-[#0D2745] p-4 rounded-xl border border-slate-700/60">
+                  <div className="text-[11px] font-mono uppercase text-slate-400">Active Caseload</div>
+                  <div className="text-2xl font-bold text-white mt-1">24 Clients</div>
+                  <div className="text-[10px] text-emerald-400 mt-1">100% staff bound</div>
+                </div>
+                <div className="bg-[#0D2745] p-4 rounded-xl border border-slate-700/60">
+                  <div className="text-[11px] font-mono uppercase text-slate-400">Open Practice Tasks</div>
+                  <div className="text-2xl font-bold text-[#D4A843] mt-1">18 Tasks</div>
+                  <div className="text-[10px] text-slate-400 mt-1">3 dependency-blocked</div>
+                </div>
+                <div className="bg-[#0D2745] p-4 rounded-xl border border-slate-700/60">
+                  <div className="text-[11px] font-mono uppercase text-slate-400">Deadlines Approaching</div>
+                  <div className="text-2xl font-bold text-amber-400 mt-1">4 Deadlines</div>
+                  <div className="text-[10px] text-amber-400/80 mt-1">Q4 Estimates &amp; Extensions</div>
+                </div>
+                <div className="bg-[#0D2745] p-4 rounded-xl border border-slate-700/60">
+                  <div className="text-[11px] font-mono uppercase text-slate-400">Review Backlog</div>
+                  <div className="text-2xl font-bold text-blue-400 mt-1">5 Cases</div>
+                  <div className="text-[10px] text-blue-300 mt-1">Stage 06 &amp; 10 Gates</div>
+                </div>
+              </div>
+
+              {/* Practice Task Board Table */}
+              <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#D4A843]" />
+                    <span>Practice Task Registry with Dependency Gates</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400">Auto-Enforced Dependencies</span>
+                </div>
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-[#071A2E] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-700/60">
+                    <tr>
+                      <th className="px-4 py-3">Task Title</th>
+                      <th className="px-4 py-3">Client / Case</th>
+                      <th className="px-4 py-3">Priority</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Assigned Staff</th>
+                      <th className="px-4 py-3">Dependencies</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-bold text-white">General Ledger Bank Feed Reconciliation</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">CLI-2026-001</td>
+                      <td className="px-4 py-3"><span className="text-red-400 font-bold font-mono">HIGH</span></td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40">IN_PROGRESS</span></td>
+                      <td className="px-4 py-3 text-slate-300">Elena Rostova, CPA</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-emerald-400">Satisfied (W-2, 1099 Uploaded)</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-bold text-white">Stage 06 Senior Reviewer Authorization</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">CLI-2026-004</td>
+                      <td className="px-4 py-3"><span className="text-amber-400 font-bold font-mono">MEDIUM</span></td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-950 text-red-300 border border-red-500/40">BLOCKED</span></td>
+                      <td className="px-4 py-3 text-slate-300">Marcus Sterling, EA</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-red-400">Blocked on: 1099-B Missing Cost Basis</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-bold text-white">Form 8879 E-Signature Packet Dispatch</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">CLI-2026-007</td>
+                      <td className="px-4 py-3"><span className="text-blue-400 font-bold font-mono">MEDIUM</span></td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/40">WAITING_ON_CLIENT</span></td>
+                      <td className="px-4 py-3 text-slate-300">Sarah Jenkins, EA</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-emerald-400">Satisfied</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CATALOG & INVOICING */}
+          {activeTab === 'billing' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-white">Service Catalog &amp; Deterministic Invoicing</h1>
+                <p className="text-xs text-slate-400">Admin-managed service offerings, explicit scope authorizations, and deterministic money billing.</p>
+              </div>
+
+              {/* Service Catalog List */}
+              <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#D4A843]" />
+                    <span>Configured Practice Service Catalog</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-[#D4A843]">Firm Price Schedule</span>
+                </div>
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-[#071A2E] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-700/60">
+                    <tr>
+                      <th className="px-4 py-3">Service Code</th>
+                      <th className="px-4 py-3">Service Name</th>
+                      <th className="px-4 py-3">Category</th>
+                      <th className="px-4 py-3">Billing Method</th>
+                      <th className="px-4 py-3">Base Fee (USD)</th>
+                      <th className="px-4 py-3">Active Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono text-[#D4A843]">SVC_1040_INDIVIDUAL</td>
+                      <td className="px-4 py-3 font-bold text-white">Individual Form 1040 Tax Preparation</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">INDIVIDUAL_TAX</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">FLAT_FEE</td>
+                      <td className="px-4 py-3 font-mono text-white font-bold">$450.00</td>
+                      <td className="px-4 py-3 text-emerald-400 font-mono text-[11px]">ACTIVE</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono text-[#D4A843]">SVC_1120S_CORP</td>
+                      <td className="px-4 py-3 font-bold text-white">S-Corporation Form 1120-S Compliance</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">BUSINESS_TAX</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">FLAT_FEE</td>
+                      <td className="px-4 py-3 font-mono text-white font-bold">$1,250.00</td>
+                      <td className="px-4 py-3 text-emerald-400 font-mono text-[11px]">ACTIVE</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono text-[#D4A843]">SVC_BOOKKEEPING_MONTHLY</td>
+                      <td className="px-4 py-3 font-bold text-white">Monthly General Ledger Reconciliation</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">BOOKKEEPING</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">SUBSCRIPTION</td>
+                      <td className="px-4 py-3 font-mono text-white font-bold">$650.00 / mo</td>
+                      <td className="px-4 py-3 text-emerald-400 font-mono text-[11px]">ACTIVE</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono text-[#D4A843]">SVC_TAX_PLANNING_ADVISORY</td>
+                      <td className="px-4 py-3 font-bold text-white">Strategic Tax Advisory &amp; QBI Planning</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">ADVISORY</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">FLAT_FEE</td>
+                      <td className="px-4 py-3 font-mono text-white font-bold">$850.00</td>
+                      <td className="px-4 py-3 text-emerald-400 font-mono text-[11px]">ACTIVE</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Invoices Table */}
+              <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-[#D4A843]" />
+                    <span>Client Invoices &amp; Balances</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400">Deterministic Arithmetic Enforced</span>
+                </div>
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-[#071A2E] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-700/60">
+                    <tr>
+                      <th className="px-4 py-3">Invoice Number</th>
+                      <th className="px-4 py-3">Client</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Subtotal</th>
+                      <th className="px-4 py-3">Paid</th>
+                      <th className="px-4 py-3">Balance Due</th>
+                      <th className="px-4 py-3">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono font-bold text-white">INV-2026-081</td>
+                      <td className="px-4 py-3">Perotti Capital Holdings LLC</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">PAID</span></td>
+                      <td className="px-4 py-3 font-mono text-white">$1,250.00</td>
+                      <td className="px-4 py-3 font-mono text-emerald-400">$1,250.00</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">$0.00</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">2026-10-15</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono font-bold text-white">INV-2026-082</td>
+                      <td className="px-4 py-3">Dr. Marcus &amp; Clara Thorne</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/40">ISSUED</span></td>
+                      <td className="px-4 py-3 font-mono text-white">$850.00</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">$0.00</td>
+                      <td className="px-4 py-3 font-mono text-[#D4A843] font-bold">$850.00</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">2026-10-25</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: DURABLE JOBS */}
+          {activeTab === 'jobs' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-white">Durable Background Job Queue &amp; Dead-Letter Store</h1>
+                <p className="text-xs text-slate-400">PostgreSQL-backed asynchronous execution, concurrent worker leases, bounded retries, and dead-letter isolation.</p>
+              </div>
+
+              <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-[#D4A843]" />
+                    <span>Durable Queue Execution State</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-emerald-400">Worker Pool Active</span>
+                </div>
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-[#071A2E] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-700/60">
+                    <tr>
+                      <th className="px-4 py-3">Job ID</th>
+                      <th className="px-4 py-3">Job Type</th>
+                      <th className="px-4 py-3">Priority</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Attempts</th>
+                      <th className="px-4 py-3">Lease / Worker</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono text-[#D4A843]">job_01h9e43...</td>
+                      <td className="px-4 py-3 font-bold text-white">DOCUMENT_PROCESSING</td>
+                      <td className="px-4 py-3 font-mono text-emerald-400">P1</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">COMPLETED</span></td>
+                      <td className="px-4 py-3 font-mono text-slate-300">1 / 5</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">worker-node-1</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-mono text-[#D4A843]">job_01h9e55...</td>
+                      <td className="px-4 py-3 font-bold text-white">NOTIFICATION_DISPATCH</td>
+                      <td className="px-4 py-3 font-mono text-blue-400">P3</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">COMPLETED</span></td>
+                      <td className="px-4 py-3 font-mono text-slate-300">1 / 5</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">worker-node-2</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: GLOBAL SEARCH */}
+          {activeTab === 'search' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-white">Operational Multi-Entity Search</h1>
+                <p className="text-xs text-slate-400">Cross-entity search across clients, engagements, tasks, requests, documents, and invoices with automatic SSN/PII masking.</p>
+              </div>
+
+              <div className="bg-[#0D2745] p-4 rounded-2xl border border-slate-700/60 shadow-xl space-y-4">
+                <div className="relative">
+                  <Search className="w-5 h-5 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Search by client name, client ID, task title, invoice number, or document filename..."
+                    className="w-full bg-[#071A2E] border border-slate-700 text-white rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-[#D4A843]"
+                    defaultValue="Perotti"
+                  />
+                </div>
+
+                <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800">
+                  <div className="p-3 bg-[#071A2E]/50 flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-slate-400 uppercase">Search Results (Redacted PII)</span>
+                    <span className="text-[10px] font-mono text-emerald-400">Tenant-Isolated</span>
+                  </div>
+                  <div className="p-3 hover:bg-[#102D4F]/40 transition-colors flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-white text-xs">Perotti Capital Holdings LLC</div>
+                      <div className="text-[11px] text-slate-400">Client ID: CLI-2026-001 • info@perotticapital.com</div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#06182B] text-[#D4A843] border border-slate-700">CLIENT</span>
+                  </div>
+                  <div className="p-3 hover:bg-[#102D4F]/40 transition-colors flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-white text-xs">Invoice INV-2026-081</div>
+                      <div className="text-[11px] text-slate-400">Total: $1,250.00 • Paid: $1,250.00 • Balance Due: $0.00</div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#06182B] text-emerald-400 border border-slate-700">INVOICE</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: RETENTION & ROLLOVER */}
+          {activeTab === 'retention' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-white">Data Retention Policies &amp; Annual Rollover Governance</h1>
+                <p className="text-xs text-slate-400">Statutory record retention schedules, legal hold overrides, Stage 16 archive integrity, and Stage 18 safe annual rollover.</p>
+              </div>
+
+              {/* Retention Policy Table */}
+              <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#D4A843]" />
+                    <span>Statutory Retention Schedules &amp; Legal Hold Controls</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-emerald-400">Circular 230 / IRC § 6107 Compliant</span>
+                </div>
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-[#071A2E] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-700/60">
+                    <tr>
+                      <th className="px-4 py-3">Record Category</th>
+                      <th className="px-4 py-3">Retention Period</th>
+                      <th className="px-4 py-3">Legal Hold Status</th>
+                      <th className="px-4 py-3">Deletion Eligibility</th>
+                      <th className="px-4 py-3">Governing Regulation</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-bold text-white">TAX_RETURN</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">7 Years</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-slate-400 border border-slate-700">INACTIVE</span></td>
+                      <td className="px-4 py-3 font-mono text-slate-400">Retained until 2033</td>
+                      <td className="px-4 py-3 text-slate-400 text-[11px]">IRC § 6501(a)</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-bold text-white">WORKPAPERS</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">7 Years</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-slate-400 border border-slate-700">INACTIVE</span></td>
+                      <td className="px-4 py-3 font-mono text-slate-400">Retained until 2033</td>
+                      <td className="px-4 py-3 text-slate-400 text-[11px]">Circular 230 § 10.36</td>
+                    </tr>
+                    <tr className="hover:bg-[#102D4F]/50">
+                      <td className="px-4 py-3 font-bold text-white">AUDIT_LOGS</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">10 Years</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">IMMUTABLE</span></td>
+                      <td className="px-4 py-3 font-mono text-slate-400">Never eligible for deletion</td>
+                      <td className="px-4 py-3 text-slate-400 text-[11px]">SOC 2 Type II / NIST RMF</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: AUDIT TRAIL */}
           {activeTab === 'audit' && (
             <div className="space-y-4">
               <div>
