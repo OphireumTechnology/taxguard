@@ -157,8 +157,9 @@ paymentsRouter.post('/webhook', (req: Request, res: Response) => {
   // Verify HMAC signature if in production
   if (process.env.NODE_ENV === 'production' && signature) {
     try {
+      const payload = (req as any).rawBody ? (req as any).rawBody.toString('utf8') : JSON.stringify(req.body);
       const computed = createHmac('sha256', webhookSecret)
-        .update(JSON.stringify(req.body))
+        .update(payload)
         .digest('hex');
       if (signature !== computed) {
         db.logSecurityEvent({

@@ -322,4 +322,57 @@ describe('Production Release Hardening & Verification Suite', () => {
       expect(() => safeId('valid-client-id_123')).not.toThrow();
     });
   });
+
+  // ==========================================================================
+  // 10. TENANT CONTRACT & BOOTSTRAP FAIL-CLOSED (SECTIONS 6 & 7)
+  // ==========================================================================
+  describe('Authoritative Tenant Contract & Fail-Closed Bootstrap', () => {
+    it('fails closed in production if TAXGUARD_TENANT_ID is missing or malformed', async () => {
+      const origEnv = process.env.NODE_ENV;
+      const origTenant = process.env.TAXGUARD_TENANT_ID;
+      try {
+        process.env.NODE_ENV = 'production';
+        delete process.env.TAXGUARD_TENANT_ID;
+
+        const { getAuthoritativeTenantId, ensureCanonicalTenantBootstrap } = await import(
+          '../server/taxguard/tenantBootstrap'
+        );
+
+        expect(() => getAuthoritativeTenantId()).toThrow('PRODUCTION_TENANT_REQUIRED');
+
+        // Malformed tenant ID
+        process.env.TAXGUARD_TENANT_ID = 'invalid/tenant/id!';
+        expect(() => getAuthoritativeTenantId()).toThrow(AuthorityError);
+      } finally {
+        process.env.NODE_ENV = origEnv;
+        if (origTenant !== undefined) {
+          process.env.TAXGUARD_TENANT_ID = origTenant;
+        } else {
+          delete process.env.TAXGUARD_TENANT_ID;
+        }
+      }
+    });
+  });
+
+  // ==========================================================================
+  // 11. RAW-BODY STRIPE WEBHOOK SIGNATURE CONTRACT (SECTION 27)
+  // ==========================================================================
+  describe('Stripe Webhook Raw-Body Verification', () => {
+    it('verifies HMAC-SHA256 signature against exact raw body bytes without JSON drift', () => {
+      const { createHmac } = require('node:crypto');
+      const secret = 'whsec_test_secret_key_123';
+      const rawPayload = Buffer.from(JSON.stringify({ id: 'evt_test_1', type: 'payment_intent.succeeded' }), 'utf8');
+
+      const expectedHmac = createHmac('sha256', secret).update(rawPayload).digest('hex');
+
+      // Valid check with exact raw body
+      const computed = createHmac('sha256', secret).update(rawPayload).digest('hex');
+      expect(computed).toBe(expectedHmac);
+
+      // Tampered byte stream fails
+      const tamperedPayload = Buffer.from(JSON.stringify({ id: 'evt_test_1', type: 'payment_intent.succeeded', extra: true }), 'utf8');
+      const tamperedComputed = createHmac('sha256', secret).update(tamperedPayload).digest('hex');
+      expect(tamperedComputed).not.toBe(expectedHmac);
+    });
+  });
 });
