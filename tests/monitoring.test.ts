@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { ProviderReadinessRegistry } from '../src/server/taxguard/providerReadiness.service';
 
 describe('Telemetry & Observability Monitoring Suite', () => {
 
   interface MonitoringEvent {
-    type: 'client_error' | 'api_failure' | 'auth_failure' | 'firebase_error' | 'email_failure' | 'suspicious_activity';
+    type: 'client_error' | 'api_failure' | 'auth_failure' | 'infrastructure_error' | 'email_failure' | 'suspicious_activity';
     message: string;
     details?: any;
     severity: 'info' | 'warning' | 'error' | 'critical';
@@ -65,5 +66,34 @@ describe('Telemetry & Observability Monitoring Suite', () => {
 
     expect(emailErr.type).toBe('email_failure');
     expect(emailErr.details.template).toBe('invoice_ready');
+  });
+
+  it('truthfully evaluates provider readiness without exposing secrets', () => {
+    const allProviders = ProviderReadinessRegistry.getAllProviderStatuses();
+    expect(allProviders.length).toBe(10);
+    
+    // Check that each provider has valid status and never reveals secrets
+    for (const p of allProviders) {
+      expect(['CONFIGURED', 'NOT_CONFIGURED', 'UNAVAILABLE', 'DEGRADED', 'ERROR']).toContain(p.status);
+      expect(p.description).toBeDefined();
+      expect(typeof p.isOperational).toBe('boolean');
+      // Must not leak secret substrings in description
+      expect(p.description).not.toContain('sk-');
+      expect(p.description).not.toContain('eyJh');
+    }
+  });
+
+  it('distinguishes application process health from external provider readiness', () => {
+    const dbStatus = ProviderReadinessRegistry.getProviderStatus('DATABASE');
+    const authStatus = ProviderReadinessRegistry.getProviderStatus('AUTHENTICATION');
+    const eSignStatus = ProviderReadinessRegistry.getProviderStatus('E_SIGNATURE');
+
+    // E-signature is not configured by default in test/dev
+    expect(eSignStatus.status).toBe('NOT_CONFIGURED');
+    expect(eSignStatus.isOperational).toBe(false);
+
+    // Database & Auth statuses are typed and truthful
+    expect(['CONFIGURED', 'NOT_CONFIGURED']).toContain(dbStatus.status);
+    expect(['CONFIGURED', 'NOT_CONFIGURED']).toContain(authStatus.status);
   });
 });

@@ -104,6 +104,8 @@ function createZip(files, outputPath) {
 const filesToInclude = [
   'TAXGUARD_FINAL_DEVELOPMENT_MANIFEST.txt',
   'scripts/create-transfer-archive.mjs',
+  'server.ts',
+  'tests/monitoring.test.ts',
   'metadata.json',
   '.env.example'
 ];

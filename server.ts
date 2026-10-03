@@ -335,6 +335,30 @@ app.get(
   }
 );
 
+app.get(
+  '/api/readiness',
+  (
+    _req,
+    res
+  ) => {
+    res.setHeader('Cache-Control', 'no-store');
+    const dbStatus = ProviderReadinessRegistry.getProviderStatus('DATABASE');
+    const authStatus = ProviderReadinessRegistry.getProviderStatus('AUTHENTICATION');
+    const isReady = process.env.NODE_ENV !== 'production' || (dbStatus.isOperational && authStatus.isOperational);
+
+    res.status(isReady ? 200 : 503).json({
+      status: isReady ? 'ready' : 'degraded',
+      process: 'healthy',
+      dependencies: {
+        database: dbStatus.status,
+        authentication: authStatus.status,
+        ai: ProviderReadinessRegistry.getProviderStatus('AI').status
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+);
+
 /**
  * ============================================================
  * API ROUTES
