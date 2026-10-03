@@ -113,6 +113,10 @@ import {
   stageTwoThreeRouter
 } from './src/server/routes/stage-two-three.routes';
 
+import {
+  bookkeepingRouter
+} from './src/server/routes/bookkeeping.routes';
+
 /**
  * TaxGuard LIVE server-authoritative workflow.
  *
@@ -502,6 +506,11 @@ app.use(
 app.use(
   '/api/live-workflow',
   liveWorkflowRouter
+);
+
+app.use(
+  '/api/bookkeeping',
+  bookkeepingRouter
 );
 
 /**
