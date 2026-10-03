@@ -30,7 +30,8 @@ import {
   HelpCircle,
   FolderLock,
   DollarSign,
-  Scale
+  Scale,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getStoredToken } from '../../services/api';
