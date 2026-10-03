@@ -183,7 +183,7 @@ export class BookkeepingEngine {
       lines: entry.lines,
       totalDebit: Math.round(totalDebit * 100) / 100,
       totalCredit: Math.round(totalCredit * 100) / 100,
-      status: 'POSTED',
+      status: entry.isAdjusting ? 'PREPARED' : 'POSTED',
       creatorUid: entry.creatorUid,
       createdAt: now,
       postedAt: now,

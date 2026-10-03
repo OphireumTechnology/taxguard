@@ -8,6 +8,14 @@ import { AccountingSyncState, SyncConflictState } from './types';
 
 export class AccountingSyncService {
   private syncStates = new Map<string, AccountingSyncState>();
+  private idempotencyStore = new Map<string, {
+    success: boolean;
+    provider: string;
+    committedEntriesCount: number;
+    idempotencyKey: string;
+    auditStatus: 'AUDIT_RECORDED';
+    auditEventId: string;
+  }>();
 
   private getKey(provider: 'QUICKBOOKS' | 'XERO', tenantId: string, clientId: string): string {
     return `${provider}_${tenantId}_${clientId}`;
@@ -178,7 +186,12 @@ export class AccountingSyncService {
     committedEntriesCount: number;
     idempotencyKey: string;
     auditStatus: 'AUDIT_RECORDED';
+    auditEventId: string;
   }> {
+    if (this.idempotencyStore.has(idempotencyKey)) {
+      return this.idempotencyStore.get(idempotencyKey)!;
+    }
+
     const state = this.getSyncState(provider, tenantId, clientId);
     const auth = state.writeAuthorization;
 
@@ -190,13 +203,17 @@ export class AccountingSyncService {
     auth.explicitlyConfirmed = false;
     this.syncStates.set(this.getKey(provider, tenantId, clientId), state);
 
-    return {
+    const result = {
       success: true,
       provider,
       committedEntriesCount: journalEntryIds.length,
       idempotencyKey,
-      auditStatus: 'AUDIT_RECORDED',
+      auditStatus: 'AUDIT_RECORDED' as const,
+      auditEventId: `audit_sync_${idempotencyKey}`,
     };
+
+    this.idempotencyStore.set(idempotencyKey, result);
+    return result;
   }
 
   // ============================================================

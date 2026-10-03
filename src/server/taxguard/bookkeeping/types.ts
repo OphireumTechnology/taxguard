@@ -90,7 +90,7 @@ export interface JournalEntryLine {
   documentReferenceId?: string;
 }
 
-export type JournalEntryStatus = 'DRAFT' | 'PENDING_REVIEW' | 'POSTED' | 'VOIDED';
+export type JournalEntryStatus = 'DRAFT' | 'PREPARED' | 'PENDING_REVIEW' | 'POSTED' | 'VOIDED' | 'REJECTED' | 'CORRECTION_REQUIRED';
 
 export interface JournalEntry {
   id: string;
