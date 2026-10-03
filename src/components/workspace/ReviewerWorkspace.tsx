@@ -1,5 +1,5 @@
-/**
- * A/R Tax Services, LLC — Senior Reviewer & CPA Quality Control Workspace
+﻿/**
+ * A/R Tax Services, LLC â€” Senior Reviewer & CPA Quality Control Workspace
  * Enforces independent Maker-Checker governance, return certification,
  * workpaper verification, and stage approval gating.
  */
@@ -855,3 +855,4 @@ export const ReviewerWorkspace: React.FC = () => {
     </div>
   );
 };
+
