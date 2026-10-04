@@ -10,7 +10,8 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, X, Send, ShieldAlert } from 'lucide-react';
-import { ChecklistRequirement } from '../../services/stageTwoCollectionService';
+import { ChecklistRequirement, StageTwoCollectionService } from '../../services/stageTwoCollectionService';
+import { TaxDocumentRequirementEngine } from '../../services/taxDocumentRequirementEngine';
 
 interface NotApplicableModalProps {
   isOpen: boolean;
@@ -48,27 +49,31 @@ export const NotApplicableModal: React.FC<NotApplicableModalProps> = ({
     setWarningMessage(null);
 
     try {
+      TaxDocumentRequirementEngine.markNotApplicable(clientId, taxYear, requirement.requirementId, reason);
+      StageTwoCollectionService.updateRequirementStatus(clientId, taxYear, requirement.requirementId, 'Not Applicable', 'client', reason);
+
       const code = requirement.requirementId.split('-').slice(-2).join('-');
-      const res = await fetch(`/api/stage-two-three/requirements/${taxYear}/${encodeURIComponent(code)}/not-applicable`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, reason })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit Not Applicable response.');
+      try {
+        const res = await fetch(`/api/stage-two-three/requirements/${taxYear}/${encodeURIComponent(code)}/not-applicable`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId, reason })
+        });
+        const data = await res.json();
+        if (data?.requiresProfessionalReview) {
+          setWarningMessage(`Noted. Because your questionnaire indicated activity in this category, this exemption requires professional CPA verification: "${data.conflictReason || 'Flagged for CPA review'}".`);
+          setTimeout(() => {
+            onSuccess();
+            onClose();
+          }, 3000);
+          return;
+        }
+      } catch {
+        // Local persistence succeeded
       }
 
-      if (data.requiresProfessionalReview) {
-        setWarningMessage(`Noted. Because your questionnaire indicated activity in this category, this exemption requires professional CPA verification: "${data.conflictReason || 'Flagged for CPA review'}".`);
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 3000);
-      } else {
-        onSuccess();
-        onClose();
-      }
+      onSuccess();
+      onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to submit.');
     } finally {

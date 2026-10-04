@@ -32,6 +32,7 @@ import {
 import { evaluateStageTwoServerGate } from '../taxguard/stageTwoServerGate';
 import { evaluateStageThreeServerGate } from '../taxguard/stageThreeServerGate';
 import { AuthorityError } from '../taxguard/authority.repository';
+import { StageTwoReconciliationService } from '../../services/stageTwoReconciliationService';
 import { db } from '../db';
 
 export const stageTwoThreeRouter = Router();
@@ -215,6 +216,53 @@ stageTwoThreeRouter.post('/requirements/:taxYear/:reqCode/not-applicable', (req:
       requiresProfessionalReview: evaluation.requiresProfessionalReview,
       conflictReason: evaluation.conflictReason,
       requirement: item
+    });
+  } catch (err: any) {
+    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+  }
+});
+
+stageTwoThreeRouter.get('/snapshot/:taxYear', (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const tenantId = resolveTenantId();
+    const taxYear = Number(req.params.taxYear) || 2025;
+    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.query.clientId as string || req.user.clientId || req.user.id);
+
+    const snapshot = StageTwoReconciliationService.reconcileStageTwoCollection({
+      clientId,
+      taxYear,
+      tenantId,
+      engagementId: `eng_${taxYear}_${clientId}`
+    });
+
+    return res.json({
+      success: true,
+      snapshot
+    });
+  } catch (err: any) {
+    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+  }
+});
+
+stageTwoThreeRouter.post('/reconcile/:taxYear', (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const tenantId = resolveTenantId();
+    const taxYear = Number(req.params.taxYear) || 2025;
+    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.clientId || req.user.id);
+
+    const snapshot = StageTwoReconciliationService.reconcileStageTwoCollection({
+      clientId,
+      taxYear,
+      tenantId,
+      engagementId: `eng_${taxYear}_${clientId}`,
+      forceRefresh: true
+    });
+
+    return res.json({
+      success: true,
+      snapshot
     });
   } catch (err: any) {
     return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });

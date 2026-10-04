@@ -73,6 +73,11 @@ import { StageTwoDocumentRequestsView } from './StageTwoDocumentRequestsView';
 import { StageTwoExceptionsView } from './StageTwoExceptionsView';
 import { StageTwoExitGateView } from './StageTwoExitGateView';
 import { StageTwoCollectionOperationsService } from '../../services/stageTwoCollectionOperationsService';
+import {
+  StageTwoReconciliationService,
+  StageTwoAuthoritativeSnapshot,
+  ReconciledRequirementCard
+} from '../../services/stageTwoReconciliationService';
 import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
 import { AccountingDocumentIntakeAgentView } from './AccountingDocumentIntakeAgentView';
 import { TaxQuestionnaireModal } from './TaxQuestionnaireModal';

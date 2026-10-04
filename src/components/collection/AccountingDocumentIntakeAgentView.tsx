@@ -219,7 +219,13 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
           // Register the collection record only when the canonical security
           // pipeline itself marks the document ready for OCR.
           if (stagedSecurityDoc.pipelineStage === 'READY_FOR_OCR') {
-            StageTwoCollectionService.ingestDocumentUpload({
+            const categoryName = classification === 'FORM_W2' ? 'W-2'
+              : classification === 'FORM_1099' ? '1099-INT'
+              : classification === 'BANK_STATEMENT' ? 'Bank Statement'
+              : classification === 'INVOICE' || classification === 'EXPENSE_RECEIPT' ? 'Business Records'
+              : 'Tax Return & Supporting Schedule';
+
+            await StageTwoCollectionService.ingestDocumentUpload({
               clientId,
               engagementId,
               taxYear,
@@ -228,8 +234,11 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
               originalFileName: file.name,
               fileSizeBytes: file.size,
               mimeType: file.type || 'application/octet-stream',
-              claimedCategory: classification,
+              claimedCategory: categoryName,
               sha256Hash: sha256,
+              file,
+              fileBytes,
+              stagedSecurityDoc,
               notes: `Accounting intake source: ${source}`
             });
           }

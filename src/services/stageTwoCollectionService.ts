@@ -31,6 +31,7 @@ import {
 import { StageTwoCollectionOperationsService } from './stageTwoCollectionOperationsService';
 import { StageTwoOrchestratorService } from './stageTwoOrchestratorService';
 import { TaxRequirementManifestEngine } from './stageTwoRequirementManifest';
+import { StageTwoReconciliationService } from './stageTwoReconciliationService';
 
 export type CollectionDocumentStatus =
   | 'Required'
@@ -822,6 +823,7 @@ let entityType: EntityReturnType = 'individual';
     fileBytes?: Uint8Array;
     rawTextSample?: string;
     notes?: string;
+    stagedSecurityDoc?: any;
   }): Promise<StageTwoUploadedDocument> {
     const now = new Date().toISOString();
 
@@ -852,7 +854,7 @@ let entityType: EntityReturnType = 'individual';
     }
 
     // Execute Sprint 2 Security Pipeline (Staging -> Signature -> Archive -> Malware -> Quarantine/Cleared -> Encryption -> Integrity -> Storage -> Ready for OCR)
-    const stagedSecurityDoc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+    const stagedSecurityDoc = payload.stagedSecurityDoc || await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
       clientId: payload.clientId,
       engagementId: payload.engagementId,
       taxYear: payload.taxYear,
@@ -940,13 +942,31 @@ let entityType: EntityReturnType = 'individual';
     const targetReqId = payload.associatedRequirementId || orchResult.matchedRequirementId;
     if (targetReqId && !isQuarantined) {
       const reqs = this.getRequirements(payload.clientId, payload.taxYear);
-      const req = reqs.find(r => r.requirementId === targetReqId);
+      let req = reqs.find(r => r.requirementId === targetReqId);
+      if (!req) {
+        req = reqs.find(r =>
+          (orchResult.detectedType && (r.title.includes(orchResult.detectedType) || r.category.includes(orchResult.detectedType))) ||
+          (payload.claimedCategory && (r.title.includes(payload.claimedCategory) || r.category.includes(payload.claimedCategory)))
+        );
+      }
       if (req) {
         req.status = 'Received';
         req.associatedDocumentId = documentId;
         req.lastUpdated = now;
         this.saveRequirements(payload.clientId, payload.taxYear, reqs);
       }
+    }
+
+    // Trigger full authoritative reconciliation across all requirement caches
+    try {
+      StageTwoReconciliationService.reconcileStageTwoCollection({
+        clientId: payload.clientId,
+        taxYear: payload.taxYear,
+        engagementId: payload.engagementId,
+        forceRefresh: true
+      });
+    } catch (e) {
+      console.warn('Reconciliation after upload deferred:', e);
     }
 
     // MANDATORY AUDIT EVENT: Emit immutable record via TaxGuardAuditService
@@ -1119,26 +1139,47 @@ let entityType: EntityReturnType = 'individual';
     // Generate authoritative Stage 02 summary report from orchestrator
     const report = StageTwoOrchestratorService.generateCollectionReport(clientId, taxYear);
 
+    // Reconcile collection state deterministically
+    let snapshot: any = null;
+    try {
+      snapshot = StageTwoReconciliationService.reconcileStageTwoCollection({ clientId, taxYear });
+    } catch {
+      // fallback
+    }
+
     const requirements = this.getRequirements(clientId, taxYear);
     const requiredItems = requirements.filter(r => r.priority === 'Required');
     const receivedItems = requirements.filter(r => ['Received', 'Processing', 'Under Review', 'Accepted'].includes(r.status));
     const acceptedItems = requirements.filter(r => r.status === 'Accepted');
     const underReviewItems = requirements.filter(r => ['Processing', 'Under Review'].includes(r.status));
 
-    const totalRequired = Math.max(1, report.totalRequired || requiredItems.length);
-    const readinessScore = report.collectionProgressPercent;
+    const totalRequired = Math.max(1, snapshot?.metrics?.totalRequired || report.totalRequired || requiredItems.length);
+    const receivedCount = snapshot?.metrics?.receivedCount !== undefined
+      ? Math.max(snapshot.metrics.receivedCount, report.receivedCount, receivedItems.length)
+      : Math.max(report.receivedCount, receivedItems.length);
+    const acceptedCount = snapshot?.metrics?.acceptedCount !== undefined
+      ? Math.max(snapshot.metrics.acceptedCount, report.collectionAcceptedCount, acceptedItems.length)
+      : Math.max(report.collectionAcceptedCount, acceptedItems.length);
+    const missingCount = Math.max(0, totalRequired - receivedCount);
+    const underReviewCount = snapshot?.metrics?.needsReviewCount !== undefined
+      ? snapshot.metrics.needsReviewCount
+      : (report.needsReviewCount || underReviewItems.length);
+    const readinessScore = Math.min(100, Math.round((receivedCount / totalRequired) * 100));
+    const isReadyForStageThree = missingCount === 0 && (snapshot ? snapshot.metrics.isReadyForStageThree : report.isReadyForExitGate);
 
     return {
-      totalRequirements: report.totalRequired + report.optionalCount,
-      requiredCount: report.totalRequired,
-      receivedCount: report.receivedCount,
-      acceptedCount: report.collectionAcceptedCount,
-      missingCount: report.missingCount,
-      underReviewCount: report.needsReviewCount,
+      totalRequirements: snapshot?.metrics?.totalApplicable || (report.totalRequired + report.optionalCount),
+      requiredCount: totalRequired,
+      receivedCount,
+      acceptedCount,
+      missingCount,
+      underReviewCount,
       readinessScore,
-      isReadyForStageThree: report.isReadyForExitGate,
-      blockingItems: report.exitGateBlockers,
-      stageTwoGateStatus: report.isReadyForExitGate ? 'READY_FOR_REVIEW' : (readinessScore === 0 ? 'LOCKED' : 'IN_PROGRESS')
+      isReadyForStageThree,
+      blockingItems: isReadyForStageThree
+        ? []
+        : (snapshot?.metrics?.exitGateBlockers?.length ? snapshot.metrics.exitGateBlockers : report.exitGateBlockers),
+      stageTwoGateStatus: isReadyForStageThree ? 'READY_FOR_REVIEW' : (readinessScore === 0 ? 'LOCKED' : 'IN_PROGRESS')
     };
   }
 
