@@ -147,19 +147,31 @@ export class ProductionOcrAdapter implements TaxGuardOcrProvider {
       return this.customExtractor(input);
     }
 
+    // Provider readiness is authoritative. An explicitly unconfigured OCR
+    // provider must fail closed and must never fall through to heuristic OCR.
+    const readiness = ProviderReadinessRegistry.getProviderStatus('OCR');
+
+    if (readiness.status === 'NOT_CONFIGURED') {
+      throw new AuthorityError('OCR_PROVIDER_NOT_CONFIGURED', 503);
+    }
+
     if (this.activeMode === 'FAIL_SAFE') {
       throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
     }
 
     if (this.activeMode === 'CLOUD') {
       const cloudProvider = new GoogleCloudDocumentAiProvider();
+
       if (!cloudProvider.isConfigured()) {
-        throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
+        throw new AuthorityError('OCR_PROVIDER_NOT_CONFIGURED', 503);
       }
+
       return cloudProvider.extract(input);
     }
 
-    // LOCAL Mode (only when explicitly configured or in non-production test/dev mode)
+    // LOCAL is permitted only when explicitly/default-selected for a
+    // non-production test/development environment and readiness has not
+    // declared OCR unavailable.
     const localProvider = new LocalHeuristicOcrProvider();
     return localProvider.extract(input);
   }
