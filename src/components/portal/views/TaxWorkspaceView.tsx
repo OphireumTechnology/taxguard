@@ -111,7 +111,7 @@ export const TaxWorkspaceView: React.FC<TaxWorkspaceViewProps> = ({
   const [closureSuccessNotice, setClosureSuccessNotice] = useState<string | null>(null);
 
   // AI Extraction Live Facts with Provenance
-  const sampleExtractedFacts: ExtractedFact[] = [];
+  const liveExtractedFacts: ExtractedFact[] = [];
 
   const handleAcknowledgeStrategy = (strategyId: string) => {
     setStrategyList(prev => prev.map(s => s.id === strategyId ? {
@@ -303,7 +303,7 @@ export const TaxWorkspaceView: React.FC<TaxWorkspaceViewProps> = ({
                 <span className="text-[11px] text-slate-400">All low-confidence values require human CPA review</span>
               </div>
 
-              {sampleExtractedFacts.length === 0 ? (
+              {liveExtractedFacts.length === 0 ? (
                 <div className="p-6 rounded-xl bg-[#06172C] border border-dashed border-slate-700 text-center space-y-1">
                   <div className="text-xs font-bold text-white">No Document Extractions Yet</div>
                   <p className="text-[11px] text-slate-400">
@@ -312,7 +312,7 @@ export const TaxWorkspaceView: React.FC<TaxWorkspaceViewProps> = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sampleExtractedFacts.map((fact) => (
+                  {liveExtractedFacts.map((fact) => (
                     <div
                       key={fact.id}
                       className="p-3.5 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2 text-xs"

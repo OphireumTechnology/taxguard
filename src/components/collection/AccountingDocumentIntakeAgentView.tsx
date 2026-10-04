@@ -367,7 +367,12 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
           multiple
           accept=".pdf,.csv,.xls,.xlsx,.doc,.docx,.txt,.jpg,.jpeg,.png"
           className="hidden"
-          onChange={(e) => e.target.files && handleProcessFiles(e.target.files, 'LOCAL_UPLOAD')}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleProcessFiles(e.target.files, 'LOCAL_UPLOAD');
+            }
+            e.target.value = '';
+          }}
         />
         <input
           ref={folderInputRef}
@@ -377,7 +382,12 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
           directory=""
           multiple
           className="hidden"
-          onChange={(e) => e.target.files && handleProcessFiles(e.target.files, 'LOCAL_FOLDER')}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleProcessFiles(e.target.files, 'LOCAL_FOLDER');
+            }
+            e.target.value = '';
+          }}
         />
 
         {/* Drag-and-Drop Area */}
@@ -671,13 +681,16 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
                     G
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-[#F8FAFC]">Google Drive Accounting Folder</div>
-                    <div className="text-[10px] text-[#A9B7C8] font-mono">/Taxes_{taxYear}/Accounting_Records</div>
+                    <div className="text-xs font-bold text-[#F8FAFC]">Google Drive Accounting Storage</div>
+                    <div className="text-[10px] text-slate-400 font-mono">External OAuth Provider</div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-600/40">
-                  Ready
+                <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-600/40">
+                  NOT_CONFIGURED
                 </span>
+              </div>
+              <div className="p-3 bg-[#06182B] rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                Cloud storage provider credentials are not configured in this environment. Direct cloud synchronization fails closed to prevent unauthorized or unverified transmissions.
               </div>
             </div>
 
@@ -687,46 +700,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
                 onClick={() => setCloudModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs text-[#A9B7C8] hover:text-[#F8FAFC] bg-[#102D4F]"
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCloudModalOpen(false);
-                  setIsProcessing(true);
-                  setProcessingStatusText('Importing 12 candidate documents from Google Drive...');
-                  setTimeout(() => {
-                    setIsProcessing(false);
-                    setProcessingStatusText(null);
-                    setQueueDocs(prev => [
-                      {
-                        id: `DOC-GD-${Date.now().toString(36).toUpperCase()}`,
-                        filename: 'Form_1099_DIV_Vanguard_2025.pdf',
-                        size: 412000,
-                        mimeType: 'application/pdf',
-                        sha256: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
-                        classification: 'FORM_1099',
-                        isAccountingRelevant: true,
-                        needsReview: false,
-                        isDuplicate: false,
-                        confidence: 0.98,
-                        uploadedAt: 'Just now',
-                        source: 'GOOGLE_DRIVE',
-                        extraction: {
-                          documentType: 'FORM_1099',
-                          taxYear,
-                          payerName: 'Vanguard Group, Inc.',
-                          dividendAmount: 8420.50,
-                          currency: 'USD'
-                        }
-                      },
-                      ...prev
-                    ]);
-                  }, 1200);
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60]"
-              >
-                Import From Selected Folder
+                Close
               </button>
             </div>
           </div>
@@ -761,12 +735,15 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
             <div className="space-y-3">
               <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-bold text-[#F8FAFC]">Client Tax Ingestion Secure Forwarder</div>
-                  <div className="text-[10px] text-[#A9B7C8] font-mono">intake-{taxYear}@vault.taxguard.internal</div>
+                  <div className="text-xs font-bold text-[#F8FAFC]">Client Email Ingestion Forwarder</div>
+                  <div className="text-[10px] text-slate-400 font-mono">External Mail Protocol Gateway</div>
                 </div>
-                <span className="text-[10px] font-mono text-sky-400 font-bold bg-sky-950/60 px-2 py-0.5 rounded border border-sky-600/40">
-                  Active Forwarder
+                <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-600/40">
+                  NOT_CONFIGURED
                 </span>
+              </div>
+              <div className="p-3 bg-[#06182B] rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                Email ingestion provider credentials (IMAP / Gmail OAuth) are not commissioned in this environment. External email synchronization fails closed to ensure document authenticity.
               </div>
             </div>
 
@@ -776,46 +753,7 @@ export const AccountingDocumentIntakeAgentView: React.FC<AccountingDocumentIntak
                 onClick={() => setEmailModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs text-[#A9B7C8] hover:text-[#F8FAFC] bg-[#102D4F]"
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmailModalOpen(false);
-                  setIsProcessing(true);
-                  setProcessingStatusText('Synchronizing authorized email attachments...');
-                  setTimeout(() => {
-                    setIsProcessing(false);
-                    setProcessingStatusText(null);
-                    setQueueDocs(prev => [
-                      {
-                        id: `DOC-EML-${Date.now().toString(36).toUpperCase()}`,
-                        filename: 'Form_1098_Mortgage_Statement_Rocket.pdf',
-                        size: 320000,
-                        mimeType: 'application/pdf',
-                        sha256: '3a4f66a2b8e5c4d1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5',
-                        classification: 'FORM_1098',
-                        isAccountingRelevant: true,
-                        needsReview: false,
-                        isDuplicate: false,
-                        confidence: 0.99,
-                        uploadedAt: 'Just now',
-                        source: 'GMAIL',
-                        extraction: {
-                          documentType: 'FORM_1098',
-                          taxYear,
-                          payerName: 'Rocket Mortgage, LLC',
-                          interestAmount: 18450.00,
-                          currency: 'USD'
-                        }
-                      },
-                      ...prev
-                    ]);
-                  }, 1200);
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60]"
-              >
-                Check for New Attachments
+                Close
               </button>
             </div>
           </div>
