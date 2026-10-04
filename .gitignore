@@ -47,3 +47,32 @@ functions/lib/
 # TaxGuard local recovery snapshots
 .taxguard-backups/
 supabase/.temp/
+
+# Archives and transfer packages
+*.zip
+*.tar.gz
+taxguard-release-export/
+taxguard-freeze/
+
+# Large binary datasets and models
+*.traineddata
+eng.traineddata
+
+# Temporary development artifacts and notes
+M*.txt
+crop_*.png
+fix-taxguard-ocr.sh
+TAXGUARD_AUTONOMOUS_DEVELOPMENT_REPORT_*.md
+TAXGUARD_DEVELOPMENT_*.md
+TAXGUARD_LOCAL_COMPLETION_*.md
+TAXGUARD_COMPLETE_SYSTEM_DEVELOPMENT.md
+TAXGUARD_COMPLETION_CHECKLIST.md
+TAXGUARD_18_STAGE_COMPLETION_MATRIX.md
+TAXGUARD_INTEGRATION_NOTES.md
+TAXGUARD_STAGE_COMPLETION_INTEGRATION_NOTES.md
+TAXGUARD_REMAINING_SOFTWARE_GAPS.md
+TAXGUARD_PRODUCTION_DEPLOYMENT_MILESTONE.md
+TAXGUARD_SERVER_AUTHORITY_MILESTONE.md
+NEXT_STAGE02_DEVELOPMENT.md
+TAXGUARD_LIVE_DEVELOPMENT_POLICY.md
+

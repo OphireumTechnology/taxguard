@@ -125,6 +125,8 @@ const excludedPatterns = [
   /^\.git\//,
   /^\.dev\./,
   /^taxguard-freeze\//,
+  /^taxguard-release-export\//,
+  /^taxguard-release.*\//,
   /^tools\//,
   /\.zip$/,
   /\.tar\.gz$/,

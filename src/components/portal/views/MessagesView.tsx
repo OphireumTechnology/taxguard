@@ -41,26 +41,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Requests for Information (RFIs)
-  const [rfis, setRfis] = useState([
-    {
-      id: 'rfi_01',
-      advisorName: 'Desmond Hinds, Founder & CEO',
-      question: 'Regarding the $14,250 consulting income deposit in October: Was this received under your personal SSN or under Perotti Advisory Group EIN?',
-      taxYear: 2025,
-      status: 'answered' as const,
-      clientResponse: 'It was paid to the S-Corp (EIN ••-•••4912) and deposited into our business checking account.',
-      date: '2026-03-08'
-    },
-    {
-      id: 'rfi_02',
-      advisorName: 'Elena Rostova, CPA',
-      question: 'Please confirm total business vehicle mileage for 2025: Does the 18,420 mile figure include personal commuting, or is that 100% substantiated business log?',
-      taxYear: 2025,
-      status: 'pending' as const,
-      clientResponse: '',
-      date: '2026-03-12'
-    }
-  ]);
+  const [rfis, setRfis] = useState<any[]>([]);
   const [rfiReplyText, setRfiReplyText] = useState<{ [id: string]: string }>({});
 
   // Appointment booking state
@@ -297,7 +278,16 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
           </div>
 
           <div className="space-y-4">
-            {rfis.map((rfi) => (
+            {rfis.length === 0 ? (
+              <div className="p-8 text-center bg-[#06172C] border border-dashed border-[#1E3A5F] rounded-2xl space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <h3 className="text-sm font-bold text-white">No Outstanding Clarification Inquiries</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  You are completely caught up. Your preparation team has not submitted any transaction or deduction inquiries at this time.
+                </p>
+              </div>
+            ) : (
+              rfis.map((rfi) => (
               <div
                 key={rfi.id}
                 className="p-5 rounded-2xl bg-[#06172C] border border-[#1E3A5F] space-y-3 text-xs"
@@ -341,7 +331,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                   </div>
                 )}
               </div>
-            ))}
+            )))}
           </div>
         </div>
       )}
