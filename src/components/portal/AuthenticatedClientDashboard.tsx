@@ -57,12 +57,95 @@ import { StepByStepTaxPreparationHome } from './views/StepByStepTaxPreparationHo
 import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
 import { GuidedTaxQuestionnaireModal } from './views/GuidedTaxQuestionnaireModal';
 import { useLiveWorkflowAuthority } from '../../hooks/useLiveWorkflowAuthority';
+import { StageFourRecordView } from './views/stages/StageFourRecordView';
+import { StageFiveReconcileView } from './views/stages/StageFiveReconcileView';
+import { StageSixReviewView } from './views/stages/StageSixReviewView';
+import { StageSevenReportView } from './views/stages/StageSevenReportView';
+import { StageEightPlanView } from './views/stages/StageEightPlanView';
+import { StageNinePrepareView } from './views/stages/StageNinePrepareView';
+import { StageTenApproveView } from './views/stages/StageTenApproveView';
+import { StageElevenSignView } from './views/stages/StageElevenSignView';
+import { StageTwelveFileView } from './views/stages/StageTwelveFileView';
+import { StageThirteenFeedbackView } from './views/stages/StageThirteenFeedbackView';
+import { StageFourteenResolveView } from './views/stages/StageFourteenResolveView';
+import { StageFifteenMonitorView } from './views/stages/StageFifteenMonitorView';
+import { StageSixteenArchiveView } from './views/stages/StageSixteenArchiveView';
+import { StageSeventeenRenewView } from './views/stages/StageSeventeenRenewView';
+import { StageEighteenRepeatView } from './views/stages/StageEighteenRepeatView';
 
 interface WorkflowStageItem {
   number: StageNumber;
   shortLabel: string;
   name: string;
 }
+
+export interface SimplifiedJourneyStep {
+  id: string;
+  stepNumber: number;
+  label: string;
+  description: string;
+  stageNumbers: StageNumber[];
+  defaultNavId: string;
+}
+
+export const SIMPLIFIED_JOURNEY_STEPS: SimplifiedJourneyStep[] = [
+  {
+    id: 'step_1_getting_started',
+    stepNumber: 1,
+    label: 'Getting Started',
+    description: 'Onboarding & Identity',
+    stageNumbers: [1],
+    defaultNavId: 'stage_01',
+  },
+  {
+    id: 'step_2_documents',
+    stepNumber: 2,
+    label: 'Documents',
+    description: 'Intake & Validation',
+    stageNumbers: [2, 3],
+    defaultNavId: 'stage_02',
+  },
+  {
+    id: 'step_3_review',
+    stepNumber: 3,
+    label: 'Review',
+    description: 'Records, Reconcile & Review',
+    stageNumbers: [4, 5, 6, 7, 8],
+    defaultNavId: 'stage_04',
+  },
+  {
+    id: 'step_4_tax_prep',
+    stepNumber: 4,
+    label: 'Tax Preparation',
+    description: 'Form 1040 & State Calculations',
+    stageNumbers: [9],
+    defaultNavId: 'stage_09',
+  },
+  {
+    id: 'step_5_approval_sign',
+    stepNumber: 5,
+    label: 'Approval & Signature',
+    description: 'CPA Review & Form 8879 E-Sign',
+    stageNumbers: [10, 11],
+    defaultNavId: 'stage_10',
+  },
+  {
+    id: 'step_6_filing',
+    stepNumber: 6,
+    label: 'Filing',
+    description: 'IRS Transmission & Acknowledgments',
+    stageNumbers: [12, 13, 14],
+    defaultNavId: 'stage_12',
+  },
+  {
+    id: 'step_7_completed',
+    stepNumber: 7,
+    label: 'Completed',
+    description: 'Monitoring, Vault & Multi-Year',
+    stageNumbers: [15, 16, 17, 18],
+    defaultNavId: 'stage_15',
+  }
+];
 
 const WORKFLOW_STAGES: WorkflowStageItem[] = [
   { number: 1, shortLabel: '01', name: 'Onboard' },
@@ -213,6 +296,30 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
   const [selectedLockedStage, setSelectedLockedStage] = useState<WorkflowStageItem | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState<boolean>(false);
+  const [viewDetailedWorkflow, setViewDetailedWorkflow] = useState<boolean>(false);
+
+  const getSimplifiedStepStatus = (step: SimplifiedJourneyStep): 'completed' | 'active' | 'locked' => {
+    const activeStage = authority?.workflow?.activeStage ?? 2;
+    if (step.stageNumbers.every((n) => n < activeStage)) return 'completed';
+    if (step.stageNumbers.includes(activeStage as StageNumber)) return 'active';
+    return 'locked';
+  };
+
+  const handleSimplifiedStepClick = (step: SimplifiedJourneyStep) => {
+    const activeStage = authority?.workflow?.activeStage ?? 2;
+    const status = getSimplifiedStepStatus(step);
+    if (status === 'locked') {
+      const firstLockedStage = WORKFLOW_STAGES.find((s) => s.number === step.stageNumbers[0]);
+      if (firstLockedStage) setSelectedLockedStage(firstLockedStage);
+      return;
+    }
+    if (step.stageNumbers.includes(activeStage as StageNumber)) {
+      if (activeStage === 2) handleSelectNav('stage_02');
+      else handleSelectNav(`stage_${String(activeStage).padStart(2, '0')}`);
+    } else {
+      handleSelectNav(step.defaultNavId);
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => {
@@ -364,83 +471,190 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </button>
           </div>
 
-          {/* Section 2: WORKFLOW (18 Stages) */}
+          {/* Section 2: WORKFLOW (Simplified 7-Step Journey or Detailed 18 Stages) */}
           <div className="space-y-1">
             {!isCollapsed ? (
               <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-[#D7AC4A] font-bold">
-                <span>Workflow (18 Stages)</span>
-                <span className="text-slate-400 text-[9px] lowercase font-normal">gate verified</span>
+                <span>{viewDetailedWorkflow ? 'Workflow (18 Stages)' : 'Tax Journey (7 Steps)'}</span>
+                <button
+                  type="button"
+                  onClick={() => setViewDetailedWorkflow((v) => !v)}
+                  className="text-slate-400 hover:text-white text-[9px] lowercase font-normal underline cursor-pointer"
+                >
+                  {viewDetailedWorkflow ? 'show 7 steps' : 'view 18 stages'}
+                </button>
               </div>
             ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="18 Stages Workflow" />
+              <div className="h-px bg-[#1A365D] my-1" title="Workflow" />
             )}
 
-            <div className="space-y-0.5">
-              {WORKFLOW_STAGES.map((stg) => {
-                const status = getStageStatus(stg.number);
-                const isNavActive = activeNavId === `stage_${stg.shortLabel}` || (stg.number === 2 && activeNavId === 'stage_02');
+            {!viewDetailedWorkflow ? (
+              <div className="space-y-0.5">
+                {SIMPLIFIED_JOURNEY_STEPS.map((step) => {
+                  const status = getSimplifiedStepStatus(step);
+                  const isNavActive = step.stageNumbers.some(
+                    (num) => activeNavId === `stage_${String(num).padStart(2, '0')}` || (num === 2 && activeNavId === 'stage_02')
+                  );
 
-                return (
-                  <div key={stg.number} className="relative group">
+                  return (
+                    <div key={step.id} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => handleSimplifiedStepClick(step)}
+                        title={isCollapsed ? `${step.label} (${status.toUpperCase()})` : undefined}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-all rounded-md cursor-pointer ${
+                          isNavActive
+                            ? 'bg-[#0A2544] text-white border-l-4 border-l-[#C99A32] font-bold shadow-sm ring-1 ring-[#C99A32]/40'
+                            : status === 'completed'
+                            ? 'text-emerald-300 hover:text-white hover:bg-[#072418]/60 border-l-4 border-l-transparent'
+                            : status === 'active'
+                            ? 'text-[#E8C66A] hover:text-white hover:bg-[#0A2544]/50 border-l-4 border-l-transparent font-semibold'
+                            : 'text-slate-500 hover:text-slate-300 hover:bg-[#071626]/50 border-l-4 border-l-transparent opacity-80'
+                        }`}
+                      >
+                        {status === 'completed' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        ) : status === 'active' ? (
+                          <span className="w-2 h-2 rounded-full bg-[#E2BD67] animate-pulse shrink-0 ring-2 ring-[#D4A843]/50" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        )}
+
+                        {!isCollapsed ? (
+                          <>
+                            <span className="font-mono text-[11px] text-slate-400 shrink-0">{step.stepNumber}.</span>
+                            <span className="truncate text-[11px]">{step.label}</span>
+                            <span className="ml-auto text-[10px] font-mono shrink-0">
+                              {status === 'completed' && <span className="text-emerald-400 font-bold">✓</span>}
+                              {status === 'active' && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] bg-[#D4A843]/20 text-[#E2BD67] border border-[#D4A843]/40 font-bold">
+                                  ACTIVE
+                                </span>
+                              )}
+                              {status === 'locked' && <span className="text-slate-600">🔒</span>}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-mono text-[11px] font-bold ml-1">{step.stepNumber}</span>
+                        )}
+                      </button>
+
+                      {isCollapsed && (
+                        <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none items-center gap-1.5">
+                          <span className="font-mono font-bold text-[#D7AC4A]">Step {step.stepNumber}</span>
+                          <span>{step.label}</span>
+                          <span
+                            className={`text-[10px] uppercase font-mono px-1 rounded ${
+                              status === 'completed'
+                                ? 'bg-emerald-950 text-emerald-300'
+                                : status === 'active'
+                                ? 'bg-blue-950 text-blue-300'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {!isCollapsed && (
+                  <div className="pt-1.5 px-2">
                     <button
                       type="button"
-                      onClick={() => handleStageClick(stg)}
-                      title={isCollapsed ? `${stg.shortLabel} ${stg.name} (${status.toUpperCase()})` : undefined}
-                      className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-all rounded-md cursor-pointer ${
-                        isNavActive
-                          ? 'bg-[#0A2544] text-white border-l-4 border-l-[#C99A32] font-bold shadow-sm ring-1 ring-[#C99A32]/40'
-                          : status === 'completed'
-                          ? 'text-emerald-300 hover:text-white hover:bg-[#072418]/60 border-l-4 border-l-transparent'
-                          : status === 'active'
-                          ? 'text-[#E8C66A] hover:text-white hover:bg-[#0A2544]/50 border-l-4 border-l-transparent font-semibold'
-                          : 'text-slate-500 hover:text-slate-300 hover:bg-[#071626]/50 border-l-4 border-l-transparent opacity-80'
-                      }`}
+                      onClick={() => setViewDetailedWorkflow(true)}
+                      className="text-[10px] text-[#D4A843] hover:underline font-mono flex items-center gap-1 cursor-pointer w-full text-left"
                     >
-                      {/* Left icon / status bullet */}
-                      {status === 'completed' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      ) : status === 'active' ? (
-                        <span className="w-2 h-2 rounded-full bg-[#E2BD67] animate-pulse shrink-0 ring-2 ring-[#D4A843]/50" />
-                      ) : (
-                        <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      )}
-
-                      {/* Expanded text */}
-                      {!isCollapsed ? (
-                        <>
-                          <span className="font-mono text-[11px] text-slate-400 shrink-0">{stg.shortLabel}</span>
-                          <span className="truncate text-[11px]">{stg.name}</span>
-                          <span className="ml-auto text-[10px] font-mono shrink-0">
-                            {status === 'completed' && <span className="text-emerald-400 font-bold">✓</span>}
-                            {status === 'active' && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-[#D4A843]/20 text-[#E2BD67] border border-[#D4A843]/40 font-bold">
-                                ACTIVE
-                              </span>
-                            )}
-                            {status === 'locked' && <span className="text-slate-600">🔒</span>}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="font-mono text-[11px] font-bold ml-1">{stg.shortLabel}</span>
-                      )}
+                      <span>&rarr; View Detailed 18 Stages</span>
                     </button>
-
-                    {/* Collapsed Tooltip */}
-                    {isCollapsed && (
-                      <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none items-center gap-1.5">
-                        <span className="font-mono font-bold text-[#D7AC4A]">{stg.shortLabel}</span>
-                        <span>{stg.name}</span>
-                        <span className={`text-[10px] uppercase font-mono px-1 rounded ${
-                          status === 'completed' ? 'bg-emerald-950 text-emerald-300' : status === 'active' ? 'bg-blue-950 text-blue-300' : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {status}
-                        </span>
-                      </div>
-                    )}
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {WORKFLOW_STAGES.map((stg) => {
+                  const status = getStageStatus(stg.number);
+                  const isNavActive = activeNavId === `stage_${stg.shortLabel}` || (stg.number === 2 && activeNavId === 'stage_02');
+
+                  return (
+                    <div key={stg.number} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => handleStageClick(stg)}
+                        title={isCollapsed ? `${stg.shortLabel} ${stg.name} (${status.toUpperCase()})` : undefined}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-all rounded-md cursor-pointer ${
+                          isNavActive
+                            ? 'bg-[#0A2544] text-white border-l-4 border-l-[#C99A32] font-bold shadow-sm ring-1 ring-[#C99A32]/40'
+                            : status === 'completed'
+                            ? 'text-emerald-300 hover:text-white hover:bg-[#072418]/60 border-l-4 border-l-transparent'
+                            : status === 'active'
+                            ? 'text-[#E8C66A] hover:text-white hover:bg-[#0A2544]/50 border-l-4 border-l-transparent font-semibold'
+                            : 'text-slate-500 hover:text-slate-300 hover:bg-[#071626]/50 border-l-4 border-l-transparent opacity-80'
+                        }`}
+                      >
+                        {status === 'completed' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        ) : status === 'active' ? (
+                          <span className="w-2 h-2 rounded-full bg-[#E2BD67] animate-pulse shrink-0 ring-2 ring-[#D4A843]/50" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        )}
+
+                        {!isCollapsed ? (
+                          <>
+                            <span className="font-mono text-[11px] text-slate-400 shrink-0">{stg.shortLabel}</span>
+                            <span className="truncate text-[11px]">{stg.name}</span>
+                            <span className="ml-auto text-[10px] font-mono shrink-0">
+                              {status === 'completed' && <span className="text-emerald-400 font-bold">✓</span>}
+                              {status === 'active' && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] bg-[#D4A843]/20 text-[#E2BD67] border border-[#D4A843]/40 font-bold">
+                                  ACTIVE
+                                </span>
+                              )}
+                              {status === 'locked' && <span className="text-slate-600">🔒</span>}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-mono text-[11px] font-bold ml-1">{stg.shortLabel}</span>
+                        )}
+                      </button>
+
+                      {isCollapsed && (
+                        <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none items-center gap-1.5">
+                          <span className="font-mono font-bold text-[#D7AC4A]">{stg.shortLabel}</span>
+                          <span>{stg.name}</span>
+                          <span
+                            className={`text-[10px] uppercase font-mono px-1 rounded ${
+                              status === 'completed'
+                                ? 'bg-emerald-950 text-emerald-300'
+                                : status === 'active'
+                                ? 'bg-blue-950 text-blue-300'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {!isCollapsed && (
+                  <div className="pt-1.5 px-2">
+                    <button
+                      type="button"
+                      onClick={() => setViewDetailedWorkflow(false)}
+                      className="text-[10px] text-slate-400 hover:text-white font-mono flex items-center gap-1 cursor-pointer w-full text-left"
+                    >
+                      <span>&larr; Switch to Simplified 7 Steps</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Section 3: CASE */}
@@ -632,6 +846,12 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           onNavigateToVault={() => handleSelectNav('documents')}
           onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
           onSelectRequirementForUpload={() => handleSelectNav('stage_02')}
+          authority={authority}
+          onNavigateToTab={(tab) => handleSelectNav(tab)}
+          onNavigateToDetailedWorkflow={() => {
+            setViewDetailedWorkflow(true);
+            setSidebarCollapsed(false);
+          }}
         />
       );
     }
@@ -843,435 +1063,171 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     // 12. STAGE 04: RECORD
     if (activeNavId === 'stage_04') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4 flex justify-between items-center">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-[#D4A843]" />
-                <span>Stage 04: Authoritative Tax Records &amp; Source Entries</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Verified source document figures recorded into statutory tax reporting categories.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/40 rounded-lg">
-              Stage 04 Active
-            </span>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl">
-            <h3 className="text-sm font-bold text-white">Verified Income &amp; Deduction Records</h3>
-            <div className="space-y-3 font-mono text-xs">
-              <div className="p-3 bg-[#071A2E] rounded-xl border border-slate-800 flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-white block">W-2 Wages &amp; Compensation (Box 1)</span>
-                  <span className="text-[11px] text-slate-400">Employer Wage Statement &bull; Verified</span>
-                </div>
-                <span className="text-emerald-400 font-bold">$185,420.00</span>
-              </div>
-              <div className="p-3 bg-[#071A2E] rounded-xl border border-slate-800 flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-white block">Ordinary Dividends (1099-DIV)</span>
-                  <span className="text-[11px] text-slate-400">Brokerage Statement &bull; Verified</span>
-                </div>
-                <span className="text-emerald-400 font-bold">$14,250.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StageFourRecordView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageTwo={() => handleSelectNav('stage_02')}
+          onNavigateToStageFive={() => handleSelectNav('stage_05')}
+        />
       );
     }
 
     // 13. STAGE 05: RECONCILE
     if (activeNavId === 'stage_05') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4 flex justify-between items-center">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Scale className="w-5 h-5 text-[#D4A843]" />
-                <span>Stage 05: Financial &amp; Tax Evidence Reconciliation</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Deterministic cross-matching of bank feeds, general ledger balances, and source tax documents.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-lg">
-              Reconciled ($0 Variance)
-            </span>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-              <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">TOTAL SOURCE INCOME</span>
-                <span className="text-white text-lg font-bold">$199,670.00</span>
-              </div>
-              <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">RECORDED TAX RECORDS</span>
-                <span className="text-white text-lg font-bold">$199,670.00</span>
-              </div>
-              <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">NET RECONCILIATION VARIANCE</span>
-                <span className="text-emerald-400 text-lg font-bold">$0.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StageFiveReconcileView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageFour={() => handleSelectNav('stage_04')}
+          onNavigateToStageSix={() => handleSelectNav('stage_06')}
+        />
       );
     }
 
     // 14. STAGE 06: REVIEW
     if (activeNavId === 'stage_06') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-purple-400" />
-              <span>Stage 06: Preparer &amp; Independent Workpaper Review</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Quality control checkpoint with Maker-Checker governance prior to return finalization.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="flex items-center gap-2 text-white font-bold">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Independent Review Status: Under Professional CPA Review</span>
-            </div>
-            <p className="text-slate-300 leading-relaxed text-[11px]">
-              Assigned Senior Reviewer: Elena Rostova, CPA. All deduction workpapers, tax calculation schedules, and statutory elections are being cross-audited.
-            </p>
-          </div>
-        </div>
+        <StageSixReviewView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageSeven={() => handleSelectNav('stage_07')}
+        />
       );
     }
 
     // 15. STAGE 07: REPORT
     if (activeNavId === 'stage_07') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <FileCheck className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 07: Financial Deliverables &amp; Tax Workpapers</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Authoritative client deliverable packages, income schedules, and deduction reports.
-            </p>
-          </div>
-
-          <DeliverablesView documents={[]} />
-        </div>
+        <StageSevenReportView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageEight={() => handleSelectNav('stage_08')}
+        />
       );
     }
 
     // 16. STAGE 08: PLAN
     if (activeNavId === 'stage_08') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 08: Multi-Year Tax Planning &amp; Advisory Scenarios</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Forward-looking tax planning estimates, entity structure analysis, and retirement deferral scenarios.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 space-y-2">
-                <span className="font-bold text-white block">Retirement Contribution Strategy (SEP / Solo 401k)</span>
-                <p className="text-slate-300 text-[11px]">Potential federal tax savings of up to $12,400 with maximized allowable elective deferral.</p>
-              </div>
-              <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 space-y-2">
-                <span className="font-bold text-white block">Depreciation &amp; Section 179 Expensing</span>
-                <p className="text-slate-300 text-[11px]">Qualified business asset acquisitions eligible for 100% bonus depreciation in TY 2026.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StageEightPlanView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+        />
       );
     }
 
     // 17. STAGE 09: PREPARE TAXES
     if (activeNavId === 'stage_09') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 09: Form 1040 &amp; State Tax Preparation</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Deterministic return calculation based on certified tax records.
-            </p>
-          </div>
-
-          <TaxReturnView onNavigateToDeliverables={() => handleSelectNav('stage_07')} />
-        </div>
+        <StageNinePrepareView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageTen={() => handleSelectNav('stage_10')}
+        />
       );
     }
 
     // 18. STAGE 10: APPROVE
     if (activeNavId === 'stage_10') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4 flex justify-between items-center">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                <span>Stage 10: Professional CPA Return Approval Seal</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Immutable version seal and maker-checker approval certificate.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-lg">
-              CPA Approved &bull; Ready for E-Sign
-            </span>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 space-y-2">
-              <span className="font-bold text-white block">CPA Certification Record</span>
-              <p className="text-slate-300 text-[11px]">
-                Elena Rostova, CPA certified and locked Form 1040 version hash. The return is eligible for taxpayer Form 8879 execution.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleSelectNav('stage_11')}
-              className="px-4 py-2 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-2"
-            >
-              <span>Proceed to Stage 11 (Form 8879 Sign)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        <StageTenApproveView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          clientName={clientName}
+          onNavigateToStageEleven={() => handleSelectNav('stage_11')}
+          onServerWorkflowRefresh={onServerWorkflowRefresh}
+        />
       );
     }
 
     // 19. STAGE 11: SIGN
     if (activeNavId === 'stage_11') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <PenTool className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 11: Form 8879 IRS e-File Signature Authorization</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Execute taxpayer electronic signature declaring under penalties of perjury that the return has been examined.
-            </p>
-          </div>
-
-          <ApprovalsView
-            currentUser={currentUser}
-            selectedTaxYear={selectedTaxYear}
-            onNavigate={(tab) => handleSelectNav(tab)}
-          />
-        </div>
+        <StageElevenSignView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          clientName={clientName}
+          userEmail={currentUser?.email}
+        />
       );
     }
 
     // 20. STAGE 12: FILE
     if (activeNavId === 'stage_12') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Send className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 12: Electronic Filing Transmission Boundary</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Modernized e-File (MeF) transmission packet generation and IRS gateway handoff.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs font-mono">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 space-y-2">
-              <span className="font-bold text-white block">IRS MeF XML Transmission Manifest</span>
-              <div className="text-[11px] text-slate-300 space-y-1">
-                <div>Jurisdiction: <strong className="text-white">Federal (IRS) &amp; South Carolina (SCDOR)</strong></div>
-                <div>Submission Package ID: <strong className="text-blue-300">mef_pkg_2025_uhnw_01</strong></div>
-                <div>Status: <span className="text-amber-300 font-bold">READY FOR TRANSMITTER RELEASE</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StageTwelveFileView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+        />
       );
     }
 
     // 21. STAGE 13: GOVERNMENT FEEDBACK
     if (activeNavId === 'stage_13') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <span>Stage 13: Government Feedback &amp; Electronic Acknowledgment</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Official IRS and state agency acknowledgment receipt (Status: Accepted).
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-emerald-500/40 space-y-2 font-mono">
-              <span className="font-bold text-emerald-300 block">OFFICIAL IRS ELECTRONIC ACKNOWLEDGMENT</span>
-              <div className="text-[11px] text-slate-300 space-y-1">
-                <div>Acknowledgment Code: <strong className="text-white">IRS_MEF_ACCEPTED_A</strong></div>
-                <div>Submission Timestamp: <span className="text-slate-400">March 24, 2026 14:15:22 EST</span></div>
-                <div>Federal Refund Status: <span className="text-emerald-400 font-bold">Processed &amp; Scheduled</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StageThirteenFeedbackView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+        />
       );
     }
 
     // 22. STAGE 14: RESOLVE
     if (activeNavId === 'stage_14') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 14: Exception &amp; Notice Resolution</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Inquiries, agency correspondence, and post-transmission clarifications.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 text-center py-8">
-              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <h3 className="font-bold text-white text-sm">Zero Outstanding Agency Notices</h3>
-              <p className="text-slate-400 text-xs mt-1">No IRS CP-series notices or state adjustments pending for this filing year.</p>
-            </div>
-          </div>
-        </div>
+        <StageFourteenResolveView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+        />
       );
     }
 
     // 23. STAGE 15: MONITOR
     if (activeNavId === 'stage_15') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 15: Post-Filing Monitoring &amp; Compliance Reminders</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Estimated tax payment schedules, quarterly deadlines, and record retention alerts.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 space-y-2">
-              <span className="font-bold text-white block">TY 2026 Estimated Tax Calendar (Form 1040-ES)</span>
-              <ul className="text-slate-300 text-[11px] space-y-1 list-disc pl-4">
-                <li>Q1 Due: April 15, 2026 &bull; Status: Scheduled</li>
-                <li>Q2 Due: June 15, 2026 &bull; Status: Upcoming</li>
-                <li>Q3 Due: September 15, 2026 &bull; Status: Upcoming</li>
-                <li>Q4 Due: January 15, 2027 &bull; Status: Upcoming</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <StageFifteenMonitorView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+        />
       );
     }
 
     // 24. STAGE 16: ARCHIVE
     if (activeNavId === 'stage_16') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Archive className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 16: Immutable Multi-Year Document &amp; Return Vault</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              7-year statutory audit preservation compliant with IRS Circular 230 record retention policies.
-            </p>
-          </div>
-
-          <MyDocumentsClientVault
-            clientId={clientId}
-            selectedTaxYear={selectedTaxYear}
-            onNavigateToUpload={() => handleSelectNav('stage_02')}
-          />
-        </div>
+        <StageSixteenArchiveView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageSeventeen={() => handleSelectNav('stage_17')}
+        />
       );
     }
 
     // 25. STAGE 17: RENEW
     if (activeNavId === 'stage_17') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 17: Annual Engagement Renewal</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Rollover client profile, re-affirm IRC § 7216 confidentiality consents, and commission new tax year engagement.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 space-y-2">
-              <span className="font-bold text-white block">TY 2026 Engagement Commission</span>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                Prior-year entity structure, taxpayer identification, and depreciation asset schedules are preserved. Click below to initialize Tax Year 2026.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                onTaxYearChange?.(2026);
-                handleSelectNav('stage_01');
-              }}
-              className="px-4 py-2 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-2"
-            >
-              <span>Commission Tax Year 2026 Engagement</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        <StageSeventeenRenewView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          clientName={clientName}
+          onCommissionNewTaxYear={(year) => {
+            onTaxYearChange?.(year);
+            handleSelectNav('stage_01');
+          }}
+        />
       );
     }
 
     // 26. STAGE 18: REPEAT
     if (activeNavId === 'stage_18') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-[#D4A843]" />
-              <span>Stage 18: Full Lifecycle Rollover &amp; Active Tax Year</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Continuous multi-year tax advisory and preparation lifecycle.
-            </p>
-          </div>
-
-          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 space-y-4 shadow-xl text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 text-center py-8 space-y-3">
-              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-              <h3 className="font-bold text-white text-sm">Full 18-Stage Tax Lifecycle Complete</h3>
-              <p className="text-slate-300 text-xs max-w-md mx-auto">
-                All milestones from Stage 01 Onboard through Stage 18 Repeat have been executed with full server-authoritative integrity and statutory compliance.
-              </p>
-            </div>
-          </div>
-        </div>
+        <StageEighteenRepeatView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          clientName={clientName}
+          onNavigateToYear={(year) => onTaxYearChange?.(year)}
+          onNavigateToVault={() => handleSelectNav('documents')}
+        />
       );
     }
 

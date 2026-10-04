@@ -37,7 +37,7 @@ import { useApp } from '../../context/AppContext';
 import { getStoredToken } from '../../services/api';
 import { AccountantBookkeepingSection } from './AccountantBookkeepingSection';
 
-interface AssignedCase {
+export interface AssignedCase {
   caseId: string;
   clientId: string;
   clientName: string;
@@ -47,8 +47,60 @@ interface AssignedCase {
   status: string;
   unreviewedDocsCount: number;
   unresolvedExceptionsCount: number;
+  dueDate?: string;
+  isDueToday?: boolean;
+  isOverdue?: boolean;
+  isWaitingOnClient?: boolean;
+  isSignatureBlocked?: boolean;
+  isFilingBlocked?: boolean;
+  hasRejection?: boolean;
+  rejectionNotice?: string;
+  hasNotice?: boolean;
+  noticeReference?: string;
   updatedAt: string;
 }
+
+export type OperationalQueueId =
+  | 'all'
+  | 'needs_attention'
+  | 'due_today'
+  | 'overdue'
+  | 'waiting_on_client'
+  | 'documents_received'
+  | 'ready_for_validation'
+  | 'ready_for_preparation'
+  | 'ready_for_review'
+  | 'ready_for_approval'
+  | 'signature_blocked'
+  | 'filing_blocked'
+  | 'government_rejections'
+  | 'notices'
+  | 'upcoming_deadlines';
+
+interface QueueDefinition {
+  id: OperationalQueueId;
+  label: string;
+  description: string;
+  badgeClass: string;
+}
+
+export const OPERATIONAL_QUEUES: QueueDefinition[] = [
+  { id: 'all', label: 'All Dossiers', description: 'Complete portfolio of active tax engagements', badgeClass: 'bg-slate-800 text-slate-300' },
+  { id: 'needs_attention', label: 'Needs Attention', description: 'Cases with exceptions, notices, or blocked dependencies', badgeClass: 'bg-red-950 text-red-300 border border-red-500/30' },
+  { id: 'due_today', label: 'Due Today', description: 'Statutory or client commitment deadlines due today', badgeClass: 'bg-amber-950 text-amber-300 border border-amber-500/30' },
+  { id: 'overdue', label: 'Overdue', description: 'Past-due filing or compliance action milestones', badgeClass: 'bg-rose-950 text-rose-300 border border-rose-500/30 font-bold' },
+  { id: 'waiting_on_client', label: 'Waiting on Client', description: 'Open RFI questionnaires or missing document requests', badgeClass: 'bg-blue-950 text-blue-300 border border-blue-500/30' },
+  { id: 'documents_received', label: 'Documents Received', description: 'New evidence uploaded and awaiting intake verification', badgeClass: 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' },
+  { id: 'ready_for_validation', label: 'Ready for Validation', description: 'Stage 03: Primary evidence inspection & OCR tie-out', badgeClass: 'bg-indigo-950 text-indigo-300 border border-indigo-500/30' },
+  { id: 'ready_for_preparation', label: 'Ready for Preparation', description: 'Stage 04–09: Verified records ready for Form 1040 prep', badgeClass: 'bg-purple-950 text-purple-300 border border-purple-500/30' },
+  { id: 'ready_for_review', label: 'Ready for Review', description: 'Stage 06 & 10: Senior CPA quality control review queue', badgeClass: 'bg-amber-950 text-amber-300 border border-amber-500/30' },
+  { id: 'ready_for_approval', label: 'Ready for Approval', description: 'Stage 10: Client draft approval pending', badgeClass: 'bg-cyan-950 text-cyan-300 border border-cyan-500/30' },
+  { id: 'signature_blocked', label: 'Signature Blocked', description: 'Stage 11: Form 8879 awaiting taxpayer e-signature', badgeClass: 'bg-orange-950 text-orange-300 border border-orange-500/30' },
+  { id: 'filing_blocked', label: 'Filing Blocked', description: 'Stage 12: Transmitter gateway fail-closed / awaiting auth', badgeClass: 'bg-red-950 text-red-300 border border-red-500/30' },
+  { id: 'government_rejections', label: 'Government Rejections', description: 'Stage 13/14: IRS or SCDOR reject notices requiring cure', badgeClass: 'bg-rose-950 text-rose-300 border border-rose-500/30' },
+  { id: 'notices', label: 'Notices', description: 'Stage 14: Agency correspondence (CP2000, 5071C, etc.)', badgeClass: 'bg-amber-950 text-amber-300 border border-amber-500/30' },
+  { id: 'upcoming_deadlines', label: 'Upcoming Deadlines', description: 'Statutory filing or estimated payment deadlines < 14 days', badgeClass: 'bg-slate-800 text-slate-200 border border-slate-700' }
+];
 
 interface ReviewDocument {
   id: string;
@@ -74,6 +126,7 @@ interface ReviewDocument {
 export const AccountantWorkspace: React.FC = () => {
   const { currentUser, logout } = useApp();
   const [activeTab, setActiveTab] = useState<'cases' | 'doc_review' | 'requests' | 'records' | 'reconciliation' | 'bookkeeping'>('cases');
+  const [selectedQueue, setSelectedQueue] = useState<OperationalQueueId>('all');
   const [selectedCaseId, setSelectedCaseId] = useState<string>('case_2025_001');
   const [selectedDocId, setSelectedDocId] = useState<string | null>('doc_001');
   const [filterTaxYear, setFilterTaxYear] = useState<number>(2025);
@@ -91,7 +144,7 @@ export const AccountantWorkspace: React.FC = () => {
   const [requestItemName, setRequestItemName] = useState<string>('');
   const [requestReason, setRequestReason] = useState<string>('');
 
-  // Sample assigned cases (reflecting live database structure)
+  // Sample assigned cases representing the 14 operational queues
   const [cases, setCases] = useState<AssignedCase[]>([
     {
       caseId: 'case_2025_001',
@@ -103,6 +156,7 @@ export const AccountantWorkspace: React.FC = () => {
       status: 'IN_REVIEW',
       unreviewedDocsCount: 2,
       unresolvedExceptionsCount: 0,
+      dueDate: '2026-10-15',
       updatedAt: '2026-10-02T13:45:00Z'
     },
     {
@@ -115,6 +169,8 @@ export const AccountantWorkspace: React.FC = () => {
       status: 'PREPARATION',
       unreviewedDocsCount: 0,
       unresolvedExceptionsCount: 0,
+      dueDate: '2026-10-05',
+      isDueToday: true,
       updatedAt: '2026-10-01T16:20:00Z'
     },
     {
@@ -127,7 +183,81 @@ export const AccountantWorkspace: React.FC = () => {
       status: 'AWAITING_CLIENT',
       unreviewedDocsCount: 1,
       unresolvedExceptionsCount: 1,
+      isWaitingOnClient: true,
+      dueDate: '2026-09-30',
+      isOverdue: true,
       updatedAt: '2026-10-02T11:10:00Z'
+    },
+    {
+      caseId: 'case_2025_004',
+      clientId: 'client_charleston_realestate',
+      clientName: 'Carolina Properties Group',
+      taxYear: 2025,
+      activeStage: 10,
+      stageName: '10 Approve',
+      status: 'READY_FOR_APPROVAL',
+      unreviewedDocsCount: 0,
+      unresolvedExceptionsCount: 0,
+      dueDate: '2026-10-10',
+      updatedAt: '2026-10-02T14:30:00Z'
+    },
+    {
+      caseId: 'case_2025_005',
+      clientId: 'client_beacon_logistics',
+      clientName: 'Beacon Harbor Logistics',
+      taxYear: 2025,
+      activeStage: 11,
+      stageName: '11 Sign',
+      status: 'SIGNATURE_BLOCKED',
+      unreviewedDocsCount: 0,
+      unresolvedExceptionsCount: 0,
+      isSignatureBlocked: true,
+      dueDate: '2026-10-12',
+      updatedAt: '2026-10-02T15:00:00Z'
+    },
+    {
+      caseId: 'case_2025_006',
+      clientId: 'client_apex_consulting',
+      clientName: 'Apex Advisory Partners',
+      taxYear: 2025,
+      activeStage: 12,
+      stageName: '12 File',
+      status: 'FILING_BLOCKED',
+      unreviewedDocsCount: 0,
+      unresolvedExceptionsCount: 0,
+      isFilingBlocked: true,
+      dueDate: '2026-10-15',
+      updatedAt: '2026-10-02T15:30:00Z'
+    },
+    {
+      caseId: 'case_2025_007',
+      clientId: 'client_lowcountry_retail',
+      clientName: 'Lowcountry Maritime Retail',
+      taxYear: 2025,
+      activeStage: 14,
+      stageName: '14 Resolve',
+      status: 'REJECTION_CURE',
+      unreviewedDocsCount: 0,
+      unresolvedExceptionsCount: 1,
+      hasRejection: true,
+      rejectionNotice: 'IRS Reject R0000-500-01 (EIN mismatch on Schedule C-EZ)',
+      dueDate: '2026-10-08',
+      updatedAt: '2026-10-02T16:00:00Z'
+    },
+    {
+      caseId: 'case_2025_008',
+      clientId: 'client_savannah_bio',
+      clientName: 'Savannah River BioLabs',
+      taxYear: 2025,
+      activeStage: 14,
+      stageName: '14 Resolve',
+      status: 'NOTICE_RESPONSE',
+      unreviewedDocsCount: 0,
+      unresolvedExceptionsCount: 1,
+      hasNotice: true,
+      noticeReference: 'IRS Notice CP2000 (TY2023 Underreporting Inquiry)',
+      dueDate: '2026-10-14',
+      updatedAt: '2026-10-02T16:20:00Z'
     }
   ]);
 
@@ -242,6 +372,72 @@ export const AccountantWorkspace: React.FC = () => {
     setActionNotice({ type: 'success', message: 'Client RFI request created and dispatched to client portal.' });
     setTimeout(() => setActionNotice(null), 3500);
   };
+
+  const getQueueCount = (queueId: OperationalQueueId): number => {
+    switch (queueId) {
+      case 'all':
+        return cases.length;
+      case 'needs_attention':
+        return cases.filter(c => c.unresolvedExceptionsCount > 0 || c.isOverdue || c.hasNotice || c.hasRejection).length;
+      case 'due_today':
+        return cases.filter(c => c.isDueToday).length;
+      case 'overdue':
+        return cases.filter(c => c.isOverdue).length;
+      case 'waiting_on_client':
+        return cases.filter(c => c.isWaitingOnClient || c.status === 'AWAITING_CLIENT').length;
+      case 'documents_received':
+        return cases.filter(c => c.unreviewedDocsCount > 0).length;
+      case 'ready_for_validation':
+        return cases.filter(c => c.activeStage === 3).length;
+      case 'ready_for_preparation':
+        return cases.filter(c => c.activeStage === 4 || c.activeStage === 9 || c.status === 'PREPARATION').length;
+      case 'ready_for_review':
+        return cases.filter(c => c.activeStage === 6 || c.status === 'IN_REVIEW').length;
+      case 'ready_for_approval':
+        return cases.filter(c => c.activeStage === 10 || c.status === 'READY_FOR_APPROVAL').length;
+      case 'signature_blocked':
+        return cases.filter(c => c.activeStage === 11 || c.isSignatureBlocked).length;
+      case 'filing_blocked':
+        return cases.filter(c => c.activeStage === 12 || c.isFilingBlocked).length;
+      case 'government_rejections':
+        return cases.filter(c => c.hasRejection).length;
+      case 'notices':
+        return cases.filter(c => c.hasNotice).length;
+      case 'upcoming_deadlines':
+        return cases.filter(c => Boolean(c.dueDate && !c.isOverdue)).length;
+      default:
+        return 0;
+    }
+  };
+
+  const filteredCases = cases.filter((cs) => {
+    // Search query filter
+    const matchesSearch = searchQuery === '' || 
+      cs.clientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      cs.clientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cs.caseId.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    // Queue filter
+    switch (selectedQueue) {
+      case 'all': return true;
+      case 'needs_attention': return cs.unresolvedExceptionsCount > 0 || cs.isOverdue || cs.hasNotice || cs.hasRejection;
+      case 'due_today': return Boolean(cs.isDueToday);
+      case 'overdue': return Boolean(cs.isOverdue);
+      case 'waiting_on_client': return Boolean(cs.isWaitingOnClient || cs.status === 'AWAITING_CLIENT');
+      case 'documents_received': return cs.unreviewedDocsCount > 0;
+      case 'ready_for_validation': return cs.activeStage === 3;
+      case 'ready_for_preparation': return cs.activeStage === 4 || cs.activeStage === 9 || cs.status === 'PREPARATION';
+      case 'ready_for_review': return cs.activeStage === 6 || cs.status === 'IN_REVIEW';
+      case 'ready_for_approval': return cs.activeStage === 10 || cs.status === 'READY_FOR_APPROVAL';
+      case 'signature_blocked': return cs.activeStage === 11 || Boolean(cs.isSignatureBlocked);
+      case 'filing_blocked': return cs.activeStage === 12 || Boolean(cs.isFilingBlocked);
+      case 'government_rejections': return Boolean(cs.hasRejection);
+      case 'notices': return Boolean(cs.hasNotice);
+      case 'upcoming_deadlines': return Boolean(cs.dueDate && !cs.isOverdue);
+      default: return true;
+    }
+  });
 
   return (
     <div className="min-h-screen bg-[#06182B] text-slate-100 flex flex-col font-sans">
@@ -369,13 +565,18 @@ export const AccountantWorkspace: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 1: ASSIGNED CASES */}
+          {/* TAB 1: ASSIGNED CASES & OPERATIONAL QUEUES */}
           {activeTab === 'cases' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-xl font-bold text-white">Assigned Client Tax Cases</h1>
-                  <p className="text-xs text-slate-400">Manage tax preparation progression across all 18 canonical workflow stages.</p>
+                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-[#D4A843]" />
+                    <span>Preparer Operational Command Center</span>
+                  </h1>
+                  <p className="text-xs text-slate-400">
+                    Comprehensive practice queues across all 18 authoritative workflow stages and client deadlines.
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -391,6 +592,52 @@ export const AccountantWorkspace: React.FC = () => {
                 </div>
               </div>
 
+              {/* OPERATIONAL QUEUES SELECTOR */}
+              <div className="bg-[#071A2E] border border-slate-700/60 rounded-2xl p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-[#D4A843] font-bold">
+                    Practice Operations Queues ({OPERATIONAL_QUEUES.length})
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    Active Queue: <strong className="text-white">{OPERATIONAL_QUEUES.find(q => q.id === selectedQueue)?.label}</strong>
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {OPERATIONAL_QUEUES.map((queue) => {
+                    const count = getQueueCount(queue.id);
+                    const isSelected = selectedQueue === queue.id;
+                    return (
+                      <button
+                        key={queue.id}
+                        type="button"
+                        onClick={() => setSelectedQueue(queue.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md ring-2 ring-[#D4A843]/40'
+                            : 'bg-[#0D2745] text-slate-300 hover:bg-[#102D4F] border border-slate-700/60'
+                        }`}
+                      >
+                        <span>{queue.label}</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                            isSelected ? 'bg-[#06182B] text-[#D4A843]' : queue.badgeClass
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-1 text-[11px] text-slate-400 border-t border-slate-800 flex items-center justify-between">
+                  <span>{OPERATIONAL_QUEUES.find(q => q.id === selectedQueue)?.description}</span>
+                  <span className="font-mono text-slate-500">Showing {filteredCases.length} of {cases.length} cases</span>
+                </div>
+              </div>
+
+              {/* FILTERED CASES TABLE */}
               <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-[#071A2E] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-700/60">
@@ -398,43 +645,100 @@ export const AccountantWorkspace: React.FC = () => {
                       <th className="px-4 py-3">Client</th>
                       <th className="px-4 py-3">Tax Year</th>
                       <th className="px-4 py-3">Current Stage</th>
-                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Status &amp; Queue Tags</th>
+                      <th className="px-4 py-3">Deadline</th>
                       <th className="px-4 py-3">Pending Docs</th>
-                      <th className="px-4 py-3">Last Active</th>
                       <th className="px-4 py-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {cases.map((cs) => (
-                      <tr key={cs.caseId} className="hover:bg-[#102D4F]/50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-white flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-[#D4A843]" />
-                          <span>{cs.clientName}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">({cs.clientId})</span>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-[#D4A843]">{cs.taxYear}</td>
-                        <td className="px-4 py-3 font-mono text-blue-300">{cs.stageName}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/30">
-                            {cs.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 font-mono">{cs.unreviewedDocsCount}</td>
-                        <td className="px-4 py-3 text-[11px] text-slate-400">{new Date(cs.updatedAt).toLocaleTimeString()}</td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedCaseId(cs.caseId);
-                              setActiveTab('doc_review');
-                            }}
-                            className="px-3 py-1 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            Open Review
-                          </button>
+                    {filteredCases.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                          <p className="font-medium text-xs">No active dossiers currently in this queue.</p>
+                          <p className="text-[11px] text-slate-500 mt-1">Select "All Dossiers" or another operational queue above.</p>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredCases.map((cs) => (
+                        <tr key={cs.caseId} className="hover:bg-[#102D4F]/50 transition-colors">
+                          <td className="px-4 py-3 font-bold text-white">
+                            <div className="flex items-center gap-2">
+                              <User className="w-3.5 h-3.5 text-[#D4A843] shrink-0" />
+                              <div>
+                                <span>{cs.clientName}</span>
+                                <span className="text-[10px] text-slate-500 font-mono block">({cs.clientId})</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[#D4A843]">{cs.taxYear}</td>
+                          <td className="px-4 py-3 font-mono text-blue-300">
+                            <span className="font-bold">{cs.stageName}</span>
+                          </td>
+                          <td className="px-4 py-3 space-y-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/30 inline-block mr-1">
+                              {cs.status}
+                            </span>
+                            {cs.isOverdue && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/30 inline-block mr-1">
+                                OVERDUE
+                              </span>
+                            )}
+                            {cs.isDueToday && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/30 inline-block mr-1">
+                                DUE TODAY
+                              </span>
+                            )}
+                            {cs.isSignatureBlocked && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-orange-950 text-orange-300 border border-orange-500/30 inline-block mr-1">
+                                SIGNATURE BLOCKED
+                              </span>
+                            )}
+                            {cs.isFilingBlocked && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-red-950 text-red-300 border border-red-500/30 inline-block mr-1">
+                                FILING BLOCKED
+                              </span>
+                            )}
+                            {cs.hasRejection && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/30 inline-block mr-1" title={cs.rejectionNotice}>
+                                IRS REJECT
+                              </span>
+                            )}
+                            {cs.hasNotice && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/30 inline-block" title={cs.noticeReference}>
+                                NOTICE
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[11px]">
+                            {cs.dueDate ? (
+                              <span className={cs.isOverdue ? 'text-rose-400 font-bold' : cs.isDueToday ? 'text-amber-400 font-bold' : 'text-slate-300'}>
+                                {cs.dueDate}
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-mono">
+                            <span className={cs.unreviewedDocsCount > 0 ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                              {cs.unreviewedDocsCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCaseId(cs.caseId);
+                                setActiveTab('doc_review');
+                              }}
+                              className="px-3 py-1 bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Open Review
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

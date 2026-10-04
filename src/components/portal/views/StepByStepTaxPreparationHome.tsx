@@ -55,6 +55,9 @@ interface StepByStepTaxPreparationHomeProps {
   onNavigateToVault: () => void;
   onOpenQuestionnaire: () => void;
   onSelectRequirementForUpload?: (requirement: TaxDocumentRequirementItem) => void;
+  authority?: any;
+  onNavigateToTab?: (tabId: string) => void;
+  onNavigateToDetailedWorkflow?: () => void;
 }
 
 export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHomeProps> = ({
@@ -65,7 +68,10 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
   onNavigateToStageTwo,
   onNavigateToVault,
   onOpenQuestionnaire,
-  onSelectRequirementForUpload
+  onSelectRequirementForUpload,
+  authority,
+  onNavigateToTab,
+  onNavigateToDetailedWorkflow
 }) => {
   const [recalcVersion, setRecalcVersion] = useState<number>(0);
   const [notApplicableModalItem, setNotApplicableModalItem] = useState<TaxDocumentRequirementItem | null>(null);
@@ -78,6 +84,42 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
   const [uploadedDocs, setUploadedDocs] = useState<StageTwoUploadedDocument[]>(() =>
     StageTwoCollectionService.getUploadedDocuments(clientId, selectedTaxYear)
   );
+
+  const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+
+  // Sync open requests and messages from server
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCommunications = async () => {
+      try {
+        const token = getStoredToken();
+        const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        const [reqRes, msgRes] = await Promise.all([
+          fetch(`/api/accounting/document-requests?clientId=${clientId}`, { headers }),
+          fetch('/api/messages', { headers })
+        ]);
+        if (isMounted) {
+          if (reqRes.ok) {
+            const reqData = await reqRes.json();
+            if (Array.isArray(reqData.requests)) {
+              setPendingRequestsCount(reqData.requests.filter((r: any) => r.status === 'pending').length);
+            }
+          }
+          if (msgRes.ok) {
+            const msgData = await msgRes.json();
+            if (Array.isArray(msgData.messages)) {
+              setUnreadMessagesCount(msgData.messages.filter((m: any) => !m.isRead && m.senderRole !== 'client').length);
+            }
+          }
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    };
+    fetchCommunications();
+    return () => { isMounted = false; };
+  }, [clientId]);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -243,6 +285,234 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>IRC § 7216 Consent Protected</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* EXECUTIVE SUMMARY: THE 8 CORE CLIENT QUESTIONS AT A GLANCE */}
+      <div className="rounded-2xl bg-[#0D2745] border border-[#D4A843]/30 p-6 shadow-2xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-[#D4A843]/15 text-[#D4A843]">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                Filing Status &amp; Action Center at a Glance
+              </h2>
+              <p className="text-[11px] text-slate-300">
+                Direct answers to the status of your return, what needs your attention, and what happens next.
+              </p>
+            </div>
+          </div>
+          {onNavigateToDetailedWorkflow && (
+            <button
+              type="button"
+              onClick={onNavigateToDetailedWorkflow}
+              className="text-xs text-[#D4A843] hover:underline font-semibold flex items-center gap-1 cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              <span>View Detailed 18-Stage Workflow</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {/* Question 1: Where is my tax return? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
+                <FileText className="w-3 h-3" />
+                <span>1. Where is my tax return?</span>
+              </span>
+              <p className="text-white font-semibold mt-1 text-xs">
+                {authority?.workflow?.activeStage === 1 && 'Stage 01: Onboarding & Identity Certified'}
+                {(!authority || authority?.workflow?.activeStage === 2) && 'Stage 02: Document Intake & Checklist'}
+                {authority?.workflow?.activeStage === 3 && 'Stage 03: Document Validation Underway'}
+                {(authority?.workflow?.activeStage >= 4 && authority?.workflow?.activeStage <= 8) && 'Stage 04–08: Accounting Tie-Out & Review'}
+                {authority?.workflow?.activeStage === 9 && 'Stage 09: Form 1040 Preparation'}
+                {authority?.workflow?.activeStage === 10 && 'Stage 10: Approved Draft Ready'}
+                {authority?.workflow?.activeStage === 11 && 'Stage 11: Form 8879 E-Signature Ready'}
+                {authority?.workflow?.activeStage === 12 && 'Stage 12: Queued for E-File Gateway'}
+                {(authority?.workflow?.activeStage >= 13) && 'Stage 13+: Accepted & Monitored'}
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Tax Year {selectedTaxYear} Active</span>
+            </span>
+          </div>
+
+          {/* Question 2: What do I need to do now? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>2. What do I need to do now?</span>
+              </span>
+              <p className="text-white font-semibold mt-1 text-xs">
+                {pendingRequestsCount > 0
+                  ? `Respond to ${pendingRequestsCount} open request from your CPA.`
+                  : missingCount > 0
+                  ? `Upload ${missingCount} required document${missingCount > 1 ? 's' : ''}.`
+                  : !step2Complete
+                  ? 'Answer brief tax questions.'
+                  : authority?.workflow?.activeStage === 10
+                  ? 'Approve your draft return.'
+                  : authority?.workflow?.activeStage === 11
+                  ? 'Sign Form 8879 authorization.'
+                  : "You're all caught up! No actions required."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={nextActionHandler}
+              className="text-[10px] font-bold text-[#D4A843] hover:underline flex items-center gap-1 text-left cursor-pointer"
+            >
+              <span>{nextActionButtonText}</span>
+              <ArrowRight className="w-2.5 h-2.5" />
+            </button>
+          </div>
+
+          {/* Question 3 & 4: What is missing vs received? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
+                <FileCheck className="w-3 h-3" />
+                <span>3 &bull; 4. Documents Status</span>
+              </span>
+              <div className="mt-1 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Missing:</span>
+                  <span className={`font-mono font-bold ${missingCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {missingCount} item{missingCount === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Received:</span>
+                  <span className="font-mono font-bold text-emerald-400">
+                    {uploadedDocs.length} in vault
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onNavigateToVault}
+              className="text-[10px] font-bold text-[#D4A843] hover:underline flex items-center gap-1 text-left cursor-pointer"
+            >
+              <span>View Documents Vault</span>
+              <ArrowRight className="w-2.5 h-2.5" />
+            </button>
+          </div>
+
+          {/* Question 5: What is A/R Tax Services currently reviewing? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                <span>5. What is firm reviewing?</span>
+              </span>
+              <p className="text-white text-xs mt-1 leading-snug">
+                Elena Rostova, CPA is verifying submitted records, income statements, and statutory deductions.
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400">
+              Assigned CPA: <strong className="text-slate-200">Elena Rostova, CPA</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom row: Questions 6, 7, and 8 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
+          {/* Question 6: What happens next? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-1">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block">
+              6. What happens next?
+            </span>
+            <p className="text-slate-200 text-xs">
+              {authority?.workflow?.activeStage <= 2
+                ? 'Once all missing intake items are received, automated verification runs, followed by Form 1040 preparation.'
+                : authority?.workflow?.activeStage <= 8
+                ? 'Workpapers will be sealed and transferred to Form 1040 preparation for CPA quality sign-off.'
+                : authority?.workflow?.activeStage === 9
+                ? 'Draft return summary will be presented for your approval and Form 8879 e-signature.'
+                : 'Return will be submitted via IRS Modernized e-File and archived in your permanent vault.'}
+            </p>
+          </div>
+
+          {/* Question 7: Messages & Requests Requiring Attention */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block">
+                7. Attention &amp; Requests
+              </span>
+              <div className="mt-1 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Accountant RFIs:</span>
+                  <span className={`font-mono font-bold ${pendingRequestsCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {pendingRequestsCount === 0 ? '0 pending' : `${pendingRequestsCount} open`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Unread Messages:</span>
+                  <span className={`font-mono font-bold ${unreadMessagesCount > 0 ? 'text-blue-400' : 'text-slate-400'}`}>
+                    {unreadMessagesCount} unread
+                  </span>
+                </div>
+              </div>
+            </div>
+            {onNavigateToTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateToTab('messages')}
+                className="text-[10px] font-bold text-[#D4A843] hover:underline flex items-center gap-1 text-left cursor-pointer"
+              >
+                <span>Open Communications</span>
+                <ArrowRight className="w-2.5 h-2.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Question 8: Do I need to approve, sign, schedule, or pay anything? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block">
+                8. Action Checklist
+              </span>
+              <div className="mt-1 space-y-1 text-[11px] font-mono">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Approve Return:</span>
+                  <span className={authority?.workflow?.activeStage === 10 ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                    {authority?.workflow?.activeStage === 10 ? 'Action Required' : 'Pending Prep'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Sign Form 8879:</span>
+                  <span className={authority?.workflow?.activeStage === 11 ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                    {authority?.workflow?.activeStage === 11 ? 'Action Required' : 'Pending Approval'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Consultation:</span>
+                  <span className="text-emerald-400">Available</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Invoice / Fee:</span>
+                  <span className="text-emerald-400">Current</span>
+                </div>
+              </div>
+            </div>
+            {onNavigateToTab && authority?.workflow?.activeStage >= 10 && (
+              <button
+                type="button"
+                onClick={() => onNavigateToTab(authority?.workflow?.activeStage === 10 ? 'stage_10' : 'stage_11')}
+                className="text-[10px] font-bold text-[#D4A843] hover:underline flex items-center gap-1 text-left cursor-pointer"
+              >
+                <span>Complete Action</span>
+                <ArrowRight className="w-2.5 h-2.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
