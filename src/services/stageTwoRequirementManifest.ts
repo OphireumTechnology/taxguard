@@ -80,7 +80,9 @@ export type StageTwoExceptionCategory =
   | 'UNSUPPORTED_FILE'
   | 'CORRECTED_DOCUMENT'
   | 'NEW_SOURCE_DISCOVERED'
+  | 'POTENTIAL_NEW_INCOME_SOURCE'
   | 'POTENTIAL_ADDITIONAL_JURISDICTION'
+  | 'POTENTIAL_NEW_ENTITY'
   | 'POTENTIAL_MISSING_PRIOR_YEAR_SOURCE'
   | 'COLLECTION_CONFLICT'
   | 'UPSTREAM_DATA_CONFLICT'
@@ -93,6 +95,8 @@ export interface StageTwoCollectionException {
   severity: 'CRITICAL' | 'BLOCKING' | 'WARNING' | 'INFORMATIONAL';
   title: string;
   description: string;
+  clientId?: string;
+  engagementId?: string;
   documentId?: string;
   requirementId?: string;
   taxYear: number;
@@ -101,6 +105,7 @@ export interface StageTwoCollectionException {
   resolutionNotes?: string;
   resolvedBy?: string;
   resolvedAt?: string;
+  auditReference?: string;
 }
 
 export interface TaxRequirementItem {
@@ -750,5 +755,177 @@ export class TaxRequirementManifestEngine {
     });
 
     return newReq;
+  }
+
+  /**
+   * SECTION 24: Prior-Year Source Intelligence Engine
+   * Compares prior-year sources against current-year evidence.
+   * If a source is absent, generates a POTENTIAL_MISSING_PRIOR_YEAR_SOURCE exception
+   * and a controlled PriorYearSourceInquiry.
+   */
+  public static evaluatePriorYearSources(
+    clientId: string,
+    currentYear: number,
+    priorYearSources: Array<{ sourceType: string; sourceName: string; priorYearAmount?: number }>
+  ): PriorYearSourceInquiry[] {
+    const manifest = this.getOrCreateManifest(clientId, currentYear);
+    const inquiries: PriorYearSourceInquiry[] = [];
+
+    for (const py of priorYearSources) {
+      // Check if current-year manifest already has received evidence from this source
+      const currentMatch = manifest.requirements.find(
+        r => r.expectedSource &&
+             (r.expectedSource.toLowerCase().includes(py.sourceName.toLowerCase()) ||
+              py.sourceName.toLowerCase().includes(r.expectedSource.toLowerCase())) &&
+             ['RECEIVED', 'MATCHED', 'SATISFIED', 'COLLECTION_ACCEPTED'].includes(r.status)
+      );
+
+      if (!currentMatch) {
+        const inquiryId = `INQ-${currentYear}-${py.sourceName.replace(/[^A-Za-z0-9]/g, '_').toUpperCase()}`;
+        let inquiry = manifest.priorYearInquiries.find(i => i.id === inquiryId);
+        if (!inquiry) {
+          inquiry = {
+            id: inquiryId,
+            taxYear: currentYear,
+            sourceType: py.sourceType,
+            sourceName: py.sourceName,
+            priorYearAmount: py.priorYearAmount,
+            status: 'PENDING'
+          };
+          manifest.priorYearInquiries.push(inquiry);
+        }
+
+        const exId = `EX-PY-${inquiryId}`;
+        let ex = manifest.exceptions.find(e => e.id === exId);
+        if (!ex) {
+          ex = {
+            id: exId,
+            category: 'POTENTIAL_MISSING_PRIOR_YEAR_SOURCE',
+            severity: 'WARNING',
+            title: `Potential Missing Prior-Year Source: ${py.sourceName} (${py.sourceType})`,
+            description: `Prior-year (${currentYear - 1}) records indicate income from ${py.sourceName} (${py.sourceType}), which has not been received for ${currentYear}. Controlled inquiry required.`,
+            clientId,
+            engagementId: manifest.engagementId,
+            taxYear: currentYear,
+            detectedAt: new Date().toISOString(),
+            status: 'OPEN',
+            auditReference: `audit_py_${inquiryId}`
+          };
+          manifest.exceptions.push(ex);
+        }
+        inquiries.push(inquiry);
+      }
+    }
+
+    this.saveManifest(manifest);
+    return inquiries;
+  }
+
+  /**
+   * Refines Stage 02 requirements based on controlled client response.
+   */
+  public static respondToPriorYearInquiry(params: {
+    clientId: string;
+    currentYear: number;
+    inquiryId: string;
+    response: 'YES' | 'NO' | 'NOT_SURE';
+    actor?: string;
+    notes?: string;
+  }): { inquiry: PriorYearSourceInquiry; manifest: TaxRequirementManifest } {
+    const manifest = this.getOrCreateManifest(params.clientId, params.currentYear);
+    const inquiry = manifest.priorYearInquiries.find(i => i.id === params.inquiryId);
+    if (!inquiry) {
+      throw new Error(`Inquiry ${params.inquiryId} not found`);
+    }
+
+    inquiry.clientResponse = params.response;
+    inquiry.respondedAt = new Date().toISOString();
+    inquiry.clientNotes = params.notes;
+
+    const exId = `EX-PY-${params.inquiryId}`;
+    const ex = manifest.exceptions.find(e => e.id === exId);
+
+    if (params.response === 'YES') {
+      inquiry.status = 'CONFIRMED_CONTINUED';
+      const existingReq = manifest.requirements.find(
+        r => r.expectedSource?.toLowerCase() === inquiry.sourceName.toLowerCase()
+      );
+      if (!existingReq) {
+        manifest.requirements.push({
+          requirementId: `REQ-${params.currentYear}-PY-${inquiry.sourceName.replace(/[^A-Za-z0-9]/g, '_').toUpperCase()}`,
+          engagementId: manifest.engagementId,
+          taxYear: params.currentYear,
+          taxpayerOrEntity: manifest.taxpayerName,
+          category: inquiry.sourceType.includes('W-2') ? 'Employment Income'
+            : inquiry.sourceType.includes('INT') ? 'Interest Income'
+            : inquiry.sourceType.includes('DIV') ? 'Dividend Income'
+            : 'Income',
+          jurisdiction: 'Federal',
+          documentType: inquiry.sourceType,
+          expectedSource: inquiry.sourceName,
+          title: `Form ${inquiry.sourceType} — ${inquiry.sourceName}`,
+          description: `Confirmed continuing prior-year source from ${inquiry.sourceName}.`,
+          formNumber: inquiry.sourceType,
+          reasonRequired: 'Client confirmed receiving income from this prior-year source during current tax year.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: [inquiry.sourceType],
+          status: 'MISSING',
+          requestStatus: 'NOT_REQUESTED',
+          matchedDocumentIds: [],
+          reviewStatus: 'NOT_REQUIRED',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 6001 / Prior-Year Inquiry Confirmation'
+        });
+      }
+      if (ex) {
+        ex.status = 'RESOLVED';
+        ex.resolvedAt = new Date().toISOString();
+        ex.resolvedBy = params.actor || 'client';
+        ex.resolutionNotes = 'Client confirmed continuing source. Requirement added to active collection.';
+      }
+    } else if (params.response === 'NO') {
+      inquiry.status = 'CONFIRMED_DISCONTINUED';
+      if (ex) {
+        ex.status = 'RESOLVED';
+        ex.resolvedAt = new Date().toISOString();
+        ex.resolvedBy = params.actor || 'client';
+        ex.resolutionNotes = 'Client confirmed source discontinued for current tax year.';
+      }
+      const existingReq = manifest.requirements.find(
+        r => r.expectedSource?.toLowerCase() === inquiry.sourceName.toLowerCase() && r.status === 'MISSING'
+      );
+      if (existingReq) {
+        existingReq.status = 'NOT_APPLICABLE';
+        existingReq.notApplicableReason = 'Confirmed discontinued prior-year source.';
+      }
+    } else {
+      inquiry.status = 'REVIEW_REQUIRED';
+      if (ex) {
+        ex.severity = 'WARNING';
+        ex.status = 'OPEN';
+        ex.resolutionNotes = 'Client unsure if source continued; staff follow-up required.';
+      }
+    }
+
+    this.saveManifest(manifest);
+
+    TaxGuardAuditService.logEvent({
+      tenantId: 'tenant_ar_tax_demo',
+      userId: params.clientId,
+      userEmail: `${params.clientId}@artaxservices.com`,
+      userRole: 'client',
+      ipAddress: '127.0.0.1',
+      action: 'PRIOR_YEAR_INQUIRY_RESPONDED',
+      recordType: 'governance',
+      recordId: inquiry.id,
+      result: 'success',
+      riskLevel: params.response === 'YES' ? 'routine' : 'high_risk',
+      details: `Prior-year source inquiry for ${inquiry.sourceName} answered: ${params.response}. Status: ${inquiry.status}.`
+    });
+
+    return { inquiry, manifest };
   }
 }

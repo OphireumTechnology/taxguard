@@ -95,6 +95,10 @@ export class GoogleCloudDocumentAiProvider implements TaxGuardOcrProvider {
     this.customTransport = transport;
   }
 
+  static getTransport(): ((input: OcrDocumentInput) => Promise<OcrExtractionOutput[]>) | undefined {
+    return this.customTransport;
+  }
+
   getMode(): DocumentIntelligenceProviderMode {
     return 'CLOUD';
   }
@@ -113,16 +117,99 @@ export class GoogleCloudDocumentAiProvider implements TaxGuardOcrProvider {
     }
 
     if (!this.isConfigured()) {
-      throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
+      throw new AuthorityError('OCR_PROVIDER_NOT_CONFIGURED', 503);
     }
 
-    const processorId = process.env.DOCUMENT_AI_PROCESSOR_ID;
+    const processorId = (process.env.DOCUMENT_AI_PROCESSOR_ID || '').trim();
     if (!processorId) {
       throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
     }
 
-    // In production without live network mocking, unconfigured credentials throw fail-closed AuthorityError
-    throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
+    // Live Google Cloud Document AI REST Transport
+    try {
+      const location = processorId.includes('/locations/')
+        ? processorId.split('/locations/')[1].split('/')[0]
+        : 'us';
+      const processorPath = processorId.startsWith('projects/')
+        ? processorId
+        : `projects/${process.env.GOOGLE_CLOUD_PROJECT || 'default'}/locations/${location}/processors/${processorId}`;
+
+      const endpoint = `https://${location}-documentai.googleapis.com/v1/${processorPath}:process`;
+      
+      const apiKey = process.env.GOOGLE_CLOUD_VISION_KEY;
+      const url = apiKey ? `${endpoint}?key=${apiKey}` : endpoint;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (process.env.GOOGLE_CLOUD_ACCESS_TOKEN) {
+        headers['Authorization'] = `Bearer ${process.env.GOOGLE_CLOUD_ACCESS_TOKEN}`;
+      }
+
+      let base64Content = '';
+      if (input.storagePath && typeof window === 'undefined') {
+        try {
+          const fs = await import('node:fs');
+          if (fs.existsSync(input.storagePath)) {
+            const buf = fs.readFileSync(input.storagePath);
+            base64Content = buf.toString('base64');
+          }
+        } catch {
+          // File read error
+        }
+      }
+
+      const body = {
+        rawDocument: {
+          content: base64Content,
+          mimeType: input.mimeType || 'application/pdf',
+        },
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
+      }
+
+      const data = await response.json();
+      const entities = data?.document?.entities || [];
+      const outputs: OcrExtractionOutput[] = [];
+
+      for (let i = 0; i < entities.length; i++) {
+        const ent = entities[i];
+        outputs.push({
+          field: ent.type || `Field_${i}`,
+          page: (ent.pageAnchor?.pageRefs?.[0]?.page || 0) + 1,
+          proposedValue: ent.normalizedValue?.text || ent.mentionText || '',
+          confidence: ent.confidence || 0.95,
+          sourceText: ent.mentionText,
+          provider: this.providerName,
+          providerVersion: this.providerVersion,
+        });
+      }
+
+      if (outputs.length === 0 && data?.document?.text) {
+        outputs.push({
+          field: 'rawDocumentText',
+          page: 1,
+          proposedValue: data.document.text,
+          confidence: 0.90,
+          sourceText: data.document.text.slice(0, 100),
+          provider: this.providerName,
+          providerVersion: this.providerVersion,
+        });
+      }
+
+      return outputs;
+    } catch (err: any) {
+      if (err instanceof AuthorityError) throw err;
+      throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
+    }
   }
 }
 
@@ -167,6 +254,11 @@ export class ProductionOcrAdapter implements TaxGuardOcrProvider {
       }
 
       return cloudProvider.extract(input);
+    }
+
+    // In production, LOCAL is prohibited unless explicitly configured in non-production
+    if (process.env.NODE_ENV === 'production') {
+      throw new AuthorityError('OCR_PROVIDER_NOT_CONFIGURED', 503);
     }
 
     // LOCAL is permitted only when explicitly/default-selected for a

@@ -98,6 +98,63 @@ export interface StageTwoCollectionSummaryReport {
   generatedAt: string;
 }
 
+export interface StageTwoCollectionSnapshot {
+  snapshotId: string;
+  clientId: string;
+  engagementId: string;
+  taxYear: number;
+  collectionCompletedAt: string;
+  collectionProgressPercent: number;
+  requirementManifest: TaxRequirementManifest;
+  collectedEvidence: Array<{
+    documentId: string;
+    fileName: string;
+    sha256: string;
+    detectedType: string;
+    requirementId?: string;
+    storagePath?: string;
+    receiptTimestamp: string;
+  }>;
+  documentMetadata: Array<{
+    documentId: string;
+    fileSizeBytes: number;
+    mimeType: string;
+    uploader: string;
+    encryptionStatus: string;
+  }>;
+  proposedExtractedFields: Array<{
+    documentId: string;
+    field: string;
+    proposedValue: unknown;
+    confidence: number;
+    isAiProposedOnly: true;
+  }>;
+  provenance: {
+    origin: string;
+    hashChain: string[];
+    generatedAt: string;
+    version: number;
+  };
+  documentRequirementRelationships: Array<{
+    documentId: string;
+    requirementId: string;
+    matchConfidence: number;
+  }>;
+  jurisdictionIndicators: {
+    primaryJurisdiction: string;
+    additionalJurisdictions: string[];
+  };
+  resolvedExceptions: StageTwoCollectionException[];
+  approvedOutstandingExceptions: StageTwoCollectionException[];
+  exitGateRecord: {
+    gateName: string;
+    passed: boolean;
+    evaluatedAt: string;
+    completenessScore: number;
+  };
+  stageThreeHandoffPackageAvailable: boolean;
+}
+
 export interface StageTwoOrchestrationResult {
   documentId: string;
   fileName: string;
@@ -575,5 +632,114 @@ export class StageTwoOrchestratorService {
       riskLevel: 'high_risk',
       details: `Requirement ${params.requirementId} reopened by ${params.actor}. Reason: ${params.reason}. Stage 02 gate reopened.`
     });
+  }
+
+  private static snapshotsCache = new Map<string, StageTwoCollectionSnapshot>();
+
+  /**
+   * SECTION 32: STAGE 02 COLLECTION SNAPSHOT
+   * Generates the immutable collection handoff snapshot when collection completes.
+   */
+  public static createStageTwoSnapshot(clientId: string, taxYear: number): StageTwoCollectionSnapshot {
+    const manifest = TaxRequirementManifestEngine.getOrCreateManifest(clientId, taxYear);
+    const report = this.generateCollectionReport(clientId, taxYear, manifest);
+    const gateResult = this.evaluateStageTwoExitGate(clientId, taxYear);
+
+    const stagedDocs = StageTwoIntakeSecurityService.getStagedDocuments(clientId, taxYear);
+
+    const collectedEvidence = stagedDocs.map(d => ({
+      documentId: d.documentId,
+      fileName: d.originalFilename,
+      sha256: d.integrityRecord.originalHash,
+      detectedType: d.claimedCategory,
+      requirementId: d.associatedRequirementId,
+      receiptTimestamp: d.receivedTimestamp
+    }));
+
+    const documentMetadata = stagedDocs.map(d => ({
+      documentId: d.documentId,
+      fileSizeBytes: d.fileSizeBytes,
+      mimeType: d.signatureValidation.claimedMimeType || 'application/pdf',
+      uploader: d.uploader,
+      encryptionStatus: d.encryptionStatus
+    }));
+
+    const documentRequirementRelationships: Array<{
+      documentId: string;
+      requirementId: string;
+      matchConfidence: number;
+    }> = [];
+
+    manifest.requirements.forEach(req => {
+      req.matchedDocumentIds.forEach(docId => {
+        documentRequirementRelationships.push({
+          documentId: docId,
+          requirementId: req.requirementId,
+          matchConfidence: 0.98
+        });
+      });
+    });
+
+    const resolvedExceptions = manifest.exceptions.filter(e => e.status === 'RESOLVED' || e.status === 'WAIVED');
+    const approvedOutstandingExceptions = manifest.exceptions.filter(
+      e => e.status === 'ACKNOWLEDGED' || (e.status === 'OPEN' && e.severity === 'INFORMATIONAL')
+    );
+
+    const snapshotId = `SNAP-S02-${taxYear}-${clientId}-${Date.now()}`;
+    const snapshot: StageTwoCollectionSnapshot = {
+      snapshotId,
+      clientId,
+      engagementId: manifest.engagementId,
+      taxYear,
+      collectionCompletedAt: new Date().toISOString(),
+      collectionProgressPercent: report.collectionProgressPercent,
+      requirementManifest: manifest,
+      collectedEvidence,
+      documentMetadata,
+      proposedExtractedFields: [],
+      provenance: {
+        origin: 'StageTwoOrchestratorService.createStageTwoSnapshot',
+        hashChain: collectedEvidence.map(e => e.sha256),
+        generatedAt: new Date().toISOString(),
+        version: manifest.manifestVersion
+      },
+      documentRequirementRelationships,
+      jurisdictionIndicators: {
+        primaryJurisdiction: manifest.primaryJurisdiction,
+        additionalJurisdictions: manifest.potentialAdditionalJurisdictions
+      },
+      resolvedExceptions,
+      approvedOutstandingExceptions,
+      exitGateRecord: {
+        gateName: gateResult.gateName,
+        passed: gateResult.passed,
+        evaluatedAt: new Date().toISOString(),
+        completenessScore: gateResult.completenessScore
+      },
+      stageThreeHandoffPackageAvailable: gateResult.passed
+    };
+
+    const cacheKey = `${clientId}_${taxYear}`;
+    this.snapshotsCache.set(cacheKey, snapshot);
+
+    TaxGuardAuditService.logEvent({
+      tenantId: 'tenant_ar_tax_demo',
+      userId: clientId,
+      userEmail: `${clientId}@artaxservices.com`,
+      userRole: 'system',
+      ipAddress: '127.0.0.1',
+      action: 'STAGE_02_SNAPSHOT_CREATED',
+      recordType: 'governance',
+      recordId: snapshotId,
+      result: 'success',
+      riskLevel: 'routine',
+      details: `Stage 02 Collection Snapshot created. Progress: ${report.collectionProgressPercent}%. Exit gate passed: ${gateResult.passed}. Handoff available: ${snapshot.stageThreeHandoffPackageAvailable}.`
+    });
+
+    return snapshot;
+  }
+
+  public static getStageTwoSnapshot(clientId: string, taxYear: number): StageTwoCollectionSnapshot | undefined {
+    return this.snapshotsCache.get(`${clientId}_${taxYear}`);
   }
 }
