@@ -366,6 +366,32 @@ describe('Stage 02 Mandatory Regression Invariants (TG-COL-R01 to TG-COL-R20)', 
     expect((result as any).matchResult).toBe('NEW_SOURCE_DISCOVERED');
     const manifest = TaxRequirementManifestEngine.getOrCreateManifest(CLIENT_ID, TAX_YEAR);
     expect(manifest.requirements.some(r => r.documentType === 'Schedule K-1')).toBe(true);
+    expect(manifest.exceptions.some(e => e.category === 'POTENTIAL_NEW_ENTITY')).toBe(true);
+
+    // Also test new income source (1099-NEC) generating POTENTIAL_NEW_INCOME_SOURCE
+    const necText = `
+      Form 1099-NEC Nonemployee Compensation 2025
+      Payer: Charleston Consulting Group EIN: 57-9876543
+      Recipient: Sarah Connor SSN: ***-**-9900
+      Box 1 Nonemployee compensation: $12,400.00
+    `;
+    const necBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, ...new TextEncoder().encode(necText)]);
+    const necResult = await StageTwoCollectionService.ingestDocumentUpload({
+      clientId: CLIENT_ID,
+      engagementId: ENGAGEMENT_ID,
+      taxYear: TAX_YEAR,
+      uploadedBy: 'Sarah Connor',
+      originalFileName: 'Charleston_Consulting_1099NEC_2025.pdf',
+      fileSizeBytes: necBytes.length,
+      mimeType: 'application/pdf',
+      claimedCategory: '1099-NEC',
+      fileBytes: necBytes,
+      rawTextSample: necText
+    });
+    expect((necResult as any).matchResult).toBe('NEW_SOURCE_DISCOVERED');
+    const updatedManifest = TaxRequirementManifestEngine.getOrCreateManifest(CLIENT_ID, TAX_YEAR);
+    expect(updatedManifest.requirements.some(r => r.documentType === '1099-NEC')).toBe(true);
+    expect(updatedManifest.exceptions.some(e => e.category === 'POTENTIAL_NEW_INCOME_SOURCE')).toBe(true);
   });
 
   // TG-COL-R10: state requirements are tax-year/jurisdiction aware

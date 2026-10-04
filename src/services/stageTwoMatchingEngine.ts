@@ -674,6 +674,27 @@ export class StageTwoMatchingEngine {
       };
       generatedExceptions.push(ex);
 
+      const isEntity = envelope.detectedType === 'Schedule K-1' ||
+        Boolean(envelope.employerName && /\b(llc|inc|corp|partners|lp|llp)\b/i.test(envelope.employerName) && envelope.detectedType.includes('K-1'));
+      const specificCategory: StageTwoExceptionCategory = isEntity ? 'POTENTIAL_NEW_ENTITY' : 'POTENTIAL_NEW_INCOME_SOURCE';
+
+      const specificEx: StageTwoCollectionException = {
+        id: `EX-${isEntity ? 'ENTITY' : 'INCOME'}-${envelope.documentId}`,
+        category: specificCategory,
+        severity: 'INFORMATIONAL',
+        title: isEntity
+          ? `Potential New Entity Detected: ${sourceLabel}`
+          : `Potential New Income Source Detected: ${envelope.detectedType} (${sourceLabel})`,
+        description: isEntity
+          ? `Discovered pass-through or entity schedule '${envelope.detectedType}' from '${sourceLabel}'. Potential new entity engagement review required.`
+          : `Discovered new income stream '${envelope.detectedType}' from '${sourceLabel}'. Added to collection requirement determination.`,
+        documentId: envelope.documentId,
+        taxYear: manifest.taxYear,
+        detectedAt: new Date().toISOString(),
+        status: 'OPEN'
+      };
+      generatedExceptions.push(specificEx);
+
       return {
         matchId,
         documentId: envelope.documentId,
