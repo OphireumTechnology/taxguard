@@ -370,11 +370,20 @@ describe('Supabase Production Infrastructure & Authority', () => {
     const lifecycleMigrationFile = '20260929000000_taxguard_complete_lifecycle_schema.sql';
     const bookkeepingMigrationFile = '20260930000000_taxguard_bookkeeping_schema.sql';
     const practiceOperationsMigrationFile = '20261001000000_taxguard_practice_operations_schema.sql';
+    const storageGovernanceMigrationFile = '20261002000000_taxguard_storage_and_assignment_governance.sql';
+    const privateStorageMigrationFile = '20261004000000_taxguard_private_storage_client_scope.sql';
 
     it('maintains strict migration sequence with 20260928000000 first, 20260929000000 second, and 20260930000000 third', async () => {
       const fs = await import('node:fs');
       const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
-      expect(files).toEqual([coreMigrationFile, lifecycleMigrationFile, bookkeepingMigrationFile, practiceOperationsMigrationFile]);
+      expect(files).toEqual([
+        coreMigrationFile,
+        lifecycleMigrationFile,
+        bookkeepingMigrationFile,
+        practiceOperationsMigrationFile,
+        storageGovernanceMigrationFile,
+        privateStorageMigrationFile,
+      ]);
     });
 
     it('ensures zero uncast auth.uid() comparisons against VARCHAR/TEXT identity columns (prevents SQLSTATE 42883)', async () => {
