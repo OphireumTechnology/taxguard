@@ -3,13 +3,14 @@
  * Multi-Year Tax Lifecycle Continuity & Institutional Knowledge Preservation
  *
  * Implements:
- * - Multi-year statutory engagement record locking & legal hold support
+ * - Real API integration via case authority repository
+ * - Truthful empty states conforming strictly to the ZERO-DATA RULE
  * - Continuous carryover tracking (Capital Loss, NOL, Passive Loss, Charitable 5-Year)
  * - Fixed asset depreciation rollforward schedules (MACRS / Section 179)
- * - Seamless multi-year return history and continuous tax advisory relationship
+ * - Multi-year return history and continuous tax advisory relationship
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Repeat,
   ShieldCheck,
@@ -21,8 +22,35 @@ import {
   Archive,
   TrendingUp,
   FileText,
-  DollarSign
+  DollarSign,
+  Inbox
 } from 'lucide-react';
+import { getStoredToken } from '../../../../services/api';
+
+export interface CarryoverItem {
+  type: string;
+  form: string;
+  priorYearAmount: string;
+  appliedThisYear: string;
+  remainingCarryforward: string;
+  status: string;
+}
+
+export interface FixedAssetItem {
+  id: string;
+  description: string;
+  acquisitionDate: string;
+  depreciationMethod: string;
+  businessUsePercent: number;
+  unrecoveredBasis: number;
+}
+
+export interface HistoricalCycle {
+  year: number;
+  status: string;
+  filings: string;
+  efileAck: string;
+}
 
 interface StageEighteenRepeatViewProps {
   clientId: string;
@@ -40,51 +68,54 @@ export const StageEighteenRepeatView: React.FC<StageEighteenRepeatViewProps> = (
   onNavigateToVault
 }) => {
   const [activeTab, setActiveTab] = useState<'carryovers' | 'depreciation' | 'history'>('carryovers');
+  const [carryovers, setCarryovers] = useState<CarryoverItem[]>([]);
+  const [fixedAssets, setFixedAssets] = useState<FixedAssetItem[]>([]);
+  const [historicalCycles, setHistoricalCycles] = useState<HistoricalCycle[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Authoritative carryover attributes for continuous multi-year engagement
-  const carryovers = [
-    {
-      type: 'Capital Loss Carryover',
-      form: 'Schedule D',
-      priorYearAmount: '$8,450.00',
-      appliedThisYear: '$3,000.00',
-      remainingCarryforward: '$5,450.00',
-      status: 'PRESERVED'
-    },
-    {
-      type: 'Charitable Contribution Deduction (5-Year)',
-      form: 'Schedule A (Form 1040)',
-      priorYearAmount: '$12,000.00',
-      appliedThisYear: '$6,000.00',
-      remainingCarryforward: '$6,000.00',
-      status: 'PRESERVED'
-    },
-    {
-      type: 'Passive Activity Loss Limitation',
-      form: 'Form 8582',
-      priorYearAmount: '$14,200.00',
-      appliedThisYear: '$0.00',
-      remainingCarryforward: '$14,200.00',
-      status: 'SUSPENDED_ACTIVE'
-    },
-    {
-      type: 'Net Operating Loss (NOL Post-TCJA 80%)',
-      form: 'Form 1139 / Schedule 1',
-      priorYearAmount: '$0.00',
-      appliedThisYear: '$0.00',
-      remainingCarryforward: '$0.00',
-      status: 'BALANCED'
-    }
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRepeatData = async () => {
+      setIsLoading(true);
+      try {
+        const token = getStoredToken();
+        const res = await fetch(
+          `/api/case-authority/tenantA/${clientId}/eng_${selectedTaxYear}_${clientId}/cases/${selectedTaxYear}/repeat/default`,
+          {
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+          }
+        );
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setCarryovers(data.carryovers || []);
+          setFixedAssets(data.fixedAssets || []);
+          setHistoricalCycles(data.historicalCycles || []);
+        } else {
+          if (isMounted) {
+            setCarryovers([]);
+            setFixedAssets([]);
+            setHistoricalCycles([]);
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setCarryovers([]);
+          setFixedAssets([]);
+          setHistoricalCycles([]);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
 
-  const historicalCycles = [
-    { year: 2025, status: 'Active Engagement', filings: 'Form 1040 & SC-1040', efileAck: 'Pending / In-Prep' },
-    { year: 2024, status: 'Filed & Accepted', filings: 'Form 1040 & SC-1040', efileAck: 'IRS_MEF_ACCEPTED_A' },
-    { year: 2023, status: 'Archived (Circular 230)', filings: 'Form 1040 & SC-1040', efileAck: 'IRS_MEF_ACCEPTED_A' }
-  ];
+    fetchRepeatData();
+    return () => {
+      isMounted = false;
+    };
+  }, [clientId, selectedTaxYear]);
 
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+    <div className="max-w-7xl mx-auto py-6 px-4 space-y-6" id="stage-18-repeat-workspace">
       {/* 4-Question Orientation Header */}
       <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-700/60 pb-4">
@@ -166,9 +197,26 @@ export const StageEighteenRepeatView: React.FC<StageEighteenRepeatViewProps> = (
         </button>
       </div>
 
-      {/* Tab 1: Carryforward Schedules */}
-      {activeTab === 'carryovers' && (
-        <div className="space-y-4">
+      {/* Main Tab Content */}
+      {isLoading ? (
+        <div className="p-12 text-center bg-[#0D2745] border border-slate-800 rounded-2xl">
+          <Clock className="w-8 h-8 text-[#D4A843] animate-spin mx-auto mb-3" />
+          <p className="text-sm font-semibold text-slate-300">Loading multi-year lifecycle data...</p>
+        </div>
+      ) : activeTab === 'carryovers' ? (
+        carryovers.length === 0 ? (
+          <div className="p-10 text-center bg-[#0D2745] border border-slate-800 rounded-2xl space-y-4">
+            <div className="w-14 h-14 rounded-full bg-[#071A2E] border border-slate-700 mx-auto flex items-center justify-center">
+              <Inbox className="w-7 h-7 text-[#D4A843]" />
+            </div>
+            <div className="max-w-md mx-auto space-y-2">
+              <h3 className="text-base font-bold text-white">No Carryover Schedules Recorded</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Capital loss carryforwards, passive activity losses, and charitable contribution deductions will automatically populate here after current year Form 1040 is filed and accepted.
+              </p>
+            </div>
+          </div>
+        ) : (
           <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
               <div>
@@ -213,52 +261,65 @@ export const StageEighteenRepeatView: React.FC<StageEighteenRepeatViewProps> = (
               </table>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Tab 2: Fixed Asset Register */}
-      {activeTab === 'depreciation' && (
-        <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#D4A843]" />
-                <span>Form 4562 Fixed Asset &amp; Depreciation Register</span>
-              </h3>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Rolling MACRS and Section 179 asset basis schedules preserved across tax years.
+        )
+      ) : activeTab === 'depreciation' ? (
+        fixedAssets.length === 0 ? (
+          <div className="p-10 text-center bg-[#0D2745] border border-slate-800 rounded-2xl space-y-4">
+            <div className="w-14 h-14 rounded-full bg-[#071A2E] border border-slate-700 mx-auto flex items-center justify-center">
+              <Layers className="w-7 h-7 text-[#D4A843]" />
+            </div>
+            <div className="max-w-md mx-auto space-y-2">
+              <h3 className="text-base font-bold text-white">No Fixed Assets Registered</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Form 4562 depreciation schedules and Section 179 rollforwards will be tracked here when depreciable assets are recorded for business filings.
               </p>
             </div>
           </div>
-
-          <div className="space-y-3 font-mono text-xs">
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        ) : (
+          <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
               <div>
-                <span className="font-bold text-white font-sans text-sm block">Computer &amp; Network Infrastructure</span>
-                <span className="text-[11px] text-slate-400">Acquired: 2024-03-15 · 5-Yr MACRS (200% DB) · Business Use: 100%</span>
-              </div>
-              <div className="text-right">
-                <span className="text-slate-400 text-[10px] block">Unrecovered Depreciable Basis</span>
-                <span className="text-emerald-400 font-bold text-sm">$3,840.00</span>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#D4A843]" />
+                  <span>Form 4562 Fixed Asset &amp; Depreciation Register</span>
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Rolling MACRS and Section 179 asset basis schedules preserved across tax years.
+                </p>
               </div>
             </div>
 
-            <div className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className="font-bold text-white font-sans text-sm block">Office Furnishings &amp; Video Suite</span>
-                <span className="text-[11px] text-slate-400">Acquired: 2024-06-20 · 7-Yr MACRS (200% DB) · Business Use: 100%</span>
-              </div>
-              <div className="text-right">
-                <span className="text-slate-400 text-[10px] block">Unrecovered Depreciable Basis</span>
-                <span className="text-emerald-400 font-bold text-sm">$8,120.00</span>
-              </div>
+            <div className="space-y-3 font-mono text-xs">
+              {fixedAssets.map((asset) => (
+                <div key={asset.id} className="p-4 bg-[#071A2E] rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="font-bold text-white font-sans text-sm block">{asset.description}</span>
+                    <span className="text-[11px] text-slate-400">
+                      Acquired: {asset.acquisitionDate} · {asset.depreciationMethod} · Business Use: {asset.businessUsePercent}%
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 text-[10px] block">Unrecovered Depreciable Basis</span>
+                    <span className="text-emerald-400 font-bold text-sm">${asset.unrecoveredBasis.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        )
+      ) : historicalCycles.length === 0 ? (
+        <div className="p-10 text-center bg-[#0D2745] border border-slate-800 rounded-2xl space-y-4">
+          <div className="w-14 h-14 rounded-full bg-[#071A2E] border border-slate-700 mx-auto flex items-center justify-center">
+            <Archive className="w-7 h-7 text-[#D4A843]" />
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h3 className="text-base font-bold text-white">No Prior Tax Year Cycles Completed</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              As you complete filings with A/R Tax Services, each sealed engagement cycle will be preserved here for statutory 7-year multi-year audit compliance.
+            </p>
+          </div>
         </div>
-      )}
-
-      {/* Tab 3: History */}
-      {activeTab === 'history' && (
+      ) : (
         <div className="bg-[#0D2745] border border-[rgba(148,163,184,0.18)] rounded-2xl p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
             <div>
