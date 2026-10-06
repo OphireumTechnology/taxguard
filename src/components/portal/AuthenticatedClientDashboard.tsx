@@ -37,7 +37,12 @@ import {
   Archive,
   TrendingUp,
   PenTool,
-  Activity
+  Activity,
+  Search,
+  HelpCircle,
+  FileQuestion,
+  CreditCard,
+  Settings
 } from 'lucide-react';
 import { StageOneOnboardingService } from '../../services/stageOneOnboardingService';
 import { useApp } from '../../context/AppContext';
@@ -72,6 +77,13 @@ import { StageFifteenMonitorView } from './views/stages/StageFifteenMonitorView'
 import { StageSixteenArchiveView } from './views/stages/StageSixteenArchiveView';
 import { StageSeventeenRenewView } from './views/stages/StageSeventeenRenewView';
 import { StageEighteenRepeatView } from './views/stages/StageEighteenRepeatView';
+import { BillingView } from './views/BillingView';
+import { RequestsView } from './views/RequestsView';
+import { LiveCalendarModule } from '../calendar/LiveCalendarModule';
+import { ClientSearchModal } from './dashboard/ClientSearchModal';
+import { NotificationCenterDropdown } from './dashboard/NotificationCenterDropdown';
+import { TaxYearsArchiveSection } from './dashboard/TaxYearsArchiveSection';
+import { getStoredToken } from '../../services/api';
 
 interface WorkflowStageItem {
   number: StageNumber;
@@ -147,7 +159,7 @@ export const SIMPLIFIED_JOURNEY_STEPS: SimplifiedJourneyStep[] = [
   }
 ];
 
-const WORKFLOW_STAGES: WorkflowStageItem[] = [
+export const WORKFLOW_STAGES: WorkflowStageItem[] = [
   { number: 1, shortLabel: '01', name: 'Onboard' },
   { number: 2, shortLabel: '02', name: 'Collect' },
   { number: 3, shortLabel: '03', name: 'Validate' },
@@ -200,51 +212,24 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.toLowerCase();
       const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
-      if (pathname === '/portal/documents') {
-        return 'documents';
-      }
-      if (pathname === '/portal/requests') {
-        return 'exceptions';
-      }
-      if (pathname === '/portal/appointments') {
-        return 'messages';
-      }
-      if (pathname === '/portal/profile') {
-        return 'profile';
-      }
-      if (pathname === '/portal/dashboard') {
-        return 'home';
-      }
-      if (hash.includes('collect') || hash.includes('stage2') || hash.includes('workspace')) {
-        return 'stage_02';
-      }
-      if (hash.includes('onboard') || hash.includes('stage1')) {
-        return 'stage_01';
-      }
-      if (hash.includes('document')) {
-        return 'documents';
-      }
-      if (hash.includes('exception')) {
-        return 'exceptions';
-      }
-      if (hash.includes('message')) {
-        return 'messages';
-      }
-      if (hash.includes('audit') || hash.includes('activity')) {
-        return 'activity';
-      }
-      if (hash.includes('profile')) {
-        return 'profile';
-      }
-      if (hash.includes('security')) {
-        return 'security';
-      }
+      if (pathname === '/portal/documents') return 'documents';
+      if (pathname === '/portal/requests') return 'requests';
+      if (pathname === '/portal/appointments') return 'appointments';
+      if (pathname === '/portal/profile') return 'profile';
+      if (pathname === '/portal/dashboard') return 'home';
+      if (hash.includes('collect') || hash.includes('stage2') || hash.includes('workspace')) return 'stage_02';
+      if (hash.includes('onboard') || hash.includes('stage1')) return 'stage_01';
+      if (hash.includes('document')) return 'documents';
+      if (hash.includes('request') || hash.includes('exception')) return 'requests';
+      if (hash.includes('message')) return 'messages';
+      if (hash.includes('appointment')) return 'appointments';
+      if (hash.includes('billing') || hash.includes('payment')) return 'billing';
+      if (hash.includes('archive') || hash.includes('records')) return 'archive';
+      if (hash.includes('audit') || hash.includes('activity')) return 'activity';
+      if (hash.includes('profile')) return 'profile';
+      if (hash.includes('security')) return 'security';
+      if (hash.includes('questionnaire')) return 'questionnaire';
     }
-    // RETURNING CLIENT ROUTING:
-    // When a client logs in with Stage 01 = COMPLETED:
-    // Determine Current Active Stage:
-    // If Stage 02 is active, automatically present Stage 02 COLLECT / DOCUMENT INTAKE.
-    // If the client has legitimately progressed beyond Stage 02, route to current authorized stage.
     if (initialNav === 'home' || !initialNav) {
       const activeStage = propAuthority?.workflow?.activeStage ?? 2;
       if (activeStage === 2) {
@@ -257,8 +242,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     return initialNav;
   });
 
-  // Ensure returning client is automatically routed to current active stage (e.g. Stage 02 Collect)
-  // unless they explicitly navigated to /portal/dashboard
+  // Ensure returning client is automatically routed to current active stage
   useEffect(() => {
     const pathname = typeof window !== 'undefined' ? window.location.pathname.toLowerCase().replace(/\/+$/, '') : '';
     if (activeNavId === 'home' && pathname !== '/portal/dashboard') {
@@ -276,8 +260,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     const handlePopState = () => {
       const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
       if (pathname === '/portal/documents') setActiveNavId('documents');
-      else if (pathname === '/portal/requests') setActiveNavId('exceptions');
-      else if (pathname === '/portal/appointments') setActiveNavId('messages');
+      else if (pathname === '/portal/requests') setActiveNavId('requests');
+      else if (pathname === '/portal/appointments') setActiveNavId('appointments');
       else if (pathname === '/portal/profile') setActiveNavId('profile');
       else if (pathname === '/portal/dashboard') setActiveNavId('home');
     };
@@ -297,6 +281,50 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   const [selectedLockedStage, setSelectedLockedStage] = useState<WorkflowStageItem | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState<boolean>(false);
   const [viewDetailedWorkflow, setViewDetailedWorkflow] = useState<boolean>(false);
+  const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
+  const [helpModalOpen, setHelpModalOpen] = useState<boolean>(false);
+
+  // Data for client search & requests
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [advisorRequests, setAdvisorRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPortalData = async () => {
+      try {
+        const token = getStoredToken();
+        const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        const [invRes, reqRes] = await Promise.all([
+          fetch(`/api/payments/invoices?clientId=${clientId}`, { headers }).catch(() => null),
+          fetch(`/api/accounting/document-requests?clientId=${clientId}`, { headers }).catch(() => null)
+        ]);
+        if (isMounted) {
+          if (invRes && invRes.ok) {
+            const data = await invRes.json();
+            if (Array.isArray(data.invoices)) setInvoices(data.invoices);
+          }
+          if (reqRes && reqRes.ok) {
+            const data = await reqRes.json();
+            if (Array.isArray(data.requests)) {
+              setAdvisorRequests(data.requests.map((r: any) => ({
+                id: r.id,
+                date: r.requestedAt || new Date().toISOString(),
+                title: r.subject || r.title || 'Information Request',
+                description: r.description || r.reason || '',
+                status: r.status === 'resolved' || r.status === 'answered' ? 'answered' : 'pending',
+                dueDate: r.dueDate,
+                assignedAdvisor: 'Elena Rostova, CPA'
+              })));
+            }
+          }
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    };
+    fetchPortalData();
+    return () => { isMounted = false; };
+  }, [clientId, selectedTaxYear]);
 
   const getSimplifiedStepStatus = (step: SimplifiedJourneyStep): 'completed' | 'active' | 'locked' => {
     const activeStage = authority?.workflow?.activeStage ?? 2;
@@ -337,32 +365,18 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     dossier?.legalName ||
     (currentUser?.name && currentUser.name !== 'Client Taxpayer' ? currentUser.name : null) ||
     'Valued Client';
-  const taxpayerType = dossier?.taxpayerType === 'entity' ? 'Entity / Business' : 'Individual / Family';
-  const signerName =
-    dossier?.engagementConsent?.signerFullName ||
-    dossier?.authorizedRep?.fullName ||
-    currentUser?.name ||
-    'Valued Client';
 
   // Determine stage status authoritatively from workflow persistence
   const getStageStatus = (stageNum: StageNumber): 'completed' | 'active' | 'locked' => {
     const activeStage = authority?.workflow?.activeStage ?? 2;
-
     if (stageNum === 1) {
       if (authority?.workflow?.stage1?.status === 'COMPLETED' || activeStage >= 2) {
         return 'completed';
       }
       return 'active';
     }
-
-    if (stageNum < activeStage) {
-      return 'completed';
-    }
-
-    if (stageNum === activeStage) {
-      return 'active';
-    }
-
+    if (stageNum < activeStage) return 'completed';
+    if (stageNum === activeStage) return 'active';
     return 'locked';
   };
 
@@ -400,7 +414,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     logout();
   };
 
-  // Render Left Navigation Sidebar Content
+  // Render Left Navigation Sidebar Content (Sections 4 & 6)
   const renderSidebarContent = (isMobile: boolean = false) => {
     const isCollapsed = !isMobile && sidebarCollapsed;
 
@@ -444,9 +458,9 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           )}
         </div>
 
-        {/* Navigation Modules */}
-        <nav className="flex-1 p-2 space-y-4 overflow-y-auto" aria-label="TaxGuard Portal Navigation">
-          {/* Section 1: Dashboard Home */}
+        {/* Navigation Modules (Sections 4, 6) */}
+        <nav className="flex-1 p-2 space-y-3 overflow-y-auto" aria-label="TaxGuard Portal Navigation">
+          {/* SECTION 1: OVERVIEW */}
           <div>
             {!isCollapsed ? (
               <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
@@ -459,23 +473,23 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             <button
               type="button"
               onClick={() => handleSelectNav('home')}
-              title={isCollapsed ? 'Client Dashboard Home' : undefined}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
+              title={isCollapsed ? 'Client Dashboard' : undefined}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
                 activeNavId === 'home'
                   ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
               }`}
             >
-              <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeNavId === 'home' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
+              <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'home' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
               {!isCollapsed && <span className="truncate">Client Dashboard</span>}
             </button>
           </div>
 
-          {/* Section 2: WORKFLOW (Simplified 7-Step Journey or Detailed 18 Stages) */}
+          {/* SECTION 2: TAX RETURN (Simplified 7-Step Journey & Navigation) */}
           <div className="space-y-1">
             {!isCollapsed ? (
               <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-[#D7AC4A] font-bold">
-                <span>{viewDetailedWorkflow ? 'Workflow (18 Stages)' : 'Tax Journey (7 Steps)'}</span>
+                <span>{viewDetailedWorkflow ? 'Workflow (18 Stages)' : 'Tax Return'}</span>
                 <button
                   type="button"
                   onClick={() => setViewDetailedWorkflow((v) => !v)}
@@ -485,15 +499,16 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                 </button>
               </div>
             ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Workflow" />
+              <div className="h-px bg-[#1A365D] my-1" title="Tax Return" />
             )}
 
             {!viewDetailedWorkflow ? (
               <div className="space-y-0.5">
+                {/* 7 Simplified Client Steps */}
                 {SIMPLIFIED_JOURNEY_STEPS.map((step) => {
                   const status = getSimplifiedStepStatus(step);
                   const isNavActive = step.stageNumbers.some(
-                    (num) => activeNavId === `stage_${String(num).padStart(2, '0')}` || (num === 2 && activeNavId === 'stage_02')
+                    (num) => activeNavId === `stage_${String(num).padStart(2, '0')}` || (num === 2 && (activeNavId === 'stage_02' || activeNavId === 'documents'))
                   );
 
                   return (
@@ -543,34 +558,27 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                         <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none items-center gap-1.5">
                           <span className="font-mono font-bold text-[#D7AC4A]">Step {step.stepNumber}</span>
                           <span>{step.label}</span>
-                          <span
-                            className={`text-[10px] uppercase font-mono px-1 rounded ${
-                              status === 'completed'
-                                ? 'bg-emerald-950 text-emerald-300'
-                                : status === 'active'
-                                ? 'bg-blue-950 text-blue-300'
-                                : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {status}
-                          </span>
                         </div>
                       )}
                     </div>
                   );
                 })}
 
-                {!isCollapsed && (
-                  <div className="pt-1.5 px-2">
-                    <button
-                      type="button"
-                      onClick={() => setViewDetailedWorkflow(true)}
-                      className="text-[10px] text-[#D4A843] hover:underline font-mono flex items-center gap-1 cursor-pointer w-full text-left"
-                    >
-                      <span>&rarr; View Detailed 18 Stages</span>
-                    </button>
-                  </div>
-                )}
+                {/* Sub-item: Tax Questionnaire */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectNav('questionnaire')}
+                    className={`w-full flex items-center gap-2 px-2.5 py-1 text-xs text-left transition-all rounded-md cursor-pointer ${
+                      activeNavId === 'questionnaire'
+                        ? 'bg-[#0A2544] text-[#E8C66A] font-semibold border-l-4 border-l-[#C99A32]'
+                        : 'text-slate-400 hover:text-white border-l-4 border-l-transparent'
+                    }`}
+                  >
+                    <FileQuestion className="w-3.5 h-3.5 text-[#D4A843] shrink-0" />
+                    {!isCollapsed && <span className="truncate text-[11px]">Questionnaire</span>}
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-0.5">
@@ -620,30 +628,12 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                           <span className="font-mono text-[11px] font-bold ml-1">{stg.shortLabel}</span>
                         )}
                       </button>
-
-                      {isCollapsed && (
-                        <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none items-center gap-1.5">
-                          <span className="font-mono font-bold text-[#D7AC4A]">{stg.shortLabel}</span>
-                          <span>{stg.name}</span>
-                          <span
-                            className={`text-[10px] uppercase font-mono px-1 rounded ${
-                              status === 'completed'
-                                ? 'bg-emerald-950 text-emerald-300'
-                                : status === 'active'
-                                ? 'bg-blue-950 text-blue-300'
-                                : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {status}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
 
                 {!isCollapsed && (
-                  <div className="pt-1.5 px-2">
+                  <div className="pt-1 px-2">
                     <button
                       type="button"
                       onClick={() => setViewDetailedWorkflow(false)}
@@ -657,52 +647,117 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             )}
           </div>
 
-          {/* Section 3: CASE */}
+          {/* SECTION 3: COMMUNICATION */}
+          <div className="space-y-1">
+            {!isCollapsed ? (
+              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                Communication
+              </div>
+            ) : (
+              <div className="h-px bg-[#1A365D] my-1" title="Communication" />
+            )}
+
+            <div className="space-y-0.5">
+              {[
+                { id: 'requests', label: 'Requests', icon: AlertCircle, badge: advisorRequests.filter(r => r.status === 'pending').length },
+                { id: 'messages', label: 'Messages', icon: MessageSquare },
+                { id: 'appointments', label: 'Appointments', icon: Calendar }
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = activeNavId === item.id || (item.id === 'requests' && activeNavId === 'exceptions');
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectNav(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
+                    {!isCollapsed && (
+                      <>
+                        <span className="truncate text-[11px]">{item.label}</span>
+                        {item.badge && item.badge > 0 ? (
+                          <span className="ml-auto px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40">
+                            {item.badge}
+                          </span>
+                        ) : null}
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION 4: FINANCIAL */}
+          <div className="space-y-1">
+            {!isCollapsed ? (
+              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                Financial
+              </div>
+            ) : (
+              <div className="h-px bg-[#1A365D] my-1" title="Financial" />
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleSelectNav('billing')}
+              title={isCollapsed ? 'Payments / Billing' : undefined}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
+                activeNavId === 'billing'
+                  ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
+              }`}
+            >
+              <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'billing' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
+              {!isCollapsed && <span className="truncate text-[11px]">Payments / Billing</span>}
+            </button>
+          </div>
+
+          {/* SECTION 5: RECORDS & CASE */}
           <div className="space-y-1">
             {!isCollapsed ? (
               <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                 Case &amp; Compliance
               </div>
             ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Case" />
+              <div className="h-px bg-[#1A365D] my-1" title="Records" />
             )}
 
             <div className="space-y-0.5">
               {[
-                { id: 'documents', label: 'Documents', icon: FolderLock },
-                { id: 'exceptions', label: 'Exceptions', icon: AlertTriangle },
-                { id: 'messages', label: 'Messages', icon: MessageSquare },
+                { id: 'documents', label: 'My Records / Vault', icon: FolderLock },
+                { id: 'archive', label: 'Tax-Year Archive', icon: Archive },
                 { id: 'activity', label: 'Activity / Audit', icon: History }
               ].map((item) => {
                 const Icon = item.icon;
                 const isActive = activeNavId === item.id;
                 return (
-                  <div key={item.id} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectNav(item.id)}
-                      title={isCollapsed ? item.label : undefined}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                        isActive
-                          ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                          : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-                      {!isCollapsed && <span className="truncate text-[11px]">{item.label}</span>}
-                    </button>
-                    {isCollapsed && (
-                      <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none">
-                        <span>{item.label}</span>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectNav(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
+                    {!isCollapsed && <span className="truncate text-[11px]">{item.label}</span>}
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Section 4: ACCOUNT */}
+          {/* SECTION 6: ACCOUNT & SECURITY */}
           <div className="space-y-1">
             {!isCollapsed ? (
               <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
@@ -715,35 +770,31 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             <div className="space-y-0.5">
               {[
                 { id: 'profile', label: 'Profile', icon: User },
-                { id: 'security', label: 'Security & Consents', icon: ShieldCheck }
+                { id: 'security', label: 'Security & Consents', icon: ShieldCheck },
+                { id: 'settings', label: 'Settings', icon: Settings },
+                { id: 'help', label: 'Help & Support', icon: HelpCircle }
               ].map((item) => {
                 const Icon = item.icon;
                 const isActive = activeNavId === item.id;
                 return (
-                  <div key={item.id} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectNav(item.id)}
-                      title={isCollapsed ? item.label : undefined}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                        isActive
-                          ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                          : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-                      {!isCollapsed && <span className="truncate text-[11px]">{item.label}</span>}
-                    </button>
-                    {isCollapsed && (
-                      <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none">
-                        <span>{item.label}</span>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectNav(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
+                    {!isCollapsed && <span className="truncate text-[11px]">{item.label}</span>}
+                  </button>
                 );
               })}
 
-              <div className="relative group pt-1">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={handleSignOut}
@@ -753,11 +804,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                   <LogOut className="w-3.5 h-3.5 shrink-0 text-red-400" />
                   {!isCollapsed && <span className="truncate text-[11px]">Sign Out</span>}
                 </button>
-                {isCollapsed && (
-                  <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-red-300 text-[11px] font-medium rounded-md shadow-2xl border border-red-900/50 z-50 whitespace-nowrap pointer-events-none">
-                    <span>Sign Out</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -782,7 +828,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   // Main Workspace Content based on context isolation
   const renderMainWorkspace = () => {
-    // 1. STAGE LOCKED NOTICE
+    // 1. STAGE LOCKED BY TAXGUARD HARD GATE
     if (selectedLockedStage) {
       return (
         <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
@@ -792,11 +838,11 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </div>
 
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-950/60 text-amber-300 border border-amber-600/40">
-                <span>STAGE LOCKED BY TAXGUARD HARD GATE</span>
+              <div className="text-xs font-mono font-bold tracking-widest uppercase text-amber-400">
+                STAGE LOCKED BY TAXGUARD HARD GATE
               </div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">
-                {CANONICAL_STAGE_LABELS[selectedLockedStage.number] || `Stage ${selectedLockedStage.shortLabel} — ${selectedLockedStage.name}`} is Locked
+              <h2 className="text-xl font-bold text-white">
+                Stage {selectedLockedStage.shortLabel}: {selectedLockedStage.name} is Currently Locked
               </h2>
               <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
                 Complete <strong>Stage 02 Collect</strong> before Stage {selectedLockedStage.shortLabel} ({selectedLockedStage.name}) becomes available.
@@ -852,6 +898,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             setViewDetailedWorkflow(true);
             setSidebarCollapsed(false);
           }}
+          onTaxYearChange={onTaxYearChange}
         />
       );
     }
@@ -898,7 +945,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     }
 
     // 4. STAGE 02 COLLECT (Active Production Workspace)
-    if (activeNavId === 'stage_02') {
+    if (activeNavId === 'stage_02' || activeNavId === 'checklist') {
       return (
         <div className="space-y-4">
           <div className="max-w-7xl mx-auto px-4 pt-4 flex items-center justify-between">
@@ -929,11 +976,11 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 5. DOCUMENTS MANAGEMENT (Context: Documents)
-    if (activeNavId === 'documents') {
+    // 5. DOCUMENTS MANAGEMENT (Context: Documents Vault)
+    if (activeNavId === 'documents' || activeNavId === 'my_records') {
       return (
-        <div className="space-y-4">
-          <div className="max-w-7xl mx-auto px-4 pt-4 flex items-center justify-between">
+        <div className="space-y-4 max-w-7xl mx-auto py-6 px-4">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <FolderLock className="w-5 h-5 text-[#D4A843]" />
@@ -943,41 +990,76 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                 Encrypted storage, document category routing, and SHA-256 tamper-evident integrity tracking.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => handleSelectNav('stage_02')}
+              className="px-3 py-1.5 rounded-lg bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] text-xs font-bold"
+            >
+              Upload New Documents &rarr;
+            </button>
           </div>
 
-          <StageTwoCollectionWorkspace
+          <MyDocumentsClientVault
             clientId={clientId}
             selectedTaxYear={selectedTaxYear}
-            onTaxYearChange={onTaxYearChange}
-            initialSubTab="vault"
-            userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}
-            serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
-            onServerWorkflowRefresh={onServerWorkflowRefresh}
+            onNavigateToUpload={() => handleSelectNav('stage_02')}
           />
         </div>
       );
     }
 
-    // 6. EXCEPTIONS CENTER (Context: Exceptions)
-    if (activeNavId === 'exceptions') {
+    // 6. QUESTIONNAIRE WORKSPACE
+    if (activeNavId === 'questionnaire') {
       return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-400" />
-              <span>TaxGuard Exceptions &amp; Discrepancy Center</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Automated diagnostic checks, variance analysis, and client explanation resolution workflow.
-            </p>
+        <div className="max-w-5xl mx-auto py-6 px-4 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <FileQuestion className="w-5 h-5 text-[#D4A843]" />
+                <span>Comprehensive Tax Questionnaire &mdash; Tax Year {selectedTaxYear}</span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                Update your household, income sources, deductions, and state facts to recompute requirements.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSelectNav('home')}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              &larr; Back to Dashboard
+            </button>
           </div>
 
-          <TaxGuardDiscrepanciesView userRole="client" />
+          <div className="rounded-2xl bg-[#0D2745] border border-slate-700/80 p-6">
+            <button
+              type="button"
+              onClick={() => setShowQuestionnaireModal(true)}
+              className="w-full py-4 px-6 rounded-xl bg-[#D4A843] hover:bg-[#E1BB60] text-[#06182B] font-bold text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Open Guided Tax Discovery Questionnaire</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       );
     }
 
-    // 7. MESSAGES (Context: Messages)
+    // 7. REQUESTS & EXCEPTIONS
+    if (activeNavId === 'requests' || activeNavId === 'exceptions') {
+      return (
+        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+          <RequestsView
+            requests={advisorRequests}
+            onRespond={(reqId, text) => {
+              setAdvisorRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'answered' } : r));
+            }}
+          />
+        </div>
+      );
+    }
+
+    // 8. MESSAGES
     if (activeNavId === 'messages') {
       return (
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
@@ -996,7 +1078,48 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 8. ACTIVITY / AUDIT (Context: Activity)
+    // 9. APPOINTMENTS
+    if (activeNavId === 'appointments') {
+      return (
+        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[#D4A843]" />
+              <span>Consultation Schedule &amp; Client Calendar</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Schedule live video consultations with your tax advisory team. External calendars fail-closed if unconfigured.
+            </p>
+          </div>
+
+          <LiveCalendarModule
+            embedded={true}
+          />
+        </div>
+      );
+    }
+
+    // 10. BILLING & PAYMENTS
+    if (activeNavId === 'billing') {
+      return (
+        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+          <BillingView invoices={invoices} />
+        </div>
+      );
+    }
+
+    // 11. ARCHIVE & MULTI-YEAR RECORDS
+    if (activeNavId === 'archive') {
+      return (
+        <StageSixteenArchiveView
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onNavigateToStageSeventeen={() => handleSelectNav('stage_17')}
+        />
+      );
+    }
+
+    // 12. ACTIVITY / AUDIT
     if (activeNavId === 'activity') {
       return (
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
@@ -1015,7 +1138,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 9. PROFILE (Context: Authoritative Client Profile)
+    // 13. PROFILE
     if (activeNavId === 'profile') {
       return (
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
@@ -1028,7 +1151,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 10. SECURITY & CONSENTS (Context: Security)
+    // 14. SECURITY & CONSENTS
     if (activeNavId === 'security') {
       return (
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
@@ -1047,7 +1170,68 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 11. STAGE 03: VALIDATE
+    // 15. SETTINGS
+    if (activeNavId === 'settings') {
+      return (
+        <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
+          <div className="rounded-2xl bg-[#0D2745] border border-slate-700/80 p-6 space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Settings className="w-5 h-5 text-[#D4A843]" />
+              <span>Client Portal Settings &amp; Preferences</span>
+            </h2>
+            <div className="space-y-3 text-xs text-slate-300">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
+                <div>
+                  <div className="font-semibold text-white">Email Notifications</div>
+                  <div className="text-[11px] text-slate-400">Receive alerts when documents are verified or requests issued</div>
+                </div>
+                <span className="text-emerald-400 font-bold">Enabled</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
+                <div>
+                  <div className="font-semibold text-white">Two-Factor Authentication</div>
+                  <div className="text-[11px] text-slate-400">SMS / Authenticator app login verification</div>
+                </div>
+                <span className="text-emerald-400 font-bold">Active</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
+                <div>
+                  <div className="font-semibold text-white">Tax Year Scope</div>
+                  <div className="text-[11px] text-slate-400">Default workspace tax year</div>
+                </div>
+                <span className="text-[#D4A843] font-mono font-bold">{selectedTaxYear}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 16. HELP & SUPPORT
+    if (activeNavId === 'help') {
+      return (
+        <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
+          <div className="rounded-2xl bg-[#0D2745] border border-slate-700/80 p-6 space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-[#D4A843]" />
+              <span>TaxGuard Help &amp; Advisory Support</span>
+            </h2>
+            <p className="text-xs text-slate-300">
+              Need assistance with document uploads, questionnaires, or clarification requests?
+            </p>
+            <div className="space-y-3 text-xs">
+              <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-800 space-y-1">
+                <div className="font-bold text-white">A/R Tax Services, LLC</div>
+                <div className="text-slate-300">Columbia, South Carolina, USA</div>
+                <div className="text-slate-400">Direct Inquiries: info@artaxservices.com &bull; (843) 555-0199</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 17. STAGES 03 THROUGH 18
     if (activeNavId === 'stage_03') {
       return (
         <StageThreeValidationWorkspace
@@ -1059,8 +1243,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 12. STAGE 04: RECORD
     if (activeNavId === 'stage_04') {
       return (
         <StageFourRecordView
@@ -1071,8 +1253,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 13. STAGE 05: RECONCILE
     if (activeNavId === 'stage_05') {
       return (
         <StageFiveReconcileView
@@ -1083,9 +1263,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 14. STAGE 06: REVIEW
-    if (activeNavId === 'stage_06') {
+    if (activeNavId === 'stage_06' || activeNavId === 'review') {
       return (
         <StageSixReviewView
           clientId={clientId}
@@ -1094,8 +1272,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 15. STAGE 07: REPORT
     if (activeNavId === 'stage_07') {
       return (
         <StageSevenReportView
@@ -1105,8 +1281,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 16. STAGE 08: PLAN
     if (activeNavId === 'stage_08') {
       return (
         <StageEightPlanView
@@ -1115,9 +1289,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 17. STAGE 09: PREPARE TAXES
-    if (activeNavId === 'stage_09') {
+    if (activeNavId === 'stage_09' || activeNavId === 'tax_prep') {
       return (
         <StageNinePrepareView
           clientId={clientId}
@@ -1126,34 +1298,24 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 18. STAGE 10: APPROVE
-    if (activeNavId === 'stage_10') {
+    if (activeNavId === 'stage_10' || activeNavId === 'approval') {
       return (
         <StageTenApproveView
           clientId={clientId}
           selectedTaxYear={selectedTaxYear}
-          clientName={clientName}
           onNavigateToStageEleven={() => handleSelectNav('stage_11')}
-          onServerWorkflowRefresh={onServerWorkflowRefresh}
         />
       );
     }
-
-    // 19. STAGE 11: SIGN
-    if (activeNavId === 'stage_11') {
+    if (activeNavId === 'stage_11' || activeNavId === 'signature') {
       return (
         <StageElevenSignView
           clientId={clientId}
           selectedTaxYear={selectedTaxYear}
-          clientName={clientName}
-          userEmail={currentUser?.email}
         />
       );
     }
-
-    // 20. STAGE 12: FILE
-    if (activeNavId === 'stage_12') {
+    if (activeNavId === 'stage_12' || activeNavId === 'filing') {
       return (
         <StageTwelveFileView
           clientId={clientId}
@@ -1161,8 +1323,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 21. STAGE 13: GOVERNMENT FEEDBACK
     if (activeNavId === 'stage_13') {
       return (
         <StageThirteenFeedbackView
@@ -1171,8 +1331,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 22. STAGE 14: RESOLVE
     if (activeNavId === 'stage_14') {
       return (
         <StageFourteenResolveView
@@ -1181,9 +1339,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 23. STAGE 15: MONITOR
-    if (activeNavId === 'stage_15') {
+    if (activeNavId === 'stage_15' || activeNavId === 'completed') {
       return (
         <StageFifteenMonitorView
           clientId={clientId}
@@ -1191,34 +1347,14 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-
-    // 24. STAGE 16: ARCHIVE
-    if (activeNavId === 'stage_16') {
-      return (
-        <StageSixteenArchiveView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-          onNavigateToStageSeventeen={() => handleSelectNav('stage_17')}
-        />
-      );
-    }
-
-    // 25. STAGE 17: RENEW
     if (activeNavId === 'stage_17') {
       return (
         <StageSeventeenRenewView
           clientId={clientId}
           selectedTaxYear={selectedTaxYear}
-          clientName={clientName}
-          onCommissionNewTaxYear={(year) => {
-            onTaxYearChange?.(year);
-            handleSelectNav('stage_01');
-          }}
         />
       );
     }
-
-    // 26. STAGE 18: REPEAT
     if (activeNavId === 'stage_18') {
       return (
         <StageEighteenRepeatView
@@ -1242,10 +1378,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   return (
     <div className="min-h-screen bg-[#06182B] text-slate-100 flex flex-col font-sans" id="authenticated-client-dashboard">
       {/* ========================================================================= */}
-      {/* 1. TOP BAR */}
+      {/* 1. TOP BAR (Section 5: Header) */}
       {/* ========================================================================= */}
       <header className="h-14 bg-[#071A2E] border-b border-slate-700/60 px-4 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
-        {/* Left: Mobile Toggle & Brand / Active Context */}
+        {/* Left: Mobile Toggle & Brand */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1267,9 +1403,31 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           </div>
         </div>
 
-        {/* Right: Client ID, Tax Year, Compliance Badge, Profile & Sign Out */}
+        {/* Center: Global Authorized Client Search */}
+        <div className="flex-1 max-w-md mx-4 hidden md:block">
+          <button
+            type="button"
+            onClick={() => setSearchModalOpen(true)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#06182B] border border-slate-700/60 text-slate-400 hover:text-white text-xs transition-colors cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5 text-[#D4A843]" />
+            <span className="truncate">Search documents, messages, tax years...</span>
+          </button>
+        </div>
+
+        {/* Right: Tax Year, Notifications, Search Icon (Mobile), Profile & Sign Out */}
         <div className="flex items-center gap-3">
-          {/* Tax Year Selector */}
+          {/* Mobile search button */}
+          <button
+            type="button"
+            onClick={() => setSearchModalOpen(true)}
+            className="md:hidden p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-[#0D2745]"
+            aria-label="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
+          {/* Tax Year Selector (Multi-year 2022+) */}
           <div className="flex items-center gap-1.5 bg-[#06182B] border border-slate-700/60 px-2.5 py-1 rounded-lg">
             <Calendar className="w-3 h-3 text-[#D4A843]" />
             <select
@@ -1278,16 +1436,21 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               className="bg-transparent font-mono text-xs font-bold text-[#D4A843] cursor-pointer outline-none"
               aria-label="Select tax year"
             >
-              <option value={2026} className="bg-[#071A2E] text-slate-200">TY 2026 (Planning)</option>
-              <option value={2025} className="bg-[#071A2E] text-slate-200">TY 2025 (Active Filing)</option>
-              <option value={2024} className="bg-[#071A2E] text-slate-200">TY 2024 (Prior Year)</option>
+              <option value={2026} className="bg-[#071A2E] text-slate-200">TY 2026</option>
+              <option value={2025} className="bg-[#071A2E] text-slate-200">TY 2025</option>
+              <option value={2024} className="bg-[#071A2E] text-slate-200">TY 2024</option>
+              <option value={2023} className="bg-[#071A2E] text-slate-200">TY 2023</option>
+              <option value={2022} className="bg-[#071A2E] text-slate-200">TY 2022</option>
             </select>
           </div>
 
+          {/* Notification Center */}
+          <NotificationCenterDropdown onNavigateToTab={(tab) => handleSelectNav(tab)} />
+
           {/* Compliance Badge */}
-          <div className="hidden lg:flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+          <div className="hidden xl:flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>IRC § 7216 Consent Protected</span>
+            <span>IRC § 7216 Protected</span>
           </div>
 
           {/* User & Sign Out */}
@@ -1347,6 +1510,36 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           {renderMainWorkspace()}
         </main>
       </div>
+
+      {/* Client Search Modal */}
+      <ClientSearchModal
+        isOpen={searchModalOpen}
+        clientId={clientId}
+        currentTaxYear={selectedTaxYear}
+        onClose={() => setSearchModalOpen(false)}
+        onNavigateToResult={(target, yr) => {
+          if (yr && yr !== selectedTaxYear) onTaxYearChange?.(yr);
+          handleSelectNav(target);
+        }}
+      />
+
+      {/* Guided Questionnaire Modal */}
+      {showQuestionnaireModal && (
+        <GuidedTaxQuestionnaireModal
+          isOpen={showQuestionnaireModal}
+          onClose={() => {
+            setShowQuestionnaireModal(false);
+            onServerWorkflowRefresh?.();
+          }}
+          clientId={clientId}
+          selectedTaxYear={selectedTaxYear}
+          onAnswersSaved={() => {
+            setShowQuestionnaireModal(false);
+            onServerWorkflowRefresh?.();
+          }}
+        />
+      )}
     </div>
   );
 };
+export default AuthenticatedClientDashboard;
