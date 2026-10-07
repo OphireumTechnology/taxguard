@@ -5,16 +5,21 @@
  * Implements:
  * - Master Client / Taxpayer Dashboard Architecture
  * - 3-Column Desktop Layout (Left Navigation Shell, Center Primary Workspace, Right Contextual Rail)
- * - 7-Step Client Journey Bar (Getting Started, Documents, Review, Tax Prep, Approval & Signature, Filing, Completed)
+ * - Client Welcome / Context Header (Client Since, Location, State Rules Applied)
+ * - 7-Step Master Tax Workflow Progress Stepper (Getting Started, Documents, Review, Tax Prep, Approval & Signature, Filing, Completed)
  * - Prominent "YOUR CURRENT STATUS" Card with Stage 02 Invariant:
  *   missingCount = 0 -> "ALL REQUESTED DOCUMENTS RECEIVED", "A/R TAX SERVICES IS REVIEWING YOUR DOCUMENTS", "NO ACTION NEEDED FROM YOU RIGHT NOW"
  * - "RETURN OVERVIEW — [TAX YEAR]" with authoritative facts and truthful empty states
  * - Contextual Quick Actions Toolbar
- * - "DOCUMENT CHECKLIST — [TAX YEAR] Personalized for You" (Filters, Expandable Rows, Details)
- * - "STATE / JURISDICTION REQUIREMENTS" Panel (Multi-state triggers: moved, worked out of state, out-of-state income, rental, business)
- * - "MY TAX YEARS & RECORDS — 2022+"
+ * - Dashboard Summary Metrics Cards (Documents, Requests, Messages, Appointments, Payments)
+ * - Right-Side Context Rail (Important Updates, Upcoming Appointment Card, Messages Preview Card)
+ * - Lower 3-Panel Grid:
+ *   1. "MY TAX YEARS & RECORDS — 2022+"
+ *   2. "DOCUMENT CHECKLIST — Personalized for You" (Filterable, expandable)
+ *   3. "STATE-SPECIFIC REQUIREMENTS" (Multi-state nexus reporting triggers)
+ * - "COMPLETE CLIENT JOURNEY" (7 colored phases)
+ * - "SECURITY & RELIABILITY" (5 trust indicators)
  * - Prior-Year Continuity / Carryforward Review
- * - Right-Side Context Rail (Updates, Open Requests, Messages, Appointments, Deadlines)
  * - 8 Core Client Questions at a Glance
  */
 
@@ -48,6 +53,8 @@ import {
   TaxDocumentRequirementItem
 } from '../../../services/taxDocumentRequirementEngine';
 import { StageTwoCollectionService, StageTwoUploadedDocument } from '../../../services/stageTwoCollectionService';
+import { StageOneOnboardingService } from '../../../services/stageOneOnboardingService';
+import { useApp } from '../../../context/AppContext';
 import { getStoredToken } from '../../../services/api';
 import { ClientCurrentStatusCard } from '../dashboard/ClientCurrentStatusCard';
 import { ReturnOverviewCard } from '../dashboard/ReturnOverviewCard';
@@ -57,6 +64,13 @@ import { StateJurisdictionRequirementsPanel } from '../dashboard/StateJurisdicti
 import { TaxYearsArchiveSection } from '../dashboard/TaxYearsArchiveSection';
 import { PriorYearContinuityCard } from '../dashboard/PriorYearContinuityCard';
 import { RightContextRail } from '../dashboard/RightContextRail';
+import { ClientWelcomePanel } from '../dashboard/ClientWelcomePanel';
+import { TaxWorkflowProgress, MASTER_WORKFLOW_STEPS, WorkflowStepDefinition } from '../dashboard/TaxWorkflowProgress';
+import { DashboardMetrics } from '../dashboard/DashboardMetrics';
+import { CompleteClientJourney } from '../dashboard/CompleteClientJourney';
+import { SecurityReliabilityPanel } from '../dashboard/SecurityReliabilityPanel';
+import { UpcomingAppointmentCard, AppointmentData } from '../dashboard/UpcomingAppointmentCard';
+import { MessagesPreviewCard, MessagePreviewItem } from '../dashboard/MessagesPreviewCard';
 import { SIMPLIFIED_JOURNEY_STEPS, SimplifiedJourneyStep } from '../AuthenticatedClientDashboard';
 
 interface StepByStepTaxPreparationHomeProps {
@@ -88,6 +102,7 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
   onNavigateToDetailedWorkflow,
   onTaxYearChange
 }) => {
+  const { currentUser } = useApp();
   const [recalcVersion, setRecalcVersion] = useState<number>(0);
   const [notApplicableModalItem, setNotApplicableModalItem] = useState<TaxDocumentRequirementItem | null>(null);
   const [notApplicableReason, setNotApplicableReason] = useState<string>('');
@@ -100,58 +115,110 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
     StageTwoCollectionService.getUploadedDocuments(clientId, selectedTaxYear)
   );
 
+  // Communications, billing, and appointments state
   const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [latestMessageSnippet, setLatestMessageSnippet] = useState<string>('');
-  const [hasUpcomingAppointment, setHasUpcomingAppointment] = useState<boolean>(false);
+  const [previewMessages, setPreviewMessages] = useState<MessagePreviewItem[]>([]);
+  const [upcomingAppointment, setUpcomingAppointment] = useState<AppointmentData | null>(null);
   const [upcomingAppointmentDate, setUpcomingAppointmentDate] = useState<string | undefined>(undefined);
+  const [unpaidBalance, setUnpaidBalance] = useState<number>(0);
 
-  // Sync open requests and messages from server
+  // Authoritative Client Dossier
+  const dossier = StageOneOnboardingService.getDossier(clientId);
+
+  // Sync open requests, messages, appointments, and invoices from server
   useEffect(() => {
     let isMounted = true;
     const fetchCommunications = async () => {
       try {
         const token = getStoredToken();
         const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-        const [reqRes, msgRes, apptRes] = await Promise.all([
-          fetch(`/api/accounting/document-requests?clientId=${clientId}`, { headers }),
-          fetch('/api/messages', { headers }),
-          fetch('/api/appointments', { headers })
+        const [reqRes, msgRes, apptRes, invRes] = await Promise.all([
+          fetch(`/api/accounting/document-requests?clientId=${clientId}`, { headers }).catch(() => null),
+          fetch('/api/messages', { headers }).catch(() => null),
+          fetch('/api/appointments', { headers }).catch(() => null),
+          fetch(`/api/payments/invoices?clientId=${clientId}`, { headers }).catch(() => null)
         ]);
+
         if (isMounted) {
-          if (reqRes.ok) {
+          // Requests
+          if (reqRes && reqRes.ok) {
             const reqData = await reqRes.json();
             if (Array.isArray(reqData.requests)) {
               setPendingRequestsCount(reqData.requests.filter((r: any) => r.status === 'pending').length);
             }
           }
-          if (msgRes.ok) {
+
+          // Messages
+          if (msgRes && msgRes.ok) {
             const msgData = await msgRes.json();
             if (Array.isArray(msgData.messages)) {
               const unread = msgData.messages.filter((m: any) => !m.isRead && m.senderRole !== 'client');
               setUnreadMessagesCount(unread.length);
               if (msgData.messages.length > 0) {
                 setLatestMessageSnippet(msgData.messages[0].content);
+                setPreviewMessages(
+                  msgData.messages.slice(0, 3).map((m: any) => ({
+                    id: m.id,
+                    senderName: m.senderName || (m.senderRole === 'client' ? 'You' : 'Elena Rostova, CPA'),
+                    senderRole: m.senderRole === 'client' ? 'Client' : 'Managing CPA',
+                    content: m.content,
+                    timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
+                    isRead: Boolean(m.isRead)
+                  }))
+                );
               }
             }
           }
-          if (apptRes.ok) {
+
+          // Appointments
+          if (apptRes && apptRes.ok) {
             const apptData = await apptRes.json();
             if (Array.isArray(apptData.appointments) && apptData.appointments.length > 0) {
-              const upcoming = apptData.appointments.find((a: any) => a.status === 'confirmed' || a.status === 'scheduled');
+              const upcoming = apptData.appointments.find(
+                (a: any) => a.status === 'confirmed' || a.status === 'scheduled'
+              );
               if (upcoming) {
-                setHasUpcomingAppointment(true);
-                setUpcomingAppointmentDate(upcoming.dateTime || upcoming.scheduledAt);
+                const dateStr = upcoming.dateTime || upcoming.scheduledAt;
+                setUpcomingAppointmentDate(dateStr);
+                setUpcomingAppointment({
+                  id: upcoming.id,
+                  dateTime: dateStr,
+                  type: upcoming.type || 'Tax Planning & Compliance Consultation',
+                  advisorName: upcoming.advisorName || 'Elena Rostova, CPA',
+                  advisorRole: 'Managing CPA',
+                  locationType: 'VIDEO',
+                  status: 'CONFIRMED',
+                  meetingRoomUrl: upcoming.meetingRoomUrl
+                });
+              } else {
+                setUpcomingAppointment(null);
+                setUpcomingAppointmentDate(undefined);
               }
+            }
+          }
+
+          // Invoices / Billing
+          if (invRes && invRes.ok) {
+            const invData = await invRes.json();
+            if (Array.isArray(invData.invoices)) {
+              const unpaid = invData.invoices
+                .filter((inv: any) => inv.status === 'pending' || inv.status === 'unpaid')
+                .reduce((sum: number, inv: any) => sum + (Number(inv.amount) || 0), 0);
+              setUnpaidBalance(unpaid);
             }
           }
         }
       } catch {
-        // Fallback gracefully
+        // Fail closed gracefully
       }
     };
+
     fetchCommunications();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [clientId, recalcVersion]);
 
   // Sync uploads from server API where available
@@ -169,7 +236,7 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
             const localDocs = StageTwoCollectionService.getUploadedDocuments(clientId, selectedTaxYear);
             const merged = [...localDocs];
             data.documents.forEach((srvDoc: any) => {
-              if (!merged.some(m => m.documentId === srvDoc.id || m.sha256Hash === srvDoc.sha256)) {
+              if (!merged.some((m) => m.documentId === srvDoc.id || m.sha256Hash === srvDoc.sha256)) {
                 merged.push({
                   documentId: srvDoc.id,
                   clientId: srvDoc.clientId,
@@ -203,55 +270,47 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
     };
   }, [clientId, selectedTaxYear, recalcVersion]);
 
-  // Evaluate requirements dynamically
-  const evaluation = useMemo(() => {
-    return TaxDocumentRequirementEngine.evaluateMissingDocuments({
-      clientId,
-      taxYear: selectedTaxYear,
-      uploadedDocs: uploadedDocs.map(d => ({
-        id: d.documentId,
-        associatedRequirementId: d.associatedRequirementId,
-        claimedCategory: d.claimedCategory,
-        status: d.processingStatus,
-        isVerified: d.isVerified
-      }))
-    });
-  }, [clientId, selectedTaxYear, uploadedDocs, recalcVersion]);
-
+  // Dynamic requirements calculation
   const requirements = useMemo(() => {
     return TaxDocumentRequirementEngine.generateRequirements({
       clientId,
       taxYear: selectedTaxYear,
-      answers: questionnaire
+      answers: questionnaire,
+      uploadedDocumentIds: uploadedDocs.map((d) => d.documentId)
     });
-  }, [clientId, selectedTaxYear, questionnaire, recalcVersion]);
+  }, [clientId, selectedTaxYear, questionnaire, uploadedDocs, recalcVersion]);
 
-  const totalRequirements = evaluation.totalRequirements;
-  const resolvedCount = evaluation.receivedCount;
-  const missingCount = evaluation.missingCount;
-  const missingDocs = evaluation.missingItems;
+  const totalRequirements = requirements.length;
+  const missingDocs = useMemo(
+    () => requirements.filter((r) => r.status === 'Missing' && r.applicability !== 'NOT_APPLICABLE'),
+    [requirements]
+  );
+  const missingCount = missingDocs.length;
+  const resolvedCount = useMemo(
+    () => requirements.filter((r) => r.status === 'Accepted' || r.status === 'Uploaded').length,
+    [requirements]
+  );
 
   const handleConfirmNotApplicable = () => {
     if (!notApplicableModalItem) return;
     TaxDocumentRequirementEngine.markNotApplicable(
       clientId,
       selectedTaxYear,
-      notApplicableModalItem.requirementId,
-      notApplicableReason || 'Confirmed not applicable by taxpayer.'
+      notApplicableModalItem.id,
+      notApplicableReason || 'Taxpayer indicated this income source or item was not received or applicable for this tax year.'
     );
     setNotApplicableModalItem(null);
     setNotApplicableReason('');
-    setRecalcVersion(v => v + 1);
+    setRecalcVersion((v) => v + 1);
   };
 
-  // State nexus reporting handlers
-  const handleReportMoved = (fromState: string, moveDate: string) => {
+  const handleReportMoved = (fromState: string) => {
     const updated = TaxDocumentRequirementEngine.saveQuestionnaire(clientId, selectedTaxYear, {
       movedDuringYear: true,
       priorStatesOfResidence: [fromState]
     });
     setQuestionnaire(updated);
-    setRecalcVersion(v => v + 1);
+    setRecalcVersion((v) => v + 1);
   };
 
   const handleReportWorkInOtherState = (stateCode: string) => {
@@ -262,23 +321,23 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
       workStates: updatedStates
     });
     setQuestionnaire(updated);
-    setRecalcVersion(v => v + 1);
+    setRecalcVersion((v) => v + 1);
   };
 
-  const handleReportOutOfStateRental = (stateCode: string) => {
+  const handleReportOutOfStateRental = () => {
     const updated = TaxDocumentRequirementEngine.saveQuestionnaire(clientId, selectedTaxYear, {
       ownsRentalProperty: true
     });
     setQuestionnaire(updated);
-    setRecalcVersion(v => v + 1);
+    setRecalcVersion((v) => v + 1);
   };
 
-  const handleReportOutOfStateBusiness = (stateCode: string) => {
+  const handleReportOutOfStateBusiness = () => {
     const updated = TaxDocumentRequirementEngine.saveQuestionnaire(clientId, selectedTaxYear, {
       hasSelfEmployment: true
     });
     setQuestionnaire(updated);
-    setRecalcVersion(v => v + 1);
+    setRecalcVersion((v) => v + 1);
   };
 
   const handleReportOtherIncomeState = (stateCode: string) => {
@@ -287,8 +346,15 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
 
   // Active Authoritative Stage
   const authoritativeStage = authority?.workflow?.activeStage ?? 2;
-  const authoritativeStageName = authority?.workflow?.activeStageName ||
-    (authoritativeStage === 1 ? 'Onboard' : authoritativeStage === 2 ? 'Collect' : authoritativeStage === 3 ? 'Validate' : 'Processing');
+  const authoritativeStageName =
+    authority?.workflow?.activeStageName ||
+    (authoritativeStage === 1
+      ? 'Onboard'
+      : authoritativeStage === 2
+      ? 'Collect'
+      : authoritativeStage === 3
+      ? 'Validate'
+      : 'Processing');
 
   // Simplified Step Resolution
   const currentSimplifiedStep = useMemo(() => {
@@ -318,7 +384,7 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
   // Matched document counts per requirementId
   const matchedDocCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    uploadedDocs.forEach(d => {
+    uploadedDocs.forEach((d) => {
       if (d.associatedRequirementId) {
         counts[d.associatedRequirementId] = (counts[d.associatedRequirementId] || 0) + 1;
       }
@@ -351,98 +417,60 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
     }
   };
 
+  const clientSinceYear = dossier?.stageOneCompletedAt
+    ? new Date(dossier.stageOneCompletedAt).getFullYear()
+    : currentUser?.createdAt
+    ? new Date(currentUser.createdAt).getFullYear()
+    : 2024;
+
+  const clientLocation = dossier?.residentialOrPrincipalAddress?.city
+    ? `${dossier.residentialOrPrincipalAddress.city}, ${dossier.residentialOrPrincipalAddress.state}`
+    : 'Columbia, SC';
+
+  const appliedStates = Array.from(
+    new Set([questionnaire.residentState || 'SC', ...(questionnaire.workStates || [])])
+  );
+
   return (
     <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 space-y-6" id="client-dashboard-action-home">
       {/* ========================================================================= */}
-      {/* 1. SEVEN-STEP CLIENT JOURNEY BAR (Prominent Client Mental Model) */}
+      {/* 1. CLIENT WELCOME / CONTEXT HEADER (Section 5) */}
       {/* ========================================================================= */}
-      <section
-        aria-label="7-Step Tax Preparation Journey"
-        className="rounded-2xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] p-4 shadow-xl"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/60 pb-3 mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#D4A843] font-bold">
-              YOUR TAX PREPARATION JOURNEY
-            </span>
-            <span className="text-slate-500">&bull;</span>
-            <span className="text-xs font-mono text-slate-300">
-              Step {currentSimplifiedStep.stepNumber} of 7: <strong className="text-white">{currentSimplifiedStep.label}</strong>
-            </span>
-          </div>
-
-          {onNavigateToDetailedWorkflow && (
-            <button
-              type="button"
-              onClick={onNavigateToDetailedWorkflow}
-              className="text-[11px] text-[#D4A843] hover:underline font-mono flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-            >
-              <span>View Authoritative 18 Stages &rarr;</span>
-            </button>
-          )}
-        </div>
-
-        {/* 7-Step Horizontal Stepper */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
-          {SIMPLIFIED_JOURNEY_STEPS.map((step) => {
-            const isCurrent = step.stepNumber === currentSimplifiedStep.stepNumber;
-            const isCompleted = step.stageNumbers.every(n => n < authoritativeStage);
-            const isLocked = step.stageNumbers.every(n => n > authoritativeStage);
-
-            return (
-              <div
-                key={step.id}
-                onClick={() => {
-                  if (!isLocked && onNavigateToTab) {
-                    onNavigateToTab(step.defaultNavId);
-                  }
-                }}
-                className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all select-none ${
-                  isCurrent
-                    ? 'bg-[#102D4F] border-[#D4A843] ring-1 ring-[#D4A843]/40 shadow-md'
-                    : isCompleted
-                    ? 'bg-[#071A2E] border-emerald-900/50 hover:border-emerald-600/60 cursor-pointer'
-                    : 'bg-[#071A2E]/60 border-slate-800 text-slate-500 cursor-not-allowed opacity-75'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-mono font-bold ${
-                    isCurrent ? 'text-[#D4A843]' : isCompleted ? 'text-emerald-400' : 'text-slate-500'
-                  }`}>
-                    0{step.stepNumber}
-                  </span>
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : isCurrent ? (
-                    <span className="w-2 h-2 rounded-full bg-[#D4A843] animate-pulse" />
-                  ) : (
-                    <Lock className="w-3 h-3 text-slate-600" />
-                  )}
-                </div>
-
-                <div className="mt-1.5">
-                  <div className={`font-semibold text-[11px] truncate ${
-                    isCurrent ? 'text-white' : isCompleted ? 'text-slate-200' : 'text-slate-400'
-                  }`}>
-                    {step.label}
-                  </div>
-                  <div className="text-[9px] text-slate-400 truncate">
-                    {step.description}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <ClientWelcomePanel
+        currentUser={currentUser}
+        taxYear={selectedTaxYear}
+        clientSinceYear={clientSinceYear}
+        location={clientLocation}
+        appliedStates={appliedStates}
+        currentWorkflowStageName={authoritativeStageName}
+        onOpenUpload={onNavigateToStageTwo}
+        onScheduleAppointment={() => onNavigateToTab?.('appointments')}
+      />
 
       {/* ========================================================================= */}
-      {/* 2. THREE-COLUMN DESKTOP LAYOUT (Center Main 2-Cols + Right Rail 1-Col) */}
+      {/* 2. MASTER TAX WORKFLOW PROGRESS STEPPER (Section 6) */}
+      {/* ========================================================================= */}
+      <TaxWorkflowProgress
+        authoritativeStage={authoritativeStage}
+        authoritativeStageName={authoritativeStageName}
+        missingCount={missingCount}
+        pendingRequestsCount={pendingRequestsCount}
+        hasRejectedDocument={false}
+        onSelectStep={(step: WorkflowStepDefinition) => {
+          if (onNavigateToTab) {
+            onNavigateToTab(step.defaultNavId);
+          }
+        }}
+        onViewDetailedWorkflow={onNavigateToDetailedWorkflow}
+      />
+
+      {/* ========================================================================= */}
+      {/* 3. THREE-COLUMN DESKTOP LAYOUT (Center Main 2-Cols + Right Rail 1-Col) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* CENTER PRIMARY WORKSPACE (2 Columns on Desktop) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Card 1: Prominent "YOUR CURRENT STATUS" Card */}
+          {/* Card 1: Prominent "YOUR CURRENT STATUS" Card (Section 7) */}
           <ClientCurrentStatusCard
             simplifiedStepNumber={currentSimplifiedStep.stepNumber}
             simplifiedStepLabel={currentSimplifiedStep.label}
@@ -460,11 +488,11 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
             onNavigateToRequests={() => onNavigateToTab?.('requests')}
           />
 
-          {/* Card 2: Return Overview Card */}
+          {/* Card 2: Return Overview Card (Section 8) */}
           <ReturnOverviewCard
             taxYear={selectedTaxYear}
             filingStatus={questionnaire.filingStatus}
-            dependentsCount={questionnaire.hasDependents ? (questionnaire.dependentsCount || 1) : 0}
+            dependentsCount={questionnaire.hasDependents ? questionnaire.dependentsCount || 1 : 0}
             incomeCategories={detectedIncomeCategories}
             engagementStatus="Active Engagement"
             returnStatus={
@@ -488,7 +516,7 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
             onManageStates={() => {}}
           />
 
-          {/* Card 3: Quick Actions Toolbar */}
+          {/* Card 3: Quick Actions Toolbar (Section 9) */}
           <QuickActionsToolbar
             authoritativeStage={authoritativeStage}
             pendingRequestsCount={pendingRequestsCount}
@@ -505,7 +533,92 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
             onDownloadRecords={() => onNavigateToTab?.('completed')}
           />
 
-          {/* Card 4: Document Checklist Section */}
+          {/* Card 4: Dashboard Metrics Summary Cards (Section 10) */}
+          <DashboardMetrics
+            docsReceived={resolvedCount}
+            docsMissing={missingCount}
+            docsNeedReplacement={0}
+            requestsOpen={pendingRequestsCount}
+            requestsOverdue={0}
+            unreadMessagesCount={unreadMessagesCount}
+            nextAppointmentDate={upcomingAppointmentDate}
+            nextAppointmentType={upcomingAppointment?.type}
+            unpaidBalance={unpaidBalance}
+            paymentStatus={unpaidBalance === 0 ? 'PAID' : 'PENDING'}
+            onNavigateToDocuments={onNavigateToVault}
+            onNavigateToRequests={() => onNavigateToTab?.('requests')}
+            onNavigateToMessages={() => onNavigateToTab?.('messages')}
+            onNavigateToAppointments={() => onNavigateToTab?.('appointments')}
+            onNavigateToPayments={() => onNavigateToTab?.('billing')}
+          />
+        </div>
+
+        {/* RIGHT CONTEXTUAL RAIL (1 Column on Desktop) */}
+        <div className="space-y-6">
+          {/* Important Updates Feed (Section 11) */}
+          <RightContextRail
+            taxYear={selectedTaxYear}
+            pendingRequestsCount={pendingRequestsCount}
+            unreadMessagesCount={unreadMessagesCount}
+            latestMessageSnippet={latestMessageSnippet}
+            hasUpcomingAppointment={Boolean(upcomingAppointment)}
+            upcomingAppointmentDate={upcomingAppointmentDate}
+            onOpenRequests={() => onNavigateToTab?.('requests')}
+            onOpenMessages={() => onNavigateToTab?.('messages')}
+            onScheduleAppointment={() => onNavigateToTab?.('appointments')}
+            onNavigateToTab={onNavigateToTab}
+          />
+
+          {/* Upcoming Appointment Card (Section 12) */}
+          <UpcomingAppointmentCard
+            appointment={upcomingAppointment}
+            onSchedule={() => onNavigateToTab?.('appointments')}
+            onReschedule={() => onNavigateToTab?.('appointments')}
+            onCancel={() => onNavigateToTab?.('appointments')}
+            onJoinVideoCall={() => {
+              if (onNavigateToTab) onNavigateToTab('appointments');
+            }}
+          />
+
+          {/* Secure Messages Preview Card (Section 13) */}
+          <MessagesPreviewCard
+            messages={previewMessages}
+            unreadCount={unreadMessagesCount}
+            onOpenMessages={() => onNavigateToTab?.('messages')}
+            onComposeMessage={() => onNavigateToTab?.('messages')}
+          />
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. LOWER THREE PANELS: TAX YEARS | DOCUMENT CHECKLIST | STATE REQUIREMENTS */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Panel 1: My Tax Years & Records (2022+) (Section 14) */}
+        <div>
+          <TaxYearsArchiveSection
+            currentTaxYear={selectedTaxYear}
+            availableYears={[2026, 2025, 2024, 2023, 2022]}
+            yearRecords={{
+              [selectedTaxYear]: {
+                taxYear: selectedTaxYear,
+                engagementStatus: 'Active',
+                returnStatus: authoritativeStage >= 15 ? 'Completed' : 'In Preparation',
+                documentsCount: uploadedDocs.length,
+                hasFederalReturn: true,
+                stateReturnsCount: appliedStates.length,
+                hasAuthorizations: true,
+                hasNotices: false,
+                isArchived: authoritativeStage >= 16
+              }
+            }}
+            onSelectYear={(yr) => onTaxYearChange?.(yr)}
+            onOpenArchiveYear={() => onNavigateToTab?.('archive')}
+          />
+        </div>
+
+        {/* Panel 2: Document Checklist Section (Section 15) */}
+        <div>
           <DocumentChecklistSection
             taxYear={selectedTaxYear}
             requirements={requirements}
@@ -515,8 +628,10 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
             onMarkNotApplicable={(item) => setNotApplicableModalItem(item)}
             onOpenQuestionnaire={onOpenQuestionnaire}
           />
+        </div>
 
-          {/* Card 5: State & Jurisdiction Requirements Panel */}
+        {/* Panel 3: State-Specific Requirements Panel (Section 17) */}
+        <div>
           <StateJurisdictionRequirementsPanel
             taxYear={selectedTaxYear}
             residentState={questionnaire.residentState || 'SC'}
@@ -529,214 +644,198 @@ export const StepByStepTaxPreparationHome: React.FC<StepByStepTaxPreparationHome
             onReportOutOfStateBusiness={handleReportOutOfStateBusiness}
             onReportOtherIncomeState={handleReportOtherIncomeState}
           />
+        </div>
+      </div>
 
-          {/* Card 6: My Tax Years & Records (2022+) */}
-          <TaxYearsArchiveSection
-            currentTaxYear={selectedTaxYear}
-            availableYears={[2026, 2025, 2024, 2023, 2022]}
-            yearRecords={{
-              [selectedTaxYear]: {
-                taxYear: selectedTaxYear,
-                engagementStatus: 'Active',
-                returnStatus: authoritativeStage >= 15 ? 'Completed' : 'In Preparation',
-                documentsCount: uploadedDocs.length,
-                hasFederalReturn: true,
-                stateReturnsCount: 1,
-                hasAuthorizations: true,
-                hasNotices: false,
-                isArchived: authoritativeStage >= 16
-              }
-            }}
-            onSelectYear={(yr) => onTaxYearChange?.(yr)}
-            onOpenArchiveYear={() => onNavigateToTab?.('archive')}
-          />
+      {/* Prior-Year Continuity / Carryforward Card */}
+      <PriorYearContinuityCard
+        currentTaxYear={selectedTaxYear}
+        priorTaxYear={selectedTaxYear - 1}
+        onConfirmAll={() => {}}
+        onModifyFact={onOpenQuestionnaire}
+      />
 
-          {/* Card 7: Prior-Year Continuity / Carryforward Card */}
-          <PriorYearContinuityCard
-            currentTaxYear={selectedTaxYear}
-            priorTaxYear={selectedTaxYear - 1}
-            onConfirmAll={() => {}}
-            onModifyFact={onOpenQuestionnaire}
-          />
+      {/* ========================================================================= */}
+      {/* 5. COMPLETE CLIENT JOURNEY (Section 23) */}
+      {/* ========================================================================= */}
+      <CompleteClientJourney
+        currentStage={authoritativeStage}
+        onSelectStep={(stageNum) => {
+          if (onNavigateToTab) {
+            if (stageNum === 1) onNavigateToTab('stage_01');
+            else if (stageNum === 2) onNavigateToTab('stage_02');
+            else onNavigateToTab(`stage_${String(stageNum).padStart(2, '0')}`);
+          }
+        }}
+      />
 
-          {/* Card 8: Executive Summary - The 8 Core Client Questions at a Glance */}
-          <div className="rounded-2xl bg-[#0D2745] border border-[#D4A843]/30 p-6 shadow-2xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#D4A843]/15 text-[#D4A843]">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-                    Filing Status &amp; Action Center at a Glance
-                  </h2>
-                  <p className="text-[11px] text-slate-300">
-                    Direct answers to the 8 core questions about your tax return.
-                  </p>
-                </div>
-              </div>
+      {/* ========================================================================= */}
+      {/* 6. SECURITY & RELIABILITY PANEL (Section 24) */}
+      {/* ========================================================================= */}
+      <SecurityReliabilityPanel />
+
+      {/* ========================================================================= */}
+      {/* 7. EXECUTIVE SUMMARY - THE 8 CORE CLIENT QUESTIONS AT A GLANCE */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl bg-[#0D2745] border border-[#D4A843]/30 p-6 shadow-2xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-[#D4A843]/15 text-[#D4A843]">
+              <Sparkles className="w-4 h-4" />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              {/* Question 1: Where is my tax return? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <FileText className="w-3 h-3" />
-                  <span>1. Where is my tax return?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {authoritativeStage === 1 && 'Stage 01: Onboarding & Identity Certified'}
-                  {authoritativeStage === 2 && 'Stage 02: Document Intake & Checklist'}
-                  {authoritativeStage === 3 && 'Stage 03: Document Validation Underway'}
-                  {(authoritativeStage >= 4 && authoritativeStage <= 8) && 'Stage 04–08: Accounting Tie-Out & Review'}
-                  {authoritativeStage === 9 && 'Stage 09: Form 1040 Preparation'}
-                  {authoritativeStage === 10 && 'Stage 10: Approved Draft Ready'}
-                  {authoritativeStage === 11 && 'Stage 11: Form 8879 E-Signature Ready'}
-                  {authoritativeStage === 12 && 'Stage 12: Queued for E-File Gateway'}
-                  {(authoritativeStage >= 13) && 'Stage 13+: Accepted & Monitored'}
-                </p>
-                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Tax Year {selectedTaxYear} Active</span>
-                </span>
-              </div>
-
-              {/* Question 2: What do I need to do now? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>2. What do I need to do now?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {pendingRequestsCount > 0
-                    ? `Respond to ${pendingRequestsCount} open request from your CPA.`
-                    : missingCount > 0
-                    ? `Upload ${missingCount} required document${missingCount > 1 ? 's' : ''}.`
-                    : authoritativeStage === 10
-                    ? 'Review and approve your draft return.'
-                    : authoritativeStage === 11
-                    ? 'Sign Form 8879 authorization.'
-                    : 'No action required right now.'}
-                </p>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {missingCount === 0 ? 'Intake file complete' : `${missingCount} pending items`}
-                </span>
-              </div>
-
-              {/* Question 3: What documents are still missing? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>3. What documents are still missing?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {missingCount === 0 ? (
-                    <span className="text-emerald-400">0 documents missing. All provided.</span>
-                  ) : (
-                    `${missingCount} of ${totalRequirements} required documents missing.`
-                  )}
-                </p>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {missingDocs.length > 0 ? missingDocs[0].title : 'All requirements satisfied'}
-                </span>
-              </div>
-
-              {/* Question 4: What documents have been received? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <FileCheck className="w-3 h-3" />
-                  <span>4. What documents have been received?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {resolvedCount} document{resolvedCount === 1 ? '' : 's'} received &amp; logged.
-                </p>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {uploadedDocs.length} source file{uploadedDocs.length === 1 ? '' : 's'} in vault
-                </span>
-              </div>
-
-              {/* Question 5: What is A/R Tax Services currently reviewing? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>5. What is A/R Tax Services currently reviewing?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {authoritativeStage <= 3
-                    ? 'Verifying uploaded tax documents, inspecting OCR extractions, and confirming completeness.'
-                    : authoritativeStage <= 8
-                    ? 'Elena Rostova, CPA is recording tax schedules, reconciling book/tax differences, and compiling workpapers.'
-                    : authoritativeStage === 9
-                    ? 'Preparing federal Form 1040 and state returns using certified records.'
-                    : authoritativeStage <= 11
-                    ? 'Managing draft review, practitioner certification, and Form 8879 authorization.'
-                    : 'Monitoring IRS transmitter gateway and agency acknowledgment feeds.'}
-                </p>
-              </div>
-
-              {/* Question 6: What happens next? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <ArrowRight className="w-3 h-3" />
-                  <span>6. What happens next?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {authoritativeStage <= 2 && 'Stage 03: Automated Document Validation'}
-                  {(authoritativeStage >= 3 && authoritativeStage <= 8) && 'Stage 09: Form 1040 Tax Preparation'}
-                  {authoritativeStage === 9 && 'Stage 10: Client Approval'}
-                  {authoritativeStage === 10 && 'Stage 11: Form 8879 E-Signature'}
-                  {authoritativeStage === 11 && 'Stage 12: Electronic Filing Submission'}
-                  {authoritativeStage >= 12 && 'Stage 15+: Monitoring & Archive Vault'}
-                </p>
-              </div>
-
-              {/* Question 7: Are there messages or requests requiring attention? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3" />
-                  <span>7. Are there messages or requests requiring my attention?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {pendingRequestsCount > 0
-                    ? `${pendingRequestsCount} open request requires your response.`
-                    : unreadMessagesCount > 0
-                    ? `${unreadMessagesCount} unread message from your CPA.`
-                    : 'No pending inquiries. All communications current.'}
-                </p>
-              </div>
-
-              {/* Question 8: Do I need to approve, sign, schedule, or pay anything? */}
-              <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold block flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  <span>8. Do I need to approve, sign, schedule, or pay anything?</span>
-                </span>
-                <p className="text-white font-semibold text-xs">
-                  {authoritativeStage === 10
-                    ? 'Return approval required.'
-                    : authoritativeStage === 11
-                    ? 'Form 8879 e-signature required.'
-                    : 'Nothing pending approval or signature at this stage.'}
-                </p>
-              </div>
+            <div>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                Filing Status &amp; Action Center at a Glance
+              </h2>
+              <p className="text-[11px] text-slate-300">
+                Direct answers to the 8 core questions about your tax return.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* RIGHT CONTEXTUAL RAIL (1 Column on Desktop) */}
-        <div className="space-y-6">
-          <RightContextRail
-            taxYear={selectedTaxYear}
-            pendingRequestsCount={pendingRequestsCount}
-            unreadMessagesCount={unreadMessagesCount}
-            latestMessageSnippet={latestMessageSnippet}
-            hasUpcomingAppointment={hasUpcomingAppointment}
-            upcomingAppointmentDate={upcomingAppointmentDate}
-            onOpenRequests={() => onNavigateToTab?.('requests')}
-            onOpenMessages={() => onNavigateToTab?.('messages')}
-            onScheduleAppointment={() => onNavigateToTab?.('appointments')}
-            onNavigateToTab={onNavigateToTab}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {/* Question 1: Where is my tax return? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <FileText className="w-3 h-3" />
+              <span>1. Where is my tax return?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {authoritativeStage === 1 && 'Stage 01: Onboarding & Identity Certified'}
+              {authoritativeStage === 2 && 'Stage 02: Document Intake & Checklist'}
+              {authoritativeStage === 3 && 'Stage 03: Document Validation Underway'}
+              {authoritativeStage >= 4 && authoritativeStage <= 8 && 'Stage 04–08: Accounting Tie-Out & Review'}
+              {authoritativeStage === 9 && 'Stage 09: Form 1040 Preparation'}
+              {authoritativeStage === 10 && 'Stage 10: Approved Draft Ready'}
+              {authoritativeStage === 11 && 'Stage 11: Form 8879 E-Signature Ready'}
+              {authoritativeStage === 12 && 'Stage 12: Queued for E-File Gateway'}
+              {authoritativeStage >= 13 && 'Stage 13+: Accepted & Monitored'}
+            </p>
+            <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Tax Year {selectedTaxYear} Active</span>
+            </span>
+          </div>
+
+          {/* Question 2: What do I need to do now? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>2. What do I need to do now?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {pendingRequestsCount > 0
+                ? `Respond to ${pendingRequestsCount} open request from your CPA.`
+                : missingCount > 0
+                ? `Upload ${missingCount} required document${missingCount > 1 ? 's' : ''}.`
+                : authoritativeStage === 10
+                ? 'Review and approve your draft return.'
+                : authoritativeStage === 11
+                ? 'Sign Form 8879 authorization.'
+                : 'No action required right now.'}
+            </p>
+            <span className="text-[10px] font-mono text-slate-400">
+              {missingCount === 0 ? 'Intake file complete' : `${missingCount} pending items`}
+            </span>
+          </div>
+
+          {/* Question 3: What documents are still missing? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              <span>3. What documents are still missing?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {missingCount === 0 ? (
+                <span className="text-emerald-400">0 documents missing. All provided.</span>
+              ) : (
+                `${missingCount} of ${totalRequirements} required documents missing.`
+              )}
+            </p>
+            <span className="text-[10px] font-mono text-slate-400">
+              {missingDocs.length > 0 ? missingDocs[0].title : 'All requirements satisfied'}
+            </span>
+          </div>
+
+          {/* Question 4: What documents have been received? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <FileCheck className="w-3 h-3" />
+              <span>4. What documents have been received?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {resolvedCount} document{resolvedCount === 1 ? '' : 's'} received &amp; logged.
+            </p>
+            <span className="text-[10px] font-mono text-slate-400">
+              {uploadedDocs.length} source file{uploadedDocs.length === 1 ? '' : 's'} in vault
+            </span>
+          </div>
+
+          {/* Question 5: What is A/R Tax Services currently reviewing? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" />
+              <span>5. What is A/R Tax Services currently reviewing?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {authoritativeStage <= 3
+                ? 'Verifying uploaded tax documents, inspecting OCR extractions, and confirming completeness.'
+                : authoritativeStage <= 8
+                ? 'Elena Rostova, CPA is recording tax schedules, reconciling book/tax differences, and compiling workpapers.'
+                : authoritativeStage === 9
+                ? 'Preparing federal Form 1040 and state returns using certified records.'
+                : authoritativeStage <= 11
+                ? 'Managing draft review, practitioner certification, and Form 8879 authorization.'
+                : 'Monitoring IRS transmitter gateway and agency acknowledgment feeds.'}
+            </p>
+          </div>
+
+          {/* Question 6: What happens next? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <ArrowRight className="w-3 h-3" />
+              <span>6. What happens next?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {authoritativeStage <= 2 && 'Stage 03: Automated Document Validation'}
+              {authoritativeStage >= 3 && authoritativeStage <= 8 && 'Stage 09: Form 1040 Tax Preparation'}
+              {authoritativeStage === 9 && 'Stage 10: Client Approval'}
+              {authoritativeStage === 10 && 'Stage 11: Form 8879 E-Signature'}
+              {authoritativeStage === 11 && 'Stage 12: Electronic Filing Submission'}
+              {authoritativeStage >= 12 && 'Stage 15+: Monitoring & Archive Vault'}
+            </p>
+          </div>
+
+          {/* Question 7: Are there messages or requests requiring attention? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <HelpCircle className="w-3 h-3" />
+              <span>7. Are there messages or requests requiring my attention?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {pendingRequestsCount > 0
+                ? `${pendingRequestsCount} open request requires your response.`
+                : unreadMessagesCount > 0
+                ? `${unreadMessagesCount} unread message from your CPA.`
+                : 'No pending inquiries. All communications current.'}
+            </p>
+          </div>
+
+          {/* Question 8: Do I need to approve, sign, schedule, or pay anything? */}
+          <div className="p-3.5 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[#D4A843] font-bold flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              <span>8. Do I need to approve, sign, schedule, or pay anything?</span>
+            </span>
+            <p className="text-white font-semibold text-xs">
+              {authoritativeStage === 10
+                ? 'Return approval required.'
+                : authoritativeStage === 11
+                ? 'Form 8879 e-signature required.'
+                : 'Nothing pending approval or signature at this stage.'}
+            </p>
+          </div>
         </div>
       </div>
 

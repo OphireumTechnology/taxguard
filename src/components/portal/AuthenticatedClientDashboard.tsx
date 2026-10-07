@@ -230,30 +230,18 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       if (hash.includes('security')) return 'security';
       if (hash.includes('questionnaire')) return 'questionnaire';
     }
-    if (initialNav === 'home' || !initialNav) {
-      const activeStage = propAuthority?.workflow?.activeStage ?? 2;
-      if (activeStage === 2) {
-        return 'stage_02';
-      }
-      if (activeStage > 2) {
-        return `stage_${String(activeStage).padStart(2, '0')}`;
-      }
+    if (initialNav) {
+      return initialNav;
     }
-    return initialNav;
+    return 'home';
   });
 
-  // Ensure returning client is automatically routed to current active stage
+  // Sync activeNavId if initialNav prop changes and is not home
   useEffect(() => {
-    const pathname = typeof window !== 'undefined' ? window.location.pathname.toLowerCase().replace(/\/+$/, '') : '';
-    if (activeNavId === 'home' && pathname !== '/portal/dashboard') {
-      const activeStage = authority?.workflow?.activeStage ?? 2;
-      if (activeStage === 2) {
-        setActiveNavId('stage_02');
-      } else if (activeStage > 2) {
-        setActiveNavId(`stage_${String(activeStage).padStart(2, '0')}`);
-      }
+    if (initialNav && initialNav !== activeNavId && initialNav !== 'home') {
+      setActiveNavId(initialNav);
     }
-  }, [authority?.workflow?.activeStage]);
+  }, [initialNav]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -482,6 +470,20 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             >
               <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'home' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
               {!isCollapsed && <span className="truncate">Client Dashboard</span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSelectNav('tax_return')}
+              title={isCollapsed ? 'My Tax Returns' : undefined}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
+                activeNavId === 'tax_return'
+                  ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
+              }`}
+            >
+              <FileText className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'tax_return' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
+              {!isCollapsed && <span className="truncate text-[11px]">My Tax Returns</span>}
             </button>
           </div>
 
@@ -807,6 +809,37 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               </div>
             </div>
           </div>
+
+          {/* Need Help? Bottom Support Panel */}
+          {!isCollapsed && (
+            <div className="p-3 mx-1 mt-3 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-[#D4A843]" />
+                <span className="text-xs font-bold text-white">Need Help?</span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                Dedicated CPA advisory support for your return.
+              </p>
+              <div className="space-y-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleSelectNav('messages')}
+                  className="w-full py-1.5 px-2 rounded-lg bg-[#102D4F] hover:bg-[#143657] text-[#D4A843] text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  <span>Send Message</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectNav('appointments')}
+                  className="w-full py-1.5 px-2 rounded-lg bg-[#071A2E] hover:bg-[#102D4F] text-slate-200 text-[11px] font-semibold border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Calendar className="w-3 h-3 text-[#D4A843]" />
+                  <span>Schedule Appointment</span>
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* Footer info in sidebar */}
@@ -900,6 +933,33 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           }}
           onTaxYearChange={onTaxYearChange}
         />
+      );
+    }
+
+    // 2b. MY TAX RETURNS (Milestones & Return Status)
+    if (activeNavId === 'tax_return') {
+      return (
+        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#D4A843]" />
+                <span>My Tax Returns &mdash; Tax Year {selectedTaxYear}</span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                Filing status, milestone progress, and practitioner review certifications.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSelectNav('home')}
+              className="text-xs text-slate-400 hover:text-white cursor-pointer"
+            >
+              &larr; Back to Dashboard
+            </button>
+          </div>
+          <TaxReturnView onNavigateToDeliverables={() => handleSelectNav('archive')} />
+        </div>
       );
     }
 
