@@ -917,7 +917,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               </div>
               <h2 className="text-lg font-bold text-white">Stage 01 (Onboard) Dossier &mdash; Read-Only Review</h2>
               <p className="text-xs text-slate-300">
-                Your statutory onboarding dossier and IRC § 7216 consent status are recorded and locked.
+                Your statutory onboarding dossier and IRC § 7216 Consent status are recorded and locked.
               </p>
             </div>
 

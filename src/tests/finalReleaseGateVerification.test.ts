@@ -39,7 +39,8 @@ function createMockSupabaseBackend() {
     sessions: new Map<string, any>(),
     sequence: { current_sequence: 800, last_issued_client_id: '800' },
     audit: [] as any[],
-    documents: new Map<string, any>()
+    documents: new Map<string, any>(),
+    assignments: [] as any[]
   };
 
   const client: any = {
@@ -70,11 +71,13 @@ function createMockSupabaseBackend() {
       let filterVal: any = null;
       let filterCol2 = '';
       let filterVal2: any = null;
+      const filters: Array<[string, any]> = [];
       let pendingUpdates: any = null;
 
       const builder: any = {
         select: vi.fn(() => builder),
         eq: vi.fn((col: string, val: any) => {
+          filters.push([col, val]);
           if (!filterCol) {
             filterCol = col;
             filterVal = val;
@@ -101,6 +104,12 @@ function createMockSupabaseBackend() {
               (m: any) => m.tenant_id === filterVal && m.uid === filterVal2
             );
             return { data: member || null, error: null };
+          }
+          if (table === 'taxguard_clients') {
+            const client = Array.from(store.clients.values()).find(
+              (row: any) => row.tenant_id === filterVal && row.owner_uid === filterVal2
+            );
+            return { data: client || null, error: null };
           }
           if (table === 'taxguard_client_id_sequence') {
             return { data: store.sequence, error: null };
@@ -137,6 +146,12 @@ function createMockSupabaseBackend() {
           return builder;
         }),
         then: (resolve: any, reject?: any) => {
+          if (table === 'taxguard_staff_assignments') {
+            const data = store.assignments.filter((row: any) =>
+              filters.every(([column, value]) => row[column] === value)
+            );
+            return Promise.resolve({ data, error: null }).then(resolve, reject);
+          }
           return Promise.resolve({ data: null, error: null }).then(resolve, reject);
         }
       };
@@ -455,7 +470,7 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
       expect(checkData1.personal.legalName).toBe('Vance Capital Consulting LLC');
 
       // 5. Staff / Reviewer reviews and approves amendment
-      db.users.set('sb_staff_reviewer_rel', {
+      const reviewerUser = {
         id: 'sb_staff_reviewer_rel',
         name: 'Elena Rostova, CPA',
         email: 'erostova@artaxservices.com',
@@ -463,7 +478,53 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
         status: 'active',
         isVerified: true,
         createdAt: new Date().toISOString()
+      } as any;
+
+      db.users.set(reviewerUser.id, reviewerUser);
+
+      const clientUser = db.users.get('sb_uid_rel_01');
+      if (clientUser) {
+        clientUser.assignedReviewerId = reviewerUser.id;
+      }
+
+      if (clientUser?.clientId) {
+        db.clientAccountantAssignments.set(
+          `${reviewerUser.id}:${clientUser.clientId}`,
+          {
+            id: `${reviewerUser.id}:${clientUser.clientId}`,
+            accountantId: reviewerUser.id,
+            clientId: clientUser.clientId,
+            status: 'active'
+          } as any
+        );
+
+        mockSupabase.store.assignments.push({
+          tenant_id: 'tenantReleaseGate',
+          client_id: clientUser.clientId,
+          user_id: reviewerUser.id,
+          status: 'ACTIVE',
+          engagement_id: null,
+          tax_year: null,
+          effective_from: new Date(Date.now() - 60_000).toISOString(),
+          effective_to: null
+        });
+      }
+
+      mockSupabase.store.identities.set(reviewerUser.id, {
+        uid: reviewerUser.id,
+        tenant_id: 'tenantReleaseGate',
+        user_data: reviewerUser
       });
+
+      mockSupabase.store.members.set(
+        `tenantReleaseGate_${reviewerUser.id}`,
+        {
+          tenant_id: 'tenantReleaseGate',
+          uid: reviewerUser.id,
+          role: 'senior_reviewer',
+          status: 'active'
+        }
+      );
 
       const staffSessions = new SupabaseDurableSessions(undefined, 'tenantReleaseGate');
       const staffSession = await staffSessions.create({
@@ -522,6 +583,9 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
     });
 
     it('allows repeated uploads without disabling subsequent upload operations', async () => {
+      // This gate validates the in-memory Stage 02 behavioral model.
+      // Production document intake remains fail-closed and is verified separately.
+      vi.stubEnv('NODE_ENV', 'test');
       const clientId = `cli_ops_${Date.now()}`;
       const taxYear = 2025;
 
@@ -559,6 +623,9 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
   // =========================================================================
   describe('Gate 5: My Documents Vault & Audit-Safe Retention', () => {
     it('manages document lifecycle through WITHDRAWN and SUPERSEDED rather than destroying audit evidence', async () => {
+      // This gate validates the in-memory Stage 02 behavioral model.
+      // Production document intake remains fail-closed and is verified separately.
+      vi.stubEnv('NODE_ENV', 'test');
       const clientId = `cli_vault_${Date.now()}`;
       const taxYear = 2025;
 
@@ -589,6 +656,9 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
   // =========================================================================
   describe('Gate 6: Tax-Year Segregation', () => {
     it('strictly isolates documents across tax years (2024, 2025, 2026)', async () => {
+      // This gate validates the in-memory Stage 02 behavioral model.
+      // Production document intake remains fail-closed and is verified separately.
+      vi.stubEnv('NODE_ENV', 'test');
       const clientId = `cli_multiyear_${Date.now()}`;
 
       await StageTwoCollectionService.ingestDocumentUpload({
