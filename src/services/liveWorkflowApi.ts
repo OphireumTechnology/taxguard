@@ -115,6 +115,10 @@ async function requestLiveWorkflow<T>(
     .json()
     .catch(() => ({}));
 
+  if (getStoredToken() !== token) {
+    throw new Error('The authenticated session changed before this workflow response completed.');
+  }
+
   if (!response.ok) {
     const error = new Error(
       payload?.error ||

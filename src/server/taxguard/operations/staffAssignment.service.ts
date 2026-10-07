@@ -12,6 +12,7 @@ import {
   StaffWorkloadSummary
 } from './types';
 import { globalPracticeTaskService } from './practiceTask.service';
+import { isAssignmentCurrentlyEffective } from '../../assignment-authorization';
 
 export class StaffAssignmentService {
   private assignments = new Map<string, StaffAssignment>();
@@ -119,7 +120,7 @@ export class StaffAssignmentService {
    */
   getClientAssignments(tenantId: string, clientId: string): StaffAssignment[] {
     return Array.from(this.assignments.values()).filter(
-      (a) => a.tenantId === tenantId && a.clientId === clientId && a.status === 'ACTIVE'
+      (a) => a.tenantId === tenantId && a.clientId === clientId && isAssignmentCurrentlyEffective(a)
     );
   }
 
@@ -129,7 +130,7 @@ export class StaffAssignmentService {
   getStaffAssignedClients(tenantId: string, userId: string): string[] {
     const clientIds = new Set<string>();
     for (const a of this.assignments.values()) {
-      if (a.tenantId === tenantId && a.userId === userId && a.status === 'ACTIVE') {
+      if (a.tenantId === tenantId && a.userId === userId && isAssignmentCurrentlyEffective(a)) {
         clientIds.add(a.clientId);
       }
     }

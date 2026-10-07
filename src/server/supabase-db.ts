@@ -16,6 +16,7 @@ import { User } from '../types';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
 import { LiveWorkflowRepository } from './taxguard/liveWorkflow.repository';
 import { db } from './db';
+import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -75,6 +76,16 @@ async function withSupabaseProvisioningLock<T>(uid: string, operation: () => Pro
   }
 }
 
+const ASSIGNMENT_REQUIRED_ROLES = new Set(['accountant', 'senior_reviewer', 'reviewer', 'preparer']);
+
+function attachAuthorizedClientIds(user: User, clientIds: string[]): void {
+  Object.defineProperty(user, 'authorizedClientIds', {
+    value: clientIds,
+    configurable: true,
+    enumerable: false
+  });
+}
+
 export class SupabaseDurableSessions {
   private readonly client: SupabaseClient;
   private readonly tenantId: string;
@@ -97,6 +108,31 @@ export class SupabaseDurableSessions {
 
   getTenantId(): string {
     return this.tenantId;
+  }
+
+  private async getAuthorizedClientIds(uid: string): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('taxguard_staff_assignments')
+      .select('client_id, engagement_id, tax_year, effective_from, effective_to')
+      .eq('tenant_id', this.tenantId)
+      .eq('user_id', uid)
+      .eq('status', 'ACTIVE');
+    if (error) throw new AuthorityError('STAFF_ASSIGNMENT_STORE_UNAVAILABLE', 503);
+
+    return Array.from(new Set((data || [])
+      .filter((assignment: {
+        status?: string;
+        engagement_id?: string | null;
+        tax_year?: number | null;
+        effective_from?: string;
+        effective_to?: string | null;
+      }) => {
+        return assignment.engagement_id == null &&
+          assignment.tax_year == null &&
+          isAssignmentCurrentlyEffective(assignment);
+      })
+      .map((assignment: { client_id?: string }) => assignment.client_id)
+      .filter((clientId: unknown): clientId is string => typeof clientId === 'string' && clientId.length > 0)));
   }
 
   /**
@@ -133,8 +169,12 @@ export class SupabaseDurableSessions {
       } catch (err: any) {
         identityErr = err;
       }
+      if (process.env.NODE_ENV === 'production' && identityErr) {
+        throw new AuthorityError('IDENTITY_STORE_UNAVAILABLE', 503);
+      }
 
       let existingMember: any = null;
+      let memberErr: any = null;
       try {
         const res = await this.client
           .from('taxguard_members')
@@ -143,11 +183,16 @@ export class SupabaseDurableSessions {
           .eq('uid', uid)
           .maybeSingle();
         existingMember = res.data;
-      } catch {
-        // Continue
+        memberErr = res.error;
+      } catch (err: any) {
+        memberErr = err;
+      }
+      if (process.env.NODE_ENV === 'production' && memberErr) {
+        throw new AuthorityError('MEMBERSHIP_STORE_UNAVAILABLE', 503);
       }
 
       let existingClientRow: any = null;
+      let clientErr: any = null;
       try {
         const res = await this.client
           .from('taxguard_clients')
@@ -156,33 +201,38 @@ export class SupabaseDurableSessions {
           .eq('owner_uid', uid)
           .maybeSingle();
         existingClientRow = res.data;
-      } catch {
-        // Continue
+        clientErr = res.error;
+      } catch (err: any) {
+        clientErr = err;
+      }
+      if (process.env.NODE_ENV === 'production' && clientErr) {
+        throw new AuthorityError('CLIENT_STORE_UNAVAILABLE', 503);
       }
 
-      const inMemoryCached =
-        db.users.get(uid) ||
-        Array.from(db.users.values()).find(u => u.email?.toLowerCase() === email);
+      const inMemoryCached = process.env.NODE_ENV === 'production'
+        ? null
+        : db.users.get(uid) ||
+          Array.from(db.users.values()).find(u => u.email?.toLowerCase() === email);
 
       const fbIdentity =
-        fallbackIdentities.get(uid) ||
+        (process.env.NODE_ENV === 'production' ? null : fallbackIdentities.get(uid)) ||
         (inMemoryCached ? fallbackIdentities.get(inMemoryCached.id) : null) ||
         Array.from(fallbackIdentities.values()).find(
           fi => (fi.user_data as User)?.email?.toLowerCase() === email
         );
 
       const fbMember =
-        fallbackMembers.get(`${this.tenantId}:${uid}`) ||
+        (process.env.NODE_ENV === 'production' ? null : fallbackMembers.get(`${this.tenantId}:${uid}`)) ||
         (inMemoryCached ? fallbackMembers.get(`${this.tenantId}:${inMemoryCached.id}`) : null);
 
       const resolvedIdentity =
         existingIdentity ||
-        fbIdentity ||
+        (process.env.NODE_ENV === 'production' ? null : fbIdentity) ||
         (inMemoryCached ? { uid, tenant_id: this.tenantId, user_data: inMemoryCached } : null);
 
       const resolvedMember =
         existingMember ||
-        fbMember ||
+        (process.env.NODE_ENV === 'production' ? null : fbMember) ||
         (inMemoryCached
           ? {
               tenant_id: this.tenantId,
@@ -193,11 +243,32 @@ export class SupabaseDurableSessions {
             }
           : null);
 
+      if (process.env.NODE_ENV === 'production' && (resolvedIdentity || resolvedMember)) {
+        if (!resolvedIdentity || !resolvedMember || resolvedMember.status !== 'active') {
+          throw new AuthorityError('IDENTITY_DENIED', 403);
+        }
+      }
+
+      const storedClientId = (resolvedIdentity?.user_data as User | undefined)?.clientId;
+      const memberClientId = resolvedMember?.client_id;
+      const ownedClientId = existingClientRow?.client_id;
+      const isClientRole = resolvedMember?.role === 'client' || resolvedMember?.role === 'prospective_client';
+      if (
+        process.env.NODE_ENV === 'production' &&
+        isClientRole &&
+        (!ownedClientId ||
+          existingClientRow.owner_uid !== uid ||
+          existingClientRow.tenant_id !== this.tenantId ||
+          (memberClientId && memberClientId !== ownedClientId) ||
+          (storedClientId && storedClientId !== ownedClientId))
+      ) {
+        throw new AuthorityError('CLIENT_MAPPING_DENIED', 403);
+      }
+
       const knownClientId =
-        resolvedMember?.client_id ||
-        (resolvedIdentity?.user_data as User)?.clientId ||
-        existingClientRow?.client_id ||
-        inMemoryCached?.clientId;
+        isClientRole
+          ? ownedClientId || (process.env.NODE_ENV === 'production' ? undefined : memberClientId || storedClientId)
+          : undefined;
 
       let user: User;
 
@@ -219,9 +290,16 @@ export class SupabaseDurableSessions {
           name: verified.displayName || storedUserData.name || email.split('@')[0],
           role: (resolvedMember?.role as User['role']) || storedUserData.role || 'client',
           clientId: effectiveClientId,
+          tenantId: this.tenantId,
           status: 'active',
           isVerified: true
         };
+        if (
+          process.env.NODE_ENV === 'production' &&
+          ASSIGNMENT_REQUIRED_ROLES.has(user.role)
+        ) {
+          attachAuthorizedClientIds(user, await this.getAuthorizedClientIds(uid));
+        }
 
         const inMemUser = inMemoryCached || db.users.get(user.id);
         const isDbCompleted = (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(user.onboardingCompletedAt);
@@ -416,7 +494,9 @@ export class SupabaseDurableSessions {
     const resolvedSession =
       !error && session
         ? session
-        : fallbackSessions.get(tokenHash) || null;
+        : process.env.NODE_ENV === 'production'
+          ? null
+          : fallbackSessions.get(tokenHash) || null;
 
     if (!resolvedSession) return null;
     if (
@@ -441,16 +521,17 @@ export class SupabaseDurableSessions {
       .maybeSingle();
 
     const inMemUserForVerify = db.users.get(resolvedSession.uid);
+    const isProduction = process.env.NODE_ENV === 'production';
     const resolvedIdentity =
       identity ||
-      fallbackIdentities.get(resolvedSession.uid) ||
-      (inMemUserForVerify
+      (!isProduction ? fallbackIdentities.get(resolvedSession.uid) : null) ||
+      (!isProduction && inMemUserForVerify
         ? { uid: resolvedSession.uid, tenant_id: this.tenantId, user_data: inMemUserForVerify }
         : null);
     const resolvedMember =
       member ||
-      fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) ||
-      (inMemUserForVerify
+      (!isProduction ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) : null) ||
+      (!isProduction && inMemUserForVerify
         ? {
             tenant_id: this.tenantId,
             uid: resolvedSession.uid,
@@ -470,7 +551,39 @@ export class SupabaseDurableSessions {
     }
 
     const user = { ...(resolvedIdentity.user_data as User) };
-    const inMemUser = db.users.get(user.id);
+    if (isProduction && (resolvedMember.role === 'client' || resolvedMember.role === 'prospective_client')) {
+      const { data: ownedClient, error: ownedClientError } = await this.client
+        .from('taxguard_clients')
+        .select('*')
+        .eq('tenant_id', this.tenantId)
+        .eq('owner_uid', resolvedSession.uid)
+        .maybeSingle();
+      if (
+        ownedClientError ||
+        !ownedClient ||
+        ownedClient.owner_uid !== resolvedSession.uid ||
+        ownedClient.tenant_id !== this.tenantId ||
+        !ownedClient.client_id ||
+        (resolvedMember.client_id && resolvedMember.client_id !== ownedClient.client_id) ||
+        (user.clientId && user.clientId !== ownedClient.client_id)
+      ) {
+        return null;
+      }
+      user.clientId = ownedClient.client_id;
+    } else if (isProduction) {
+      user.clientId = undefined;
+    }
+    user.tenantId = this.tenantId;
+    user.role = resolvedMember.role as User['role'];
+    if (isProduction && ASSIGNMENT_REQUIRED_ROLES.has(user.role)) {
+      try {
+        attachAuthorizedClientIds(user, await this.getAuthorizedClientIds(resolvedSession.uid));
+      } catch {
+        return null;
+      }
+    }
+
+    const inMemUser = isProduction ? undefined : db.users.get(user.id);
     if (inMemUser) {
       const inMemCompleted = (inMemUser.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(inMemUser.onboardingCompletedAt);
       const dbCompleted = (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(user.onboardingCompletedAt);

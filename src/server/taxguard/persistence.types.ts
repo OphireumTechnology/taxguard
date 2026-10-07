@@ -257,6 +257,7 @@ export interface DocumentEntity extends ScopedAuthoritativeEntity {
   quarantineReason?: string;
   scanResult?: {
     clean: boolean;
+    verified?: boolean;
     scanner: string;
     scannerVersion: string;
     scannedAt: string;
@@ -923,4 +924,3 @@ export interface RepeatCaseEntity extends ScopedAuthoritativeEntity {
   carryForwardCount: number;
   initializedAt: string;
 }
-

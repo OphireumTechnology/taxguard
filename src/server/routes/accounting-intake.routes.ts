@@ -23,6 +23,16 @@ import { IntakeSourceType } from '../../types/accountingIntake';
 
 export const accountingIntakeRouter = Router();
 
+accountingIntakeRouter.use((_req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({
+      error: 'Accounting document intake is unavailable until durable storage, quarantine, malware scanning, and OCR are commissioned.',
+      code: 'DOCUMENT_INTAKE_NOT_READY'
+    });
+  }
+  next();
+});
+
 // 1. List Connectors & Status
 accountingIntakeRouter.get(
   '/connectors',

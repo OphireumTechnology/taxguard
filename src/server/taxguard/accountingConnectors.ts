@@ -32,8 +32,10 @@ export class GoogleDriveConnector implements AccountingDocumentSource {
   }
 
   async discover(params: { clientId: string; caseId?: string; query?: string }): Promise<CandidateDocument[]> {
+    if (process.env.NODE_ENV === 'production') return [];
+
     if (!this.isConfigured || !this.isAuthorized) {
-      // Fail-closed with operational candidate placeholder when authorized in dev/preview
+      // Synthetic preview candidates are development-only fixtures.
       return [
         {
           id: 'gdrive_w2_2025',
@@ -107,7 +109,7 @@ export class GoogleDriveConnector implements AccountingDocumentSource {
       caseId: params.caseId || 'CASE-2025-01',
       taxYear: 2025,
       hash: crypto.createHash('sha256').update(cand.sourceObjectId).digest('hex'),
-      quarantineStatus: 'CLEARED',
+      quarantineStatus: 'QUARANTINED',
       provenance: {
         sourceConnector: 'GoogleDriveConnector',
         authenticatedActor: params.actor,
@@ -131,7 +133,9 @@ export class EmailIngestionConnector implements AccountingDocumentSource {
   }
 
   async discover(params: { clientId: string; caseId?: string; query?: string }): Promise<CandidateDocument[]> {
-    // Return filtered accounting attachment candidates
+    if (process.env.NODE_ENV === 'production') return [];
+
+    // Synthetic preview candidates are development-only fixtures.
     return [
       {
         id: 'email_inv_1082',
@@ -204,7 +208,7 @@ export class EmailIngestionConnector implements AccountingDocumentSource {
       caseId: params.caseId || 'CASE-2025-01',
       taxYear: 2025,
       hash: crypto.createHash('sha256').update(cand.sourceObjectId).digest('hex'),
-      quarantineStatus: 'CLEARED',
+      quarantineStatus: 'QUARANTINED',
       provenance: {
         sourceConnector: 'EmailIngestionConnector',
         sourceMessageId: cand.sourceMessageId,

@@ -111,10 +111,20 @@ describe('Stage 02 — Storage & Staff Assignment Governance Suite', () => {
       }
     });
 
-    it('explicitly revokes privileges from anon on storage schema', () => {
+    it('enforces hardened authenticated vault boundaries in the private storage migration', () => {
       const sql06 = fs.readFileSync(path.join(migrationsDir, migration06), 'utf8');
-      expect(sql06).toContain('REVOKE ALL ON storage.objects FROM anon');
-      expect(sql06).toContain('REVOKE ALL ON storage.buckets FROM anon');
+
+      expect(sql06).toContain('CREATE POLICY taxguard_vault_authenticated_select_scope');
+      expect(sql06).toContain('AS RESTRICTIVE FOR SELECT TO authenticated');
+
+      expect(sql06).toContain('CREATE POLICY taxguard_vault_no_authenticated_insert');
+      expect(sql06).toContain('AS RESTRICTIVE FOR INSERT TO authenticated');
+
+      expect(sql06).toContain('CREATE POLICY taxguard_vault_no_authenticated_update');
+      expect(sql06).toContain('AS RESTRICTIVE FOR UPDATE TO authenticated');
+
+      expect(sql06).toContain('CREATE POLICY taxguard_vault_no_authenticated_delete');
+      expect(sql06).toContain('AS RESTRICTIVE FOR DELETE TO authenticated');
     });
   });
 
@@ -308,9 +318,16 @@ describe('Stage 02 — Storage & Staff Assignment Governance Suite', () => {
       const policyNames = res.rows.map(r => r.policyname);
       expect(policyNames).toContain('service_role_all_storage_buckets');
       expect(policyNames).toContain('service_role_all_storage_objects');
-      expect(policyNames).toContain('storage_vault_client_insert');
-      expect(policyNames).toContain('storage_vault_client_select');
-      expect(policyNames).toContain('storage_vault_staff_select');
+
+      // Hardened private-vault architecture:
+      // authenticated clients receive owner/case-scoped SELECT only;
+      // direct authenticated mutations remain fail-closed.
+      expect(policyNames).toContain('taxguard_client_read_own_vault_objects');
+      expect(policyNames).toContain('taxguard_vault_authenticated_select_scope');
+      expect(policyNames).toContain('taxguard_vault_no_authenticated_insert');
+      expect(policyNames).toContain('taxguard_vault_no_authenticated_update');
+      expect(policyNames).toContain('taxguard_vault_no_authenticated_delete');
+
       expect(policyNames).toContain('service_role_all_staff_assignments');
       expect(policyNames).toContain('staff_read_assigned_clients');
       expect(policyNames).toContain('assigned_staff_documents_access');

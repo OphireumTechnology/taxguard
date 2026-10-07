@@ -30,6 +30,7 @@ interface VaultDocument {
   status: DocumentLifecycleStatus;
   quarantineReason?: string;
   scanResult?: {
+    verified: boolean;
     clean: boolean;
     scanner: string;
     scannerVersion: string;
@@ -40,56 +41,10 @@ interface VaultDocument {
   createdAt: string;
 }
 
-export const TaxGuardDocumentsView: React.FC<{ userRole: string }> = ({ userRole }) => {
-  const [documents, setDocuments] = useState<VaultDocument[]>([
-    {
-      id: 'doc_w2_2025_001',
-      fileName: 'Henze_2025_Form_W2_Wage_Statement.pdf',
-      mimeType: 'application/pdf',
-      fileSizeBytes: 245019,
-      sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      status: 'QUARANTINED',
-      quarantineReason: 'PENDING_MALWARE_SCAN',
-      createdAt: '2026-02-15T10:14:00Z',
-    },
-    {
-      id: 'doc_1099nec_2025_002',
-      fileName: 'Henze_1099_NEC_Nonemployee_Compensation.pdf',
-      mimeType: 'application/pdf',
-      fileSizeBytes: 182300,
-      sha256: 'ca978112ca1bbdcaf064278e4a1f2f0c0da8237793d9d861417260f865324f30',
-      status: 'RELEASED',
-      scanResult: {
-        clean: true,
-        scanner: 'ClamAV-Daemon',
-        scannerVersion: '1.2.0',
-        scannedAt: '2026-02-15T11:00:00Z',
-      },
-      releaseApprovedBy: 'Sarah Jenkins, CPA',
-      releaseApprovedAt: '2026-02-15T11:05:00Z',
-      createdAt: '2026-02-15T10:45:00Z',
-    },
-    {
-      id: 'doc_k1_partnership_003',
-      fileName: 'Summit_Partners_2025_Schedule_K1.pdf',
-      mimeType: 'application/pdf',
-      fileSizeBytes: 412900,
-      sha256: '4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce',
-      status: 'OCR_COMPLETE',
-      scanResult: {
-        clean: true,
-        scanner: 'ClamAV-Daemon',
-        scannerVersion: '1.2.0',
-        scannedAt: '2026-02-15T11:15:00Z',
-      },
-      releaseApprovedBy: 'Sarah Jenkins, CPA',
-      releaseApprovedAt: '2026-02-15T11:20:00Z',
-      createdAt: '2026-02-15T11:10:00Z',
-    },
-  ]);
+export const TaxGuardDocumentsView: React.FC = () => {
+  const [documents] = useState<VaultDocument[]>([]);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [intakeReady, setIntakeReady] = useState<boolean>(false);
 
@@ -109,36 +64,10 @@ export const TaxGuardDocumentsView: React.FC<{ userRole: string }> = ({ userRole
 
   const handleSimulateUploadAttempt = () => {
     setErrorMessage(null);
-    setStatusMessage(null);
     if (!intakeReady) {
       setErrorMessage('DOCUMENT_INTAKE_NOT_READY: Real document intake is unavailable until the quarantine and malware scanning pipeline is commissioned.');
       return;
     }
-  };
-
-  const handleReleaseDocument = (docId: string) => {
-    setErrorMessage(null);
-    setStatusMessage(null);
-    const doc = documents.find(d => d.id === docId);
-    if (!doc) return;
-
-    if (!doc.scanResult?.clean) {
-      setErrorMessage('DOCUMENT_NOT_CLEAN: Document cannot be released from quarantine without a verified malware scan.');
-      return;
-    }
-
-    if (userRole === 'client' || userRole === 'preparer') {
-      setErrorMessage('AUTHORIZATION_DENIED: Only an independent CPA/EA Reviewer can authorize controlled document release.');
-      return;
-    }
-
-    setDocuments(prev => prev.map(d => d.id === docId ? {
-      ...d,
-      status: 'RELEASED',
-      releaseApprovedBy: 'Sarah Jenkins, CPA',
-      releaseApprovedAt: new Date().toISOString()
-    } : d));
-    setStatusMessage(`Document #${docId} released from quarantine and admitted for OCR ingestion.`);
   };
 
   const filteredDocs = documents.filter(d => {
@@ -190,12 +119,6 @@ export const TaxGuardDocumentsView: React.FC<{ userRole: string }> = ({ userRole
         </div>
 
         {/* Notifications */}
-        {statusMessage && (
-          <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs rounded-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{statusMessage}</span>
-          </div>
-        )}
         {errorMessage && (
           <div className="p-3 bg-red-50 border border-red-300 text-red-800 text-xs rounded-xs flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
@@ -279,7 +202,7 @@ export const TaxGuardDocumentsView: React.FC<{ userRole: string }> = ({ userRole
                     </td>
 
                     <td className="py-3 px-3">
-                      {doc.scanResult ? (
+                      {doc.scanResult?.verified && doc.scanResult.clean ? (
                         <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Clean ({doc.scanResult.scanner})</span>
@@ -312,13 +235,8 @@ export const TaxGuardDocumentsView: React.FC<{ userRole: string }> = ({ userRole
                     </td>
 
                     <td className="py-3 px-3 text-right">
-                      {isQuarantined && doc.scanResult?.clean && (
-                        <button
-                          onClick={() => handleReleaseDocument(doc.id)}
-                          className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xs text-[10px] font-semibold transition"
-                        >
-                          Authorize Release
-                        </button>
+                      {isQuarantined && doc.scanResult?.verified && doc.scanResult.clean && (
+                        <span className="text-amber-700 text-[10px]">Awaiting server-authorized release</span>
                       )}
                       {isQuarantined && !doc.scanResult && (
                         <span className="text-slate-400 text-[10px] flex items-center justify-end gap-1">

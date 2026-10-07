@@ -5,15 +5,128 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
+import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { db } from './db';
 import { User, UserRole } from '../types';
 import { isSupabaseServerConfigured } from './supabase';
 import { SupabaseDurableSessions, hasFallbackSupabaseSession } from './supabase-db';
+import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
   token?: string;
+  authorizedClientContext?: AuthorizedClientContext;
+}
+
+export interface AuthorizedClientContext {
+  authUserId: string;
+  clientId: string;
+  tenantId: string;
+  role: User['role'];
+}
+
+const CLIENT_ROLES = new Set<User['role']>(['client', 'prospective_client']);
+const STAFF_CLIENT_ROLES = new Set<User['role']>([
+  'accountant',
+  'senior_reviewer',
+  'reviewer',
+  'admin',
+  'administrator',
+  'super_admin',
+  'super_administrator'
+]);
+
+function logClientAuthorizationDenial(
+  req: AuthenticatedRequest,
+  resourceType: string
+): void {
+  const trustedRequestId = randomUUID();
+  db.logSecurityEvent({
+    eventType: 'CLIENT_RESOURCE_ACCESS_DENIED',
+    ipAddress: req.ip || 'unknown',
+    userId: req.user?.id,
+    resourceType,
+    authorizationResult: 'denied',
+    requestId: trustedRequestId,
+    details: `Denied ${resourceType} access; requestId=${trustedRequestId}.`,
+    severity: 'warning'
+  });
+}
+
+/**
+ * Resolves client scope only from the verified session. Staff selection requires an
+ * explicit target and an active assignment, except for tenant administrators.
+ */
+export function resolveAuthorizedClientContext(
+  req: AuthenticatedRequest,
+  res: Response,
+  resourceType: string,
+  selectedClientId?: string,
+  selectedTenantId?: string
+): AuthorizedClientContext | null {
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ error: 'Authentication required.', code: 'AUTH_REQUIRED' });
+    return null;
+  }
+
+  const configuredTenantId = (process.env.TAXGUARD_TENANT_ID || '').trim();
+  const tenantId = user.tenantId || (process.env.NODE_ENV === 'production' ? '' : configuredTenantId || 'tenantA');
+  if (
+    !tenantId ||
+    (process.env.NODE_ENV === 'production' &&
+      (!configuredTenantId || user.tenantId !== configuredTenantId)) ||
+    (selectedTenantId && selectedTenantId !== tenantId)
+  ) {
+    logClientAuthorizationDenial(req, resourceType);
+    res.status(403).json({ error: 'Authorized tenant context is unavailable.', code: 'CLIENT_CONTEXT_UNAVAILABLE' });
+    return null;
+  }
+
+  if (CLIENT_ROLES.has(user.role)) {
+    const clientId = user.clientId?.trim();
+    if (!clientId || (selectedClientId && selectedClientId !== clientId)) {
+      logClientAuthorizationDenial(req, resourceType);
+      res.status(403).json({ error: 'Access to this client resource is denied.', code: 'CLIENT_ACCESS_DENIED' });
+      return null;
+    }
+    return { authUserId: user.id, clientId, tenantId, role: user.role };
+  }
+
+  if (!STAFF_CLIENT_ROLES.has(user.role) || !selectedClientId?.trim()) {
+    logClientAuthorizationDenial(req, resourceType);
+    res.status(403).json({ error: 'Explicit authorized client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
+    return null;
+  }
+
+  const clientId = selectedClientId.trim();
+  const isAdministrator = ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(user.role);
+  const isAssigned = process.env.NODE_ENV === 'production'
+    ? user.authorizedClientIds?.includes(clientId) === true
+    : db.getClientBindings(clientId).some(binding =>
+        binding.accountantId === user.id && isAssignmentCurrentlyEffective(binding)
+      );
+
+  if (!isAdministrator && !isAssigned) {
+    logClientAuthorizationDenial(req, resourceType);
+    res.status(403).json({ error: 'Access to this client resource is denied.', code: 'CLIENT_ACCESS_DENIED' });
+    return null;
+  }
+
+  return { authUserId: user.id, clientId, tenantId, role: user.role };
+}
+
+export function requireClientRole(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required.', code: 'AUTH_REQUIRED' });
+    return;
+  }
+  if (!CLIENT_ROLES.has(req.user.role)) {
+    logClientAuthorizationDenial(req, 'client_portal');
+    res.status(403).json({ error: 'Client role required.', code: 'CLIENT_ROLE_REQUIRED' });
+    return;
+  }
+  next();
 }
 
 const SALT_LENGTH = 16;
@@ -291,33 +404,14 @@ export function requireAccountantAssignment(req: AuthenticatedRequest, res: Resp
     return res.status(401).json({ error: 'Unauthorized.' });
   }
 
-  // Admins, Super Admins can access across firm
-  if (['admin', 'super_admin'].includes(req.user.role)) {
-    return next();
-  }
-
-  if (req.user.role === 'accountant' || req.user.role === 'senior_reviewer') {
-    const requestedClientId = req.params.clientId || req.query.clientId as string || req.body?.clientId;
-    if (requestedClientId) {
-      const isAssigned = db.isAccountantAssignedToClient(req.user.id, requestedClientId);
-      const client = db.users.get(requestedClientId);
-      const isLegacyAssigned = client && (client.assignedAccountantId === req.user.id || client.assignedReviewerId === req.user.id);
-
-      if (!isAssigned && !isLegacyAssigned) {
-        db.logSecurityEvent({
-          eventType: 'ACCOUNTANT_UNASSIGNED_ACCESS_BLOCKED',
-          ipAddress: req.ip || 'unknown',
-          userId: req.user.id,
-          details: `Accountant ${req.user.name} (${req.user.id}) attempted to view unassigned client ${client?.name || requestedClientId} (${requestedClientId}). Access revoked/unbound.`,
-          severity: 'warning'
-        });
-
-        return res.status(403).json({
-          error: 'Forbidden: You are not assigned to this client caseload or your assignment is inactive.',
-          code: 'UNASSIGNED_CLIENT_ACCESS_DENIED'
-        });
-      }
-    }
+  const requestedClientId = req.params.clientId || req.query.clientId as string || req.body?.clientId;
+  if (!resolveAuthorizedClientContext(
+    req,
+    res,
+    'accountant_client_resource',
+    typeof requestedClientId === 'string' ? requestedClientId : undefined
+  )) {
+    return;
   }
 
   next();

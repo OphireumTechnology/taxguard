@@ -16,7 +16,7 @@
  * 13. Data Retention, Legal Hold, Archive Integrity & Annual Rollover
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createHmac, createHash } from 'node:crypto';
 import { globalDurableJobQueueService } from '../server/taxguard/operations/durableJobQueue.service';
 import { globalDurableIdempotencyService } from '../server/taxguard/operations/durableIdempotency.service';
@@ -490,6 +490,39 @@ describe('TaxGuard Production Practice Operations Suite', () => {
         isMandatorySecurity: true,
       });
       expect(mandatoryAlert.status).toBe('DELIVERED');
+    });
+
+    it('does not claim external notification delivery in production without provider transports', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('SENDGRID_API_KEY', 'test-sendgrid-key');
+      vi.stubEnv('TWILIO_AUTH_TOKEN', 'test-twilio-token');
+      vi.stubEnv('TWILIO_ACCOUNT_SID', 'test-twilio-account');
+      try {
+        const email = await globalNotificationOrchestratorService.dispatch({
+          tenantId: 'tenantA',
+          recipientId: 'usr_client_1',
+          recipientRole: 'client',
+          templateType: 'SECURITY_ALERT',
+          channel: 'EMAIL',
+          title: 'New Sign-in Alert',
+          body: 'New sign in detected.'
+        });
+        const sms = await globalNotificationOrchestratorService.dispatch({
+          tenantId: 'tenantA',
+          recipientId: 'usr_client_1',
+          recipientRole: 'client',
+          templateType: 'SECURITY_ALERT',
+          channel: 'SMS',
+          title: 'New Sign-in Alert',
+          body: 'New sign in detected.'
+        });
+        expect(email).toMatchObject({ status: 'NOT_CONFIGURED', failureCode: 'EMAIL_PROVIDER_NOT_COMMISSIONED' });
+        expect(sms).toMatchObject({ status: 'NOT_CONFIGURED', failureCode: 'SMS_PROVIDER_NOT_COMMISSIONED' });
+        expect(email.providerReference).toBeUndefined();
+        expect(sms.providerReference).toBeUndefined();
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
   });
 

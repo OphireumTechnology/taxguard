@@ -8,7 +8,8 @@ export function createMockSupabaseClient() {
     sessions: new Map<string, any>(),
     sequence: { current_sequence: 100, last_issued_client_id: '100' },
     audit: [] as any[],
-    documents: new Map<string, any>()
+    documents: new Map<string, any>(),
+    assignments: [] as any[]
   };
 
   const client: any = {
@@ -21,6 +22,45 @@ export function createMockSupabaseClient() {
                 id: 'sb_user_001',
                 email: 'client@example.com',
                 user_metadata: { full_name: 'Jane Doe' },
+                last_sign_in_at: new Date().toISOString()
+              }
+            },
+            error: null
+          };
+        }
+        if (token === 'valid_sb_token_b') {
+          return {
+            data: {
+              user: {
+                id: 'sb_user_002',
+                email: 'client-b@example.com',
+                user_metadata: { full_name: 'Client B' },
+                last_sign_in_at: new Date().toISOString()
+              }
+            },
+            error: null
+          };
+        }
+        if (token === 'seed_email_token') {
+          return {
+            data: {
+              user: {
+                id: 'sb_seed_auth_user',
+                email: 'm.perotti@example.com',
+                user_metadata: { full_name: 'Seed Email Identity' },
+                last_sign_in_at: new Date().toISOString()
+              }
+            },
+            error: null
+          };
+        }
+        if (token === 'valid_staff_token') {
+          return {
+            data: {
+              user: {
+                id: 'sb_staff_001',
+                email: 'staff@example.com',
+                user_metadata: { full_name: 'Assigned Staff' },
                 last_sign_in_at: new Date().toISOString()
               }
             },
@@ -48,12 +88,14 @@ export function createMockSupabaseClient() {
       let filterVal: any = null;
       let filterCol2 = '';
       let filterVal2: any = null;
+      const filters: Array<[string, any]> = [];
 
       let pendingUpdates: any = null;
 
       const builder: any = {
         select: vi.fn(() => builder),
         eq: vi.fn((col: string, val: any) => {
+          filters.push([col, val]);
           if (!filterCol) {
             filterCol = col;
             filterVal = val;
@@ -76,6 +118,12 @@ export function createMockSupabaseClient() {
               m => m.tenant_id === filterVal && m.uid === filterVal2
             );
             return { data: member || null, error: null };
+          }
+          if (table === 'taxguard_clients') {
+            const client = Array.from(store.clients.values()).find(
+              row => row.tenant_id === filterVal && row.owner_uid === filterVal2
+            );
+            return { data: client || null, error: null };
           }
           if (table === 'taxguard_client_id_sequence') {
             return { data: store.sequence, error: null };
@@ -109,6 +157,15 @@ export function createMockSupabaseClient() {
           return builder;
         }),
         then: (resolve: any, reject?: any) => {
+          if (table === 'taxguard_staff_assignments') {
+            const data = store.assignments.filter(row =>
+              filters.every(([column, value]) => {
+                const key = column as keyof typeof row;
+                return row[key] === value;
+              })
+            );
+            return Promise.resolve({ data, error: null }).then(resolve, reject);
+          }
           return Promise.resolve({ data: null, error: null }).then(resolve, reject);
         }
       };

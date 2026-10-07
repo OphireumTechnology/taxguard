@@ -3,7 +3,7 @@ import express from 'express';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createHmac } from 'crypto';
-import { paymentsRouter } from '../server/routes/payments.routes';
+import { paymentsRouter, requireLiveStripeProcessor } from '../server/routes/payments.routes';
 import { db } from '../server/db';
 import { createSession } from '../server/auth';
 import type { Invoice } from '../types';
@@ -47,6 +47,7 @@ beforeEach(() => {
     name: 'Alice Client',
     role: 'client' as const,
     clientId: 'CL-001',
+    tenantId: 'tenantA',
     status: 'active' as const,
     isVerified: true,
     createdAt: new Date().toISOString()
@@ -61,6 +62,7 @@ beforeEach(() => {
     name: 'Bob Client',
     role: 'client' as const,
     clientId: 'CL-002',
+    tenantId: 'tenantB',
     status: 'active' as const,
     isVerified: true,
     createdAt: new Date().toISOString()
@@ -74,6 +76,7 @@ beforeEach(() => {
     email: 'admin@artaxservices.com',
     name: 'Victoria Reynolds',
     role: 'admin' as const,
+    tenantId: 'tenantA',
     status: 'active' as const,
     isVerified: true,
     createdAt: new Date().toISOString()
@@ -119,6 +122,23 @@ describe('Payments Route Authority and Security Gate', () => {
       body: JSON.stringify({ amount: 100 })
     });
     expect(res.status).toBe(401);
+  });
+
+  it('blocks simulated production settlement even when Stripe credentials are present', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'test-configured-key');
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+    const next = vi.fn();
+    try {
+      requireLiveStripeProcessor({} as any, res, next);
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        code: 'PAYMENT_PROCESSOR_UNAVAILABLE'
+      }));
+      expect(next).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('rejects missing or non-positive amount when no invoice referenced (400)', async () => {
@@ -336,7 +356,7 @@ describe('Payments Route Authority and Security Gate', () => {
     expect(body.invoices[0].id).toBe('inv_client1_1040');
   });
 
-  it('allows admin to view all invoices across all clients', async () => {
+  it('restricts admin invoice listings to the authenticated tenant', async () => {
     const res = await fetch(`${origin}/api/payments/invoices`, {
       headers: {
         Authorization: `Bearer ${tokenAdmin}`
@@ -345,6 +365,6 @@ describe('Payments Route Authority and Security Gate', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.invoices.length).toBe(2);
+    expect(body.invoices.map((invoice: Invoice) => invoice.id)).toEqual(['inv_client1_1040']);
   });
 });

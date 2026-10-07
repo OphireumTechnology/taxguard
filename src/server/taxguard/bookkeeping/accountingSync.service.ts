@@ -27,7 +27,7 @@ export class AccountingSyncService {
     const existing = this.syncStates.get(key);
     if (existing) return existing;
 
-    const isConfigured = provider === 'QUICKBOOKS'
+    const credentialsPresent = provider === 'QUICKBOOKS'
       ? Boolean(process.env.QUICKBOOKS_CLIENT_ID && process.env.QUICKBOOKS_CLIENT_SECRET)
       : Boolean(process.env.XERO_CLIENT_ID && process.env.XERO_CLIENT_SECRET);
 
@@ -35,7 +35,7 @@ export class AccountingSyncService {
       provider,
       tenantId,
       clientId,
-      isConnected: isConfigured,
+      isConnected: process.env.NODE_ENV !== 'production' && credentialsPresent,
       isReadOnly: true, // MANDATORY READ-ONLY DEFAULT
       conflictState: 'NO_CONFLICT',
       writeAuthorization: {
@@ -78,6 +78,22 @@ export class AccountingSyncService {
     if (!isConfigured) {
       // Truthful reporting: provider is not commissioned
       state.isConnected = false;
+      return {
+        success: false,
+        provider,
+        syncedAccounts: 0,
+        syncedTransactions: 0,
+        conflictState: 'NO_CONFLICT',
+        readOnly: true,
+      };
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      state.isConnected = false;
+      state.syncedAccountsCount = 0;
+      state.syncedTransactionsCount = 0;
+      state.lastSyncAt = undefined;
+      this.syncStates.set(this.getKey(provider, tenantId, clientId), state);
       return {
         success: false,
         provider,
@@ -189,6 +205,10 @@ export class AccountingSyncService {
     auditStatus: 'AUDIT_RECORDED';
     auditEventId: string;
   }> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ACCOUNTING_PROVIDER_NOT_AVAILABLE: Live ledger write-back is not implemented.');
+    }
+
     // 1. Check in-memory store
     if (this.idempotencyStore.has(idempotencyKey)) {
       return this.idempotencyStore.get(idempotencyKey)!;

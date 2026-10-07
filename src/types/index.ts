@@ -26,6 +26,8 @@ export interface User {
    * Examples: 001, 999, 1000, A00000000.
    */
   clientId?: string;
+  tenantId?: string;
+  authorizedClientIds?: string[];
   email: string;
   name: string;
   role: UserRole;
@@ -1048,5 +1050,3 @@ export interface TaxStrategy {
 }
 
 export * from './intake';
-
-

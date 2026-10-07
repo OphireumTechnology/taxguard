@@ -11,6 +11,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { StageTwoCollectionService } from '../services/stageTwoCollectionService';
+import { SimulatedDevelopmentMalwareScanner, StageTwoIntakeSecurityService } from '../services/stageTwoIntakeSecurityService';
 import { StageTwoCollectionOperationsService } from '../services/stageTwoCollectionOperationsService';
 import {
   TaxDocumentRequirementEngine,
@@ -22,6 +23,8 @@ describe('Stage 02 Zero-Demo-Data & Action-Oriented Client Experience', () => {
   const taxYear = 2025;
 
   beforeEach(() => {
+    StageTwoCollectionService.resetCollectionForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(new SimulatedDevelopmentMalwareScanner());
     // Clear any test storage
     if (typeof localStorage !== 'undefined') {
       localStorage.clear();

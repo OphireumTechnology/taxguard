@@ -10,23 +10,21 @@
 
 import { Router, Response } from 'express';
 import { db } from '../db';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../auth';
+import {
+  authenticateToken,
+  AuthenticatedRequest,
+  requireRole,
+  resolveAuthorizedClientContext
+} from '../auth';
 import { SupabaseDurableSessions } from '../supabase-db';
 
 export const profileAmendmentRouter = Router();
 
 profileAmendmentRouter.use(authenticateToken);
-
-function resolveProfileAmendmentTenantId(): string {
-  const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
-  if (!configured) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.');
-    }
-    return 'tenantA';
-  }
-  return configured;
-}
+profileAmendmentRouter.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
 
 const SENSITIVE_FIELDS = [
   'legalName',
@@ -45,10 +43,19 @@ const SENSITIVE_FIELDS = [
 profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.query.clientId as string || req.user.id);
+  const context = resolveAuthorizedClientContext(
+    req,
+    res,
+    'authoritative_profile',
+    typeof req.query.clientId === 'string' ? req.query.clientId : undefined
+  );
+  if (!context) return;
+  const { clientId } = context;
   const profile = db.getAuthoritativeProfile(clientId);
-  const user = db.users.get(req.user.id) || req.user;
-  const rawDossier = db.clientOnboarding.get(clientId) || db.clientOnboarding.get(req.user.id) || {};
+  const user = (req.user.role === 'client' || req.user.role === 'prospective_client')
+    ? req.user
+    : db.users.get(clientId) || req.user;
+  const rawDossier = db.clientOnboarding.get(clientId) || {};
   const originalDossier = {
     ...(user.stageOneDossier || {}),
     ...(profile.originalDossier || {}),
@@ -265,10 +272,10 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
         }
       ],
       taxDocuments: Array.from(db.documents.values()).filter(
-        d => (d.clientId === req.user!.id || (req.user!.clientId && d.clientId === req.user!.clientId))
+        d => d.clientId === clientId
       ),
       priorYearDocuments: Array.from(db.documents.values()).filter(
-        d => (d.clientId === req.user!.id || (req.user!.clientId && d.clientId === req.user!.clientId)) && d.category === 'prior_year_return'
+        d => d.clientId === clientId && d.category === 'prior_year_return'
       )
     },
     amendments: clientAmendments
@@ -279,7 +286,14 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
 profileAmendmentRouter.patch('/ordinary', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.id);
+  const context = resolveAuthorizedClientContext(
+    req,
+    res,
+    'ordinary_profile_update',
+    typeof req.body.clientId === 'string' ? req.body.clientId : undefined
+  );
+  if (!context) return;
+  const { clientId } = context;
   const updates = req.body || {};
 
   // Defense-in-depth: Reject any sensitive verified identity field updates
@@ -313,20 +327,27 @@ profileAmendmentRouter.patch('/ordinary', async (req: AuthenticatedRequest, res:
   db.authoritativeProfiles.set(clientId, profile);
 
   // Update user in memory and Supabase durable sessions
-  const user = db.users.get(req.user.id) || req.user;
-  if (sanitizedUpdates.phone) user.phone = sanitizedUpdates.phone;
-  if (sanitizedUpdates.companyName) user.companyName = sanitizedUpdates.companyName;
-  user.updatedAt = now;
-  db.users.set(user.id, user);
+  const user = (req.user.role === 'client' || req.user.role === 'prospective_client')
+    ? db.users.get(req.user.id) || req.user
+    : db.users.get(clientId) || req.user;
+  if (req.user.role === 'client' || req.user.role === 'prospective_client') {
+    if (sanitizedUpdates.phone) user.phone = sanitizedUpdates.phone;
+    if (sanitizedUpdates.companyName) user.companyName = sanitizedUpdates.companyName;
+    user.updatedAt = now;
+    db.users.set(user.id, user);
 
-  try {
-    const sessions = new SupabaseDurableSessions(undefined, resolveProfileAmendmentTenantId());
-    await sessions.updateUser(user.id, {
-      ...(sanitizedUpdates.phone ? { phone: sanitizedUpdates.phone } : {}),
-      ...(sanitizedUpdates.companyName ? { companyName: sanitizedUpdates.companyName } : {})
-    });
-  } catch {
-    // Non-blocking
+    try {
+      const sessions = new SupabaseDurableSessions(undefined, context.tenantId);
+      await sessions.updateUser(user.id, {
+        ...(sanitizedUpdates.phone ? { phone: sanitizedUpdates.phone } : {}),
+        ...(sanitizedUpdates.companyName ? { companyName: sanitizedUpdates.companyName } : {})
+      });
+    } catch {
+      return res.status(503).json({ error: 'Profile update could not be persisted.', code: 'PROFILE_UPDATE_UNAVAILABLE' });
+    }
+  } else {
+    user.updatedAt = now;
+    db.users.set(user.id, user);
   }
 
   db.logAudit({
@@ -352,17 +373,11 @@ profileAmendmentRouter.patch('/ordinary', async (req: AuthenticatedRequest, res:
 profileAmendmentRouter.get('/amendments', (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const isStaff = ['accountant', 'senior_reviewer', 'admin', 'super_admin'].includes(req.user.role);
   const requestedClientId = req.query.clientId as string;
-
-  let records = Array.from(db.profileAmendments.values());
-
-  if (!isStaff) {
-    const myClientId = req.user.clientId || req.user.id;
-    records = records.filter(r => r.clientId === myClientId);
-  } else if (requestedClientId) {
-    records = records.filter(r => r.clientId === requestedClientId);
-  }
+  const context = resolveAuthorizedClientContext(req, res, 'profile_amendments', requestedClientId);
+  if (!context) return;
+  const records = Array.from(db.profileAmendments.values())
+    .filter(r => r.clientId === context.clientId && r.tenantId === context.tenantId);
 
   // Sort newest first
   records.sort((a, b) => new Date(b.requestTimestamp).getTime() - new Date(a.requestTimestamp).getTime());
@@ -395,8 +410,15 @@ profileAmendmentRouter.post('/amendments', (req: AuthenticatedRequest, res: Resp
     return res.status(400).json({ error: 'A valid business or factual reason (minimum 5 characters) is required for amendment.' });
   }
 
-  const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.id);
-  const tenantId = resolveProfileAmendmentTenantId();
+  const context = resolveAuthorizedClientContext(
+    req,
+    res,
+    'profile_amendment_create',
+    typeof req.body.clientId === 'string' ? req.body.clientId : undefined
+  );
+  if (!context) return;
+  const clientId = context.clientId;
+  const tenantId = context.tenantId;
 
   // High-risk identity change check (e.g. legal name change, SSN/TIN update, entity status)
   const isSensitive = Boolean(isSensitiveIdentityChange || SENSITIVE_FIELDS.includes(field));
@@ -426,6 +448,19 @@ profileAmendmentRouter.post(
   '/amendments/:id/review',
   requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'),
   async (req: AuthenticatedRequest, res: Response) => {
+    const pendingAmendment = db.profileAmendments.get(req.params.id);
+    if (!pendingAmendment) {
+      return res.status(404).json({ error: 'Amendment not found.' });
+    }
+    const context = resolveAuthorizedClientContext(
+      req,
+      res,
+      'profile_amendment_review',
+      pendingAmendment.clientId,
+      pendingAmendment.tenantId
+    );
+    if (!context) return;
+
     const { disposition, notes } = req.body;
 
     if (!disposition || !['APPROVED', 'REJECTED', 'INFO_REQUESTED'].includes(disposition)) {

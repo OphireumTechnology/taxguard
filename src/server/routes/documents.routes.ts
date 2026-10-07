@@ -10,10 +10,12 @@ import { db } from '../db';
 import { 
   authenticateToken, 
   AuthenticatedRequest, 
-  blockRecruiterFromTaxRecords 
+  blockRecruiterFromTaxRecords,
+  resolveAuthorizedClientContext
 } from '../auth';
 import { DocumentItem, DocumentCategory, DocumentStatus } from '../../types';
 import { processDocumentExtraction } from '../aiExtraction';
+import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
 
 export const documentsRouter = Router();
 
@@ -27,27 +29,87 @@ const ALLOWED_MIME_TYPES = [
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 const SIGNED_TOKEN_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
 
+function requireCommissionedDocumentIntake(_req: Request, res: Response, next: (error?: unknown) => void): void {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(503).json({
+      error: 'Real document intake is unavailable until the quarantine and scanning pipeline is commissioned.',
+      code: 'DOCUMENT_INTAKE_NOT_READY'
+    });
+    return;
+  }
+  next();
+}
+
 // List documents with strict tenant & client isolation
 documentsRouter.get('/', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({
+      error: 'Document listing is unavailable until durable tenant-scoped document persistence is enabled.',
+      code: 'DOCUMENT_LIST_UNAVAILABLE'
+    });
+  }
 
   const { category, taxYear, status, search, clientId } = req.query;
 
   let docs = Array.from(db.documents.values());
 
-  // CLIENT ISOLATION: A client can ONLY see their own documents!
+  // Client data is always scoped to the verified session identity.
   if (req.user.role === 'client' || req.user.role === 'prospective_client') {
-    docs = docs.filter(d => d.clientId === req.user!.id);
-  } else if (req.user.role === 'accountant') {
-    // ACCOUNTANT RESTRICTION: Accountants can only see documents for clients assigned to them
-    const assignedClientIds = Array.from(db.users.values())
-      .filter(u => u.assignedAccountantId === req.user!.id)
-      .map(u => u.id);
-    
-    docs = docs.filter(d => assignedClientIds.includes(d.clientId));
-  } else if (clientId && typeof clientId === 'string') {
-    // Admin, reviewer, manager can filter by clientId
-    docs = docs.filter(d => d.clientId === clientId);
+    const context = resolveAuthorizedClientContext(req, res, 'document_list', typeof clientId === 'string' ? clientId : undefined);
+    if (!context) return;
+    docs = docs.filter(d => d.clientId === context.clientId);
+  } else if (['accountant', 'senior_reviewer', 'reviewer'].includes(req.user.role)) {
+    const userTenantId = req.user.tenantId;
+    if (!userTenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    const staffClientIds = new Set(
+      db.getAccountantBindings(req.user.id)
+        .filter(binding => {
+          const scopedBinding = binding as typeof binding & {
+            engagementId?: string | null;
+            taxYear?: number | null;
+            caseId?: string | null;
+          };
+          return isAssignmentCurrentlyEffective(binding) &&
+            !scopedBinding.engagementId &&
+            !scopedBinding.caseId;
+        })
+        .map(binding => binding.clientId)
+    );
+    docs = docs.filter(doc => {
+      if (!staffClientIds.has(doc.clientId)) return false;
+      const client = db.users.get(doc.clientId) ||
+        Array.from(db.users.values()).find(user =>
+          ['client', 'prospective_client'].includes(user.role) && user.clientId === doc.clientId
+        );
+      if (!client || client.tenantId !== userTenantId) return false;
+      const matchingAssignment = db.getClientBindings(doc.clientId).some(binding => {
+        const scopedBinding = binding as typeof binding & { taxYear?: number | null };
+        return binding.accountantId === req.user!.id &&
+          isAssignmentCurrentlyEffective(binding) &&
+          (scopedBinding.taxYear == null || Number(scopedBinding.taxYear) === doc.taxYear) &&
+          !(binding as typeof binding & { engagementId?: string | null; caseId?: string | null }).engagementId &&
+          !(binding as typeof binding & { caseId?: string | null }).caseId;
+      });
+      return matchingAssignment;
+    });
+  } else if (['admin', 'administrator', 'super_admin', 'super_administrator'].includes(req.user.role)) {
+    const tenantId = req.user.tenantId;
+    if (!tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    docs = docs.filter(doc => {
+      const client = db.users.get(doc.clientId) ||
+        Array.from(db.users.values()).find(user =>
+          ['client', 'prospective_client'].includes(user.role) && user.clientId === doc.clientId
+        );
+      return client?.tenantId === tenantId;
+    });
+    if (typeof clientId === 'string') {
+      const context = resolveAuthorizedClientContext(req, res, 'document_list', clientId);
+      if (!context) return;
+      docs = docs.filter(d => d.clientId === context.clientId);
+    }
+  } else {
+    return res.status(403).json({ error: 'Forbidden: Tax record access is not permitted.' });
   }
 
   // Filters
@@ -67,20 +129,11 @@ documentsRouter.get('/', authenticateToken, blockRecruiterFromTaxRecords, (req: 
 
 // Single document details
 documentsRouter.get('/:id', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
   const doc = db.documents.get(req.params.id);
   if (!doc) return res.status(404).json({ error: 'Document not found.' });
 
-  // Client isolation check
-  if (req.user?.role === 'client' && doc.clientId !== req.user.id) {
-    db.logSecurityEvent({
-      eventType: 'UNAUTHORIZED_DOC_ACCESS_BLOCKED',
-      ipAddress: req.ip || 'unknown',
-      userId: req.user.id,
-      details: `Client ${req.user.email} attempted to inspect document #${doc.id} owned by client ${doc.clientId}.`,
-      severity: 'critical'
-    });
-    return res.status(403).json({ error: 'Forbidden: You do not have permission to view this document.' });
-  }
+  if (!resolveAuthorizedClientContext(req, res, 'document', doc.clientId)) return;
 
   return res.json({ document: doc });
 });
@@ -92,17 +145,8 @@ documentsRouter.post('/:id/signed-url', authenticateToken, blockRecruiterFromTax
   const doc = db.documents.get(req.params.id);
   if (!doc) return res.status(404).json({ error: 'Document not found.' });
 
-  // Security authorization check
-  if (req.user.role === 'client' && doc.clientId !== req.user.id) {
-    db.logSecurityEvent({
-      eventType: 'CLIENT_SIGN_TOKEN_HIJACK_ATTEMPT',
-      ipAddress: req.ip || 'unknown',
-      userId: req.user.id,
-      details: `Client ${req.user.email} attempted to request download token for unowned doc #${doc.id}.`,
-      severity: 'critical'
-    });
-    return res.status(403).json({ error: 'Forbidden: You can only request download tokens for your own documents.' });
-  }
+  const context = resolveAuthorizedClientContext(req, res, 'document_download', doc.clientId);
+  if (!context) return;
 
   // Generate 5-minute signed token
   const token = randomBytes(32).toString('hex');
@@ -113,6 +157,8 @@ documentsRouter.post('/:id/signed-url', authenticateToken, blockRecruiterFromTax
     token,
     documentId: doc.id,
     userId: req.user.id,
+    clientId: context.clientId,
+    tenantId: context.tenantId,
     createdAt: now,
     expiresAt
   });
@@ -164,9 +210,10 @@ documentsRouter.get('/download/:token', (req: Request, res: Response) => {
   }
 
   const doc = db.documents.get(record.documentId);
-  if (!doc) {
+  if (!doc || doc.clientId !== record.clientId) {
     return res.status(404).json({ error: 'Referenced document was not found.' });
   }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
   // Log successful access
   db.logAudit({
@@ -188,8 +235,7 @@ documentsRouter.get('/download/:token', (req: Request, res: Response) => {
 });
 
 // Upload new document with malware scanning hook and AI extraction
-documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords, async (req: AuthenticatedRequest, res: Response) => {
-  if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Real document intake is unavailable until the quarantine and scanning pipeline is commissioned.', code: 'DOCUMENT_INTAKE_NOT_READY' });
+documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords, requireCommissionedDocumentIntake, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -230,9 +276,14 @@ documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords,
     }
 
     const docId = `doc_${randomUUID()}`;
-    const targetClientId = (req.user.role === 'client' || req.user.role === 'prospective_client')
-      ? req.user.id
-      : (req.body.clientId || req.user.id);
+    const context = resolveAuthorizedClientContext(
+      req,
+      res,
+      'document_upload',
+      typeof req.body.clientId === 'string' ? req.body.clientId : undefined
+    );
+    if (!context) return;
+    const targetClientId = context.clientId;
 
     const client = db.users.get(targetClientId);
 
@@ -301,6 +352,7 @@ documentsRouter.patch('/:id/review', authenticateToken, blockRecruiterFromTaxRec
 
   const doc = db.documents.get(req.params.id);
   if (!doc) return res.status(404).json({ error: 'Document not found.' });
+  if (!resolveAuthorizedClientContext(req, res, 'document_review', doc.clientId)) return;
 
   const { status, reviewerNotes, correctedFields } = req.body;
 
@@ -336,13 +388,7 @@ documentsRouter.post('/:id/withdraw', authenticateToken, blockRecruiterFromTaxRe
   const doc = db.documents.get(req.params.id);
   if (!doc) return res.status(404).json({ error: 'Document not found.' });
 
-  // Authorization check: only owner client or staff can withdraw
-  const isOwner = req.user.id === doc.clientId || (req.user.clientId && req.user.clientId === doc.clientId);
-  const isStaff = ['accountant', 'senior_reviewer', 'admin', 'super_admin'].includes(req.user.role);
-
-  if (!isOwner && !isStaff) {
-    return res.status(403).json({ error: 'Forbidden: You do not have permission to withdraw this document.' });
-  }
+  if (!resolveAuthorizedClientContext(req, res, 'document_withdrawal', doc.clientId)) return;
 
   const { reason = 'CLIENT_REQUEST', justification } = req.body;
   if (!justification || typeof justification !== 'string' || justification.trim().length < 5) {
@@ -366,7 +412,7 @@ documentsRouter.post('/:id/withdraw', authenticateToken, blockRecruiterFromTaxRe
 });
 
 // Multi-file batch upload (Directive 5 & 6)
-documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRecords, async (req: AuthenticatedRequest, res: Response) => {
+documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRecords, requireCommissionedDocumentIntake, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { files, taxYear = 2025 } = req.body;
@@ -374,9 +420,14 @@ documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRe
     return res.status(400).json({ error: 'Files array is required.' });
   }
 
-  const targetClientId = (req.user.role === 'client' || req.user.role === 'prospective_client')
-    ? (req.user.clientId || req.user.id)
-    : (req.body.clientId || req.user.id);
+  const context = resolveAuthorizedClientContext(
+    req,
+    res,
+    'document_batch_upload',
+    typeof req.body.clientId === 'string' ? req.body.clientId : undefined
+  );
+  if (!context) return;
+  const targetClientId = context.clientId;
 
   const client = db.users.get(targetClientId);
   const ingestedDocs: DocumentItem[] = [];
@@ -449,4 +500,3 @@ documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRe
     documents: ingestedDocs
   });
 });
-

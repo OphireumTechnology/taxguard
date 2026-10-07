@@ -432,10 +432,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const authOperationInProgressRef = useRef(false);
+  const authGenerationRef = useRef(0);
   const registrationStateRef = useRef<RegistrationResultState>(registrationState);
   registrationStateRef.current = registrationState;
 
   const clearTaxpayerState = useCallback(() => {
+    authGenerationRef.current += 1;
+    StageOneOnboardingService.clearSensitiveClientData();
+    LiveWorkflowAuthority.clear();
+    setCurrentUser(null);
+    setCurrentRoleState('guest');
+    setProvisionedOnboarding(null);
     setUsers([]);
     setEngagements([]);
     setDocuments([]);
@@ -450,6 +457,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications([]);
     setOnboardingState(null);
     setOnboardingProgress(null);
+    setDataError(null);
+    setIsLoadingData(false);
+    setIsSyncingWithBackend(false);
   }, []);
 
   useEffect(() => {
@@ -531,6 +541,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const refreshBackendData = useCallback(async () => {
+    const requestGeneration = authGenerationRef.current;
+    const requestToken = getStoredToken();
     const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
     if (environment !== 'live') {
       throw new Error('LIVE workspace synchronization requires an authenticated LIVE environment.');
@@ -545,6 +557,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const sessionUser = meRes?.user;
 
       if (!sessionUser) throw new Error('Authenticated TaxGuard session could not be restored.');
+      if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
 
       if (sessionUser.role === 'client' && sessionUser.clientId) {
         if (LiveWorkflowAuthority.getSnapshot().status !== 'ready') {
@@ -555,17 +568,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           snap.workflow?.stage1?.status === 'COMPLETED' ||
           (snap.workflow?.activeStage && snap.workflow.activeStage >= 2) ||
           (sessionUser.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
-          (currentUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' ||
           Boolean(sessionUser.onboardingCompletedAt) ||
-          Boolean(currentUser?.onboardingCompletedAt) ||
           StageOneOnboardingService.hasPassedHardExitGate(sessionUser.clientId, sessionUser)
         ) {
           sessionUser.onboardingStatus = 'COMPLETED';
-          sessionUser.onboardingCompletedAt = sessionUser.onboardingCompletedAt || currentUser?.onboardingCompletedAt || new Date().toISOString();
+          sessionUser.onboardingCompletedAt = sessionUser.onboardingCompletedAt || new Date().toISOString();
         }
         StageOneOnboardingService.restoreDossierFromUser(sessionUser);
       }
 
+      if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
       setCurrentUser({ ...sessionUser });
       setCurrentRoleState(sessionUser.role);
 
@@ -581,6 +593,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           api.legal.list().catch(() => ({ legalRecords: [] }))
         ]);
 
+        if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
         setDocuments(docsRes.documents || []);
         setEngagements(engsRes.engagements || []);
         setAppointments(aptsRes.appointments || []);
@@ -592,6 +605,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (sessionUser.role === 'client' || sessionUser.role === 'prospective_client') {
           const onb = await api.onboarding.getState().catch(() => null);
+          if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
           if (onb) {
             setOnboardingState(onb.state);
             setOnboardingProgress(onb.progress);
@@ -600,22 +614,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (sessionUser.role === 'admin' || sessionUser.role === 'super_admin') {
           const auditRes = await api.admin.getAuditLogs().catch(() => null);
+          if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
           if (auditRes?.auditLogs) setAuditLogs(auditRes.auditLogs);
         }
 
         if (['recruiter', 'admin', 'super_admin'].includes(sessionUser.role)) {
           const appsRes = await api.careers.getApplicants().catch(() => null);
+          if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
           if (appsRes?.applicants) setApplicants(appsRes.applicants);
         }
       }
     } catch (err: any) {
+      if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
       console.warn('Backend sync note:', err);
       setDataError(err?.message || 'Failed to synchronize workspace records.');
       throw err;
     } finally {
-      setIsSyncingWithBackend(false);
-      setIsLoadingData(false);
-      setIsInitialized(true);
+      if (requestGeneration === authGenerationRef.current && requestToken === getStoredToken()) {
+        setIsSyncingWithBackend(false);
+        setIsLoadingData(false);
+        setIsInitialized(true);
+      }
     }
   }, []);
 
@@ -626,6 +645,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       trackRegistrationStates?: boolean;
     }
   ): Promise<{ user: User; redirectPage: PageRoute }> => {
+    clearTaxpayerState();
+    setAuthLifecycleState('INITIALIZING');
+    setIsInitialized(false);
+    setDataError(null);
     if (options?.trackRegistrationStates) {
       setRegistrationState('ESTABLISHING_SESSION');
     }
@@ -747,7 +770,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     return { user: liveSession.user, redirectPage: landingPage };
-  }, [refreshBackendData]);
+  }, [clearTaxpayerState, refreshBackendData]);
 
   useEffect(() => {
     let active = true;
@@ -963,6 +986,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     authOperationInProgressRef.current = true;
+    clearTaxpayerState();
+    setAuthLifecycleState('INITIALIZING');
+    setIsInitialized(false);
 
     try {
       if (typeof window !== 'undefined') {

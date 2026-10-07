@@ -529,6 +529,10 @@ export class AccountingDocumentIntelligenceService {
     clientId: string;
     taxYear: number;
   }): AccountingIntakeQueueItem {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('DOCUMENT_INTAKE_NOT_READY: Durable storage, quarantine, malware scanning, and OCR are required.');
+    }
+
     // 1. Classification & Relevance
     const classResult = this.classifyDocument(params.filename, params.rawText, params.mimeType);
 
@@ -576,7 +580,7 @@ export class AccountingDocumentIntelligenceService {
       sha256: params.sha256,
       classification: classResult.classification,
       isAccountingRelevant: classResult.isAccountingRelevant,
-      quarantineStatus: 'CLEARED',
+      quarantineStatus: 'QUARANTINED',
       duplicateStatus: duplicateResult.status,
       duplicateOfId: duplicateResult.primaryDocumentId,
       envelope,

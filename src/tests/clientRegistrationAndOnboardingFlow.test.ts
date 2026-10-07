@@ -102,6 +102,12 @@ function createMockSupabaseBackend() {
             );
             return { data: member || null, error: null };
           }
+          if (table === 'taxguard_clients') {
+            const client = Array.from(store.clients.values()).find(
+              row => row.tenant_id === filterVal && row.owner_uid === filterVal2
+            );
+            return { data: client || null, error: null };
+          }
           if (table === 'taxguard_client_id_sequence') {
             return { data: store.sequence, error: null };
           }

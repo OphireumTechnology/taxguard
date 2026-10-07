@@ -129,6 +129,36 @@ const STORAGE_KEY_PREFIX = 'artax_stage_one_dossier_';
 const ACTIVE_CLIENT_ID_KEY = 'artax_active_onboarding_client_id';
 
 export class StageOneOnboardingService {
+  public static clearSensitiveClientData(): void {
+    this.inMemoryDossiers.clear();
+    this.activeClientIdMemory = null;
+
+    if (typeof window === 'undefined') return;
+
+    const sensitivePrefixes = [
+      'artax_stage_one_dossier_',
+      'artax_active_onboarding_client_id',
+      'artax_stage2_',
+      'artax_stage3_',
+      'artax_stage_two_',
+      'taxguard_questionnaire_',
+      'taxguard_not_applicable_',
+      'ar_tax_client_sync_queue_v1'
+    ];
+
+    try {
+      const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+        .filter((key): key is string => Boolean(key));
+      for (const key of keys) {
+        if (sensitivePrefixes.some(prefix => key.startsWith(prefix))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // Browser storage may be unavailable; memory state is still cleared.
+    }
+  }
+
   /**
    * Generate internal Client ID: AR-CLT-YYYY-XXXXX
    */

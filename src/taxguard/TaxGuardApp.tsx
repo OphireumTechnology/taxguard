@@ -116,7 +116,7 @@ export const TaxGuardApp: React.FC<TaxGuardAppProps> = ({
           <TaxGuardScannerView userRole={activeRole} onFinished={() => handleNavigate('documents')} />
         )}
         {currentSubRoute === 'documents' && (
-          <TaxGuardDocumentsView userRole={activeRole} />
+          <TaxGuardDocumentsView />
         )}
         {currentSubRoute === 'classification' && (
           <TaxGuardClassificationView userRole={activeRole} />

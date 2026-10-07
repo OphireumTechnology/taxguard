@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
 
 export type TransactionalDatabase = {
   runTransaction: <T>(updateFunction: (transaction: any) => Promise<T>) => Promise<T>;
@@ -143,9 +144,38 @@ interface Write {
   data: any;
 }
 
+export interface MalwareScanRequest {
+  tenantId: string;
+  clientId: string;
+  engagementId: string;
+  taxYear: number;
+  documentId: string;
+  storagePath: string;
+  sha256: string;
+  mimeType: string;
+  signal: AbortSignal;
+}
+
+export interface VerifiedMalwareScanResult {
+  clean: boolean;
+  verified: boolean;
+  scanner: string;
+  scannerVersion: string;
+  scannedAt: string;
+  details?: string;
+}
+
+export interface MalwareScanner {
+  scan(request: MalwareScanRequest): Promise<VerifiedMalwareScanResult>;
+}
+
 /** Admin SDK only. Persistent multi-tenant tax authority engine. */
 export class TaxGuardAuthorityRepository {
-  constructor(private readonly db: TransactionalDatabase) {
+  constructor(
+    private readonly db: TransactionalDatabase,
+    private readonly malwareScanner?: MalwareScanner,
+    private readonly malwareScanTimeoutMs = 30_000
+  ) {
     if (!db) throw new AuthorityError('AUTHORITY_UNAVAILABLE', 503);
   }
 
@@ -164,7 +194,15 @@ export class TaxGuardAuthorityRepository {
       throw new AuthorityError('SCOPE_MISMATCH', 403);
     }
     const assignment = (await tx.get(this.db.doc(`${path}/assignments/${uid}`))).data();
-    if (!assignment || assignment.active !== true || assignment.uid !== uid) {
+    if (
+      !assignment ||
+      assignment.uid !== uid ||
+      !isAssignmentCurrentlyEffective({
+        status: assignment.active === true ? 'active' : 'inactive',
+        effective_from: assignment.assignedAt,
+        effective_to: null
+      })
+    ) {
       throw new AuthorityError('CASE_ACCESS_DENIED', 403);
     }
     if (member.role === 'client') {
@@ -261,7 +299,14 @@ export class TaxGuardAuthorityRepository {
         if (caseDoc.exists) {
           const c = caseDoc.data() as CaseRecord;
           const assignment = (await tx.get(this.db.doc(`${engagementPath}/years/${year}/assignments/${uid}`))).data();
-          if (member.role === 'administrator' || (assignment && assignment.active === true)) {
+          if (member.role === 'administrator' || (
+            assignment &&
+            isAssignmentCurrentlyEffective({
+              status: assignment.active === true ? 'active' : 'inactive',
+              effective_from: assignment.assignedAt,
+              effective_to: null
+            })
+          )) {
             cases.push({
               id: c.id || `case_${year}`,
               caseId: c.caseId || `case_${year}`,
@@ -890,19 +935,61 @@ export class TaxGuardAuthorityRepository {
       if (!doc) throw new AuthorityError('DOCUMENT_NOT_FOUND', 404);
 
       const scannerReadiness = ProviderReadinessRegistry.getProviderStatus('MALWARE_SCANNER');
-      if (!scannerReadiness.isOperational) {
-        // Document remains quarantined/not released. Never fabricate clean scan!
+      if (!scannerReadiness.isOperational || !this.malwareScanner) {
         throw new AuthorityError('SCANNER_UNAVAILABLE', 503);
       }
 
-      const scanResult = {
-        clean: true,
-        scanner: 'ClamAV-Daemon',
-        scannerVersion: '1.2.0',
-        scannedAt: new Date().toISOString(),
-      };
+      const controller = new AbortController();
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      let scanResult: VerifiedMalwareScanResult;
+      try {
+        scanResult = await Promise.race([
+          this.malwareScanner.scan({
+            tenantId: doc.tenantId,
+            clientId: doc.clientId,
+            engagementId: doc.engagementId,
+            taxYear: doc.taxYear,
+            documentId: doc.id,
+            storagePath: doc.storagePath,
+            sha256: doc.sha256,
+            mimeType: doc.mimeType,
+            signal: controller.signal
+          }),
+          new Promise<never>((_, reject) => {
+            timeout = setTimeout(() => {
+              controller.abort();
+              reject(new AuthorityError('SCANNER_TIMEOUT', 503));
+            }, this.malwareScanTimeoutMs);
+          })
+        ]);
+      } catch {
+        throw new AuthorityError('SCANNER_FAILED', 503);
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
 
-      tx.set(docRef, { status: 'SCANNING', scanResult, updatedAt: new Date().toISOString(), updatedBy: uid }, { merge: true });
+      const scannedAt = Date.parse(scanResult?.scannedAt || '');
+      if (
+        scanResult?.verified !== true ||
+        typeof scanResult.clean !== 'boolean' ||
+        typeof scanResult.scanner !== 'string' ||
+        !scanResult.scanner.trim() ||
+        typeof scanResult.scannerVersion !== 'string' ||
+        !scanResult.scannerVersion.trim() ||
+        !Number.isFinite(scannedAt) ||
+        scannedAt > Date.now()
+      ) {
+        throw new AuthorityError('SCANNER_RESPONSE_INVALID', 503);
+      }
+
+      const timestamp = new Date().toISOString();
+      tx.set(docRef, {
+        status: scanResult.clean ? 'SCANNING' : 'REJECTED',
+        scanResult,
+        quarantineReason: scanResult.clean ? undefined : 'MALWARE_DETECTED',
+        updatedAt: timestamp,
+        updatedBy: uid
+      }, { merge: true });
 
       return {
         writes: [{ collection: 'scanResults', id: operationId, data: { docId, scanResult } }],
@@ -917,7 +1004,14 @@ export class TaxGuardAuthorityRepository {
       const docRef = this.db.doc(`${casePath(scope)}/documents/${docId}`);
       const doc = (await tx.get(docRef)).data() as DocumentEntity;
       if (!doc) throw new AuthorityError('DOCUMENT_NOT_FOUND', 404);
-      if (!doc.scanResult?.clean) throw new AuthorityError('DOCUMENT_NOT_CLEAN', 400);
+      if (
+        doc.status !== 'SCANNING' ||
+        doc.scanResult?.clean !== true ||
+        doc.scanResult.verified !== true ||
+        !doc.scanResult.scanner ||
+        !doc.scanResult.scannerVersion ||
+        !Number.isFinite(Date.parse(doc.scanResult.scannedAt))
+      ) throw new AuthorityError('DOCUMENT_NOT_CLEAN', 400);
 
       const timestamp = new Date().toISOString();
       tx.set(docRef, {
@@ -3325,4 +3419,3 @@ export class TaxGuardAuthorityRepository {
     });
   }
 }
-

@@ -16,7 +16,14 @@
  */
 
 import { Router, Response } from 'express';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../auth';
+import {
+  authenticateToken,
+  AuthenticatedRequest,
+  requireRole,
+  resolveAuthorizedClientContext
+} from '../auth';
+import { db } from '../db';
+import { getSupabaseAdmin } from '../supabase';
 import { globalDurableJobQueueService } from '../taxguard/operations/durableJobQueue.service';
 import { globalPracticeTaskService } from '../taxguard/operations/practiceTask.service';
 import { globalStaffAssignmentService } from '../taxguard/operations/staffAssignment.service';
@@ -29,6 +36,7 @@ import { globalOperationalSearchService } from '../taxguard/operations/operation
 import { globalPracticeAnalyticsService } from '../taxguard/operations/practiceAnalytics.service';
 import { globalDataRetentionRecoveryService } from '../taxguard/operations/dataRetentionRecovery.service';
 import { globalDurableIdempotencyService } from '../taxguard/operations/durableIdempotency.service';
+import { isStaffCurrentlyAssignedToClient } from '../assignment-authorization';
 
 export const practiceOperationsRouter = Router();
 
@@ -41,6 +49,7 @@ practiceOperationsRouter.use((req, res, next) => {
         error: 'PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.',
       });
     }
+
     const headerTenant = ((req.headers['x-tenant-id'] as string) || '').trim();
     if (headerTenant && headerTenant !== configured) {
       return res.status(403).json({
@@ -63,6 +72,37 @@ function getTenantId(req: AuthenticatedRequest): string {
   return (req.user as any)?.tenantId || configured || 'tenantA';
 }
 
+function resolveRouteClientContext(
+  req: AuthenticatedRequest,
+  res: Response,
+  resourceType: string,
+  selectedClientId?: string
+) {
+  const requested =
+    selectedClientId ||
+    (req.params.clientId as string | undefined) ||
+    (req.query.clientId as string | undefined) ||
+    (req.body?.clientId as string | undefined);
+  const context = resolveAuthorizedClientContext(req, res, resourceType, requested);
+  if (!context) return null;
+
+  const tenantId = getTenantId(req);
+  if (context.tenantId !== tenantId) {
+    db.logSecurityEvent({
+      eventType: 'CROSS_TENANT_ACCESS_ATTEMPT',
+      ipAddress: req.ip || 'unknown',
+      userId: req.user?.id,
+      resourceType,
+      authorizationResult: 'denied',
+      details: `Denied ${resourceType} access for a session outside the active tenant.`,
+      severity: 'critical'
+    });
+    res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+    return null;
+  }
+  return context;
+}
+
 // ==============================================================================
 // PUBLIC / WEBHOOK ROUTES (NO JWT AUTH REQUIRED)
 // ==============================================================================
@@ -82,19 +122,43 @@ practiceOperationsRouter.post('/payments/webhook', async (req, res) => {
 
 // Authenticate all remaining operational endpoints
 practiceOperationsRouter.use(authenticateToken);
+practiceOperationsRouter.use((req: AuthenticatedRequest, res: Response, next) => {
+  if (req.user?.role !== 'client' && req.user?.role !== 'prospective_client') return next();
+  const selectedClientId =
+    (req.params.clientId as string | undefined) ||
+    (req.query.clientId as string | undefined) ||
+    (req.body?.clientId as string | undefined);
+  const context = resolveAuthorizedClientContext(req, res, 'practice_operation', selectedClientId);
+  if (!context) return;
+  req.authorizedClientContext = context;
+  next();
+});
 
 // ==============================================================================
 // 1. DURABLE BACKGROUND JOBS
 // ==============================================================================
 
 practiceOperationsRouter.get('/jobs', (req: AuthenticatedRequest, res: Response) => {
-  if (req.user?.role === 'client') {
-    return res.status(403).json({ error: 'FORBIDDEN: Clients cannot inspect background job queues.' });
+  const role = req.user?.role;
+  const isClient = role === 'client' || role === 'prospective_client';
+  const isAdministrator = ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(role || '');
+  const requestedClientId = typeof req.query.clientId === 'string' ? req.query.clientId : undefined;
+  const context = isClient
+    ? req.authorizedClientContext
+    : requestedClientId
+      ? resolveRouteClientContext(req, res, 'job_list', requestedClientId)
+      : null;
+  if (isClient && !context) {
+    return res.status(403).json({ error: 'Authorized client context is unavailable.', code: 'CLIENT_CONTEXT_UNAVAILABLE' });
+  }
+  if (requestedClientId && !context) return;
+  if (!isClient && !requestedClientId && !isAdministrator) {
+    return res.status(403).json({ error: 'Explicit assigned-client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
   }
   const tenantId = getTenantId(req);
   const result = globalDurableJobQueueService.queryJobs({
     tenantId,
-    clientId: req.query.clientId as string,
+    clientId: context?.clientId,
     status: req.query.status as any,
     jobType: req.query.jobType as any,
     limit: Number(req.query.limit) || 50,
@@ -104,8 +168,17 @@ practiceOperationsRouter.get('/jobs', (req: AuthenticatedRequest, res: Response)
 });
 
 practiceOperationsRouter.post('/jobs', async (req: AuthenticatedRequest, res: Response) => {
-  if (req.user?.role === 'client') {
+  const role = req.user?.role;
+  const isAdministrator = ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(role || '');
+  if (role === 'client' || role === 'prospective_client') {
     return res.status(403).json({ error: 'FORBIDDEN: Clients cannot enqueue background operations.' });
+  }
+  const context = req.body.clientId
+    ? resolveRouteClientContext(req, res, 'job_create', req.body.clientId)
+    : null;
+  if (req.body.clientId && !context) return;
+  if (!req.body.clientId && !isAdministrator) {
+    return res.status(403).json({ error: 'Explicit assigned-client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
   }
   const tenantId = getTenantId(req);
   try {
@@ -113,7 +186,7 @@ practiceOperationsRouter.post('/jobs', async (req: AuthenticatedRequest, res: Re
       tenantId,
       jobType: req.body.jobType,
       payload: req.body.payload,
-      clientId: req.body.clientId,
+      clientId: context?.clientId,
       caseId: req.body.caseId,
       priority: req.body.priority,
       maxAttempts: req.body.maxAttempts,
@@ -136,6 +209,17 @@ practiceOperationsRouter.post('/jobs/:id/retry', requireRole('admin', 'super_adm
 
 practiceOperationsRouter.post('/jobs/:id/cancel', requireRole('admin', 'super_admin', 'accountant'), async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const tenantId = getTenantId(req);
+    const existingJob = globalDurableJobQueueService.getJob(req.params.id, tenantId);
+    if (!existingJob) return res.status(404).json({ error: 'JOB_NOT_FOUND' });
+
+    const isAdministrator = ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(req.user?.role || '');
+    if (existingJob.clientId) {
+      if (!resolveRouteClientContext(req, res, 'job_cancel', existingJob.clientId)) return;
+    } else if (!isAdministrator) {
+      return res.status(403).json({ error: 'Explicit authorized tenant scope is required.', code: 'CLIENT_ACCESS_DENIED' });
+    }
+
     const job = await globalDurableJobQueueService.cancelJob(req.params.id, req.user!.id);
     res.json({ job });
   } catch (err: any) {
@@ -150,12 +234,18 @@ practiceOperationsRouter.post('/jobs/:id/cancel', requireRole('admin', 'super_ad
 practiceOperationsRouter.get('/tasks', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const context = callerRole === 'client' || callerRole === 'prospective_client'
+    ? req.authorizedClientContext
+    : (req.query.clientId ? resolveRouteClientContext(req, res, 'task_list') : null);
+  if ((callerRole === 'client' || callerRole === 'prospective_client') && !context) return;
+  if (req.query.clientId && !context) return;
 
   const result = globalPracticeTaskService.queryTasks({
     tenantId,
-    clientId: callerRole === 'client' ? callerClientId : (req.query.clientId as string),
-    assignedUserId: req.query.assignedUserId as string,
+    clientId: context?.clientId,
+    assignedUserId: callerRole === 'admin' || callerRole === 'super_admin'
+      ? req.query.assignedUserId as string
+      : req.user?.id,
     status: req.query.status as any,
     priority: req.query.priority as any,
   });
@@ -164,10 +254,12 @@ practiceOperationsRouter.get('/tasks', (req: AuthenticatedRequest, res: Response
 
 practiceOperationsRouter.post('/tasks', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
+  const context = resolveRouteClientContext(req, res, 'task_create');
+  if (!context) return;
   try {
     const task = await globalPracticeTaskService.createTask({
       tenantId,
-      clientId: req.body.clientId,
+      clientId: context.clientId,
       engagementId: req.body.engagementId,
       taxYear: req.body.taxYear,
       caseId: req.body.caseId,
@@ -190,6 +282,10 @@ practiceOperationsRouter.post('/tasks', requireRole('accountant', 'senior_review
 });
 
 practiceOperationsRouter.patch('/tasks/:id/status', async (req: AuthenticatedRequest, res: Response) => {
+  const existingTask = globalPracticeTaskService.queryTasks({ tenantId: getTenantId(req), limit: 1000 })
+    .tasks.find(task => task.id === req.params.id);
+  if (!existingTask) return res.status(404).json({ error: 'Task not found.' });
+  if (!resolveRouteClientContext(req, res, 'task_status', existingTask.clientId)) return;
   try {
     const task = await globalPracticeTaskService.updateStatus(
       req.params.id,
@@ -203,6 +299,10 @@ practiceOperationsRouter.patch('/tasks/:id/status', async (req: AuthenticatedReq
 });
 
 practiceOperationsRouter.patch('/tasks/:id/reassign', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+  const existingTask = globalPracticeTaskService.queryTasks({ tenantId: getTenantId(req), limit: 1000 })
+    .tasks.find(task => task.id === req.params.id);
+  if (!existingTask) return res.status(404).json({ error: 'Task not found.' });
+  if (!resolveRouteClientContext(req, res, 'task_reassign', existingTask.clientId)) return;
   try {
     const task = await globalPracticeTaskService.reassignTask(
       req.params.id,
@@ -222,19 +322,45 @@ practiceOperationsRouter.patch('/tasks/:id/reassign', requireRole('accountant', 
 
 practiceOperationsRouter.get('/assignments/client/:clientId', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
-  if (req.user?.role === 'client' && (req.user?.clientId !== req.params.clientId && req.user?.id !== req.params.clientId)) {
-    return res.status(403).json({ error: 'FORBIDDEN: Client access boundary violation.' });
-  }
-  const assignments = globalStaffAssignmentService.getClientAssignments(tenantId, req.params.clientId);
+  const context = resolveRouteClientContext(req, res, 'client_assignments', req.params.clientId);
+  if (!context) return;
+  const assignments = globalStaffAssignmentService.getClientAssignments(tenantId, context.clientId);
   res.json({ assignments });
 });
 
 practiceOperationsRouter.post('/assignments', requireRole('admin', 'super_admin', 'senior_reviewer'), async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
+  const context = resolveRouteClientContext(req, res, 'assignment_create');
+  if (!context) return;
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const { error } = await getSupabaseAdmin().rpc('taxguard_assign_staff', {
+        p_tenant_id: tenantId,
+        p_client_id: context.clientId,
+        p_engagement_id: req.body.engagementId || null,
+        p_tax_year: req.body.taxYear || null,
+        p_role: req.body.role,
+        p_user_id: req.body.userId,
+        p_assigned_by: req.user!.id,
+        p_reason: req.body.reason || null
+      });
+      if (error) {
+        return res.status(503).json({
+          error: 'Staff assignment could not be durably authorized.',
+          code: 'STAFF_ASSIGNMENT_PERSISTENCE_UNAVAILABLE'
+        });
+      }
+    } catch {
+      return res.status(503).json({
+        error: 'Staff assignment could not be durably authorized.',
+        code: 'STAFF_ASSIGNMENT_PERSISTENCE_UNAVAILABLE'
+      });
+    }
+  }
   try {
     const assignment = await globalStaffAssignmentService.assignStaff({
       tenantId,
-      clientId: req.body.clientId,
+      clientId: context.clientId,
       role: req.body.role,
       userId: req.body.userId,
       assignedBy: req.user!.id,
@@ -260,11 +386,18 @@ practiceOperationsRouter.get('/workload', requireRole('accountant', 'senior_revi
 practiceOperationsRouter.get('/deadlines', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const context = callerRole === 'client' || callerRole === 'prospective_client'
+    ? req.authorizedClientContext
+    : (req.query.clientId ? resolveRouteClientContext(req, res, 'deadline_list') : null);
+  if ((callerRole === 'client' || callerRole === 'prospective_client') && !context) return;
+  if (req.query.clientId && !context) return;
+  if (!context && !['admin', 'administrator', 'super_admin', 'super_administrator'].includes(callerRole)) {
+    return res.status(403).json({ error: 'Explicit assigned-client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   const deadlines = globalDeadlineEscalationService.queryDeadlines({
     tenantId,
-    clientId: callerRole === 'client' ? callerClientId : (req.query.clientId as string),
+    clientId: context?.clientId,
     status: req.query.status as any,
     category: req.query.category as any,
   });
@@ -284,13 +417,17 @@ practiceOperationsRouter.post('/deadlines/sweep', requireRole('accountant', 'adm
 practiceOperationsRouter.get('/communications/threads', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const isClient = callerRole === 'client' || callerRole === 'prospective_client';
+  const context = isClient
+    ? req.authorizedClientContext
+    : resolveRouteClientContext(req, res, 'communication_threads');
+  if (!context) return;
 
   const threads = globalClientCommunicationService.queryThreads({
     tenantId,
-    clientId: req.query.clientId as string,
-    callerRole,
-    callerClientId,
+    clientId: context.clientId,
+    callerRole: isClient ? 'client' : callerRole,
+    callerClientId: context.clientId,
   });
   res.json({ threads });
 });
@@ -298,7 +435,9 @@ practiceOperationsRouter.get('/communications/threads', (req: AuthenticatedReque
 practiceOperationsRouter.post('/communications/threads', async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const clientId = callerRole === 'client' ? (req.user?.clientId || req.user?.id) : req.body.clientId;
+  const context = resolveRouteClientContext(req, res, 'communication_thread_create');
+  if (!context) return;
+  const clientId = context.clientId;
 
   try {
     const thread = await globalClientCommunicationService.createThread({
@@ -319,29 +458,49 @@ practiceOperationsRouter.post('/communications/threads', async (req: Authenticat
 practiceOperationsRouter.get('/communications/threads/:id/messages', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const isClient = callerRole === 'client' || callerRole === 'prospective_client';
+  const context = isClient ? req.authorizedClientContext : resolveRouteClientContext(req, res, 'communication_messages');
+  if (!context) return;
+  const thread = globalClientCommunicationService.getThread(req.params.id, tenantId);
+  if (!thread) return res.status(404).json({ error: 'Communication thread not found.' });
+  if (!resolveRouteClientContext(req, res, 'communication_messages', thread.clientId)) return;
 
-  const messages = globalClientCommunicationService.getThreadMessages(
-    req.params.id,
-    tenantId,
-    callerRole,
-    callerClientId
-  );
-  res.json({ messages });
+  try {
+    const messages = globalClientCommunicationService.getThreadMessages(
+      req.params.id,
+      tenantId,
+      isClient ? 'client' : callerRole,
+      context.clientId,
+      context.clientId
+    );
+    res.json({ messages });
+  } catch {
+    db.logSecurityEvent({
+      eventType: 'CLIENT_RESOURCE_ACCESS_DENIED',
+      ipAddress: req.ip || 'unknown',
+      userId: req.user?.id,
+      resourceType: 'communication_messages',
+      authorizationResult: 'denied',
+      details: 'Denied communication message access outside the authorized client context.',
+      severity: 'warning'
+    });
+    return res.status(404).json({ error: 'Communication thread not found.' });
+  }
 });
 
 practiceOperationsRouter.post('/communications/threads/:id/messages', async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const context = resolveRouteClientContext(req, res, 'communication_message_create');
+  if (!context) return;
 
   try {
     const message = await globalClientCommunicationService.postMessage({
       threadId: req.params.id,
       tenantId,
-      clientId: callerRole === 'client' ? callerClientId! : req.body.clientId,
+      clientId: context.clientId,
       senderId: req.user!.id,
-      senderRole: callerRole,
+      senderRole: ['client', 'prospective_client'].includes(callerRole) ? 'client' : callerRole,
       visibility: req.body.visibility || 'CLIENT_VISIBLE',
       content: req.body.content,
       attachments: req.body.attachments,
@@ -359,25 +518,36 @@ practiceOperationsRouter.post('/communications/threads/:id/messages', async (req
 practiceOperationsRouter.get('/requests', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const isClient = callerRole === 'client' || callerRole === 'prospective_client';
+  const context = isClient
+    ? req.authorizedClientContext
+    : (req.query.clientId
+      ? resolveRouteClientContext(req, res, 'client_requests')
+      : null);
+  if ((isClient || req.query.clientId) && !context) return;
+  if (!isClient && !context && !['admin', 'administrator', 'super_admin', 'super_administrator'].includes(callerRole)) {
+    return res.status(403).json({ error: 'Explicit assigned-client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   const requests = globalClientRequestService.queryRequests({
     tenantId,
-    clientId: req.query.clientId as string,
+    clientId: context?.clientId,
     status: req.query.status as any,
     requestType: req.query.requestType as any,
-    callerRole,
-    callerClientId,
+    callerRole: isClient ? 'client' : callerRole,
+    callerClientId: context?.clientId,
   });
   res.json({ requests });
 });
 
 practiceOperationsRouter.post('/requests', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
+  const context = resolveRouteClientContext(req, res, 'client_request_create');
+  if (!context) return;
   try {
     const request = await globalClientRequestService.createRequest({
       tenantId,
-      clientId: req.body.clientId,
+      clientId: context.clientId,
       requestType: req.body.requestType,
       title: req.body.title,
       description: req.body.description,
@@ -394,11 +564,15 @@ practiceOperationsRouter.post('/requests', requireRole('accountant', 'senior_rev
 });
 
 practiceOperationsRouter.patch('/requests/:id/respond', async (req: AuthenticatedRequest, res: Response) => {
-  const clientId = req.user?.clientId || req.user?.id;
+  if (!['client', 'prospective_client'].includes(req.user!.role)) {
+    return res.status(403).json({ error: 'Client role required.', code: 'CLIENT_ROLE_REQUIRED' });
+  }
+  const context = req.authorizedClientContext;
+  if (!context) return res.status(403).json({ error: 'Authorized client context is unavailable.', code: 'CLIENT_CONTEXT_UNAVAILABLE' });
   try {
     const request = await globalClientRequestService.submitResponse({
       requestId: req.params.id,
-      clientId: clientId!,
+      clientId: context.clientId,
       responseText: req.body.responseText,
       responseData: req.body.responseData,
       attachments: req.body.attachments,
@@ -410,6 +584,9 @@ practiceOperationsRouter.patch('/requests/:id/respond', async (req: Authenticate
 });
 
 practiceOperationsRouter.patch('/requests/:id/resolve', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+  const target = globalClientRequestService.getRequest(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Client request not found.' });
+  if (!resolveRouteClientContext(req, res, 'client_request_resolution', target.clientId)) return;
   try {
     const request = await globalClientRequestService.resolveRequest(
       req.params.id,
@@ -432,8 +609,9 @@ practiceOperationsRouter.get('/notifications', (req: AuthenticatedRequest, res: 
   res.json({ notifications });
 });
 
-practiceOperationsRouter.post('/notifications/dispatch', async (req: AuthenticatedRequest, res: Response) => {
+practiceOperationsRouter.post('/notifications/dispatch', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
+  if (req.body.clientId && !resolveRouteClientContext(req, res, 'notification_dispatch')) return;
   try {
     const record = await globalNotificationOrchestratorService.dispatch({
       tenantId,
@@ -505,24 +683,33 @@ practiceOperationsRouter.post('/catalog', requireRole('admin', 'super_admin'), a
 practiceOperationsRouter.get('/invoices', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const isClient = callerRole === 'client' || callerRole === 'prospective_client';
+  const context = isClient
+    ? req.authorizedClientContext
+    : (req.query.clientId ? resolveRouteClientContext(req, res, 'invoice_list') : null);
+  if ((isClient || req.query.clientId) && !context) return;
+  if (!isClient && !context && !['admin', 'administrator', 'super_admin', 'super_administrator'].includes(callerRole)) {
+    return res.status(403).json({ error: 'Explicit assigned-client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   const invoices = globalEngagementBillingService.queryInvoices({
     tenantId,
-    clientId: req.query.clientId as string,
+    clientId: context?.clientId,
     status: req.query.status as any,
-    callerRole,
-    callerClientId,
+    callerRole: isClient ? 'client' : callerRole,
+    callerClientId: context?.clientId,
   });
   res.json({ invoices });
 });
 
 practiceOperationsRouter.post('/invoices', requireRole('accountant', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
+  const context = resolveRouteClientContext(req, res, 'invoice_create');
+  if (!context) return;
   try {
     const invoice = await globalEngagementBillingService.createDraftInvoice({
       tenantId,
-      clientId: req.body.clientId,
+      clientId: context.clientId,
       engagementId: req.body.engagementId,
       dueDate: req.body.dueDate,
       lines: req.body.lines,
@@ -537,6 +724,9 @@ practiceOperationsRouter.post('/invoices', requireRole('accountant', 'admin', 's
 });
 
 practiceOperationsRouter.post('/invoices/:id/issue', requireRole('accountant', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+  const invoiceRecord = globalEngagementBillingService.getInvoice(req.params.id);
+  if (!invoiceRecord) return res.status(404).json({ error: 'Invoice not found.' });
+  if (!resolveRouteClientContext(req, res, 'invoice_issue', invoiceRecord.clientId)) return;
   try {
     const invoice = await globalEngagementBillingService.issueInvoice(req.params.id, req.user!.id);
     res.json({ invoice });
@@ -546,6 +736,9 @@ practiceOperationsRouter.post('/invoices/:id/issue', requireRole('accountant', '
 });
 
 practiceOperationsRouter.post('/invoices/:id/void', requireRole('admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+  const invoiceRecord = globalEngagementBillingService.getInvoice(req.params.id);
+  if (!invoiceRecord) return res.status(404).json({ error: 'Invoice not found.' });
+  if (!resolveRouteClientContext(req, res, 'invoice_void', invoiceRecord.clientId)) return;
   try {
     const invoice = await globalEngagementBillingService.voidInvoice(req.params.id, req.user!.id, req.body.reason);
     res.json({ invoice });
@@ -556,11 +749,32 @@ practiceOperationsRouter.post('/invoices/:id/void', requireRole('admin', 'super_
 
 practiceOperationsRouter.post('/invoices/:id/payments', requireRole('accountant', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
+  const invoiceRecord = globalEngagementBillingService.getInvoice(req.params.id);
+  if (!invoiceRecord) return res.status(404).json({ error: 'Invoice not found.' });
+  const context = resolveRouteClientContext(
+    req,
+    res,
+    'invoice_payment',
+    typeof req.body.clientId === 'string' ? req.body.clientId : invoiceRecord.clientId
+  );
+  if (!context) return;
+  if (context.clientId !== invoiceRecord.clientId) {
+    db.logSecurityEvent({
+      eventType: 'CLIENT_RESOURCE_ACCESS_DENIED',
+      ipAddress: req.ip || 'unknown',
+      userId: req.user?.id,
+      resourceType: 'invoice_payment',
+      authorizationResult: 'denied',
+      details: 'Denied payment recording because the requested client does not own the invoice.',
+      severity: 'warning'
+    });
+    return res.status(403).json({ error: 'Access to this invoice is denied.', code: 'CLIENT_ACCESS_DENIED' });
+  }
   try {
     const result = await globalEngagementBillingService.recordPayment({
       tenantId,
       invoiceId: req.params.id,
-      clientId: req.body.clientId,
+      clientId: context.clientId,
       amount: req.body.amount,
       paymentMethod: req.body.paymentMethod || 'MANUAL_ADJUSTMENT',
       recordedBy: req.user!.id,
@@ -578,15 +792,51 @@ practiceOperationsRouter.post('/invoices/:id/payments', requireRole('accountant'
 practiceOperationsRouter.get('/search', (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
   const callerRole = req.user?.role || 'client';
-  const callerClientId = req.user?.clientId || req.user?.id;
+  const isClient = callerRole === 'client' || callerRole === 'prospective_client';
+  const context = isClient ? req.authorizedClientContext : undefined;
+  if (isClient && !context) return res.status(403).json({ error: 'Authorized client context is unavailable.', code: 'CLIENT_CONTEXT_UNAVAILABLE' });
 
   const result = globalOperationalSearchService.search({
     tenantId,
     query: (req.query.q as string) || '',
-    callerRole,
-    callerClientId,
+    callerRole: isClient ? 'client' : callerRole,
+    callerClientId: context?.clientId,
     limit: Number(req.query.limit) || 30,
   });
+  if (['admin', 'administrator', 'super_admin', 'super_administrator'].includes(callerRole)) {
+    result.matches = result.matches.filter(match => {
+      if (!match.clientId) return false;
+      const client = db.users.get(match.clientId) ||
+        Array.from(db.users.values()).find(candidate =>
+          ['client', 'prospective_client'].includes(candidate.role) && candidate.clientId === match.clientId
+        );
+      return client?.tenantId === tenantId;
+    });
+    result.totalMatches = result.matches.length;
+  }
+  if (['accountant', 'senior_reviewer', 'reviewer', 'preparer'].includes(callerRole)) {
+    const user = req.user!;
+    result.matches = result.matches.filter(match => {
+      if (!match.clientId) return false;
+      const client = db.users.get(match.clientId) ||
+        Array.from(db.users.values()).find(candidate =>
+          ['client', 'prospective_client'].includes(candidate.role) && candidate.clientId === match.clientId
+        );
+      return isStaffCurrentlyAssignedToClient({
+        userId: user.id,
+        tenantId,
+        clientId: match.clientId,
+        clientTenantId: client?.tenantId,
+        assignments: db.getClientBindings(match.clientId),
+        authorizedClientIds: user.authorizedClientIds,
+        production: process.env.NODE_ENV === 'production'
+      });
+    });
+    result.totalMatches = result.matches.length;
+  } else if (!isClient && !['admin', 'administrator', 'super_admin', 'super_administrator'].includes(callerRole)) {
+    result.matches = [];
+    result.totalMatches = result.matches.length;
+  }
   res.json(result);
 });
 
@@ -598,7 +848,9 @@ practiceOperationsRouter.get('/analytics', requireRole('accountant', 'senior_rev
 
 practiceOperationsRouter.get('/command-center/:clientId', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req);
-  const summary = globalPracticeAnalyticsService.getCaseCommandCenter(tenantId, req.params.clientId);
+  const context = resolveRouteClientContext(req, res, 'case_command_center', req.params.clientId);
+  if (!context) return;
+  const summary = globalPracticeAnalyticsService.getCaseCommandCenter(tenantId, context.clientId);
   res.json({ commandCenter: summary });
 });
 

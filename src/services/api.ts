@@ -86,6 +86,13 @@ const response = await fetch(apiEndpoint(endpoint), {
   });
 
   const data = await response.json().catch(() => ({}));
+  if (getStoredToken() !== token) {
+    const err = new Error('The authenticated session changed before this response completed.') as Error & {
+      code?: string;
+    };
+    err.code = 'SESSION_CHANGED';
+    throw err;
+  }
 
   if (!response.ok) {
     if (response.status === 401 && token) {

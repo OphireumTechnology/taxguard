@@ -15,6 +15,11 @@ export class ClientCommunicationService {
   private threads = new Map<string, CommunicationThread>();
   private messages: CommunicationMessage[] = [];
 
+  getThread(threadId: string, tenantId: string): CommunicationThread | undefined {
+    const thread = this.threads.get(threadId);
+    return thread?.tenantId === tenantId ? thread : undefined;
+  }
+
   /**
    * Create or retrieve a communication thread
    */
@@ -108,7 +113,8 @@ export class ClientCommunicationService {
     threadId: string,
     tenantId: string,
     callerRole: string,
-    callerClientId?: string
+    callerClientId?: string,
+    authorizedClientId?: string
   ): CommunicationMessage[] {
     const thread = this.threads.get(threadId);
     if (!thread || thread.tenantId !== tenantId) {
@@ -117,6 +123,9 @@ export class ClientCommunicationService {
 
     if (callerRole === 'client' && thread.clientId !== callerClientId) {
       return []; // Forbidden cross-client access
+    }
+    if (authorizedClientId && thread.clientId !== authorizedClientId) {
+      throw new Error('CLIENT_ACCESS_DENIED');
     }
 
     let threadMsgs = this.messages.filter((m) => m.threadId === threadId && m.tenantId === tenantId);

@@ -246,6 +246,10 @@ export class ProductionOcrAdapter implements TaxGuardOcrProvider {
       throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
     }
 
+    if (process.env.NODE_ENV === 'production' && this.activeMode !== 'CLOUD') {
+      throw new AuthorityError('OCR_PROVIDER_NOT_CONFIGURED', 503);
+    }
+
     if (this.activeMode === 'CLOUD') {
       const cloudProvider = new GoogleCloudDocumentAiProvider();
 

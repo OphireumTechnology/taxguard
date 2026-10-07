@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { StageTwoCollectionService } from '../services/stageTwoCollectionService';
-import { StageTwoIntakeSecurityService } from '../services/stageTwoIntakeSecurityService';
+import { StageTwoIntakeSecurityService, SimulatedDevelopmentMalwareScanner } from '../services/stageTwoIntakeSecurityService';
 import {
   TaxRequirementManifestEngine,
   TaxRequirementManifest,
@@ -35,6 +35,9 @@ describe('Stage 02 Mandatory Regression Invariants (TG-COL-R01 to TG-COL-R20)', 
     StageTwoCollectionService.resetCollectionForTesting();
     TaxRequirementManifestEngine.resetForTesting();
     StageTwoIntakeSecurityService.resetForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(
+      new SimulatedDevelopmentMalwareScanner()
+    );
     GoogleCloudDocumentAiProvider.setTransport(undefined);
     ProviderReadinessRegistry.setTestingOverrides(undefined);
   });

@@ -14,7 +14,7 @@
  * - Pipeline State Machine & Invariant Boundaries (Upload != Verified, Scan != Tax Verified, Stored != Reviewed)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   StageTwoIntakeSecurityService,
   FileSignatureValidator,
@@ -27,6 +27,7 @@ import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService'
 describe('Milestone M2 / Stage 02: Sprint 2 — Secure Document Intake, Quarantine & Storage', () => {
   beforeEach(() => {
     StageTwoCollectionService.resetCollectionForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(new SimulatedDevelopmentMalwareScanner());
   });
 
   // ==========================================================================
@@ -182,6 +183,101 @@ describe('Milestone M2 / Stage 02: Sprint 2 — Secure Document Intake, Quaranti
   // TG-COL-007: MALWARE SCANNING ABSTRACTION & DEV SCANNER
   // ==========================================================================
   describe('TG-COL-007 — Malware Scanning', () => {
+    it('keeps documents quarantined when production has no scanner and rejects the development scanner', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      try {
+        StageTwoIntakeSecurityService.resetForTesting();
+        expect(() => StageTwoIntakeSecurityService.setMalwareScannerForTesting(
+          new SimulatedDevelopmentMalwareScanner()
+        )).toThrow('TEST_MALWARE_SCANNER_FORBIDDEN_IN_PRODUCTION');
+
+        const doc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+          clientId: 'client_no_production_scanner',
+          engagementId: 'ENG-NO-SCANNER',
+          taxYear: 2025,
+          uploader: 'Client User',
+          originalFilename: 'ordinary.pdf',
+          fileBytes: new TextEncoder().encode('%PDF-1.4 taxpayer document'),
+          claimedMimeType: 'application/pdf',
+          claimedCategory: 'W-2'
+        });
+
+        expect(doc.malwareScanStatus).toBe('SCAN_FAILED');
+        expect(doc.malwareScannerName).toBe('NOT_CONFIGURED');
+        expect(doc.quarantineStatus).toBe('QUARANTINED');
+        expect(doc.isReadyForOcr).toBe(false);
+        await expect(StageTwoCollectionService.ingestDocumentUpload({
+          clientId: 'client_no_production_scanner',
+          engagementId: 'ENG-NO-SCANNER',
+          taxYear: 2025,
+          uploadedBy: 'Client User',
+          originalFileName: 'ordinary.pdf',
+          fileSizeBytes: 1024,
+          mimeType: 'application/pdf',
+          claimedCategory: 'W-2'
+        })).rejects.toThrow('DOCUMENT_INTAKE_NOT_READY');
+        expect(TaxGuardAuditService.getLogs().some(event =>
+          event.recordId === doc.documentId && event.action === 'DOCUMENT_QUARANTINED'
+        )).toBe(true);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it('permits the next controlled test transition only after an injected verified clean result', async () => {
+      const scannerName = 'INJECTED_VERIFIED_TEST_SCANNER';
+      StageTwoIntakeSecurityService.setMalwareScannerForTesting({
+        name: scannerName,
+        isProduction: true,
+        scan: async () => ({
+          status: 'CLEAN',
+          scannerName,
+          isProductionScanner: true,
+          scanTimestamp: '2026-10-04T00:00:00.000Z',
+          details: 'Controlled verified clean result'
+        })
+      });
+      const doc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+        clientId: 'client_verified_scan_test',
+        engagementId: 'ENG-VERIFIED-SCAN',
+        taxYear: 2025,
+        uploader: 'Client User',
+        originalFilename: 'ordinary.pdf',
+        fileBytes: new TextEncoder().encode('%PDF-1.4 taxpayer document'),
+        claimedMimeType: 'application/pdf',
+        claimedCategory: 'W-2'
+      });
+
+      expect(doc.malwareScanStatus).toBe('CLEAN');
+      expect(doc.malwareScanVerified).toBe(true);
+      expect(doc.malwareScanIsProduction).toBe(true);
+      expect(doc.isReadyForOcr).toBe(true);
+    });
+
+    it('does not clear an unscanned document from quarantine', async () => {
+      StageTwoIntakeSecurityService.resetForTesting();
+      const doc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
+        clientId: 'client_unscanned_test',
+        engagementId: 'ENG-UNSCANNED',
+        taxYear: 2025,
+        uploader: 'Client User',
+        originalFilename: 'ordinary.pdf',
+        fileBytes: new TextEncoder().encode('%PDF-1.4 taxpayer document'),
+        claimedMimeType: 'application/pdf',
+        claimedCategory: 'W-2'
+      });
+
+      expect(doc.quarantineStatus).toBe('QUARANTINED');
+      expect(() => StageTwoIntakeSecurityService.dispositionQuarantinedDocument({
+        documentId: doc.documentId,
+        actor: 'Reviewer',
+        actorRole: 'cpa',
+        disposition: 'CLEARED',
+        reason: 'Reviewer approval alone cannot replace a clean scan.'
+      })).toThrow('DOCUMENT_NOT_CLEAN');
+      expect(doc.quarantineStatus).toBe('QUARANTINED');
+    });
+
     it('uses the Simulated/Dev scanner with explicit warning labels and detects clean files', async () => {
       const scanner = new SimulatedDevelopmentMalwareScanner();
       expect(scanner.name).toBe('SIMULATED / DEVELOPMENT SCANNER');
@@ -256,7 +352,7 @@ describe('Milestone M2 / Stage 02: Sprint 2 — Secure Document Intake, Quaranti
       expect(downloadResult.reason).toContain('Quarantined documents are strictly quarantined');
     });
 
-    it('requires authorized roles to release quarantined documents', async () => {
+    it('requires authorized roles and a verified clean scan to release quarantined documents', async () => {
       const doc = await StageTwoIntakeSecurityService.executeIntakeSecurityPipeline({
         clientId: 'client_disp_test',
         engagementId: 'ENG-2024-D',
@@ -279,22 +375,20 @@ describe('Milestone M2 / Stage 02: Sprint 2 — Secure Document Intake, Quaranti
         });
       }).toThrow(/Unauthorized: Role "preparer" is not authorized/);
 
-      // CPA or Compliance Officer CAN clear quarantine with justification
-      const clearedDoc = StageTwoIntakeSecurityService.dispositionQuarantinedDocument({
+      // Human review cannot override a positive malware scan.
+      expect(() => StageTwoIntakeSecurityService.dispositionQuarantinedDocument({
         documentId: doc.documentId,
         actor: 'Jane CPA (Lead Reviewer)',
         actorRole: 'cpa',
         disposition: 'CLEARED',
         reason: 'Confirmed false positive signature after sandbox analysis.'
-      });
+      })).toThrow('DOCUMENT_NOT_CLEAN');
+      expect(doc.quarantineStatus).toBe('QUARANTINED');
 
-      expect(clearedDoc.quarantineStatus).toBe('CLEARED');
-      expect(clearedDoc.quarantineDisposition?.disposition).toBe('CLEARED');
-      expect(clearedDoc.quarantineDisposition?.actor).toBe('Jane CPA (Lead Reviewer)');
-
-      // Audit trail must record the disposition
+      // Audit trail must retain the quarantine event without claiming a release.
       const events = TaxGuardAuditService.getLogs().filter(e => e.recordId === doc.documentId);
-      expect(events.some(e => e.action === 'DOCUMENT_SECURITY_CLEARED')).toBe(true);
+      expect(events.some(e => e.action === 'DOCUMENT_SECURITY_CLEARED')).toBe(false);
+      expect(events.some(e => e.action === 'DOCUMENT_QUARANTINED')).toBe(true);
     });
   });
 

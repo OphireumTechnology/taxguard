@@ -12,7 +12,7 @@
  * 7. Governance invariants: AI-proposed only, never autonomous tax authority
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AccountingDocumentIntelligenceService } from '../server/taxguard/accountingDocumentIntelligence.service';
 import { GoogleDriveConnector, EmailIngestionConnector, ConnectorRegistry } from '../server/taxguard/accountingConnectors';
 import { ACCOUNTING_CLASSIFICATIONS } from '../types/accountingIntake';
@@ -233,10 +233,31 @@ describe('TaxGuard Accounting Document Intake Agent', () => {
       });
 
       expect(item.needsReview).toBe(true);
+      expect(item.quarantineStatus).toBe('QUARANTINED');
       const queue = AccountingDocumentIntelligenceService.getReviewQueue();
       expect(queue.length).toBeGreaterThan(0);
       const reviewItem = queue.find(r => r.documentId === 'DOC-AMBIG-001');
       expect(reviewItem).toBeDefined();
+    });
+
+    it('refuses to process synthetic intake in production without the durable security pipeline', () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      try {
+        expect(() => AccountingDocumentIntelligenceService.processDocument({
+          documentId: 'DOC-PROD-BLOCKED',
+          filename: 'tax-return.pdf',
+          fileSizeBytes: 1024,
+          mimeType: 'application/pdf',
+          rawText: 'synthetic taxpayer content',
+          sourceType: 'LOCAL_UPLOAD',
+          sha256: 'synthetic-hash',
+          actor: 'test',
+          clientId: 'client-1',
+          taxYear: 2025
+        })).toThrow('DOCUMENT_INTAKE_NOT_READY');
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
 
     it('allows an authorized CPA to resolve items in the review queue', () => {
@@ -276,6 +297,20 @@ describe('TaxGuard Accounting Document Intake Agent', () => {
       expect(candidates.length).toBeGreaterThan(0);
       expect(candidates[0]).toHaveProperty('sourceObjectId');
       expect(candidates[0]).toHaveProperty('suggestedCategory');
+    });
+
+    it('does not expose placeholder documents as provider results in production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('GOOGLE_CLIENT_ID', 'test-configured-client');
+      vi.stubEnv('GMAIL_CLIENT_ID', 'test-configured-client');
+      try {
+        const drive = await new GoogleDriveConnector().discover({ clientId: 'test-client-99' });
+        const email = await new EmailIngestionConnector().discover({ clientId: 'test-client-99' });
+        expect(drive).toEqual([]);
+        expect(email).toEqual([]);
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
   });
 });

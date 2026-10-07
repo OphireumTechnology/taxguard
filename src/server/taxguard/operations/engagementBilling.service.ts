@@ -197,6 +197,10 @@ export class EngagementBillingService {
     return this.engagements.get(engagementId);
   }
 
+  getInvoice(invoiceId: string): InvoiceRecord | undefined {
+    return this.invoices.get(invoiceId);
+  }
+
   // ============================================================
   // 3. DETERMINISTIC INVOICING
   // ============================================================

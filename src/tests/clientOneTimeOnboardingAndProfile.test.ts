@@ -14,7 +14,8 @@ function createMockSupabaseBackend() {
     sessions: new Map<string, any>(),
     sequence: { current_sequence: 700, last_issued_client_id: '700' },
     audit: [] as any[],
-    documents: new Map<string, any>()
+    documents: new Map<string, any>(),
+    assignments: [] as any[]
   };
 
   const client: any = {
@@ -45,11 +46,13 @@ function createMockSupabaseBackend() {
       let filterVal: any = null;
       let filterCol2 = '';
       let filterVal2: any = null;
+      const filters: Array<[string, any]> = [];
       let pendingUpdates: any = null;
 
       const builder: any = {
         select: vi.fn(() => builder),
         eq: vi.fn((col: string, val: any) => {
+          filters.push([col, val]);
           if (!filterCol) {
             filterCol = col;
             filterVal = val;
@@ -76,6 +79,12 @@ function createMockSupabaseBackend() {
               (m: any) => m.tenant_id === filterVal && m.uid === filterVal2
             );
             return { data: member || null, error: null };
+          }
+          if (table === 'taxguard_clients') {
+            const client = Array.from(store.clients.values()).find(
+              (row: any) => row.tenant_id === filterVal && row.owner_uid === filterVal2
+            );
+            return { data: client || null, error: null };
           }
           if (table === 'taxguard_client_id_sequence') {
             return { data: store.sequence, error: null };
@@ -112,6 +121,12 @@ function createMockSupabaseBackend() {
           return builder;
         }),
         then: (resolve: any, reject?: any) => {
+          if (table === 'taxguard_staff_assignments') {
+            const data = store.assignments.filter(row =>
+              filters.every(([column, value]) => row[column] === value)
+            );
+            return Promise.resolve({ data, error: null }).then(resolve, reject);
+          }
           return Promise.resolve({ data: null, error: null }).then(resolve, reject);
         }
       };
@@ -457,7 +472,7 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
 
     // Reviewer approval via practice console route
     // Seed staff user for role check
-    db.users.set('sb_staff_reviewer_01', {
+    const reviewerUser = {
       id: 'sb_staff_reviewer_01',
       name: 'Elena Rostova, CPA',
       email: 'erostova@artaxservices.com',
@@ -465,6 +480,36 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
       status: 'active',
       isVerified: true,
       createdAt: new Date().toISOString()
+    } as any;
+    db.users.set('sb_staff_reviewer_01', reviewerUser);
+    const clientUser = db.users.get(sessionData.user.id);
+    if (clientUser) clientUser.assignedReviewerId = reviewerUser.id;
+    if (clientUser?.clientId) {
+      db.clientAccountantAssignments.set(`${reviewerUser.id}:${clientUser.clientId}`, {
+        id: `${reviewerUser.id}:${clientUser.clientId}`,
+        accountantId: reviewerUser.id,
+        clientId: clientUser.clientId,
+        status: 'active'
+      } as any);
+      mockSupabase.store.assignments.push({
+        tenant_id: 'tenantA',
+        client_id: clientUser.clientId,
+        user_id: reviewerUser.id,
+        status: 'ACTIVE',
+        effective_from: new Date(Date.now() - 60_000).toISOString(),
+        effective_to: null
+      });
+    }
+    mockSupabase.store.identities.set(reviewerUser.id, {
+      uid: reviewerUser.id,
+      tenant_id: 'tenantA',
+      user_data: reviewerUser
+    });
+    mockSupabase.store.members.set(`tenantA_${reviewerUser.id}`, {
+      tenant_id: 'tenantA',
+      uid: reviewerUser.id,
+      role: 'senior_reviewer',
+      status: 'active'
     });
 
     const staffSessions = new SupabaseDurableSessions(undefined, 'tenantA');

@@ -5,7 +5,12 @@
  */
 
 import { Router, Response } from 'express';
-import { authenticateToken, AuthenticatedRequest, blockRecruiterFromTaxRecords } from '../auth';
+import {
+  authenticateToken,
+  AuthenticatedRequest,
+  blockRecruiterFromTaxRecords,
+  resolveAuthorizedClientContext
+} from '../auth';
 import { db } from '../db';
 import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.engine';
 import { globalAccountingSyncService } from '../taxguard/bookkeeping/accountingSync.service';
@@ -32,17 +37,29 @@ bookkeepingRouter.use((req, res, next) => {
   next();
 });
 
+bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res, next) => {
+  const requestedClientId =
+    typeof req.query.clientId === 'string'
+      ? req.query.clientId
+      : typeof req.body?.clientId === 'string'
+        ? req.body.clientId
+        : undefined;
+  const context = resolveAuthorizedClientContext(req, res, 'bookkeeping', requestedClientId);
+  if (!context) return;
+  const configuredTenant = (process.env.TAXGUARD_TENANT_ID || '').trim();
+  if (process.env.NODE_ENV === 'production' && context.tenantId !== configuredTenant) {
+    return res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+  }
+  req.authorizedClientContext = context;
+  next();
+});
+
 // Helper to resolve tenant and client IDs safely
 function resolveScope(req: AuthenticatedRequest) {
-  const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
-  const tenantId =
-    process.env.NODE_ENV === 'production'
-      ? configured
-      : (req.headers['x-tenant-id'] as string) || configured || 'ar-tax-services';
   const user = req.user!;
-  const clientId = (user.role === 'client' || user.role === 'prospective_client')
-    ? (user.clientId || user.id)
-    : ((req.query.clientId as string) || (req.body.clientId as string) || user.clientId || user.id);
+  const context = req.authorizedClientContext!;
+  const tenantId = context.tenantId;
+  const clientId = context.clientId;
   const taxYear = Number(req.query.taxYear || req.body.taxYear) || 2025;
 
   return { tenantId, clientId, taxYear, user };

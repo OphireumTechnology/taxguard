@@ -17,7 +17,8 @@ import { randomUUID, createHash } from 'node:crypto';
 import {
   authenticateToken,
   requireRole,
-  AuthenticatedRequest
+  AuthenticatedRequest,
+  resolveAuthorizedClientContext
 } from '../auth';
 import {
   TaxQuestionnaireEngine,
@@ -34,6 +35,8 @@ import { evaluateStageThreeServerGate } from '../taxguard/stageThreeServerGate';
 import { AuthorityError } from '../taxguard/authority.repository';
 import { StageTwoReconciliationService } from '../../services/stageTwoReconciliationService';
 import { db } from '../db';
+import { getSupabaseAdmin, isSupabaseServerConfigured } from '../supabase';
+import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
 
 export const stageTwoThreeRouter = Router();
 
@@ -50,6 +53,30 @@ function resolveTenantId(): string {
   return configured;
 }
 
+function authorizeStageTwoReviewScope(
+  req: AuthenticatedRequest,
+  res: Response,
+  tenantId: string,
+  clientId?: string
+): boolean {
+  const isAdministrator = ['admin', 'super_admin'].includes(req.user?.role || '');
+  if (isAdministrator && !clientId) {
+    if (req.user?.tenantId !== tenantId) {
+      res.status(403).json({ error: 'Authorized tenant context is unavailable.', code: 'CLIENT_CONTEXT_UNAVAILABLE' });
+      return false;
+    }
+    return true;
+  }
+
+  return Boolean(resolveAuthorizedClientContext(
+    req,
+    res,
+    'stage_two_document_review',
+    clientId,
+    tenantId
+  ));
+}
+
 // ============================================================================
 // 1. TAX QUESTIONNAIRE ENDPOINTS
 // ============================================================================
@@ -59,7 +86,10 @@ stageTwoThreeRouter.get('/questionnaire/:taxYear', (req: AuthenticatedRequest, r
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
     const taxYear = Number(req.params.taxYear) || 2025;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.query.clientId as string || req.user.clientId || req.user.id);
+    const context = resolveAuthorizedClientContext(req, res, 'stage_two_questionnaire', typeof req.query.clientId === 'string' ? req.query.clientId : undefined);
+    if (!context) return;
+    if (context.tenantId !== tenantId) return res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+    const clientId = context.clientId;
 
     const record = TaxQuestionnaireEngine.getQuestionnaire(tenantId, clientId, taxYear);
     return res.json({
@@ -79,7 +109,10 @@ stageTwoThreeRouter.post('/questionnaire/:taxYear', (req: AuthenticatedRequest, 
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
     const taxYear = Number(req.params.taxYear) || 2025;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.clientId || req.user.id);
+    const context = resolveAuthorizedClientContext(req, res, 'stage_two_questionnaire_update', typeof req.body.clientId === 'string' ? req.body.clientId : undefined);
+    if (!context) return;
+    if (context.tenantId !== tenantId) return res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+    const clientId = context.clientId;
     const answers: TaxQuestionnaireAnswers = req.body.answers;
 
     if (!answers || typeof answers !== 'object') {
@@ -115,7 +148,10 @@ stageTwoThreeRouter.get('/requirements/:taxYear', (req: AuthenticatedRequest, re
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
     const taxYear = Number(req.params.taxYear) || 2025;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.query.clientId as string || req.user.clientId || req.user.id);
+    const context = resolveAuthorizedClientContext(req, res, 'stage_two_requirements', typeof req.query.clientId === 'string' ? req.query.clientId : undefined);
+    if (!context) return;
+    if (context.tenantId !== tenantId) return res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+    const clientId = context.clientId;
 
     const key = `${tenantId}:${clientId}:${taxYear}`;
     let reqs = serverCaseRequirements.get(key);
@@ -170,7 +206,10 @@ stageTwoThreeRouter.post('/requirements/:taxYear/:reqCode/not-applicable', (req:
     const tenantId = resolveTenantId();
     const taxYear = Number(req.params.taxYear) || 2025;
     const reqCode = req.params.reqCode;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.clientId || req.user.id);
+    const context = resolveAuthorizedClientContext(req, res, 'stage_two_requirement_update', typeof req.body.clientId === 'string' ? req.body.clientId : undefined);
+    if (!context) return;
+    if (context.tenantId !== tenantId) return res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+    const clientId = context.clientId;
     const { reason } = req.body;
 
     const evaluation = TaxQuestionnaireEngine.evaluateNotApplicableClaim({
@@ -278,7 +317,10 @@ stageTwoThreeRouter.get('/requests/:taxYear', (req: AuthenticatedRequest, res: R
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
     const taxYear = Number(req.params.taxYear) || 2025;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.query.clientId as string || req.user.clientId || req.user.id);
+    const context = resolveAuthorizedClientContext(req, res, 'stage_two_requests', typeof req.query.clientId === 'string' ? req.query.clientId : undefined);
+    if (!context) return;
+    if (context.tenantId !== tenantId) return res.status(403).json({ error: 'Client tenant context is not authorized.', code: 'CLIENT_ACCESS_DENIED' });
+    const clientId = context.clientId;
 
     const allRequests = Array.from(serverClientRequestsStore.values()).filter(
       r => r.tenantId === tenantId && r.clientId === clientId && r.taxYear === taxYear
@@ -298,7 +340,9 @@ stageTwoThreeRouter.get('/requests/:taxYear', (req: AuthenticatedRequest, res: R
 stageTwoThreeRouter.post('/requests/:taxYear/:requestId/respond', (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : req.user.id;
+    const context = resolveAuthorizedClientContext(req, res, 'stage_two_request_response');
+    if (!context) return;
+    const clientId = context.clientId;
     const { message, uploadedDocumentId } = req.body;
 
     if (!message || message.trim().length < 2) {
@@ -326,12 +370,16 @@ stageTwoThreeRouter.get('/accountant/review-queue', requireRole('accountant', 's
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
+    const clientId = typeof req.query.clientId === 'string' && req.query.clientId.trim()
+      ? req.query.clientId.trim()
+      : undefined;
+    if (!authorizeStageTwoReviewScope(req, res, tenantId, clientId)) return;
 
     const items = AccountantDocumentReviewService.getReviewQueue(
       { id: req.user.id, role: req.user.role, tenantId },
       {
         tenantId,
-        clientId: req.query.clientId as string,
+        clientId,
         taxYear: req.query.taxYear ? Number(req.query.taxYear) : undefined,
         category: req.query.category as string,
         reviewStatus: req.query.reviewStatus as any
@@ -347,6 +395,15 @@ stageTwoThreeRouter.get('/accountant/review-queue', requireRole('accountant', 's
 stageTwoThreeRouter.get('/accountant/review-item/:documentId', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const tenantId = resolveTenantId();
+    const reviewRecord = serverDocumentReviewStore.get(req.params.documentId);
+    if (!reviewRecord) {
+      return res.status(404).json({ error: 'DOCUMENT_REVIEW_ITEM_NOT_FOUND' });
+    }
+    if (reviewRecord.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'CLIENT_ACCESS_DENIED', code: 'CLIENT_ACCESS_DENIED' });
+    }
+    if (!authorizeStageTwoReviewScope(req, res, tenantId, reviewRecord.clientId)) return;
     const item = AccountantDocumentReviewService.getReviewItem(req.params.documentId, {
       id: req.user.id,
       role: req.user.role
@@ -375,6 +432,14 @@ stageTwoThreeRouter.post('/accountant/review-action', requireRole('accountant', 
     if (!documentId || expectedVersion === undefined || !action) {
       return res.status(400).json({ error: 'documentId, expectedVersion, and action are required.' });
     }
+    const reviewRecord = serverDocumentReviewStore.get(documentId);
+    if (!reviewRecord) {
+      return res.status(404).json({ error: 'DOCUMENT_REVIEW_ITEM_NOT_FOUND' });
+    }
+    if (reviewRecord.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'CLIENT_ACCESS_DENIED', code: 'CLIENT_ACCESS_DENIED' });
+    }
+    if (!authorizeStageTwoReviewScope(req, res, tenantId, reviewRecord.clientId)) return;
 
     const result = AccountantDocumentReviewService.executeReviewAction({
       documentId,
@@ -399,17 +464,136 @@ stageTwoThreeRouter.post('/accountant/review-action', requireRole('accountant', 
   }
 });
 
-stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), (req: AuthenticatedRequest, res: Response) => {
+stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const tenantId = resolveTenantId();
-    const { clientId, engagementId, taxYear, documentId } = req.body;
+    const documentId = typeof req.body?.documentId === 'string' ? req.body.documentId.trim() : '';
+    const tenantId = req.user.tenantId?.trim();
+    if (!tenantId || tenantId !== resolveTenantId()) {
+      return res.status(403).json({ error: 'Authorized tenant context is unavailable.', code: 'CLIENT_CONTEXT_UNAVAILABLE' });
+    }
+    if (!documentId) return res.status(400).json({ error: 'documentId is required.' });
+    if (process.env.NODE_ENV === 'production' && !isSupabaseServerConfigured()) {
+      return res.status(503).json({ error: 'Document authorization data is unavailable.', code: 'DOCUMENT_AUTHORIZATION_UNAVAILABLE' });
+    }
+
+    let ownerClientId: string;
+    let documentTenantId: string;
+    let engagementId: string;
+    let taxYear: number;
+
+    if (isSupabaseServerConfigured()) {
+      let document: any;
+      try {
+        const { data, error } = await getSupabaseAdmin()
+          .from('taxguard_documents')
+          .select('document_id, tenant_id, client_id, engagement_id, tax_year')
+          .eq('document_id', documentId)
+          .order('version', { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        document = data?.[0];
+      } catch {
+        return res.status(503).json({ error: 'Document authorization data is unavailable.', code: 'DOCUMENT_AUTHORIZATION_UNAVAILABLE' });
+      }
+      if (!document) return res.status(404).json({ error: 'Document not found.' });
+      if (
+        document.document_id !== documentId ||
+        typeof document.tenant_id !== 'string' ||
+        !document.tenant_id ||
+        typeof document.client_id !== 'string' ||
+        !document.client_id
+      ) return res.status(404).json({ error: 'Document not found.' });
+      documentTenantId = document.tenant_id;
+      ownerClientId = document.client_id;
+      engagementId = document.engagement_id;
+      taxYear = Number(document.tax_year);
+
+      let ownerExists = false;
+      try {
+        const { data, error } = await getSupabaseAdmin()
+          .from('taxguard_clients')
+          .select('client_id, owner_uid')
+          .eq('tenant_id', documentTenantId)
+          .eq('client_id', ownerClientId)
+          .maybeSingle();
+        if (error) throw error;
+        ownerExists = typeof data?.owner_uid === 'string' && data.owner_uid.length > 0;
+      } catch {
+        return res.status(503).json({ error: 'Document owner authorization data is unavailable.', code: 'DOCUMENT_AUTHORIZATION_UNAVAILABLE' });
+      }
+      if (!ownerExists) return res.status(404).json({ error: 'Document not found.' });
+    } else {
+      const persistedDocument = db.documents.get(documentId);
+      if (!persistedDocument) return res.status(404).json({ error: 'Document not found.' });
+      ownerClientId = persistedDocument.clientId;
+      const owner = db.users.get(ownerClientId) ||
+        Array.from(db.users.values()).find(user =>
+          ['client', 'prospective_client'].includes(user.role) && user.clientId === ownerClientId
+        );
+      if (
+        !owner?.tenantId ||
+        !['client', 'prospective_client'].includes(owner.role)
+      ) return res.status(404).json({ error: 'Document not found.' });
+      documentTenantId = owner.tenantId;
+      engagementId = (persistedDocument as any).engagementId || `eng_${persistedDocument.taxYear}`;
+      taxYear = Number(persistedDocument.taxYear);
+    }
+
+    // Do not reveal whether a resource exists in another tenant.
+    if (documentTenantId !== tenantId) return res.status(404).json({ error: 'Document not found.' });
+    const reviewItem = serverDocumentReviewStore.get(documentId);
+    if (
+      !reviewItem ||
+      reviewItem.tenantId !== documentTenantId ||
+      reviewItem.clientId !== ownerClientId ||
+      !Number.isFinite(taxYear) ||
+      !engagementId
+    ) {
+      return res.status(404).json({ error: 'Document not found.' });
+    }
+    if (typeof req.body.clientId === 'string' && req.body.clientId.trim() !== ownerClientId) {
+      return res.status(404).json({ error: 'Document not found.' });
+    }
+
+    const isAdministrator = ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(req.user.role);
+    if (!isAdministrator) {
+      let isAssigned = false;
+      if (isSupabaseServerConfigured()) {
+        try {
+          const { data, error } = await getSupabaseAdmin()
+            .from('taxguard_staff_assignments')
+            .select('client_id, engagement_id, tax_year, effective_from, effective_to')
+            .eq('tenant_id', tenantId)
+            .eq('user_id', req.user.id)
+            .eq('client_id', ownerClientId)
+            .eq('status', 'ACTIVE');
+          if (error) throw error;
+          isAssigned = (data || []).some((assignment: any) => {
+            return isAssignmentCurrentlyEffective(assignment) &&
+              (assignment.engagement_id == null || assignment.engagement_id === engagementId) &&
+              (assignment.tax_year == null || Number(assignment.tax_year) === taxYear);
+          });
+        } catch {
+          return res.status(503).json({ error: 'Staff assignment data is unavailable.', code: 'STAFF_ASSIGNMENT_STORE_UNAVAILABLE' });
+        }
+      } else {
+        isAssigned = db.getClientBindings(ownerClientId).some(binding => {
+          const scopedBinding = binding as typeof binding & { engagementId?: string; taxYear?: number };
+          return binding.accountantId === req.user!.id &&
+            isAssignmentCurrentlyEffective(binding) &&
+            (scopedBinding.engagementId == null || scopedBinding.engagementId === engagementId) &&
+            (scopedBinding.taxYear == null || Number(scopedBinding.taxYear) === taxYear);
+        });
+      }
+      if (!isAssigned) return res.status(404).json({ error: 'Document not found.' });
+    }
 
     const result = AccountantDocumentReviewService.verifyEvidenceAndInvalidateDownstream({
       tenantId,
-      clientId,
-      engagementId: engagementId || `eng_${taxYear}`,
-      taxYear: Number(taxYear) || 2025,
+      clientId: ownerClientId,
+      engagementId,
+      taxYear,
       documentId,
       actor: {
         id: req.user.id,

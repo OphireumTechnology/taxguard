@@ -15,6 +15,10 @@ import {
 export class ClientRequestService {
   private requests = new Map<string, ClientRequestItem>();
 
+  getRequest(requestId: string): ClientRequestItem | undefined {
+    return this.requests.get(requestId);
+  }
+
   /**
    * Create a new request directed to a client
    */

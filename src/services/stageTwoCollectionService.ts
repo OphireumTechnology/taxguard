@@ -825,6 +825,10 @@ let entityType: EntityReturnType = 'individual';
     notes?: string;
     stagedSecurityDoc?: any;
   }): Promise<StageTwoUploadedDocument> {
+    if (process.env.NODE_ENV === 'production' || import.meta.env.PROD) {
+      throw new Error('DOCUMENT_INTAKE_NOT_READY: Durable storage and verified malware scanning are required.');
+    }
+
     const now = new Date().toISOString();
 
     // Prepare file bytes for security scanning & encryption pipeline

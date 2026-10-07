@@ -62,9 +62,9 @@ export const DocumentScanner: React.FC<TaxGuardComponentProps> = ({ userRole, on
  * 2. DocumentUploadQueue
  * Encrypted multi-file upload queue, MIME verification, SHA-256 duplicate detection, and quarantine status.
  */
-export const DocumentUploadQueue: React.FC<TaxGuardComponentProps> = ({ userRole, className }) => (
+export const DocumentUploadQueue: React.FC<TaxGuardComponentProps> = ({ className }) => (
   <div className={className}>
-    <TaxGuardDocumentsView userRole={userRole} />
+    <TaxGuardDocumentsView />
   </div>
 );
 
@@ -317,4 +317,3 @@ export const BrandedDeliverablesPanel: React.FC<TaxGuardComponentProps> = ({ use
     <BrandedDeliverablesGenerator userRole={userRole} />
   </div>
 );
-

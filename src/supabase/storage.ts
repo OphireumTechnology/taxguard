@@ -10,7 +10,6 @@
  */
 
 import { api } from '../services/api';
-import { supabase, isSupabaseConfigured } from './config';
 import { DocumentItem } from '../types';
 
 export const ALLOWED_DOCUMENT_MIME_TYPES = [
@@ -56,19 +55,6 @@ export async function getSecureDownloadUrl(documentId: string): Promise<string> 
       return response.signedUrl;
     }
   } catch (err: any) {
-    // If backend route unavailable, try Supabase Storage signed URL directly if configured
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase.storage
-          .from('taxpayer-documents')
-          .createSignedUrl(documentId, 300);
-        if (data?.signedUrl && !error) {
-          return data.signedUrl;
-        }
-      } catch {
-        // Fall through
-      }
-    }
     throw new Error(err?.message || 'Unable to generate secure download link.');
   }
 

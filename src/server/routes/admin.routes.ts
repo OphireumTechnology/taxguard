@@ -15,11 +15,29 @@ export const adminRouter = Router();
 // Apply admin access check to all admin routes
 adminRouter.use(authenticateToken, requireRole('admin', 'super_admin'));
 
+function authorizedAdminTenant(req: AuthenticatedRequest, res: Response): string | null {
+  const tenantId = req.user?.tenantId;
+  if (!tenantId) {
+    res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    return null;
+  }
+  return tenantId;
+}
+
+function userBelongsToTenant(userId: string, tenantId: string): boolean {
+  return db.users.get(userId)?.tenantId === tenantId;
+}
+
 // Audit Logs Viewer
 adminRouter.get('/audit-logs', (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = authorizedAdminTenant(req, res);
+  if (!tenantId) return;
   const { action, userId, severity, limit } = req.query;
 
-  let logs = [...db.auditLogs];
+  let logs = db.auditLogs.filter(log => userBelongsToTenant(log.userId, tenantId));
+  if (userId && typeof userId === 'string' && !userBelongsToTenant(userId, tenantId)) {
+    return res.status(404).json({ error: 'Audit records not found.' });
+  }
   if (action && typeof action === 'string') {
     logs = logs.filter(l => l.action.toLowerCase().includes(action.toLowerCase()));
   }
@@ -36,15 +54,24 @@ adminRouter.get('/audit-logs', (req: AuthenticatedRequest, res: Response) => {
 
 // Security Events Viewer
 adminRouter.get('/security-events', (req: AuthenticatedRequest, res: Response) => {
-  return res.json({ securityEvents: db.securityEvents });
+  const tenantId = authorizedAdminTenant(req, res);
+  if (!tenantId) return;
+  return res.json({
+    securityEvents: db.securityEvents.filter(event =>
+      event.userId ? userBelongsToTenant(event.userId, tenantId) : false
+    )
+  });
 });
 
 // System Health & Workload Balancing Metrics
 adminRouter.get('/system-health', (req: AuthenticatedRequest, res: Response) => {
-  const users = Array.from(db.users.values());
+  const tenantId = authorizedAdminTenant(req, res);
+  if (!tenantId) return;
+  const users = Array.from(db.users.values()).filter(user => user.tenantId === tenantId);
   const accountants = users.filter(u => u.role === 'accountant');
   const clients = users.filter(u => u.role === 'client');
-  const engagements = Array.from(db.engagements.values());
+  const clientIds = new Set(clients.map(client => client.clientId || client.id));
+  const engagements = Array.from(db.engagements.values()).filter(engagement => clientIds.has(engagement.clientId));
   const activeEngagements = engagements.filter(e => e.status !== 'completed' && e.status !== 'archived');
 
   const workloadByAccountant = accountants.map(acc => {
@@ -67,7 +94,7 @@ adminRouter.get('/system-health', (req: AuthenticatedRequest, res: Response) => 
       totalUsers: users.length,
       totalClients: clients.length,
       activeEngagements: activeEngagements.length,
-      totalDocumentsSecured: db.documents.size,
+      totalDocumentsSecured: Array.from(db.documents.values()).filter(document => clientIds.has(document.clientId)).length,
       failedLoginAttemptsTracked: db.loginAttempts.size,
       securityEventsLogged: db.securityEvents.length,
       auditLogsRecorded: db.auditLogs.length
@@ -78,14 +105,18 @@ adminRouter.get('/system-health', (req: AuthenticatedRequest, res: Response) => 
 
 // Manage Users: List, update status, reassign accountant
 adminRouter.get('/users', (req: AuthenticatedRequest, res: Response) => {
-  const users = Array.from(db.users.values());
+  const tenantId = authorizedAdminTenant(req, res);
+  if (!tenantId) return;
+  const users = Array.from(db.users.values()).filter(user => user.tenantId === tenantId);
   return res.json({ users });
 });
 
 // Reassign Client to Accountant with strict role, workload, and reason validation
 adminRouter.patch('/users/:clientId/reassign', (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = authorizedAdminTenant(req, res);
+  if (!tenantId) return;
   const client = db.users.get(req.params.clientId);
-  if (!client) return res.status(404).json({ error: 'Client not found.' });
+  if (!client || client.tenantId !== tenantId) return res.status(404).json({ error: 'Client not found.' });
 
   const { assignedAccountantId, assignedReviewerId, reason } = req.body;
 
@@ -98,7 +129,8 @@ adminRouter.patch('/users/:clientId/reassign', (req: AuthenticatedRequest, res: 
   }
 
   const destinationAccountant = db.users.get(assignedAccountantId);
-  if (!destinationAccountant || !['accountant', 'senior_reviewer', 'admin', 'super_admin'].includes(destinationAccountant.role)) {
+  if (!destinationAccountant || !['accountant', 'senior_reviewer'].includes(destinationAccountant.role) ||
+    destinationAccountant.tenantId !== tenantId) {
     return res.status(400).json({ error: 'Destination user is not an active staff accountant.' });
   }
   if (destinationAccountant.status !== 'active') {
@@ -107,7 +139,8 @@ adminRouter.patch('/users/:clientId/reassign', (req: AuthenticatedRequest, res: 
 
   if (assignedReviewerId) {
     const reviewer = db.users.get(assignedReviewerId);
-    if (!reviewer || !['senior_reviewer', 'admin', 'super_admin'].includes(reviewer.role) || reviewer.status !== 'active') {
+    if (!reviewer || !['senior_reviewer'].includes(reviewer.role) ||
+      reviewer.status !== 'active' || reviewer.tenantId !== tenantId) {
       return res.status(400).json({ error: 'Designated reviewer must be an active senior reviewer or administrator.' });
     }
   }
@@ -153,8 +186,10 @@ adminRouter.patch('/users/:clientId/reassign', (req: AuthenticatedRequest, res: 
 
 // Suspend or activate user with reason, confirmation, and self-disable protection
 adminRouter.patch('/users/:userId/status', (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = authorizedAdminTenant(req, res);
+  if (!tenantId) return;
   const user = db.users.get(req.params.userId);
-  if (!user) return res.status(404).json({ error: 'User not found.' });
+  if (!user || user.tenantId !== tenantId) return res.status(404).json({ error: 'User not found.' });
 
   const { status, reason, confirmation } = req.body;
   if (!['active', 'disabled', 'suspended'].includes(status)) {
@@ -177,7 +212,7 @@ adminRouter.patch('/users/:userId/status', (req: AuthenticatedRequest, res: Resp
   // Prevent disabling the last active super_admin
   if (user.role === 'super_admin' && (status === 'disabled' || status === 'suspended')) {
     const activeSuperAdmins = Array.from(db.users.values()).filter(
-      u => u.role === 'super_admin' && u.status === 'active' && u.id !== user.id
+      u => u.role === 'super_admin' && u.status === 'active' && u.tenantId === tenantId && u.id !== user.id
     );
     if (activeSuperAdmins.length === 0) {
       return res.status(403).json({ error: 'Cannot disable the last active super administrator account.' });

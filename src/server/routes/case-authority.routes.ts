@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { authenticateToken, type AuthenticatedRequest } from '../auth';
+import {
+  authenticateToken,
+  resolveAuthorizedClientContext,
+  type AuthenticatedRequest
+} from '../auth';
 import { globalAuthorityDatabase } from '../taxguard/transactionalDatabase';
 import { AuthorityError, TaxGuardAuthorityRepository, type CaseScope } from '../taxguard/authority.repository';
 import { proposeDurableOpenAIReview } from '../ai/TaxGuardOpenAIService';
@@ -30,6 +34,16 @@ caseAuthorityRouter.use(authenticateToken);
 caseAuthorityRouter.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
+});
+caseAuthorityRouter.use('/:tenantId/:clientId/:engagementId', (req: AuthenticatedRequest, res, next) => {
+  const context = resolveAuthorizedClientContext(
+    req,
+    res,
+    'case_authority',
+    req.params.clientId,
+    req.params.tenantId
+  );
+  if (context) next();
 });
 
 function resolveCaseAuthorityTenantId(): string {
@@ -691,5 +705,4 @@ caseAuthorityRouter.post(base + '/repeat', handler((repo, scope, uid, req) =>
 caseAuthorityRouter.get(base + '/repeat/:id', handler((repo, scope, uid, req) =>
   repo.getRepeatCase(scope, uid, req.params.id)
 ));
-
 

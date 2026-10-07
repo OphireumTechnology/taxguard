@@ -15,11 +15,13 @@ import {
   CollectionDocumentStatus,
   EntityReturnType
 } from '../services/stageTwoCollectionService';
+import { SimulatedDevelopmentMalwareScanner, StageTwoIntakeSecurityService } from '../services/stageTwoIntakeSecurityService';
 import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService';
 
 describe('Milestone M2 / Stage 02: Collect — Sprint 1 Verification', () => {
   beforeEach(() => {
     StageTwoCollectionService.resetCollectionForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(new SimulatedDevelopmentMalwareScanner());
   });
 
   describe('TG-COL-001: Tax-Year Collection Workspace', () => {

@@ -4,26 +4,39 @@
  * and signed webhook event validation.
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { db, WebhookRecord } from '../db';
 import { authenticateToken, AuthenticatedRequest } from '../auth';
 import { Invoice } from '../../types';
+import { isStaffCurrentlyAssignedToClient } from '../assignment-authorization';
 
 export const paymentsRouter = Router();
 
+export function requireLiveStripeProcessor(_req: Request, res: Response, next: NextFunction): void {
+  if (process.env.NODE_ENV !== 'production') {
+    next();
+    return;
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    res.status(503).json({
+      code: 'PROVIDER_NOT_CONFIGURED',
+      error: 'Stripe payment provider is not configured in production. Live charges are blocked.'
+    });
+    return;
+  }
+
+  res.status(503).json({
+    code: 'PAYMENT_PROCESSOR_UNAVAILABLE',
+    error: 'Live Stripe processing is unavailable. Configured credentials cannot be used to simulate a settled payment.'
+  });
+}
+
 // Process Checkout / Payment with Idempotency Key & Amount Authority
-paymentsRouter.post('/charge', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+paymentsRouter.post('/charge', authenticateToken, requireLiveStripeProcessor, (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-
-    // Production provider fail-closed check
-    if (process.env.NODE_ENV === 'production' && !process.env.STRIPE_SECRET_KEY) {
-      return res.status(503).json({
-        code: 'PROVIDER_NOT_CONFIGURED',
-        error: 'Stripe payment provider is not configured in production. Live charges are blocked.'
-      });
-    }
 
     const {
       amount,
@@ -272,13 +285,40 @@ paymentsRouter.get('/invoices', authenticateToken, (req: AuthenticatedRequest, r
   if (isClientRole) {
     const userClientId = req.user.clientId;
     list = list.filter(i => i.clientId === req.user!.id || (userClientId && i.clientId === userClientId));
-  } else if (req.user.role === 'accountant') {
-    const assignedClientIds = Array.from(db.users.values())
-      .filter(u => u.assignedAccountantId === req.user!.id)
-      .map(u => u.id);
-    list = list.filter(i => assignedClientIds.includes(i.clientId));
+  } else if (['accountant', 'senior_reviewer', 'reviewer', 'preparer'].includes(req.user.role)) {
+    const tenantId = req.user.tenantId;
+    if (!tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    list = list.filter(invoice => {
+      const client = db.users.get(invoice.clientId) ||
+        Array.from(db.users.values()).find(candidate =>
+          ['client', 'prospective_client'].includes(candidate.role) &&
+          candidate.clientId === invoice.clientId
+        );
+      return isStaffCurrentlyAssignedToClient({
+        userId: req.user!.id,
+        tenantId,
+        clientId: invoice.clientId,
+        clientTenantId: client?.tenantId,
+        assignments: db.getClientBindings(invoice.clientId),
+        authorizedClientIds: req.user!.authorizedClientIds,
+        production: process.env.NODE_ENV === 'production'
+      });
+    });
+  } else if (['admin', 'administrator', 'super_admin', 'super_administrator'].includes(req.user.role)) {
+    const tenantId = req.user.tenantId;
+    if (!tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    list = list.filter(invoice => {
+      const client = db.users.get(invoice.clientId) ||
+        Array.from(db.users.values()).find(candidate =>
+          ['client', 'prospective_client'].includes(candidate.role) &&
+          candidate.clientId === invoice.clientId
+        );
+      return client?.tenantId === tenantId;
+    });
   } else if (req.query.clientId && typeof req.query.clientId === 'string') {
-    list = list.filter(i => i.clientId === req.query.clientId);
+    return res.status(403).json({ error: 'Forbidden: Invoice access is not permitted.' });
+  } else {
+    return res.status(403).json({ error: 'Forbidden: Invoice access is not permitted.' });
   }
 
   return res.json({ invoices: list });

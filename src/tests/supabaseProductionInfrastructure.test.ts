@@ -7,6 +7,7 @@ import {
   setSupabaseAdmin
 } from '../server/supabase';
 import { SupabaseDurableSessions } from '../server/supabase-db';
+import { resolveAuthorizedClientContext } from '../server/auth';
 import { SupabaseStorageVault } from '../server/taxguard/supabaseStorage';
 import { resolveApiBaseUrl } from '../config/apiEndpoint';
 import { createProductionApp } from '../server/productionApp';
@@ -20,7 +21,8 @@ function createMockSupabaseClient() {
     sessions: new Map<string, any>(),
     sequence: { current_sequence: 100, last_issued_client_id: '100' },
     audit: [] as any[],
-    documents: new Map<string, any>()
+    documents: new Map<string, any>(),
+    assignments: [] as any[]
   };
 
   const client: any = {
@@ -60,12 +62,14 @@ function createMockSupabaseClient() {
       let filterVal: any = null;
       let filterCol2 = '';
       let filterVal2: any = null;
+      const filters: Array<[string, any]> = [];
 
       let pendingUpdates: any = null;
 
       const builder: any = {
         select: vi.fn(() => builder),
         eq: vi.fn((col: string, val: any) => {
+          filters.push([col, val]);
           if (!filterCol) {
             filterCol = col;
             filterVal = val;
@@ -88,6 +92,12 @@ function createMockSupabaseClient() {
               m => m.tenant_id === filterVal && m.uid === filterVal2
             );
             return { data: member || null, error: null };
+          }
+          if (table === 'taxguard_clients') {
+            const client = Array.from(store.clients.values()).find(
+              row => row.tenant_id === filterVal && row.owner_uid === filterVal2
+            );
+            return { data: client || null, error: null };
           }
           if (table === 'taxguard_client_id_sequence') {
             return { data: store.sequence, error: null };
@@ -121,6 +131,12 @@ function createMockSupabaseClient() {
           return builder;
         }),
         then: (resolve: any, reject?: any) => {
+          if (table === 'taxguard_staff_assignments') {
+            const data = store.assignments.filter(row =>
+              filters.every(([column, value]) => row[column] === value)
+            );
+            return Promise.resolve({ data, error: null }).then(resolve, reject);
+          }
           return Promise.resolve({ data: null, error: null }).then(resolve, reject);
         }
       };
@@ -208,6 +224,54 @@ describe('Supabase Production Infrastructure & Authority', () => {
       expect(user).not.toBeNull();
       expect(user?.id).toBe('user_456');
       expect(user?.role).toBe('client');
+    });
+
+    it('authorizes only active assignments whose effective dates include the current instant', async () => {
+      const sessions = new SupabaseDurableSessions(mockSupabase.client, 'tenantA');
+      const { token } = await sessions.create({
+        uid: 'staff_assignments',
+        email: 'staff@example.com',
+        authTime: Math.floor(Date.now() / 1000)
+      });
+      mockSupabase.store.identities.get('staff_assignments').user_data.role = 'accountant';
+      mockSupabase.store.members.get('tenantA_staff_assignments').role = 'accountant';
+
+      const now = Date.now();
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+      const assignment = (
+        clientId: string,
+        fields: Record<string, unknown> = {}
+      ) => ({
+        tenant_id: 'tenantA',
+        user_id: 'staff_assignments',
+        client_id: clientId,
+        status: 'ACTIVE',
+        effective_from: new Date(now - 1).toISOString(),
+        effective_to: null,
+        ...fields
+      });
+      mockSupabase.store.assignments.push(
+        assignment('client-starts-now', { effective_from: new Date(now).toISOString() }),
+        assignment('client-open-ended'),
+        assignment('client-starts-later', { effective_from: new Date(now + 1).toISOString() }),
+        assignment('client-expired', { effective_to: new Date(now - 1).toISOString() }),
+        assignment('client-ends-now', { effective_to: new Date(now).toISOString() }),
+        assignment('client-engagement-scoped', { engagement_id: 'engagement-1', tax_year: 2025 }),
+        assignment('client-reassigned', { status: 'REASSIGNED' }),
+        assignment('client-revoked', { status: 'REVOKED' }),
+        assignment('client-wrong-tenant', { tenant_id: 'tenantB' }),
+        assignment('client-wrong-user', { user_id: 'another-staff' })
+      );
+
+      const user = await sessions.verify(token);
+      expect(user?.authorizedClientIds).toEqual(['client-starts-now', 'client-open-ended']);
+      expect(resolveAuthorizedClientContext(
+        { user } as any,
+        { status: vi.fn().mockReturnThis(), json: vi.fn() } as any,
+        'test_resource',
+        'client-ends-now',
+        'tenantA'
+      )).toBeNull();
     });
 
     it('denies expired sessions', async () => {
@@ -385,6 +449,186 @@ describe('Supabase Production Infrastructure & Authority', () => {
         privateStorageMigrationFile,
       ]);
     });
+
+    it('keeps vault access owner-scoped and makes staff assignment changes durable and atomic', async () => {
+      const fs = await import('node:fs');
+      const sql = fs.readFileSync(`${migrationsDir}/${privateStorageMigrationFile}`, 'utf8');
+      expect(sql).toContain("VALUES ('taxguard-vault', 'taxguard-vault', false)");
+      expect(sql).toContain("c.owner_uid = auth.uid()::text");
+      expect(sql).toContain("tc.client_uid = auth.uid()::text");
+      expect(sql).toContain('CREATE POLICY taxguard_vault_authenticated_select_scope');
+      expect(sql).toContain('AS RESTRICTIVE FOR SELECT TO authenticated');
+      expect(sql).toContain("bucket_id <> 'taxguard-vault'");
+      expect(sql).toContain('CREATE OR REPLACE FUNCTION public.taxguard_assign_staff');
+      expect(sql).toContain('SET search_path = pg_catalog');
+      expect(sql).toContain('FOR UPDATE');
+      expect(sql).toContain('INSERT INTO public.taxguard_assignment_history');
+      expect(sql).toContain('FROM PUBLIC, anon, authenticated');
+      expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.taxguard_assign_staff');
+      expect(sql).toContain('TO service_role');
+      expect(sql).not.toContain('REVOKE INSERT, UPDATE, DELETE ON storage.objects');
+    });
+
+    it('prevents an unrelated permissive storage policy from expanding authenticated vault access', async () => {
+      const fs = await import('node:fs');
+      const { PGlite } = await import('@electric-sql/pglite');
+      const migration = fs.readFileSync(`${migrationsDir}/${privateStorageMigrationFile}`, 'utf8');
+      const storageMigration = migration.split('CREATE OR REPLACE FUNCTION public.taxguard_assign_staff')[0];
+      const pg = new PGlite();
+      try {
+        await pg.exec(`
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN;
+          CREATE SCHEMA auth;
+          CREATE FUNCTION auth.uid() RETURNS text LANGUAGE sql STABLE AS $$
+            SELECT current_setting('request.jwt.claim.sub', true);
+          $$;
+          CREATE SCHEMA storage;
+          CREATE TABLE storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL);
+          CREATE TABLE storage.objects (
+            id text PRIMARY KEY,
+            bucket_id text NOT NULL,
+            name text NOT NULL
+          );
+          CREATE TABLE public.taxguard_clients (
+            tenant_id text NOT NULL,
+            client_id text NOT NULL,
+            owner_uid text NOT NULL
+          );
+          CREATE TABLE public.taxguard_cases (
+            tenant_id text NOT NULL,
+            client_id text NOT NULL,
+            case_id text NOT NULL,
+            client_uid text NOT NULL
+          );
+          ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+          GRANT USAGE ON SCHEMA storage, auth TO authenticated;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO authenticated;
+          GRANT SELECT ON public.taxguard_clients, public.taxguard_cases TO authenticated;
+          INSERT INTO public.taxguard_clients VALUES
+            ('tenantA', 'client-a', 'uid-a'),
+            ('tenantA', 'client-b', 'uid-b'),
+            ('tenantB', 'client-c', 'uid-c');
+          INSERT INTO public.taxguard_cases VALUES
+            ('tenantA', 'client-a', 'case-a', 'uid-a'),
+            ('tenantA', 'client-b', 'case-b', 'uid-b'),
+            ('tenantB', 'client-c', 'case-c', 'uid-c');
+          INSERT INTO storage.objects VALUES
+            ('object-a', 'taxguard-vault', 'tenants/tenantA/clients/client-a/cases/case-a/docs/a.pdf'),
+            ('object-b', 'taxguard-vault', 'tenants/tenantA/clients/client-b/cases/case-b/docs/b.pdf'),
+            ('object-c', 'taxguard-vault', 'tenants/tenantB/clients/client-c/cases/case-c/docs/c.pdf');
+          CREATE POLICY unrelated_permissive_storage_access
+            ON storage.objects FOR ALL TO authenticated
+            USING (true) WITH CHECK (true);
+        `);
+
+        await pg.exec(storageMigration);
+        await pg.exec(storageMigration);
+        await pg.exec(`
+          BEGIN;
+          SET LOCAL ROLE authenticated;
+          SET LOCAL request.jwt.claim.sub = 'uid-a';
+        `);
+        const visible = await pg.query<{ id: string }>(
+          "SELECT id FROM storage.objects WHERE bucket_id = 'taxguard-vault' ORDER BY id;"
+        );
+        expect(visible.rows).toEqual([{ id: 'object-a' }]);
+        await pg.exec('COMMIT;');
+
+        await pg.exec(`
+          BEGIN;
+          SET LOCAL ROLE authenticated;
+          SET LOCAL request.jwt.claim.sub = 'uid-a';
+        `);
+        await expect(pg.query(
+          "INSERT INTO storage.objects VALUES ('object-new', 'taxguard-vault', 'tenants/tenantA/clients/client-a/cases/case-a/docs/new.pdf');"
+        )).rejects.toThrow();
+        await pg.exec('ROLLBACK;');
+
+        await pg.exec(`
+          BEGIN;
+          SET LOCAL ROLE authenticated;
+          SET LOCAL request.jwt.claim.sub = 'uid-a';
+        `);
+        const updated = await pg.query(
+          "UPDATE storage.objects SET name = 'tampered' WHERE id = 'object-b';"
+        );
+        const deleted = await pg.query(
+          "DELETE FROM storage.objects WHERE id = 'object-b';"
+        );
+        expect(updated.rowCount).toBe(0);
+        expect(deleted.rowCount).toBe(0);
+        await pg.exec('COMMIT;');
+      } finally {
+        await pg.close();
+      }
+    }, 30000);
+
+    it('compiles the assignment RPC with a safe search path and service-role-only execution', async () => {
+      const fs = await import('node:fs');
+      const { PGlite } = await import('@electric-sql/pglite');
+      const migration = fs.readFileSync(`${migrationsDir}/${privateStorageMigrationFile}`, 'utf8');
+      const rpcSql = migration.slice(migration.indexOf('CREATE OR REPLACE FUNCTION public.taxguard_assign_staff'));
+      const pg = new PGlite();
+      try {
+        await pg.exec(`
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN;
+          CREATE TABLE public.taxguard_staff_assignments (
+            id varchar(128) PRIMARY KEY,
+            tenant_id varchar(128) NOT NULL,
+            client_id varchar(64) NOT NULL,
+            engagement_id varchar(128),
+            tax_year integer,
+            role varchar(64) NOT NULL,
+            user_id varchar(128) NOT NULL,
+            assigned_by varchar(128) NOT NULL,
+            effective_from timestamptz NOT NULL,
+            effective_to timestamptz,
+            status varchar(32) NOT NULL,
+            created_at timestamptz NOT NULL,
+            updated_at timestamptz NOT NULL
+          );
+          CREATE TABLE public.taxguard_clients (
+            tenant_id varchar(128) NOT NULL,
+            client_id varchar(64) NOT NULL,
+            status varchar(32) NOT NULL
+          );
+          CREATE TABLE public.taxguard_members (
+            tenant_id varchar(128) NOT NULL,
+            uid varchar(128) NOT NULL,
+            status varchar(32) NOT NULL,
+            role varchar(64) NOT NULL
+          );
+          CREATE TABLE public.taxguard_assignment_history (
+            tenant_id varchar(128) NOT NULL,
+            client_id varchar(64) NOT NULL,
+            role varchar(64) NOT NULL,
+            previous_user_id varchar(128),
+            new_user_id varchar(128) NOT NULL,
+            changed_by varchar(128) NOT NULL,
+            reassignment_reason text NOT NULL
+          );
+        `);
+        await pg.exec(rpcSql);
+        const privileges = await pg.query<{ service_role_can_execute: boolean; authenticated_can_execute: boolean; function_config: string[] }>(`
+          SELECT
+            has_function_privilege('service_role', 'public.taxguard_assign_staff(varchar,varchar,varchar,integer,varchar,varchar,varchar,text)', 'EXECUTE') AS service_role_can_execute,
+            has_function_privilege('authenticated', 'public.taxguard_assign_staff(varchar,varchar,varchar,integer,varchar,varchar,varchar,text)', 'EXECUTE') AS authenticated_can_execute,
+            proconfig AS function_config
+          FROM pg_proc
+          WHERE oid = 'public.taxguard_assign_staff(varchar,varchar,varchar,integer,varchar,varchar,varchar,text)'::regprocedure;
+        `);
+        expect(privileges.rows).toEqual([{
+          service_role_can_execute: true,
+          authenticated_can_execute: false,
+          function_config: ['search_path=pg_catalog']
+        }]);
+      } finally {
+        await pg.close();
+      }
+    }, 30000);
 
     it('ensures zero uncast auth.uid() comparisons against VARCHAR/TEXT identity columns (prevents SQLSTATE 42883)', async () => {
       const fs = await import('node:fs');

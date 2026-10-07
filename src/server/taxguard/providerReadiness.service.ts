@@ -42,6 +42,16 @@ export class ProviderReadinessRegistry {
   }
 
   static getProviderStatus(type: ProviderType): ProviderReadinessInfo {
+    if (type === 'MALWARE_SCANNER' && process.env.NODE_ENV === 'production') {
+      return {
+        provider: type,
+        status: 'NOT_CONFIGURED',
+        description: 'No verified production malware scanner transport is installed. Documents remain quarantined.',
+        isOperational: false,
+        lastChecked: new Date().toISOString(),
+      };
+    }
+
     if (this.mockOverrideStatuses && this.mockOverrideStatuses[type]) {
       const status = this.mockOverrideStatuses[type]!;
       return {
@@ -107,15 +117,12 @@ export class ProviderReadinessRegistry {
       }
 
       case 'MALWARE_SCANNER': {
-        const isScannerReady = process.env.TAXGUARD_MALWARE_SCANNER_ENABLED === 'true';
-        const status: ProviderReadinessStatus = isScannerReady ? 'CONFIGURED' : 'NOT_CONFIGURED';
+        const status: ProviderReadinessStatus = 'NOT_CONFIGURED';
         return {
           provider: 'MALWARE_SCANNER',
           status,
-          description: isScannerReady
-            ? 'Production anti-malware daemon is connected.'
-            : 'Malware scanner is not configured. Documents remain quarantined.',
-          isOperational: isScannerReady,
+          description: 'No verified malware scanner transport is installed. Documents remain quarantined.',
+          isOperational: false,
           lastChecked: new Date().toISOString(),
         };
       }
@@ -155,70 +162,56 @@ export class ProviderReadinessRegistry {
       }
 
       case 'E_SIGNATURE': {
-        const hasSign = Boolean(
-          process.env.TAXGUARD_SIGNATURE_PROVIDER_URL ||
-          process.env.DOCUSIGN_INTEGRATION_KEY ||
-          process.env.HELLO_SIGN_KEY
-        );
+        const hasSign = false;
         const status: ProviderReadinessStatus = hasSign ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
           provider: 'E_SIGNATURE',
           status,
           description: hasSign
             ? 'Authorized e-signature provider is connected.'
-            : 'E-signature provider is not configured. Stage 11 fails closed.',
+            : 'No live e-signature transport is implemented. Stage 11 remains blocked even if vendor credentials are present.',
           isOperational: hasSign,
           lastChecked: new Date().toISOString(),
         };
       }
 
       case 'FILING': {
-        const hasFiling = Boolean(
-          process.env.TAXGUARD_IRS_MEF_TRANSMITTER_ID ||
-          process.env.TAXGUARD_FILING_PROVIDER_URL ||
-          process.env.TAXGUARD_MEF_ETIN
-        );
+        const hasFiling = false;
         const status: ProviderReadinessStatus = hasFiling ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
           provider: 'FILING',
           status,
           description: hasFiling
             ? 'Authorized IRS MeF filing transmitter is connected.'
-            : 'Filing provider is not configured. Stage 12 fails closed.',
+            : 'No live filing transport is implemented. Stage 12 remains blocked even if transmitter credentials are present.',
           isOperational: hasFiling,
           lastChecked: new Date().toISOString(),
         };
       }
 
       case 'QUICKBOOKS': {
-        const hasQbo = Boolean(
-          process.env.QUICKBOOKS_CLIENT_ID &&
-          process.env.QUICKBOOKS_CLIENT_SECRET
-        );
+        const hasQbo = false;
         const status: ProviderReadinessStatus = hasQbo ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
           provider: 'QUICKBOOKS',
           status,
           description: hasQbo
             ? 'QuickBooks Online OAuth connection credentials configured.'
-            : 'QuickBooks integration is optional and not configured.',
+            : 'No live QuickBooks transport is implemented; credentials alone do not enable synchronization.',
           isOperational: hasQbo,
           lastChecked: new Date().toISOString(),
         };
       }
 
       case 'XERO': {
-        const hasXero = Boolean(
-          process.env.XERO_CLIENT_ID &&
-          process.env.XERO_CLIENT_SECRET
-        );
+        const hasXero = false;
         const status: ProviderReadinessStatus = hasXero ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
           provider: 'XERO',
           status,
           description: hasXero
             ? 'Xero Accounting OAuth connection credentials configured.'
-            : 'Xero integration is optional and not configured.',
+            : 'No live Xero transport is implemented; credentials alone do not enable synchronization.',
           isOperational: hasXero,
           lastChecked: new Date().toISOString(),
         };

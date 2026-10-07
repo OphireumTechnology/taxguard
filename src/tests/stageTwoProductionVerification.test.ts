@@ -21,7 +21,10 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { StageTwoCollectionService } from '../services/stageTwoCollectionService';
-import { StageTwoIntakeSecurityService } from '../services/stageTwoIntakeSecurityService';
+import {
+  StageTwoIntakeSecurityService,
+  SimulatedDevelopmentMalwareScanner
+} from '../services/stageTwoIntakeSecurityService';
 import {
   TaxRequirementManifestEngine,
   TaxRequirementManifest,
@@ -42,6 +45,7 @@ describe('Stage 02 — Final Live Production Verification (Sections 1–14, 18, 
 
   beforeEach(() => {
     StageTwoCollectionService.resetCollectionForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(new SimulatedDevelopmentMalwareScanner());
     if (typeof localStorage !== 'undefined') {
       localStorage.clear();
     }

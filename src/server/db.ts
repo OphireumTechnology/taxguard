@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 import { 
   User, 
   Engagement, 
@@ -78,6 +79,8 @@ export interface SignedTokenRecord {
   token: string;
   documentId: string;
   userId: string;
+  clientId: string;
+  tenantId: string;
   expiresAt: number; // timestamp ms
   createdAt: number;
 }
@@ -87,6 +90,9 @@ export interface SecurityEventRecord {
   eventType: string;
   ipAddress: string;
   userId?: string;
+  resourceType?: string;
+  authorizationResult?: 'allowed' | 'denied';
+  requestId?: string;
   details: string;
   severity: 'info' | 'warning' | 'critical';
   timestamp: string;
@@ -233,6 +239,10 @@ class Database {
   }
 
   private seed() {
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
+
     // Seed initial users
     INITIAL_USERS.forEach(user => {
       this.users.set(user.id, { ...user });
@@ -1199,7 +1209,7 @@ class Database {
       if (
         binding.accountantId === accountantId &&
         binding.clientId === clientId &&
-        binding.status === 'active'
+        isAssignmentCurrentlyEffective(binding)
       ) {
         return true;
       }
@@ -1212,7 +1222,7 @@ class Database {
       if (
         binding.accountantId === accountantId &&
         binding.clientId === clientId &&
-        binding.status === 'active'
+        isAssignmentCurrentlyEffective(binding)
       ) {
         return binding.accessScope.includes(scope);
       }

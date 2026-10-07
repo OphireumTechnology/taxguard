@@ -10,9 +10,11 @@ import { db } from '../db';
 import { 
   authenticateToken, 
   AuthenticatedRequest, 
-  blockRecruiterFromTaxRecords 
+  blockRecruiterFromTaxRecords,
+  resolveAuthorizedClientContext
 } from '../auth';
 import { Engagement, EngagementStatus, JournalEntryDraft } from '../../types';
+import { isStaffCurrentlyAssignedToClient } from '../assignment-authorization';
 
 export const engagementsRouter = Router();
 
@@ -23,13 +25,48 @@ engagementsRouter.get('/', authenticateToken, blockRecruiterFromTaxRecords, (req
   let list = Array.from(db.engagements.values());
 
   if (req.user.role === 'client' || req.user.role === 'prospective_client') {
-    list = list.filter(e => e.clientId === req.user!.id);
-  } else if (req.user.role === 'accountant') {
-    // Assigned accountant only
-    list = list.filter(e => e.assignedAccountantId === req.user!.id);
-  } else if (req.user.role === 'senior_reviewer') {
-    // Reviewers can see items assigned to them or needing review
-    list = list.filter(e => e.reviewerId === req.user!.id || e.status === 'review_needed' || e.status === 'under_review');
+    const context = resolveAuthorizedClientContext(req, res, 'engagement_list', req.query.clientId as string | undefined);
+    if (!context) return;
+    list = list.filter(e => e.clientId === context.clientId);
+  } else if (['accountant', 'senior_reviewer', 'reviewer', 'preparer'].includes(req.user.role)) {
+    const user = req.user;
+    if (!user.tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    list = list.filter(engagement => {
+      const client = db.users.get(engagement.clientId) ||
+        Array.from(db.users.values()).find(candidate =>
+          ['client', 'prospective_client'].includes(candidate.role) &&
+          candidate.clientId === engagement.clientId
+        );
+      const authorized = isStaffCurrentlyAssignedToClient({
+        userId: user.id,
+        tenantId: user.tenantId!,
+        clientId: engagement.clientId,
+        clientTenantId: client?.tenantId,
+        assignments: db.getClientBindings(engagement.clientId),
+        authorizedClientIds: user.authorizedClientIds,
+        production: process.env.NODE_ENV === 'production',
+        engagementId: engagement.id,
+        taxYear: engagement.taxYear
+      });
+      if (!authorized) return false;
+      return user.role !== 'senior_reviewer' ||
+        engagement.reviewerId === user.id ||
+        engagement.status === 'review_needed' ||
+        engagement.status === 'under_review';
+    });
+  } else if (['admin', 'administrator', 'super_admin', 'super_administrator'].includes(req.user.role)) {
+    const tenantId = req.user.tenantId;
+    if (!tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    list = list.filter(engagement => {
+      const client = db.users.get(engagement.clientId) ||
+        Array.from(db.users.values()).find(candidate =>
+          ['client', 'prospective_client'].includes(candidate.role) &&
+          candidate.clientId === engagement.clientId
+        );
+      return client?.tenantId === tenantId;
+    });
+  } else {
+    return res.status(403).json({ error: 'Forbidden: Engagement access is not permitted.' });
   }
 
   return res.json({ engagements: list });
@@ -40,25 +77,20 @@ engagementsRouter.get('/:id', authenticateToken, blockRecruiterFromTaxRecords, (
   const eng = db.engagements.get(req.params.id);
   if (!eng) return res.status(404).json({ error: 'Engagement not found.' });
 
-  // Client isolation check
-  if (req.user?.role === 'client' && eng.clientId !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden: You cannot view other clients\' engagements.' });
-  }
-
-  // Accountant assignment check
-  if (req.user?.role === 'accountant' && eng.assignedAccountantId !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden: You are not assigned to this engagement.' });
-  }
+  if (!resolveAuthorizedClientContext(req, res, 'engagement', eng.clientId)) return;
 
   return res.json({ engagement: eng });
 });
 
 // Update engagement status & progress
 engagementsRouter.patch('/:id/status', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!req.user || !['accountant', 'senior_reviewer', 'admin', 'super_admin'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Forbidden: Staff access required.' });
+  }
 
   const eng = db.engagements.get(req.params.id);
   if (!eng) return res.status(404).json({ error: 'Engagement not found.' });
+  if (!resolveAuthorizedClientContext(req, res, 'engagement_status', eng.clientId)) return;
 
   const { status, progressPercent, notes } = req.body;
 
@@ -117,6 +149,7 @@ engagementsRouter.post('/:id/dispatch-8879', authenticateToken, (req: Authentica
 
   const eng = db.engagements.get(req.params.id);
   if (!eng) return res.status(404).json({ error: 'Engagement not found.' });
+  if (!resolveAuthorizedClientContext(req, res, 'engagement_dispatch', eng.clientId)) return;
 
   eng.status = 'ready_for_signature';
   eng.progressPercent = 90;
@@ -163,20 +196,28 @@ engagementsRouter.post('/:id/dispatch-8879', authenticateToken, (req: Authentica
 
 // Journal Entry Drafts for reconciliation
 engagementsRouter.get('/journal-entries/:clientId', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
-  const entries = Array.from(db.journalEntries.values()).filter(j => j.clientId === req.params.clientId);
+  const context = resolveAuthorizedClientContext(req, res, 'journal_entries', req.params.clientId);
+  if (!context) return;
+  const entries = Array.from(db.journalEntries.values()).filter(j => j.clientId === context.clientId);
   return res.json({ journalEntries: entries });
 });
 
 engagementsRouter.post('/journal-entries', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user || !['accountant', 'senior_reviewer', 'admin'].includes(req.user.role)) {
+  if (!req.user || !['accountant', 'senior_reviewer', 'admin', 'super_admin'].includes(req.user.role)) {
     return res.status(403).json({ error: 'Unauthorized to draft journal entries.' });
   }
 
   const { engagementId, clientId, memo, lines, reference } = req.body;
+  const context = resolveAuthorizedClientContext(req, res, 'journal_entry_create', clientId);
+  if (!context) return;
+  const engagement = typeof engagementId === 'string' ? db.engagements.get(engagementId) : undefined;
+  if (!engagement || engagement.clientId !== context.clientId) {
+    return res.status(404).json({ error: 'Authorized engagement not found.' });
+  }
   const newEntry: JournalEntryDraft = {
     id: `je_${randomUUID()}`,
-    engagementId: engagementId || 'eng_2025_001',
-    clientId,
+    engagementId,
+    clientId: context.clientId,
     date: new Date().toISOString().split('T')[0],
     reference: reference || `ADJ-${Date.now().toString().slice(-4)}`,
     memo: memo || 'Reconciliation Adjustment',
@@ -212,6 +253,7 @@ engagementsRouter.patch('/journal-entries/:id/approve', authenticateToken, (req:
 
   const je = db.journalEntries.get(req.params.id);
   if (!je) return res.status(404).json({ error: 'Journal entry not found.' });
+  if (!resolveAuthorizedClientContext(req, res, 'journal_entry_approval', je.clientId)) return;
 
   // Maker-checker rule:
   if (je.preparedBy === req.user.id) {

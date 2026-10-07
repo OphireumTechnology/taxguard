@@ -10,7 +10,7 @@
  * - Money precision without IEEE-754 floating point rounding drift
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BookkeepingEngine } from '../server/taxguard/bookkeeping/bookkeeping.engine';
 import { AccountingSyncService } from '../server/taxguard/bookkeeping/accountingSync.service';
 import { JournalEntryLine } from '../server/taxguard/bookkeeping/types';
@@ -298,6 +298,54 @@ describe('TaxGuard Deployment Candidate Suite - Full Integration & Security Gate
       expect(status.status).toBe('NOT_CONFIGURED');
       expect(status.isOperational).toBe(false);
       expect(status.provider).toBe('MALWARE_SCANNER');
+    });
+
+    it('does not treat provider credentials as a live transport in production', () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('TAXGUARD_SIGNATURE_PROVIDER_URL', 'https://signature.example.test');
+      vi.stubEnv('TAXGUARD_FILING_PROVIDER_URL', 'https://filing.example.test');
+      vi.stubEnv('QUICKBOOKS_CLIENT_ID', 'test-client-id');
+      vi.stubEnv('QUICKBOOKS_CLIENT_SECRET', 'test-client-secret');
+      vi.stubEnv('XERO_CLIENT_ID', 'test-client-id');
+      vi.stubEnv('XERO_CLIENT_SECRET', 'test-client-secret');
+      try {
+        for (const provider of ['E_SIGNATURE', 'FILING', 'QUICKBOOKS', 'XERO'] as const) {
+          const status = ProviderReadinessRegistry.getProviderStatus(provider);
+          expect(status.status).toBe('NOT_CONFIGURED');
+          expect(status.isOperational).toBe(false);
+        }
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it('does not simulate production accounting sync or write-back when credentials exist', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('QUICKBOOKS_CLIENT_ID', 'test-client-id');
+      vi.stubEnv('QUICKBOOKS_CLIENT_SECRET', 'test-client-secret');
+      try {
+        expect(syncService.getSyncState('QUICKBOOKS', tenantA, clientAlpha).isConnected).toBe(false);
+        await expect(syncService.executeReadOnlySync(
+          'QUICKBOOKS',
+          tenantA,
+          clientAlpha,
+          'production-sync-test'
+        )).resolves.toMatchObject({
+          success: false,
+          syncedAccounts: 0,
+          syncedTransactions: 0
+        });
+        await expect(syncService.executeWriteBack(
+          'QUICKBOOKS',
+          tenantA,
+          clientAlpha,
+          'production-write-test',
+          ['journal-1'],
+          'staff-test'
+        )).rejects.toThrow('ACCOUNTING_PROVIDER_NOT_AVAILABLE');
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
   });
 

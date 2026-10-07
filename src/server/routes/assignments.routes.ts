@@ -8,9 +8,11 @@ import { db } from '../db';
 import { 
   authenticateToken, 
   requireRole, 
-  AuthenticatedRequest 
+  AuthenticatedRequest,
+  resolveAuthorizedClientContext
 } from '../auth';
 import { randomUUID } from 'crypto';
+import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
 import { 
   ClientAccountantBinding, 
   PermissionScope, 
@@ -24,6 +26,10 @@ export const assignmentsRouter = Router();
 // Require authentication on all assignment endpoints
 assignmentsRouter.use(authenticateToken);
 
+function belongsToTenant(userId: string, tenantId: string | undefined): boolean {
+  return Boolean(tenantId && db.users.get(userId)?.tenantId === tenantId);
+}
+
 /**
  * GET /api/assignments
  * Returns assignments filtered by role:
@@ -34,18 +40,26 @@ assignmentsRouter.use(authenticateToken);
 assignmentsRouter.get('/', (req: AuthenticatedRequest, res) => {
   const user = req.user!;
   const allBindings = Array.from(db.clientAccountantAssignments.values());
+  const clientTenantMatches = (binding: ClientAccountantBinding) => {
+    const client = db.users.get(binding.clientId) ||
+      Array.from(db.users.values()).find(candidate =>
+        ['client', 'prospective_client'].includes(candidate.role) && candidate.clientId === binding.clientId
+      );
+    return Boolean(user.tenantId && client?.tenantId === user.tenantId);
+  };
 
   if (user.role === 'admin' || user.role === 'super_admin') {
-    return res.json({ bindings: allBindings });
+    return res.json({ bindings: allBindings.filter(clientTenantMatches) });
   }
 
   if (user.role === 'accountant' || user.role === 'senior_reviewer') {
-    const accountantBindings = allBindings.filter(b => b.accountantId === user.id);
+    const accountantBindings = allBindings.filter(b => b.accountantId === user.id && clientTenantMatches(b));
     return res.json({ bindings: accountantBindings });
   }
 
   if (user.role === 'client' || user.role === 'prospective_client') {
-    const clientBindings = allBindings.filter(b => b.clientId === user.id);
+    const clientId = user.clientId || user.id;
+    const clientBindings = allBindings.filter(b => b.clientId === clientId && clientTenantMatches(b));
     return res.json({ bindings: clientBindings });
   }
 
@@ -61,15 +75,17 @@ assignmentsRouter.get('/client/:clientId', (req: AuthenticatedRequest, res) => {
   const { clientId } = req.params;
 
   // Authorization check
-  if (user.role === 'client' && user.id !== clientId) {
-    return res.status(403).json({ error: 'Forbidden: You cannot view other clients\' assignments.' });
+  const context = resolveAuthorizedClientContext(req, res, 'assignment_list', clientId);
+  if (!context) return;
+  const client = db.users.get(context.clientId) ||
+    Array.from(db.users.values()).find(candidate =>
+      ['client', 'prospective_client'].includes(candidate.role) && candidate.clientId === context.clientId
+    );
+  if (client?.tenantId !== context.tenantId) {
+    return res.status(404).json({ error: 'Client assignment not found.' });
   }
 
-  if ((user.role === 'accountant' || user.role === 'senior_reviewer') && !db.isAccountantAssignedToClient(user.id, clientId)) {
-    return res.status(403).json({ error: 'Forbidden: You are not assigned to this client.' });
-  }
-
-  const clientBindings = db.getClientBindings(clientId);
+  const clientBindings = db.getClientBindings(context.clientId);
   res.json({ bindings: clientBindings });
 });
 
@@ -77,13 +93,17 @@ assignmentsRouter.get('/client/:clientId', (req: AuthenticatedRequest, res) => {
  * GET /api/assignments/accountants-workload
  * Returns all accountant profiles with caseload, availability, and capacity
  */
-assignmentsRouter.get('/accountants-workload', (req: AuthenticatedRequest, res) => {
+assignmentsRouter.get('/accountants-workload', requireRole('admin', 'super_admin'), (req: AuthenticatedRequest, res) => {
   const user = req.user!;
+  if (!user.tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
   
   // Update caseload counts dynamically
-  for (const [profId, profile] of db.accountantProfiles.entries()) {
+  for (const profile of db.accountantProfiles.values()) {
+    if (!belongsToTenant(profile.userId, user.tenantId)) continue;
     const activeCount = Array.from(db.clientAccountantAssignments.values()).filter(
-      b => b.accountantId === profile.userId && b.status === 'active'
+      b => b.accountantId === profile.userId &&
+        belongsToTenant(b.clientId, user.tenantId) &&
+        isAssignmentCurrentlyEffective(b)
     ).length;
     profile.currentActiveClients = activeCount;
     if (activeCount >= profile.maxClients) {
@@ -95,7 +115,9 @@ assignmentsRouter.get('/accountants-workload', (req: AuthenticatedRequest, res) 
     }
   }
 
-  const profiles = Array.from(db.accountantProfiles.values());
+  const profiles = Array.from(db.accountantProfiles.values()).filter(profile =>
+    belongsToTenant(profile.userId, user.tenantId)
+  );
   res.json({ profiles });
 });
 
@@ -134,6 +156,9 @@ assignmentsRouter.post('/bind', requireRole('admin', 'super_admin'), (req: Authe
   const accountant = db.users.get(accountantId);
   if (!accountant || (accountant.role !== 'accountant' && accountant.role !== 'senior_reviewer')) {
     return res.status(404).json({ error: 'Target staff member is not an authorized accountant or reviewer.' });
+  }
+  if (!belongsToTenant(clientId, admin.tenantId) || accountant.tenantId !== admin.tenantId) {
+    return res.status(404).json({ error: 'Target assignment not found.' });
   }
 
   // Duplicate active assignment prevention
@@ -227,9 +252,22 @@ assignmentsRouter.post('/unbind', requireRole('admin', 'super_admin'), (req: Aut
   if (!binding) {
     return res.status(404).json({ error: 'Assignment binding not found.' });
   }
+  if (!belongsToTenant(binding.clientId, admin.tenantId)) {
+    return res.status(404).json({ error: 'Assignment binding not found.' });
+  }
 
   if (binding.status === 'unbound') {
     return res.status(400).json({ error: 'This assignment is already unbound.' });
+  }
+  if (replacementAccountantId) {
+    const replacement = db.users.get(replacementAccountantId);
+    if (
+      !replacement ||
+      !['accountant', 'senior_reviewer'].includes(replacement.role) ||
+      replacement.tenantId !== admin.tenantId
+    ) {
+      return res.status(404).json({ error: 'Replacement staff member not found.' });
+    }
   }
 
   // Mark assignment as unbound
@@ -284,6 +322,9 @@ assignmentsRouter.post('/suspend', requireRole('admin', 'super_admin'), (req: Au
   if (!binding) {
     return res.status(404).json({ error: 'Assignment binding not found.' });
   }
+  if (!belongsToTenant(binding.clientId, admin.tenantId)) {
+    return res.status(404).json({ error: 'Assignment binding not found.' });
+  }
 
   binding.status = 'suspended';
   binding.internalNotes = `${binding.internalNotes || ''} [Suspended ${new Date().toISOString()}: ${reason || 'Administrative hold'}]`;
@@ -313,6 +354,9 @@ assignmentsRouter.post('/restore', requireRole('admin', 'super_admin'), (req: Au
 
   const binding = db.clientAccountantAssignments.get(bindingId);
   if (!binding) {
+    return res.status(404).json({ error: 'Assignment binding not found.' });
+  }
+  if (!belongsToTenant(binding.clientId, admin.tenantId)) {
     return res.status(404).json({ error: 'Assignment binding not found.' });
   }
 
@@ -354,6 +398,12 @@ assignmentsRouter.post('/reassign', requireRole('admin', 'super_admin'), (req: A
   const newAccountant = db.users.get(newAccountantId);
   if (!newAccountant || (newAccountant.role !== 'accountant' && newAccountant.role !== 'senior_reviewer')) {
     return res.status(404).json({ error: 'Replacement accountant is not valid.' });
+  }
+  if (
+    !belongsToTenant(oldBinding.clientId, admin.tenantId) ||
+    newAccountant.tenantId !== admin.tenantId
+  ) {
+    return res.status(404).json({ error: 'Existing assignment not found.' });
   }
 
   // Unbind old assignment
@@ -470,7 +520,8 @@ assignmentsRouter.get('/reassignment-requests', (req: AuthenticatedRequest, res)
   const allReqs = Array.from(db.reassignmentRequests.values());
 
   if (user.role === 'admin' || user.role === 'super_admin') {
-    return res.json({ requests: allReqs });
+    if (!user.tenantId) return res.status(403).json({ error: 'Authorized tenant context is unavailable.' });
+    return res.json({ requests: allReqs.filter(request => belongsToTenant(request.clientId, user.tenantId)) });
   }
 
   if (user.role === 'client') {
@@ -491,6 +542,9 @@ assignmentsRouter.post('/reassignment-requests/:id/review', requireRole('admin',
 
   const request = db.reassignmentRequests.get(id);
   if (!request) {
+    return res.status(404).json({ error: 'Reassignment request not found.' });
+  }
+  if (!belongsToTenant(request.clientId, admin.tenantId)) {
     return res.status(404).json({ error: 'Reassignment request not found.' });
   }
 

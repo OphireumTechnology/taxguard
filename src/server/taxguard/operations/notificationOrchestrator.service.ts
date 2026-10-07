@@ -64,7 +64,7 @@ export class NotificationOrchestratorService {
 
     if (params.channel === 'EMAIL') {
       const emailConfigured = Boolean(process.env.SENDGRID_API_KEY || process.env.SMTP_HOST);
-      if (!emailConfigured) {
+      if (process.env.NODE_ENV === 'production' || !emailConfigured) {
         // Truthful reporting: do NOT fake external delivery
         const record = this.createRecord(id, params, 'NOT_CONFIGURED', 'EMAIL_PROVIDER_NOT_COMMISSIONED', now);
         this.notifications.push(record);
@@ -79,7 +79,7 @@ export class NotificationOrchestratorService {
 
     if (params.channel === 'SMS') {
       const smsConfigured = Boolean(process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_ACCOUNT_SID);
-      if (!smsConfigured) {
+      if (process.env.NODE_ENV === 'production' || !smsConfigured) {
         // Truthful reporting: do NOT fake external SMS
         const record = this.createRecord(id, params, 'NOT_CONFIGURED', 'SMS_PROVIDER_NOT_COMMISSIONED', now);
         this.notifications.push(record);

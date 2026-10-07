@@ -14,6 +14,7 @@ import {
   AuthenticatedRequest 
 } from '../auth';
 import { randomUUID } from 'crypto';
+import { isStaffCurrentlyAssignedToClient, isAssignmentCurrentlyEffective } from '../assignment-authorization';
 import { 
   AccountingWorkflowTask, 
   DocumentRequest, 
@@ -26,6 +27,42 @@ import {
 
 export const accountantRouter = Router();
 
+const ADMIN_ROLES = new Set(['admin', 'administrator', 'super_admin', 'super_administrator']);
+
+function getClientUser(clientId: string) {
+  return db.users.get(clientId) ||
+    Array.from(db.users.values()).find(user =>
+      ['client', 'prospective_client'].includes(user.role) && user.clientId === clientId
+    );
+}
+
+function canAccessStaffClient(
+  user: NonNullable<AuthenticatedRequest['user']>,
+  clientId: string,
+  scope: { engagementId?: string; taxYear?: number; caseId?: string } = {}
+): boolean {
+  const client = getClientUser(clientId);
+  if (!user.tenantId || client?.tenantId !== user.tenantId) return false;
+  if (ADMIN_ROLES.has(user.role)) return true;
+  return isStaffCurrentlyAssignedToClient({
+    userId: user.id,
+    tenantId: user.tenantId,
+    clientId,
+    clientTenantId: client.tenantId,
+    assignments: db.getClientBindings(clientId),
+    authorizedClientIds: user.authorizedClientIds,
+    production: process.env.NODE_ENV === 'production',
+    ...scope
+  });
+}
+
+function getCurrentlyAssignedClientIds(user: NonNullable<AuthenticatedRequest['user']>): Set<string> {
+  return new Set(Array.from(db.users.values())
+    .filter(client => ['client', 'prospective_client'].includes(client.role))
+    .map(client => client.clientId || client.id)
+    .filter(clientId => canAccessStaffClient(user, clientId)));
+}
+
 // Require authentication and authorized staff roles on all accountant endpoints
 accountantRouter.use(authenticateToken);
 accountantRouter.use(requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'));
@@ -36,29 +73,17 @@ accountantRouter.use(requireRole('accountant', 'senior_reviewer', 'admin', 'supe
  */
 accountantRouter.get('/overview', (req: AuthenticatedRequest, res) => {
   const user = req.user!;
-  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  const isAdmin = ADMIN_ROLES.has(user.role);
 
-  // Find assigned client IDs
-  const myBindings = isAdmin 
-    ? Array.from(db.clientAccountantAssignments.values()).filter(b => b.status === 'active')
-    : Array.from(db.clientAccountantAssignments.values()).filter(b => b.accountantId === user.id && b.status === 'active');
-
-  const assignedClientIds = new Set(myBindings.map(b => b.clientId));
-
-  // If accountant has legacy assignedAccountantId on client records
-  if (!isAdmin) {
-    for (const [id, c] of db.users.entries()) {
-      if (c.assignedAccountantId === user.id || c.assignedReviewerId === user.id) {
-        assignedClientIds.add(id);
-      }
-    }
-  }
+  const assignedClientIds = getCurrentlyAssignedClientIds(user);
+  const myBindings = Array.from(db.clientAccountantAssignments.values())
+    .filter(binding => isAssignmentCurrentlyEffective(binding) &&
+      assignedClientIds.has(binding.clientId) &&
+      (isAdmin || binding.accountantId === user.id));
 
   // Filter tasks
   const allTasks = Array.from(db.accountingTasks.values());
-  const myTasks = isAdmin 
-    ? allTasks 
-    : allTasks.filter(t => assignedClientIds.has(t.clientId) || t.assignedAccountantId === user.id || t.reviewerId === user.id);
+  const myTasks = allTasks.filter(t => assignedClientIds.has(t.clientId));
 
   const todayStr = new Date().toISOString().split('T')[0];
   const tasksDueToday = myTasks.filter(t => t.dueDate === todayStr && t.status !== 'completed');
@@ -69,14 +94,14 @@ accountantRouter.get('/overview', (req: AuthenticatedRequest, res) => {
   // Documents awaiting review across assigned clients
   const allDocs = Array.from(db.documents.values());
   const docsAwaitingReview = allDocs.filter(d => 
-    (isAdmin || assignedClientIds.has(d.clientId)) && 
+    assignedClientIds.has(d.clientId) &&
     (d.status === 'pending_review' || d.status === 'uploaded' || d.status === 'needs_correction')
   );
 
   // Unread or awaiting client messages
   const allMessages = Array.from(db.messages.values());
   const clientQuestions = allMessages.filter(m => 
-    (isAdmin || assignedClientIds.has(m.clientId || '')) && 
+    assignedClientIds.has(m.clientId || '') &&
     !m.isInternalOnly && 
     m.senderRole === 'client'
   ).length;
@@ -84,7 +109,7 @@ accountantRouter.get('/overview', (req: AuthenticatedRequest, res) => {
   // Connection alerts (errors or needing re-auth)
   const allIntegrations = Array.from(db.detailedIntegrations.values());
   const connectionAlerts = allIntegrations.filter(i => 
-    (isAdmin || assignedClientIds.has(i.clientId)) && 
+    assignedClientIds.has(i.clientId) &&
     (i.status === 'error' || i.status === 'needs_reauth')
   ).length;
 
@@ -121,37 +146,24 @@ accountantRouter.get('/overview', (req: AuthenticatedRequest, res) => {
  */
 accountantRouter.get('/clients', (req: AuthenticatedRequest, res) => {
   const user = req.user!;
-  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  const isAdmin = ADMIN_ROLES.has(user.role);
 
   let clientIds: string[] = [];
   if (isAdmin) {
     clientIds = Array.from(db.users.values())
-      .filter(u => u.role === 'client' || u.role === 'prospective_client')
-      .map(u => u.id);
+      .filter(u => (u.role === 'client' || u.role === 'prospective_client') && u.tenantId === user.tenantId)
+      .map(u => u.clientId || u.id);
   } else {
-    // Get active bindings for this accountant
-    const bindings = Array.from(db.clientAccountantAssignments.values()).filter(
-      b => b.accountantId === user.id && b.status === 'active'
-    );
-    clientIds = bindings.map(b => b.clientId);
-
-    // Also include legacy assignments
-    for (const [id, c] of db.users.entries()) {
-      if (c.assignedAccountantId === user.id || c.assignedReviewerId === user.id) {
-        if (!clientIds.includes(id)) {
-          clientIds.push(id);
-        }
-      }
-    }
+    clientIds = Array.from(getCurrentlyAssignedClientIds(user));
   }
 
   // Build rich directory rows
   const clientDirectory = clientIds.map(clientId => {
-    const client = db.users.get(clientId);
+    const client = getClientUser(clientId);
     if (!client) return null;
 
     const onboarding = db.onboardingStates.get(clientId);
-    const bindings = db.getClientBindings(clientId).filter(b => b.status === 'active');
+    const bindings = db.getClientBindings(clientId).filter(b => isAssignmentCurrentlyEffective(b));
     const primaryBinding = bindings.find(b => b.assignmentType === 'primary');
     const reviewerBinding = bindings.find(b => b.assignmentType === 'reviewer');
 
@@ -232,7 +244,7 @@ accountantRouter.get('/workspace/:clientId', requireAccountantAssignment, (req: 
   const messages = Array.from(db.messages.values()).filter(m => m.clientId === clientId);
 
   // Update lastAccessAt on binding
-  const activeBinding = bindings.find(b => b.accountantId === user.id && b.status === 'active');
+  const activeBinding = bindings.find(b => b.accountantId === user.id && isAssignmentCurrentlyEffective(b));
   if (activeBinding) {
     activeBinding.lastAccessAt = new Date().toISOString();
     db.clientAccountantAssignments.set(activeBinding.id, activeBinding);
@@ -369,10 +381,8 @@ accountantRouter.post('/tasks/:taskId/status', (req: AuthenticatedRequest, res) 
   }
 
   // Verify assignment
-  if (user.role !== 'admin' && user.role !== 'super_admin') {
-    if (!db.isAccountantAssignedToClient(user.id, task.clientId) && task.assignedAccountantId !== user.id && task.reviewerId !== user.id) {
-      return res.status(403).json({ error: 'Forbidden: You are not assigned to this client task.' });
-    }
+  if (!canAccessStaffClient(user, task.clientId)) {
+    return res.status(403).json({ error: 'Forbidden: You are not assigned to this client task.' });
   }
 
   task.status = status;
@@ -607,7 +617,7 @@ accountantRouter.post('/documents/:docId/status', (req: AuthenticatedRequest, re
 
   // Verify assignment
   if (user.role !== 'admin' && user.role !== 'super_admin') {
-    if (!db.isAccountantAssignedToClient(user.id, doc.clientId)) {
+    if (!canAccessStaffClient(user, doc.clientId)) {
       return res.status(403).json({ error: 'Forbidden: You are not assigned to this client document.' });
     }
   }
@@ -708,7 +718,7 @@ accountantRouter.post('/bookkeeping/transactions/:txId/categorize', (req: Authen
   }
 
   // Verify assignment
-  if (user.role !== 'admin' && user.role !== 'super_admin' && !db.isAccountantAssignedToClient(user.id, tx.clientId)) {
+  if (!canAccessStaffClient(user, tx.clientId)) {
     return res.status(403).json({ error: 'Forbidden: You are not assigned to this client.' });
   }
 
@@ -749,7 +759,7 @@ accountantRouter.post('/bookkeeping/transactions/batch-categorize', (req: Authen
   for (const u of updates) {
     const tx = db.bookkeepingTransactions.get(u.id);
     if (tx) {
-      if (user.role === 'admin' || user.role === 'super_admin' || db.isAccountantAssignedToClient(user.id, tx.clientId)) {
+      if (canAccessStaffClient(user, tx.clientId)) {
         tx.suggestedAccountCode = u.accountCode || tx.suggestedAccountCode;
         tx.suggestedAccountName = u.accountName || tx.suggestedAccountName;
         tx.category = u.category || tx.category;
@@ -1186,4 +1196,3 @@ accountantRouter.post('/ai-tax-assistant', async (req: AuthenticatedRequest, res
     generatedAt: new Date().toISOString()
   });
 });
-

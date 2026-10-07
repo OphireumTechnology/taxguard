@@ -13,9 +13,6 @@ import {
   FileCheck,
   AlertTriangle
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-
-
 export interface DocumentUploadProps {
   onUploadComplete?: (docMetadata: any) => void;
   defaultCategory?: string;
@@ -82,13 +79,11 @@ async function computeSha256(file: File): Promise<string> {
 }
 
 export const DocumentUpload: React.FC<DocumentUploadProps> = ({
-  onUploadComplete,
   defaultCategory = 'w2',
   defaultTaxYear = 2025,
   allowedCategories = DEFAULT_CATEGORIES,
   className = ''
 }) => {
-  const { currentUser, uploadDocument } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory);
   const [selectedTaxYear, setSelectedTaxYear] = useState<number>(defaultTaxYear);
   const [dragActive, setDragActive] = useState<boolean>(false);
@@ -151,83 +146,15 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
       // 2. Cryptographic Provenance Hashing
       updateStatus('hashing', 'Computing SHA-256 cryptographic provenance hash...');
-      await new Promise(r => setTimeout(r, 450)); // Optical feedback
       const sha256 = await computeSha256(file);
-      updateStatus('scanning', 'Executing anti-malware heuristic inspection...', { sha256Hash: sha256 });
-
-      // 3. Simulated Anti-Malware Scan
-      await new Promise(r => setTimeout(r, 650));
-      // Heuristic check: verify clean payload
-      const scanClean = !file.name.toLowerCase().includes('eicar') && !file.name.toLowerCase().includes('virus');
-      if (!scanClean) {
-        updateStatus('failed', 'Heuristic malware signature flagged. File quarantined.', { 
-          scanResult: 'infected', 
-          error: 'Security alert: Payload failed malware heuristics.' 
-        });
-        return;
-      }
-
-      updateStatus('saving', 'Recording document metadata into secure Firestore vault...', { 
-        scanResult: 'clean' 
-      });
-
-      // 4. Record Document Metadata into Firestore
-      const docId = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      const clientId = currentUser?.id || 'client_taxpayer';
-      const formattedSize = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
-
-      const docMetadata = {
-        id: docId,
-        clientId,
-        uploadedBy: currentUser?.name || currentUser?.email || 'Client Taxpayer',
-        fileName: file.name,
-        fileSize: formattedSize,
-        fileType: file.type || 'application/pdf',
-        category: selectedCategory,
-        year: selectedTaxYear,
-        taxYear: selectedTaxYear,
-        sha256Hash: sha256,
-        malwareScanStatus: 'clean',
-        malwareScannedAt: new Date().toISOString(),
-        encryptionStandard: 'AES-256-GCM',
-        status: 'pending_review',
-        provenanceId: `PRV-${Date.now().toString(36).toUpperCase()}`,
-        evidenceProvenance: {
-          documentId: docId,
-          sourceHashAlgorithm: 'SHA-256',
-          sourceHash: sha256,
-          hashComputation: 'WEB_CRYPTO_SOURCE_BYTES',
-          ocrArtifactId: null,
-          extractionArtifactId: null,
-          lineageStatus: 'SOURCE_CAPTURED',
-          unsupportedSourceRepairsApplied: false
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      // Also register via AppContext uploadDocument to synchronize global context
-      if (uploadDocument) {
-        await uploadDocument({
-          id: docId,
-          fileName: file.name,
-          fileSize: formattedSize,
-          fileType: file.type || 'application/pdf',
-          category: selectedCategory as any,
-          taxYear: selectedTaxYear,
-          clientId,
-          clientName: currentUser?.name || 'Client',
-          description: `Uploaded via client portal. SHA-256: ${sha256.substring(0, 12)}...`
-        });
-      }
-
-      updateStatus('complete', 'Source received, SHA-256 recorded, and queued for professional review.', {
-        scanResult: 'clean'
-      });
-
-      if (onUploadComplete) {
-        onUploadComplete(docMetadata);
-      }
+      updateStatus(
+        'failed',
+        'DOCUMENT_INTAKE_NOT_READY: Server-side durable storage, malware scanning, and quarantine are not commissioned.',
+        {
+          sha256Hash: sha256,
+          error: 'The document was not accepted or represented as scanned.'
+        }
+      );
 
     } catch (err: any) {
       console.error('[DocumentUpload] Processing error:', err);
@@ -253,7 +180,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
         fileInputRef.current.value = '';
       }
     }
-  }, [selectedCategory, selectedTaxYear, currentUser, uploadDocument]);
+  }, [selectedCategory, selectedTaxYear]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -291,7 +218,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
             </h3>
           </div>
           <p className="text-xs text-slate-300 mt-0.5">
-            Client-side SHA-256 cryptographic provenance &bull; Heuristic anti-malware verification &bull; AES-256 encryption
+            Client-side file validation and SHA-256 fingerprinting. Server-side scanning, encryption, and durable intake are required before acceptance.
           </p>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0D2340] border border-[#1E3A5F] text-[11px] text-[#C6A15B] font-mono self-start sm:self-auto">

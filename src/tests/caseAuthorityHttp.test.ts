@@ -15,10 +15,17 @@ vi.mock('../server/taxguard/transactionalDatabase', async () => {
   };
 });
 // HTTP tests isolate transport from Firebase token verification (tested separately).
-vi.mock('../server/auth', () => ({ authenticateToken: (req: any, res: any, next: any) => {
-  if (!req.headers['x-test-user']) return res.status(401).json({ error: 'AUTH_REQUIRED' });
-  req.user = { id: req.headers['x-test-user'] }; next();
-} }));
+vi.mock('../server/auth', async importOriginal => {
+  const actual = await importOriginal<typeof import('../server/auth')>();
+  return {
+    ...actual,
+    authenticateToken: (req: any, res: any, next: any) => {
+      if (!req.headers['x-test-user']) return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      req.user = { id: req.headers['x-test-user'], role: 'admin', tenantId: 'tenantA' };
+      next();
+    }
+  };
+});
 import { caseAuthorityRouter } from '../server/routes/case-authority.routes';
 let server: Server; let origin: string;
 const scope = { tenantId: 'tenantA', clientId: '001', engagementId: 'engA', taxYear: 2025 };
@@ -35,8 +42,12 @@ beforeEach(() => {
   holder.db.records.set(root, { ...scope, revision: 1, clientUid: 'owner', preparerUid: 'preparer', reviewerUid: 'reviewer', activeStage: 1, openExceptions: 0, externalSubmissionEnabled: false });
   holder.db.records.set('taxguardTenants/tenantA/members/owner', { status: 'active', role: 'client', clientId: '001' });
   holder.db.records.set('taxguardTenants/tenantA/members/preparer', { status: 'active', role: 'accountant' });
-  holder.db.records.set(root + '/assignments/owner', { uid: 'owner', role: 'client', active: true });
-  holder.db.records.set(root + '/assignments/preparer', { uid: 'preparer', role: 'preparer', active: true });
+  holder.db.records.set(root + '/assignments/owner', {
+    uid: 'owner', role: 'client', active: true, assignedAt: '2026-10-03T00:00:00.000Z'
+  });
+  holder.db.records.set(root + '/assignments/preparer', {
+    uid: 'preparer', role: 'preparer', active: true, assignedAt: '2026-10-03T00:00:00.000Z'
+  });
 });
 it('requires authentication before repository access', async () => {
   const response = await fetch(origin);
@@ -100,6 +111,30 @@ it('lists cases for an engagement via the API', async () => {
   expect(Array.isArray(cases)).toBe(true);
   expect(cases).toHaveLength(1);
   expect(cases[0].taxYear).toBe(2025);
+});
+
+it.each([
+  ['future', '2026-10-05T00:00:00.000Z'],
+  ['malformed', 'not-a-timestamp']
+])('does not authorize case access for a %s case assignment', async (_name, assignedAt) => {
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-04T00:00:00.000Z'));
+  try {
+    holder.db.records.set(root + '/assignments/preparer', {
+      uid: 'preparer',
+      role: 'preparer',
+      active: true,
+      assignedAt
+    });
+    const response = await fetch(origin + '/exceptions', {
+      method: 'POST',
+      headers: { 'x-test-user': 'preparer', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ revision: 1, operationId: `assignment-${_name}`, code: 'MISSING_DOCUMENT' })
+    });
+    expect(response.status).toBe(403);
+    expect(holder.db.records.has(root + `/exceptions/assignment-${_name}`)).toBe(false);
+  } finally {
+    clock.mockRestore();
+  }
 });
 
 it('supports Stages 04 through 09 via canonical HTTP routes', async () => {
@@ -202,4 +237,3 @@ it('supports Stages 04 through 09 via canonical HTTP routes', async () => {
   const retData = await retRes.json();
   expect(retData.returnId).toBeDefined();
 });
-

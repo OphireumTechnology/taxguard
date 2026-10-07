@@ -251,6 +251,11 @@ export class DurableJobQueueService {
   /**
    * Filter jobs by tenant, client, case, status, or type
    */
+  getJob(jobId: string, tenantId: string): DurableJob | undefined {
+    const job = this.jobs.get(jobId);
+    return job?.tenantId === tenantId ? job : undefined;
+  }
+
   queryJobs(params: {
     tenantId: string;
     clientId?: string;

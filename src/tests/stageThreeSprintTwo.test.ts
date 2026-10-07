@@ -11,6 +11,7 @@ import {
   STAGE_THREE_SPRINT_TWO_REGISTRY
 } from '../services/stageThreeValidationService';
 import { StageTwoCollectionService } from '../services/stageTwoCollectionService';
+import { SimulatedDevelopmentMalwareScanner, StageTwoIntakeSecurityService } from '../services/stageTwoIntakeSecurityService';
 
 describe('Stage 03 Sprint 2 — Validation Engines (TG-VAL-009 through TG-VAL-016)', () => {
   const CLIENT_ID = 'CL-TEST-SPRINT2';
@@ -58,6 +59,7 @@ describe('Stage 03 Sprint 2 — Validation Engines (TG-VAL-009 through TG-VAL-01
     }
     StageThreeValidationService.clearAll();
     StageTwoCollectionService.resetCollectionForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(new SimulatedDevelopmentMalwareScanner());
   });
 
   // ==========================================================================

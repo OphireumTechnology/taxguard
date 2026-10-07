@@ -156,6 +156,8 @@ export interface StagedSecurityDocument {
   malwareScannerName: string;
   malwareScanTimestamp?: string;
   malwareDetails?: string;
+  malwareScanVerified?: boolean;
+  malwareScanIsProduction?: boolean;
 
   // TG-COL-008: Quarantine workflow
   quarantineStatus: QuarantineStatus;
@@ -592,7 +594,7 @@ export class ArchiveProtectionValidator {
 
 export class StageTwoIntakeSecurityService {
   private static stagedDocuments = new Map<string, StagedSecurityDocument>();
-  private static malwareScanner: IMalwareScanner = new SimulatedDevelopmentMalwareScanner();
+  private static malwareScanner: IMalwareScanner | null = null;
   private static encryptionService: IDocumentEncryptionService = new DocumentEncryptionService();
 
   /**
@@ -600,6 +602,14 @@ export class StageTwoIntakeSecurityService {
    */
   public static resetForTesting(): void {
     this.stagedDocuments.clear();
+    this.malwareScanner = null;
+  }
+
+  public static setMalwareScannerForTesting(scanner: IMalwareScanner): void {
+    if (process.env.NODE_ENV === 'production' || import.meta.env.PROD) {
+      throw new Error('TEST_MALWARE_SCANNER_FORBIDDEN_IN_PRODUCTION');
+    }
+    this.malwareScanner = scanner;
   }
 
   /**
@@ -722,7 +732,7 @@ export class StageTwoIntakeSecurityService {
       },
 
       malwareScanStatus: 'PENDING',
-      malwareScannerName: this.malwareScanner.name,
+      malwareScannerName: this.malwareScanner?.name || 'NOT_CONFIGURED',
 
       quarantineStatus: 'NONE',
 
@@ -845,12 +855,44 @@ export class StageTwoIntakeSecurityService {
     // ------------------------------------------------------------------------
     stagedDoc.pipelineStage = 'MALWARE_SCAN';
     stagedDoc.malwareScanStatus = 'SCANNING';
-    const scanOutput = await this.malwareScanner.scan(payload.fileBytes, payload.originalFilename);
+    const scanner = this.malwareScanner;
+    if (!scanner || (import.meta.env.PROD && !scanner.isProduction) || process.env.NODE_ENV === 'production') {
+      stagedDoc.malwareScanStatus = 'SCAN_FAILED';
+      stagedDoc.malwareScannerName = 'NOT_CONFIGURED';
+      stagedDoc.malwareDetails = 'No production malware scanner is configured.';
+      return this.routeToQuarantine(stagedDoc, 'Malware scanner is unavailable or not production-verified.', 'SYSTEM_MALWARE_SCANNER_UNAVAILABLE');
+    }
+
+    let scanOutput: MalwareScanOutput;
+    try {
+      scanOutput = await scanner.scan(payload.fileBytes, payload.originalFilename);
+    } catch {
+      stagedDoc.malwareScanStatus = 'SCAN_FAILED';
+      stagedDoc.malwareScannerName = 'NOT_CONFIGURED';
+      stagedDoc.malwareDetails = 'Malware scanner failed; document remains quarantined.';
+      return this.routeToQuarantine(stagedDoc, 'Malware scanner failed.', 'SYSTEM_MALWARE_SCANNER_FAILURE');
+    }
+
+    const validScanOutput =
+      scanOutput &&
+      scanOutput.scannerName === scanner.name &&
+      scanOutput.isProductionScanner === scanner.isProduction &&
+      typeof scanOutput.details === 'string' &&
+      Number.isFinite(Date.parse(scanOutput.scanTimestamp)) &&
+      ['CLEAN', 'INFECTED', 'SUSPICIOUS', 'SCAN_FAILED'].includes(scanOutput.status);
+    if (!validScanOutput) {
+      stagedDoc.malwareScanStatus = 'SCAN_FAILED';
+      stagedDoc.malwareScannerName = 'NOT_CONFIGURED';
+      stagedDoc.malwareDetails = 'Malware scanner returned an invalid response; document remains quarantined.';
+      return this.routeToQuarantine(stagedDoc, 'Malware scanner returned an invalid response.', 'SYSTEM_MALWARE_SCANNER_INVALID_RESPONSE');
+    }
 
     stagedDoc.malwareScanStatus = scanOutput.status;
     stagedDoc.malwareScannerName = scanOutput.scannerName;
     stagedDoc.malwareScanTimestamp = scanOutput.scanTimestamp;
     stagedDoc.malwareDetails = scanOutput.details;
+    stagedDoc.malwareScanVerified = true;
+    stagedDoc.malwareScanIsProduction = scanOutput.isProductionScanner;
 
     // Log malware scan event
     TaxGuardAuditService.logEvent({
@@ -1062,6 +1104,10 @@ export class StageTwoIntakeSecurityService {
     reason: string;
     requestingTenantId?: string;
   }): StagedSecurityDocument {
+    if (process.env.NODE_ENV === 'production' || import.meta.env.PROD) {
+      throw new Error('DOCUMENT_INTAKE_NOT_READY: Production quarantine release requires the server-authoritative pipeline.');
+    }
+
     const doc = this.stagedDocuments.get(params.documentId);
     if (!doc) {
       throw new Error(`Document ${params.documentId} not found in staging registry.`);
@@ -1077,6 +1123,13 @@ export class StageTwoIntakeSecurityService {
 
     if (!params.reason.trim()) {
       throw new Error('A detailed operational or compliance reason is required to disposition quarantined files.');
+    }
+    if (params.disposition === 'CLEARED' && (
+      doc.malwareScanStatus !== 'CLEAN' ||
+      doc.malwareScanVerified !== true ||
+      doc.malwareScanIsProduction !== true
+    )) {
+      throw new Error('DOCUMENT_NOT_CLEAN: A verified production malware scan is required before release.');
     }
 
     const timestamp = new Date().toISOString();

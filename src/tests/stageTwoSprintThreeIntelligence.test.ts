@@ -7,6 +7,7 @@ import {
 } from '../services/stageTwoDocumentIntelligenceService';
 import { StageTwoCollectionService } from '../services/stageTwoCollectionService';
 import { StageTwoIntakeSecurityService } from '../services/stageTwoIntakeSecurityService';
+import { SimulatedDevelopmentMalwareScanner } from '../services/stageTwoIntakeSecurityService';
 import { TaxGuardAuditService } from '../taxguard/services/TaxGuardAuditService';
 
 describe('Milestone M2 / Stage 02: Collect — Sprint 3 Document Intelligence', () => {
@@ -18,6 +19,7 @@ describe('Milestone M2 / Stage 02: Collect — Sprint 3 Document Intelligence', 
     StageTwoDocumentIntelligenceService.resetForTesting();
     StageTwoIntakeSecurityService.resetForTesting();
     StageTwoCollectionService.resetCollectionForTesting();
+    StageTwoIntakeSecurityService.setMalwareScannerForTesting(new SimulatedDevelopmentMalwareScanner());
   });
 
   describe('TG-COL-012: Document OCR Processing & Artifacts', () => {

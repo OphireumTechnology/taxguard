@@ -150,9 +150,31 @@ export class SupabaseStorageVault {
       updatedAt: new Date().toISOString()
     };
 
-    await this.client
+    const { error: metadataError } = await this.client
       .from('taxguard_documents')
-      .insert(metadata);
+      .insert({
+        document_id: metadata.documentId,
+        tenant_id: metadata.tenantId,
+        client_id: metadata.clientId,
+        engagement_id: metadata.engagementId,
+        tax_year: metadata.taxYear,
+        case_id: metadata.caseId,
+        version: metadata.version,
+        hash: metadata.hash,
+        mime_type: metadata.mimeType,
+        status: metadata.status,
+        provenance: metadata.provenance,
+        storage_path: metadata.storagePath,
+        file_name: metadata.fileName,
+        file_size_bytes: metadata.fileSizeBytes,
+        quarantine_status: metadata.quarantineStatus,
+        created_by: metadata.createdBy,
+        created_at: metadata.createdAt,
+        updated_at: metadata.updatedAt
+      });
+    if (metadataError) {
+      throw new AuthorityError('DOCUMENT_METADATA_STORE_UNAVAILABLE', 503);
+    }
 
     return metadata;
   }
@@ -161,12 +183,51 @@ export class SupabaseStorageVault {
    * Generates a signed, short-lived download URL for an authorized document.
    */
   async getSignedDownloadUrl(
-    storagePath: string,
+    scope: {
+      tenantId: string;
+      clientId: string;
+      documentId: string;
+    },
     expiresInSeconds = 300
   ): Promise<string> {
+    [scope.tenantId, scope.clientId, scope.documentId].forEach(safeId);
+    const { data: document, error: lookupError } = await this.client
+      .from('taxguard_documents')
+      .select('document_id, tenant_id, client_id, case_id, version, storage_path, status, quarantine_status')
+      .eq('tenant_id', scope.tenantId)
+      .eq('client_id', scope.clientId)
+      .eq('document_id', scope.documentId)
+      .maybeSingle();
+
+    if (lookupError) {
+      throw new AuthorityError('DOCUMENT_AUTHORIZATION_UNAVAILABLE', 503);
+    }
+    if (
+      !document ||
+      document.tenant_id !== scope.tenantId ||
+      document.client_id !== scope.clientId ||
+      document.document_id !== scope.documentId
+    ) {
+      throw new AuthorityError('DOCUMENT_NOT_FOUND', 404);
+    }
+    if (!['RELEASED', 'VERIFIED'].includes(document.status) || document.quarantine_status !== 'CLEAN') {
+      throw new AuthorityError('DOCUMENT_NOT_AVAILABLE', 403);
+    }
+
+    const expectedPath = this.getStoragePath({
+      tenantId: scope.tenantId,
+      clientId: scope.clientId,
+      caseId: document.case_id,
+      documentId: document.document_id,
+      version: Number(document.version)
+    });
+    if (document.storage_path !== expectedPath) {
+      throw new AuthorityError('DOCUMENT_STORAGE_SCOPE_INVALID', 403);
+    }
+
     const { data, error } = await this.client.storage
       .from(this.bucketName)
-      .createSignedUrl(storagePath, expiresInSeconds);
+      .createSignedUrl(expectedPath, expiresInSeconds);
 
     if (error || !data?.signedUrl) {
       throw new AuthorityError(`FAILED_TO_SIGN_URL: ${error?.message || 'Unknown error'}`, 500);
