@@ -1,0 +1,71 @@
+.tg-accountant{background:#061b30;color:#d9e6f4;padding:12px;font-size:12px;min-height:100%;}
+.tg-accountant button,.tg-accountant input,.tg-accountant select{font:inherit}
+.tg-accountant button{cursor:pointer;border:1px solid #285675;border-radius:4px;padding:6px 9px;background:#0b3557;color:#e1efff}
+.tg-accountant button:disabled{cursor:default;opacity:.65}
+.tg-accountant button[aria-pressed=true],.tg-accountant button[aria-selected=true]{background:#087bbb;color:white}
+.tg-accountant button:focus-visible,.tg-accountant input:focus-visible,.tg-accountant select:focus-visible{outline:3px solid #e7b84b;outline-offset:2px}
+.tg-accountant-kpis{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:7px;margin-bottom:10px}
+.tg-accountant-kpis button{text-align:left;min-height:85px;border-color:#1680b7;background:linear-gradient(135deg,#0d3555,#041d33);display:flex;flex-direction:column;gap:5px}
+.tg-accountant-kpis strong{font-size:26px}
+.tg-accountant-kpis small{color:#6bddff;font-size:10px}
+.tg-accountant-top{display:grid;grid-template-columns:1.3fr 1.4fr .7fr;gap:8px}
+.tg-accountant-card{border:1px solid #1680b7;border-radius:5px;padding:10px;min-width:0;background:#06243e}
+.tg-accountant h2{font-size:14px;margin:0 0 9px;display:flex;justify-content:space-between;gap:9px}
+.tg-accountant h3{font-size:12px;margin:0 0 10px}
+.tg-accountant-filters{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.tg-accountant-filters label{display:flex;gap:5px;align-items:center}
+.tg-accountant input,.tg-accountant select{background:#fff;color:#102c48;border:1px solid #a6c2d8;border-radius:3px;padding:5px;max-width:140px}
+.tg-accountant table{border-collapse:collapse;width:100%;text-align:left;font-size:11px}
+.tg-accountant th,.tg-accountant td{padding:6px;border-bottom:1px solid #b8cfe1}
+.tg-accountant-table{overflow:auto}
+.tg-accountant-top tbody{background:#f4f8fc;color:#132d47}
+.tg-accountant-top td button{background:none;color:#085c92;border:0;padding:0;text-align:left}
+.tg-accountant-pipeline{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:12px}
+.tg-accountant-pipeline div{display:flex;align-items:center;flex-direction:column;text-align:center;gap:4px}
+.tg-accountant-pipeline strong{border-radius:50%;background:#40aa91;color:#fff;display:grid;place-items:center;width:29px;height:29px}
+.tg-accountant-pipeline span{font-size:10px}
+.tg-accountant-deadline{display:flex;flex-direction:column;text-align:left;width:100%;margin-bottom:8px;gap:5px}
+.tg-accountant-body{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:8px;margin-top:9px}
+.tg-accountant-case{background:#f5f9fd;color:#092b4b;border:1px solid #8bd0ef;border-radius:6px;padding:10px;min-width:0;margin-top:8px}
+.tg-accountant-case small{font-size:10px;font-weight:400}
+.tg-accountant-case button{background:#e6f0fa;color:#06426d;border-color:#cedfed}
+.tg-accountant-tabs{display:flex;gap:3px;overflow:auto;padding-bottom:8px}
+.tg-accountant-tabs button{white-space:nowrap;font-size:10px}
+.tg-accountant-preparation{display:grid;grid-template-columns:.85fr 1.7fr 1fr;gap:7px}
+.tg-accountant-preparation>section{border:1px solid #d0e2ee;background:#fff;padding:9px;border-radius:4px;min-width:0}
+.tg-accountant-preparation p{margin:8px 0}
+.tg-accountant-preparation small{display:block;color:#526b81}
+.tg-accountant-empty{padding:14px;color:inherit;line-height:1.6;border:1px dashed #87a4bb;border-radius:4px}
+.tg-accountant dl{margin:0}
+.tg-accountant dt{font-weight:600;padding-top:7px}
+.tg-accountant dd{margin:3px 0 8px;overflow-wrap:anywhere}
+.tg-accountant aside section{margin-top:0;margin-bottom:8px}
+.tg-accountant aside button{display:block;width:100%;margin:5px 0;text-align:left}
+.tg-accountant-journey{list-style:none;padding:8px;margin:10px 0 0;display:grid;grid-template-columns:repeat(9,1fr);gap:4px;border:1px solid #d1a344;border-radius:6px;background:#123d53}
+.tg-accountant-journey li{font-size:10px;background:#164f66;border:1px solid #47758c;padding:7px;border-radius:4px}
+.tg-accountant-journey strong{display:block;font-size:15px;color:#f4cc70}
+.tg-accountant-journey small{display:block;margin-top:5px}
+.tg-accountant-journey [aria-current=step]{background:#655123;border-color:#ecc866}
+#accountant-dashboard-shell .tg-shell-navigation h3{font-size:10px;color:#89d5ef;margin:16px 10px 5px}
+#accountant-dashboard-shell .tg-shell-navigation button{display:block;width:100%;text-align:left;background:transparent;border:0;color:#dceeff;padding:7px 12px;font-size:12px}
+#accountant-dashboard-shell .tg-shell-navigation button:hover{background:#075b93}
+@media(max-width:1250px){.tg-accountant-kpis{grid-template-columns:repeat(5,1fr)}
+.tg-accountant-top{grid-template-columns:1fr 1fr}
+.tg-accountant-top>section:last-child{grid-column:1/-1}
+.tg-accountant-preparation{grid-template-columns:1fr 1.5fr}
+.tg-accountant-preparation>section:last-child{grid-column:1/-1}
+.tg-accountant-journey{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:800px){.tg-accountant-body,.tg-accountant-top,.tg-accountant-preparation{grid-template-columns:1fr}
+.tg-accountant-kpis{grid-template-columns:repeat(3,1fr)}
+.tg-accountant{padding:8px}
+.tg-accountant h2{flex-wrap:wrap}
+.tg-accountant table{min-width:430px}
+.tg-accountant-case{overflow:auto}
+}
+@media(max-width:480px){.tg-accountant-kpis{grid-template-columns:repeat(2,1fr)}
+.tg-accountant-journey{grid-template-columns:1fr 1fr}
+}
+
+#accountant-dashboard-shell .tg-navigation-collapsed [aria-label="Accountant navigation"]{overflow:hidden}
+#accountant-dashboard-shell .tg-navigation-collapsed [aria-label="Accountant navigation"] button{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

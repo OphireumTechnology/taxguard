@@ -4,6 +4,7 @@
  * Trial Balance, Financial Statements, Book-to-Tax, and Accounting Sync.
  */
 
+import { projectBookkeeper } from '../bookkeeperDashboardProjection';
 import { Router, Response } from 'express';
 import {
   authenticateToken,
@@ -16,6 +17,30 @@ import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.eng
 import { globalAccountingSyncService } from '../taxguard/bookkeeping/accountingSync.service';
 
 export const bookkeepingRouter = Router();
+
+// Bookkeeper grants are deliberately local; no preparer/reviewer authority is inherited.
+bookkeepingRouter.get('/bookkeeper-clients', authenticateToken, (req: AuthenticatedRequest,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  const user=req.user!;
+  if(user.role!=='bookkeeper' || user.status!=='active' || !user.tenantId || (process.env.NODE_ENV==='production' && user.tenantId!==process.env.TAXGUARD_TENANT_ID?.trim()))return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
+  return res.json({tenantId:user.tenantId,clientIds:[...new Set(user.authorizedClientIds||[])]});
+});
+bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, (req: AuthenticatedRequest, res) => {
+  res.setHeader('Cache-Control','no-store');
+  const user=req.user!;
+  if(user.role!=='bookkeeper' || user.status!=='active') return res.status(403).json({code:'BOOKKEEPER_REQUIRED'});
+  const tenant=user.tenantId;
+  const client=typeof req.query.clientId==='string'?req.query.clientId:'';
+  const year=Number(req.query.taxYear);
+  if(!tenant || !client || !user.authorizedClientIds?.includes(client) || (req.query.tenantId && req.query.tenantId!==tenant) || (req.get('x-tenant-id') && req.get('x-tenant-id')!==tenant)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
+  if(process.env.NODE_ENV==='production' && (!process.env.TAXGUARD_TENANT_ID || tenant!==process.env.TAXGUARD_TENANT_ID.trim())) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
+  if(!Number.isInteger(year) || year<2022 || year>9999) return res.status(400).json({code:'EXPLICIT_TAX_YEAR_REQUIRED'});
+  // The current accounting engine is volatile. Never substitute it for production PostgreSQL.
+  if(process.env.NODE_ENV==='production') return res.status(503).json({code:'DURABLE_ACCOUNTING_PROVIDER_REQUIRED'});
+  const period=typeof req.query.periodId==='string'?req.query.periodId:undefined;
+  try {return res.json(projectBookkeeper(globalBookkeepingEngine,tenant,client,year,period));}
+  catch {return res.status(403).json({code:'PERIOD_ACCESS_DENIED'});}
+});
 
 bookkeepingRouter.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
@@ -38,6 +63,7 @@ bookkeepingRouter.use((req, res, next) => {
 });
 
 bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res, next) => {
+  if(req.user?.role==='bookkeeper') return res.status(403).json({code:'BOOKKEEPER_OPERATION_NOT_RELEASED'});
   const requestedClientId =
     typeof req.query.clientId === 'string'
       ? req.query.clientId

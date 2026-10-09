@@ -1,3 +1,4 @@
+import { createAiGovernanceRouter } from './routes/ai-governance.routes';
 import express from 'express';
 import { authRouter } from './routes/auth.routes';
 import { caseAuthorityRouter } from './routes/case-authority.routes';
@@ -93,6 +94,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   });
 
   app.use('/api/auth', authRouter);
+  app.use('/api/ai-governance', createAiGovernanceRouter());
   app.use('/api/case-authority', caseAuthorityRouter);
   app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
   app.use(['/api/stage-two-three', '/api/stage-workflow'], stageTwoThreeRouter);

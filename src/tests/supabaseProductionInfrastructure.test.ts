@@ -447,6 +447,13 @@ describe('Supabase Production Infrastructure & Authority', () => {
         practiceOperationsMigrationFile,
         storageGovernanceMigrationFile,
         privateStorageMigrationFile,
+        '20261008000000_taxguard_ai_registry_foundation.sql',
+        '20261008010000_taxguard_ai_governance_decisions.sql',
+        '20261008020000_taxguard_ai_orchestration_history.sql',
+        '20261008030000_taxguard_ai_gateway_admission.sql',
+        '20261008040000_taxguard_ai_capability_execution.sql',
+        '20261008050000_taxguard_ai_execution_ledger.sql',
+        '20261008060000_taxguard_ai_document_advisory_routing.sql',
       ]);
     });
 

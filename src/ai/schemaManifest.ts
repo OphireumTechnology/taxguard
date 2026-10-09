@@ -1,0 +1,2 @@
+/** AI-1 tables; end-user access is denied until scoped server policies are approved. */
+export const AI_FOUNDATION_TABLES = ["ai_agents","ai_agent_versions","ai_models","ai_prompts","ai_tools","ai_agent_permissions","ai_data_classifications","ai_agent_data_permissions","ai_workflow_stages","ai_stage_permissions","ai_human_approval_policies","ai_runs","ai_evidence_sources","ai_run_evidence","ai_proposals","ai_verifications","ai_verification_evidence","ai_human_reviews","ai_authoritative_actions","ai_security_events","ai_policy_events","ai_kill_switches"] as const;

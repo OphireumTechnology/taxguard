@@ -12,7 +12,11 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "taxguard:complete": "node scripts/taxguard-complete-system.mjs"
+    "taxguard:complete": "node scripts/taxguard-complete-system.mjs",
+    "qa:fixture:build": "vite build --config qa/synthetic-shell/vite.config.ts",
+    "qa:browser:setup": "node scripts/setup-local-browser.mjs",
+    "qa:browser": "node scripts/run-local-browser.mjs",
+    "qa:browser:product:anonymous": "node scripts/run-local-product-browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -27,6 +31,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",

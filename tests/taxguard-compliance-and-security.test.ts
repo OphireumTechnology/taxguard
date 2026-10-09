@@ -85,7 +85,7 @@ describe('TaxGuard AI - Maker-Checker & Professional Authority Enforcements', ()
 
     const next = () => { nextCalled = true; };
 
-    const middleware = requireMakerChecker();
+    const middleware = requireMakerChecker(() => mockPreparer.id);
     middleware(req as AuthenticatedRequest, res, next);
 
     expect(nextCalled).toBe(false);
@@ -94,7 +94,7 @@ describe('TaxGuard AI - Maker-Checker & Professional Authority Enforcements', ()
     expect(jsonPayload.error).toContain('Maker-Checker violation');
   });
 
-  it('MUST permit credentialed Senior Reviewer to approve work prepared by another staff member', () => {
+  it('permits synthetic independent Senior Reviewer only with server-resolved preparer context', () => {
     let nextCalled = false;
 
     const req: Partial<AuthenticatedRequest> = {
@@ -109,7 +109,7 @@ describe('TaxGuard AI - Maker-Checker & Professional Authority Enforcements', ()
 
     const next = () => { nextCalled = true; };
 
-    const middleware = requireMakerChecker();
+    const middleware = requireMakerChecker(() => mockPreparer.id);
     middleware(req as AuthenticatedRequest, res, next);
 
     expect(nextCalled).toBe(true);
@@ -137,7 +137,7 @@ describe('TaxGuard AI - Maker-Checker & Professional Authority Enforcements', ()
 
     const next = () => { nextCalled = true; };
 
-    const middleware = requireMakerChecker();
+    const middleware = requireMakerChecker(() => mockPreparer.id);
     middleware(req as AuthenticatedRequest, res, next);
 
     expect(nextCalled).toBe(false);

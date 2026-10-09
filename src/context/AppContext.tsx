@@ -375,6 +375,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const getLiveClientLandingPage = (user: User): PageRoute => {
     if (user.role !== 'client' && user.role !== 'prospective_client') {
+      if (user.role === 'operations') return 'staff';
+      if (user.role === 'practice_manager') return 'staff';
+      if (user.role === 'bookkeeper') return 'staff';
       if (user.role === 'admin' || user.role === 'super_admin') return 'admin_dashboard';
       if (['reviewer', 'senior_reviewer'].includes(user.role)) return 'reviewer_workspace';
       if (['accountant', 'preparer'].includes(user.role)) return 'accountant_workspace';

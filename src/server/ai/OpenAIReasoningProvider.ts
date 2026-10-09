@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 import type { AiReasoningProvider, AiReasoningProviderRequest, AiReasoningProviderResponse } from '../../taxguard/intelligence/ai/AIReasoningGateway';
+import type { ProviderRequest,ProviderResponse } from './gateway/contracts';
+import { GovernanceError } from './governance/contracts';
 
 // No free-form taxpayer text crosses this boundary. Identifiers remain local.
 export const OPENAI_PURPOSES = ['REVIEW_EVIDENCE_COMPLETENESS', 'IDENTIFY_REVIEW_QUESTIONS'] as const;
@@ -46,6 +48,21 @@ export class OpenAIReasoningProvider implements AiReasoningProvider {
 
   static isConfigured(): boolean {
     return Boolean(process.env.OPENAI_API_KEY?.trim() && process.env.OPENAI_MODEL?.trim());
+  }
+
+  /** Governed compatibility transport. No environment model/prompt, keys or SDK retries. */
+  async reasonGoverned(request:ProviderRequest,signal:AbortSignal):Promise<ProviderResponse>{
+    if(process.env.NODE_ENV!=='test'||!this.client)throw new GovernanceError('AI_DISPATCH_UNAVAILABLE',503);
+    try{
+      const response=await this.client.responses.create({model:request.model,store:false,max_output_tokens:request.max_output_tokens,
+        instructions:request.instructions,input:JSON.stringify(request.input),
+        text:{format:{type:'json_schema',name:'taxguard_governed_review',strict:true,schema:request.schema}}},
+        {signal,maxRetries:0,timeout:30000});
+      const refusal=response.output?.some(item=>item.type==='message'&&item.content.some(part=>part.type==='refusal'));
+      const unexpected=response.output?.some(item=>!['message','reasoning'].includes(item.type));
+      return {status:refusal?'refused':response.status==='completed'&&!unexpected?'completed':'incomplete',text:response.output_text,
+        usage:response.usage?{input_tokens:response.usage.input_tokens,output_tokens:response.usage.output_tokens,total_tokens:response.usage.total_tokens}:null};
+    }catch{throw new GovernanceError('AI_PROVIDER_FAILURE',503);}
   }
 
   async reason(request: AiReasoningProviderRequest): Promise<AiReasoningProviderResponse> {

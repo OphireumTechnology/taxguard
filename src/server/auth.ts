@@ -4,6 +4,9 @@
  * brute-force lockout, and strict role authorization.
  */
 
+import { clientServiceRequestAllowed } from './clientServiceAccess';
+import { practiceManagerRequestAllowed } from './practiceManagerAccess';
+import { bookkeeperRequestAllowed } from './bookkeeperAccess';
 import { Request, Response, NextFunction } from 'express';
 import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { db } from './db';
@@ -275,6 +278,9 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
         }
       }
       if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });
+      if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
+  if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
+  if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
       req.user = user; req.token = token;
       return next();
     } catch {
@@ -326,6 +332,9 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
 
   // Slide expiration window on activity
   session.expiresAt = Date.now() + SESSION_DURATION_MS;
+  if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
+  if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
+  if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
   req.user = user;
   req.token = token;
   next();
@@ -500,40 +509,35 @@ export function requireTenantIsolation(req: AuthenticatedRequest, res: Response,
   next();
 }
 
-// Professional Practitioner Authority: Only CPAs/EAs can approve tax positions, sign returns, or submit resolution requests
+// Legacy helper has no durable credential/operation/attestation resolver. Never certify from role strings.
 export function requirePractitionerAuthority(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  if (!req.user) {
+  if (!req.user || typeof req.user.id !== 'string' || !req.user.id.trim()) {
     return res.status(401).json({ error: 'Unauthorized.' });
   }
 
-  const role = req.user.role;
-  // Compliance staff, recruiters, support staff, and administrators do NOT have authority to approve tax positions or sign returns
-  if (['compliance', 'recruiter', 'support', 'client', 'prospective_client', 'admin', 'administrator', 'super_admin'].includes(role)) {
-    db.logSecurityEvent({
-      eventType: 'UNAUTHORIZED_TAX_APPROVAL_ATTEMPT',
-      ipAddress: req.ip || 'unknown',
-      userId: req.user.id,
-      details: `Non-practitioner user ${req.user.email} (Role: ${role}) attempted to certify/approve a tax filing or resolution position.`,
-      severity: 'critical'
-    });
-
-    return res.status(403).json({
-      error: 'Forbidden: Circular 230 practitioner credential (CPA/EA/Attorney) required. Compliance, administrative, and support roles cannot approve tax positions or filing packages.',
-      code: 'PRACTITIONER_AUTHORITY_REQUIRED'
-    });
-  }
-
-  next();
+  return res.status(403).json({
+    error: 'Verified scoped practitioner authority and completed approval evidence are required.',
+    code: 'PRACTITIONER_AUTHORITY_REQUIRED'
+  });
 }
 
 // Maker-Checker authorization gate: Preparer cannot approve own work; requires separate Senior Reviewer
 export function requireMakerChecker(getPreparerId?: (req: AuthenticatedRequest) => string | undefined) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
+    if (!req.user || typeof req.user.id !== 'string' || !req.user.id.trim()) {
       return res.status(401).json({ error: 'Unauthorized.' });
     }
 
-    const preparerId = getPreparerId ? getPreparerId(req) : (req.body?.preparerId || req.query?.preparerId);
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({ code: 'DURABLE_MAKER_CHECKER_REQUIRED' });
+    }
+    if (req.user.status !== 'active') return res.status(403).json({ code: 'ACTIVE_REVIEWER_REQUIRED' });
+    let preparerId: string | undefined;
+    try { preparerId = getPreparerId?.(req); }
+    catch { return res.status(503).json({ code: 'MAKER_CHECKER_CONTEXT_UNAVAILABLE' }); }
+    if (typeof preparerId !== 'string' || !preparerId.trim()) {
+      return res.status(403).json({ code: 'MAKER_CHECKER_CONTEXT_REQUIRED' });
+    }
 
     // Maker cannot approve own work
     if (preparerId && req.user.id === preparerId) {
@@ -565,6 +569,10 @@ export function requireMakerChecker(getPreparerId?: (req: AuthenticatedRequest) 
         error: 'Forbidden: Administrative bypass prohibited. System administrators do not automatically receive professional authority to approve tax positions or filing packages.',
         code: 'ADMIN_TAX_APPROVAL_FORBIDDEN'
       });
+    }
+
+    if (!['reviewer', 'senior_reviewer'].includes(req.user.role)) {
+      return res.status(403).json({ code: 'MAKER_CHECKER_REVIEWER_REQUIRED' });
     }
 
     next();

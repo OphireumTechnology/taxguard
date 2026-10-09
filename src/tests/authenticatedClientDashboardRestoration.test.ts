@@ -9,7 +9,10 @@ function readSource(relative: string): string {
 }
 
 describe('TaxGuard Restored Client Dashboard Architecture', () => {
-  const dashboardSource = readSource('src/components/portal/AuthenticatedClientDashboard.tsx');
+  // Navigation is now reusable; keep all existing assertions across both sources.
+  const dashboardSource = readSource('src/components/portal/AuthenticatedClientDashboard.tsx')
+    + readSource('src/components/portal/dashboard/ClientDashboardNavigation.tsx')
+    + readSource('src/components/layout/DashboardApplicationShell.tsx');
   const routerSource = readSource('src/components/workflow/LiveClientWorkflowRouter.tsx');
 
   it('removes the large 18-stage button grid from the main content area', () => {

@@ -95,13 +95,13 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
     profile.amendedFields.taxpayerType ||
     originalDossier?.taxpayerType ||
     (originalDossier?.entityClassification?.isBusiness ? 'entity' : undefined) ||
-    (user.clientType === 'business' ? 'entity' : 'individual');
+    (user.clientType === 'business' ? 'entity' : user.clientType === 'individual' ? 'individual' : null);
 
   const entityClassification =
     profile.amendedFields.entityClassification ||
     originalDossier?.entityClassification?.entityType ||
     (typeof originalDossier?.entityClassification === 'string' ? originalDossier.entityClassification : undefined) ||
-    (taxpayerType === 'entity' ? 'llc' : 'individual');
+    (taxpayerType === 'individual' ? 'individual' : null);
 
   const maskedTIN =
     profile.amendedFields.maskedTIN ||
@@ -112,7 +112,7 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
       ? (taxpayerType === 'entity' ? `XX-XXX${originalDossier.tinLast4}` : `***-**-${originalDossier.tinLast4}`)
       : '•••-••-••••');
 
-  const tinType = profile.amendedFields.tinType || originalDossier?.tinType || profile.originalDossier?.tinType || user?.stageOneDossier?.tinType || (taxpayerType === 'entity' ? 'ein' : 'ssn');
+  const tinType = profile.amendedFields.tinType || originalDossier?.tinType || profile.originalDossier?.tinType || user?.stageOneDossier?.tinType || null;
   const tinLast4 = profile.amendedFields.tinLast4 || originalDossier?.tinLast4 || profile.originalDossier?.tinLast4 || user?.stageOneDossier?.tinLast4 || '';
   const dateOfBirth = profile.amendedFields.dateOfBirth || originalDossier?.dateOfBirth || originalDossier?.identityContact?.dob || '';
 
@@ -121,19 +121,25 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
     originalDossier?.authorizedRep ||
     originalDossier?.identityContact?.authorizedContact || null;
 
-  const supportingDocs = originalDossier?.supportingDocs || [];
-  const certifiedAt =
-    originalDossier?.reviewSubmission?.submittedAt ||
-    originalDossier?.stageOneCompletedAt ||
-    profile.effectiveAt ||
-    user.onboardingCompletedAt ||
-    new Date().toISOString();
-
-  const signerFullName =
-    originalDossier?.engagementConsent?.signerFullName ||
-    originalDossier?.reviewSubmission?.signatureText ||
-    user.name ||
-    legalName;
+  const supportingDocs = Array.isArray(originalDossier.supportingDocs) ? originalDossier.supportingDocs : [];
+  // Profile creation time and account identity are not certification or consent evidence.
+  const recordedDate = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null;
+  const certifiedAt = recordedDate(originalDossier?.stageOneCompletedAt) ||
+    (user.onboardingStatus === 'COMPLETED' ? recordedDate(user.onboardingCompletedAt) : null);
+  const consent = originalDossier?.engagementConsent || {};
+  const signerFullName = typeof (consent.signerFullName ?? consent.electronicSignatureName) === 'string'
+    ? (consent.signerFullName ?? consent.electronicSignatureName).trim() : '';
+  const signedAt = recordedDate(consent.signedAt ?? consent.signatureTimestamp);
+  const signed = Boolean(signedAt && signerFullName.length >= 3);
+  const recordedAcceptance = (primary: unknown, alternate?: unknown) => signed && (primary ?? alternate) === true;
+  const agreementAccepted = recordedAcceptance(consent.termsAndScopeAccepted, consent.engagementLetterAcknowledged);
+  const pricingAccepted = recordedAcceptance(consent.pricingScheduleAcknowledged, consent.pricingAcknowledged);
+  const signatureAccepted = recordedAcceptance(consent.electronicSignatureConsentAccepted, consent.electronicConsentAcknowledged);
+  const taxYear = originalDossier.taxYear ?? originalDossier.taxProfile?.requestedTaxYear;
+  const authorizationDocuments = Array.isArray(authorizedRep?.supportingDocs) ? authorizedRep.supportingDocs : [];
+  const stateOfIncorporation = originalDossier.stateOfIncorporation || originalDossier.entityClassification?.stateOfIncorporation || originalDossier.entityClassification?.formationState || null;
+  const taxDocuments = Array.from(db.documents.values()).filter(document => document.clientId === clientId && (document as any).tenantId === context.tenantId)
+    .map(document => ({id:document.id, name:document.name || document.fileName, category:document.category, taxYear:document.taxYear, status:document.status, uploadedAt:document.uploadedAt, version:document.version}));
 
   // Filter client amendments
   const clientAmendments = Array.from(db.profileAmendments.values())
@@ -147,7 +153,7 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
     lastAmendedAt: profile.lastAmendedAt,
     lastAmendedBy: profile.lastAmendedBy,
     amendedFields: profile.amendedFields,
-    originalCertifiedRecord: originalDossier ? {
+    originalCertifiedRecord: certifiedAt ? {
       legalName: originalDossier?.identityContact?.legalFirstName
         ? `${originalDossier.identityContact.legalFirstName} ${originalDossier.identityContact.legalLastName || ''}`.trim()
         : originalDossier?.legalName || legalName,
@@ -169,13 +175,13 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
       tinType,
       tinLast4,
       dateOfBirth,
-      stateOfIncorporation: residentialAddress.state || 'SC',
+      stateOfIncorporation,
       businessDetails: {
         entityType: entityClassification,
         dbaName: profile.amendedFields.dbaName || originalDossier?.entityClassification?.dbaName || originalDossier?.dbaName || '',
-        stateOfIncorporation: residentialAddress.state || 'SC',
-        naicsCode: originalDossier?.entityClassification?.naicsCode || '541211',
-        taxClassification: taxpayerType === 'entity' ? 'Pass-Through Entity / Form 1065 / 1120-S' : 'Individual Form 1040'
+        stateOfIncorporation,
+        naicsCode: originalDossier?.entityClassification?.naicsCode || null,
+        taxClassification: originalDossier?.entityClassification?.taxClassification || originalDossier.taxClassification || null
       }
     },
     contact: {
@@ -191,50 +197,42 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
     },
     representative: {
       name: authorizedRep?.fullName || authorizedRep?.name || '',
-      title: authorizedRep?.title || (taxpayerType === 'entity' ? 'Authorized Officer' : 'Taxpayer Representative'),
+      title: authorizedRep?.title || '',
       relationship: authorizedRep?.relationshipOrCapacity || authorizedRep?.relationship || '',
       relationshipOrCapacity: authorizedRep?.relationshipOrCapacity || authorizedRep?.relationship || '',
       phone: authorizedRep?.phone || '',
       email: authorizedRep?.email || '',
-      authorizationStatus: (authorizedRep?.fullName || authorizedRep?.name) ? 'ACTIVE' : 'NONE',
-      hasPowerOfAttorney: Boolean(authorizedRep?.hasPowerOfAttorney),
-      hasForm2848: Boolean(authorizedRep?.hasForm2848 || authorizedRep?.hasPowerOfAttorney),
-      hasForm8821: Boolean(authorizedRep?.hasForm8821),
-      supportingDocuments: authorizedRep?.supportingDocs || (authorizedRep?.fullName ? [
-        {
-          id: `auth_doc_${clientId}`,
-          name: `Form 2848 / 8821 Authorization (${authorizedRep?.fullName || authorizedRep?.name})`,
-          category: 'authorization',
-          uploadedAt: certifiedAt,
-          verified: true
-        }
-      ] : [])
+      authorizationStatus: (authorizedRep?.fullName || authorizedRep?.name) ? 'RECORDED' : 'NONE',
+      hasPowerOfAttorney: authorizedRep?.hasPowerOfAttorney === true,
+      hasForm2848: authorizedRep?.hasForm2848 === true,
+      hasForm8821: authorizedRep?.hasForm8821 === true,
+      supportingDocuments: authorizationDocuments
     },
     identity: {
-      status: 'VERIFIED',
-      verifiedAt: certifiedAt,
+      status: originalDossier.identityComplete === true ? 'RECORDED_COMPLETE' : 'NOT_VERIFIED',
+      verifiedAt: null,
       supportingDocsCount: supportingDocs.length,
       documents: supportingDocs,
-      duplicateCheckStatus: originalDossier?.duplicateCheck?.status || 'CLEARED'
+      duplicateCheckStatus: originalDossier?.duplicateCheck?.status || 'NOT_RECORDED'
     },
     engagement: {
-      engagementId: `eng_2025_${clientId}`,
-      taxYear: 2025,
-      agreementAccepted: true,
-      engagementTerms: 'Professional Tax Advisory & Form 1040 Compliance Engagement Agreement (Executed)',
-      feeScheduleAccepted: true,
-      feeScheduleAcknowledged: true,
-      acceptedAt: certifiedAt,
+      engagementId: originalDossier.engagementId || null,
+      taxYear: Number.isInteger(taxYear) && taxYear >= 2022 && taxYear <= 2200 ? taxYear : null,
+      agreementAccepted,
+      engagementTerms: typeof consent.engagementTerms === 'string' ? consent.engagementTerms : null,
+      feeScheduleAccepted: pricingAccepted,
+      feeScheduleAcknowledged: pricingAccepted,
+      acceptedAt: agreementAccepted ? signedAt : null,
       signerFullName
     },
     consentCenter: {
-      irc7216ConsentAccepted: true,
-      eSignConsentAccepted: true,
-      electronicSignatureConsentAccepted: true,
-      privacyConsentAccepted: true,
-      termsAndScopeAccepted: true,
-      consentVersion: originalDossier?.engagementConsent?.consentVersion || 'v2025.1.0',
-      acceptedAt: certifiedAt,
+      irc7216ConsentAccepted: recordedAcceptance(consent.irc7216ConsentAccepted),
+      eSignConsentAccepted: signatureAccepted,
+      electronicSignatureConsentAccepted: signatureAccepted,
+      privacyConsentAccepted: recordedAcceptance(consent.privacyConsentAccepted, consent.privacyNoticeAcknowledged),
+      termsAndScopeAccepted: recordedAcceptance(consent.termsAndScopeAccepted, consent.scopeAcknowledged),
+      consentVersion: consent.consentVersion ?? consent.policyVersion ?? null,
+      acceptedAt: signed ? signedAt : null,
       signerFullName,
       communicationPreferences: profile.amendedFields.communicationPreferences || {
         email: true,
@@ -244,39 +242,11 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
     },
     myDocuments: {
       identityDocuments: supportingDocs,
-      authorizationDocuments: authorizedRep?.supportingDocs || (authorizedRep?.fullName ? [
-        {
-          id: `auth_doc_${clientId}`,
-          name: `IRS Form 2848 / 8821 Power of Attorney & Tax Information Authorization`,
-          category: 'authorization',
-          uploadedAt: certifiedAt,
-          verified: true
-        }
-      ] : []),
-      onboardingDocuments: [
-        {
-          id: `onb_dossier_${clientId}`,
-          name: 'Stage 01 Certified Taxpayer Onboarding Dossier & Identity Record',
-          category: 'onboarding',
-          uploadedAt: certifiedAt,
-          verified: true
-        }
-      ],
-      engagementDocuments: [
-        {
-          id: `eng_doc_${clientId}`,
-          name: `Executed Engagement Terms & Fee Schedule Acknowledgement (${clientId})`,
-          category: 'engagement',
-          uploadedAt: certifiedAt,
-          verified: true
-        }
-      ],
-      taxDocuments: Array.from(db.documents.values()).filter(
-        d => d.clientId === clientId
-      ),
-      priorYearDocuments: Array.from(db.documents.values()).filter(
-        d => d.clientId === clientId && d.category === 'prior_year_return'
-      )
+      authorizationDocuments,
+      onboardingDocuments: Array.isArray(originalDossier.onboardingDocuments) ? originalDossier.onboardingDocuments : [],
+      engagementDocuments: Array.isArray(originalDossier.engagementDocuments) ? originalDossier.engagementDocuments : [],
+      taxDocuments,
+      priorYearDocuments: taxDocuments.filter(document => document.category === 'prior_year_return')
     },
     amendments: clientAmendments
   });

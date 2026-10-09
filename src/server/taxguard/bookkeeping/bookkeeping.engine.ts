@@ -859,6 +859,15 @@ export class BookkeepingEngine {
   // 11. PERIOD LOCK CONTROLS
   // ============================================================
 
+  // Pure scoped reads: dashboard access never creates or closes accounting periods.
+  getPeriods(tenantId: string, clientId: string, taxYear: number): AccountingPeriod[] {
+    return structuredClone([...this.periods.values()].filter(p => p.tenantId === tenantId && p.clientId === clientId && p.taxYear === taxYear));
+  }
+
+  getReconciliations(tenantId: string, clientId: string, taxYear: number): BankReconciliation[] {
+    return structuredClone([...this.reconciliations.values()].filter(p => p.tenantId === tenantId && p.clientId === clientId && p.taxYear === taxYear));
+  }
+
   ensurePeriod(tenantId: string, clientId: string, taxYear: number, periodName: string, startDate: string, endDate: string): AccountingPeriod {
     const id = `period_${tenantId}_${clientId}_${periodName}`;
     const existing = this.periods.get(id);

@@ -76,7 +76,7 @@ async function withSupabaseProvisioningLock<T>(uid: string, operation: () => Pro
   }
 }
 
-const ASSIGNMENT_REQUIRED_ROLES = new Set(['accountant', 'senior_reviewer', 'reviewer', 'preparer']);
+const ASSIGNMENT_REQUIRED_ROLES = new Set(['operations', 'practice_manager', 'bookkeeper', 'accountant', 'senior_reviewer', 'reviewer', 'preparer']);
 
 function attachAuthorizedClientIds(user: User, clientIds: string[]): void {
   Object.defineProperty(user, 'authorizedClientIds', {
