@@ -141,7 +141,7 @@ function list(dir) {
     if (entry.isDirectory()) list(file);
     else if (/\.(md|sql)$/.test(entry.name) && !file.includes('taxguard-master-traceability')) {
       const content = fs.readFileSync(path.join(root, file), 'utf8');
-      inventory.push({ file, sha256: createHash('sha256').update(content).digest('hex'), bytes: Buffer.byteLength(content),
+      inventory.push({ file, sha256: createHash('sha256').update(content.replace(/\r\n/g, '\n')).digest('hex'), bytes: Buffer.byteLength(content),
         headings: file.endsWith('.md') ? content.split(/\r?\n/).filter(line => /^#{1,3} /.test(line)) : [] });
     }
   }
@@ -150,7 +150,7 @@ list('docs'); list('supabase/migrations');
 const artifact = { scope: 'Available canonical architecture only; absent per-ID page-9 mapping and external evidence are explicit blockers.',
   classifications: [valid, insufficient, missing, synthetic, infra, policy], requirements: rows, source_inventory: inventory,
   evidence_versions: Object.fromEntries([...new Set(rows.flatMap(row => [...row.implementation, ...row.tests]))].sort().map(file => [file,
-    createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])) };
+    createHash('sha256').update(fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')).digest('hex')])) };
 for (const row of rows) {
   row.releaseClassification = row.status === valid ? 'COMPLETE AND VALIDATED'
     : row.status === infra || row.id === 'CONTROL-BROWSER' ? 'EXTERNAL INFRASTRUCTURE REQUIRED'

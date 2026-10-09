@@ -14,13 +14,13 @@ export function verifyTraceability(matrix, read) {
     if (row.browserAcceptance !== 'NOT VERIFIED') throw new Error('TRACEABILITY_BROWSER_EVIDENCE_REQUIRED');
     for (const file of [...row.implementation, ...row.tests]) {
       if (!permittedEvidencePath(file)) throw new Error('TRACEABILITY_PATH_DENIED');
-      const hash = createHash('sha256').update(read(file)).digest('hex');
+      const hash = createHash('sha256').update(read(file).toString('utf8').replace(/\r\n/g, '\n')).digest('hex');
       if (matrix.evidence_versions?.[file] !== hash) throw new Error('TRACEABILITY_EVIDENCE_DRIFT');
     }
   }
   for (const source of matrix.source_inventory) {
     if (!permittedEvidencePath(source.file) || !/^(?:docs\/|supabase\/migrations\/)/.test(source.file)) throw new Error('TRACEABILITY_PATH_DENIED');
-    if (createHash('sha256').update(read(source.file)).digest('hex') !== source.sha256) throw new Error('TRACEABILITY_INVENTORY_DRIFT');
+    if (createHash('sha256').update(read(source.file).toString('utf8').replace(/\r\n/g, '\n')).digest('hex') !== source.sha256) throw new Error('TRACEABILITY_INVENTORY_DRIFT');
   }
   return { requirements: ids.size, agents: 61, stages: 18, status: 'PASS', browserAcceptance: 'NOT VERIFIED', releaseAuthorized: false };
 }
