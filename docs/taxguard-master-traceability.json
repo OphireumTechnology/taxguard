@@ -3531,8 +3531,8 @@
     },
     {
       "file": "docs/README.md",
-      "sha256": "5a89b6635ed6ef563b2363dfb3f7119d68875995f61d7cce24d33ddd35dee920",
-      "bytes": 2103,
+      "sha256": "a3d118fa33eff53b8b23bb25ae5006d82d9efe55dea2bc99436afb8d8e4d9590",
+      "bytes": 2102,
       "headings": [
         "# TaxGuard architecture index",
         "# Master directive remaining dependencies"
@@ -4365,7 +4365,7 @@
     "src/tests/legacyProfessionalAuthorityBoundary.test.ts": "1aff4ec338e41a77867f688d9a9dc97707af2da930ab2edc035b5da44944bf8d",
     "src/tests/legacyWorkflowHintCleanup.test.ts": "07968f58886b9236945fd3d5865a966490db75c11e3cac99fa6ad457ee19746e",
     "src/tests/localBrowserPrerequisites.test.ts": "9620612d9b09bc093c346fcfc9a2585623e47dd610d065f8dbfc496fef7a620b",
-    "src/tests/localBrowserSetup.test.ts": "89b115f12d91a15dbe24e2b4df560b9fe8e2696ea02efbfe8e72e6bfea04d1e7",
+    "src/tests/localBrowserSetup.test.ts": "567354a7640e12a95da0cdb5acc2550cce7e87117255ac3d97eff9a41362d799",
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "75e769bd8e0d97b515a796bc2e722e6028db6fb34adb9c42a81e27a494f7b6e4",

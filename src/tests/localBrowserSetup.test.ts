@@ -30,7 +30,10 @@ it('launches explicit npm.cmd on Windows with unchanged installation arguments a
     expect(command).toBe('powershell.exe');
     expect(args.slice(0, 2)).toEqual(['-NoProfile', '-Command']);
     expect(options).toMatchObject({ stdio: 'inherit', windowsHide: true });
-    expect(options.env.PLAYWRIGHT_BROWSERS_PATH).toBe(`${options.cwd}\\.cache\\playwright`);
+
+    expect(
+      options.env.PLAYWRIGHT_BROWSERS_PATH.replaceAll('\\', '/')
+    ).toBe(`${options.cwd.replaceAll('\\', '/')}/.cache/playwright`);
   }
 });
 it('preserves direct npm argument invocation on non-Windows hosts', async () => {
