@@ -52,6 +52,13 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Repair Linux Rollup native dependency
+        run: |
+          if ! node -e "require('@rollup/rollup-linux-x64-gnu')" 2>/dev/null; then
+            npm install --no-save --package-lock=false --ignore-scripts @rollup/rollup-linux-x64-gnu
+          fi
+          node -e "require('@rollup/rollup-linux-x64-gnu')"
+
       - name: Check patch formatting
         run: git diff --check HEAD~1 HEAD
 
