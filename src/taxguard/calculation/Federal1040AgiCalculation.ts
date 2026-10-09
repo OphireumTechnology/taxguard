@@ -102,6 +102,82 @@ export class Federal1040AgiCalculationEngine {
   static readonly calculationType =
     'FEDERAL_1040_AGI_CALCULATION';
 
+  static calculateAgi(input: {
+    taxYear: number;
+    filingStatus: string;
+    wagesSalariesTips?: number;
+    taxableInterest?: number;
+    ordinaryDividends?: number;
+    qualifiedDividends?: number;
+    taxableRefundsCredits?: number;
+    alimonyReceived?: number;
+    businessIncomeLoss?: number;
+    capitalGainLoss?: number;
+    otherGainsLosses?: number;
+    iraDistributionsTaxable?: number;
+    pensionsAnnuitiesTaxable?: number;
+    rentalRealEstateRoyalties?: number;
+    farmIncomeLoss?: number;
+    unemploymentCompensation?: number;
+    socialSecurityBenefitsTaxable?: number;
+    otherIncome?: number;
+    educatorExpenses?: number;
+    hsaDeduction?: number;
+    movingExpensesArmedForces?: number;
+    selfEmploymentTaxDeduction?: number;
+    selfEmployedSepSimpleQualified?: number;
+    selfEmployedHealthInsuranceDeduction?: number;
+    penaltyOnEarlyWithdrawalOfSavings?: number;
+    alimonyPaid?: number;
+    iraDeduction?: number;
+    studentLoanInterestDeduction?: number;
+  }): {
+    totalIncome: TaxDecimal;
+    totalAdjustments: TaxDecimal;
+    agi: TaxDecimal;
+  } {
+    const grossIncomeItems = [
+      input.wagesSalariesTips || 0,
+      input.taxableInterest || 0,
+      input.ordinaryDividends || 0,
+      input.taxableRefundsCredits || 0,
+      input.alimonyReceived || 0,
+      input.businessIncomeLoss || 0,
+      input.capitalGainLoss || 0,
+      input.otherGainsLosses || 0,
+      input.iraDistributionsTaxable || 0,
+      input.pensionsAnnuitiesTaxable || 0,
+      input.rentalRealEstateRoyalties || 0,
+      input.farmIncomeLoss || 0,
+      input.unemploymentCompensation || 0,
+      input.socialSecurityBenefitsTaxable || 0,
+      input.otherIncome || 0
+    ];
+
+    const adjustmentItems = [
+      input.educatorExpenses || 0,
+      input.hsaDeduction || 0,
+      input.movingExpensesArmedForces || 0,
+      input.selfEmploymentTaxDeduction || 0,
+      input.selfEmployedSepSimpleQualified || 0,
+      input.selfEmployedHealthInsuranceDeduction || 0,
+      input.penaltyOnEarlyWithdrawalOfSavings || 0,
+      input.alimonyPaid || 0,
+      input.iraDeduction || 0,
+      input.studentLoanInterestDeduction || 0
+    ];
+
+    const totalIncomeNum = grossIncomeItems.reduce((sum, n) => sum + n, 0);
+    const totalAdjustmentsNum = adjustmentItems.reduce((sum, n) => sum + n, 0);
+    const agiNum = totalIncomeNum - totalAdjustmentsNum;
+
+    return {
+      totalIncome: TaxDecimal.parse(totalIncomeNum.toFixed(2), 2),
+      totalAdjustments: TaxDecimal.parse(totalAdjustmentsNum.toFixed(2), 2),
+      agi: TaxDecimal.parse(agiNum.toFixed(2), 2)
+    };
+  }
+
   static calculate(
     context:
       TaxCalculationContext,

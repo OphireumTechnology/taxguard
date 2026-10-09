@@ -101,17 +101,45 @@ export interface StageTwoUploadedDocument {
   intelligenceRecord?: DocumentIntelligenceRecord;
 }
 
+export interface StageTwoNextAction {
+  type: 'UPLOAD_MISSING' | 'REPLACE_REJECTED' | 'VIEW_REQUEST' | 'AWAITING_REVIEW' | 'STAGE_COMPLETE';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  statusBadge?: string;
+  supportingText?: string;
+}
+
 export interface CollectionReadinessReport {
   totalRequirements: number;
   requiredCount: number;
   receivedCount: number;
   acceptedCount: number;
   missingCount: number;
+  processingCount: number;
   underReviewCount: number;
-  readinessScore: number;      // 0 to 100 percentage
+  rejectedCount: number;
+  wrongTaxYearCount: number;
+  notApplicableCount: number;
+  resolvedCount: number;
+
+  receiptPercentage: number;      // 0 to 100 percentage based on receivedCount / requiredCount
+  completionPercentage: number;   // 0 to 100 percentage based on acceptedCount / requiredCount
+  readinessScore: number;         // 0 to 100 percentage (synonymous with receiptPercentage for backward compatibility)
+
+  clientActionRequired: boolean;
+  staffActionRequired: boolean;
+
+  stageReadyForCompletion: boolean;
   isReadyForStageThree: boolean;
+
   blockingItems: string[];
-  stageTwoGateStatus: 'LOCKED' | 'IN_PROGRESS' | 'READY_FOR_REVIEW' | 'STAGE_TWO_PASSED';
+  blockers: string[];
+
+  nextAction: StageTwoNextAction;
+  nextStage: number;
+
+  stageTwoGateStatus: 'LOCKED' | 'IN_PROGRESS' | 'READY_FOR_REVIEW' | 'STAGE_TWO_PASSED' | 'COMPLETED';
 }
 
 export interface TaxYearCollectionWorkspaceContext {
@@ -267,93 +295,189 @@ let entityType: EntityReturnType = 'individual';
     // 1. INDIVIDUAL (Form 1040) CHECKLIST RULES
     // =========================================================================
     if (entityType === 'individual') {
-      addReq(
-        'GOV-ID',
-        'Government-Issued Photo Identification',
-        'Govt ID',
-        'Identity & Dependents',
-        'Federal',
-        'Valid unexpired Driver\'s License or Passport for taxpayer and spouse per IRS security verification requirements.',
-        'Required',
-        'IRS Pub 1345 / Identity Verification'
-      );
+      const hasSpecificFacts = Object.keys(knownFacts).length > 0;
 
-      addReq(
-        'W2-WAGE',
-        'Form W-2 Wage & Tax Statements',
-        'Form W-2',
-        'Employment',
-        'Federal / ' + primaryJurisdiction,
-        'All Form W-2 statements issued by employers reporting wages, tips, federal, and state income tax withholdings.',
-        'Required',
-        'IRC § 6051'
-      );
+      // Identity Verification
+      if (!hasSpecificFacts || knownFacts.hasGovId !== false) {
+        addReq(
+          'GOV-ID',
+          'Government-Issued Photo Identification',
+          'Govt ID',
+          'Identity & Dependents',
+          'Federal',
+          'Valid unexpired Driver\'s License or Passport for taxpayer and spouse per IRS security verification requirements.',
+          'Required',
+          'IRS Pub 1345 / Identity Verification'
+        );
+      }
 
-      addReq(
-        '1099-INT',
-        'Form 1099-INT Interest Income Statements',
-        'Form 1099-INT',
-        'Interest',
-        'Federal',
-        'Interest income earned across bank accounts, credit unions, CDs, or municipal bonds.',
-        'Required if applicable',
-        'IRC § 6049'
-      );
+      // Employment W-2
+      if (!hasSpecificFacts || knownFacts.hasW2 !== false || knownFacts.hasEmployment !== false) {
+        addReq(
+          'W2-WAGE',
+          'Form W-2 Wage & Tax Statements',
+          'Form W-2',
+          'Employment',
+          'Federal / ' + primaryJurisdiction,
+          'All Form W-2 statements issued by employers reporting wages, tips, federal, and state income tax withholdings.',
+          'Required',
+          'IRC § 6051'
+        );
+      }
 
-      addReq(
-        '1099-DIV',
-        'Form 1099-DIV Dividends & Capital Distributions',
-        'Form 1099-DIV',
-        'Dividends',
-        'Federal',
-        'Ordinary dividends, qualified dividends, and capital gain distributions from brokerage holdings.',
-        'Required if applicable',
-        'IRC § 6042'
-      );
+      // Bank Interest
+      if (!hasSpecificFacts ? true : knownFacts.hasBankInterest === true) {
+        addReq(
+          '1099-INT',
+          'Form 1099-INT Interest Income Statements',
+          'Form 1099-INT',
+          'Interest',
+          'Federal',
+          'Interest income earned across bank accounts, credit unions, CDs, or municipal bonds.',
+          knownFacts.hasBankInterest ? 'Required' : 'Required if applicable',
+          'IRC § 6049'
+        );
+      }
 
-      addReq(
-        '1099-NEC',
-        'Form 1099-NEC Nonemployee Compensation',
-        'Form 1099-NEC',
-        'Contract / Gig Work',
-        'Federal',
-        'Independent contractor, consulting, or freelance compensation earned during the tax year.',
-        knownFacts.hasContractWork ? 'Required' : 'Required if applicable',
-        'IRC § 6041A'
-      );
+      // Dividends
+      if (!hasSpecificFacts ? true : knownFacts.hasDividends === true) {
+        addReq(
+          '1099-DIV',
+          'Form 1099-DIV Dividends & Capital Distributions',
+          'Form 1099-DIV',
+          'Dividends',
+          'Federal',
+          'Ordinary dividends, qualified dividends, and capital gain distributions from brokerage holdings.',
+          knownFacts.hasDividends ? 'Required' : 'Required if applicable',
+          'IRC § 6042'
+        );
+      }
 
-      addReq(
-        '1098-MORTGAGE',
-        'Form 1098 Mortgage Interest Statement',
-        'Form 1098',
-        'Mortgage Interest',
-        'Federal',
-        'Reports home mortgage interest, points, and real estate property taxes paid to lending institutions.',
-        'Required if applicable',
-        'IRC § 6050H'
-      );
+      // Brokerage / Stock Sales
+      if (knownFacts.hasStockSalesBrokerage === true || (!hasSpecificFacts && knownFacts.hasInvestments === true)) {
+        addReq(
+          '1099-B',
+          'Form 1099-B / Brokerage Statements',
+          'Form 1099-B',
+          'Investments',
+          'Federal',
+          'Securities sales, gross proceeds, cost basis, and holding periods.',
+          'Required',
+          'IRC § 6045'
+        );
+      }
 
-      addReq(
-        '1095-A',
-        'Form 1095-A Health Insurance Marketplace Statement',
-        'Form 1095-A',
-        'Marketplace Insurance',
-        'Federal',
-        'Required for reconciling federal Premium Tax Credit (Form 8962) if covered by Healthcare.gov or state exchange.',
-        knownFacts.hasMarketplaceInsurance ? 'Required' : 'Required if applicable',
-        'IRC § 36B'
-      );
+      // Nonemployee Compensation
+      if (!hasSpecificFacts ? true : (knownFacts.hasContractWork === true || knownFacts.hasSelfEmployment === true || knownFacts.has1099NEC === true)) {
+        addReq(
+          '1099-NEC',
+          'Form 1099-NEC Nonemployee Compensation',
+          'Form 1099-NEC',
+          'Contract / Gig Work',
+          'Federal',
+          'Independent contractor, consulting, or freelance compensation earned during the tax year.',
+          (knownFacts.hasContractWork || knownFacts.hasSelfEmployment) ? 'Required' : 'Required if applicable',
+          'IRC § 6041A'
+        );
+      }
 
-      addReq(
-        'SCH-K1-INCOMING',
-        'Schedule K-1 Pass-Through Shareholder / Partner Earnings',
-        'Schedule K-1',
-        'Partnership / S Corporation / Estate / Trust',
-        'Federal',
-        'Share of income, deductions, and credits from partnerships, S-corporations, or trusts.',
-        knownFacts.hasPassThrough ? 'Required' : 'Required if applicable',
-        'IRC §§ 702, 1366'
-      );
+      // Mortgage Interest
+      if (!hasSpecificFacts ? true : knownFacts.ownsHomeWithMortgage === true) {
+        addReq(
+          '1098-MORTGAGE',
+          'Form 1098 Mortgage Interest Statement',
+          'Form 1098',
+          'Mortgage Interest',
+          'Federal',
+          'Reports home mortgage interest, points, and real estate property taxes paid to lending institutions.',
+          knownFacts.ownsHomeWithMortgage ? 'Required' : 'Required if applicable',
+          'IRC § 6050H'
+        );
+      }
+
+      // Marketplace Health Insurance
+      if (!hasSpecificFacts ? true : knownFacts.hasMarketplaceInsurance === true) {
+        addReq(
+          '1095-A',
+          'Form 1095-A Health Insurance Marketplace Statement',
+          'Form 1095-A',
+          'Marketplace Insurance',
+          'Federal',
+          'Required for reconciling federal Premium Tax Credit (Form 8962) if covered by Healthcare.gov or state exchange.',
+          knownFacts.hasMarketplaceInsurance ? 'Required' : 'Required if applicable',
+          'IRC § 36B'
+        );
+      }
+
+      // Pass-Through K-1
+      if (!hasSpecificFacts ? true : knownFacts.hasPassThrough === true) {
+        addReq(
+          'SCH-K1-INCOMING',
+          'Schedule K-1 Pass-Through Shareholder / Partner Earnings',
+          'Schedule K-1',
+          'Partnership / S Corporation / Estate / Trust',
+          'Federal',
+          'Share of income, deductions, and credits from partnerships, S-corporations, or trusts.',
+          knownFacts.hasPassThrough ? 'Required' : 'Required if applicable',
+          'IRC §§ 702, 1366'
+        );
+      }
+
+      // Rental Real Estate
+      if (knownFacts.ownsRentalProperty === true) {
+        addReq(
+          'RENTAL-RECORDS',
+          'Rental Property Income & Expense Summary (Schedule E)',
+          'Schedule E Records',
+          'Rental Real Estate',
+          'Federal',
+          'Gross rental income, property management fees, repairs, taxes, and mortgage interest.',
+          'Required',
+          'IRC § 212'
+        );
+      }
+
+      // Retirement Distributions
+      if (knownFacts.hasRetirementDistributions === true) {
+        addReq(
+          '1099-R',
+          'Form 1099-R Distributions From Retirement Plans',
+          'Form 1099-R',
+          'Retirement Income',
+          'Federal',
+          'Taxable retirement distributions, pension payments, and IRA withdrawals.',
+          'Required',
+          'IRC § 408'
+        );
+      }
+
+      // Social Security
+      if (knownFacts.hasSocialSecurity === true) {
+        addReq(
+          'SSA-1099',
+          'Form SSA-1099 Social Security Benefit Statement',
+          'Form SSA-1099',
+          'Social Security',
+          'Federal',
+          'Total net benefits paid and tax withholdings.',
+          'Required',
+          'IRC § 86'
+        );
+      }
+
+      // Child & Dependent Care
+      if (knownFacts.hasChildCareExpenses === true) {
+        addReq(
+          'CHILDCARE-2441',
+          'Form 2441 Child & Dependent Care Receipts',
+          'Form 2441 Records',
+          'Tax Credits & Deductions',
+          'Federal',
+          'Provider name, address, EIN/SSN, and payment summary to claim Child and Dependent Care Credit.',
+          'Required',
+          'IRC § 21'
+        );
+      }
 
       if (primaryJurisdiction === 'SC') {
         addReq(
@@ -1108,6 +1232,14 @@ let entityType: EntityReturnType = 'individual';
   }
 
   /**
+   * Sets uploaded documents directly in memory (for testing and reconciliation sync).
+   */
+  public static setUploadedDocuments(clientId: string, taxYear: number, docs: StageTwoUploadedDocument[]): void {
+    const key = `${clientId}_${taxYear}`;
+    this.inMemoryUploads.set(key, docs);
+  }
+
+  /**
    * Retrieves all Stage 02 uploaded documents for a client and tax year.
    */
   public static getUploadedDocuments(clientId: string, taxYear: number): StageTwoUploadedDocument[] {
@@ -1165,11 +1297,74 @@ let entityType: EntityReturnType = 'individual';
       ? Math.max(snapshot.metrics.acceptedCount, report.collectionAcceptedCount, acceptedItems.length)
       : Math.max(report.collectionAcceptedCount, acceptedItems.length);
     const missingCount = Math.max(0, totalRequired - receivedCount);
+    const processingCount = snapshot?.metrics?.processingCount || 0;
     const underReviewCount = snapshot?.metrics?.needsReviewCount !== undefined
       ? snapshot.metrics.needsReviewCount
       : (report.needsReviewCount || underReviewItems.length);
-    const readinessScore = Math.min(100, Math.round((receivedCount / totalRequired) * 100));
-    const isReadyForStageThree = missingCount === 0 && (snapshot ? snapshot.metrics.isReadyForStageThree : report.isReadyForExitGate);
+    const notApplicableCount = snapshot?.metrics?.notApplicableCount || requirements.filter(r => r.status === 'Not Applicable').length;
+    const rejectedCount = requirements.filter(r => r.status === 'Rejected').length;
+    const wrongTaxYearCount = snapshot?.metrics?.wrongTaxYearCount || 0;
+    const resolvedCount = acceptedCount + notApplicableCount;
+
+    const receiptPercentage = Math.min(100, Math.round((receivedCount / totalRequired) * 100));
+    const completionPercentage = Math.min(100, Math.round(((acceptedCount + notApplicableCount) / totalRequired) * 100));
+    const readinessScore = receiptPercentage;
+
+    // Strict authority: Stage 03 is ready ONLY when all required items are accepted/satisfied, 0 missing, and 0 blockers
+    const isReadyForStageThree = (snapshot?.metrics?.isReadyForStageThree === true) || (
+      missingCount === 0 &&
+      (acceptedCount + notApplicableCount) >= totalRequired &&
+      processingCount === 0 &&
+      (report.isReadyForExitGate || report.needsReviewCount === 0)
+    );
+
+    const blockers = isReadyForStageThree
+      ? []
+      : (snapshot?.metrics?.exitGateBlockers?.length ? snapshot.metrics.exitGateBlockers : (report.exitGateBlockers || []));
+
+    // Dynamic Next Action resolution (Task 8 & Task 6)
+    let nextAction: StageTwoNextAction;
+    if (rejectedCount > 0) {
+      nextAction = {
+        type: 'REPLACE_REJECTED',
+        title: 'Document Replacement Needed',
+        message: 'One document could not be accepted.',
+        actionLabel: 'Replace Document',
+        statusBadge: 'Replacement Needed',
+        supportingText: 'Please review the rejection reason and upload an updated document.'
+      };
+    } else if (missingCount > 0) {
+      nextAction = {
+        type: 'UPLOAD_MISSING',
+        title: 'Documents Needed',
+        message: `${missingCount} document${missingCount > 1 ? 's are' : ' is'} still needed.`,
+        actionLabel: 'Upload Missing Documents',
+        statusBadge: 'Action Required',
+        supportingText: 'Upload the documents required to prepare your return.'
+      };
+    } else if (isReadyForStageThree) {
+      nextAction = {
+        type: 'STAGE_COMPLETE',
+        title: 'Document Collection Complete',
+        message: 'Your document collection is complete.',
+        actionLabel: 'Continue to Review',
+        statusBadge: 'Collection Complete',
+        supportingText: 'All required tax records have been verified. Your return is ready for Stage 03 validation.'
+      };
+    } else {
+      // CASE A: 3 of 3 received but still under review / processing
+      nextAction = {
+        type: 'AWAITING_REVIEW',
+        title: 'Documents Received',
+        message: "We've received everything currently requested. A/R Tax Services is reviewing your documents.",
+        actionLabel: 'No action needed from you right now',
+        statusBadge: 'Documents under review',
+        supportingText: 'A/R Tax Services is reviewing your documents. No additional documents are required from you right now.'
+      };
+    }
+
+    const clientActionRequired = nextAction.type === 'UPLOAD_MISSING' || nextAction.type === 'REPLACE_REJECTED';
+    const staffActionRequired = nextAction.type === 'AWAITING_REVIEW' || underReviewCount > 0;
 
     return {
       totalRequirements: snapshot?.metrics?.totalApplicable || (report.totalRequired + report.optionalCount),
@@ -1177,13 +1372,26 @@ let entityType: EntityReturnType = 'individual';
       receivedCount,
       acceptedCount,
       missingCount,
+      processingCount,
       underReviewCount,
+      rejectedCount,
+      wrongTaxYearCount,
+      notApplicableCount,
+      resolvedCount,
+      receiptPercentage,
+      completionPercentage,
       readinessScore,
+      clientActionRequired,
+      staffActionRequired,
+      stageReadyForCompletion: isReadyForStageThree,
       isReadyForStageThree,
-      blockingItems: isReadyForStageThree
-        ? []
-        : (snapshot?.metrics?.exitGateBlockers?.length ? snapshot.metrics.exitGateBlockers : report.exitGateBlockers),
-      stageTwoGateStatus: isReadyForStageThree ? 'READY_FOR_REVIEW' : (readinessScore === 0 ? 'LOCKED' : 'IN_PROGRESS')
+      blockingItems: blockers,
+      blockers,
+      nextAction,
+      nextStage: 3,
+      stageTwoGateStatus: isReadyForStageThree
+        ? 'COMPLETED'
+        : (missingCount === 0 ? 'READY_FOR_REVIEW' : (readinessScore === 0 ? 'LOCKED' : 'IN_PROGRESS'))
     };
   }
 

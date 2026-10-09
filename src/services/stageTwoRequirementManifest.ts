@@ -339,22 +339,39 @@ export class TaxRequirementManifestEngine {
   /**
    * Rebuilds or initializes the manifest from client onboarding dossier, questionnaire, and facts.
    */
-  public static rebuildManifest(clientId: string, taxYear: number, engagementId: string = 'ENG-DEFAULT'): TaxRequirementManifest {
+  public static rebuildManifest(
+    clientId: string,
+    taxYear: number,
+    engagementIdOrQuestionnaire: string | TaxDiscoveryQuestionnaireAnswers = 'ENG-DEFAULT',
+    entityTypeOverride?: TaxRequirementManifest['entityType'],
+    taxpayerNameOverride?: string
+  ): TaxRequirementManifest {
     const dossier: StageOneDossier | null = StageOneOnboardingService.getDossier(clientId);
-    const questionnaire: TaxDiscoveryQuestionnaireAnswers = TaxDocumentRequirementEngine.getQuestionnaire(clientId, taxYear);
 
-    const isEntity = dossier?.taxpayerType === 'entity';
+    let questionnaire: TaxDiscoveryQuestionnaireAnswers;
+    let engagementId = 'ENG-DEFAULT';
+    if (typeof engagementIdOrQuestionnaire === 'object' && engagementIdOrQuestionnaire !== null) {
+      questionnaire = engagementIdOrQuestionnaire as TaxDiscoveryQuestionnaireAnswers;
+      TaxDocumentRequirementEngine.saveQuestionnaire(clientId, taxYear, questionnaire);
+    } else {
+      if (typeof engagementIdOrQuestionnaire === 'string') {
+        engagementId = engagementIdOrQuestionnaire;
+      }
+      questionnaire = TaxDocumentRequirementEngine.getQuestionnaire(clientId, taxYear);
+    }
+
+    const isEntity = entityTypeOverride ? entityTypeOverride !== 'individual' : (dossier?.taxpayerType === 'entity');
     const classification = dossier?.entityClassification;
-    const entityType: TaxRequirementManifest['entityType'] = isEntity
+    const entityType: TaxRequirementManifest['entityType'] = entityTypeOverride || (isEntity
       ? (classification === 'scorp' ? 's_corp'
         : classification === 'ccorp' ? 'c_corp'
         : classification === 'partnership' ? 'partnership'
         : 'llc')
-      : 'individual';
+      : 'individual');
 
-    const taxpayerName = isEntity
+    const taxpayerName = taxpayerNameOverride || (isEntity
       ? (dossier?.legalName || 'Business Entity')
-      : (dossier?.legalName || 'Primary Taxpayer');
+      : (dossier?.legalName || 'Primary Taxpayer'));
 
     const primaryJurisdiction = dossier?.residentialOrPrincipalAddress?.state || questionnaire.residentState || 'SC';
 
@@ -383,7 +400,7 @@ export class TaxRequirementManifestEngine {
       if (questionnaire.hasW2Employment) {
         const employers = (questionnaire.employerNames && questionnaire.employerNames.length > 0)
           ? questionnaire.employerNames
-          : ['ABC Corporation']; // Standard primary employer expectation
+          : ['Primary Employer'];
 
         employers.forEach((emp, idx) => {
           const empSlug = emp.replace(/[^A-Za-z0-9]/g, '_').toUpperCase();
@@ -407,6 +424,36 @@ export class TaxRequirementManifestEngine {
             sourceAuthority: 'IRC § 6051 / Rev. Proc. 2024-40'
           });
         });
+
+        // Spouse W-2 where applicable
+        if (questionnaire.spouseHasW2 && (questionnaire.filingStatus === 'married_filing_jointly' || questionnaire.filingStatus === 'married_filing_separately')) {
+          const spouseEmployers = (questionnaire.spouseEmployerNames && questionnaire.spouseEmployerNames.length > 0)
+            ? questionnaire.spouseEmployerNames
+            : ['Spouse Primary Employer'];
+
+          spouseEmployers.forEach((emp, idx) => {
+            const empSlug = emp.replace(/[^A-Za-z0-9]/g, '_').toUpperCase();
+            addReq({
+              requirementId: `REQ-${taxYear}-W2-SPOUSE-${empSlug || idx + 1}`,
+              taxpayerOrEntity: 'Spouse',
+              category: 'Employment Income',
+              jurisdiction: 'Federal / ' + primaryJurisdiction,
+              documentType: 'W-2',
+              expectedSource: emp,
+              formNumber: 'Form W-2',
+              title: `Form W-2 — ${emp} (Spouse)`,
+              description: `Official Wage and Tax Statement issued to spouse by employer ${emp} for tax year ${taxYear}.`,
+              reasonRequired: 'Spouse W-2 compensation is reportable on married filing jointly return under IRC § 6013.',
+              requirementLevel: 'REQUIRED',
+              priority: 'Required',
+              acceptableEvidence: ['Form W-2 Copy B / C', 'Official employer electronic payroll W-2 PDF'],
+              status: 'MISSING',
+              reviewStatus: 'NOT_REQUIRED',
+              ruleVersion: '2025.1',
+              sourceAuthority: 'IRC § 6051'
+            });
+          });
+        }
       }
 
       // Interest Income (1099-INT)
@@ -522,6 +569,386 @@ export class TaxRequirementManifestEngine {
           ruleVersion: '2025.1',
           sourceAuthority: 'IRC § 6041A'
         });
+
+        // Profit & Loss Summary
+        addReq({
+          requirementId: `REQ-${taxYear}-SCH-C-PL`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Business Records',
+          jurisdiction: 'Federal',
+          documentType: 'Profit and Loss',
+          expectedSource: questionnaire.businessName || 'Business Records',
+          formNumber: 'Schedule C Detail',
+          title: 'Business Profit & Loss / Expense Records (Schedule C)',
+          description: 'Categorized breakdown of gross business revenues, advertising, supplies, travel, and ordinary and necessary expenses.',
+          reasonRequired: 'IRC § 162 substantiation for self-employment business deductions.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Bookkeeping Profit & Loss Report', 'Itemized expense summary spreadsheet'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 162'
+        });
+
+        // Vehicle mileage log if reported
+        if (questionnaire.hasBusinessVehicle) {
+          addReq({
+            requirementId: `REQ-${taxYear}-BIZ-MILEAGE`,
+            taxpayerOrEntity: taxpayerName,
+            category: 'Business Records',
+            jurisdiction: 'Federal',
+            documentType: 'Mileage Log',
+            expectedSource: 'Mileage Tracking App / Logbook',
+            formNumber: 'Form 4562 Vehicle Detail',
+            title: 'Business Vehicle Mileage Log & Contemporaneous Records',
+            description: 'Contemporaneous log of business miles driven, total miles, and business purpose of trips.',
+            reasonRequired: 'Strict substantiation required under IRC § 274(d). Without contemporaneous written records, vehicle deductions are disallowed.',
+            requirementLevel: 'REQUIRED',
+            priority: 'Required',
+            acceptableEvidence: ['MileIQ / Everlance export', 'Written vehicle mileage logbook'],
+            status: 'MISSING',
+            reviewStatus: 'NOT_REQUIRED',
+            ruleVersion: '2025.1',
+            sourceAuthority: 'IRC § 274(d)'
+          });
+        }
+      }
+
+      // Rental Real Estate (Schedule E)
+      if (questionnaire.ownsRentalProperty) {
+        const properties = (questionnaire.rentalPropertyAddresses && questionnaire.rentalPropertyAddresses.length > 0)
+          ? questionnaire.rentalPropertyAddresses
+          : ['Rental Property'];
+
+        properties.forEach((prop, idx) => {
+          const propSlug = prop.replace(/[^A-Za-z0-9]/g, '_').toUpperCase();
+          addReq({
+            requirementId: `REQ-${taxYear}-RENTAL-${propSlug || idx + 1}`,
+            taxpayerOrEntity: taxpayerName,
+            category: 'Rental Real Estate',
+            jurisdiction: 'Federal',
+            documentType: 'Rental Records',
+            expectedSource: prop,
+            formNumber: 'Schedule E Detail',
+            title: `Rental Property Income & Expense Summary — ${prop}`,
+            description: `Itemized gross rental income, management fees, repairs, maintenance, taxes, utilities, and mortgage interest for ${prop}.`,
+            reasonRequired: 'Required under IRC § 212 and § 469 to report rental real estate income and passive activity losses.',
+            requirementLevel: 'REQUIRED',
+            priority: 'Required',
+            acceptableEvidence: ['Property management annual statement', 'Rental bookkeeping spreadsheet / ledger', 'Form 1098 Mortgage Interest'],
+            status: 'MISSING',
+            reviewStatus: 'NOT_REQUIRED',
+            ruleVersion: '2025.1',
+            sourceAuthority: 'IRC § 212; Treas. Reg. § 1.469-1T'
+          });
+        });
+      }
+
+      // Marketplace Health Insurance (Form 1095-A)
+      if (questionnaire.hasMarketplaceHealthInsurance) {
+        addReq({
+          requirementId: `REQ-${taxYear}-1095A`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Health Insurance',
+          jurisdiction: 'Federal',
+          documentType: '1095-A',
+          expectedSource: 'Healthcare.gov / State Health Exchange',
+          formNumber: 'Form 1095-A',
+          title: 'Form 1095-A — Health Insurance Marketplace Statement',
+          description: 'Official statement reporting monthly enrollment premiums, benchmark plan premiums (SLCSP), and advance premium tax credit (APTC) payments.',
+          reasonRequired: 'Mandatory under IRC § 36B to reconcile the federal Premium Tax Credit on Form 8962. Return cannot be e-filed without it.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1095-A PDF downloaded from Healthcare.gov or state insurance marketplace'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 36B; Treas. Reg. § 1.36B-5'
+        });
+      }
+
+      // Retirement Distributions (Form 1099-R)
+      if (questionnaire.hasRetirementDistributions) {
+        addReq({
+          requirementId: `REQ-${taxYear}-1099R`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Retirement Income',
+          jurisdiction: 'Federal',
+          documentType: '1099-R',
+          expectedSource: 'Retirement Plan Custodian',
+          formNumber: 'Form 1099-R',
+          title: 'Form 1099-R — Distributions From Pensions, Annuities, Retirement, IRAs',
+          description: 'Statement showing gross distributions, taxable amounts (Box 2a), distribution codes (Box 7), and federal/state withholding.',
+          reasonRequired: 'Taxable retirement distributions are reportable under IRC §§ 408, 72, and 6047.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1099-R PDF', 'Consolidated annual retirement statement'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC §§ 72, 408, 6047'
+        });
+      }
+
+      // Social Security (Form SSA-1099)
+      if (questionnaire.hasSocialSecurity) {
+        addReq({
+          requirementId: `REQ-${taxYear}-SSA1099`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Social Security',
+          jurisdiction: 'Federal',
+          documentType: 'SSA-1099',
+          expectedSource: 'Social Security Administration',
+          formNumber: 'Form SSA-1099',
+          title: 'Form SSA-1099 — Social Security Benefit Statement',
+          description: 'Statement showing total net benefits paid (Box 5) and federal income tax withheld (Box 6).',
+          reasonRequired: 'Determines the taxable portion of Social Security benefits under IRC § 86.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form SSA-1099 from ssa.gov/myaccount'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 86'
+        });
+      }
+
+      // Pass-Through Income (Schedule K-1)
+      if (questionnaire.hasPassThrough) {
+        const entities = (questionnaire.k1EntityNames && questionnaire.k1EntityNames.length > 0)
+          ? questionnaire.k1EntityNames
+          : ['Pass-Through Entity'];
+
+        entities.forEach((ent, idx) => {
+          const entSlug = ent.replace(/[^A-Za-z0-9]/g, '_').toUpperCase();
+          addReq({
+            requirementId: `REQ-${taxYear}-K1-${entSlug || idx + 1}`,
+            taxpayerOrEntity: taxpayerName,
+            category: 'Pass-Through Income',
+            jurisdiction: 'Federal',
+            documentType: 'Schedule K-1',
+            expectedSource: ent,
+            formNumber: 'Schedule K-1',
+            title: `Schedule K-1 (Form 1065 / 1120-S) — ${ent}`,
+            description: `Partner / Shareholder share of income, deductions, credits, and capital balances from ${ent}.`,
+            reasonRequired: 'Pass-through distributive share must be reported on Form 1040 Schedule E under IRC §§ 702 and 1366.',
+            requirementLevel: 'REQUIRED',
+            priority: 'Required',
+            acceptableEvidence: ['Official Schedule K-1 (Form 1065 or 1120-S) with all attached statement tables'],
+            status: 'MISSING',
+            reviewStatus: 'NOT_REQUIRED',
+            ruleVersion: '2025.1',
+            sourceAuthority: 'IRC §§ 702, 1366'
+          });
+        });
+      }
+
+      // Child & Dependent Care (Form 2441)
+      if (questionnaire.hasChildCareExpenses) {
+        addReq({
+          requirementId: `REQ-${taxYear}-CHILDCARE`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Tax Credits & Deductions',
+          jurisdiction: 'Federal',
+          documentType: 'Childcare Statement',
+          expectedSource: 'Childcare / Daycare Provider',
+          formNumber: 'Form 2441 Records',
+          title: 'Form 2441 — Child & Dependent Care Provider Statements & Receipts',
+          description: 'Provider name, address, EIN/SSN, amounts paid per dependent, and annual payment summary.',
+          reasonRequired: 'Required by the IRS to claim the Child and Dependent Care Credit under IRC § 21.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Year-end statement from licensed childcare center or signed receipt with provider TIN'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 21; Treas. Reg. § 1.21-1'
+        });
+      }
+
+      // Quarterly Estimated Tax Payments
+      if (questionnaire.madeEstimatedTaxPayments) {
+        addReq({
+          requirementId: `REQ-${taxYear}-EST-PAYMENTS`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Tax Payments',
+          jurisdiction: 'Federal / ' + primaryJurisdiction,
+          documentType: 'Estimated Tax Confirmation',
+          expectedSource: 'IRS EFTPS / State Revenue',
+          formNumber: 'Form 1040-ES / State Vouchers',
+          title: 'Quarterly Estimated Tax Payment Records (Federal & State)',
+          description: 'Dates, confirmation numbers, and payment amounts for Q1, Q2, Q3, and Q4 quarterly estimated tax payments.',
+          reasonRequired: 'Credits estimated tax payments made to your account and eliminates underpayment penalties under IRC § 6654.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['EFTPS payment confirmation receipts', 'State online tax portal confirmation', 'Cancelled checks / bank statements'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 6654'
+        });
+      }
+
+      // Digital Assets / Cryptocurrency
+      if (questionnaire.hasDigitalAssetsCrypto) {
+        addReq({
+          requirementId: `REQ-${taxYear}-CRYPTO`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Digital Assets',
+          jurisdiction: 'Federal',
+          documentType: 'Crypto Report',
+          expectedSource: 'Cryptocurrency Exchange / Tax Ledger',
+          formNumber: 'Form 8949 Detail / 1099-DA',
+          title: 'Digital Asset / Cryptocurrency Tax Report & Form 1099-DA',
+          description: 'Comprehensive transaction history, cost basis calculations, and capital gain/loss schedules across all wallets and exchanges.',
+          reasonRequired: 'Mandatory disclosure on Form 1040 digital asset question and taxable gain reporting under IRS Notice 2014-21.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1099-DA', 'CoinTracker / Koinly / TaxBit consolidated tax report PDF'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRS Notice 2014-21'
+        });
+      }
+
+      // Charitable Donations
+      if (questionnaire.hasSignificantCharitableDonations) {
+        addReq({
+          requirementId: `REQ-${taxYear}-CHARITY`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Itemized Deductions',
+          jurisdiction: 'Federal',
+          documentType: 'Charitable Acknowledgments',
+          expectedSource: 'Qualified 501(c)(3) Organizations',
+          formNumber: 'Schedule A Detail',
+          title: 'Charitable Contribution Written Acknowledgments & Receipts',
+          description: 'Formal written acknowledgment letters from qualified 501(c)(3) organizations for gifts of $250 or more stating whether goods or services were provided.',
+          reasonRequired: 'Strict written substantiation required under IRC § 170(f)(8). Cancelled checks alone are legally insufficient for contributions of $250+.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Contemporaneous written acknowledgment letters from non-profit organizations'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 170(f)(8)'
+        });
+      }
+
+      // Identity Protection PIN
+      if (questionnaire.hasIdentityProtectionPin) {
+        addReq({
+          requirementId: `REQ-${taxYear}-IP-PIN`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Identity Verification',
+          jurisdiction: 'Federal',
+          documentType: 'IP PIN Notice',
+          expectedSource: 'IRS',
+          formNumber: 'Notice CP01A',
+          title: `IRS Identity Protection PIN (IP PIN) Notice (${taxYear})`,
+          description: `Current 6-digit Identity Protection PIN issued by the IRS for tax year ${taxYear}.`,
+          reasonRequired: 'Mandatory for IRS electronic filing authentication. If omitted, the IRS e-file gateway immediately rejects the return.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['IRS Notice CP01A or online IP PIN retrieval confirmation from irs.gov/ippin'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRS Identity Protection Program'
+        });
+      }
+
+      // Higher Education Tuition (1098-T)
+      if (questionnaire.paidHigherEducationTuition) {
+        addReq({
+          requirementId: `REQ-${taxYear}-1098T`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Education Credits',
+          jurisdiction: 'Federal',
+          documentType: '1098-T',
+          expectedSource: 'Eligible Educational Institution',
+          formNumber: 'Form 1098-T',
+          title: 'Form 1098-T — Tuition Statement',
+          description: 'Official form provided by colleges and universities reporting qualified tuition and related expenses paid.',
+          reasonRequired: 'Required under IRC § 25A to substantiate the American Opportunity Tax Credit or Lifetime Learning Credit.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1098-T from college/university bursar portal'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC §§ 25A, 6050S'
+        });
+      }
+
+      // Student Loan Interest (1098-E)
+      if (questionnaire.paidStudentLoanInterest) {
+        addReq({
+          requirementId: `REQ-${taxYear}-1098E`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Above-the-Line Deductions',
+          jurisdiction: 'Federal',
+          documentType: '1098-E',
+          expectedSource: 'Student Loan Servicer',
+          formNumber: 'Form 1098-E',
+          title: 'Form 1098-E — Student Loan Interest Statement',
+          description: 'Statement reporting student loan interest paid of $600 or more on qualified higher education loans.',
+          reasonRequired: 'Above-the-line deduction up to $2,500 directly reducing Adjusted Gross Income under IRC § 221.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1098-E from student loan servicer'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 221'
+        });
+      }
+
+      // Health Savings Account (1099-SA / 5498-SA)
+      if (questionnaire.hasHsaAccount) {
+        addReq({
+          requirementId: `REQ-${taxYear}-1099SA`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Health Savings Account',
+          jurisdiction: 'Federal',
+          documentType: '1099-SA',
+          expectedSource: 'HSA Custodian Bank',
+          formNumber: 'Form 1099-SA / 5498-SA',
+          title: 'Form 1099-SA & 5498-SA — HSA Distributions & Contributions',
+          description: 'Statement reporting gross distributions from Health Savings Accounts and annual contribution totals.',
+          reasonRequired: 'Required to prepare Form 8889 and substantiate that HSA distributions were used for qualified medical expenses.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1099-SA from HSA custodian'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 223'
+        });
+      }
+
+      // Real Estate Sales (1099-S)
+      if (questionnaire.soldRealEstate) {
+        addReq({
+          requirementId: `REQ-${taxYear}-1099S`,
+          taxpayerOrEntity: taxpayerName,
+          category: 'Real Estate Sales',
+          jurisdiction: 'Federal',
+          documentType: '1099-S',
+          expectedSource: 'Closing / Settlement Agent',
+          formNumber: 'Form 1099-S / Closing Disclosure',
+          title: 'Form 1099-S & Real Estate Closing Settlement Statement',
+          description: 'Gross proceeds from real estate transaction, ALTA/HUD settlement statement, and capital improvement records.',
+          reasonRequired: 'Real estate sales proceeds are reported to the IRS under IRC § 6045(e) and must be reconciled on Schedule D / Form 8949.',
+          requirementLevel: 'REQUIRED',
+          priority: 'Required',
+          acceptableEvidence: ['Form 1099-S and final signed Closing Disclosure (ALTA)'],
+          status: 'MISSING',
+          reviewStatus: 'NOT_REQUIRED',
+          ruleVersion: '2025.1',
+          sourceAuthority: 'IRC § 6045(e)'
+        });
       }
 
       // Prior Year Federal Return
@@ -547,9 +974,9 @@ export class TaxRequirementManifestEngine {
         });
       }
 
-      // State Tax Requirements
+      // State Tax Requirements (only required as separate schedule when multi-state or state-specific schedule indicated)
       const stateRule = StateTaxCollectionRuleRegistry.getRuleForJurisdiction(primaryJurisdiction, taxYear);
-      if (stateRule) {
+      if (stateRule && (questionnaire.hasMultiStateIncome || questionnaire.hasStateSpecificFiling)) {
         addReq({
           requirementId: `REQ-${taxYear}-STATE-${primaryJurisdiction}`,
           taxpayerOrEntity: taxpayerName,
@@ -652,26 +1079,137 @@ export class TaxRequirementManifestEngine {
       });
     }
 
-    // Prior-year source comparison inquiries
-    const priorYearInquiries: PriorYearSourceInquiry[] = [];
-    if (taxYear === 2025) {
-      priorYearInquiries.push({
-        id: 'INQ-PY-01',
-        taxYear: 2025,
-        sourceType: '1099-INT',
-        sourceName: 'XYZ Bank',
-        priorYearAmount: 480,
-        status: 'PENDING'
+    // ------------------------------------------------------------------------
+    // 3. PARTNERSHIP (Form 1065) REQUIREMENTS
+    // ------------------------------------------------------------------------
+    else if (entityType === 'partnership') {
+      addReq({
+        requirementId: `REQ-${taxYear}-PARTNER-TB-GL`,
+        taxpayerOrEntity: taxpayerName,
+        category: 'Business Records',
+        jurisdiction: 'Federal',
+        documentType: 'Trial Balance',
+        formNumber: 'Trial Balance / GL',
+        title: 'Year-End Adjusted Trial Balance & General Ledger (Form 1065)',
+        description: 'Year-end adjusted trial balance with debit/credit balance, chart of accounts, and detailed general ledger export.',
+        reasonRequired: 'IRC § 446 / Accounting Methods',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['Adjusted Trial Balance Excel/PDF', 'General Ledger Detail Report'],
+        status: 'MISSING',
+        reviewStatus: 'NOT_REQUIRED',
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRC § 446'
       });
-      priorYearInquiries.push({
-        id: 'INQ-PY-02',
-        taxYear: 2025,
-        sourceType: '1099-B',
-        sourceName: 'Fidelity Investments',
-        priorYearAmount: 14200,
-        status: 'PENDING'
+
+      addReq({
+        requirementId: `REQ-${taxYear}-PARTNER-BANK-RECON`,
+        taxpayerOrEntity: taxpayerName,
+        category: 'Business Records',
+        jurisdiction: 'Federal',
+        documentType: 'Bank Statement',
+        formNumber: 'Bank Reconciliations',
+        title: 'Year-End Partnership Bank & Credit Card Statements & Reconciliations',
+        description: 'All business checking, savings, and credit card statements through December 31 with formal bank reconciliation tie-outs.',
+        reasonRequired: 'IRC § 6001 / Recordkeeping',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['December Bank Statements', 'Year-End Reconciliation Summary'],
+        status: 'MISSING',
+        reviewStatus: 'NOT_REQUIRED',
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRC § 6001'
+      });
+
+      addReq({
+        requirementId: `REQ-${taxYear}-PARTNER-CAPITAL-M2`,
+        taxpayerOrEntity: taxpayerName,
+        category: 'Business Records',
+        jurisdiction: 'Federal',
+        documentType: 'Partner Capital Schedule',
+        formNumber: 'Schedule M-2 / 1065 K-1',
+        title: 'Partner Capital Account Reconciliation Schedule (Tax Basis)',
+        description: 'Beginning capital, capital contributions, net income allocations, distributions, and ending capital balances per partner.',
+        reasonRequired: 'Mandatory tax-basis capital account reporting on Form 1065 Schedule M-2.',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['Partner Tax-Basis Capital Schedule', 'Form 1065 Schedule M-2 Detail'],
+        status: 'MISSING',
+        reviewStatus: 'NOT_REQUIRED',
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRS Form 1065 Instructions / Notice 2020-43'
       });
     }
+
+    // ------------------------------------------------------------------------
+    // 4. C-CORPORATION (Form 1120) REQUIREMENTS
+    // ------------------------------------------------------------------------
+    else if (entityType === 'c_corp') {
+      addReq({
+        requirementId: `REQ-${taxYear}-CCORP-TB-GL`,
+        taxpayerOrEntity: taxpayerName,
+        category: 'Business Records',
+        jurisdiction: 'Federal',
+        documentType: 'Trial Balance',
+        formNumber: 'Trial Balance / GL',
+        title: 'Year-End Adjusted Trial Balance & General Ledger (Form 1120)',
+        description: 'Year-end adjusted trial balance with debit/credit balance, chart of accounts, and detailed general ledger export.',
+        reasonRequired: 'IRC § 446 / Accounting Methods',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['Adjusted Trial Balance Excel/PDF', 'General Ledger Detail Report'],
+        status: 'MISSING',
+        reviewStatus: 'NOT_REQUIRED',
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRC § 446'
+      });
+
+      addReq({
+        requirementId: `REQ-${taxYear}-CCORP-BANK-RECON`,
+        taxpayerOrEntity: taxpayerName,
+        category: 'Business Records',
+        jurisdiction: 'Federal',
+        documentType: 'Bank Statement',
+        formNumber: 'Bank Reconciliations',
+        title: 'Year-End Corporate Bank & Credit Card Statements',
+        description: 'All corporate banking and debt facility statements through December 31 with formal bank reconciliations.',
+        reasonRequired: 'IRC § 6001 / Recordkeeping',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['December Bank Statements', 'Year-End Reconciliation Summary'],
+        status: 'MISSING',
+        reviewStatus: 'NOT_REQUIRED',
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRC § 6001'
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // 5. LLC REQUIREMENTS
+    // ------------------------------------------------------------------------
+    else if (entityType === 'llc') {
+      addReq({
+        requirementId: `REQ-${taxYear}-LLC-TB-GL`,
+        taxpayerOrEntity: taxpayerName,
+        category: 'Business Records',
+        jurisdiction: 'Federal',
+        documentType: 'Trial Balance',
+        formNumber: 'Trial Balance / GL',
+        title: 'Year-End Financial Statements & Trial Balance',
+        description: 'Balance sheet, profit & loss, and trial balance for LLC operations.',
+        reasonRequired: 'IRC § 6001 / Recordkeeping',
+        requirementLevel: 'REQUIRED',
+        priority: 'Required',
+        acceptableEvidence: ['Trial Balance', 'Income Statement & Balance Sheet'],
+        status: 'MISSING',
+        reviewStatus: 'NOT_REQUIRED',
+        ruleVersion: '2025.1',
+        sourceAuthority: 'IRC § 6001'
+      });
+    }
+
+    // Prior-year source comparison inquiries (Only if prior facts exist)
+    const priorYearInquiries: PriorYearSourceInquiry[] = [];
 
     const manifest: TaxRequirementManifest = {
       manifestId,
