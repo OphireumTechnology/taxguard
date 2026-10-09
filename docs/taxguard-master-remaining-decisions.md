@@ -2,6 +2,8 @@
 
 The product remains incomplete. These are dependencies, not invented approvals. Safe bounded preparations and negative tests do not complete the dependent product feature.
 
+Continuation evidence: 175 files / 3,255 local tests PASS; core RLS policies now have 12 executable disposable non-owner role regressions, not deployed acceptance. Anonymous real-product coverage is now 21 prepared checks, NOT VERIFIED. Remote GitHub CI status was not independently retrieved. H01-H09/E01-E08 remain unresolved; authorized QA/platform owners must supply actual isolated identities/provider fixtures for authenticated journeys. No new approval is inferred.
+
 | ID | Required authoritative decision or evidence | Dependent functionality |
 | --- | --- | --- |
 | H01 | Supply the missing multipage/page-9 per-ID responsibility, stage, tool, data and evidence mapping for A00-A60; reconcile illustrative numbering with LEGACY_18_V1 | All unapproved specialist implementations and dispatch |

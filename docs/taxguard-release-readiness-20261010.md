@@ -206,6 +206,18 @@ Use the single Windows operator command already above to compile current source 
 
 ### Latest local implementation and validation - 2026-10-10
 
+#### Continuation from local checkpoint dbf1086
+
+Remote GitHub Actions status could not be retrieved; latest green GitHub CI NOT VERIFIED independently. This continuation is verified local evidence, not remote CI or production acceptance.
+
+Changed source: `src/server/taxguard/SqlCaseReadPreparation.ts` (post-audit scoped authority/revision check); `qa/product-browser/boundary.mjs` (deny query payloads and encoded separators); `qa/product-browser/anonymous-boundaries.spec.mjs` (fail on blocked requests/runtime exceptions; no-email recovery navigation); `scripts/build-local-traceability.mjs` (direct RLS execution evidence). Tests changed: `src/tests/sqlCaseReadPreparation.test.ts` (+4), `src/tests/productAnonymousBrowserBoundary.test.ts` (+6); new `src/tests/coreRlsRoleExecution.test.ts` (12). Net +22 automated tests / one file. Updated this report, checkpoint, staging acceptance, integration readiness, remaining-decisions and generated traceability files.
+
+Final full suite: `npm.cmd test -- --maxWorkers=2` exit 0, **175 files / 3,255 PASS**, 78.61s. Root TypeScript/lint, new JavaScript syntax, diff integrity and regenerated 160-requirement traceability PASS. Initial run: exit 1, 173 files PASS / one FAIL, 3,241 tests PASS / two FAIL, 83.86s, due to stale changed-file evidence hashes. After regeneration: 174 files / 3,243 PASS, exit 0, 80.12s; final RLS increment result above. Existing role/tenant/client/year/reviewer/maker-checker/consent negative suites ran in the complete suite. Direct RLS tests use disposable synthetic database identities/grants and do not verify deployed policy/privileged service-role behavior.
+
+Browser coverage: 21 partial anonymous actual-product checks prepared, **NOT VERIFIED**. Runtime exceptions and blocked dependencies now fail the harness instead of permitting silent partial success. Stored synthetic-shell 36/36 remains prior PASS only; all 29 full-product scenarios individually remain NOT VERIFIED. Current frontend/backend/fixture builds and browser execution NOT VERIFIED; known sandbox restrictions were not retried or escalated. Existing operator command below remains applicable.
+
+Release **NO-GO**. Infrastructure/QA owners must supply isolated actual application, scoped identity/provider fixtures and authenticated workflow execution; DBA must review/authorize migrations; platform owners must commission durable queue/jobs/audit/storage and recovery; independent security reviewer must verify deployed RBAC/RLS, tenant/client/year/consent controls; governance/practitioner owners must resolve H01-H09 and AI-16 policies/attestations. E01-E08 remain external acceptance dependencies. No merge, push, deployment, shared migration, real taxpayer data or protected action occurred.
+
 Recommendation: **NO-GO**. Product completion, durable commissioning, independent security acceptance, migration approval and governance gates remain unresolved. All 29 full-product scenarios remain NOT VERIFIED. Stored synthetic-shell evidence remains 36/36 PASS; it does not verify product workflows.
 
 Implemented bounded SQL reviewer metadata discovery in `src/server/taxguard/SqlCaseReadPreparation.ts`: tenant/client/engagement/year assignment checks, reviewer-only access, bounded pagination, transaction-scoped audit, fresh identity and revision checks including the extra pagination row. Disabled by default and test-only synthetic mode remain enforced. This is not production queue hydration, durable decision storage or an approved cutover.

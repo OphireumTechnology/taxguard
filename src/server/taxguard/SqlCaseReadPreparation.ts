@@ -74,6 +74,11 @@ export class SqlCaseReadPreparation {
             VALUES($1,$2,'SYNTHETIC_CASE_METADATA_READ',$3,$4,$5::jsonb)`,
           [s.tenant_id, s.tax_case_id, identity.uid, current.actor_role, JSON.stringify({ engagement_id: s.engagement_id, tax_year: s.tax_year, revision: current.revision })]);
           await this.identity(token, s, identity);
+          // Audit hooks must not let changed authority or stale metadata escape the transaction.
+          const final = await this.load(sql, identity, s);
+          if (final.revision !== current.revision || final.actor_role !== current.actor_role) {
+            throw new GovernanceError('CASE_READ_AUTHORITY_CHANGED');
+          }
           const { actor_role, ...metadata } = current;
           return metadata;
         });

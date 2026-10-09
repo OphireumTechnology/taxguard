@@ -1,5 +1,7 @@
 # Integration readiness and commissioning dependencies
 
+Latest continuation 2026-10-10: local full suite **175 files / 3,255 tests PASS**, exit 0, 78.61s. Single-case SQL metadata now rechecks canonical assignment/role/revision after audit and rolls back on change. Twelve disposable database-role tests execute existing core RLS under synthetic grants; they do not verify deployed roles or service-role isolation. Durable reviewer decision persistence/cutover and external commissioning remain blocked by H05/E01/E05. No migration or connection to external services occurred.
+
 Latest authorized synthetic verification: 164 files / 3,105 tests PASS (77.71s, exit 0), including durable SQL/governance/session/queue/storage/audit/readiness regressions. Actual provider commissioning remains NOT VERIFIED or BLOCKED as itemized in [the current release-gate report](taxguard-staging-verification-20261010.md). No real service health, distributed durability or independent acceptance is inferred from the suite.
 
 This current report supersedes blanket `SOFTWARE_READY` descriptions in historical commissioning documents. Configuration, transport implementation, authorization, provider receipt verification and operational acceptance are separate states. No external service was called during synthetic validation.

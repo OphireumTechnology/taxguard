@@ -15,3 +15,8 @@ it.each([
   ['http://127.0.0.1:4180/api/auth/me?token=synthetic', 'GET'], ['http://127.0.0.1:4180/.env', 'GET'],
   ['http://user:synthetic@127.0.0.1:4180/', 'GET'], ['invalid', 'GET'],
 ])('blocks external/fixture/private/write request %s %s', (url, method) => expect(allow(url, method)).toBe(false));
+
+it.each(['/portal/login?token=synthetic', '/assets/app.js?token=synthetic', '/logo.svg?secret=synthetic',
+  '/assets/private%2fapp.js', '/assets/private%5capp.js', '/assets/app%00.js'])('rejects query payloads and encoded path separators %s', path => {
+  expect(allow('http://127.0.0.1:4180' + path, 'GET')).toBe(false);
+});

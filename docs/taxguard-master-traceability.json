@@ -2668,7 +2668,8 @@
         "supabase/migrations/20261004000000_taxguard_private_storage_client_scope.sql"
       ],
       "tests": [
-        "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts"
+        "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts",
+        "src/tests/coreRlsRoleExecution.test.ts"
       ],
       "remaining": "Local/disposable evidence; service-role bypass requires server checks; deployed roles/grants not verified.",
       "releaseClassification": "COMPLETE AND VALIDATED",
@@ -2897,7 +2898,8 @@
       ],
       "tests": [
         "src/tests/sqlCaseReadPreparation.test.ts",
-        "src/tests/sqlReviewerQueuePreparation.test.ts"
+        "src/tests/sqlReviewerQueuePreparation.test.ts",
+        "src/tests/coreRlsRoleExecution.test.ts"
       ],
       "remaining": "Disposable SQL validation passed; no released route/production factory/artifact hydration.",
       "releaseClassification": "COMPLETE AND VALIDATED",
@@ -3900,8 +3902,8 @@
     },
     {
       "file": "docs/taxguard-autonomous-development-checkpoint.md",
-      "sha256": "2fe9bc1385224aafe284efbd30f2b77d96c14818909456d00b6ed5e1904d0aa0",
-      "bytes": 36401,
+      "sha256": "7ba63ae6c6500423a97ffe1fc572889ffddf4155441a0f4088d7423a34d3681b",
+      "bytes": 38087,
       "headings": [
         "# TaxGuard autonomous development checkpoint",
         "## Latest diagnosis and validation",
@@ -4065,16 +4067,16 @@
     },
     {
       "file": "docs/taxguard-master-integration-readiness.md",
-      "sha256": "43e4ae9aac8098e43c352a04050b30b946442b102db50c147edee9057c3253e8",
-      "bytes": 6050,
+      "sha256": "155228163b1474a5a358cc1c699d82878964c58359a0335f30ada128c66361a7",
+      "bytes": 6572,
       "headings": [
         "# Integration readiness and commissioning dependencies"
       ]
     },
     {
       "file": "docs/taxguard-master-remaining-decisions.md",
-      "sha256": "4eeef5601daac5420320a6c6d7d4a18d1dde68548b3263bff37099c554d3cb2d",
-      "bytes": 4038,
+      "sha256": "1e010611eb6193815998f0169bc458a4b8cad77b9aee46302e649bbbc603e77b",
+      "bytes": 4512,
       "headings": [
         "# Remaining human decisions and external dependencies"
       ]
@@ -4100,8 +4102,8 @@
     },
     {
       "file": "docs/taxguard-release-readiness-20261010.md",
-      "sha256": "5178cf0e0a64e66b5d943074f5673fe660c7670b11855a2d1986f492b2d674f2",
-      "bytes": 33884,
+      "sha256": "380ff7a5c9e746ff31cc79d15f575f3cf303e452783777e912c8c99f4cf5f987",
+      "bytes": 36634,
       "headings": [
         "# Final development and release-readiness assessment — 2026-10-10",
         "## Audit and prioritized execution",
@@ -4140,8 +4142,8 @@
     },
     {
       "file": "docs/taxguard-staging-acceptance-20261010.md",
-      "sha256": "70989816009cfb405d4cd6d6b889d620165f52eaa6ad6248157814ad41b03c41",
-      "bytes": 12601,
+      "sha256": "30bd0c902c7ff26b3b6f9c8db6349e7292477738bcbfa0c295dcee610d672d1c",
+      "bytes": 13286,
       "headings": [
         "# Synthetic staging acceptance and operator evidence plan",
         "## Reproducible preparation command",
@@ -4252,8 +4254,8 @@
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
-    "qa/product-browser/anonymous-boundaries.spec.mjs": "be3f23f2a46629e79741080c1ccc2e56615d67bb916bb9c5ec53e76bec2289a1",
-    "qa/product-browser/boundary.mjs": "64a450fe6cd48d466938cf35f055f0d5ef87e1607c795a91287ebe0feee6010f",
+    "qa/product-browser/anonymous-boundaries.spec.mjs": "bcba9b0ec32b5798bd391817cdcdb8a9f9cc963cc657b07681e0e6ad3963a6aa",
+    "qa/product-browser/boundary.mjs": "9945f6daf2eead644e34cc19ed0de5aed00b9c15a7def81c20fb7ad0ec8b54c4",
     "qa/staging-acceptance-plan.mjs": "66311ca7a93ac4bdf14ab4da266756fb9efa5ee552976e8b1bb86a6e7f70b846",
     "qa/synthetic-shell/FixtureSelect.tsx": "fda2b6f1590d27f10515cf7b91cb6daee8fcb775a692d4d4df8016252e3e01f9",
     "qa/synthetic-shell/README.md": "d439a5a97f075d17fa3dde44e52a284ac67abb08fcccafee2e24bf65f80cbf55",
@@ -4299,7 +4301,7 @@
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
     "src/server/productionApp.ts": "9ff8ae9d40e348b58b77806bb313a3a77205072b2a8773ee4d02a3f0355c7d8c",
     "src/server/routes/profile-amendment.routes.ts": "4369679255de2c1e47bc558b5d3a66f658d1b742ed0b033d4a3fe0d15065a714",
-    "src/server/taxguard/SqlCaseReadPreparation.ts": "390f68927ab2447f2f8e4ac7990476eef78ac576fa9ae317f48a2f142af73f35",
+    "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
     "src/server/taxguard/authority.repository.ts": "775ac57a1954ea44e0d58f79c039c52c1757099e3a06e6a91d076475c3bb3884",
     "src/server/taxguard/bookkeeping/accountingSync.service.ts": "003165a06c6e9c83f948365900dbc88df2dcf9aa6ee5e481aa36f95f6e571037",
     "src/server/taxguard/ocrProvider.ts": "7ece0f89567ea15108933b62b02e221a134d553a9ec5a8b3c2dfd3c7d6b0f1d0",
@@ -4352,6 +4354,7 @@
     "src/tests/clientServiceAuthority.test.ts": "5002c2b48bd210f87c83550d9cd8a59d64abb70d434aba9675713d43d2790771",
     "src/tests/clientStageActionTruthfulness.test.tsx": "f200a45d301e18a3e67a74d0bc03d3b5f0b5362e91e805e1df196d0799b0f52e",
     "src/tests/completeTaxGuardLifecycleStages10Through18.test.ts": "164b90ca8b5810f66415d0f605751d472c6db936cb8f2f23297a7b1c6831024d",
+    "src/tests/coreRlsRoleExecution.test.ts": "dc108ce3fa32d92314362d026fb5092bd9699cd9cd56b937aecf867438bb13dd",
     "src/tests/dashboardApplicationShell.test.tsx": "c086eea43f27415d303a6234e85b065e85e5a03b6cbe96a0eff36f58115251b4",
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
@@ -4370,7 +4373,7 @@
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "75e769bd8e0d97b515a796bc2e722e6028db6fb34adb9c42a81e27a494f7b6e4",
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
-    "src/tests/productAnonymousBrowserBoundary.test.ts": "da2a82e29a091f9f7d79eac23c388db5fc8cc563b2e37a0663ff8e9300c8952b",
+    "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
     "src/tests/productionApiHttp.test.ts": "373ec2c2eea158c3cba7a8b838e4545c71a536ad2faabb99b33b4f83c8d3e9f7",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
@@ -4379,7 +4382,7 @@
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
     "src/tests/serverStageGateOrchestrator.test.ts": "82912d65ff4f3c6fc5205432ac1b3f66a1c9562a1fc1e5f0755ef8a22c8da5ee",
     "src/tests/sessionTokenStorageRecovery.test.ts": "07b2a4020a6a7679117c52783055536d063fa2bff5d724fb998de90ceea98dc9",
-    "src/tests/sqlCaseReadPreparation.test.ts": "bcb9eaebec29e592f2b566385d46625b91cf8549fcf2b640cb9b797801c8901e",
+    "src/tests/sqlCaseReadPreparation.test.ts": "cedf0b873212eb2e4ca02825b8434d89196c35583f0ab281ac385b66c7c9e8e3",
     "src/tests/sqlReviewerQueuePreparation.test.ts": "49baf34f194392bc55c4eae4fab1396490cce6553524ea7e9e98269106c0be0f",
     "src/tests/staffAssignmentDateAuthorization.test.ts": "feb894945bb673466d5ad77a9348f0609e94acc6672979465ce17f4c3b08652c",
     "src/tests/staffRoutingAuthorityCeiling.test.ts": "2d7cc74ec7f9c4056a2804d37bd4140e9fc7df914cae9759d447fea4792ba3f6",

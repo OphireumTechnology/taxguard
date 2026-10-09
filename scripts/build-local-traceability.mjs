@@ -124,6 +124,8 @@ rows.find(row => row.id === 'CONTROL-IDENTITY').tests.push('src/tests/legacyWork
 rows.find(row => row.id === 'CONTROL-IDENTITY').tests.push('src/tests/apiResponseRecovery.test.ts');
 rows.find(row => row.id === 'CONTROL-JOB-QUEUE').tests.push('src/tests/legacyJobSnapshotIsolation.test.ts');
 rows.find(row => row.id === 'CONTROL-SQL-READ').tests.push('src/tests/sqlReviewerQueuePreparation.test.ts');
+rows.find(row => row.id === 'CONTROL-SQL-READ').tests.push('src/tests/coreRlsRoleExecution.test.ts');
+rows.find(row => row.id === 'CONTROL-RLS').tests.push('src/tests/coreRlsRoleExecution.test.ts');
 rows.find(row => row.id === 'CONTROL-IDENTITY').implementation.push('src/components/auth/AuthPages.tsx');
 rows.find(row => row.id === 'CONTROL-IDENTITY').tests.push('src/tests/authFormLabelAssociations.test.tsx');
 rows.find(row => row.id === 'CONTROL-BROWSER').implementation.push('qa/product-browser/boundary.mjs', 'qa/product-browser/anonymous-boundaries.spec.mjs', 'qa/playwright.product-anonymous.config.mjs', 'scripts/run-local-product-browser.mjs');

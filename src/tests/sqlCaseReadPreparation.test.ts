@@ -80,3 +80,20 @@ it('does not retry unknown database errors', async () => {
 it('rejects browser role and scope injection before accessing SQL', async () => {
   await expect(service().read('synthetic', { ...readScope, role: 'admin' })).rejects.toThrow('CASE_READ_INVALID_SCOPE'); expect(verify).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["UPDATE taxguard_case_assignments SET active=false", 'CASE_READ_SCOPE_DENIED'],
+  ["UPDATE taxguard_staff_assignments SET tax_year=2024", 'CASE_READ_SCOPE_DENIED'],
+  ["UPDATE taxguard_members SET role='admin'", 'CASE_READ_SCOPE_DENIED'],
+  ["UPDATE taxguard_cases SET revision=revision+1", 'CASE_READ_AUTHORITY_CHANGED'],
+])('suppresses metadata and rolls back audit after authority changes during audit: %s', async (mutation, code) => {
+  const before = (await f.pg.query('SELECT id FROM taxguard_audit_log')).rows;
+  const db: TransactionalSql = { transaction: work => f.db.transaction(sql => work({ query: async <T>(query: string, params?: unknown[]) => {
+    const result = await sql.query<T>(query, params);
+    if (query.includes('INSERT INTO taxguard_audit_log')) await sql.query(mutation);
+    return result;
+  } })) };
+  await expect(service(db).read('synthetic', readScope)).rejects.toThrow(code);
+  expect((await f.pg.query('SELECT id FROM taxguard_audit_log')).rows).toEqual(before);
+  expect((await service().read('synthetic', readScope)).revision).toBe(1);
+});
