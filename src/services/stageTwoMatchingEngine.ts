@@ -240,6 +240,34 @@ export class StageTwoMatchingEngine {
         detectedType = 'SSA-1099';
         formNumber = 'Form SSA-1099';
         classificationConfidence = 0.97;
+      } else if (upperCombined.includes('1095-A') || upperCombined.includes('1095A') || upperCombined.includes('HEALTH INSURANCE MARKETPLACE')) {
+        detectedType = '1095-A' as RecognizedDocumentType;
+        formNumber = 'Form 1095-A';
+        classificationConfidence = 0.96;
+      } else if (upperCombined.includes('1099-S') || upperCombined.includes('1099S') || upperCombined.includes('PROCEEDS FROM REAL ESTATE')) {
+        detectedType = '1099-S' as RecognizedDocumentType;
+        formNumber = 'Form 1099-S';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('1099-G') || upperCombined.includes('1099G') || upperCombined.includes('CERTAIN GOVERNMENT PAYMENTS')) {
+        detectedType = '1099-G';
+        formNumber = 'Form 1099-G';
+        classificationConfidence = 0.95;
+      } else if (upperCombined.includes('CRYPTO') || upperCombined.includes('1099-DA') || upperCombined.includes('BITCOIN') || nameLower.includes('crypto')) {
+        detectedType = 'Receipt / Invoice';
+        formNumber = 'Crypto Tax Report / 1099-DA';
+        classificationConfidence = 0.92;
+      } else if (upperCombined.includes('RENTAL') || upperCombined.includes('SCHEDULE E') || nameLower.includes('rental')) {
+        detectedType = 'Profit and Loss';
+        formNumber = 'Schedule E Rental Records';
+        classificationConfidence = 0.92;
+      } else if (upperCombined.includes('ESTIMATED TAX') || upperCombined.includes('1040-ES') || upperCombined.includes('1040ES') || upperCombined.includes('EFTPS')) {
+        detectedType = 'Receipt / Invoice';
+        formNumber = 'Form 1040-ES Payment Voucher';
+        classificationConfidence = 0.93;
+      } else if (upperCombined.includes('CHILDCARE') || upperCombined.includes('CHILD CARE') || upperCombined.includes('FORM 2441') || upperCombined.includes('DAYCARE')) {
+        detectedType = 'Receipt / Invoice';
+        formNumber = 'Form 2441 Childcare Statement';
+        classificationConfidence = 0.92;
       } else if (upperCombined.includes('TRIAL BALANCE') || upperCombined.includes('TB ') || nameLower.includes('trial balance')) {
         detectedType = 'Trial Balance';
         formNumber = 'Trial Balance';
@@ -282,7 +310,7 @@ export class StageTwoMatchingEngine {
     // 3. Taxpayer Name Extraction
     let taxpayerName = hint?.taxpayerName || params.expectedTaxpayerName;
     if (!hint?.taxpayerName) {
-      const employeeMatch = text.match(/(?:Employee|Taxpayer|Recipient|Borrower|Client):\s*([A-Za-z]+(?:\s+[A-Za-z]+)+)/i);
+      const employeeMatch = text.match(/(?:Employee(?:\s+Name)?|Taxpayer(?:\s+Name)?|Recipient(?:\s+Name)?|Borrower(?:\s+Name)?|Client(?:\s+Name)?):\s*([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)+)/i);
       if (employeeMatch && employeeMatch[1]) {
         taxpayerName = employeeMatch[1].trim();
       } else if (filename.toLowerCase().includes('david') && filename.toLowerCase().includes('robinson')) {
