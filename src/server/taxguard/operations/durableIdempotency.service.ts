@@ -1,8 +1,7 @@
 /**
  * TaxGuard Durable Mutation Idempotency Service
- * Provides durable PostgreSQL / server-authoritative mutation idempotency
- * for QuickBooks/Xero write-backs, payment charges, client provisioning,
- * and high-consequence operations across server restarts and distributed workers.
+ * Legacy process-local simulation. Not durable across restarts or distributed workers.
+ * Released production operations must use an independently verified durable adapter.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -34,17 +33,24 @@ export class DurableIdempotencyService {
     | { status: 'COMPLETED'; resultReference: Record<string, unknown>; auditEventId?: string }
     | { status: 'PROCESSING'; message: string }
   > {
+    if (![tenantId, operation, provider, idempotencyKey, requestFingerprint].every(value =>
+      typeof value === 'string' && value.length > 0 && value.length <= 256 && !value.includes('::')) ||
+      !Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0 || ttlSeconds > 86400 * 365) {
+      throw new Error('INVALID_IDEMPOTENCY_REQUEST');
+    }
     const key = this.makeKey(tenantId, operation, idempotencyKey);
     const existing = this.memoryStore.get(key);
 
     if (existing) {
-      // Check expiration
-      if (new Date(existing.expiresAt).getTime() < Date.now()) {
-        this.memoryStore.delete(key);
-      } else if (existing.status === 'COMPLETED') {
+      // An expired lease is not evidence that the external operation did not happen.
+      // Preserve ambiguous/completed reservations; retries must keep the same payload.
+      if (existing.requestFingerprint !== requestFingerprint || existing.provider !== provider) {
+        throw new Error('IDEMPOTENCY_REQUEST_MISMATCH');
+      }
+      if (existing.status === 'COMPLETED') {
         return {
           status: 'COMPLETED',
-          resultReference: existing.resultReference || {},
+          resultReference: structuredClone(existing.resultReference || {}),
           auditEventId: existing.auditEventId,
         };
       } else if (existing.status === 'PROCESSING') {
@@ -90,9 +96,10 @@ export class DurableIdempotencyService {
     if (!existing) {
       throw new Error(`IDEMPOTENCY_RECORD_NOT_FOUND: Cannot complete unregistered key ${idempotencyKey}`);
     }
+    if (existing.status !== 'PROCESSING') throw new Error('INVALID_IDEMPOTENCY_STATE');
 
     existing.status = 'COMPLETED';
-    existing.resultReference = resultReference;
+    existing.resultReference = structuredClone(resultReference);
     existing.auditEventId = auditEventId;
     existing.completedAt = new Date().toISOString();
     this.memoryStore.set(key, existing);
@@ -110,6 +117,7 @@ export class DurableIdempotencyService {
     const key = this.makeKey(tenantId, operation, idempotencyKey);
     const existing = this.memoryStore.get(key);
     if (existing) {
+      if (existing.status !== 'PROCESSING') throw new Error('INVALID_IDEMPOTENCY_STATE');
       existing.status = 'FAILED';
       existing.errorCode = errorCode;
       this.memoryStore.set(key, existing);
@@ -120,7 +128,8 @@ export class DurableIdempotencyService {
    * Retrieve existing idempotency state if present
    */
   getRecord(tenantId: string, operation: string, idempotencyKey: string): MutationIdempotencyRecord | undefined {
-    return this.memoryStore.get(this.makeKey(tenantId, operation, idempotencyKey));
+    const record = this.memoryStore.get(this.makeKey(tenantId, operation, idempotencyKey));
+    return record ? structuredClone(record) : undefined;
   }
 
   /**

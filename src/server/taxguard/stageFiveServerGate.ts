@@ -15,7 +15,7 @@ export function evaluateStageFiveServerGate(snapshot: StageFiveGateSnapshot): St
     stageFourComplete: snapshot.stageFourComplete === true,
     reconciliationsExecuted: snapshot.reconciliationsExecuted === true,
     variancesResolved: snapshot.variancesResolved === true,
-    noBlockingExceptions: (snapshot.unresolvedBlockingExceptions || 0) === 0,
+    noBlockingExceptions: snapshot.unresolvedBlockingExceptions === 0,
     professionalReviewComplete: snapshot.professionalReviewComplete === true,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
@@ -38,7 +38,7 @@ export function evaluateStageFiveServerGate(snapshot: StageFiveGateSnapshot): St
       checks,
       blockingReasons,
       metadata: {
-        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions || 0,
+        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions ?? null,
         reconciliationsExecuted: snapshot.reconciliationsExecuted === true,
       },
     },

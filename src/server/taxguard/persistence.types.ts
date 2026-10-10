@@ -148,6 +148,7 @@ export interface ProviderReadinessInfo {
   status: ProviderReadinessStatus;
   description: string;
   isOperational: boolean;
+  verificationState?: 'CONFIGURATION_ONLY' | 'NOT_VERIFIED' | 'SYNTHETIC_TEST';
   lastChecked: string;
 }
 

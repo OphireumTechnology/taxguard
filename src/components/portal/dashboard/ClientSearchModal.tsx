@@ -7,7 +7,7 @@
  * - Strict client data boundary: no cross-client search leakage
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Search,
   X,
@@ -32,6 +32,7 @@ export interface ClientSearchModalProps {
   isOpen: boolean;
   clientId: string;
   currentTaxYear: number;
+  availableYears?: number[];
   availableDocuments?: Array<{ id: string; name: string; category?: string; taxYear: number }>;
   availableRequests?: Array<{ id: string; subject: string; status: string; taxYear?: number }>;
   availableMessages?: Array<{ id: string; content: string; sender: string; timestamp: string }>;
@@ -43,6 +44,7 @@ export const ClientSearchModal: React.FC<ClientSearchModalProps> = ({
   isOpen,
   clientId,
   currentTaxYear,
+  availableYears = [],
   availableDocuments = [],
   availableRequests = [],
   availableMessages = [],
@@ -50,6 +52,10 @@ export const ClientSearchModal: React.FC<ClientSearchModalProps> = ({
   onNavigateToResult
 }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (isOpen && !dialogRef.current?.open) dialogRef.current?.showModal();
+  }, [isOpen]);
 
   const results = useMemo(() => {
     if (!searchTerm.trim()) return [];
@@ -57,7 +63,7 @@ export const ClientSearchModal: React.FC<ClientSearchModalProps> = ({
     const matches: SearchResultItem[] = [];
 
     // Tax Years
-    [2026, 2025, 2024, 2023, 2022].forEach((yr) => {
+    availableYears.forEach((yr) => {
       if (String(yr).includes(term) || `tax year ${yr}`.includes(term)) {
         matches.push({
           id: `ty_${yr}`,
@@ -118,12 +124,12 @@ export const ClientSearchModal: React.FC<ClientSearchModalProps> = ({
     });
 
     return matches.slice(0, 10);
-  }, [searchTerm, availableDocuments, availableRequests, availableMessages, currentTaxYear]);
+  }, [searchTerm, availableDocuments, availableRequests, availableMessages, currentTaxYear, availableYears]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/75 backdrop-blur-xs">
+    <dialog ref={dialogRef} onCancel={onClose} aria-label="Search your client records" style={{ width: '100vw', height: '100dvh', maxWidth: 'none', maxHeight: 'none', margin: 0 }} className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/75 backdrop-blur-xs">
       <div className="bg-[#071A2E] border border-slate-700 rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col text-xs">
         {/* Search Input Bar */}
         <div className="p-4 border-b border-slate-700/80 flex items-center gap-3 bg-[#06182B]">
@@ -133,6 +139,7 @@ export const ClientSearchModal: React.FC<ClientSearchModalProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search documents, requests, messages, tax years..."
+            aria-label="Search authorized client records"
             autoFocus
             className="w-full bg-transparent text-white placeholder-slate-400 text-sm outline-none"
           />
@@ -206,6 +213,6 @@ export const ClientSearchModal: React.FC<ClientSearchModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

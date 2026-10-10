@@ -1,3 +1,10 @@
+import { ClientDashboardModule } from './dashboard/ClientDashboardModule';
+import { TaxQuestionnaireModal } from '../collection/TaxQuestionnaireModal';
+import { ClientDashboardOverview } from './dashboard/ClientDashboardOverview';
+import { ClientDashboardNavigation } from './dashboard/ClientDashboardNavigation';
+import { useClientDashboardData } from '../../hooks/useClientDashboardData';
+import { scopedWorkflow, validClientScope } from './dashboard/clientDashboardModel';
+import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShieldCheck,
@@ -49,19 +56,16 @@ import { useApp } from '../../context/AppContext';
 import { CANONICAL_STAGE_LABELS, StageNumber } from '../../server/taxguard/persistence.types';
 import { StageTwoCollectionWorkspace } from '../collection/StageTwoCollectionWorkspace';
 import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
-import { TaxReturnView } from './views/TaxReturnView';
 import { ApprovalsView } from './views/ApprovalsView';
 import { DeliverablesView } from './views/DeliverablesView';
 import { StageOneIdentityWizard } from './StageOneIdentityWizard';
 import { TaxGuardDiscrepanciesView } from '../../taxguard/views/TaxGuardDiscrepanciesView';
-import { MessagesView } from './views/MessagesView';
-import { AuditActivityView } from './views/AuditActivityView';
+import { ClientAuditUnavailable, recordedMfaSetting } from './views/ClientSecurityPanel';
 import { ProfileSecurityView } from './views/ProfileSecurityView';
 import { ClientProfileView } from './views/ClientProfileView';
-import { StepByStepTaxPreparationHome } from './views/StepByStepTaxPreparationHome';
 import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
-import { GuidedTaxQuestionnaireModal } from './views/GuidedTaxQuestionnaireModal';
 import { useLiveWorkflowAuthority } from '../../hooks/useLiveWorkflowAuthority';
+import { ClientStageReadUnavailable, unavailableClientStage } from './views/stages/ClientStageReadUnavailable';
 import { StageFourRecordView } from './views/stages/StageFourRecordView';
 import { StageFiveReconcileView } from './views/stages/StageFiveReconcileView';
 import { StageSixReviewView } from './views/stages/StageSixReviewView';
@@ -77,12 +81,9 @@ import { StageFifteenMonitorView } from './views/stages/StageFifteenMonitorView'
 import { StageSixteenArchiveView } from './views/stages/StageSixteenArchiveView';
 import { StageSeventeenRenewView } from './views/stages/StageSeventeenRenewView';
 import { StageEighteenRepeatView } from './views/stages/StageEighteenRepeatView';
-import { BillingView } from './views/BillingView';
-import { RequestsView } from './views/RequestsView';
 import { LiveCalendarModule } from '../calendar/LiveCalendarModule';
 import { ClientSearchModal } from './dashboard/ClientSearchModal';
 import { NotificationCenterDropdown } from './dashboard/NotificationCenterDropdown';
-import { TaxYearsArchiveSection } from './dashboard/TaxYearsArchiveSection';
 import { getStoredToken } from '../../services/api';
 
 interface WorkflowStageItem {
@@ -201,11 +202,16 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   authority: propAuthority,
   onServerWorkflowRefresh
 }) => {
-  const { currentUser, logout, notifications } = useApp();
+  const { currentUser, logout, notifications, authLifecycleState } = useApp();
+  const [dashboardRefresh, setDashboardRefresh] = useState(0);
+  const dashboardData = useClientDashboardData(currentUser, authLifecycleState, clientId, selectedTaxYear, dashboardRefresh);
+  const dashboardScope = { userId: currentUser?.id || "", tenantId: currentUser?.tenantId || "", clientId, taxYear: selectedTaxYear };
 
   // Authoritative workflow authority
   const hookAuthority = useLiveWorkflowAuthority(selectedTaxYear);
-  const authority = propAuthority || hookAuthority;
+  const rawAuthority = propAuthority || hookAuthority;
+  const verifiedWorkflow = scopedWorkflow(rawAuthority?.workflow, dashboardScope);
+  const authority = verifiedWorkflow ? rawAuthority : null;
 
   // Active navigation selection with URL hash sync
   const [activeNavId, setActiveNavId] = useState<string>(() => {
@@ -272,57 +278,18 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [helpModalOpen, setHelpModalOpen] = useState<boolean>(false);
 
-  // Data for client search & requests
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [advisorRequests, setAdvisorRequests] = useState<any[]>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchPortalData = async () => {
-      try {
-        const token = getStoredToken();
-        const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-        const [invRes, reqRes] = await Promise.all([
-          fetch(`/api/payments/invoices?clientId=${clientId}`, { headers }).catch(() => null),
-          fetch(`/api/accounting/document-requests?clientId=${clientId}`, { headers }).catch(() => null)
-        ]);
-        if (isMounted) {
-          if (invRes && invRes.ok) {
-            const data = await invRes.json();
-            if (Array.isArray(data.invoices)) setInvoices(data.invoices);
-          }
-          if (reqRes && reqRes.ok) {
-            const data = await reqRes.json();
-            if (Array.isArray(data.requests)) {
-              setAdvisorRequests(data.requests.map((r: any) => ({
-                id: r.id,
-                date: r.requestedAt || new Date().toISOString(),
-                title: r.subject || r.title || 'Information Request',
-                description: r.description || r.reason || '',
-                status: r.status === 'resolved' || r.status === 'answered' ? 'answered' : 'pending',
-                dueDate: r.dueDate,
-                assignedAdvisor: 'Elena Rostova, CPA'
-              })));
-            }
-          }
-        }
-      } catch {
-        // Fallback gracefully
-      }
-    };
-    fetchPortalData();
-    return () => { isMounted = false; };
-  }, [clientId, selectedTaxYear]);
 
   const getSimplifiedStepStatus = (step: SimplifiedJourneyStep): 'completed' | 'active' | 'locked' => {
-    const activeStage = authority?.workflow?.activeStage ?? 2;
+    const activeStage = authority?.workflow?.activeStage;
+    if (!activeStage) return "locked";
     if (step.stageNumbers.every((n) => n < activeStage)) return 'completed';
     if (step.stageNumbers.includes(activeStage as StageNumber)) return 'active';
     return 'locked';
   };
 
   const handleSimplifiedStepClick = (step: SimplifiedJourneyStep) => {
-    const activeStage = authority?.workflow?.activeStage ?? 2;
+    const activeStage = authority?.workflow?.activeStage;
+    if (!activeStage) return "locked";
     const status = getSimplifiedStepStatus(step);
     if (status === 'locked') {
       const firstLockedStage = WORKFLOW_STAGES.find((s) => s.number === step.stageNumbers[0]);
@@ -347,16 +314,12 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     });
   };
 
-  // Authoritative Client Dossier & Identity
-  const dossier = StageOneOnboardingService.getDossier(clientId);
-  const clientName =
-    dossier?.legalName ||
-    (currentUser?.name && currentUser.name !== 'Client Taxpayer' ? currentUser.name : null) ||
-    'Valued Client';
+  const clientName = currentUser?.name || "Client";
 
   // Determine stage status authoritatively from workflow persistence
   const getStageStatus = (stageNum: StageNumber): 'completed' | 'active' | 'locked' => {
-    const activeStage = authority?.workflow?.activeStage ?? 2;
+    const activeStage = authority?.workflow?.activeStage;
+    if (!activeStage) return "locked";
     if (stageNum === 1) {
       if (authority?.workflow?.stage1?.status === 'COMPLETED' || activeStage >= 2) {
         return 'completed';
@@ -402,465 +365,22 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     logout();
   };
 
-  // Render Left Navigation Sidebar Content (Sections 4 & 6)
-  const renderSidebarContent = (isMobile: boolean = false) => {
-    const isCollapsed = !isMobile && sidebarCollapsed;
-
-    return (
-      <div className="flex flex-col h-full bg-[#071A2E] text-slate-200 border-r border-slate-700/60 select-none">
-        {/* Brand & Client Workspace Header */}
-        <div className="p-4 border-b border-slate-700/60 flex items-center justify-between bg-[#06182B]">
-          {!isCollapsed ? (
-            <div className="min-w-0">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-[#D4A843] font-bold">
-                A/R Tax Services, LLC
-              </div>
-              <div className="text-sm font-bold text-white truncate flex items-center gap-1.5 mt-0.5">
-                <ShieldCheck className="w-4 h-4 text-[#D4A843] shrink-0" />
-                <span>Client Dashboard</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs font-black text-[#D7AC4A] mx-auto tracking-widest">A/R</div>
-          )}
-
-          {!isMobile && (
-            <button
-              onClick={toggleSidebar}
-              className="p-1.5 rounded-lg border border-[#1A365D] hover:bg-[#0A2544] text-slate-300 hover:text-white transition-colors cursor-pointer"
-              title={sidebarCollapsed ? 'Expand navigation sidebar' : 'Collapse navigation sidebar'}
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-            </button>
-          )}
-
-          {isMobile && (
-            <button
-              onClick={() => setMobileDrawerOpen(false)}
-              className="p-1 rounded-lg border border-[#1A365D] hover:bg-[#0A2544] text-slate-300"
-              aria-label="Close navigation drawer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Navigation Modules (Sections 4, 6) */}
-        <nav className="flex-1 p-2 space-y-3 overflow-y-auto" aria-label="TaxGuard Portal Navigation">
-          {/* SECTION 1: OVERVIEW */}
-          <div>
-            {!isCollapsed ? (
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                Overview
-              </div>
-            ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Overview" />
-            )}
-
-            <button
-              type="button"
-              onClick={() => handleSelectNav('home')}
-              title={isCollapsed ? 'Client Dashboard' : undefined}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                activeNavId === 'home'
-                  ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-              }`}
-            >
-              <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'home' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-              {!isCollapsed && <span className="truncate">Client Dashboard</span>}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleSelectNav('tax_return')}
-              title={isCollapsed ? 'My Tax Returns' : undefined}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                activeNavId === 'tax_return'
-                  ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-              }`}
-            >
-              <FileText className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'tax_return' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-              {!isCollapsed && <span className="truncate text-[11px]">My Tax Returns</span>}
-            </button>
-          </div>
-
-          {/* SECTION 2: TAX RETURN (Simplified 7-Step Journey & Navigation) */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
-              <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-[#D7AC4A] font-bold">
-                <span>{viewDetailedWorkflow ? 'Workflow (18 Stages)' : 'Tax Return'}</span>
-                <button
-                  type="button"
-                  onClick={() => setViewDetailedWorkflow((v) => !v)}
-                  className="text-slate-400 hover:text-white text-[9px] lowercase font-normal underline cursor-pointer"
-                >
-                  {viewDetailedWorkflow ? 'show 7 steps' : 'view 18 stages'}
-                </button>
-              </div>
-            ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Tax Return" />
-            )}
-
-            {!viewDetailedWorkflow ? (
-              <div className="space-y-0.5">
-                {/* 7 Simplified Client Steps */}
-                {SIMPLIFIED_JOURNEY_STEPS.map((step) => {
-                  const status = getSimplifiedStepStatus(step);
-                  const isNavActive = step.stageNumbers.some(
-                    (num) => activeNavId === `stage_${String(num).padStart(2, '0')}` || (num === 2 && (activeNavId === 'stage_02' || activeNavId === 'documents'))
-                  );
-
-                  return (
-                    <div key={step.id} className="relative group">
-                      <button
-                        type="button"
-                        onClick={() => handleSimplifiedStepClick(step)}
-                        title={isCollapsed ? `${step.label} (${status.toUpperCase()})` : undefined}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-all rounded-md cursor-pointer ${
-                          isNavActive
-                            ? 'bg-[#0A2544] text-white border-l-4 border-l-[#C99A32] font-bold shadow-sm ring-1 ring-[#C99A32]/40'
-                            : status === 'completed'
-                            ? 'text-emerald-300 hover:text-white hover:bg-[#072418]/60 border-l-4 border-l-transparent'
-                            : status === 'active'
-                            ? 'text-[#E8C66A] hover:text-white hover:bg-[#0A2544]/50 border-l-4 border-l-transparent font-semibold'
-                            : 'text-slate-500 hover:text-slate-300 hover:bg-[#071626]/50 border-l-4 border-l-transparent opacity-80'
-                        }`}
-                      >
-                        {status === 'completed' ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : status === 'active' ? (
-                          <span className="w-2 h-2 rounded-full bg-[#E2BD67] animate-pulse shrink-0 ring-2 ring-[#D4A843]/50" />
-                        ) : (
-                          <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        )}
-
-                        {!isCollapsed ? (
-                          <>
-                            <span className="font-mono text-[11px] text-slate-400 shrink-0">{step.stepNumber}.</span>
-                            <span className="truncate text-[11px]">{step.label}</span>
-                            <span className="ml-auto text-[10px] font-mono shrink-0">
-                              {status === 'completed' && <span className="text-emerald-400 font-bold">✓</span>}
-                              {status === 'active' && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] bg-[#D4A843]/20 text-[#E2BD67] border border-[#D4A843]/40 font-bold">
-                                  ACTIVE
-                                </span>
-                              )}
-                              {status === 'locked' && <span className="text-slate-600">🔒</span>}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="font-mono text-[11px] font-bold ml-1">{step.stepNumber}</span>
-                        )}
-                      </button>
-
-                      {isCollapsed && (
-                        <div className="hidden group-hover:flex absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#020D1A] text-white text-[11px] font-medium rounded-md shadow-2xl border border-[#1A365D] z-50 whitespace-nowrap pointer-events-none items-center gap-1.5">
-                          <span className="font-mono font-bold text-[#D7AC4A]">Step {step.stepNumber}</span>
-                          <span>{step.label}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Sub-item: Tax Questionnaire */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectNav('questionnaire')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1 text-xs text-left transition-all rounded-md cursor-pointer ${
-                      activeNavId === 'questionnaire'
-                        ? 'bg-[#0A2544] text-[#E8C66A] font-semibold border-l-4 border-l-[#C99A32]'
-                        : 'text-slate-400 hover:text-white border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <FileQuestion className="w-3.5 h-3.5 text-[#D4A843] shrink-0" />
-                    {!isCollapsed && <span className="truncate text-[11px]">Questionnaire</span>}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-0.5">
-                {WORKFLOW_STAGES.map((stg) => {
-                  const status = getStageStatus(stg.number);
-                  const isNavActive = activeNavId === `stage_${stg.shortLabel}` || (stg.number === 2 && activeNavId === 'stage_02');
-
-                  return (
-                    <div key={stg.number} className="relative group">
-                      <button
-                        type="button"
-                        onClick={() => handleStageClick(stg)}
-                        title={isCollapsed ? `${stg.shortLabel} ${stg.name} (${status.toUpperCase()})` : undefined}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-all rounded-md cursor-pointer ${
-                          isNavActive
-                            ? 'bg-[#0A2544] text-white border-l-4 border-l-[#C99A32] font-bold shadow-sm ring-1 ring-[#C99A32]/40'
-                            : status === 'completed'
-                            ? 'text-emerald-300 hover:text-white hover:bg-[#072418]/60 border-l-4 border-l-transparent'
-                            : status === 'active'
-                            ? 'text-[#E8C66A] hover:text-white hover:bg-[#0A2544]/50 border-l-4 border-l-transparent font-semibold'
-                            : 'text-slate-500 hover:text-slate-300 hover:bg-[#071626]/50 border-l-4 border-l-transparent opacity-80'
-                        }`}
-                      >
-                        {status === 'completed' ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : status === 'active' ? (
-                          <span className="w-2 h-2 rounded-full bg-[#E2BD67] animate-pulse shrink-0 ring-2 ring-[#D4A843]/50" />
-                        ) : (
-                          <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        )}
-
-                        {!isCollapsed ? (
-                          <>
-                            <span className="font-mono text-[11px] text-slate-400 shrink-0">{stg.shortLabel}</span>
-                            <span className="truncate text-[11px]">{stg.name}</span>
-                            <span className="ml-auto text-[10px] font-mono shrink-0">
-                              {status === 'completed' && <span className="text-emerald-400 font-bold">✓</span>}
-                              {status === 'active' && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] bg-[#D4A843]/20 text-[#E2BD67] border border-[#D4A843]/40 font-bold">
-                                  ACTIVE
-                                </span>
-                              )}
-                              {status === 'locked' && <span className="text-slate-600">🔒</span>}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="font-mono text-[11px] font-bold ml-1">{stg.shortLabel}</span>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-
-                {!isCollapsed && (
-                  <div className="pt-1 px-2">
-                    <button
-                      type="button"
-                      onClick={() => setViewDetailedWorkflow(false)}
-                      className="text-[10px] text-slate-400 hover:text-white font-mono flex items-center gap-1 cursor-pointer w-full text-left"
-                    >
-                      <span>&larr; Switch to Simplified 7 Steps</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* SECTION 3: COMMUNICATION */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                Communication
-              </div>
-            ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Communication" />
-            )}
-
-            <div className="space-y-0.5">
-              {[
-                { id: 'requests', label: 'Requests', icon: AlertCircle, badge: advisorRequests.filter(r => r.status === 'pending').length },
-                { id: 'messages', label: 'Messages', icon: MessageSquare },
-                { id: 'appointments', label: 'Appointments', icon: Calendar }
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeNavId === item.id || (item.id === 'requests' && activeNavId === 'exceptions');
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelectNav(item.id)}
-                    title={isCollapsed ? item.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                      isActive
-                        ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                        : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-                    {!isCollapsed && (
-                      <>
-                        <span className="truncate text-[11px]">{item.label}</span>
-                        {item.badge && item.badge > 0 ? (
-                          <span className="ml-auto px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40">
-                            {item.badge}
-                          </span>
-                        ) : null}
-                      </>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* SECTION 4: FINANCIAL */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                Financial
-              </div>
-            ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Financial" />
-            )}
-
-            <button
-              type="button"
-              onClick={() => handleSelectNav('billing')}
-              title={isCollapsed ? 'Payments / Billing' : undefined}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                activeNavId === 'billing'
-                  ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-              }`}
-            >
-              <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeNavId === 'billing' ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-              {!isCollapsed && <span className="truncate text-[11px]">Payments / Billing</span>}
-            </button>
-          </div>
-
-          {/* SECTION 5: RECORDS & CASE */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                Case &amp; Compliance
-              </div>
-            ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Records" />
-            )}
-
-            <div className="space-y-0.5">
-              {[
-                { id: 'documents', label: 'My Records / Vault', icon: FolderLock },
-                { id: 'archive', label: 'Tax-Year Archive', icon: Archive },
-                { id: 'activity', label: 'Activity / Audit', icon: History }
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeNavId === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelectNav(item.id)}
-                    title={isCollapsed ? item.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                      isActive
-                        ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                        : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-                    {!isCollapsed && <span className="truncate text-[11px]">{item.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* SECTION 6: ACCOUNT & SECURITY */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
-              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                Account &amp; Security
-              </div>
-            ) : (
-              <div className="h-px bg-[#1A365D] my-1" title="Account" />
-            )}
-
-            <div className="space-y-0.5">
-              {[
-                { id: 'profile', label: 'Profile', icon: User },
-                { id: 'security', label: 'Security & Consents', icon: ShieldCheck },
-                { id: 'settings', label: 'Settings', icon: Settings },
-                { id: 'help', label: 'Help & Support', icon: HelpCircle }
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeNavId === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelectNav(item.id)}
-                    title={isCollapsed ? item.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-left transition-colors rounded-lg cursor-pointer ${
-                      isActive
-                        ? 'bg-[#0A2544] text-[#E8C66A] border-l-4 border-l-[#C99A32] font-semibold shadow-sm'
-                        : 'text-slate-300 hover:text-white hover:bg-[#0A2544]/60 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#D7AC4A]' : 'text-slate-400'}`} />
-                    {!isCollapsed && <span className="truncate text-[11px]">{item.label}</span>}
-                  </button>
-                );
-              })}
-
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  title={isCollapsed ? 'Sign Out' : undefined}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-red-300 hover:text-red-100 hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer text-left"
-                >
-                  <LogOut className="w-3.5 h-3.5 shrink-0 text-red-400" />
-                  {!isCollapsed && <span className="truncate text-[11px]">Sign Out</span>}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Need Help? Bottom Support Panel */}
-          {!isCollapsed && (
-            <div className="p-3 mx-1 mt-3 rounded-xl bg-[#06182B] border border-slate-700/80 space-y-2">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-[#D4A843]" />
-                <span className="text-xs font-bold text-white">Need Help?</span>
-              </div>
-              <p className="text-[10px] text-slate-400 leading-snug">
-                Dedicated CPA advisory support for your return.
-              </p>
-              <div className="space-y-1.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleSelectNav('messages')}
-                  className="w-full py-1.5 px-2 rounded-lg bg-[#102D4F] hover:bg-[#143657] text-[#D4A843] text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                >
-                  <MessageSquare className="w-3 h-3" />
-                  <span>Send Message</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSelectNav('appointments')}
-                  className="w-full py-1.5 px-2 rounded-lg bg-[#071A2E] hover:bg-[#102D4F] text-slate-200 text-[11px] font-semibold border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                >
-                  <Calendar className="w-3 h-3 text-[#D4A843]" />
-                  <span>Schedule Appointment</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        {/* Footer info in sidebar */}
-        {!isCollapsed && (
-          <div className="p-3 border-t border-[#1A365D] bg-[#020D1A] text-[10px] text-slate-400 font-mono space-y-1">
-            <div className="flex items-center justify-between">
-              <span>Client:</span>
-              <span className="text-slate-200 font-bold">{clientId}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Gate Status:</span>
-              <span className="text-emerald-400 font-semibold">Stage 02 Active</span>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Primary client navigation; advanced workflow retains existing hard gates.
+  const renderSidebarContent = (isMobile = false) => (
+    <ClientDashboardNavigation
+      active={activeNavId}
+      collapsed={!isMobile && sidebarCollapsed}
+      onToggle={isMobile ? undefined : toggleSidebar}
+      onNavigate={handleSelectNav}
+      detailedWorkflow={WORKFLOW_STAGES.map(stage => <button key={stage.number} onClick={() => handleStageClick(stage)}>{stage.shortLabel} {stage.name} ? {getStageStatus(stage.number)}</button>)}
+    />
+  );
 
   // Main Workspace Content based on context isolation
   const renderMainWorkspace = () => {
+    if (activeNavId.startsWith("stage_") && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
+    if (["tax_return", "messages", "requests", "exceptions", "billing", "records", "archive"].includes(activeNavId)) return <ClientDashboardModule key={clientId + ":" + selectedTaxYear + ":" + activeNavId} module={activeNavId === "exceptions" ? "requests" : activeNavId === "archive" ? "records" : activeNavId} user={currentUser!} data={dashboardData} taxYear={selectedTaxYear} onRefresh={() => setDashboardRefresh(value => value + 1)} onBack={() => handleSelectNav("home")} onSelectYear={year => { onTaxYearChange?.(year); handleSelectNav("documents"); }} />;
+
     // 1. STAGE LOCKED BY TAXGUARD HARD GATE
     if (selectedLockedStage) {
       return (
@@ -916,50 +436,16 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     // 2. CLIENT DASHBOARD HOME (Overview & Action-Oriented Step-by-Step Experience)
     if (activeNavId === 'home') {
       return (
-        <StepByStepTaxPreparationHome
-          clientId={clientId}
-          clientName={clientName}
-          selectedTaxYear={selectedTaxYear}
-          userEmail={currentUser?.email}
-          onNavigateToStageTwo={() => handleSelectNav('stage_02')}
-          onNavigateToVault={() => handleSelectNav('documents')}
-          onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
-          onSelectRequirementForUpload={() => handleSelectNav('stage_02')}
-          authority={authority}
-          onNavigateToTab={(tab) => handleSelectNav(tab)}
-          onNavigateToDetailedWorkflow={() => {
-            setViewDetailedWorkflow(true);
-            setSidebarCollapsed(false);
-          }}
-          onTaxYearChange={onTaxYearChange}
+        <ClientDashboardOverview
+          key={clientId + ":" + selectedTaxYear}
+          user={currentUser!}
+          scope={dashboardScope}
+          data={dashboardData}
+          workflow={verifiedWorkflow}
+          onNavigate={(target) => target === "questionnaire" ? setShowQuestionnaireModal(true) : handleSelectNav(target)}
+          onRefresh={() => { setDashboardRefresh(value => value + 1); onServerWorkflowRefresh?.(); }}
+          onSelectYear={year => onTaxYearChange?.(year)}
         />
-      );
-    }
-
-    // 2b. MY TAX RETURNS (Milestones & Return Status)
-    if (activeNavId === 'tax_return') {
-      return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#D4A843]" />
-                <span>My Tax Returns &mdash; Tax Year {selectedTaxYear}</span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                Filing status, milestone progress, and practitioner review certifications.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleSelectNav('home')}
-              className="text-xs text-slate-400 hover:text-white cursor-pointer"
-            >
-              &larr; Back to Dashboard
-            </button>
-          </div>
-          <TaxReturnView onNavigateToDeliverables={() => handleSelectNav('archive')} />
-        </div>
       );
     }
 
@@ -1005,7 +491,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     }
 
     // 4. STAGE 02 COLLECT (Active Production Workspace)
-    if (activeNavId === 'stage_02' || activeNavId === 'checklist') {
+    if (activeNavId === 'stage_02' || activeNavId === 'checklist' || activeNavId === 'upload') {
       return (
         <div className="space-y-4">
           <div className="max-w-7xl mx-auto px-4 pt-4 flex items-center justify-between">
@@ -1029,6 +515,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             selectedTaxYear={selectedTaxYear}
             onTaxYearChange={onTaxYearChange}
             userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}
+            initialSubTab={activeNavId === "upload" ? "upload" : "checklist"}
             serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
             onServerWorkflowRefresh={onServerWorkflowRefresh}
           />
@@ -1105,39 +592,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 7. REQUESTS & EXCEPTIONS
-    if (activeNavId === 'requests' || activeNavId === 'exceptions') {
-      return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <RequestsView
-            requests={advisorRequests}
-            onRespond={(reqId, text) => {
-              setAdvisorRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'answered' } : r));
-            }}
-          />
-        </div>
-      );
-    }
-
-    // 8. MESSAGES
-    if (activeNavId === 'messages') {
-      return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <div className="border-b border-[rgba(148,163,184,0.18)] pb-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-[#D4A843]" />
-              <span>Secure Advisory Messages &amp; RFIs</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Direct, encrypted communication with Elena Rostova, CPA and your dedicated A/R Tax Services engagement team.
-            </p>
-          </div>
-
-          <MessagesView onOpenUpload={() => handleSelectNav('stage_02')} />
-        </div>
-      );
-    }
-
     // 9. APPOINTMENTS
     if (activeNavId === 'appointments') {
       return (
@@ -1159,26 +613,6 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // 10. BILLING & PAYMENTS
-    if (activeNavId === 'billing') {
-      return (
-        <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
-          <BillingView invoices={invoices} />
-        </div>
-      );
-    }
-
-    // 11. ARCHIVE & MULTI-YEAR RECORDS
-    if (activeNavId === 'archive') {
-      return (
-        <StageSixteenArchiveView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-          onNavigateToStageSeventeen={() => handleSelectNav('stage_17')}
-        />
-      );
-    }
-
     // 12. ACTIVITY / AUDIT
     if (activeNavId === 'activity') {
       return (
@@ -1189,11 +623,11 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               <span>Compliance Audit Trail &amp; System Provenance</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Tamper-evident event logs verifying IRC § 7216 consent, document hashing, and stage transitions.
+              Availability of authorized recorded client audit events.
             </p>
           </div>
 
-          <AuditActivityView />
+          <ClientAuditUnavailable />
         </div>
       );
     }
@@ -1204,6 +638,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
           <ClientProfileView
             currentUser={currentUser}
+            authLifecycleState={authLifecycleState}
             onNavigateToDocuments={() => handleSelectNav('documents')}
             onNavigateToStageTwo={() => handleSelectNav('stage_02')}
           />
@@ -1225,7 +660,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </p>
           </div>
 
-          <ProfileSecurityView currentUser={currentUser} initialTab="privacy_consent" />
+          <ProfileSecurityView currentUser={currentUser} authLifecycleState={authLifecycleState} initialTab="privacy_consent" />
         </div>
       );
     }
@@ -1245,14 +680,14 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                   <div className="font-semibold text-white">Email Notifications</div>
                   <div className="text-[11px] text-slate-400">Receive alerts when documents are verified or requests issued</div>
                 </div>
-                <span className="text-emerald-400 font-bold">Enabled</span>
+                <span className="text-slate-300 font-bold">Preference not loaded</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
                 <div>
                   <div className="font-semibold text-white">Two-Factor Authentication</div>
                   <div className="text-[11px] text-slate-400">SMS / Authenticator app login verification</div>
                 </div>
-                <span className="text-emerald-400 font-bold">Active</span>
+                <span className="text-slate-300 font-bold">{recordedMfaSetting(currentUser)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
                 <div>
@@ -1283,12 +718,17 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-800 space-y-1">
                 <div className="font-bold text-white">A/R Tax Services, LLC</div>
                 <div className="text-slate-300">Columbia, South Carolina, USA</div>
-                <div className="text-slate-400">Direct Inquiries: info@artaxservices.com &bull; (843) 555-0199</div>
+                <div className="text-slate-400">Direct Inquiries: <a href="mailto:info@artaxservices.com">info@artaxservices.com</a> &bull; <a href="tel:678-205-9486">678-205-9486</a></div>
               </div>
             </div>
           </div>
         </div>
       );
+    }
+
+    // Legacy stage screens lack verified scoped providers or contain sample authority.
+    if (unavailableClientStage(activeNavId)) {
+      return <ClientStageReadUnavailable nav={activeNavId} taxYear={selectedTaxYear}/>;
     }
 
     // 17. STAGES 03 THROUGH 18
@@ -1435,60 +875,24 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     );
   };
 
+  if (!validClientScope(currentUser, clientId, selectedTaxYear, authLifecycleState)) {
+    return <div role="status" className="p-6">An authorized client session and matching tax-year context are required.</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-[#06182B] text-slate-100 flex flex-col font-sans" id="authenticated-client-dashboard">
-      {/* ========================================================================= */}
-      {/* 1. TOP BAR (Section 5: Header) */}
-      {/* ========================================================================= */}
-      <header className="h-14 bg-[#071A2E] border-b border-slate-700/60 px-4 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
-        {/* Left: Mobile Toggle & Brand */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setMobileDrawerOpen(true)}
-            className="md:hidden p-1.5 rounded-lg border border-slate-700/60 hover:bg-[#0D2745] text-slate-300"
-            aria-label="Open navigation menu"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">
-              A/R Tax Services
-            </span>
-            <span className="text-slate-500 hidden sm:inline">&bull;</span>
-            <span className="text-xs text-[#D4A843] font-mono font-semibold">
-              TaxGuard Client Portal
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Global Authorized Client Search */}
-        <div className="flex-1 max-w-md mx-4 hidden md:block">
-          <button
-            type="button"
-            onClick={() => setSearchModalOpen(true)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#06182B] border border-slate-700/60 text-slate-400 hover:text-white text-xs transition-colors cursor-pointer"
-          >
-            <Search className="w-3.5 h-3.5 text-[#D4A843]" />
-            <span className="truncate">Search documents, messages, tax years...</span>
-          </button>
-        </div>
-
-        {/* Right: Tax Year, Notifications, Search Icon (Mobile), Profile & Sign Out */}
-        <div className="flex items-center gap-3">
-          {/* Mobile search button */}
-          <button
-            type="button"
-            onClick={() => setSearchModalOpen(true)}
-            className="md:hidden p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-[#0D2745]"
-            aria-label="Search"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-
-          {/* Tax Year Selector (Multi-year 2022+) */}
-          <div className="flex items-center gap-1.5 bg-[#06182B] border border-slate-700/60 px-2.5 py-1 rounded-lg">
+    <DashboardApplicationShell
+      workspace="client"
+      id="authenticated-client-dashboard"
+      title="Client Tax Center"
+      navigation={renderSidebarContent(false)}
+      mobileNavigation={renderSidebarContent(true)}
+      navigationCollapsed={sidebarCollapsed}
+      mobileOpen={mobileDrawerOpen}
+      onMobileOpenChange={setMobileDrawerOpen}
+      onSearch={() => setSearchModalOpen(true)}
+      onProfile={() => handleSelectNav("profile")}
+      notifications={<NotificationCenterDropdown notifications={notifications.map(notification => ({ ...notification, targetNav: "updates" }))} onNavigateToTab={() => handleSelectNav("home")} />}
+      headerTools={(<div className="flex items-center gap-1.5 bg-[#06182B] border border-slate-700/60 px-2.5 py-1 rounded-lg">
             <Calendar className="w-3 h-3 text-[#D4A843]" />
             <select
               value={selectedTaxYear}
@@ -1496,86 +900,23 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               className="bg-transparent font-mono text-xs font-bold text-[#D4A843] cursor-pointer outline-none"
               aria-label="Select tax year"
             >
-              <option value={2026} className="bg-[#071A2E] text-slate-200">TY 2026</option>
-              <option value={2025} className="bg-[#071A2E] text-slate-200">TY 2025</option>
-              <option value={2024} className="bg-[#071A2E] text-slate-200">TY 2024</option>
-              <option value={2023} className="bg-[#071A2E] text-slate-200">TY 2023</option>
-              <option value={2022} className="bg-[#071A2E] text-slate-200">TY 2022</option>
+              {Array.from(new Set([selectedTaxYear, ...(dashboardData.documents.data || []).map(doc => doc.taxYear), ...(dashboardData.engagements.data || []).map(record => record.taxYear)])).sort((a, b) => b - a).map(year => <option key={year} value={year} className="bg-[#071A2E] text-slate-200">TY {year}</option>)}
             </select>
-          </div>
-
-          {/* Notification Center */}
-          <NotificationCenterDropdown onNavigateToTab={(tab) => handleSelectNav(tab)} />
-
-          {/* Compliance Badge */}
-          <div className="hidden xl:flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>IRC § 7216 Protected</span>
-          </div>
-
-          {/* User & Sign Out */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-700/60">
-            <button
-              type="button"
-              onClick={() => handleSelectNav('profile')}
-              className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2 py-1 rounded-lg hover:bg-[#0D2745] transition-colors cursor-pointer"
-              title="View Profile"
-            >
-              <User className="w-3.5 h-3.5 text-[#D4A843]" />
-              <span className="hidden sm:inline font-medium truncate max-w-[120px]">{clientName}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-[#0D2745] transition-colors cursor-pointer"
-              title="Sign Out"
-              aria-label="Sign out of client portal"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ========================================================================= */}
-      {/* 2. BODY LAYOUT: LEFT SIDEBAR + MAIN WORKSPACE */}
-      {/* ========================================================================= */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Desktop Collapsible Left Sidebar */}
-        <aside
-          className={`hidden md:flex flex-col shrink-0 transition-all duration-200 z-20 ${
-            sidebarCollapsed ? 'w-16' : 'w-64'
-          }`}
-        >
-          {renderSidebarContent(false)}
-        </aside>
-
-        {/* Mobile Slide-Over Navigation Drawer */}
-        {mobileDrawerOpen && (
-          <div className="fixed inset-0 z-50 md:hidden flex">
-            <div
-              className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
-              onClick={() => setMobileDrawerOpen(false)}
-              aria-hidden="true"
-            />
-            <div className="relative w-72 max-w-[85vw] h-full shadow-2xl z-10">
-              {renderSidebarContent(true)}
-            </div>
-          </div>
-        )}
-
-        {/* Main Workspace Area with Context Isolation */}
-        <main className="flex-1 overflow-y-auto bg-[#06182B]" id="main-workspace-content">
-          {renderMainWorkspace()}
-        </main>
-      </div>
-
+          </div>)}
+    >
+      <main className="flex-1 overflow-y-auto bg-[#06182B]" id="main-workspace-content">
+        {renderMainWorkspace()}
+      </main>
       {/* Client Search Modal */}
       <ClientSearchModal
         isOpen={searchModalOpen}
         clientId={clientId}
         currentTaxYear={selectedTaxYear}
+        key={clientId + ":" + selectedTaxYear}
+        availableYears={Array.from(new Set([...(dashboardData.documents.data || []).map(doc => doc.taxYear), ...(dashboardData.engagements.data || []).map(record => record.taxYear)]))}
+        availableDocuments={(dashboardData.documents.data || []).filter(doc => doc.taxYear === selectedTaxYear).map(doc => ({ id: doc.id, name: doc.fileName, category: doc.category, taxYear: doc.taxYear }))}
+        availableRequests={(dashboardData.requests.data || []).map(request => ({ id: request.id, subject: request.title || request.subject || "Information Request", status: request.status, taxYear: request.taxYear }))}
+        availableMessages={(dashboardData.messages.data || []).map(message => ({ id: message.id, content: message.content, sender: message.senderName, timestamp: message.createdAt || message.timestamp || "" }))}
         onClose={() => setSearchModalOpen(false)}
         onNavigateToResult={(target, yr) => {
           if (yr && yr !== selectedTaxYear) onTaxYearChange?.(yr);
@@ -1585,21 +926,24 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
       {/* Guided Questionnaire Modal */}
       {showQuestionnaireModal && (
-        <GuidedTaxQuestionnaireModal
+        <TaxQuestionnaireModal
+          key={clientId + ':' + selectedTaxYear}
           isOpen={showQuestionnaireModal}
           onClose={() => {
             setShowQuestionnaireModal(false);
+            setDashboardRefresh(value => value + 1);
             onServerWorkflowRefresh?.();
           }}
           clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-          onAnswersSaved={() => {
+          taxYear={selectedTaxYear}
+          onSaved={() => {
             setShowQuestionnaireModal(false);
+            setDashboardRefresh(value => value + 1);
             onServerWorkflowRefresh?.();
           }}
         />
       )}
-    </div>
+    </DashboardApplicationShell>
   );
 };
 export default AuthenticatedClientDashboard;

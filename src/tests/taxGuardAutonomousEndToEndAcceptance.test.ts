@@ -37,6 +37,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import { TaxGuardAuthorityRepository, casePath, CaseScope } from '../server/taxguard/authority.repository';
 import { TransactionalFirestore } from './helpers/transactionalFirestore';
 import { ServerStageGateOrchestrator } from '../server/taxguard/serverStageGateOrchestrator';
@@ -47,6 +48,7 @@ import { ProviderReadinessRegistry } from '../server/taxguard/providerReadiness.
 import { TaxGuardOcrProvider } from '../server/taxguard/ocrProvider';
 import { STAGE_NAMES } from '../server/taxguard/persistence.types';
 import { TaxRequirementManifestEngine } from '../services/stageTwoRequirementManifest';
+import { DEFAULT_QUESTIONNAIRE_ANSWERS, type TaxDiscoveryQuestionnaireAnswers } from '../services/taxDocumentRequirementEngine';
 import { StageTwoReconciliationService } from '../services/stageTwoReconciliationService';
 import { StageTwoCollectionService, StageTwoUploadedDocument } from '../services/stageTwoCollectionService';
 import { Federal1040AgiCalculationEngine } from '../taxguard/calculation/Federal1040AgiCalculation';
@@ -64,6 +66,14 @@ const SYNTHETIC_TAX_YEAR = 2025;
 const SYNTHETIC_TENANT_ID = 'ar_tax_services_acceptance';
 const SYNTHETIC_CLIENT_ID = 'clt_acceptance_mfj_2025';
 const SYNTHETIC_ENGAGEMENT_ID = 'eng_acceptance_2025';
+const syntheticUploadFields = (label: string): Pick<StageTwoUploadedDocument,
+  'engagementId' | 'uploaderSource' | 'claimedCategory' | 'sha256Hash' | 'securityCheckStatus'> => ({
+  engagementId: SYNTHETIC_ENGAGEMENT_ID,
+  uploaderSource: 'client_portal',
+  claimedCategory: label.includes('1099') ? 'Interest' : 'Employment',
+  sha256Hash: createHash('sha256').update(`SYNTHETIC TEST CONTENT ONLY:${label}`).digest('hex'),
+  securityCheckStatus: 'Quarantined'
+});
 
 const acceptanceScope: CaseScope = {
   tenantId: SYNTHETIC_TENANT_ID,
@@ -79,7 +89,8 @@ const acceptanceScope: CaseScope = {
  * Retirement 1099-R, Marketplace Health 1095-A, Childcare 2441, Mortgage 1098,
  * Student Loan 1098-E, HSA 1099-SA, and Quarterly Estimated Payments.
  */
-const SYNTHETIC_QUESTIONNAIRE_ANSWERS = {
+const SYNTHETIC_QUESTIONNAIRE_ANSWERS: TaxDiscoveryQuestionnaireAnswers = {
+  ...DEFAULT_QUESTIONNAIRE_ANSWERS,
   filingStatus: 'married_filing_jointly' as const,
   residentState: 'SC',
   hasW2Employment: true,
@@ -95,7 +106,6 @@ const SYNTHETIC_QUESTIONNAIRE_ANSWERS = {
   hasSelfEmployment: true,
   has1099NEC: true,
   businessName: 'Apex Consulting LLC',
-  businessEntityType: 'sole_proprietorship',
   hasBusinessVehicle: false,
   ownsRentalProperty: true,
   rentalPropertyAddresses: ['123 Elm Street, Columbia, SC 29201'],
@@ -151,7 +161,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       taxYears: [SYNTHETIC_TAX_YEAR]
     });
 
-    repo = new TaxGuardAuthorityRepository(db as any);
+    repo = new TaxGuardAuthorityRepository(db);
     await repo.createCase(acceptanceScope, 'admin_user', {
       clientUid: 'client_user',
       preparerUid: 'preparer_cpa',
@@ -246,13 +256,16 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       const manifest = TaxRequirementManifestEngine.rebuildManifest(
         SYNTHETIC_CLIENT_ID,
         SYNTHETIC_TAX_YEAR,
-        SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         'individual',
         'Synthetic Taxpayer A'
       );
 
       const reqForms = manifest.requirements.map(r => r.formNumber || r.documentType);
       const reqTitles = manifest.requirements.map(r => r.title);
+      // A resident single-state questionnaire must not lose state evidence when obsolete flags are absent.
+      expect(manifest.requirements.find(r => r.requirementId === `REQ-${SYNTHETIC_TAX_YEAR}-STATE-SC`))
+        .toMatchObject({ requirementLevel: 'REQUIRED', status: 'MISSING', jurisdiction: 'SC' });
 
       // Positive Requirement Verifications:
       expect(reqTitles.some(t => t.includes('Acme Industrial'))).toBe(true); // Taxpayer W-2
@@ -288,6 +301,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       const partialUploads: StageTwoUploadedDocument[] = [
         {
           documentId: 'doc_w2_primary',
+          ...syntheticUploadFields('doc_w2_primary'),
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: SYNTHETIC_TAX_YEAR,
           originalFileName: 'Acme_W2_2025.pdf',
@@ -301,6 +315,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         },
         {
           documentId: 'doc_1099_int',
+          ...syntheticUploadFields('doc_1099_int'),
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: SYNTHETIC_TAX_YEAR,
           originalFileName: 'Bank_1099INT_2025.pdf',
@@ -318,7 +333,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: partialUploads,
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -331,6 +346,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       const duplicateUploads: StageTwoUploadedDocument[] = [
         {
           documentId: 'doc_dup_1',
+          ...syntheticUploadFields('doc_dup_1'),
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: SYNTHETIC_TAX_YEAR,
           originalFileName: 'W2_Acme_2025.pdf',
@@ -345,6 +361,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         },
         {
           documentId: 'doc_dup_2',
+          ...syntheticUploadFields('doc_dup_2'),
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: SYNTHETIC_TAX_YEAR,
           originalFileName: 'W2_Acme_2025_copy.pdf',
@@ -363,7 +380,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: duplicateUploads,
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -376,6 +393,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       const wrongYearUpload: StageTwoUploadedDocument[] = [
         {
           documentId: 'doc_wrong_year',
+          ...syntheticUploadFields('doc_wrong_year'),
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: 2024, // Wrong Tax Year (2024 instead of 2025)
           originalFileName: 'Acme_W2_2024_TaxYear.pdf',
@@ -393,7 +411,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: wrongYearUpload,
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -406,6 +424,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       const wrongTaxpayerUpload: StageTwoUploadedDocument[] = [
         {
           documentId: 'doc_wrong_taxpayer',
+          ...syntheticUploadFields('doc_wrong_taxpayer'),
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: SYNTHETIC_TAX_YEAR,
           originalFileName: 'Acme_W2_ForeignEntity.pdf',
@@ -423,7 +442,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: wrongTaxpayerUpload,
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A',
         expectedTaxpayerName: 'Synthetic Taxpayer A'
       });
@@ -436,6 +455,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
     it('prevents quarantined or security-failed document from satisfying requirements', () => {
       const quarantinedUpload: StageTwoUploadedDocument = {
         documentId: 'doc_quarantined',
+        ...syntheticUploadFields('doc_quarantined'),
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         originalFileName: 'Suspicious_W2.pdf',
@@ -449,19 +469,29 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
           documentId: 'doc_quarantined',
           clientId: SYNTHETIC_CLIENT_ID,
           taxYear: SYNTHETIC_TAX_YEAR,
-          fileName: 'Suspicious_W2.pdf',
+          engagementId: SYNTHETIC_ENGAGEMENT_ID,
+          originalFilename: 'Suspicious_W2.pdf',
           fileSizeBytes: 120000,
-          mimeType: 'application/pdf',
-          sha256Hash: 'c'.repeat(64),
-          storageBucket: 'secure-vault',
-          storagePath: 'quarantine/doc_quarantined.pdf',
-          uploadedByUid: 'client_user',
-          uploadedByEmail: 'synthetic@example.com',
-          uploadedAt: new Date().toISOString(),
+          uploader: 'client_user',
+          uploaderSource: 'client_portal',
+          receivedTimestamp: new Date().toISOString(),
+          stagingStatus: 'QUARANTINED',
+          pipelineStage: 'QUARANTINED',
+          signatureValidation: { claimedFileType: 'pdf', detectedFileType: 'pdf', claimedMimeType: 'application/pdf', detectedMimeType: 'application/pdf', validationResult: 'PASSED' },
+          archiveProtection: { isArchive: false, totalUncompressedBytes: 120000, expansionRatio: 1, containedFileCount: 1, nestedArchiveDetected: false, validationResult: 'PASSED' },
           quarantineStatus: 'QUARANTINED',
           malwareScanStatus: 'INFECTED',
-          securityScanAttempts: 1,
-          auditLog: []
+          malwareScannerName: 'SYNTHETIC_TEST_SCANNER',
+          malwareScanVerified: false,
+          malwareScanIsProduction: false,
+          encryptionStatus: 'UNENCRYPTED',
+          integrityRecord: { documentId: 'doc_quarantined', originalHash: syntheticUploadFields('doc_quarantined').sha256Hash, storedObjectHash: '', integrityVerificationStatus: 'UNVERIFIED', verificationTimestamp: new Date().toISOString() },
+          provenance: { documentId: 'doc_quarantined', versionNumber: 1, uploader: 'client_user', timestamp: new Date().toISOString(), isCurrentActiveVersion: true },
+          isVerified: false,
+          taxDataVerified: false,
+          humanReviewed: false,
+          isReadyForOcr: false,
+          claimedCategory: 'Employment'
         }
       };
 
@@ -469,7 +499,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: [quarantinedUpload],
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -482,6 +512,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       // 1. Rejected document keeps requirement actionable and missing
       const rejectedUpload: StageTwoUploadedDocument = {
         documentId: 'doc_rejected',
+        ...syntheticUploadFields('doc_rejected'),
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         originalFileName: 'Blurry_W2.pdf',
@@ -498,7 +529,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: [rejectedUpload],
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -508,6 +539,8 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       // 2. Upload valid replacement
       const replacementUpload: StageTwoUploadedDocument = {
         documentId: 'doc_replacement_clean',
+        ...syntheticUploadFields('doc_replacement_clean'),
+        securityCheckStatus: 'Passed (SHA-256 Validated)',
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         originalFileName: 'Clean_Official_W2_Acme.pdf',
@@ -524,7 +557,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: [rejectedUpload, replacementUpload],
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -561,7 +594,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         taxYear: SYNTHETIC_TAX_YEAR,
         uploads: allUploadedEvidence,
-        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS as any,
+        questionnaire: SYNTHETIC_QUESTIONNAIRE_ANSWERS,
         clientName: 'Synthetic Taxpayer A'
       });
 
@@ -690,6 +723,17 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
 
       // Release document after malware scan
       ProviderReadinessRegistry.setTestingOverrides({ MALWARE_SCANNER: 'CONFIGURED' });
+      // A readiness flag alone never supplies a scanner or releases the document.
+      await expect(repo.scanDocument(acceptanceScope, 'preparer_cpa', await getVer(), 'scan_missing_adapter', 'doc_w2_validation'))
+        .rejects.toThrow('SCANNER_UNAVAILABLE');
+      repo = new TaxGuardAuthorityRepository(db, { scan: async request => {
+        expect(request.tenantId).toBe(SYNTHETIC_TENANT_ID);
+        expect(request.clientId).toBe(SYNTHETIC_CLIENT_ID);
+        expect(request.engagementId).toBe(SYNTHETIC_ENGAGEMENT_ID);
+        expect(request.taxYear).toBe(SYNTHETIC_TAX_YEAR);
+        expect(request.documentId).toBe('doc_w2_validation');
+        return { clean: true, verified: true, scanner: 'SYNTHETIC_TEST_SCANNER', scannerVersion: 'test-only', scannedAt: new Date().toISOString() };
+      } });
       await repo.scanDocument(acceptanceScope, 'preparer_cpa', await getVer(), 'scan_w2', 'doc_w2_validation');
       await repo.releaseDocument(acceptanceScope, 'reviewer_cpa', await getVer(), 'rel_w2', 'doc_w2_validation');
 
@@ -820,10 +864,9 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
 
       // 5. Stage 08 Planning: AI proposal is proposal-only
       const planScenario = await repo.createPlanningScenario(acceptanceScope, 'preparer_cpa', await getVer(), 'plan_01', {
-        title: 'S-Corporation Late Election Analysis for 2026',
-        baselineTaxLiability: 38500,
-        projectedTaxLiability: 32200,
-        estimatedSavings: 6300,
+        name: 'S-Corporation Late Election Analysis for 2026',
+        description: 'Synthetic advisory comparison requiring professional review.',
+        adjustments: [{ category: 'Synthetic comparison', description: 'Advisory cost difference', deltaAmount: -6300 }],
         assumptions: { 'Reasonable Compensation': '60000' }
       });
       expect(planScenario.scenarioId).toBeDefined();
@@ -935,8 +978,9 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
       await repo.recordFilingAcknowledgement(acceptanceScope, 'reviewer_cpa', await getVer(), 'ack_accepted', filePkg.packageId, {
         submissionId: filePkg.submissionId,
         status: 'ACCEPTED',
-        acceptedAt: new Date().toISOString(),
-        acknowledgementPayloadHash: 'ack_payload_hash_456'
+        ackId: 'synthetic_ack_accepted',
+        receivedAt: new Date().toISOString(),
+        message: 'Synthetic acceptance acknowledgement only'
       });
 
       const govFeedback = await repo.recordGovernmentFeedback(acceptanceScope, 'reviewer_cpa', await getVer(), 'gov_fb_ok', {
@@ -987,10 +1031,11 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         [
           {
             id: 'cand_depr_elm',
-            sourceCategory: 'DEPRECIATION_SCHEDULE',
+            category: 'DEPRECIATION_SCHEDULE',
             description: '123 Elm Street Residential Rental 27.5-Year MACRS Asset',
-            amount: 8500.0,
-            provenance: { sourceDocumentId: 'doc_rental_sched', recordVersion: 1 }
+            priorYearValue: 8500.0,
+            sourceTaxRecordId: 'doc_rental_sched',
+            classification: 'CANDIDATE'
           }
         ]
       );
@@ -1017,10 +1062,10 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         [
           {
             id: 'cand_depr_elm',
-            sourceCategory: 'DEPRECIATION_SCHEDULE',
+            category: 'DEPRECIATION_SCHEDULE',
             description: '123 Elm Street Residential Rental 27.5-Year MACRS Asset',
-            amount: 8500.0,
-            provenance: { sourceDocumentId: 'doc_rental_sched', recordVersion: 1 },
+            priorYearValue: 8500.0,
+            sourceTaxRecordId: 'doc_rental_sched',
             classification: 'CONFIRMED'
           }
         ]
@@ -1125,7 +1170,7 @@ describe('TaxGuard AI — Complete Autonomous End-to-End Acceptance Pass', () =>
         clientId: SYNTHETIC_CLIENT_ID,
         senderId: 'client_user',
         senderRole: 'client',
-        body: 'Do I need to itemize supplies under $200?',
+        content: 'Do I need to itemize supplies under $200?',
         visibility: 'CLIENT_VISIBLE'
       });
       expect(msg.id).toBeDefined();

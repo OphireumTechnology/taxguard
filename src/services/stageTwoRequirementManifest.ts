@@ -974,9 +974,9 @@ export class TaxRequirementManifestEngine {
         });
       }
 
-      // State Tax Requirements (only required as separate schedule when multi-state or state-specific schedule indicated)
+      // Existing residency facts trigger state substantiation; absent legacy flags must not remove it.
       const stateRule = StateTaxCollectionRuleRegistry.getRuleForJurisdiction(primaryJurisdiction, taxYear);
-      if (stateRule && (questionnaire.hasMultiStateIncome || questionnaire.hasStateSpecificFiling)) {
+      if (stateRule && (questionnaire.workedInMultipleStates || questionnaire.movedDuringYear || questionnaire.residentState === primaryJurisdiction)) {
         addReq({
           requirementId: `REQ-${taxYear}-STATE-${primaryJurisdiction}`,
           taxpayerOrEntity: taxpayerName,

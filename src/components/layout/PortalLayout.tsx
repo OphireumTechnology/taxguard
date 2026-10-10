@@ -69,6 +69,15 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     }
   };
 
+  // These live workspaces own their module slots in the shared dashboard shell.
+  // Retain legacy portal chrome for standalone calendar and onboarding tools.
+  const sharedShellPages = new Set([
+    'portal', 'client_portal', 'stage_one_onboard', 'client_onboarding', 'onboarding',
+    'staff', 'staff_portal', 'accountant_workspace', 'reviewer_workspace',
+    'senior_reviewer_workspace', 'reviewer_portal', 'admin_dashboard', 'admin_portal',
+  ]);
+  if (isAuthenticatedUser && sharedShellPages.has(currentPage)) return <>{children}</>;
+
   return (
     <div className="min-h-screen flex flex-col bg-[#06172C] text-[#F8F6F1] font-sans selection:bg-[#C99A3D] selection:text-[#06172C]">
       {/* High-Security Portal Dedicated Header */}

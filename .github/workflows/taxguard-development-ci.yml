@@ -1,0 +1,73 @@
+name: TaxGuard Development CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'scripts/**'
+      - 'qa/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/taxguard-development-ci.yml'
+  push:
+    branches:
+      - 'sync/taxguard-development-20261010-053705'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxguard-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validation:
+    name: Build and test (synthetic data only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CI: 'true'
+      NODE_ENV: test
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Repair Linux Rollup native dependency
+        run: |
+          if ! node -e "require('@rollup/rollup-linux-x64-gnu')" 2>/dev/null; then
+            npm install --no-save --package-lock=false --ignore-scripts @rollup/rollup-linux-x64-gnu
+          fi
+          node -e "require('@rollup/rollup-linux-x64-gnu')"
+
+      - name: Check patch formatting
+        run: git diff --check HEAD~1 HEAD
+
+      - name: Lint
+        run: npm run lint
+      - name: TypeScript validation
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+
+      - name: Automated tests
+        run: npm run test -- --run

@@ -10,7 +10,6 @@ import { PortalLayout } from './components/layout/PortalLayout';
 import { PageLoadingFallback } from './components/common/PageLoadingFallback';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { HomePage } from './components/public/HomePage';
-import { StageTwoCollectionWorkspace } from './components/collection/StageTwoCollectionWorkspace';
 
 const AboutPage = lazy(() => import('./components/public/AboutPage').then(m => ({ default: m.AboutPage })));
 const FounderPage = lazy(() => import('./components/public/FounderPage').then(m => ({ default: m.FounderPage })));
@@ -31,17 +30,19 @@ const IndustriesPage = lazy(() => import('./components/public/IndustriesPage').t
 const NotFoundPage = lazy(() => import('./components/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 import { ClientLoginPage, ClientRegisterPage, StaffLoginPage } from './components/auth/AuthPages';
 const StaffOnboardingWizard = lazy(() => import('./components/workspace/StaffOnboardingWizard').then(m => ({ default: m.StaffOnboardingWizard })));
-const LiveCalendarModule = lazy(() => import('./components/calendar/LiveCalendarModule').then(m => ({ default: m.LiveCalendarModule })));
+import { LiveCalendarModule } from './components/calendar/LiveCalendarModule';
 const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
 
-import { PublicV2Router } from './public-v2/PublicV2Router';
-import { StageOneOnboardingService } from './services/stageOneOnboardingService';
-import { PortalDirectoryPage } from './components/portal/PortalDirectoryPage';
-import { AccountantWorkspace } from './components/workspace/AccountantWorkspace';
-import { ReviewerWorkspace } from './components/workspace/ReviewerWorkspace';
-import { PracticeAdminWorkspace } from './components/admin/PracticeAdminWorkspace';
-
-import { LiveClientWorkflowRouter } from './components/workflow/LiveClientWorkflowRouter';
+// Resolve role authority before requesting the associated workspace module.
+const PublicV2Router = lazy(() => import('./public-v2/PublicV2Router').then(m => ({ default: m.PublicV2Router })));
+const PortalDirectoryPage = lazy(() => import('./components/portal/PortalDirectoryPage').then(m => ({ default: m.PortalDirectoryPage })));
+const AccountantWorkspace = lazy(() => import('./components/workspace/AccountantWorkspace').then(m => ({ default: m.AccountantWorkspace })));
+const ClientServiceDashboard = lazy(() => import('./components/workspace/ClientServiceDashboard').then(m => ({ default: m.ClientServiceDashboard })));
+const PracticeManagerDashboard = lazy(() => import('./components/workspace/PracticeManagerDashboard').then(m => ({ default: m.PracticeManagerDashboard })));
+const BookkeeperDashboard = lazy(() => import('./components/workspace/BookkeeperDashboard').then(m => ({ default: m.BookkeeperDashboard })));
+const ReviewerWorkspace = lazy(() => import('./components/workspace/ReviewerWorkspace').then(m => ({ default: m.ReviewerWorkspace })));
+const PracticeAdminWorkspace = lazy(() => import('./components/admin/PracticeAdminWorkspace').then(m => ({ default: m.PracticeAdminWorkspace })));
+const LiveClientWorkflowRouter = lazy(() => import('./components/workflow/LiveClientWorkflowRouter').then(m => ({ default: m.LiveClientWorkflowRouter })));
 import {
   CANONICAL_ROUTES,
   normalizeLegacyUrl,
@@ -92,10 +93,11 @@ function isClientScopedRouteUrl(): boolean {
 }
 
 function hasLiveClientWorkspace(
-  user: { role?: string; clientId?: string } | null | undefined
+  user: { role?: string; clientId?: string; status?: string } | null | undefined
 ): boolean {
   return Boolean(
     user?.role === 'client' &&
+    user.status === 'active' &&
     user?.clientId &&
     user.clientId.trim().length > 0
   );
@@ -281,7 +283,7 @@ const AppContent: React.FC = () => {
   }
 
   const isPublicV2 = isPublicV2Route || isPublicV2RouteUrl() || currentPage === 'public_v2';
-  if (isPublicV2) return <PublicV2Router />;
+  if (isPublicV2) return <Suspense fallback={<PageLoadingFallback />}><PublicV2Router /></Suspense>;
 
   const renderAuthInitializingState = () => (
     <div
@@ -345,7 +347,7 @@ const AppContent: React.FC = () => {
       currentPage === 'admin_portal'
     ) {
       if (isInitializingAuth) return renderAuthInitializingState();
-      if (!currentUser) return <StaffLoginPage />;
+      if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
 
       // SECURITY: Client is strictly denied from staff workspaces
       if (currentUser.role === 'client' || currentUser.role === 'prospective_client') {
@@ -361,9 +363,13 @@ const AppContent: React.FC = () => {
       }
 
       const workspace = resolveAuthoritativeStaffWorkspace(currentUser.role);
+      if (!workspace) return <StaffLoginPage />;
       if (workspace === 'admin_dashboard') {
         return <PracticeAdminWorkspace />;
       }
+      if (workspace === 'operations_workspace') return <ClientServiceDashboard />;
+      if (workspace === 'practice_manager_workspace') return <PracticeManagerDashboard />;
+      if (workspace === 'bookkeeper_workspace') return <BookkeeperDashboard />;
       if (workspace === 'reviewer_workspace') {
         return <ReviewerWorkspace />;
       }

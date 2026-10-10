@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import {
   authenticateToken,
+  requireRole,
   resolveAuthorizedClientContext,
   type AuthenticatedRequest
 } from '../auth';
 import { globalAuthorityDatabase } from '../taxguard/transactionalDatabase';
 import { AuthorityError, TaxGuardAuthorityRepository, type CaseScope } from '../taxguard/authority.repository';
-import { proposeDurableOpenAIReview } from '../ai/TaxGuardOpenAIService';
+import { assessLegacyCaseReview } from '../ai/governance/legacyCompatibility';
+import { GovernanceError } from '../ai/governance/contracts';
 import { ProviderReadinessRegistry } from '../taxguard/providerReadiness.service';
 import { StageNumber } from '../taxguard/persistence.types';
 import {
@@ -35,6 +37,25 @@ caseAuthorityRouter.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
+caseAuthorityRouter.get('/reviewer/dashboard', requireRole('reviewer', 'senior_reviewer'), async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user?.tenantId) throw new AuthorityError('REVIEWER_TENANT_REQUIRED', 403);
+    if (process.env.NODE_ENV === 'production' && req.user.tenantId !== (process.env.TAXGUARD_TENANT_ID || '').trim()) throw new AuthorityError('REVIEWER_TENANT_REQUIRED', 403);
+    // The current authority adapter is process-local, not a production discovery source.
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({ code: 'DURABLE_REVIEW_QUEUE_PROVIDER_REQUIRED' });
+    }
+    const cases = await new TaxGuardAuthorityRepository(globalAuthorityDatabase).listReviewerQueue(req.user.tenantId, req.user.id);
+    // Intersect canonical case assignments with current session grants before discovery.
+    // A stale runtime assignment must not reveal a client whose durable grant was revoked.
+    res.json({ cases: process.env.NODE_ENV === 'production'
+      ? cases.filter(row => req.user!.authorizedClientIds?.includes(row.scope.clientId) === true)
+      : cases });
+  } catch (error) {
+    res.status(error instanceof AuthorityError ? error.status : 503).json({ code: error instanceof AuthorityError ? error.code : 'REVIEW_QUEUE_UNAVAILABLE' });
+  }
+});
+
 caseAuthorityRouter.use('/:tenantId/:clientId/:engagementId', (req: AuthenticatedRequest, res, next) => {
   const context = resolveAuthorizedClientContext(
     req,
@@ -150,33 +171,33 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
         const effectiveDossier = snapshot.dossier || (snapshot.legalName || snapshot.taxpayerFullName ? snapshot : undefined);
         const gateDecision = evaluateStageOneServerGate({
           hardExitGatePassed: snapshot.hardExitGatePassed !== undefined
-            ? Boolean(snapshot.hardExitGatePassed)
+            ? (snapshot.hardExitGatePassed === true)
             : true,
           identityComplete: snapshot.identityComplete !== undefined
-            ? Boolean(snapshot.identityComplete)
+            ? (snapshot.identityComplete === true)
             : Boolean((effectiveDossier?.legalName || effectiveDossier?.taxpayerFullName) && (effectiveDossier?.taxpayerType || effectiveDossier?.filingStatus)),
           taxProfileComplete: snapshot.taxProfileComplete !== undefined
-            ? Boolean(snapshot.taxProfileComplete)
+            ? (snapshot.taxProfileComplete === true)
             : Boolean(effectiveDossier?.taxpayerType || effectiveDossier?.filingStatus),
           tinValid: snapshot.tinValid !== undefined
-            ? Boolean(snapshot.tinValid)
+            ? (snapshot.tinValid === true)
             : Boolean(effectiveDossier?.tinLast4 && effectiveDossier.tinLast4 !== '0000' && String(effectiveDossier.tinLast4).length === 4),
           addressComplete: snapshot.addressComplete !== undefined
-            ? Boolean(snapshot.addressComplete)
+            ? (snapshot.addressComplete === true)
             : Boolean(effectiveDossier?.residentialOrPrincipalAddress?.street && effectiveDossier?.residentialOrPrincipalAddress?.city && effectiveDossier?.residentialOrPrincipalAddress?.zip),
           representativeComplete: snapshot.representativeComplete !== undefined
-            ? Boolean(snapshot.representativeComplete)
+            ? (snapshot.representativeComplete === true)
             : Boolean((effectiveDossier?.taxpayerType === 'individual' || effectiveDossier?.filingStatus) || (effectiveDossier?.authorizedRep?.fullName && effectiveDossier?.authorizedRep?.title)),
           supportingDocumentsComplete: snapshot.supportingDocumentsComplete !== undefined
-            ? Boolean(snapshot.supportingDocumentsComplete)
-            : Boolean(effectiveDossier?.supportingDocs && Array.isArray(effectiveDossier.supportingDocs) && effectiveDossier.supportingDocs.some((d: any) => d.verified)),
+            ? (snapshot.supportingDocumentsComplete === true)
+            : Boolean(effectiveDossier?.supportingDocs && Array.isArray(effectiveDossier.supportingDocs) && effectiveDossier.supportingDocs.some((d: any) => d.verified === true)),
           duplicateResolutionComplete: snapshot.duplicateResolutionComplete !== undefined
-            ? Boolean(snapshot.duplicateResolutionComplete)
+            ? (snapshot.duplicateResolutionComplete === true)
             : Boolean(effectiveDossier?.duplicateCheck?.status === 'CLEARED' || effectiveDossier?.duplicateCheck?.reviewDecision === 'override_approved'),
           consentComplete: snapshot.consentComplete !== undefined
-            ? Boolean(snapshot.consentComplete)
-            : Boolean(effectiveDossier?.engagementConsent?.irc7216ConsentAccepted && effectiveDossier?.engagementConsent?.signerFullName?.trim().length >= 3 && effectiveDossier?.engagementConsent?.signedAt),
-          reviewComplete: Boolean(snapshot.reviewComplete ?? true),
+            ? (snapshot.consentComplete === true)
+            : Boolean(effectiveDossier?.engagementConsent?.irc7216ConsentAccepted === true && effectiveDossier?.engagementConsent?.signerFullName?.trim().length >= 3 && effectiveDossier?.engagementConsent?.signedAt),
+          reviewComplete: (snapshot.reviewComplete ?? true) === true,
           dossier: effectiveDossier,
           blockingReasons: snapshot.blockingReasons
         });
@@ -402,15 +423,18 @@ function handler(action: (repo: TaxGuardAuthorityRepository, scope: CaseScope, u
       const result = await action(new TaxGuardAuthorityRepository(globalAuthorityDatabase), scope, req.user!.id, req);
       res.json(result);
     } catch (error) {
-      res.status(error instanceof AuthorityError ? error.status : 503).json({
-        error: error instanceof AuthorityError ? error.code : 'AUTHORITY_OPERATION_UNAVAILABLE',
-        code: error instanceof AuthorityError ? error.code : 'AUTHORITY_OPERATION_UNAVAILABLE',
+      res.status(error instanceof AuthorityError || error instanceof GovernanceError ? error.status : 503).json({
+        error: error instanceof AuthorityError || error instanceof GovernanceError ? error.code : 'AUTHORITY_OPERATION_UNAVAILABLE',
+        code: error instanceof AuthorityError || error instanceof GovernanceError ? error.code : 'AUTHORITY_OPERATION_UNAVAILABLE',
         requiresHumanReview: true,
         externalSubmissionAllowed: false,
       });
     }
   };
 }
+
+caseAuthorityRouter.get(base + '/reviewer-workspace', requireRole('reviewer', 'senior_reviewer'), handler((repo, scope, uid) => repo.getReviewerSnapshot(scope, uid)));
+caseAuthorityRouter.post(base + '/reviewer-decision', requireRole('reviewer', 'senior_reviewer'), handler((repo, scope, uid, req) => repo.decideReviewerReturn(scope, uid, req.body || {})));
 
 // Canonical Tax Case operations (M18.4)
 caseAuthorityRouter.get('/:tenantId/:clientId/:engagementId/cases', async (req: AuthenticatedRequest, res: any) => {
@@ -505,7 +529,7 @@ caseAuthorityRouter.post(base + '/exceptions', handler((repo, scope, uid, req) =
 caseAuthorityRouter.post(base + '/exceptions/:id/resolve', handler((repo, scope, uid, req) => repo.resolveException(scope, uid, req.body?.revision ?? req.body?.version, req.body?.operationId, req.params.id)));
 caseAuthorityRouter.post(base + '/ai-review', handler((repo, scope, uid, req) => {
   if (process.env.TAXGUARD_OPENAI_CASES_ENABLED !== 'true') throw new AuthorityError('AI_CASE_REVIEW_DISABLED', 503);
-  return proposeDurableOpenAIReview(repo, scope, uid, req.body || {});
+  return assessLegacyCaseReview(repo, scope, uid, req.token ?? '', req.body || {});
 }));
 
 // ============================================================================
@@ -552,9 +576,14 @@ caseAuthorityRouter.get(base + '/workpapers', handler((repo, scope, uid) =>
 caseAuthorityRouter.get(base + '/workpapers/:id', handler((repo, scope, uid, req) =>
   repo.getWorkpaper(scope, uid, req.params.id)
 ));
-caseAuthorityRouter.post(base + '/reviews/action', handler((repo, scope, uid, req) =>
-  repo.performReviewAction(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.target, req.body?.action, req.body?.notes)
-));
+caseAuthorityRouter.post(base + '/reviews/action', handler((repo, scope, uid, req) => {
+  if (req.body?.target?.type === 'return') {
+    if (req.body?.action !== 'RETURN_FOR_CORRECTION') throw new AuthorityError('RETURN_REVIEW_REQUIRES_DECISION_GATE', 409);
+    return repo.decideReviewerReturn(scope, uid, { version: req.body?.version ?? req.body?.revision, operationId: req.body?.operationId,
+      returnId: req.body.target.id, decision: 'RETURN', confirmed: req.body?.confirmed, reason: req.body?.notes, corrections: req.body?.corrections });
+  }
+  return repo.performReviewAction(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.target, req.body?.action, req.body?.notes);
+}));
 
 // ============================================================================
 // STAGE 07 — REPORT ROUTES (M18.7)
@@ -602,7 +631,8 @@ caseAuthorityRouter.post(base + '/returns/:id/certify', handler((repo, scope, ui
 // STAGE 10 — APPROVE ROUTES
 // ============================================================================
 caseAuthorityRouter.post(base + '/approvals', handler((repo, scope, uid, req) =>
-  repo.approveDraftReturn(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, req.body?.returnId, req.body?.rationale)
+  repo.decideReviewerReturn(scope, uid, { version: req.body?.version ?? req.body?.revision, operationId: req.body?.operationId,
+    returnId: req.body?.returnId, decision: 'APPROVE', confirmed: req.body?.confirmed, reason: req.body?.rationale })
 ));
 caseAuthorityRouter.get(base + '/approvals/:id', handler((repo, scope, uid, req) =>
   repo.getApproval(scope, uid, req.params.id)
@@ -705,4 +735,3 @@ caseAuthorityRouter.post(base + '/repeat', handler((repo, scope, uid, req) =>
 caseAuthorityRouter.get(base + '/repeat/:id', handler((repo, scope, uid, req) =>
   repo.getRepeatCase(scope, uid, req.params.id)
 ));
-
