@@ -13,6 +13,7 @@ on:
       - 'supabase/**'
       - 'package.json'
       - 'package-lock.json'
+      - '.github/workflows/deploy-pages.yml'
       - '.github/workflows/taxguard-development-ci.yml'
   push:
     branches:
@@ -50,14 +51,7 @@ jobs:
           cache: npm
 
       - name: Install locked dependencies
-        run: npm ci
-
-      - name: Repair Linux Rollup native dependency
-        run: |
-          if ! node -e "require('@rollup/rollup-linux-x64-gnu')" 2>/dev/null; then
-            npm install --no-save --package-lock=false --ignore-scripts @rollup/rollup-linux-x64-gnu
-          fi
-          node -e "require('@rollup/rollup-linux-x64-gnu')"
+        run: npm ci --include=dev --include=optional
 
       - name: Check patch formatting
         run: git diff --check HEAD~1 HEAD

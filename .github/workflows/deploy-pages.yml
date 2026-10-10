@@ -36,7 +36,7 @@ jobs:
           npm --version
 
       - name: Install application dependencies
-        run: npm install
+        run: npm ci --include=dev --include=optional
 
       - name: Type check
         run: npm run typecheck
