@@ -1,9 +1,5 @@
-
 name: Deploy TaxGuard Production to GitHub Pages
 
-# Production deployment is manual only.
-# Merging a pull request into main will NOT automatically
-# publish the website.
 on:
   workflow_dispatch:
 
@@ -44,7 +40,7 @@ jobs:
 
       - name: Show build environment
         run: |
-          echo "TaxGuard Production Validation"
+          echo "TaxGuard Production Build"
           node --version
           npm --version
 
@@ -74,7 +70,7 @@ jobs:
             VITE_PASSWORD_RESET_CONTINUE_URL
           do
             if [[ -z "${!name:-}" ]]; then
-              echo "::error::$name is not configured."
+              echo "::error::$name is missing."
               exit 1
             fi
           done
@@ -88,8 +84,8 @@ jobs:
 
           for (const name of names) {
             const value = process.env[name];
-
             let url;
+
             try {
               url = new URL(value);
             } catch {
@@ -100,16 +96,12 @@ jobs:
               throw new Error(`${name} must use HTTPS.`);
             }
 
-            if (
-              url.username ||
-              url.password ||
-              url.hash
-            ) {
+            if (url.username || url.password || url.hash) {
               throw new Error(`${name} contains unsupported URL components.`);
             }
           }
 
-          console.log("Production URL configuration validated.");
+          console.log("Production URLs validated.");
           NODE
 
       - name: Build TaxGuard production application
@@ -119,7 +111,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_PASSWORD_RESET_CONTINUE_URL: ${{ vars.VITE_PASSWORD_RESET_CONTINUE_URL }}
         run: |
-          npx tsx scripts/verify-production-config.ts
+          npx --no-install tsx scripts/verify-production-config.ts
           npm run build
 
       - name: Verify production artifact
@@ -127,33 +119,30 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ ! -f dist/index.html ]]; then
-            echo "::error::dist/index.html was not generated."
+          test -f dist/index.html || {
+            echo "::error::Missing dist/index.html."
             exit 1
-          fi
+          }
 
           if find dist -type f \
             \( -name '*.cjs' -o -name '*.map' \) \
             -print -quit | grep -q .; then
-            echo "::error::Unexpected server or source-map artifacts."
+            echo "::error::Server or source-map artifacts detected."
             exit 1
           fi
 
           if find dist -type f \
             \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' \) \
             -print -quit | grep -q .; then
-            echo "::error::Potential sensitive file in deployment artifact."
+            echo "::error::Potential sensitive file in artifact."
             exit 1
           fi
 
           printf '%s\n' 'artaxserv.com' > dist/CNAME
 
-          if [[ "$(cat dist/CNAME)" != "artaxserv.com" ]]; then
-            echo "::error::Production domain verification failed."
-            exit 1
-          fi
+          test "$(cat dist/CNAME)" = "artaxserv.com"
 
-          echo "Production artifact checks passed."
+          echo "Production artifact verified."
 
       - name: Upload production artifact
         uses: actions/upload-pages-artifact@v3
@@ -178,10 +167,3 @@ jobs:
       - name: Deploy TaxGuard to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Report deployment
-        env:
-          DEPLOYED_URL: ${{ steps.deployment.outputs.page_url }}
-        run: |
-          echo "TaxGuard GitHub Pages deployment completed."
-          echo "Deployment URL: $DEPLOYED_URL"
