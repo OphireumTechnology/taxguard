@@ -4,6 +4,9 @@
  * brute-force lockout, and strict role authorization.
  */
 
+import { clientServiceRequestAllowed } from './clientServiceAccess';
+import { practiceManagerRequestAllowed } from './practiceManagerAccess';
+import { bookkeeperRequestAllowed } from './bookkeeperAccess';
 import { Request, Response, NextFunction } from 'express';
 import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { db } from './db';
@@ -275,6 +278,9 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
         }
       }
       if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });
+      if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
+  if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
+  if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
       req.user = user; req.token = token;
       return next();
     } catch {
@@ -326,6 +332,9 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
 
   // Slide expiration window on activity
   session.expiresAt = Date.now() + SESSION_DURATION_MS;
+  if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
+  if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
+  if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
   req.user = user;
   req.token = token;
   next();

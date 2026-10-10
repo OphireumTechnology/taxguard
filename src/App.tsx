@@ -38,6 +38,9 @@ import { PublicV2Router } from './public-v2/PublicV2Router';
 import { StageOneOnboardingService } from './services/stageOneOnboardingService';
 import { PortalDirectoryPage } from './components/portal/PortalDirectoryPage';
 import { AccountantWorkspace } from './components/workspace/AccountantWorkspace';
+import { ClientServiceDashboard } from './components/workspace/ClientServiceDashboard';
+import { PracticeManagerDashboard } from './components/workspace/PracticeManagerDashboard';
+import { BookkeeperDashboard } from './components/workspace/BookkeeperDashboard';
 import { ReviewerWorkspace } from './components/workspace/ReviewerWorkspace';
 import { PracticeAdminWorkspace } from './components/admin/PracticeAdminWorkspace';
 
@@ -364,6 +367,9 @@ const AppContent: React.FC = () => {
       if (workspace === 'admin_dashboard') {
         return <PracticeAdminWorkspace />;
       }
+      if (workspace === 'operations_workspace') return <ClientServiceDashboard />;
+      if (workspace === 'practice_manager_workspace') return <PracticeManagerDashboard />;
+      if (workspace === 'bookkeeper_workspace') return <BookkeeperDashboard />;
       if (workspace === 'reviewer_workspace') {
         return <ReviewerWorkspace />;
       }

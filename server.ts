@@ -1,3 +1,4 @@
+import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
  * A/R Tax Services, LLC - Production Server Entry Point
@@ -584,6 +585,8 @@ app.use(
  *
  * External tax submission remains disabled.
  */
+
+app.use('/api/ai-governance', createAiGovernanceRouter());
 
 app.use(
   '/api/taxguard-ai',

@@ -19,6 +19,25 @@
  * - Error: #EF4444
  */
 
+/** Additive light-workspace tokens; never remap the existing public/dark theme. */
+export const DASHBOARD_THEME = {
+  shell: '#06182B',
+  navigation: '#08243F',
+  workspace: '#F0F5FA',
+  surface: '#FFFFFF',
+  text: '#102C49',
+  muted: '#52677E',
+  border: '#CBD8E6',
+  gold: '#D4A843',
+  interactive: '#0068BD',
+  success: '#087F46',
+  warning: '#946000',
+  critical: '#BE253C',
+  ai: '#6936B5',
+  radius: '6px',
+  spacing: { compact: '8px', standard: '16px', section: '24px' },
+} as const;
+
 export const CANONICAL_PALETTE = {
   pageBackground: '#06182B',
   deepestSurface: '#071A2E',
@@ -124,4 +143,3 @@ export const SEMANTIC_THEME = {
   statusErrorBg: 'rgba(239, 68, 68, 0.12)',
   statusInfo: '#3B82F6',
 } as const;
-

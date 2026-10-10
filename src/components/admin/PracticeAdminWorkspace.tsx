@@ -1,3 +1,4 @@
+import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 /**
  * A/R Tax Services, LLC — Practice Administration Console
  * Enterprise practice administration, authoritative tenant governance,
@@ -198,40 +199,7 @@ export const PracticeAdminWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#06182B] text-slate-100 flex flex-col font-sans">
-      {/* Top Header */}
-      <header className="h-14 bg-[#071A2E] border-b border-slate-700/60 px-4 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm tracking-tight text-white">A/R Tax Services</span>
-            <span className="text-slate-500">&bull;</span>
-            <span className="text-xs text-emerald-400 font-mono font-semibold">Practice Administration Console</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-[#06182B] border border-slate-700/60 px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300">
-            <Building2 className="w-3.5 h-3.5 text-[#D4A843]" />
-            <span>Authoritative Tenant: {process.env.TAXGUARD_TENANT_ID || 'Configured'}</span>
-          </div>
-
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-700/60">
-            <span className="text-xs text-slate-300 font-medium">{currentUser?.name || 'Administrator'}</span>
-            <button
-              type="button"
-              onClick={logout}
-              className="text-xs text-slate-400 hover:text-red-400 px-2 py-1 rounded bg-[#0D2745] hover:bg-red-950/40 transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Body */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-60 bg-[#071A2E] border-r border-slate-700/60 flex flex-col justify-between shrink-0">
+    <DashboardApplicationShell workspace="admin" navigation={(<aside className="w-60 bg-[#071A2E] border-r border-slate-700/60 flex flex-col justify-between shrink-0">
           <div className="p-3 space-y-1">
             <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
               Administration
@@ -330,10 +298,8 @@ export const PracticeAdminWorkspace: React.FC = () => {
             <div>Environment: <span className="text-white">Production Hardened</span></div>
             <div>Postgres / Supabase: <span className="text-emerald-400">Connected</span></div>
           </div>
-        </aside>
-
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        </aside>)} >
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* TAB 1: PROVIDER READINESS */}
           {activeTab === 'providers' && (
             <div className="space-y-4">
@@ -815,7 +781,6 @@ export const PracticeAdminWorkspace: React.FC = () => {
             </div>
           )}
         </main>
-      </div>
-    </div>
+    </DashboardApplicationShell>
   );
 };

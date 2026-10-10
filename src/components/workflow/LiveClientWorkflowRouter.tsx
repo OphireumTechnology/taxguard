@@ -1,4 +1,5 @@
 import { StageOneIdentityWizard } from '../portal/StageOneIdentityWizard';
+import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 import { AuthenticatedClientDashboard } from '../portal/AuthenticatedClientDashboard';
 import React, {
   useCallback,
@@ -300,6 +301,7 @@ React.FC<LiveClientWorkflowRouterProps> = ({
     }
 
     return (
+      <DashboardApplicationShell workspace="client" title="Client Onboarding" navigation={<button className="m-3 p-3 text-sm" onClick={refreshAuthority}>Refresh workflow</button>}>
       <StageOneIdentityWizard
         initialClientId={clientId}
         taxYear={selectedTaxYear}
@@ -310,6 +312,7 @@ React.FC<LiveClientWorkflowRouterProps> = ({
           setViewMode('dashboard');
         }}
       />
+      </DashboardApplicationShell>
     );
   }
 
@@ -418,6 +421,7 @@ React.FC<LiveClientWorkflowRouterProps> = ({
     }
 
     return (
+      <DashboardApplicationShell workspace="client" title="Document Validation" navigation={<button className="m-3 p-3 text-sm" onClick={refreshAuthority}>Refresh workflow</button>}>
       <StageThreeValidationWorkspace
         clientId={clientId}
         selectedTaxYear={selectedTaxYear}
@@ -425,6 +429,7 @@ React.FC<LiveClientWorkflowRouterProps> = ({
         userRole="client"
         onNavigateToStageTwo={refreshAuthority}
       />
+      </DashboardApplicationShell>
     );
   }
 

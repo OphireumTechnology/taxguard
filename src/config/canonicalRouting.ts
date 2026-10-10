@@ -35,6 +35,8 @@ export const CANONICAL_ROUTES = {
 } as const;
 
 export const AUTHORIZED_STAFF_ROLES = new Set([
+  'practice_manager',
+  'bookkeeper',
   'accountant',
   'preparer',
   'reviewer',
@@ -60,9 +62,12 @@ export function canAccessStaffWorkspace(role: string | null | undefined): boolea
  */
 export function resolveAuthoritativeStaffWorkspace(
   role: string | null | undefined
-): 'admin_dashboard' | 'reviewer_workspace' | 'accountant_workspace' | null {
+): 'admin_dashboard' | 'reviewer_workspace' | 'accountant_workspace' | 'bookkeeper_workspace' | 'practice_manager_workspace' | 'operations_workspace' | null {
   if (!role || !canAccessStaffWorkspace(role)) return null;
   const normalized = role.toLowerCase().trim();
+  if (normalized === 'operations') return 'operations_workspace';
+  if (normalized === 'practice_manager') return 'practice_manager_workspace';
+  if (normalized === 'bookkeeper') return 'bookkeeper_workspace';
   if (normalized === 'admin' || normalized === 'super_admin') {
     return 'admin_dashboard';
   }

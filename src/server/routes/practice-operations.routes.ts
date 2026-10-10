@@ -15,6 +15,9 @@
  * - Data retention, legal hold, archive integrity, and annual rollover
  */
 
+import { readClientService,readClientServiceConversation,readClientServiceRequest } from '../clientServiceProjection';
+import { projectPracticeManager } from '../practiceManagerProjection';
+import { globalAuthorityDatabase } from '../taxguard/transactionalDatabase';
 import { Router, Response } from 'express';
 import {
   authenticateToken,
@@ -103,6 +106,36 @@ function resolveRouteClientContext(
   return context;
 }
 
+// Dedicated operations reads: exact role, canonical membership and verified client grants.
+practiceOperationsRouter.get(['/client-service/dashboard','/client-service/search','/client-service/conversation','/client-service/request'],authenticateToken,async(req:AuthenticatedRequest,res)=>{
+ res.setHeader('Cache-Control','no-store');const user=req.user!;const tenant=user.tenantId;
+ if(user.role!=='operations'||user.status!=='active'||!tenant||(process.env.NODE_ENV==='production'&&tenant!==process.env.TAXGUARD_TENANT_ID?.trim())||(req.query.tenantId&&req.query.tenantId!==tenant)||(req.get('x-tenant-id')&&req.get('x-tenant-id')!==tenant))return res.status(403).json({code:'CLIENT_SERVICE_REQUIRED'});
+ const year=req.query.taxYear===undefined?undefined:Number(req.query.taxYear);
+ if(year!==undefined&&(!Number.isInteger(year)||year<2022||year>2200))return res.status(400).json({code:'INVALID_TAX_YEAR'});
+ if(req.path.endsWith('/search')&&(typeof req.query.q!=='string'||req.query.q.trim().length<2||req.query.q.length>100))return res.status(400).json({code:'INVALID_SEARCH_QUERY'});
+ if(process.env.NODE_ENV==='production')return res.status(503).json({code:'DURABLE_CLIENT_SERVICE_PROVIDER_REQUIRED'});
+ try{
+  const sources={database:globalAuthorityDatabase,requests:globalClientRequestService,communications:globalClientCommunicationService,tasks:globalPracticeTaskService.queryTasks({tenantId:tenant,limit:Number.MAX_SAFE_INTEGER}).tasks,deadlines:globalDeadlineEscalationService.queryDeadlines({tenantId:tenant})};
+  const read=await readClientService(sources,tenant,user.id,user.authorizedClientIds||[],year);
+  if(req.path.endsWith('/search'))return res.json({tenantId:tenant,matches:globalOperationalSearchService.searchAuthorizedCases(read.snapshot.cases,String(req.query.q))});
+  if(req.path.endsWith('/conversation'))return res.json(readClientServiceConversation(sources,read,tenant,String(req.query.threadId||''),String(req.query.caseKey||'')));
+  if(req.path.endsWith('/request'))return res.json(readClientServiceRequest(sources,read,tenant,String(req.query.requestId||''),String(req.query.caseKey||'')));
+  return res.json(read.snapshot);
+ }catch{return res.status(403).json({code:'CLIENT_SERVICE_SCOPE_DENIED'});}
+});
+// Read-only operational projection. This role is never promoted to administrator.
+practiceOperationsRouter.get('/manager-dashboard', authenticateToken, async(req:AuthenticatedRequest,res)=>{
+ res.setHeader('Cache-Control','no-store');const user=req.user!;const tenant=user.tenantId;
+ if(user.role!=='practice_manager'||user.status!=='active'||!tenant||(process.env.NODE_ENV==='production'&&tenant!==process.env.TAXGUARD_TENANT_ID?.trim())||(req.query.tenantId&&req.query.tenantId!==tenant)||(req.get('x-tenant-id')&&req.get('x-tenant-id')!==tenant))return res.status(403).json({code:'PRACTICE_MANAGER_REQUIRED'});
+ const year=req.query.taxYear===undefined?undefined:Number(req.query.taxYear);
+ if(year!==undefined && (!Number.isInteger(year)||year<2022||year>2200))return res.status(400).json({code:'INVALID_TAX_YEAR'});
+ if(process.env.NODE_ENV==='production')return res.status(503).json({code:'DURABLE_OPERATIONS_PROVIDER_REQUIRED'});
+ try{
+  const tasks=globalPracticeTaskService.queryTasks({tenantId:tenant,limit:Number.MAX_SAFE_INTEGER}).tasks;
+  const deadlines=globalDeadlineEscalationService.queryDeadlines({tenantId:tenant});
+  return res.json(await projectPracticeManager(globalAuthorityDatabase,tenant,user.id,user.authorizedClientIds||[],year,tasks,deadlines));
+ }catch{return res.status(403).json({code:'PRACTICE_MANAGER_SCOPE_DENIED'});}
+});
 // ==============================================================================
 // PUBLIC / WEBHOOK ROUTES (NO JWT AUTH REQUIRED)
 // ==============================================================================

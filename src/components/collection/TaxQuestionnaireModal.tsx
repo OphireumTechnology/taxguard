@@ -9,7 +9,7 @@
  * - Tailored checklist so irrelevant requirements are never shown
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FileText,
   CheckCircle2,
@@ -28,6 +28,8 @@ import {
   Heart
 } from 'lucide-react';
 import { TaxQuestionnaireAnswers } from '../../server/taxguard/taxQuestionnaire';
+import { api } from '../../services/api';
+import { useApp } from '../../context/AppContext';
 
 interface TaxQuestionnaireModalProps {
   isOpen: boolean;
@@ -44,7 +46,11 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
   taxYear,
   onSaved
 }) => {
+  const { currentUser } = useApp();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (isOpen && !dialogRef.current?.open) dialogRef.current?.showModal(); }, [isOpen]);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,7 +59,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
     filingStatus: 'single',
     hasDependents: false,
     dependentCount: 0,
-    hasW2Employment: true,
+    hasW2Employment: false,
     hasMultipleEmployers: false,
     hasSelfEmployment: false,
     hasScheduleCActivity: false,
@@ -75,31 +81,36 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
     hasMortgageOrRealEstateTaxes: false,
     hasItemizedDeductions: false,
     hasEstimatedTaxPayments: false,
-    hasPriorYearFederalReturn: true,
+    hasPriorYearFederalReturn: false,
     hasPriorYearStateReturn: false,
     hasForeignIncomeOrAssets: false,
     hasForeignBankAccounts: false,
     hasMultiStateIncome: false,
     hasPartYearResidency: false,
-    stateOfResidency: 'SC',
+    stateOfResidency: '',
     additionalStates: []
   });
 
   useEffect(() => {
     if (!isOpen) return;
+    const controller = new AbortController();
+    let active = true;
     setLoading(true);
+    setLoadFailed(false);
     setErrorMessage(null);
-    fetch(`/api/stage-two-three/questionnaire/${taxYear}?clientId=${encodeURIComponent(clientId)}`)
-      .then(res => res.json())
+    api.clientDashboard.read<{ clientId: string; taxYear: number; tenantId: string; questionnaire: { answers: TaxQuestionnaireAnswers } | null }>('questionnaire', clientId, taxYear, controller.signal)
       .then(data => {
+        if (!active) return;
+        if (data.clientId !== clientId || data.taxYear !== taxYear || data.tenantId !== currentUser?.tenantId) throw new Error('Questionnaire scope unavailable.');
         if (data.questionnaire?.answers) {
           setAnswers(data.questionnaire.answers);
         }
       })
       .catch(() => {
-        // Fallback to defaults
+        if (active) { setLoadFailed(true); setErrorMessage('The saved questionnaire could not be verified. Close and retry before saving.'); }
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; controller.abort(); };
   }, [isOpen, taxYear, clientId]);
 
   if (!isOpen) return null;
@@ -113,20 +124,13 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || loadFailed || !answers.stateOfResidency) return;
     setSaving(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      const res = await fetch(`/api/stage-two-three/questionnaire/${taxYear}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, answers })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to save questionnaire.');
-      }
+      await api.clientDashboard.saveQuestionnaire(clientId, taxYear, answers);
       setSuccessMessage('Tax questionnaire saved! Your required document checklist has been updated.');
       onSaved?.();
       setTimeout(() => {
@@ -141,7 +145,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs overflow-y-auto">
+    <dialog ref={dialogRef} onCancel={onClose} aria-label="Personalized Tax Questionnaire" style={{ width: '100vw', height: '100dvh', maxWidth: 'none', maxHeight: 'none', margin: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs overflow-y-auto">
       <div className="relative w-full max-w-4xl bg-[#0D2745] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden my-8">
         {/* Header */}
         <div className="px-6 py-5 bg-[#071A2E] border-b border-slate-700/60 flex items-center justify-between">
@@ -171,6 +175,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
 
         {/* Content */}
         <form onSubmit={handleSave} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+          <p className="text-xs text-slate-300">Review every answer before saving. Unsaved choices are draft inputs, not verified taxpayer facts.</p>
           {successMessage && (
             <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-sm flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -380,7 +385,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || loading || loadFailed || !answers.stateOfResidency}
                 className="px-5 py-2.5 rounded-lg text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
@@ -390,6 +395,6 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 };

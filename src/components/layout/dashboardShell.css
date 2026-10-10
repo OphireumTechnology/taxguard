@@ -1,0 +1,50 @@
+/* Scoped dashboard foundation; existing public branding and module themes stay intact. */
+.tg-dashboard-shell {
+  min-height: 100dvh; color: #f8fafc; background: var(--dashboard-shell); font-family: inherit;
+}
+.tg-shell-header { display: flex; align-items: center; gap: 16px; padding: 10px 18px; min-height: 76px; background: linear-gradient(110deg,#020f20,#08243f); border-bottom: 1px solid #245477; position: sticky; top: 0; z-index: 40; }
+.tg-shell-brand { display:flex; align-items:center; gap:10px; flex-shrink:0; color:var(--dashboard-gold); }
+.tg-shell-brand strong { color:white; font-family:Georgia,serif; font-size:23px; letter-spacing:1px; }
+.tg-shell-brand strong span { color:var(--dashboard-gold); }
+.tg-shell-brand small { display:block; color:#d8e4ef; font-size:9px; letter-spacing:2px; }
+.tg-shell-heading { border-left:1px solid var(--dashboard-gold); padding-left:16px; min-width:0; }
+.tg-shell-heading > span { display:block; font-size:13px; font-weight:600; }
+.tg-shell-heading small { font-size:10px; color:#e1bb60; }
+.tg-shell-search { margin-left:auto; display:flex; align-items:center; gap:8px; min-height:40px; padding:8px 12px; border:1px solid #34658b; background:#0a2947; border-radius:var(--dashboard-radius); font-size:12px; color:#c9d9e8; text-align:left; min-width:0; }
+.tg-shell-tools { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.tg-shell-icon { display:inline-flex; align-items:center; justify-content:center; min-width:40px; min-height:40px; border-radius:var(--dashboard-radius); color:inherit; cursor:pointer; }
+.tg-shell-icon:hover,.tg-shell-profile:hover { background:#173f63; }
+.tg-shell-profile { display:flex; align-items:center; gap:8px; padding:4px; min-height:40px; border-radius:var(--dashboard-radius); font-size:12px; }
+.tg-avatar { display:flex; align-items:center; justify-content:center; height:32px; width:32px; border:1px solid #46718e; border-radius:50%; background:#143c60; color:white; }
+.tg-profile-name { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tg-shell-body { display:flex; min-width:0; min-height:calc(100dvh - 76px); }
+.tg-shell-navigation { width:240px; flex-shrink:0; background:var(--dashboard-navigation); border-right:1px solid #245477; }
+.tg-shell-navigation > aside { width:100%; height:100%; }
+.tg-navigation-collapsed { width:64px; }
+.tg-shell-content { min-width:0; flex:1; background:var(--dashboard-workspace); }
+.tg-shell-content > main { min-height:100%; background:var(--dashboard-shell); color:#f8fafc; }
+.tg-shell-navigation button { border-radius:var(--dashboard-radius); }
+.tg-shell-navigation button[class*="bg-[#D4A843]"],.tg-shell-drawer button[class*="bg-[#D4A843]"] { background:var(--dashboard-interactive); color:white; border:1px solid #3397d2; }
+.tg-dashboard-shell :is(button,a,input,select,[tabindex]):focus-visible { outline:2px solid #e1bb60; outline-offset:3px; }
+.tg-skip-link { position:fixed; top:4px; left:4px; z-index:100; padding:12px; background:white; color:#06182b; transform:translateY(-150%); }
+.tg-skip-link:focus { transform:translateY(0); }
+.tg-mobile-menu { display:none; }
+.tg-drawer-backdrop { position:fixed; inset:0; background:#020d18b3; z-index:60; }
+.tg-shell-drawer { width:min(300px,85vw); height:100dvh; overflow-y:auto; background:var(--dashboard-navigation); color:white; }
+.tg-shell-drawer nav > aside { width:100%; }
+.tg-drawer-close { margin:6px 6px 6px auto; display:flex; }
+.tg-shell-dialog { margin:auto; width:min(480px,calc(100vw - 32px)); max-height:80dvh; overflow:auto; padding:20px; border:1px solid var(--dashboard-border); border-radius:8px; background:white; color:var(--dashboard-text); }
+.tg-shell-dialog::backdrop { background:#020d18b3; }
+.tg-dialog-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.tg-dialog-title h2 { font-size:16px; font-weight:700; }
+.tg-shell-dialog p { margin:10px 0; font-size:13px; overflow-wrap:anywhere; }
+.tg-shell-dialog a { color:#0068bd; text-decoration:underline; }
+.tg-shell-dialog input { display:block; width:100%; padding:10px; margin:8px 0; border:1px solid #8ba1b9; border-radius:6px; }
+.tg-shell-dialog .tg-shell-icon:hover { background:#e8f0f8; }
+.tg-search-results { display:grid; gap:6px; }
+.tg-search-results button { text-align:left; padding:10px; background:#edf4fa; border:1px solid #cbd8e6; border-radius:6px; font-size:13px; }
+.tg-access-message { padding:24px; background:#06182b; color:white; }
+.tg-workspace-panel { background:var(--dashboard-surface); color:var(--dashboard-text); border:1px solid var(--dashboard-border); border-radius:var(--dashboard-radius); padding:16px; }
+@media(max-width:1100px) { .tg-shell-heading,.tg-profile-name { display:none; } }
+@media(max-width:767px) { .tg-shell-header { padding:8px; gap:8px; min-height:64px; flex-wrap:wrap; } .tg-mobile-menu { display:inline-flex; } .tg-shell-navigation { display:none; } .tg-shell-brand strong { font-size:17px; } .tg-shell-brand small { font-size:8px; } .tg-shell-brand > svg { width:26px; } .tg-shell-tools { margin-left:auto; gap:0; } .tg-shell-search { order:3; width:100%; margin:0; } .tg-shell-body { min-height:calc(100dvh - 112px); } }
+@media(prefers-reduced-motion:reduce) { .tg-dashboard-shell *, .tg-dashboard-shell *::before, .tg-dashboard-shell *::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }

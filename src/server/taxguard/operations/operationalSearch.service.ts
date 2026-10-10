@@ -21,6 +21,11 @@ export interface SearchMatch {
 }
 
 export class OperationalSearchService {
+  searchAuthorizedCases(cases: import('../../../types/clientServiceDashboard').ClientServiceCase[], query:string) {
+    const q=query.trim().toLowerCase();if(q.length<2||q.length>100)return [];
+    return cases.filter(c=>[c.clientId,c.engagementId,String(c.taxYear)].some(v=>v.toLowerCase().includes(q))).slice(0,50).map(c=>({id:c.id,clientId:c.clientId,engagementId:c.engagementId,taxYear:c.taxYear,stage:c.stage,status:c.status}));
+  }
+
   /**
    * Safe PII scrubber
    */

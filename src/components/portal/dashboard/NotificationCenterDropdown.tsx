@@ -7,7 +7,7 @@
  * - New requests, document status updates, review complete, etc.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Bell,
   CheckCircle2,
@@ -37,27 +37,8 @@ export const NotificationCenterDropdown: React.FC<NotificationCenterDropdownProp
   onNavigateToTab
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<InAppNotification[]>(() => {
-    if (initialNotifications.length > 0) return initialNotifications;
-    return [
-      {
-        id: 'notif_1',
-        title: 'Checklist Generated',
-        message: 'Personalized document requirements are ready for your review.',
-        timestamp: 'Today',
-        isRead: false,
-        targetNav: 'checklist'
-      },
-      {
-        id: 'notif_2',
-        title: 'IRC § 7216 Consent Verified',
-        message: 'Your privacy consent and taxpayer authorizations are recorded.',
-        timestamp: 'Yesterday',
-        isRead: true,
-        targetNav: 'security'
-      }
-    ];
-  });
+  const [notifications, setNotifications] = useState<InAppNotification[]>(initialNotifications);
+  useEffect(() => { setNotifications(initialNotifications); }, [initialNotifications]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 

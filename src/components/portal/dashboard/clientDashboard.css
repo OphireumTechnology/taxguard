@@ -1,0 +1,53 @@
+.tg-client-dashboard { background:#f0f5fa; color:#102c49; padding:14px; font-size:12px; line-height:1.5; min-height:calc(100dvh - 76px); }
+.tg-client-dashboard :is(h1,h2,h3,p) { margin:0; }
+.tg-client-dashboard h1 { font-size:22px; font-weight:700; }
+.tg-client-dashboard h2 { font-size:13px; font-weight:700; }
+.tg-client-dashboard h3 { font-size:12px; font-weight:650; }
+.tg-client-dashboard small { font-size:10px; color:#52677e; display:block; }
+.tg-client-top-grid { display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:12px; }
+.tg-client-primary,.tg-client-context { min-width:0; display:flex; flex-direction:column; gap:12px; }
+.tg-client-welcome { border-radius:6px; background:linear-gradient(110deg,#092441,#0b395c); padding:14px; color:white; display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+.tg-welcome-copy { display:flex; align-items:center; gap:12px; flex:1; min-width:230px; }
+.tg-client-welcome > dl { display:flex; gap:1px; border-radius:5px; overflow:hidden; background:#d5e4ef; }
+.tg-client-welcome > dl > div { background:#edf5fc; color:#102c49; padding:8px 12px; min-width:90px; }
+.tg-client-welcome dt { font-size:10px; display:flex; align-items:center; gap:4px; }
+.tg-client-welcome dd { font-size:12px; font-weight:600; max-width:180px; }
+.tg-client-journey { width:100%; background:white; color:#102c49; border-radius:5px; padding:12px 8px; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
+.tg-client-journey li { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:0 5px; font-size:10px; min-width:0; }
+.tg-client-journey li:before { content:''; height:3px; background:#cad5df; position:absolute; top:11px; left:28px; right:-8px; }
+.tg-client-journey li:last-child:before { display:none; }
+.tg-journey-number { width:24px; height:24px; border-radius:50%; color:white; background:#64748b; display:flex; align-items:center; justify-content:center; z-index:1; }
+.tg-client-journey [data-status=completed] .tg-journey-number { background:#087f46; }
+.tg-client-journey [data-status=current] .tg-journey-number { background:#946000; }
+.tg-client-journey [data-status=completed]:before { background:#087f46; }
+.tg-client-journey [data-status=current] strong { color:#805200; }
+.tg-client-status-grid { display:grid; grid-template-columns:1.15fr 1.15fr .85fr; gap:10px; }
+.tg-client-panel { border:1px solid #cbd8e6; background:white; border-radius:6px; overflow:hidden; min-width:0; box-shadow:0 2px 5px #09244108; }
+.tg-client-panel > header { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#082b49; color:white; padding:7px 10px; }
+.tg-client-panel > header .tg-client-link { color:#b9e6ff; }
+.tg-client-panel-body { padding:12px; }
+.tg-client-panel-body > p,.tg-client-panel-body > h3 { margin-bottom:8px; }
+.tg-status-heading { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.tg-status-heading > svg { color:#0b395c; flex-shrink:0; }
+.tg-client-badge { display:inline-block; font-size:10px; padding:3px 6px; border-radius:4px; margin-top:4px; }
+.tg-badge-warning { color:#805200; background:#fff3cc; }.tg-badge-info { color:#075881; background:#e6f4fd; }
+.tg-client-primary-button { background:#0068bd; color:white; padding:8px 12px; border-radius:5px; font-size:11px; font-weight:600; }
+.tg-client-actions { display:grid; gap:6px; }.tg-client-actions button { display:flex; gap:8px; align-items:center; padding:7px 8px; border:1px solid #cbd8e6; background:#f3f8fc; border-radius:4px; color:#103d6a; text-align:left; font-size:11px; }
+.tg-client-actions button:first-child { background:#0068bd; color:white; border-color:#0068bd; }
+.tg-return-facts > div { display:grid; grid-template-columns:42% minmax(0,1fr); gap:8px; border-bottom:1px solid #e2eaf1; padding:7px 0; font-size:11px; }.tg-return-facts dd { overflow-wrap:anywhere; }.tg-return-facts { margin-bottom:8px; }
+.tg-client-summary-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.tg-client-summary-grid > button { display:flex; align-items:flex-start; gap:8px; text-align:left; border:1px solid #d5e1eb; border-radius:5px; padding:12px 10px; background:white; min-width:0; }.tg-client-summary-grid > button > svg { padding:6px; border-radius:5px; width:32px; height:32px; flex-shrink:0; }.tg-client-summary-grid p { font-size:11px; margin-top:4px; }.tg-client-summary-grid small { margin-top:3px; }
+.tg-icon-green { background:#e4f7ed; color:#087f46; }.tg-icon-blue { background:#e6f4fd; color:#0068bd; }.tg-icon-purple { background:#f0eaff; color:#6936b5; }.tg-icon-amber { background:#fff3cc; color:#946000; }.tg-text-success { color:#087f46; }
+.tg-client-list { list-style:none; padding:0; }.tg-client-list li { border-bottom:1px solid #e2eaf1; padding:7px 0; }.tg-client-list li:last-child { border:0; }.tg-client-list li > button { display:flex; gap:8px; align-items:flex-start; width:100%; text-align:left; }.tg-client-list li > button > svg { flex-shrink:0; color:#0068bd; }.tg-client-list li > button > span { flex:1; min-width:0; }.tg-client-list small { margin-top:3px; }.tg-client-list strong { font-size:11px; }.tg-message-snippet { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; font-size:11px; margin-top:3px; }
+.tg-client-link { font-size:10px; color:#0068bd; cursor:pointer; flex-shrink:0; }.tg-client-appointment { display:flex; gap:10px; }.tg-client-appointment > svg { color:#0068bd; flex-shrink:0; }
+.tg-client-lower-grid { display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:12px; margin-top:12px; }.tg-client-lower-grid .tg-client-panel > header { background:#f8fbfe; color:#102c49; border-bottom:1px solid #d5e1eb; }
+.tg-client-filter { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }.tg-client-filter button { padding:4px 7px; background:#edf4fa; border-radius:4px; font-size:10px; border:1px solid transparent; }.tg-client-filter button[aria-pressed=true] { color:white; background:#0068bd; }.tg-client-info { background:#e6f4fd; border-radius:4px; padding:8px; font-size:11px; }
+.tg-client-complete { margin-top:14px; }.tg-client-complete > h2 { margin-bottom:6px; }.tg-client-journey-full { gap:8px; padding:0; background:transparent; }.tg-client-journey-full li { background:#edf4fa; border:1px solid #cbd8e6; border-radius:5px; padding:10px; }.tg-client-journey-full li:before { display:none; }.tg-client-journey-full [data-status=completed] { background:#e4f7ed; border-color:#7ebf9e; }.tg-client-journey-full [data-status=current] { background:#fff3cc; border-color:#c99a3d; }.tg-client-journey-full strong { font-size:11px; }
+.tg-client-reliability { margin-top:12px; border:1px solid #cbd8e6; border-radius:6px; background:white; padding:12px; }.tg-client-reliability h2 { display:flex; gap:6px; align-items:center; }.tg-client-reliability > div { display:flex; flex-wrap:wrap; gap:12px; margin:8px 0; font-size:11px; }.tg-client-reliability p { font-size:10px; color:#52677e; }
+.tg-client-dashboard button { cursor:pointer; }.tg-client-dashboard button:hover { filter:brightness(.96); }.tg-client-dashboard :is(button,a):focus-visible { outline:2px solid #0068bd; outline-offset:3px; }
+.tg-client-dashboard textarea { display:block; width:100%; border:1px solid #8ba1b9; border-radius:5px; padding:10px; min-height:90px; margin:8px 0; }.tg-client-dashboard form { margin-top:12px; }.tg-client-dashboard button:disabled { opacity:.6; cursor:not-allowed; }.tg-client-dashboard textarea:focus-visible { outline:2px solid #0068bd; outline-offset:2px; }
+.tg-client-navigation { height:100%; background:linear-gradient(#08243f,#05192e); color:white; padding:12px 8px; }.tg-client-nav-heading { display:flex; align-items:center; justify-content:space-between; padding:8px; margin-bottom:8px; }.tg-client-navigation button { min-height:36px; }.tg-client-nav-items { display:grid; gap:3px; }.tg-client-nav-items > button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:8px 10px; font-size:12px; border:1px solid transparent; border-radius:5px; }.tg-client-nav-items > button[aria-current=page] { background:#0068bd; border-color:#3799d4; }.tg-client-nav-items > button:hover { background:#0b395c; }.tg-client-nav-help { border:1px solid #245477; padding:12px; margin-top:20px; border-radius:6px; font-size:11px; }.tg-client-nav-help button { display:block; text-decoration:underline; }.tg-client-navigation details { margin-top:16px; font-size:11px; }.tg-client-navigation summary { cursor:pointer; padding:8px; }.tg-client-navigation details button { display:block; text-align:left; padding:6px 8px; width:100%; }.tg-client-nav-collapsed .tg-client-nav-items > button { justify-content:center; padding:8px; }
+@media(min-width:1500px) { .tg-client-dashboard { padding:18px; }.tg-client-top-grid { grid-template-columns:minmax(0,1fr) 280px; } }
+@media(max-width:1250px) { .tg-client-top-grid { grid-template-columns:1fr; }.tg-client-context { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }.tg-client-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }.tg-client-lower-grid { grid-template-columns:1fr 1fr; }.tg-client-lower-grid > :last-child { grid-column:1/-1; } }
+@media(max-width:900px) { .tg-client-status-grid { grid-template-columns:1fr 1fr; }.tg-client-status-grid > :last-child { grid-column:1/-1; }.tg-client-actions { grid-template-columns:1fr 1fr; }.tg-client-context { grid-template-columns:1fr; }.tg-client-journey { grid-template-columns:repeat(4,minmax(0,1fr)); }.tg-client-journey li:before { display:none; }.tg-client-journey-full { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:560px) { .tg-client-dashboard { padding:10px; }.tg-client-welcome { padding:12px; }.tg-client-dashboard h1 { font-size:19px; }.tg-client-welcome > dl { flex-wrap:wrap; width:100%; background:transparent; gap:4px; }.tg-client-welcome > dl > div { flex:1; border-radius:4px; }.tg-client-status-grid,.tg-client-lower-grid { grid-template-columns:1fr; }.tg-client-summary-grid { grid-template-columns:1fr 1fr; }.tg-client-status-grid > :last-child,.tg-client-lower-grid > :last-child { grid-column:auto; }.tg-client-actions { grid-template-columns:1fr; }.tg-client-journey,.tg-client-journey-full { grid-template-columns:repeat(2,minmax(0,1fr)); }.tg-client-journey li { padding:8px; }.tg-client-panel-body { padding:10px; } }

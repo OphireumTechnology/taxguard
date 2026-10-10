@@ -122,6 +122,26 @@ const response = await fetch(apiEndpoint(endpoint), {
 }
 
 export const api = {
+  // Read-only Gate 3 adapter. Existing server authorization is unchanged.
+  clientDashboard: {
+    saveQuestionnaire: (clientId: string, taxYear: number, answers: unknown) => request<{ success: boolean }>(`/api/stage-two-three/questionnaire/${taxYear}`, { method: 'POST', body: JSON.stringify({ clientId, answers }) }),
+    respond: (taxYear: number, requestId: string, message: string) => request<{ success: boolean }>(`/api/stage-two-three/requests/${taxYear}/${encodeURIComponent(requestId)}/respond`, { method: 'POST', body: JSON.stringify({ message }) }),
+    read: <T>(resource: 'documents' | 'engagements' | 'messages' | 'appointments' | 'invoices' | 'questionnaire' | 'requirements' | 'requests', clientId: string, taxYear: number, signal?: AbortSignal) => {
+      if (!getStoredToken()) return Promise.reject(new Error('Authenticated session required.'));
+      const scope = `?clientId=${encodeURIComponent(clientId)}`;
+      const endpoints = {
+        documents: `/api/documents${scope}`,
+        engagements: `/api/engagements${scope}`,
+        messages: '/api/messages',
+        appointments: '/api/appointments',
+        invoices: `/api/payments/invoices${scope}`,
+        questionnaire: `/api/stage-two-three/questionnaire/${taxYear}${scope}`,
+        requirements: `/api/stage-two-three/requirements/${taxYear}${scope}`,
+        requests: `/api/stage-two-three/requests/${taxYear}${scope}`,
+      };
+      return request<T>(endpoints[resource], { method: 'GET', signal });
+    },
+  },
   // Authentication & Session
   auth: {
     login: async (email: string, password: string, mfaCode?: string) => {
@@ -730,7 +750,24 @@ export const api = {
   },
 
   // Dedicated Accountant Workspace & Tasks
+  clientService: {
+    getDashboard:(year?:number,signal?:AbortSignal)=>request<import('../types/clientServiceDashboard').ClientServiceSnapshot>('/api/operations/client-service/dashboard'+(year?'?taxYear='+year:''),{signal}),
+    search:(q:string,year?:number,signal?:AbortSignal)=>request<{tenantId:string;matches:Omit<import('../types/clientServiceDashboard').ClientServiceCase,'documents'>[]}>('/api/operations/client-service/search?'+new URLSearchParams({q,...(year?{taxYear:String(year)}:{})}),{signal}),
+    conversation:(threadId:string,caseKey:string,year:number,signal?:AbortSignal)=>request<import('../types/clientServiceDashboard').ClientServiceConversation>('/api/operations/client-service/conversation?'+new URLSearchParams({threadId,caseKey,taxYear:String(year)}),{signal}),
+    requestDetail:(requestId:string,caseKey:string,year:number,signal?:AbortSignal)=>request<import('../types/clientServiceDashboard').ClientServiceRequestDetail>('/api/operations/client-service/request?'+new URLSearchParams({requestId,caseKey,taxYear:String(year)}),{signal}),
+  },
+  practiceManager: {getDashboard:(year?:number,signal?:AbortSignal)=>request<import('../types/practiceManagerDashboard').PracticeManagerSnapshot>('/api/operations/manager-dashboard'+(year?'?taxYear='+year:''),{signal})},
+  bookkeeper: {
+    getClients: (signal?:AbortSignal) => request<{tenantId:string;clientIds:string[]}>('/api/bookkeeping/bookkeeper-clients', {signal}),
+    getDashboard: (clientId:string,taxYear:number,periodId?:string,signal?:AbortSignal) => request<import('../types/bookkeeperDashboard').BookkeeperSnapshot>('/api/bookkeeping/bookkeeper-dashboard?'+new URLSearchParams({clientId,taxYear:String(taxYear),...(periodId?{periodId}:{})}), {signal}),
+  },
+  reviewer: {
+    getDashboard: (signal?: AbortSignal) => request<{ cases: import('../types/reviewerDashboard').ReviewerQueueCase[] }>('/api/case-authority/reviewer/dashboard', { signal }),
+    getWorkspace: (scope: import('../types/reviewerDashboard').ReviewScope, signal?: AbortSignal) => request<import('../types/reviewerDashboard').ReviewerSnapshot>(`/api/case-authority/${encodeURIComponent(scope.tenantId)}/${encodeURIComponent(scope.clientId)}/${encodeURIComponent(scope.engagementId)}/${scope.taxYear}/reviewer-workspace`, { signal }),
+    decide: (scope: import('../types/reviewerDashboard').ReviewScope, input: import('../types/reviewerDashboard').ReviewerDecision) => request<{ revision: number; version: number; approvalId?: string }>(`/api/case-authority/${encodeURIComponent(scope.tenantId)}/${encodeURIComponent(scope.clientId)}/${encodeURIComponent(scope.engagementId)}/${scope.taxYear}/reviewer-decision`, { method: 'POST', body: JSON.stringify(input) }),
+  },
   accountant: {
+    getDashboard: async (signal?: AbortSignal) => request<{ cases: import('../components/workspace/accountantDashboardModel').AccountantCase[] }>('/api/accountant/dashboard', { signal }),
     getOverview: async () => {
       return request<{
         metrics: {

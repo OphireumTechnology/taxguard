@@ -1,3 +1,4 @@
+import type { ReviewerQueueCase, ReviewerSnapshot, ReviewerDecision } from '../../types/reviewerDashboard';
 import { createHash } from 'node:crypto';
 import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
 
@@ -98,6 +99,12 @@ export function casePath(scope: CaseScope): string {
     throw new AuthorityError('INVALID_TAX_YEAR');
   }
   return `taxguardTenants/${scope.tenantId}/clients/${scope.clientId}/engagements/${scope.engagementId}/years/${scope.taxYear}`;
+}
+
+function artifactMatchesScope(value: any, scope: CaseScope) {
+  const declared = value.scope || value;
+  const keys = ['tenantId','clientId','engagementId','taxYear'] as const;
+  return !keys.some(k => declared[k] !== undefined) || keys.every(k => declared[k] === scope[k]);
 }
 
 function digest(value: unknown): string {
@@ -240,6 +247,101 @@ export class TaxGuardAuthorityRepository {
     ) {
       throw new AuthorityError('PREPARER_REQUIRED', 403);
     }
+  }
+
+  /** Reviewer read models use the same transaction, scope and assignment authority as case operations. */
+  private reviewReader(access: Access, uid: string) {
+    if (!['reviewer', 'senior_reviewer'].includes(access.member.role) ||
+        access.assignment.role !== 'reviewer' || access.current.reviewerUid !== uid) {
+      throw new AuthorityError('REVIEWER_REQUIRED', 403);
+    }
+  }
+
+  private reviewerDecisionProviderAvailable() {
+    // The current live adapter is volatile. An authenticated production approval
+    // must not be represented as durable unless the server adapter establishes it.
+    return process.env.NODE_ENV !== 'production' || this.db.persistenceCapability === 'durable';
+  }
+
+  async listReviewerQueue(tenantId: string, uid: string): Promise<ReviewerQueueCase[]> {
+    safeId(tenantId); safeId(uid);
+    return this.db.runTransaction(async tx => {
+      const member = (await tx.get(this.db.doc(`taxguardTenants/${tenantId}/members/${uid}`))).data();
+      if (!member || member.status !== 'active' || !['reviewer','senior_reviewer'].includes(member.role)) throw new AuthorityError('REVIEWER_REQUIRED', 403);
+      const rows: ReviewerQueueCase[] = [];
+      const clients = await tx.get(this.db.collection(`taxguardTenants/${tenantId}/clients`));
+      for (const clientDoc of clients.docs) {
+        const client = clientDoc.data();
+        const engagements = await tx.get(this.db.collection(`taxguardTenants/${tenantId}/clients/${clientDoc.id}/engagements`));
+        for (const engagementDoc of engagements.docs) {
+          const engagement = engagementDoc.data();
+          if (engagement.clientId !== clientDoc.id) continue;
+          const years = await tx.get(this.db.collection(`taxguardTenants/${tenantId}/clients/${clientDoc.id}/engagements/${engagementDoc.id}/years`));
+          for (const yearDoc of years.docs) {
+            const scope = { tenantId, clientId: clientDoc.id, engagementId: engagementDoc.id, taxYear: Number(yearDoc.id) };
+            if (!Number.isInteger(scope.taxYear) || scope.taxYear < 2022) continue;
+            let access: Access;
+            try { access = await this.access(tx, scope, uid); this.reviewReader(access, uid); }
+            catch (error) { if (error instanceof AuthorityError && error.status === 403) continue; throw error; }
+            const root = casePath(scope);
+            const returns = (await tx.get(this.db.collection(root + '/draftReturns'))).docs.map((d: any) => d.data()).filter((d: any) => artifactMatchesScope(d, scope));
+            const preparer = (await tx.get(this.db.doc(`taxguardTenants/${tenantId}/members/${access.current.preparerUid}`))).data();
+            let independentReviewer = true; try { this.reviewer(access, uid); } catch { independentReviewer = false; }
+            const liveReturns = returns.filter((r: any) => !['STALE','SUPERSEDED'].includes(r.status));
+            const returned = liveReturns.some((r: any) => r.status === 'REJECTED');
+            const awaiting = access.current.activeStage === 10 && liveReturns.some((r: any) => r.status === 'PREPARER_CERTIFIED');
+            const approved = liveReturns.length > 0 && liveReturns.every((r: any) => r.status === 'APPROVED');
+            const dueDate = engagement.taxYear === scope.taxYear || (Array.isArray(engagement.taxYears) && engagement.taxYears.length === 1) ? engagement.dueDate : engagement.dueDates?.[scope.taxYear];
+            rows.push({ id: root, scope, clientName: client.name || client.displayName || scope.clientId,
+              preparerId: access.current.preparerUid, preparerName: preparer?.name || preparer?.displayName || access.current.preparerUid,
+              activeStage: access.current.activeStage, caseStatus: access.current.status || 'Not recorded',
+              reviewStatus: returned ? 'Returned' : approved ? 'Approved' : awaiting ? 'Awaiting Approval' : access.current.activeStage === 6 || liveReturns.some((r: any) => r.status === 'READY_FOR_PREPARER_REVIEW') ? 'Ready for Review' : 'Not submitted',
+              priority: engagement.priority, dueDate: typeof dueDate === 'string' && Number.isFinite(Date.parse(dueDate)) ? dueDate : undefined,
+              highRisk: liveReturns.some((r: any) => r.diagnostics?.some((d: any) => d.severity === 'CRITICAL_BLOCKING' && !d.resolved)),
+              openExceptions: access.current.openExceptions, reviewerUid: access.current.reviewerUid, decisionAllowed: independentReviewer && this.reviewerDecisionProviderAvailable() });
+          }
+        }
+      }
+      return rows;
+    });
+  }
+
+  async getReviewerSnapshot(scope: CaseScope, uid: string): Promise<ReviewerSnapshot> {
+    return this.db.runTransaction(async tx => {
+      const access = await this.access(tx, scope, uid); this.reviewReader(access, uid);
+      const root = casePath(scope);
+      const read = async (collection: string) => (await tx.get(this.db.collection(root + '/' + collection))).docs.map((doc: any) => ({ ...doc.data(), id: doc.id })).filter((data: any) => {
+        return artifactMatchesScope(data, scope);
+      });
+      const documents = (await read('documents')).map((d: any) => ({ id: d.id, fileName: d.fileName, status: d.status,
+        version: d.version, sha256: d.sha256, scanResult: d.scanResult ? { clean: d.scanResult.clean, verified: d.scanResult.verified } : undefined }));
+      const returns = await read('draftReturns'); const workpapers = await read('workpapers');
+      const records = await read('taxRecords'); const reconciliations = await read('reconciliations');
+      const exceptions = await read('exceptions'); const resolutions = await read('exceptionResolutions');
+      const aiFindings = (await read('aiProposals')).map((d: any) => ({ ...d, requiresHumanReview: true, externalSubmissionAllowed: false }));
+      const history = [...await read('audit'), ...await read('reviewActions'), ...await read('approvals'), ...await read('reviews')];
+      const stages = await read('stageStates');
+      const extractedFields = (await read('extractedFields')).filter((f: any) => !/ssn|social.?security|dob|date.?of.?birth|bank.?account/i.test(String(f.key || f.fieldName || f.fieldKey || f.field || '')));
+      const provenance = await read('provenance');
+      let independentReviewer = true; try { this.reviewer(access, uid); } catch { independentReviewer = false; }
+      return { scope, decisionsAvailable: this.reviewerDecisionProviderAvailable(), case: { activeStage: access.current.activeStage, revision: access.current.revision,
+        version: access.current.version, preparerUid: access.current.preparerUid, reviewerUid: access.current.reviewerUid,
+        openExceptions: access.current.openExceptions, status: access.current.status }, independentReviewer,
+        documents, returns, workpapers, records, reconciliations, exceptions, resolutions, aiFindings, history, stages, extractedFields, provenance } as ReviewerSnapshot;
+    });
+  }
+
+  async decideReviewerReturn(scope: CaseScope, uid: string, input: ReviewerDecision) {
+    if (input.confirmed !== true) throw new AuthorityError('REVIEW_CONFIRMATION_REQUIRED');
+    if (typeof input.reason !== 'string' || input.reason.trim().length < 20 || input.reason.length > 4000) throw new AuthorityError('MEANINGFUL_REVIEW_REASON_REQUIRED');
+    if (input.decision === 'APPROVE') {
+      if (!this.reviewerDecisionProviderAvailable()) throw new AuthorityError('DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED', 503);
+      return this.approveDraftReturn(scope, uid, input.version, input.operationId, input.returnId, input.reason.trim(), true);
+    }
+    if (input.decision !== 'RETURN') throw new AuthorityError('INVALID_REVIEW_DECISION');
+    if (typeof input.corrections !== 'string' || input.corrections.trim().length < 20 || input.corrections.length > 4000) throw new AuthorityError('CORRECTION_DETAILS_REQUIRED');
+    if (!this.reviewerDecisionProviderAvailable()) throw new AuthorityError('DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED', 503);
+    return this.performReviewAction(scope, uid, input.version, input.operationId, { type: 'return', id: input.returnId }, 'RETURN_FOR_CORRECTION', input.reason.trim() + '\nCorrections required: ' + input.corrections.trim(), true);
   }
 
   async getCase(scope: CaseScope, uid: string): Promise<TaxCaseEntity> {
@@ -1928,11 +2030,14 @@ export class TaxGuardAuthorityRepository {
     operationId: string,
     target: { type: 'record' | 'reconciliation' | 'workpaper' | 'return'; id: string },
     action: ReviewActionType,
-    notes?: string
+    notes?: string,
+    reviewerDashboard = false
   ) {
     safeId(operationId);
     safeId(target.id);
-    return this.mutate(scope, uid, version, operationId, { action: 'REVIEW_ACTION_PERFORMED', target, reviewAction: action }, async (tx, access) => {
+    if (!['record','reconciliation','workpaper','return'].includes(target.type) || !['ACCEPT','RETURN_FOR_CORRECTION','REQUEST_EVIDENCE','RAISE_EXCEPTION','RESOLVE_EXCEPTION','ESCALATE'].includes(action)) throw new AuthorityError('INVALID_REVIEW_ACTION');
+    if (action === 'RETURN_FOR_CORRECTION' && (typeof notes !== 'string' || notes.trim().length < 20)) throw new AuthorityError('MEANINGFUL_REVIEW_REASON_REQUIRED');
+    return this.mutate(scope, uid, version, operationId, { action: 'REVIEW_ACTION_PERFORMED', target, reviewAction: action, notes, reviewerDashboard }, async (tx, access) => {
       const collectionName = target.type === 'record' ? 'taxRecords'
         : target.type === 'reconciliation' ? 'reconciliations'
         : target.type === 'workpaper' ? 'workpapers'
@@ -1942,6 +2047,7 @@ export class TaxGuardAuthorityRepository {
       const targetDoc = await tx.get(targetRef);
       if (!targetDoc.exists) throw new AuthorityError('TARGET_NOT_FOUND', 404);
       const targetData = targetDoc.data();
+      if (!artifactMatchesScope(targetData, scope)) throw new AuthorityError('SCOPE_MISMATCH', 403);
 
       // Prohibit self-approval (maker-checker violation)
       if (targetData?.createdBy === uid || access.current.preparerUid === uid) {
@@ -1949,6 +2055,8 @@ export class TaxGuardAuthorityRepository {
       }
 
       this.reviewer(access, uid);
+      if (reviewerDashboard && (!['ACTIVE','BLOCKED'].includes(access.current.status || 'ACTIVE') || ![6,9,10].includes(access.current.activeStage) ||
+          !['DRAFT','DIAGNOSTIC_FAILED','READY_FOR_PREPARER_REVIEW','PREPARER_CERTIFIED'].includes(targetData?.status))) throw new AuthorityError('REVIEW_RETURN_NOT_PERMITTED', 409);
 
       const timestamp = new Date().toISOString();
       const updatedStatus = action === 'ACCEPT' ? 'APPROVED' : action === 'RETURN_FOR_CORRECTION' ? 'REJECTED' : 'IN_REVIEW';
@@ -1964,7 +2072,7 @@ export class TaxGuardAuthorityRepository {
       }, { merge: true });
 
       return {
-        writes: [{ collection: 'reviewActions', id: operationId, data: { target, action, notes, reviewer: uid, timestamp } }],
+        writes: [{ collection: 'reviewActions', id: operationId, data: { target, action, notes, reviewer: uid, timestamp, confirmation: reviewerDashboard ? { confirmed: true } : undefined } }],
       };
     });
   }
@@ -2428,7 +2536,8 @@ export class TaxGuardAuthorityRepository {
     version: number,
     operationId: string,
     returnId: string,
-    rationale: string
+    rationale: string,
+    reviewerDashboard = false
   ) {
     safeId(returnId);
     safeId(uid);
@@ -2438,7 +2547,7 @@ export class TaxGuardAuthorityRepository {
     if (memberData && ['reviewer', 'senior_reviewer'].includes(memberData.role) && memberData.credentialVerified === false) {
       throw new AuthorityError('CREDENTIAL_UNVERIFIED', 403);
     }
-    return this.mutate(scope, uid, version, operationId, { action: 'DRAFT_RETURN_APPROVED', returnId }, async (tx, access) => {
+    return this.mutate(scope, uid, version, operationId, { action: 'DRAFT_RETURN_APPROVED', returnId, rationale, reviewerDashboard }, async (tx, access) => {
       // Maker-checker invariant: preparer cannot approve
       if (access.current.preparerUid === uid) {
         throw new AuthorityError('MAKER_CHECKER_VIOLATION', 403);
@@ -2466,6 +2575,8 @@ export class TaxGuardAuthorityRepository {
         }
       }
       if (!ret) throw new AuthorityError('DRAFT_RETURN_NOT_FOUND', 404);
+      if (!artifactMatchesScope(ret, scope)) throw new AuthorityError('SCOPE_MISMATCH', 403);
+      if (reviewerDashboard && (access.current.activeStage !== 10 || access.current.status !== 'ACTIVE' || ret.returnId !== returnId || ret.status !== 'PREPARER_CERTIFIED' || ret.preparerCertifiedBy !== access.current.preparerUid || ret.createdBy === uid)) throw new AuthorityError('REVIEW_APPROVAL_NOT_PERMITTED', 409);
 
       if (ret.status === 'STALE') {
         throw new AuthorityError('RETURN_STALE', 400);
@@ -2516,7 +2627,7 @@ export class TaxGuardAuthorityRepository {
       }, { merge: true });
 
       return {
-        writes: [{ collection: 'approvals', id: approvalId, data: approvalRecord }],
+        writes: [{ collection: 'approvals', id: approvalId, data: { ...approvalRecord, confirmation: reviewerDashboard ? { confirmed: true } : undefined } }],
         approvalId,
         returnHash,
         status: 'APPROVED',

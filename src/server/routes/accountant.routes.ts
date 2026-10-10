@@ -1,3 +1,6 @@
+import { AuthorityError, TaxGuardAuthorityRepository } from '../taxguard/authority.repository';
+import { globalAuthorityDatabase } from '../taxguard/transactionalDatabase';
+import { projectAccountantCases } from '../accountantDashboardProjection';
 /**
  * Accountant Workspace & Workflow API Routes
  * Secure endpoints for authorized accountants and senior reviewers.
@@ -66,6 +69,43 @@ function getCurrentlyAssignedClientIds(user: NonNullable<AuthenticatedRequest['u
 // Require authentication and authorized staff roles on all accountant endpoints
 accountantRouter.use(authenticateToken);
 accountantRouter.use(requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'));
+
+// Read-only dashboard projection. Every engagement is checked against its exact assignment scope.
+accountantRouter.get('/dashboard', async (req: AuthenticatedRequest, res) => {
+  const user = req.user!;
+  const cases = projectAccountantCases(user.tenantId, Array.from(db.engagements.values()),
+    Array.from(db.documents.values()), getClientUser, (id, scope) => canAccessStaffClient(user, id, scope)).map(c => {
+      const dossier = db.clientOnboarding.get(c.clientId) || db.clientOnboarding.get(c.authorityClientId);
+      const matching = dossier?.taxProfile?.requestedTaxYear === c.taxYear;
+      return { ...c, context: matching ? {
+        filingStatus: dossier.taxProfile.filingStatus,
+        dependents: dossier.taxProfile.dependentsCount,
+        state: dossier.identityContact?.residentialAddress?.state,
+      } : undefined };
+    });
+  res.setHeader('Cache-Control', 'no-store');
+  // Durable authority is an additional fail-closed boundary in production.
+  if (process.env.NODE_ENV === 'production') {
+    const repo = new TaxGuardAuthorityRepository(globalAuthorityDatabase);
+    try {
+      const authorizedCases = await Promise.all(cases.map(async c => {
+        try {
+          const record = await repo.getCase({ tenantId: c.tenantId, clientId: c.authorityClientId, engagementId: c.engagementId, taxYear: c.taxYear }, user.id);
+          return { ...c, activeStage: record.activeStage };
+        } catch (error) {
+          // Denied cases stay undiscoverable; service failures must not look like an empty queue.
+          if (error instanceof AuthorityError && error.status === 403) return null;
+          throw error;
+        }
+      }));
+      res.json({ cases: authorizedCases.filter(Boolean) });
+    } catch {
+      res.status(503).json({ error: 'ACCOUNTANT_DASHBOARD_UNAVAILABLE' });
+    }
+    return;
+  }
+  res.json({ cases });
+});
 
 /**
  * GET /api/accountant/overview

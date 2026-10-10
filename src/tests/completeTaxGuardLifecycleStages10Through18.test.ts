@@ -4,13 +4,14 @@
  * downstream invalidation, provider readiness, idempotent bootstrap, and Supabase auth neutrality.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TaxGuardAuthorityRepository, casePath } from '../server/taxguard/authority.repository';
 import { TransactionalFirestore } from './helpers/transactionalFirestore';
 import { ServerStageGateOrchestrator } from '../server/taxguard/serverStageGateOrchestrator';
 import { ProviderReadinessRegistry } from '../server/taxguard/providerReadiness.service';
 import { ensureCanonicalTenantBootstrap, CANONICAL_TENANT_ID, isCanonicalTenant } from '../server/taxguard/tenantBootstrap';
 import { requestPasswordReset, validatePasswordStrength, NEUTRAL_PASSWORD_RESET_MESSAGE } from '../supabase/auth';
+import { setSupabaseClient } from '../supabase/config';
 import { StageNumber } from '../server/taxguard/persistence.types';
 
 const scope = {
@@ -528,9 +529,29 @@ describe('M18.9 Idempotent Tenant Bootstrap', () => {
 
 describe('M18.9 Supabase Authentication Neutrality & Password Strength', () => {
   it('requestPasswordReset returns neutral message preventing account enumeration', async () => {
-    const res = await requestPasswordReset('unknown.taxpayer@example.com');
-    expect(res.success).toBe(true);
-    expect(res.message).toBe(NEUTRAL_PASSWORD_RESET_MESSAGE);
+    const resetPasswordForEmail = vi.fn().mockResolvedValue({
+      data: {},
+      error: null,
+    });
+
+    setSupabaseClient({
+      auth: { resetPasswordForEmail },
+    } as any);
+
+    try {
+      const res = await requestPasswordReset('unknown.taxpayer@example.com');
+
+      expect(resetPasswordForEmail).toHaveBeenCalledWith(
+        'unknown.taxpayer@example.com',
+        expect.objectContaining({
+          redirectTo: expect.any(String),
+        }),
+      );
+      expect(res.success).toBe(true);
+      expect(res.message).toBe(NEUTRAL_PASSWORD_RESET_MESSAGE);
+    } finally {
+      setSupabaseClient(null);
+    }
   });
 
   it('validatePasswordStrength rejects weak passwords and accepts strong passwords', () => {
