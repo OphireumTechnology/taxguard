@@ -1,7 +1,11 @@
-import { StrictMode } from 'react';
+import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+
+if (typeof window !== 'undefined') {
+  (window as unknown as { React: typeof React }).React = React;
+}
 
 // Strictly filter only confirmed third-party browser extension injection noise
 // Never suppress genuine application, Firebase, API, authentication, or rendering errors.
