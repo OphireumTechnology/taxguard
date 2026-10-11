@@ -41,6 +41,7 @@ import { StageOneOnboardingService } from '../services/stageOneOnboardingService
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
 import { normalizeLegacyUrl } from '../config/canonicalRouting';
+import { mapLocalLoginError } from './localLoginErrors';
 
 /** Local server login is only offered by non-production builds with no Supabase configuration. */
 export function isLocalServerLoginBuild(): boolean {
@@ -1025,13 +1026,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             clearStoredToken();
             setAuthLifecycleState('UNAUTHENTICATED');
             setIsInitialized(true);
-            if (err?.code === 'MFA_CODE_INVALID' || err?.code === 'MFA_CODE_REPLAYED') {
-              return { success: false, mfaRequired: true, error: err.message };
-            }
-            if (err?.status === 429 || err?.code === 'ACCOUNT_DISABLED' || err?.code === 'MFA_VERIFICATION_UNAVAILABLE') {
-              return { success: false, error: err.message };
-            }
-            return { success: false, code: 'INVALID_CREDENTIALS', error: 'Invalid email or password.' };
+            return mapLocalLoginError(err);
           }
           if (!res?.token || !res.user) {
             clearStoredToken();

@@ -21,6 +21,7 @@ import {
   isSuperAdministratorRole
 } from '../auth';
 import { hasTotpSecret, verifyTotp } from '../totp';
+import { diagnoseRefusedLogin, localAuthDiagnosticsEnabled, logLocalAuthDiagnostic } from '../localAuthDiagnostics';
 import { User, OnboardingState } from '../../types';
 import { AuthorityError } from '../taxguard/authority.repository';
 import {
@@ -165,6 +166,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const { email, password, mfaCode } = req.body;
   const ip = req.ip || 'unknown';
   if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+    logLocalAuthDiagnostic({ outcome: 'refused', reason: 'missing_or_non_string_fields', contentType: String(req.headers['content-type'] || 'none').slice(0, 80), bodyParsed: !!req.body });
     return res.status(400).json({ error: 'Email and password are required.' });
   }
   const lockoutKey = `${ip}_${email.toLowerCase()}`;
@@ -175,6 +177,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const ipLockout = checkBruteForceLockout(lockoutKey);
   const lockout = accountLockout.locked ? accountLockout : ipLockout;
   if (lockout.locked) {
+    logLocalAuthDiagnostic({ outcome: 'refused', reason: accountLockout.locked ? 'account_locked' : 'source_ip_locked', remainingSec: lockout.remainingSec });
     db.logSecurityEvent({
       eventType: 'LOGIN_ATTEMPT_DURING_LOCKOUT',
       ipAddress: ip,
@@ -192,6 +195,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const storedHash = db.userPasswords.get(email.toLowerCase());
 
   if (!user || !storedHash || !verifyPassword(password, storedHash)) {
+    if (localAuthDiagnosticsEnabled()) {
+      logLocalAuthDiagnostic({ outcome: 'refused', ...diagnoseRefusedLogin(user, storedHash, password), emailHadSurroundingWhitespace: email !== email.trim() });
+    }
     recordLoginFailure(lockoutKey, ip, email);
     recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
     return res.status(401).json({
@@ -201,6 +207,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
 
   if (user.status === 'disabled' || user.status === 'suspended') {
+    logLocalAuthDiagnostic({ outcome: 'refused', reason: 'account_' + user.status });
     db.logSecurityEvent({
       eventType: 'DISABLED_USER_LOGIN_ATTEMPT',
       ipAddress: ip,
@@ -217,6 +224,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   // Super administrators always require a second factor, whatever the stored flag says.
   if (user.mfaEnabled || isSuperAdministratorRole(user.role)) {
     if (!mfaCode) {
+      logLocalAuthDiagnostic({ outcome: 'password_accepted', next: 'authenticator_code_required' });
       return res.status(200).json({
         mfaRequired: true,
         message: 'MFA authorization code required.',
