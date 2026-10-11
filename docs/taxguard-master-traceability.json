@@ -4085,6 +4085,24 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-cycle-20261011d-scoped-stops-and-revocation.md",
+      "sha256": "0a9440611f57f129227d5fb08a6465e64e891ae7ef5140b245136eb00ef6be26",
+      "bytes": 7177,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-11 (d) — scoped emergency stops and session revocation",
+        "## 1. Verified starting state",
+        "## 2. Implemented",
+        "### Cycle 1 — emergency stop for a model, tool or workflow stage (Phase 5)",
+        "### Cycle 2 — accurate stop display in the Control Center",
+        "### Cycle 3 — account suspension and session revocation (Phase 1), with a defect fix",
+        "## 3. Files changed (uncommitted)",
+        "## 4. Validation",
+        "## 5. Security review",
+        "## 6. Blockers and decisions (unchanged unless noted)",
+        "## 7. Next cycle"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4120,8 +4138,8 @@
     },
     {
       "file": "docs/taxguard-master-development-requirements-matrix-20261011.md",
-      "sha256": "b161e8df3a2a53e54a875a53b3adcb991a5dc548e9ffe02b7ca687490fea5e39",
-      "bytes": 17640,
+      "sha256": "c1ea55e9cb4204fcf7242c9fb356daa7eb83dae6e50798061ca26ee063c41ca7",
+      "bytes": 18557,
       "headings": [
         "# TaxGuard Master Development Requirements Matrix — 2026-10-11",
         "## 1. Reference inspection (this session)",
@@ -4400,7 +4418,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "8eddb87548eb844644f21e56aac979774d3d06626933acedf9ab481c30fdd58c",
+    "src/services/api.ts": "5d289eeb60fbb460626fda97da3b24390fa2fa376e1695169ca04b3fe2c57279",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
