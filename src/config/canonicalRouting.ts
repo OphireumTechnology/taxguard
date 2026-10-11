@@ -32,6 +32,7 @@ export const CANONICAL_ROUTES = {
   STAFF_LOGIN: '/staff/login',
   STAFF_WORKSPACE: '/staff/workspace',
   SUPER_ADMIN_CONSOLE: '/staff/super-admin',
+  TAX_FORMS_LIBRARY: '/staff/forms',
   PORTALS_DIRECTORY: '/portals'
 } as const;
 
@@ -262,6 +263,7 @@ export function resolveCanonicalPageRoute(
   if (clean === 'staff/login') return 'staff_login';
   if (clean === 'staff/workspace') return 'staff';
   if (clean === 'staff/super-admin') return 'super_admin_console';
+  if (clean === 'staff/forms') return 'tax_forms_library';
 
   return 'not_found';
 }

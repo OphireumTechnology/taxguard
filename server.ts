@@ -25,6 +25,7 @@ import {
 } from './src/server/auth';
 import { bootstrapSuperAdministrator } from './src/server/superAdminBootstrap';
 import { superAdminRouter } from './src/server/routes/superAdmin.routes';
+import { taxFormsRouter } from './src/server/routes/taxForms.routes';
 
 import {
   authRouter
@@ -476,6 +477,11 @@ app.use(
 app.use(
   '/api/super-admin',
   superAdminRouter
+);
+
+app.use(
+  '/api/tax-forms',
+  taxFormsRouter
 );
 
 app.use(

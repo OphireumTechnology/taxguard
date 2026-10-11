@@ -47,7 +47,7 @@ function greeting(now: Date) {
 }
 
 export function AccountantDashboard() {
-  const { currentUser, authLifecycleState } = useApp();
+  const { currentUser, authLifecycleState, setCurrentPage } = useApp();
   const idPrefix = useId();
   const [refresh, setRefresh] = useState(0);
   const { allowed, session, rows, loading, error } = useAccountantDashboardData(currentUser, authLifecycleState, refresh);
@@ -111,6 +111,7 @@ export function AccountantDashboard() {
     setActiveNav(label);
     if (label === 'Dashboard') { clearFilters(); setSelected(''); return; }
     if (label === 'Search Clients') { searchRef.current?.focus(); return; }
+    if (label === 'Form Library') { setCurrentPage('tax_forms_library'); return; }
     const destinations: Record<string,string> = {'Document Review':'Documents','AI Document Prep':'AI Preparation','Tax Return (Draft)':'Tax Forms','E-Signature':'Client Approval','File to IRS/State':'E-File','Track Status':'History','Checklists':'Documents','State Tax Rules':'State Forms','AI Assistant':'AI Preparation'};
     if (destinations[label] || tabs.includes(label)) { setTab(destinations[label] || label); (item ? caseRef : queueRef).current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     showQueue(['My Cases','All Clients'].includes(label) ? 'Assigned Cases' : label);

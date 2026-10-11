@@ -604,6 +604,11 @@ export const api = {
   },
 
   // Admin & Compliance Management
+  // Tax Forms Library: read-only reference catalog (server restricts to practice staff roles).
+  taxForms: {
+    getCatalog: async (signal?: AbortSignal) => request<import('../taxForms/registry').LibraryCatalog>('/api/tax-forms', { method: 'GET', signal }),
+  },
+
   // Super administrator console (server verifies the super administrator role on every call).
   superAdmin: {
     getSession: async () => request<{

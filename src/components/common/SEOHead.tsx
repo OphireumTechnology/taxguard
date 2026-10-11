@@ -183,6 +183,12 @@ const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
     canonicalPath: '/admin',
     ogType: 'website'
   },
+  tax_forms_library: {
+    title: 'Tax Forms Library | A/R Tax Services, LLC',
+    description: 'Reference catalog of federal, state and local tax forms for authorized practice staff.',
+    canonicalPath: '/staff/forms',
+    ogType: 'website'
+  },
   super_admin_console: {
     title: 'Super Administrator Console | A/R Tax Services, LLC',
     description: 'Authorized super administrator console.',

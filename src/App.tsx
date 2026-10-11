@@ -42,6 +42,7 @@ const PracticeManagerDashboard = lazy(() => import('./components/workspace/Pract
 const BookkeeperDashboard = lazy(() => import('./components/workspace/BookkeeperDashboard').then(m => ({ default: m.BookkeeperDashboard })));
 const ReviewerWorkspace = lazy(() => import('./components/workspace/ReviewerWorkspace').then(m => ({ default: m.ReviewerWorkspace })));
 const PracticeAdminWorkspace = lazy(() => import('./components/admin/PracticeAdminWorkspace').then(m => ({ default: m.PracticeAdminWorkspace })));
+const TaxFormsLibrary = lazy(() => import('./components/taxForms/TaxFormsLibrary').then(m => ({ default: m.TaxFormsLibrary })));
 const SuperAdminConsole = lazy(() => import('./components/admin/SuperAdminConsole').then(m => ({ default: m.SuperAdminConsole })));
 const LiveClientWorkflowRouter = lazy(() => import('./components/workflow/LiveClientWorkflowRouter').then(m => ({ default: m.LiveClientWorkflowRouter })));
 import {
@@ -216,7 +217,8 @@ const AppContent: React.FC = () => {
       'reviewer_portal',
       'admin_dashboard',
       'admin_portal',
-      'super_admin_console'
+      'super_admin_console',
+      'tax_forms_library'
     ].includes(currentPage);
 
     // Client route guarding
@@ -242,7 +244,7 @@ const AppContent: React.FC = () => {
         return;
       }
       // Super administrators land on their console (role verified by the server session).
-      if (isSuperAdministrator(currentUser.role) && currentPage !== 'super_admin_console') {
+      if (isSuperAdministrator(currentUser.role) && currentPage !== 'super_admin_console' && currentPage !== 'tax_forms_library') {
         setCurrentPage('super_admin_console');
         return;
       }
@@ -387,6 +389,13 @@ const AppContent: React.FC = () => {
       return <AccountantWorkspace />;
     }
 
+    if (currentPage === 'tax_forms_library') {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
+      // The library and the server both refuse roles outside the practice-staff list.
+      return <TaxFormsLibrary />;
+    }
+
     if (currentPage === 'super_admin_console') {
       if (isInitializingAuth) return renderAuthInitializingState();
       if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
@@ -456,6 +465,7 @@ const AppContent: React.FC = () => {
     'admin_dashboard',
     'admin_portal',
     'super_admin_console',
+    'tax_forms_library',
     'live_calendar',
     'virtual_consultation_room'
   ]);
