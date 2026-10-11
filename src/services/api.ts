@@ -795,7 +795,7 @@ export const api = {
     decide: (scope: import('../types/reviewerDashboard').ReviewScope, input: import('../types/reviewerDashboard').ReviewerDecision) => request<{ revision: number; version: number; approvalId?: string }>(`/api/case-authority/${encodeURIComponent(scope.tenantId)}/${encodeURIComponent(scope.clientId)}/${encodeURIComponent(scope.engagementId)}/${scope.taxYear}/reviewer-decision`, { method: 'POST', body: JSON.stringify(input) }),
   },
   accountant: {
-    getDashboard: async (signal?: AbortSignal) => request<{ cases: import('../components/workspace/accountantDashboardModel').AccountantCase[] }>('/api/accountant/dashboard', { signal }),
+    getDashboard: async (signal?: AbortSignal) => request<{ cases: import('../components/workspace/accountantDashboardModel').AccountantCase[]; source?: 'durable'; unavailableFields?: string[] }>('/api/accountant/dashboard', { signal }),
     getOverview: async () => {
       return request<{
         metrics: {

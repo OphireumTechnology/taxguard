@@ -34,6 +34,12 @@ describe('KPI values never present unavailable data as zero', () => {
     expect(kpiValue('Client Approval', [row({ activeStage: 10 }), row({ id: 'd' })], TODAY, 'ready')).toMatchObject({ state: 'unavailable' });
     expect(kpiValue('Client Approval', [row({ activeStage: 10 }), row({ id: 'd', activeStage: 3 })], TODAY, 'ready')).toEqual({ state: 'value', count: 1 });
   });
+  it('due-date metrics are unavailable when the durable store does not record due dates', () => {
+    const rows = [row({ id: '1', dueDate: TODAY })];
+    expect(kpiValue('Due Today', rows, TODAY, 'ready', ['dueDate', 'priority'])).toMatchObject({ state: 'unavailable', reason: 'Due dates are not recorded in the case store' });
+    expect(kpiValue('Overdue', rows, TODAY, 'ready', ['dueDate'])).toMatchObject({ state: 'unavailable' });
+    expect(kpiValue('Assigned Cases', rows, TODAY, 'ready', ['dueDate'])).toEqual({ state: 'value', count: 1 });
+  });
   it('real zero is a value, distinct from unavailable', () => {
     expect(kpiValue('Overdue', [row({ dueDate: '2026-12-01' })], TODAY, 'ready')).toEqual({ state: 'value', count: 0 });
     expect(kpiValue('Assigned Cases', [], TODAY, 'ready')).toEqual({ state: 'value', count: 0 });

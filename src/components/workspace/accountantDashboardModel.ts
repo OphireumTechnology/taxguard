@@ -64,10 +64,11 @@ export const DASHBOARD_KPIS: ReadonlyArray<{ label: string; hint: string }> = [
   { label: 'Ready to File', hint: 'Filing readiness' },
 ];
 
-export function kpiValue(label: string, rows: AccountantCase[], today: string, state: DashboardDataState): KpiValue {
+export function kpiValue(label: string, rows: AccountantCase[], today: string, state: DashboardDataState, unavailableFields: readonly string[] = []): KpiValue {
   if (state === 'inspection') return { state: 'unavailable', reason: 'Inspection mode: no case data loaded' };
   if (state === 'loading') return { state: 'loading' };
   if (state === 'error') return { state: 'unavailable', reason: 'Case data could not be loaded' };
+  if ((label === 'Due Today' || label === 'Overdue') && unavailableFields.includes('dueDate')) return { state: 'unavailable', reason: 'Due dates are not recorded in the case store' };
   if (label === 'Ready to File') return { state: 'unavailable', reason: 'No verified filing-readiness record' };
   if (label === 'Client Approval') {
     const missing = rows.filter(r => !r.activeStage).length;

@@ -50,7 +50,8 @@ export function AccountantDashboard() {
   const { currentUser, authLifecycleState, setCurrentPage } = useApp();
   const idPrefix = useId();
   const [refresh, setRefresh] = useState(0);
-  const { allowed, session, rows, loading, error } = useAccountantDashboardData(currentUser, authLifecycleState, refresh);
+  const { allowed, session, rows, loading, error, unavailableFields } = useAccountantDashboardData(currentUser, authLifecycleState, refresh);
+  const dueDatesUnavailable = unavailableFields.includes('dueDate');
   // Inspection: no data is requested, so figures stay "unavailable" rather than showing zero.
   const inspecting = useDashboardInspection();
   const [selected, setSelected] = useState(''); const [filter, setFilter] = useState('Assigned Cases'); const [query, setQuery] = useState(''); const [year, setYear] = useState('All');
@@ -145,7 +146,7 @@ export function AccountantDashboard() {
 
       <section className="tg-acct-kpis" aria-label="Key metrics">
         {DASHBOARD_KPIS.map(kpi => {
-          const value = kpiValue(kpi.label, rows, today, dataState);
+          const value = kpiValue(kpi.label, rows, today, dataState, unavailableFields);
           const usable = value.state === 'value';
           return <button type="button" key={kpi.label} className={`tg-acct-kpi${value.state !== 'value' ? ' tg-acct-kpi--muted' : ''}`}
             disabled={!usable} aria-pressed={usable ? filter === kpi.label : undefined} onClick={() => showQueue(kpi.label)}
@@ -238,6 +239,7 @@ export function AccountantDashboard() {
           <section className="tg-acct-card" aria-labelledby={`${idPrefix}-deadlines`}>
             <div className="tg-acct-card-head"><h2 id={`${idPrefix}-deadlines`}><CalendarDays size={16} aria-hidden="true" /> Upcoming Deadlines</h2></div>
             {!ready ? <Empty>{dataState === 'loading' ? 'Loading deadlines…' : 'Deadlines are unavailable.'}</Empty>
+              : dueDatesUnavailable ? <Empty>Due dates are not recorded in the case store, so deadlines are unavailable.</Empty>
               : !deadlines.length ? <Empty>No recorded upcoming engagement deadlines.</Empty>
               : <ul className="tg-acct-deadlines">{deadlines.map(r => {
                   const days = daysUntil(r.dueDate!, today);

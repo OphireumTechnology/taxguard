@@ -11,7 +11,7 @@ export function useAccountantDashboardData(user: User | null, auth: string, refr
   const allowed = accountantAccess(user, auth);
   const session = [user?.id, user?.tenantId, user?.role, user?.status, auth, getStoredToken(), JSON.stringify(user?.authorizedClientIds)].join(':');
   const key = JSON.stringify([session, refresh]);
-  const [state, setState] = useState<{ key: string; rows: AccountantCase[]; loading: boolean; error: string }>({ key: '', rows: [], loading: true, error: '' });
+  const [state, setState] = useState<{ key: string; rows: AccountantCase[]; loading: boolean; error: string; unavailableFields?: string[] }>({ key: '', rows: [], loading: true, error: '' });
 
   useEffect(() => {
     if (!allowed) { setState({ key: '', rows: [], loading: true, error: '' }); return; }
@@ -28,7 +28,8 @@ export function useAccountantDashboardData(user: User | null, auth: string, refr
             ? { ...row, activeStage: current.activeStage } : row;
         } catch { return row; }
       }));
-      if (!abort.signal.aborted) setState({ key, rows: enriched, loading: false, error: '' });
+      // The durable production read model reports which fields it does not record.
+      if (!abort.signal.aborted) setState({ key, rows: enriched, loading: false, error: '', unavailableFields: Array.isArray(data.unavailableFields) ? data.unavailableFields : [] });
     }).catch(() => {
       if (!abort.signal.aborted) setState({ key, rows: [], loading: false, error: 'Authorized cases could not be loaded. Retry to restore your work queue.' });
     });
@@ -36,5 +37,5 @@ export function useAccountantDashboardData(user: User | null, auth: string, refr
   }, [key, allowed]);
 
   const visible = allowed && state.key === key ? state : { key, rows: [], loading: true, error: '' };
-  return { allowed, session, rows: visible.rows, loading: visible.loading, error: visible.error };
+  return { allowed, session, rows: visible.rows, loading: visible.loading, error: visible.error, unavailableFields: visible.unavailableFields ?? [] };
 }
