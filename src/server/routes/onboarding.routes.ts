@@ -10,6 +10,7 @@ import { randomUUID, createHash } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, requireRole, hashPassword } from '../auth';
 import { SupabaseDurableSessions } from '../supabase-db';
+import { canAccessStaffClient } from '../clientAccess';
 import { 
   ClientOnboardingDossier, 
   StaffInvitation, 
@@ -20,6 +21,9 @@ import {
 } from '../../types';
 
 export const onboardingRouter = Router();
+
+// Roles an administrator may invite or activate. Never super-administrator or client roles.
+const ACTIVATABLE_STAFF_ROLES: StaffRole[] = ['consultant', 'accountant', 'reviewer', 'managing_consultant', 'founder', 'administrator'];
 
 // -------------------------------------------------------------
 // PART 1 & 2: SEPARATE CLIENT ONBOARDING
@@ -406,9 +410,17 @@ onboardingRouter.post('/client/submit', authenticateToken, (req: AuthenticatedRe
 
 // 4. Admin review client onboarding
 onboardingRouter.post('/client/review', authenticateToken, requireRole('administrator', 'super_administrator', 'accountant'), (req: AuthenticatedRequest, res: Response) => {
-  const { clientId, decision, notes, correctionInstructions } = req.body;
-  const dossier = db.clientOnboarding.get(clientId);
-  if (!dossier) return res.status(404).json({ error: 'Client dossier not found.' });
+  const { clientId, decision, notes, correctionInstructions } = req.body ?? {};
+  if (decision !== 'approved' && decision !== 'correction_requested') {
+    return res.status(400).json({ error: 'decision must be "approved" or "correction_requested".', code: 'ONBOARDING_DECISION_INVALID' });
+  }
+  if ((notes !== undefined && (typeof notes !== 'string' || notes.length > 4000)) ||
+      (correctionInstructions !== undefined && (typeof correctionInstructions !== 'string' || correctionInstructions.length > 4000))) {
+    return res.status(400).json({ error: 'notes and correctionInstructions must be text of at most 4,000 characters.', code: 'ONBOARDING_NOTES_INVALID' });
+  }
+  const dossier = typeof clientId === 'string' ? db.clientOnboarding.get(clientId) : undefined;
+  // Administrators: clients in their own tenant; accountants: clients they are currently assigned to.
+  if (!dossier || !canAccessStaffClient(req.user!, clientId)) return res.status(404).json({ error: 'Client dossier not found.' });
 
   dossier.reviewSubmission = {
     ...dossier.reviewSubmission,
@@ -462,7 +474,7 @@ onboardingRouter.post(['/staff/invite', '/staff/invitations'], authenticateToken
     return res.status(400).json({ error: 'Email, legal first name, legal last name, and proposed role are required.' });
   }
 
-  const validRoles: StaffRole[] = ['consultant', 'accountant', 'reviewer', 'managing_consultant', 'founder', 'administrator'];
+  const validRoles = ACTIVATABLE_STAFF_ROLES;
   if (!validRoles.includes(proposedRole)) {
     return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
   }
@@ -803,9 +815,27 @@ onboardingRouter.post('/staff/submit', authenticateToken, (req: AuthenticatedReq
 
 // 8. Admin review & activate staff account
 onboardingRouter.post('/staff/review-activate', authenticateToken, requireRole('administrator', 'super_administrator'), (req: AuthenticatedRequest, res: Response) => {
-  const { staffUserId, verifiedQualifications, verifiedLicenses, assignedRole, permissions, adminNotes } = req.body;
-  const dossier = db.staffOnboarding.get(staffUserId);
-  if (!dossier) return res.status(404).json({ error: 'Staff dossier not found.' });
+  const { staffUserId, verifiedQualifications, verifiedLicenses, assignedRole, permissions, adminNotes } = req.body ?? {};
+  const dossier = typeof staffUserId === 'string' ? db.staffOnboarding.get(staffUserId) : undefined;
+  const staffUser = typeof staffUserId === 'string' ? db.users.get(staffUserId) : undefined;
+  // The staff account must exist in the activating administrator's tenant (fail closed if unknown).
+  if (!dossier || !staffUser || !req.user!.tenantId || staffUser.tenantId !== req.user!.tenantId) {
+    return res.status(404).json({ error: 'Staff dossier not found.' });
+  }
+  if (dossier.status !== 'submitted') {
+    return res.status(409).json({ error: 'Only a submitted staff onboarding can be activated.', code: 'STAFF_ONBOARDING_NOT_SUBMITTED' });
+  }
+  // Same role vocabulary as staff invitations: activation can never grant super-administrator or client roles.
+  const activationRole = assignedRole ?? dossier.adminReview?.assignedRole;
+  if (!ACTIVATABLE_STAFF_ROLES.includes(activationRole)) {
+    return res.status(400).json({ error: `assignedRole must be one of: ${ACTIVATABLE_STAFF_ROLES.join(', ')}.`, code: 'STAFF_ROLE_INVALID' });
+  }
+  if (permissions !== undefined && (!Array.isArray(permissions) || permissions.length > 50 || !permissions.every((p: unknown) => typeof p === 'string' && /^[a-z_]{1,64}$/.test(p)))) {
+    return res.status(400).json({ error: 'permissions must be a list of permission identifiers.', code: 'STAFF_PERMISSIONS_INVALID' });
+  }
+  if (adminNotes !== undefined && (typeof adminNotes !== 'string' || adminNotes.length > 4000)) {
+    return res.status(400).json({ error: 'adminNotes must be text of at most 4,000 characters.', code: 'STAFF_NOTES_INVALID' });
+  }
 
   dossier.status = 'approved';
   dossier.adminReview = {
