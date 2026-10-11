@@ -9,8 +9,20 @@ import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest } from '../auth';
 import { AccountingStagingRecord } from '../../types/intake';
+import { canAccessClientRecord } from '../clientAccess';
 
 export const stagingRouter = Router();
+
+/** Loads a staging record the caller may act on; 404 for both missing and unauthorized records. */
+function authorizedRecord(req: AuthenticatedRequest, res: Response): AccountingStagingRecord | null {
+  const record = db.accountingStagingRecords.get(req.params.id);
+  if (!record || !req.user || !canAccessClientRecord(req.user, record.clientId)) {
+    res.status(404).json({ error: 'Staging record not found.' });
+    return null;
+  }
+  return record;
+}
+const validAmount = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1e12;
 
 // Middleware: restrict ledger posting actions to accountant/administrator
 const requireAccountant = (req: AuthenticatedRequest, res: Response, next: () => void) => {
@@ -27,12 +39,9 @@ stagingRouter.get('/records', authenticateToken, (req: AuthenticatedRequest, res
 
   const { clientId, status, recordType } = req.query;
 
-  let records = Array.from(db.accountingStagingRecords.values());
-
-  // Clients can only view their own records
-  if (req.user.role === 'client' || req.user.role === 'prospective_client') {
-    records = records.filter(r => r.clientId === req.user?.id);
-  } else if (clientId && typeof clientId === 'string') {
+  // Clients see only their own records; staff only clients in their tenant they are assigned to.
+  let records = Array.from(db.accountingStagingRecords.values()).filter(r => canAccessClientRecord(req.user!, r.clientId));
+  if (clientId && typeof clientId === 'string') {
     records = records.filter(r => r.clientId === clientId);
   }
 
@@ -54,10 +63,8 @@ stagingRouter.get('/records', authenticateToken, (req: AuthenticatedRequest, res
 stagingRouter.get('/metrics', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  let records = Array.from(db.accountingStagingRecords.values());
-  if (req.user.role === 'client') {
-    records = records.filter(r => r.clientId === req.user?.id);
-  }
+  // Totals cover only records the caller is authorized for (previously all tenants for staff and prospective clients).
+  const records = Array.from(db.accountingStagingRecords.values()).filter(r => canAccessClientRecord(req.user!, r.clientId));
 
   const total = records.length;
   const needsReview = records.filter(r => r.status === 'needs_review').length;
@@ -86,10 +93,13 @@ stagingRouter.get('/metrics', authenticateToken, (req: AuthenticatedRequest, res
 // 3. PUT /api/staging/records/:id/review - Review & update suggested accounts / notes
 stagingRouter.put('/records/:id/review', authenticateToken, requireAccountant, (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const record = db.accountingStagingRecords.get(id);
-  if (!record) return res.status(404).json({ error: 'Staging record not found.' });
+  const record = authorizedRecord(req, res);
+  if (!record) return;
 
-  const { suggestedAccountCode, suggestedAccountName, notes, debitAmount, creditAmount } = req.body;
+  const { suggestedAccountCode, suggestedAccountName, notes, debitAmount, creditAmount } = req.body ?? {};
+  if ((debitAmount !== undefined && !validAmount(debitAmount)) || (creditAmount !== undefined && !validAmount(creditAmount))) {
+    return res.status(400).json({ error: 'Debit and credit amounts must be finite, non-negative numbers.', code: 'AMOUNT_INVALID' });
+  }
 
   if (suggestedAccountCode && suggestedAccountCode !== record.suggestedAccountCode) {
     record.accountantCorrections = {
@@ -119,8 +129,8 @@ stagingRouter.put('/records/:id/review', authenticateToken, requireAccountant, (
 // 4. POST /api/staging/records/:id/approve - Accountant approves record
 stagingRouter.post('/records/:id/approve', authenticateToken, requireAccountant, (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const record = db.accountingStagingRecords.get(id);
-  if (!record) return res.status(404).json({ error: 'Staging record not found.' });
+  const record = authorizedRecord(req, res);
+  if (!record) return;
 
   const { notes } = req.body;
 
@@ -155,8 +165,8 @@ stagingRouter.post('/records/:id/approve', authenticateToken, requireAccountant,
 // 5. POST /api/staging/records/:id/post - Post to General Ledger
 stagingRouter.post('/records/:id/post', authenticateToken, requireAccountant, (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const record = db.accountingStagingRecords.get(id);
-  if (!record) return res.status(404).json({ error: 'Staging record not found.' });
+  const record = authorizedRecord(req, res);
+  if (!record) return;
 
   if (record.status !== 'accountant_approved' && record.status !== 'ready_for_posting') {
     return res.status(400).json({ error: 'Only accountant-approved records can be posted to the authoritative ledger.' });
@@ -215,11 +225,16 @@ stagingRouter.post('/records/:id/post', authenticateToken, requireAccountant, (r
 // 6. POST /api/staging/records/:id/rollback - Rollback posted record (if not locked)
 stagingRouter.post('/records/:id/rollback', authenticateToken, requireAccountant, (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const record = db.accountingStagingRecords.get(id);
-  if (!record) return res.status(404).json({ error: 'Staging record not found.' });
+  const record = authorizedRecord(req, res);
+  if (!record) return;
 
   if (record.status === 'locked') {
     return res.status(400).json({ error: 'Cannot rollback a record in a closed and locked accounting period.' });
+  }
+  // A posted record already created a ledger transaction. Resetting it to review would leave
+  // that transaction in place and a re-post would duplicate it; a reversing entry is required.
+  if (record.status === 'posted' || record.status === 'reconciled') {
+    return res.status(409).json({ error: 'Posted records cannot be rolled back; record a reversing ledger entry instead.', code: 'ROLLBACK_REQUIRES_REVERSAL' });
   }
 
   const previousStatus = record.status;
