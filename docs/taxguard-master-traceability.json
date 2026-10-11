@@ -3517,6 +3517,12 @@
       ]
     },
     {
+      "file": "docs/proposed-migrations/20261012000000_taxguard_staff_session_assurance.sql",
+      "sha256": "7c4a077ff30fb90c71e3731dc5e0dd195bc64974fc91c2b1cebf8e9dc3bbde51",
+      "bytes": 1235,
+      "headings": []
+    },
+    {
       "file": "docs/PROVIDER_COMMISSIONING.md",
       "sha256": "0563071c9d7990daeb23f232df344e1ef8665e2330f0f8aa82e9483e5f863860",
       "bytes": 4130,
@@ -4204,6 +4210,20 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-step1-production-accountant-api-staff-mfa.md",
+      "sha256": "f6794086aea71ec8f5671524895b7dc74216914924909fec3669e4307d1fafcb",
+      "bytes": 4595,
+      "headings": [
+        "# Step 1 — production-compatible Accountant API and mandatory staff MFA (development branch only)",
+        "## 1. Staff MFA (AAL2)",
+        "## 2. Production routes (`src/server/productionApp.ts`)",
+        "## 3. Database and migration requirements (NOT APPLIED)",
+        "## 4. Production hosting requirements",
+        "## 5. Tests",
+        "## 6. Remaining blockers"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4219,8 +4239,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "ab80e7d50f500a4558b17cbd0f4867c1ff513124b33fbe489bdece2e74ac3a02",
-      "bytes": 11312,
+      "sha256": "ae0357ab0d202e0fdcf2add5e086db1ef1b869a3e3118d143f6333862e788229",
+      "bytes": 11860,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4516,10 +4536,10 @@
     "src/server/ai/review/HumanProposalReviewService.ts": "44146fdbbb0cd421e7afb2ad50a9a415ed803fdd4ee7f2d96b787cf2b2fc102b",
     "src/server/ai/review/MaterialActionPreparation.ts": "e02db6d93c432fa573229d59ddf51b84f9b7cd9f99eb80151efce1b170aaa6a6",
     "src/server/assignment-authorization.ts": "ade1e21aac6746875b9b5e99b9ebd265a477612670af0666ec7cf11d50647f6b",
-    "src/server/auth.ts": "23e7674ba9b83cdaef63f8288840b42e67138c789f2e3d1e004aa43cdb09fe93",
+    "src/server/auth.ts": "b667e80896fbda27b1e1fad40337d356c2a4c90c86b5aea8ce6b62ba4c63dfdd",
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
-    "src/server/productionApp.ts": "9ff8ae9d40e348b58b77806bb313a3a77205072b2a8773ee4d02a3f0355c7d8c",
+    "src/server/productionApp.ts": "812c6e32ac4d631e52b2f4b766e1f64bd13d45930915887c9beefa3a7cd83ada",
     "src/server/routes/profile-amendment.routes.ts": "4369679255de2c1e47bc558b5d3a66f658d1b742ed0b033d4a3fe0d15065a714",
     "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
     "src/server/taxguard/authority.repository.ts": "775ac57a1954ea44e0d58f79c039c52c1757099e3a06e6a91d076475c3bb3884",
@@ -4549,7 +4569,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "35f4c642cc55b410dc4128b2cea9a655eafbc068800768ca2764991937002399",
+    "src/services/api.ts": "2e0926d1c7221a406b7de9de983404a18cda1e82e766bb9f0d9166915bcad902",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
@@ -4580,7 +4600,7 @@
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
-    "src/tests/finalReleaseGateVerification.test.ts": "f82737fc0ca87401e6f37aabe6b88df57d9181b3644f8b55549081507bc78206",
+    "src/tests/finalReleaseGateVerification.test.ts": "3dfd0ffe9fcd3ac79d4163e0693ed55f6d97c003d16a8bbbad717dedf653b17c",
     "src/tests/lazyWorkspaceRouting.test.tsx": "c3c37d7e22fd803411a4c3e015e6d948215edfbfd5386b9a020e5f1a03a88140",
     "src/tests/legacyIdempotencyIntegrity.test.ts": "8f330a1bb9df8d15972f959b7a3ce4e44a3cd726b06484860035c914f6bdb718",
     "src/tests/legacyJobClaimIntegrity.test.ts": "00051245b8229bf8f2ea974cf589e7ef532063fa39975196fd75d5815448911e",
