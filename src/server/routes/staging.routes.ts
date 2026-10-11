@@ -193,6 +193,7 @@ stagingRouter.post('/records/:id/post', authenticateToken, requireAccountant, (r
   });
 
   record.status = 'posted';
+  record.postedTransactionId = txId;
   record.auditTrail.push({
     action: 'POSTED_TO_LEDGER',
     actor: `${req.user?.name} (${req.user?.role})`,
@@ -234,7 +235,7 @@ stagingRouter.post('/records/:id/rollback', authenticateToken, requireAccountant
   // A posted record already created a ledger transaction. Resetting it to review would leave
   // that transaction in place and a re-post would duplicate it; a reversing entry is required.
   if (record.status === 'posted' || record.status === 'reconciled') {
-    return res.status(409).json({ error: 'Posted records cannot be rolled back; record a reversing ledger entry instead.', code: 'ROLLBACK_REQUIRES_REVERSAL' });
+    return res.status(409).json({ error: 'Posted records cannot be rolled back; request a reversing entry via /records/:id/reversal/request.', code: 'ROLLBACK_REQUIRES_REVERSAL' });
   }
 
   const previousStatus = record.status;
@@ -250,4 +251,152 @@ stagingRouter.post('/records/:id/rollback', authenticateToken, requireAccountant
   db.accountingStagingRecords.set(id, record);
 
   return res.json({ success: true, message: 'Record rolled back to review status.', record });
+});
+
+// -------------------------------------------------------------
+// CONTROLLED REVERSING-ENTRY WORKFLOW (posted records)
+// The original ledger transaction is never modified or deleted: approval creates an
+// offsetting transaction linked to it. Requester and approver must be different people.
+// -------------------------------------------------------------
+
+const REVERSAL_APPROVER_ROLES = new Set(['administrator', 'senior_reviewer']);
+
+/** The ledger transaction created when this record was posted (explicit link, or legacy audit-trail note). */
+function originalTransactionFor(record: AccountingStagingRecord) {
+  let txId = record.postedTransactionId;
+  if (!txId) {
+    const posted = [...record.auditTrail].reverse().find(entry => entry.action === 'POSTED_TO_LEDGER');
+    txId = posted?.notes?.match(/#(tx_[A-Za-z0-9_-]+)/)?.[1];
+  }
+  const tx = txId ? db.bookkeepingTransactions.get(txId) : undefined;
+  return tx && tx.clientId === record.clientId && !tx.reversesTransactionId ? tx : undefined;
+}
+
+function reversalBlocker(record: AccountingStagingRecord): { status: number; code: string; error: string } | null {
+  if (record.status === 'locked') return { status: 400, code: 'PERIOD_LOCKED', error: 'Cannot reverse a record in a closed and locked accounting period.' };
+  if (record.status === 'reconciled') return { status: 409, code: 'RECONCILED_RECORD', error: 'Reconciled records must be unreconciled before a reversal.' };
+  if (record.status !== 'posted') return { status: 409, code: 'NOT_POSTED', error: 'Only posted records can be reversed.' };
+  return null;
+}
+
+// 7. POST /api/staging/records/:id/reversal/request - Accountant requests a reversing entry
+stagingRouter.post('/records/:id/reversal/request', authenticateToken, requireAccountant, (req: AuthenticatedRequest, res: Response) => {
+  const record = authorizedRecord(req, res);
+  if (!record) return;
+  const { reason } = req.body ?? {};
+  if (typeof reason !== 'string' || reason.trim().length < 10 || reason.length > 1000) {
+    return res.status(400).json({ error: 'A reversal reason of 10 to 1,000 characters is required.', code: 'REVERSAL_REASON_INVALID' });
+  }
+  const blocker = reversalBlocker(record);
+  if (blocker) return res.status(blocker.status).json({ error: blocker.error, code: blocker.code });
+  if (record.reversalRequest) return res.status(409).json({ error: 'A reversal request is already pending.', code: 'REVERSAL_ALREADY_PENDING' });
+  const original = originalTransactionFor(record);
+  if (!original) return res.status(409).json({ error: 'The original ledger transaction cannot be identified; reverse it manually through the general ledger.', code: 'ORIGINAL_TRANSACTION_UNRESOLVED' });
+  if (original.reversedByTransactionId) return res.status(409).json({ error: 'The original transaction has already been reversed.', code: 'ALREADY_REVERSED' });
+
+  record.reversalRequest = { originalTransactionId: original.id, requestedBy: req.user!.id, requestedByName: req.user!.name, requestedAt: new Date().toISOString(), reason: reason.trim() };
+  record.auditTrail.push({ action: 'REVERSAL_REQUESTED', actor: `${req.user!.name} (${req.user!.role})`, timestamp: record.reversalRequest.requestedAt, notes: `Reversal of ledger transaction #${original.id} requested.` });
+  db.accountingStagingRecords.set(record.id, record);
+
+  db.logAudit({
+    userId: req.user!.id, userName: req.user!.name, userRole: req.user!.role,
+    action: 'LEDGER_REVERSAL_REQUESTED', resource: `Staging Record #${record.id}`,
+    details: `Reversal of ledger transaction #${original.id} requested; awaiting independent approval.`,
+    ipAddress: req.ip || 'unknown', severity: 'warning'
+  });
+
+  return res.status(202).json({ success: true, message: 'Reversal requested; independent approval is required.', reversalRequest: record.reversalRequest });
+});
+
+/** Loads a record with a pending request for an independent approver; responds and returns null on failure. */
+function reviewableReversal(req: AuthenticatedRequest, res: Response): AccountingStagingRecord | null {
+  if (!req.user || !REVERSAL_APPROVER_ROLES.has(req.user.role)) {
+    res.status(403).json({ error: 'Only Senior Reviewers or Administrators can decide reversal requests.', code: 'REVERSAL_APPROVER_ROLE_REQUIRED' });
+    return null;
+  }
+  const record = authorizedRecord(req, res);
+  if (!record) return null;
+  if (!record.reversalRequest) { res.status(409).json({ error: 'No reversal request is pending.', code: 'NO_PENDING_REVERSAL' }); return null; }
+  if (record.reversalRequest.requestedBy === req.user.id) {
+    res.status(403).json({ error: 'Maker-Checker Violation: the requester cannot decide their own reversal request.', code: 'MAKER_CHECKER_VIOLATION' });
+    return null;
+  }
+  return record;
+}
+
+// 8. POST /api/staging/records/:id/reversal/approve - Independent approval creates the reversing entry
+stagingRouter.post('/records/:id/reversal/approve', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const record = reviewableReversal(req, res);
+  if (!record) return;
+  const request = record.reversalRequest!;
+  // Re-check state at approval time; anything may have changed since the request.
+  const blocker = reversalBlocker(record);
+  if (blocker) return res.status(blocker.status).json({ error: blocker.error, code: blocker.code });
+  const original = db.bookkeepingTransactions.get(request.originalTransactionId);
+  if (!original || original.clientId !== record.clientId) return res.status(409).json({ error: 'The original ledger transaction no longer exists.', code: 'ORIGINAL_TRANSACTION_UNRESOLVED' });
+  if (original.reversedByTransactionId) return res.status(409).json({ error: 'The original transaction has already been reversed.', code: 'ALREADY_REVERSED' });
+
+  const now = new Date().toISOString();
+  const reversingId = `tx_rev_${randomUUID().slice(0, 8)}`;
+  db.bookkeepingTransactions.set(reversingId, {
+    id: reversingId,
+    clientId: original.clientId,
+    date: now.slice(0, 10),
+    description: `REVERSAL of #${original.id}: ${original.description}`,
+    amount: original.amount,
+    type: original.type === 'debit' ? 'credit' : 'debit',
+    suggestedAccountCode: original.suggestedAccountCode,
+    suggestedAccountName: original.suggestedAccountName,
+    category: original.category,
+    confidence: 100,
+    status: 'confirmed',
+    vendorOrPayee: original.vendorOrPayee,
+    matchedRule: `Reversing entry requested by ${request.requestedByName}, approved by ${req.user!.name}`,
+    source: 'manual',
+    sourceDocumentId: original.sourceDocumentId,
+    reviewerNotes: `Reason: ${request.reason}`,
+    reversesTransactionId: original.id
+  });
+  // Link only: the original's amount, type, date and status are preserved.
+  original.reversedByTransactionId = reversingId;
+  db.bookkeepingTransactions.set(original.id, original);
+
+  record.reversals = [...(record.reversals || []), { originalTransactionId: original.id, reversingTransactionId: reversingId, requestedBy: request.requestedBy, approvedBy: req.user!.id, reason: request.reason, approvedAt: now }];
+  record.reversalRequest = undefined;
+  record.postedTransactionId = undefined;
+  record.status = 'needs_review';
+  record.auditTrail.push({ action: 'REVERSAL_APPROVED', actor: `${req.user!.name} (${req.user!.role})`, timestamp: now, notes: `Reversing transaction #${reversingId} offsets #${original.id}. Record returned to review.` });
+  db.accountingStagingRecords.set(record.id, record);
+
+  db.logAudit({
+    userId: req.user!.id, userName: req.user!.name, userRole: req.user!.role,
+    action: 'LEDGER_REVERSAL_APPROVED', resource: `Ledger Tx #${reversingId}`,
+    details: `Reversing entry #${reversingId} created for #${original.id} (requested by ${request.requestedByName}).`,
+    ipAddress: req.ip || 'unknown', severity: 'warning'
+  });
+
+  return res.json({ success: true, message: 'Reversal approved; reversing entry recorded and the record returned to review.', reversingTransactionId: reversingId, record });
+});
+
+// 9. POST /api/staging/records/:id/reversal/reject - Independent reviewer rejects the request
+stagingRouter.post('/records/:id/reversal/reject', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const record = reviewableReversal(req, res);
+  if (!record) return;
+  const { notes } = req.body ?? {};
+  if (notes !== undefined && (typeof notes !== 'string' || notes.length > 1000)) {
+    return res.status(400).json({ error: 'notes must be text of at most 1,000 characters.', code: 'REVERSAL_NOTES_INVALID' });
+  }
+  const request = record.reversalRequest!;
+  record.reversalRequest = undefined;
+  record.auditTrail.push({ action: 'REVERSAL_REJECTED', actor: `${req.user!.name} (${req.user!.role})`, timestamp: new Date().toISOString(), notes: notes || `Reversal of #${request.originalTransactionId} rejected.` });
+  db.accountingStagingRecords.set(record.id, record);
+
+  db.logAudit({
+    userId: req.user!.id, userName: req.user!.name, userRole: req.user!.role,
+    action: 'LEDGER_REVERSAL_REJECTED', resource: `Staging Record #${record.id}`,
+    details: `Reversal request for #${request.originalTransactionId} rejected.`,
+    ipAddress: req.ip || 'unknown', severity: 'info'
+  });
+
+  return res.json({ success: true, message: 'Reversal request rejected; the posted record is unchanged.', record });
 });
