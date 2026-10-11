@@ -507,13 +507,13 @@ export class SupabaseDurableSessions {
       return null;
     }
 
-    const { data: identity } = await this.client
+    const { data: identity, error: identityError } = await this.client
       .from('taxguard_identities')
       .select('*')
       .eq('uid', resolvedSession.uid)
       .maybeSingle();
 
-    const { data: member } = await this.client
+    const { data: member, error: memberError } = await this.client
       .from('taxguard_members')
       .select('*')
       .eq('tenant_id', this.tenantId)
@@ -522,16 +522,21 @@ export class SupabaseDurableSessions {
 
     const inMemUserForVerify = db.users.get(resolvedSession.uid);
     const isProduction = process.env.NODE_ENV === 'production';
+    // Local fallbacks apply only when the database could not be read. A successful
+    // lookup that finds no row is authoritative: a removed identity or membership
+    // must revoke access immediately, even though verify() caches users in db.users.
+    const identityFallbackAllowed = !isProduction && Boolean(identityError);
+    const memberFallbackAllowed = !isProduction && Boolean(memberError);
     const resolvedIdentity =
       identity ||
-      (!isProduction ? fallbackIdentities.get(resolvedSession.uid) : null) ||
-      (!isProduction && inMemUserForVerify
+      (identityFallbackAllowed ? fallbackIdentities.get(resolvedSession.uid) : null) ||
+      (identityFallbackAllowed && inMemUserForVerify
         ? { uid: resolvedSession.uid, tenant_id: this.tenantId, user_data: inMemUserForVerify }
         : null);
     const resolvedMember =
       member ||
-      (!isProduction ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) : null) ||
-      (!isProduction && inMemUserForVerify
+      (memberFallbackAllowed ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) : null) ||
+      (memberFallbackAllowed && inMemUserForVerify
         ? {
             tenant_id: this.tenantId,
             uid: resolvedSession.uid,
