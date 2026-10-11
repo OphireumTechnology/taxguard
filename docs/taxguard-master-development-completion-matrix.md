@@ -1,6 +1,6 @@
 # TaxGuard Master Development Completion Matrix
 
-**PRODUCTION STATUS: NO-GO.** Last updated 2026-10-12 (cycle h).
+**PRODUCTION STATUS: NO-GO.** Last updated 2026-10-12 (cycle i: super administrator access).
 
 This is the cumulative, verifiable feature register requested by the Master Development Completion Directive. It complements, and does not replace:
 
@@ -39,6 +39,9 @@ This is the cumulative, verifiable feature register requested by the Master Deve
 | P1-11 | Staff activation cannot grant roles outside the invitation vocabulary (privilege escalation) | `ACTIVATABLE_STAFF_ROLES` shared by invite and activation | — | COMPLETE AND VERIFIED (cycle g) | `onboardingReviewAuthorization.test.ts` |
 | P1-09 | MFA, rate limiting and lockout | Audited in cycle (h). Legacy local login: MFA-code bypass closed (fails closed with no verifier); account-wide lockout (15 / any IP) added beside per-IP lockout (5); reset-token exposure and throttling fixed. | Production (Supabase) sessions do not enforce MFA assurance level (AAL2): needs the role → MFA policy and Supabase MFA configuration. No general API rate limiter verified on legacy routes. | IMPLEMENTED BUT INCOMPLETE; production MFA **BLOCKED BY OWNER DECISION (H06 / H09) + INTEGRATION (E03)** | `authBruteForceAndMfa.test.ts` |
 | P1-13 | Password reset cannot be taken over outside production | `devResetToken` only with an explicit local-development opt-in; per-address throttle with neutral responses | — | COMPLETE AND VERIFIED (cycle h) | `authBruteForceAndMfa.test.ts` |
+| P1-14 | Real super administrator sign-in (local): environment-provisioned account, password hash, mandatory TOTP (RFC 6238, replay-protected), server-side role, 30 min idle / 8 h absolute session, server-side logout, audit | `superAdminBootstrap.ts`, `totp.ts`, `auth.routes.ts`, `scripts/provision-super-admin.mjs`, staff sign-in page | Supabase-path super administrator with AAL2 (E03, H06 / H09) | COMPLETE AND VERIFIED (local, cycle i); live browser sign-in verified on localhost with a synthetic account | `superAdminAccess.test.ts` |
+| P1-15 | No universal super-administrator override; maker-checker, locked periods and role-exclusive routes bind super administrators | `requireRole` (super admin = administrator superset only); five `accountant.routes.ts` exemptions removed | — | COMPLETE AND VERIFIED (cycle i) | `superAdminAccess.test.ts` (mutation-checked) |
+| P1-16 | No hard-coded seed passwords | `initSeedPasswords` seeds only from `SEED_*`; seeded super administrator never seeded | — | COMPLETE AND VERIFIED (cycle i) | `superAdminAccess.test.ts` |
 | P1-10 | RLS on deployed Supabase | Migrations + disposable PGlite tests | Platform verification | BLOCKED BY INTEGRATION (E01 / E07) | `aiGovernanceFixture.ts` suites |
 
 ## 2. Documents (Phase 6 / directive §9)
@@ -79,7 +82,8 @@ These are unchanged from the requirements matrix §3.2–3.5 and the remaining-w
 | Area | Status | Blocked by |
 | --- | --- | --- |
 | Client, Accountant, Reviewer, Bookkeeper, Practice Manager, Client Service dashboards | IMPLEMENTED BUT INCOMPLETE | — |
-| Billing, Security / Compliance, Executive dashboards | NOT IMPLEMENTED or partial | H06 |
+| Super Administrator console: 10-dashboard selector (URL + local persistence, audited), inspection mode (layout only, no role data, no permission change) | COMPLETE AND VERIFIED (local, cycle i): `superAdminConsole.test.tsx`, `superAdminAccess.test.ts`, localhost browser walk-through | — |
+| Billing, Security / Compliance, Executive dashboards | NOT IMPLEMENTED or partial (shown as honest status cards in the console) | H06 |
 | Tax calculation engine and form coverage | IMPLEMENTED BUT INCOMPLETE; no jurisdiction certified | H07 |
 | E-signature, filing, payments, email / calendar providers | BLOCKED BY INTEGRATION | E04 |
 | Infrastructure, deployment and DR | BLOCKED BY INTEGRATION | E08 / E09 |

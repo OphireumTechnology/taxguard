@@ -3457,7 +3457,7 @@
     {
       "file": "docs/production/PRODUCTION-ACCEPTANCE.md",
       "sha256": "bc13dc8c4e2a59653bbc865f90be06f202d95d2f7cd76e8df5f625599bd5f0f5",
-      "bytes": 1176,
+      "bytes": 1211,
       "headings": [
         "# TaxGuard Production Deployment",
         "## Frozen baseline",
@@ -3468,7 +3468,7 @@
     {
       "file": "docs/production/PRODUCTION-DEPLOYMENT-ARCHITECTURE.md",
       "sha256": "aae8b9e65a5f046df97c811cbddca814a0e2bbbc57672698420ae7ec00934c24",
-      "bytes": 1696,
+      "bytes": 1760,
       "headings": [
         "# TaxGuard Production Deployment Architecture",
         "## Required runtime boundary",
@@ -3565,7 +3565,7 @@
     {
       "file": "docs/taxguard-ai-agent-baseline.md",
       "sha256": "94dcac5aafd9fe7f61e5e7efc126afd985da584d659aef0b41065262e6b27430",
-      "bytes": 25376,
+      "bytes": 25377,
       "headings": [
         "## Scope and safety",
         "## Executive assessment",
@@ -3588,7 +3588,7 @@
     {
       "file": "docs/taxguard-ai-agent-gate-ai-1.md",
       "sha256": "d265fecc7c55153ce0ed054c1fb8024476b63825b55f49319062f22b2956846c",
-      "bytes": 13615,
+      "bytes": 13616,
       "headings": [
         "## 1. Status",
         "## 2. Database structures created",
@@ -3690,7 +3690,7 @@
     {
       "file": "docs/taxguard-ai-agent-gate-ai-2.md",
       "sha256": "a3768377ba7e03a79d3892f004cfe7732bb911f646157fc452b792f008b30546",
-      "bytes": 17179,
+      "bytes": 17180,
       "headings": [
         "## A. Objective implemented",
         "## B. Architecture added/changed",
@@ -3864,7 +3864,7 @@
     {
       "file": "docs/taxguard-ai-canonical-architecture.md",
       "sha256": "a85bec882e26b9472ebbd3d14232c8caaa6fcfbe956545bca40aeea35ce539fc",
-      "bytes": 12426,
+      "bytes": 12492,
       "headings": [
         "# TaxGuard canonical A00-A60 architecture and authority mapping",
         "## Reconciliation and source order",
@@ -3890,7 +3890,7 @@
     {
       "file": "docs/taxguard-ai-legacy-mapping.md",
       "sha256": "1d71143fb29a94bc8162a90544cfd00c993b46c378760dc9f53bdf3f83d40802",
-      "bytes": 12051,
+      "bytes": 12052,
       "headings": [
         "## Disposition",
         "## Canonical identities",
@@ -4162,6 +4162,20 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-cycle-20261012i-super-admin-access.md",
+      "sha256": "4e3dcf5de1c4072e36242e8269a4b588ba0d483fb3ce2f474b90e545748c79ab",
+      "bytes": 6294,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-12 (i) — real super administrator sign-in and dashboard inspection",
+        "## 1. Inspection findings (before changes)",
+        "## 2. Changes",
+        "## 3. Verification",
+        "## 4. Dashboard status (honest)",
+        "## 5. Not verified / blocked",
+        "## 6. Validation"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4177,8 +4191,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "9a117a1d250912fc7fb4be176afaad022ec694a7596e198d4a2654b11f04e15a",
-      "bytes": 8809,
+      "sha256": "622316af0dc4cc0ce4d5325a4fe120750745a8ed36f10fc412c70e66aa4415db",
+      "bytes": 10250,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4332,27 +4346,40 @@
       ]
     },
     {
+      "file": "docs/taxguard-super-admin-local-access.md",
+      "sha256": "9494d6f2ab5d891d85b95e239e30372a5104f9da011438d96e9ba5fc7a2008f1",
+      "bytes": 6497,
+      "headings": [
+        "# Super administrator: local provisioning, sign-in and dashboard inspection",
+        "## 1. Provision the first super administrator (once)",
+        "## 2. Start the server and sign in",
+        "## 3. Switch dashboards",
+        "## 4. What a super administrator can and cannot do",
+        "## 5. Not verified / blocked"
+      ]
+    },
+    {
       "file": "supabase/migrations/20260928000000_taxguard_core_schema.sql",
       "sha256": "168f9766b3afa275bd05a30a64318c5b18c4f863083a247b2f121003a33329eb",
-      "bytes": 24018,
+      "bytes": 23528,
       "headings": []
     },
     {
       "file": "supabase/migrations/20260929000000_taxguard_complete_lifecycle_schema.sql",
       "sha256": "4f944bfcef459770c2b3a6d788d378139f74e6b1dd65660271d4089f0940157f",
-      "bytes": 20185,
+      "bytes": 19779,
       "headings": []
     },
     {
       "file": "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql",
       "sha256": "4a712a7d611ba2202af6ffa1a1d535e3c92bac0c0d4205e5ce2353cac92d6128",
-      "bytes": 13751,
+      "bytes": 13472,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
       "sha256": "a6527231f32396c03402531359fd1e8dbd9d635a18b34122c8e1eb273f62e299",
-      "bytes": 20718,
+      "bytes": 20292,
       "headings": []
     },
     {
@@ -4370,43 +4397,43 @@
     {
       "file": "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql",
       "sha256": "b3bb51afa024f476a4cf0e878903f486e003b16a7dd5100692804fb66c9f725b",
-      "bytes": 56978,
+      "bytes": 56480,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008010000_taxguard_ai_governance_decisions.sql",
       "sha256": "2e590660fd13c165151cecd66219d847176b33ab4f716f60910b39a3cac8ac9f",
-      "bytes": 2659,
+      "bytes": 2630,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql",
       "sha256": "32d8730396806e999fadcb56f849c312967c30d5b61a99111ccc02fd860cf965",
-      "bytes": 6436,
+      "bytes": 6356,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008030000_taxguard_ai_gateway_admission.sql",
       "sha256": "a901ea2c5e2121d86d24c70ec67b0a61ddd13498246612aab415314f56949172",
-      "bytes": 10113,
+      "bytes": 10000,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql",
       "sha256": "1e18fec249898388a6a78c8ef44ff5488521ca708b9b5b422e8226fbbec77ac6",
-      "bytes": 9672,
+      "bytes": 9571,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008050000_taxguard_ai_execution_ledger.sql",
       "sha256": "40d1d79e86d987dd91f19ad5426ab1f7f7b5bdda8ef5b024f9b2f71f636c0e6c",
-      "bytes": 12748,
+      "bytes": 12623,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008060000_taxguard_ai_document_advisory_routing.sql",
       "sha256": "c0c0ef4caf1c575b71323c2db1fd805a1facecb2f2d7a3fabb6a88c30fc23016",
-      "bytes": 399,
+      "bytes": 393,
       "headings": []
     }
   ],
@@ -4433,21 +4460,21 @@
     "scripts/setup-local-browser.mjs": "6ebb75c4c5d8c965917039ece300fc49e7ebbaadf04d3367601ba1eac98a40c4",
     "scripts/synthetic-acceptance-plan.mjs": "9ffaaf343b846010ef6fad24d11b98b90e49e43a07b748e10583cb1801ac0df7",
     "scripts/verify-local-traceability.mjs": "e7aff96754962c5e14fadb07df2418912d926b72fc254a94d66dc6496018b000",
-    "src/App.tsx": "c348256f93cdada3f77f4f2314a5c3faac6bf98c0dc65e2a596bf4fc29ab52d7",
+    "src/App.tsx": "fa91550a615e3e8e175633caa74c9a181f92a59a40af8af0cc2536bf8c5d1d36",
     "src/ai/architectureMapping.ts": "6d7af6b6cb2860e0247af0243b42e2704f1d77ee020cec5e6625a386115c9377",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/PracticeAdminWorkspace.tsx": "0360c0385d88cba0a5bde9e5af121f8f0f238784cb4c1687be4762f8151be650",
-    "src/components/auth/AuthPages.tsx": "e0b4bcc9c7af58109672774c45980efa6930ae264a30f4ffb5ee594afa5548b1",
-    "src/components/layout/DashboardApplicationShell.tsx": "3f7d827643595da208aa14520dc7792aff59fa780f35ff50045871b368319a07",
+    "src/components/auth/AuthPages.tsx": "be4e3a5a5de695494b90d0207ecc1c5ff8652e4c50e1d6e4a126518ec41d8f4e",
+    "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
     "src/components/portal/AuthenticatedClientDashboard.tsx": "acf6e8925425d50e3146c2a68c9a6872f799930d59ac806b111b20c7e3caaba1",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "5b3225c9e91e3c08975629640a42cf287e10b9e416132a8e5b8d7c3aa12ecdb6",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
-    "src/components/workspace/BookkeeperDashboard.tsx": "c70e8a9cc9f76aa399bce2e905b02ee01b3d82140d077810be3a4945fffb50c4",
-    "src/components/workspace/ClientServiceDashboard.tsx": "35df8ec91243d7e674973c8993cf51cbfdc947f12a070765e2710ef76edb3ec5",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "456cba46474b851a9b3d07a85669985f3e6e477f9d1158f95c8a3bbf74e60707",
+    "src/components/workspace/BookkeeperDashboard.tsx": "880c6627785d22ebc6eaa0cfe36fa43b92722b0d89fcf042ea593b886285bf93",
+    "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "069135d275c62f1d1368def3590e1bd9ef420b3a69fea6c9c750154f2225ed7a",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
-    "src/config/canonicalRouting.ts": "dfde16991c913544741eee7efd958957f346ab9aba881a468db27790718f3bb2",
+    "src/config/canonicalRouting.ts": "afc5204ff15bf515427c71a6a7b45591eb11983f2f3b2a71293f176e9847813a",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
     "src/server/ai/capabilities/GovernedCapabilityExecutor.ts": "7d9ed0170cd95372555e2398e44a41427fe5c1292f2256c64353afa1aa1d23c1",
     "src/server/ai/capabilities/ScopedReadRepository.ts": "c4c738163414daf292c20d13b395ea0e43c6ea2a822bea18c677faefe7f80f40",
@@ -4460,7 +4487,7 @@
     "src/server/ai/review/HumanProposalReviewService.ts": "44146fdbbb0cd421e7afb2ad50a9a415ed803fdd4ee7f2d96b787cf2b2fc102b",
     "src/server/ai/review/MaterialActionPreparation.ts": "e02db6d93c432fa573229d59ddf51b84f9b7cd9f99eb80151efce1b170aaa6a6",
     "src/server/assignment-authorization.ts": "ade1e21aac6746875b9b5e99b9ebd265a477612670af0666ec7cf11d50647f6b",
-    "src/server/auth.ts": "6e2389f1b602905d8805d745a5c54f7dac2bcbe35805b2be9c30784f9e8ee0b4",
+    "src/server/auth.ts": "23e7674ba9b83cdaef63f8288840b42e67138c789f2e3d1e004aa43cdb09fe93",
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
     "src/server/productionApp.ts": "9ff8ae9d40e348b58b77806bb313a3a77205072b2a8773ee4d02a3f0355c7d8c",
@@ -4493,7 +4520,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "5d289eeb60fbb460626fda97da3b24390fa2fa376e1695169ca04b3fe2c57279",
+    "src/services/api.ts": "47eb3eec7a722b5b6ba34c03e40941ee257f8fb09b5fd5825652f546ade100ab",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
