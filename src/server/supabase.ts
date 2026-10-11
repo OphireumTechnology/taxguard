@@ -23,14 +23,22 @@ export function setSupabaseAdmin(client: SupabaseClient | null): void {
 export function getSupabaseAdmin(): SupabaseClient {
   if (!_supabaseAdmin) {
     const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    // The public anon key is never a substitute for the privileged service credential.
+    const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
     if (!url || !serviceRoleKey) {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('SUPABASE_CONFIG_MISSING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in production.');
       }
-      // Development fallback client
-      _supabaseAdmin = createClient(url || 'http://127.0.0.1:54321', serviceRoleKey || 'dev-service-role-key', {
+      // Fail-closed development client: never invents credentials or targets an assumed
+      // local endpoint. Every request rejects locally with SUPABASE_CONFIG_MISSING.
+      _supabaseAdmin = createClient('https://supabase-not-configured.invalid', 'not-configured', {
+        global: {
+          fetch: async () => {
+            throw new Error('SUPABASE_CONFIG_MISSING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not configured.');
+          }
+        },
+        db: { retry: false },
         auth: {
           autoRefreshToken: false,
           persistSession: false
@@ -53,7 +61,7 @@ export function isSupabaseServerConfigured(): boolean {
   if (!url || url.includes('your-project') || url.includes('placeholder')) {
     return false;
   }
-  return Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY));
+  return Boolean((process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim());
 }
 
 export interface VerifiedSupabaseUser {

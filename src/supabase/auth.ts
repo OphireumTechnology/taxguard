@@ -18,6 +18,7 @@ export type ControlledAuthErrorCode =
   | 'TENANT_ACCESS_DENIED'
   | 'CASE_INITIALIZATION_FAILED'
   | 'AUTH_SERVICE_UNAVAILABLE'
+  | 'AUTH_NOT_CONFIGURED'
   | 'DUPLICATE_REGISTRATION'
   | 'INVALID_CREDENTIALS'
   | 'VALIDATION_FAILED';
@@ -220,6 +221,13 @@ export function sanitizeAuthErrorMessage(
         : '';
 
   const lower = rawMessage.toLowerCase();
+
+  if (lower.includes('supabase_not_configured')) {
+    return {
+      code: 'AUTH_NOT_CONFIGURED',
+      message: 'Sign-in is not available because TaxGuard authentication has not been configured for this environment. Please contact your administrator.'
+    };
+  }
 
   if (
     lower.includes('already registered') ||
@@ -601,6 +609,10 @@ export async function requestPasswordReset(
 
     if (error) {
       const errMsg = (error.message || '').toLowerCase();
+      // Configuration state is not account-specific, so reporting it cannot enable enumeration.
+      if (errMsg.includes('supabase_not_configured')) {
+        return { success: false, error: sanitizeAuthErrorMessage(error).message };
+      }
       if (errMsg.includes('rate') || errMsg.includes('too many') || (error as any).status === 429) {
         return {
           success: false,
@@ -616,6 +628,9 @@ export async function requestPasswordReset(
     };
   } catch (err: any) {
     const errStr = (err?.message || String(err)).toLowerCase();
+    if (errStr.includes('supabase_not_configured')) {
+      return { success: false, error: sanitizeAuthErrorMessage(err).message };
+    }
     if (errStr.includes('rate') || errStr.includes('too many') || err?.status === 429) {
       return {
         success: false,

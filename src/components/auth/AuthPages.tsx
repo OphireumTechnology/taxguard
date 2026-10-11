@@ -7,6 +7,8 @@ import {
   ControlledAuthErrorCode,
   RegistrationResultState
 } from '../../supabase/auth';
+import { isSupabaseConfigured } from '../../supabase/config';
+import { AuthConfigurationNotice } from './AuthConfigurationNotice';
 import {
   Lock,
   Mail,
@@ -32,6 +34,11 @@ const REGISTRATION_STATE_LABELS: Record<RegistrationResultState, string> = {
   READY: 'Onboarding Workspace Ready — Redirecting...',
   FAILED: 'Registration Could Not Be Completed'
 };
+
+/** Failures (rate limit, unconfigured service) must never be presented as a sent recovery email. */
+export function passwordResetOutcome(result: { success: boolean; error?: string }): { error?: string } {
+  return result.success ? {} : { error: result.error || 'Password recovery could not be requested. Please try again later.' };
+}
 
 export const ClientLoginPage: React.FC = () => {
   const fieldPrefix = React.useId();
@@ -114,12 +121,17 @@ export const ClientLoginPage: React.FC = () => {
 
   const handlePasswordResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetEmail.trim()) return;
+    if (!resetEmail.trim() || !isSupabaseConfigured()) return;
     setResetLoading(true);
     setError(null);
     setResetSuccess(null);
     const result = await requestSupabasePasswordReset(resetEmail.trim());
     setResetLoading(false);
+    const outcome = passwordResetOutcome(result);
+    if (outcome.error) {
+      setError(outcome.error);
+      return;
+    }
     setResetSuccess(
       result.message ||
         'If an account exists for this email address, password recovery instructions have been sent.'
@@ -141,6 +153,7 @@ export const ClientLoginPage: React.FC = () => {
       </div>
 
       <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
+        <AuthConfigurationNotice />
         {error && (
           <div
             role="alert"
@@ -206,7 +219,7 @@ export const ClientLoginPage: React.FC = () => {
             <div className="pt-2 space-y-2">
               <button
                 type="submit"
-                disabled={resetLoading}
+                disabled={resetLoading || !isSupabaseConfigured()}
                 className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
               >
                 <Mail className="w-4 h-4" />
@@ -277,7 +290,7 @@ export const ClientLoginPage: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isSupabaseConfigured()}
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                 >
                   <Lock className="w-4 h-4" />
@@ -364,6 +377,7 @@ export const ClientRegisterPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSupabaseConfigured()) return;
     setError(null);
     setErrorCode(null);
     setDuplicateAccountDetected(false);
@@ -607,6 +621,7 @@ export const ClientRegisterPage: React.FC = () => {
           </div>
         )}
 
+        <AuthConfigurationNotice />
         <form onSubmit={handleRegister} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -788,7 +803,7 @@ export const ClientRegisterPage: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isProcessingState}
+              disabled={isProcessingState || !isSupabaseConfigured()}
               className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg disabled:opacity-50"
             >
               {isProcessingState
@@ -954,6 +969,7 @@ export const StaffLoginPage: React.FC = () => {
 
         {loginMode === 'signin' ? (
           <>
+            <AuthConfigurationNotice />
             <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
               <button
                 type="button"
@@ -1003,7 +1019,7 @@ export const StaffLoginPage: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isSupabaseConfigured()}
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />

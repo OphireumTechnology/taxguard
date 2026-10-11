@@ -83,7 +83,7 @@ export class ProviderReadinessRegistry {
       case 'DATABASE': {
         const hasSupabase = Boolean(
           process.env.SUPABASE_URL &&
-          (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+          process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         const status: ProviderReadinessStatus = hasSupabase ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
@@ -100,7 +100,7 @@ export class ProviderReadinessRegistry {
       case 'AUTHENTICATION': {
         const hasAuth = Boolean(
           process.env.SUPABASE_URL &&
-          (process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
+          process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         const status: ProviderReadinessStatus = hasAuth ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
@@ -118,7 +118,7 @@ export class ProviderReadinessRegistry {
       case 'DOCUMENT_STORAGE': {
         const hasStorage = Boolean(
           process.env.SUPABASE_URL &&
-          (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+          process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         const status: ProviderReadinessStatus = hasStorage ? 'CONFIGURED' : 'NOT_CONFIGURED';
         return {
@@ -268,7 +268,7 @@ export class ProviderReadinessRegistry {
     const now = new Date().toISOString();
     const hasSupabaseConfig = Boolean(
       process.env.SUPABASE_URL &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+      process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
     if (!hasSupabaseConfig && !clientInstance) {
