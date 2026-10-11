@@ -563,7 +563,8 @@ stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant'
         try {
           const { data, error } = await getSupabaseAdmin()
             .from('taxguard_staff_assignments')
-            .select('client_id, engagement_id, tax_year, effective_from, effective_to')
+            // status is required by isAssignmentCurrentlyEffective; without it every assignment was rejected.
+            .select('client_id, engagement_id, tax_year, status, effective_from, effective_to')
             .eq('tenant_id', tenantId)
             .eq('user_id', req.user.id)
             .eq('client_id', ownerClientId)

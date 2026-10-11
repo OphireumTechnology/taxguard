@@ -113,7 +113,9 @@ export class SupabaseDurableSessions {
   private async getAuthorizedClientIds(uid: string): Promise<string[]> {
     const { data, error } = await this.client
       .from('taxguard_staff_assignments')
-      .select('client_id, engagement_id, tax_year, effective_from, effective_to')
+      // status must be selected: isAssignmentCurrentlyEffective rejects rows without it,
+      // which previously left every production staff session with no authorized clients.
+      .select('client_id, engagement_id, tax_year, status, effective_from, effective_to')
       .eq('tenant_id', this.tenantId)
       .eq('user_id', uid)
       .eq('status', 'ACTIVE');
