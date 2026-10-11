@@ -56,10 +56,14 @@ const ENVIRONMENT_CONFIGS: Record<AppEnvironment, EnvironmentBehaviorConfig> = {
     requireHardExitGate: true,
     enableAuditLogging: true,
     simulatedLatencyMs: 0,
-    environmentLabel: 'Production Environment (Live)',
-    description: 'IRS Circular 230 and NIST AI RMF compliant production tier with dual-key cryptographic validation.'
+    environmentLabel: 'Production configuration (commissioning required)',
+    description: 'Production configuration template. Infrastructure, security and governance acceptance remain required.'
   }
 };
+
+// These browser presentation settings never grant server authority.
+for (const config of Object.values(ENVIRONMENT_CONFIGS)) Object.freeze(config);
+Object.freeze(ENVIRONMENT_CONFIGS);
 
 const ENV_STORAGE_KEY = 'artax_active_environment';
 
@@ -81,6 +85,9 @@ export class EnvironmentConfigService {
   }
 
   public static setEnvironment(env: AppEnvironment): EnvironmentBehaviorConfig {
+    if (!Object.prototype.hasOwnProperty.call(ENVIRONMENT_CONFIGS, env)) {
+      throw new Error('UNKNOWN_APPLICATION_ENVIRONMENT');
+    }
     this.currentEnv = env;
     if (typeof window !== 'undefined') {
       try {

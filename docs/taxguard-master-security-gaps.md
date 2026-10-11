@@ -1,0 +1,24 @@
+# Security and compliance gap report
+
+Scope: local workspace audit under the 2026-10-09 master directive. No production, credentials, original repository or preservation backup was accessed. This report does not certify compliance or deployed isolation.
+
+| Boundary | Local evidence | Remaining gap / responsible decision |
+| --- | --- | --- |
+| Authentication/RBAC | `auth.ts`, durable session adapter and production HTTP negative tests; server-owned membership and endpoint capabilities | Verify current deployed identity/session revocation, origin settings and least-privilege grants in an authorized isolated environment. |
+| Tenant/client/engagement/year | Assignment checks, scoped projections, cache/session regressions and SQL preparation tests | Replace process-local authority without inferring legacy associations; separately approve source reconciliation and cutover. |
+| RLS/storage | Migration definitions, disposable SQL/default-deny tests, private storage scope | Deployed RLS/grants, service-role exposure and access via real platform roles remain unverified. Service-role queries require independent server checks. |
+| Consent | Recorded profile flags, purpose-limited counts/metadata gateway and protected-data denials | Counsel/practitioner must define §7216 use/disclosure purposes, recipient/provider mapping, duration/revocation and approved proof. A signed boolean is not legal sufficiency. |
+| Evidence/quarantine | Version/hash/scope/release/clean checks and default-denied missing scanner | No commissioned scanner or released full vault-to-OCR pipeline. Source IDs/hashes do not prove identity, engagement, signature or communication. |
+| Maker-checker | Independent case reviewer/preparer controls; A34 RETURN/REJECT | Exact AI-16 action/target and distinct PREPARER/REVIEWER/CPA-EA completed attestation sources unresolved. Draft schemas remain unconditionally denied. |
+| AI prompt/tool safety | Structured schema, bounded purposes, fresh child authorization, kill switches, immutable SQL ledger tests | All 61 production registrations stay DRAFT; missing per-ID mappings/model/prompt/pricing approval cannot be inferred from category names. |
+| Idempotency | Fingerprint/provider mismatch and terminal/expiry/aliasing regression fixes | Legacy service is memory only; distributed durable atomic reservation, fencing and ambiguous external receipt reconciliation still required. Never automatically retry a potentially delivered financial action. |
+| Workflow evidence | Local stage gates and negative malformed/unknown evidence tests | Complete external proof and human authority remain prerequisites. Gate passing in synthetic fixtures never advances a live case. |
+| Core audit integrity | Disposable append-only trigger proposal tests; inserts retained, owner/server mutations denied | Existing migration chain lacks the proposed guard. CLI creation/review/installation and independent custody remain outstanding; owners can disable triggers. Existing audit read visibility needs authoritative review. |
+| Data minimization/errors | Scoped bounded metadata; no-store; sanitized error tests | Verify browser bundle, logs, telemetry, backups and operational dashboards with isolated synthetic traffic. No real credentials or taxpayer content should enter test artifacts. |
+| Operations | Draft readiness/runbooks and disabled providers | Historical readiness/DR statements are design intentions until independently proven; do not label config flags as operational evidence. |
+
+Supabase guidance distinguishes table grants from row policies, and service-role access bypasses RLS; verify both and retain server checks. [Official RLS documentation](https://supabase.com/docs/guides/database/postgres/row-level-security). The changelog markdown fetch was rejected by the documentation tool's content-type handling; no platform-specific change or migration was made on that basis.
+
+No security restriction was relaxed. New synthetic policy/data structures are not trustworthy authorization tokens and must never be consumed as approvals. Full production adversarial assessment, professional review and browser acceptance remain outstanding.
+
+2026-10-10 source review closed legacy denial-list practitioner/maker-checker paths and Billing/Compliance-to-Accountant fallback. Legacy practitioner certification always denies without a durable operation/proof contract; maker-checker no longer consumes caller preparer identity and refuses production execution. Provider/schema overrides are test-only, probes time out/cancel, browser configuration is immutable, and shell authority changes remount dialog/navigation state. Core audit read policy is actor-UID based, not a verified full tenant/client/year visibility contract. See the current release report for all 14 security review areas, evidence and unresolved acceptance.

@@ -43,8 +43,6 @@ export const AUTHORIZED_STAFF_ROLES = new Set([
   'senior_reviewer',
   'admin',
   'super_admin',
-  'billing',
-  'compliance',
   'operations'
 ]);
 
@@ -74,7 +72,8 @@ export function resolveAuthoritativeStaffWorkspace(
   if (normalized === 'reviewer' || normalized === 'senior_reviewer') {
     return 'reviewer_workspace';
   }
-  return 'accountant_workspace';
+  if (normalized === 'accountant' || normalized === 'preparer') return 'accountant_workspace';
+  return null;
 }
 
 /**

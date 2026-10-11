@@ -25,9 +25,8 @@ export function evaluateStageThreeServerGate(
 ): StageGateDecision {
 
   const humanReviewSatisfied =
-    snapshot.humanReviewRequired
-      ? snapshot.humanReviewApproved === true
-      : true;
+    snapshot.humanReviewRequired === false ||
+    (snapshot.humanReviewRequired === true && snapshot.humanReviewApproved === true);
 
   const checks = {
     validationComplete:
@@ -42,7 +41,7 @@ export function evaluateStageThreeServerGate(
     humanReviewSatisfied,
 
     notAiOnly:
-      snapshot.aiOnlyDecision !== true,
+      snapshot.aiOnlyDecision === undefined || snapshot.aiOnlyDecision === false,
 
     existingHardExitGatePassed:
       snapshot.hardExitGatePassed === true

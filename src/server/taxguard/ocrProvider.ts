@@ -4,6 +4,8 @@
  */
 
 import { AuthorityError } from './authority.repository';
+import { createHash } from 'node:crypto';
+import { parseDocumentAiResponse } from './documentAiResponse';
 import { ProviderReadinessRegistry } from './providerReadiness.service';
 import {
   ExtractedFieldEntity,
@@ -125,14 +127,25 @@ export class GoogleCloudDocumentAiProvider implements TaxGuardOcrProvider {
       throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
     }
 
-    // Live Google Cloud Document AI REST Transport
+    // The native path has no commissioned, scoped released-vault reader or consent proof.
+    // Never export a production local filesystem document through this preparatory transport.
+    if (process.env.NODE_ENV === 'production') throw new AuthorityError('OCR_DURABLE_SOURCE_REQUIRED', 503);
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let activeReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
       const location = processorId.includes('/locations/')
         ? processorId.split('/locations/')[1].split('/')[0]
         : 'us';
       const processorPath = processorId.startsWith('projects/')
         ? processorId
-        : `projects/${process.env.GOOGLE_CLOUD_PROJECT || 'default'}/locations/${location}/processors/${processorId}`;
+        : `projects/${process.env.GOOGLE_CLOUD_PROJECT || ''}/locations/${location}/processors/${processorId}`;
+
+      if (!/^projects\/[A-Za-z0-9_-]+\/locations\/[a-z]+(?:-[a-z0-9]+)*\/processors\/[A-Za-z0-9_-]+$/.test(processorPath) ||
+          !/^[a-f0-9]{64}$/.test(input.sha256) ||
+          !['application/pdf', 'image/png', 'image/jpeg', 'image/tiff'].includes(input.mimeType)) {
+        throw new AuthorityError('OCR_INVALID_SOURCE', 400);
+      }
 
       const endpoint = `https://${location}-documentai.googleapis.com/v1/${processorPath}:process`;
       
@@ -151,13 +164,20 @@ export class GoogleCloudDocumentAiProvider implements TaxGuardOcrProvider {
         try {
           const fs = await import('node:fs');
           if (fs.existsSync(input.storagePath)) {
+            const stat = fs.statSync(input.storagePath);
+            if (!stat.isFile() || stat.size <= 0 || stat.size > 20 * 1024 * 1024) throw new AuthorityError('OCR_INVALID_SOURCE', 400);
             const buf = fs.readFileSync(input.storagePath);
+            if (buf.length <= 0 || buf.length > 20 * 1024 * 1024 || createHash('sha256').update(buf).digest('hex') !== input.sha256) {
+              throw new AuthorityError('OCR_SOURCE_HASH_MISMATCH', 400);
+            }
             base64Content = buf.toString('base64');
           }
-        } catch {
-          // File read error
+        } catch (error) {
+          if (error instanceof AuthorityError) throw error;
         }
       }
+
+      if (!base64Content) throw new AuthorityError('OCR_SOURCE_UNAVAILABLE', 503);
 
       const body = {
         rawDocument: {
@@ -166,49 +186,47 @@ export class GoogleCloudDocumentAiProvider implements TaxGuardOcrProvider {
         },
       };
 
+      const request = async () => {
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
+        signal: controller.signal,
+        redirect: 'error',
       });
 
       if (!response.ok) {
         throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
       }
 
-      const data = await response.json();
-      const entities = data?.document?.entities || [];
-      const outputs: OcrExtractionOutput[] = [];
-
-      for (let i = 0; i < entities.length; i++) {
-        const ent = entities[i];
-        outputs.push({
-          field: ent.type || `Field_${i}`,
-          page: (ent.pageAnchor?.pageRefs?.[0]?.page || 0) + 1,
-          proposedValue: ent.normalizedValue?.text || ent.mentionText || '',
-          confidence: ent.confidence || 0.95,
-          sourceText: ent.mentionText,
-          provider: this.providerName,
-          providerVersion: this.providerVersion,
-        });
-      }
-
-      if (outputs.length === 0 && data?.document?.text) {
-        outputs.push({
-          field: 'rawDocumentText',
-          page: 1,
-          proposedValue: data.document.text,
-          confidence: 0.90,
-          sourceText: data.document.text.slice(0, 100),
-          provider: this.providerName,
-          providerVersion: this.providerVersion,
-        });
-      }
-
-      return outputs;
+      // Bound bytes before JSON parsing; timeout includes response-body consumption.
+      const reader = response.body?.getReader();
+      if (!reader) throw new AuthorityError('OCR_INVALID_RESPONSE', 503);
+      activeReader = reader;
+      const parts: Uint8Array[] = []; let length = 0;
+      try {
+        while (true) {
+          const chunk = await reader.read(); if (chunk.done) break;
+          length += chunk.value.byteLength;
+          if (length > 4 * 1024 * 1024) { await reader.cancel(); throw new AuthorityError('OCR_INVALID_RESPONSE', 503); }
+          parts.push(chunk.value);
+        }
+      } finally { reader.releaseLock(); }
+      return parseDocumentAiResponse(JSON.parse(Buffer.concat(parts).toString('utf8')), this.providerName, this.providerVersion);
+      };
+      const expired = new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          void activeReader?.cancel().catch(() => {});
+          reject(new AuthorityError('OCR_SERVICE_TIMEOUT', 503));
+        }, 10000);
+      });
+      return await Promise.race([request(), expired]);
     } catch (err: any) {
       if (err instanceof AuthorityError) throw err;
       throw new AuthorityError('OCR_SERVICE_UNAVAILABLE', 503);
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
   }
 }

@@ -16,7 +16,8 @@
  * 13. Data Retention, Legal Hold, Archive Integrity & Annual Rollover
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+afterEach(() => vi.useRealTimers());
 import { createHmac, createHash } from 'node:crypto';
 import { globalDurableJobQueueService } from '../server/taxguard/operations/durableJobQueue.service';
 import { globalDurableIdempotencyService } from '../server/taxguard/operations/durableIdempotency.service';
@@ -78,6 +79,7 @@ describe('TaxGuard Production Practice Operations Suite', () => {
     });
 
     it('enforces exponential backoff and transitions to DEAD_LETTER after max attempts', async () => {
+      vi.useFakeTimers();
       const job = await globalDurableJobQueueService.enqueue({
         tenantId: 'tenantA',
         jobType: 'OCR_REQUEST',
@@ -94,8 +96,8 @@ describe('TaxGuard Production Practice Operations Suite', () => {
       expect(failedAttempt1.status).toBe('RETRY_SCHEDULED');
       expect(failedAttempt1.attemptCount).toBe(1);
 
-      // Force available for retry
-      failedAttempt1.availableAt = new Date(Date.now() - 1000).toISOString();
+      // Advance beyond the bounded first backoff (30 seconds plus at most 4 seconds jitter).
+      vi.advanceTimersByTime(60000);
 
       // Claim attempt 2
       await globalDurableJobQueueService.claimNextJob('tenantA', 'worker-2');

@@ -60,11 +60,12 @@ import { ApprovalsView } from './views/ApprovalsView';
 import { DeliverablesView } from './views/DeliverablesView';
 import { StageOneIdentityWizard } from './StageOneIdentityWizard';
 import { TaxGuardDiscrepanciesView } from '../../taxguard/views/TaxGuardDiscrepanciesView';
-import { AuditActivityView } from './views/AuditActivityView';
+import { ClientAuditUnavailable, recordedMfaSetting } from './views/ClientSecurityPanel';
 import { ProfileSecurityView } from './views/ProfileSecurityView';
 import { ClientProfileView } from './views/ClientProfileView';
 import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
 import { useLiveWorkflowAuthority } from '../../hooks/useLiveWorkflowAuthority';
+import { ClientStageReadUnavailable, unavailableClientStage } from './views/stages/ClientStageReadUnavailable';
 import { StageFourRecordView } from './views/stages/StageFourRecordView';
 import { StageFiveReconcileView } from './views/stages/StageFiveReconcileView';
 import { StageSixReviewView } from './views/stages/StageSixReviewView';
@@ -622,11 +623,11 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               <span>Compliance Audit Trail &amp; System Provenance</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Tamper-evident event logs verifying IRC § 7216 consent, document hashing, and stage transitions.
+              Availability of authorized recorded client audit events.
             </p>
           </div>
 
-          <AuditActivityView />
+          <ClientAuditUnavailable />
         </div>
       );
     }
@@ -637,6 +638,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
           <ClientProfileView
             currentUser={currentUser}
+            authLifecycleState={authLifecycleState}
             onNavigateToDocuments={() => handleSelectNav('documents')}
             onNavigateToStageTwo={() => handleSelectNav('stage_02')}
           />
@@ -658,7 +660,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </p>
           </div>
 
-          <ProfileSecurityView currentUser={currentUser} initialTab="privacy_consent" />
+          <ProfileSecurityView currentUser={currentUser} authLifecycleState={authLifecycleState} initialTab="privacy_consent" />
         </div>
       );
     }
@@ -678,14 +680,14 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
                   <div className="font-semibold text-white">Email Notifications</div>
                   <div className="text-[11px] text-slate-400">Receive alerts when documents are verified or requests issued</div>
                 </div>
-                <span className="text-emerald-400 font-bold">Enabled</span>
+                <span className="text-slate-300 font-bold">Preference not loaded</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
                 <div>
                   <div className="font-semibold text-white">Two-Factor Authentication</div>
                   <div className="text-[11px] text-slate-400">SMS / Authenticator app login verification</div>
                 </div>
-                <span className="text-emerald-400 font-bold">Active</span>
+                <span className="text-slate-300 font-bold">{recordedMfaSetting(currentUser)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
                 <div>
@@ -716,12 +718,17 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-800 space-y-1">
                 <div className="font-bold text-white">A/R Tax Services, LLC</div>
                 <div className="text-slate-300">Columbia, South Carolina, USA</div>
-                <div className="text-slate-400">Direct Inquiries: info@artaxservices.com &bull; (843) 555-0199</div>
+                <div className="text-slate-400">Direct Inquiries: <a href="mailto:info@artaxservices.com">info@artaxservices.com</a> &bull; <a href="tel:678-205-9486">678-205-9486</a></div>
               </div>
             </div>
           </div>
         </div>
       );
+    }
+
+    // Legacy stage screens lack verified scoped providers or contain sample authority.
+    if (unavailableClientStage(activeNavId)) {
+      return <ClientStageReadUnavailable nav={activeNavId} taxYear={selectedTaxYear}/>;
     }
 
     // 17. STAGES 03 THROUGH 18

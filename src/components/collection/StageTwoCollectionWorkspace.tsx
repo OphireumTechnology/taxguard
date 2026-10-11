@@ -394,7 +394,13 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
                   STAGE 02 — COLLECT
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/40">
-                  Collection Status: In Progress
+                  {readiness.isReadyForStageThree || serverStageThreeEligible
+                    ? 'Collection Status: Complete & Reconciled'
+                    : readiness.rejectedCount > 0
+                    ? 'Collection Status: Action Required'
+                    : readiness.missingCount === 0
+                    ? 'Collection Status: Under Review'
+                    : 'Collection Status: In Progress'}
                 </span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[#F8FAFC] flex items-center gap-2">
@@ -429,32 +435,81 @@ export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePr
             <div className="space-y-1">
               <div className="text-[10px] font-mono uppercase tracking-wider text-[#D4A843] font-bold flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#D4A843]" />
-                <span>NEXT REQUIRED ACTION</span>
+                <span>
+                  {readiness.isReadyForStageThree || serverStageThreeEligible
+                    ? 'STAGE COMPLETE — READY FOR VALIDATION'
+                    : readiness.rejectedCount > 0
+                    ? 'ACTION REQUIRED — DOCUMENT REPLACEMENT'
+                    : readiness.missingCount === 0
+                    ? 'DOCUMENTS RECEIVED — UNDER REVIEW'
+                    : 'NEXT REQUIRED ACTION'}
+                </span>
               </div>
               <div className="text-sm font-bold text-[#F8FAFC]">
-                Upload the documents required to prepare your return.
+                {readiness.isReadyForStageThree || serverStageThreeEligible
+                  ? (readiness.nextAction?.message || 'All required tax documentation has been verified and accepted.')
+                  : readiness.rejectedCount > 0
+                  ? (readiness.nextAction?.message || 'One or more documents could not be accepted.')
+                  : readiness.missingCount === 0
+                  ? (readiness.nextAction?.message || "We've received everything currently requested. A/R Tax Services is reviewing your documents.")
+                  : 'Upload the documents required to prepare your return.'}
               </div>
               <p className="text-xs text-[#A9B7C8]">
-                Submit your W-2s, 1099s, bank statements, and relevant tax schedules to complete Stage 02.
+                {readiness.isReadyForStageThree || serverStageThreeEligible
+                  ? (readiness.nextAction?.supportingText || 'All required tax records have been verified. Your return is ready for Stage 03 validation.')
+                  : readiness.rejectedCount > 0
+                  ? (readiness.nextAction?.supportingText || 'Please review the rejection reason and upload an updated document.')
+                  : readiness.missingCount === 0
+                  ? (readiness.nextAction?.supportingText || 'A/R Tax Services is reviewing your documents. No additional documents are required from you right now.')
+                  : 'Submit your W-2s, 1099s, bank statements, and relevant tax schedules to complete Stage 02.'}
               </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
               <button
                 type="button"
-                onClick={() => setActiveSubTab('checklist')}
+                onClick={() => setActiveSubTab(readiness.missingCount === 0 ? 'vault' : 'checklist')}
                 className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#F8FAFC] bg-[#0D2745] hover:bg-[#143657] border border-slate-700 transition-colors cursor-pointer"
               >
-                View Required Documents
+                {readiness.missingCount === 0 ? 'View Received Documents' : 'View Required Documents'}
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('upload')}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
-              >
-                <UploadCloud className="w-4 h-4" />
-                <span>Upload Document</span>
-              </button>
+              {readiness.isReadyForStageThree || serverStageThreeEligible ? (
+                <button
+                  type="button"
+                  onClick={() => setShowStageThree(true)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Continue to Stage 03 Validation</span>
+                </button>
+              ) : readiness.rejectedCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('requests')}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#06182B] bg-amber-400 hover:bg-amber-300 transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Review Document Requests</span>
+                </button>
+              ) : readiness.missingCount === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('upload')}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 bg-[#0D2745] hover:bg-[#143657] border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Upload Document</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('upload')}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#06182B] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Upload Document</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -141,6 +141,14 @@ export class ClientCommunicationService {
   /**
    * Query threads for a client or tenant
    */
+  async getClientThreads(tenantId: string, clientId: string): Promise<CommunicationThread[]> {
+    return this.queryThreads({
+      tenantId,
+      clientId,
+      callerRole: 'accountant'
+    });
+  }
+
   queryThreads(params: {
     tenantId: string;
     clientId?: string;

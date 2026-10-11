@@ -1,7 +1,7 @@
 # Cycle 5 development report: Bookkeeper session isolation
 
 Date: 2026-10-09. Branch: feature/taxguard-ai-agents.
-Status: PENDING EXTERNAL TEST VALIDATION. Cycle 5 is not complete; checkpoint unchanged.
+Status: VALIDATED locally on the subsequent resume; see completion evidence below. Historical blocked attempts are retained.
 
 ## Selected increment
 
@@ -23,8 +23,24 @@ Added src/tests/bookkeeperDashboardSessionIsolation.test.ts with 14 regression c
 
 Tests have not passed in this cycle. Rerun the exact targeted command and full suite in an environment supporting normal test subprocess execution. Update the checkpoint only after every required validation passes. No browser QA or deployed RBAC/RLS validation is claimed.
 
+## Resume validation — 2026-10-09
+
+The four targeted Bookkeeper files now PASS: 65 tests, exit 0, 4.44 seconds. The initial sandbox invocation failed before tests with esbuild `spawn EPERM`; the subsequently authorized local invocation completed. No assertions, source implementation or test configuration were changed.
+
+Current `npm.cmd run typecheck`, `npm.cmd run build` and `git diff --check` PASS, exit 0. Existing calendar import and bundle-size warnings remain. The full `npm.cmd test` invocation reached the RUN banner but produced no results during bounded observation; it was interrupted and exited 1. The cause remains unconfirmed. Full-suite validation is still incomplete, so Cycle 5 remains pending and is not claimed complete. Earlier statements that targeted tests had not passed describe the initial attempt only.
+
+The user's latest instruction is to batch routine development and record sandbox blockers without repeated escalation requests. No further escalation was requested after that instruction. AI-16 remains blocked by its required action/attestation policy, and the AI-16 pre-review requires its validation before AI-17. No dependent AI gate was started or privilege granted.
+
+## Completion validation — subsequent 2026-10-09 resume
+
+`npm.cmd test` completed normally with 131 files / 2,549 tests PASS, exit 0, duration 65.34 seconds. This invocation began before the subsequent reviewer-hook changes and does not validate those changes. Together with the previously passing four-file / 65-test Bookkeeper run and current passing typecheck, frontend/server build and diff checks, Cycle 5's local validation is complete. No browser or production validation is claimed. The earlier stalled/blocked attempts remain historical evidence, not current completion status.
+
 ## Preservation and remaining work
 
 Only the existing untracked Bookkeeper hook, new regression file and this report were edited for this increment. Prior uncommitted work and protected backup were preserved. No commit, push, deployment, migration, production access, taxpayer seed, grant, workflow transition or AI execution occurred. The authoritative 18-stage workflow, advisory-only AI, immutable records and server security boundaries are unchanged.
 
 Durable accounting providers and authenticated browser QA remain unfinished. This cache-isolation improvement does not release production accounting reads or mutations, establish client authorization, or complete a dashboard/AI gate. AI-16 remains BLOCKED and untouched.
+
+## Merge evidence note — 2026-10-11
+
+The validation and status statements above describe historical branch work. They do not validate the current integration merge or establish production readiness. Production remains NO-GO; existing security, consent and human approval gates remain controlling.

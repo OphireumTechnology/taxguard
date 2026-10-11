@@ -97,7 +97,7 @@ describe(
         );
 
         expect(bridge).toContain(
-          'if (!input.gatePassed)'
+          'if (input.gatePassed !== true)'
         );
 
         expect(bridge).toContain(

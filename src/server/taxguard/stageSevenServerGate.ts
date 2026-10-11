@@ -14,7 +14,7 @@ export function evaluateStageSevenServerGate(snapshot: StageSevenGateSnapshot): 
     stageSixComplete: snapshot.stageSixComplete === true,
     requiredReportsGenerated: snapshot.requiredReportsGenerated === true,
     reportsCurrent: snapshot.reportsCurrent === true,
-    noBlockingExceptions: (snapshot.unresolvedBlockingExceptions || 0) === 0,
+    noBlockingExceptions: snapshot.unresolvedBlockingExceptions === 0,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
 
@@ -36,7 +36,7 @@ export function evaluateStageSevenServerGate(snapshot: StageSevenGateSnapshot): 
       checks,
       blockingReasons,
       metadata: {
-        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions || 0,
+        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions ?? null,
         reportsCurrent: snapshot.reportsCurrent === true,
       },
     },

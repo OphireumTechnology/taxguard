@@ -97,6 +97,8 @@ export interface TaxDiscoveryQuestionnaireAnswers {
   // 2. Employment
   hasW2Employment: boolean;
   employerNames?: string[];
+  spouseHasW2?: boolean;
+  spouseEmployerNames?: string[];
   workedInMultipleStates: boolean;
   workStates?: string[];
   hasTipsOrAllocatedTips: boolean;
@@ -114,10 +116,15 @@ export interface TaxDiscoveryQuestionnaireAnswers {
 
   // 4. Investments & Financial
   hasBankInterest: boolean;
+  interestInstitutions?: string[];
   hasDividends: boolean;
+  dividendInstitutions?: string[];
   hasStockSalesBrokerage: boolean;
+  brokerageInstitutions?: string[];
   hasDigitalAssetsCrypto: boolean;
   hasCapitalLossCarryover: boolean;
+  hasPassThrough?: boolean;
+  k1EntityNames?: string[];
 
   // 5. Retirement
   hasRetirementDistributions: boolean; // 1099-R
@@ -128,6 +135,7 @@ export interface TaxDiscoveryQuestionnaireAnswers {
   ownsHomeWithMortgage: boolean;       // 1098
   soldRealEstate: boolean;             // 1099-S
   ownsRentalProperty: boolean;         // Schedule E
+  rentalPropertyAddresses?: string[];
 
   // 7. Education
   paidHigherEducationTuition: boolean; // 1098-T
@@ -141,6 +149,7 @@ export interface TaxDiscoveryQuestionnaireAnswers {
   hasSignificantCharitableDonations: boolean;
   hasChildCareExpenses: boolean;
   madeEstimatedTaxPayments: boolean;
+  hasCleanVehicleOrEnergyCredits?: boolean;
 
   // 10. Prior Year & Records
   hasPriorYearTaxReturn: boolean;
@@ -164,7 +173,11 @@ export const DEFAULT_QUESTIONNAIRE_ANSWERS: TaxDiscoveryQuestionnaireAnswers = {
   residentState: 'SC',
   movedDuringYear: false,
   hasW2Employment: true,
+  employerNames: [],
+  spouseHasW2: false,
+  spouseEmployerNames: [],
   workedInMultipleStates: false,
+  workStates: [],
   hasTipsOrAllocatedTips: false,
   hasSelfEmployment: false,
   has1099NEC: false,
@@ -175,16 +188,22 @@ export const DEFAULT_QUESTIONNAIRE_ANSWERS: TaxDiscoveryQuestionnaireAnswers = {
   hasInventory: false,
   paidContractorsOver600: false,
   hasBankInterest: false,
+  interestInstitutions: [],
   hasDividends: false,
+  dividendInstitutions: [],
   hasStockSalesBrokerage: false,
+  brokerageInstitutions: [],
   hasDigitalAssetsCrypto: false,
   hasCapitalLossCarryover: false,
+  hasPassThrough: false,
+  k1EntityNames: [],
   hasRetirementDistributions: false,
   hasSocialSecurity: false,
   madeIraContributions: false,
   ownsHomeWithMortgage: false,
   soldRealEstate: false,
   ownsRentalProperty: false,
+  rentalPropertyAddresses: [],
   paidHigherEducationTuition: false,
   paidStudentLoanInterest: false,
   hasMarketplaceHealthInsurance: false,
@@ -192,6 +211,7 @@ export const DEFAULT_QUESTIONNAIRE_ANSWERS: TaxDiscoveryQuestionnaireAnswers = {
   hasSignificantCharitableDonations: false,
   hasChildCareExpenses: false,
   madeEstimatedTaxPayments: false,
+  hasCleanVehicleOrEnergyCredits: false,
   hasPriorYearTaxReturn: true,
   hasPriorYearCarryovers: false,
   hasForeignAccountsOrAssets: false,

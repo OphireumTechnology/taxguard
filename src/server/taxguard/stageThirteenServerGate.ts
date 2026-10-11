@@ -14,7 +14,7 @@ export function evaluateStageThirteenServerGate(snapshot: StageThirteenGateSnaps
     stageTwelveComplete: snapshot.stageTwelveComplete === true,
     feedbackReceived: snapshot.feedbackReceived === true,
     feedbackProcessed: snapshot.feedbackProcessed === true,
-    noUnresolvedNotices: (snapshot.unresolvedGovernmentNotices || 0) === 0,
+    noUnresolvedNotices: snapshot.unresolvedGovernmentNotices === 0,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
 
@@ -37,7 +37,7 @@ export function evaluateStageThirteenServerGate(snapshot: StageThirteenGateSnaps
       blockingReasons,
       metadata: {
         feedbackReceived: snapshot.feedbackReceived === true,
-        unresolvedGovernmentNotices: snapshot.unresolvedGovernmentNotices || 0,
+        unresolvedGovernmentNotices: snapshot.unresolvedGovernmentNotices ?? null,
       },
     },
   };

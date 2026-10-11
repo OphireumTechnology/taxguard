@@ -430,29 +430,39 @@ export class BookkeepingEngine {
     tenantId: string;
     clientId: string;
     accountId: string;
-    taxYear: number;
-    statementPeriodStart: string;
-    statementPeriodEnd: string;
-    statementBeginningBalance: number;
-    statementEndingBalance: number;
+    taxYear?: number;
+    periodId?: string;
+    statementPeriodStart?: string;
+    statementPeriodEnd?: string;
+    statementDate?: string;
+    statementBeginningBalance?: number;
+    openingBalance?: number;
+    statementEndingBalance?: number;
+    closingBalance?: number;
     tolerance?: number;
+    performedBy?: string;
   }): BankReconciliation {
     const id = `recon_${params.tenantId}_${params.clientId}_${params.accountId}_${Date.now()}`;
     const now = new Date().toISOString();
+
+    const begBalance = Math.round(((params.statementBeginningBalance ?? params.openingBalance) ?? 0) * 100) / 100;
+    const endBalance = Math.round(((params.statementEndingBalance ?? params.closingBalance) ?? 0) * 100) / 100;
+    const startPeriod = params.statementPeriodStart || params.statementDate || now.split('T')[0];
+    const endPeriod = params.statementPeriodEnd || params.statementDate || now.split('T')[0];
 
     const recon: BankReconciliation = {
       id,
       tenantId: params.tenantId,
       clientId: params.clientId,
       accountId: params.accountId,
-      taxYear: params.taxYear,
-      statementPeriodStart: params.statementPeriodStart,
-      statementPeriodEnd: params.statementPeriodEnd,
-      statementBeginningBalance: Math.round(params.statementBeginningBalance * 100) / 100,
-      statementEndingBalance: Math.round(params.statementEndingBalance * 100) / 100,
-      clearedBalance: Math.round(params.statementBeginningBalance * 100) / 100,
+      taxYear: params.taxYear || new Date().getFullYear(),
+      statementPeriodStart: startPeriod,
+      statementPeriodEnd: endPeriod,
+      statementBeginningBalance: begBalance,
+      statementEndingBalance: endBalance,
+      clearedBalance: begBalance,
       clearedTransactionsCount: 0,
-      variance: Math.round((params.statementEndingBalance - params.statementBeginningBalance) * 100) / 100,
+      variance: Math.round((begBalance - endBalance) * 100) / 100,
       tolerance: params.tolerance ?? 0.0,
       status: 'IN_PROGRESS',
       exceptions: [],
@@ -494,6 +504,12 @@ export class BookkeepingEngine {
 
     this.reconciliations.set(recon.id, recon);
     return recon;
+  }
+
+  toggleTransactionCleared(reconciliationId: string, transactionId: string, _performedBy?: string): BankReconciliation {
+    const txn = this.transactions.get(transactionId);
+    const isCurrentlyCleared = txn?.reconciliationStatus === 'CLEARED' && txn?.reconciliationId === reconciliationId;
+    return this.clearTransaction(reconciliationId, transactionId, !isCurrentlyCleared);
   }
 
   finalizeReconciliation(reconciliationId: string, completedByUid: string): BankReconciliation {

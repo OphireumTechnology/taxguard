@@ -17,7 +17,7 @@ export function evaluateStageNineServerGate(snapshot: StageNineGateSnapshot): St
     stageEightComplete: snapshot.stageEightComplete === true,
     authoritativeDataCurrent: snapshot.authoritativeDataCurrent === true,
     deterministicCalculationsComplete: snapshot.deterministicCalculationsComplete === true,
-    noBlockingDiagnostics: (snapshot.unresolvedBlockingDiagnostics || 0) === 0,
+    noBlockingDiagnostics: snapshot.unresolvedBlockingDiagnostics === 0,
     draftReturnGenerated: snapshot.draftReturnGenerated === true,
     preparerReviewComplete: snapshot.preparerReviewComplete === true,
     provenanceComplete: snapshot.provenanceComplete === true,
@@ -42,7 +42,7 @@ export function evaluateStageNineServerGate(snapshot: StageNineGateSnapshot): St
       checks,
       blockingReasons,
       metadata: {
-        unresolvedBlockingDiagnostics: snapshot.unresolvedBlockingDiagnostics || 0,
+        unresolvedBlockingDiagnostics: snapshot.unresolvedBlockingDiagnostics ?? null,
         draftReturnGenerated: snapshot.draftReturnGenerated === true,
       },
     },

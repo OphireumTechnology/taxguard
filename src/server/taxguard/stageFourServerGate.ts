@@ -16,8 +16,8 @@ export function evaluateStageFourServerGate(snapshot: StageFourGateSnapshot): St
     stageThreeComplete: snapshot.stageThreeComplete === true,
     validatedEvidenceRecorded: snapshot.validatedEvidenceRecorded === true,
     provenanceComplete: snapshot.provenanceComplete === true,
-    noBlockingExceptions: (snapshot.unresolvedBlockingExceptions || 0) === 0,
-    noDuplicateConflicts: (snapshot.unresolvedDuplicateConflicts || 0) === 0,
+    noBlockingExceptions: snapshot.unresolvedBlockingExceptions === 0,
+    noDuplicateConflicts: snapshot.unresolvedDuplicateConflicts === 0,
     professionalReviewComplete: snapshot.professionalReviewComplete === true,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
@@ -40,8 +40,8 @@ export function evaluateStageFourServerGate(snapshot: StageFourGateSnapshot): St
       checks,
       blockingReasons,
       metadata: {
-        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions || 0,
-        unresolvedDuplicateConflicts: snapshot.unresolvedDuplicateConflicts || 0,
+        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions ?? null,
+        unresolvedDuplicateConflicts: snapshot.unresolvedDuplicateConflicts ?? null,
       },
     },
   };

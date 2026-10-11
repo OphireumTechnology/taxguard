@@ -34,6 +34,7 @@ const REGISTRATION_STATE_LABELS: Record<RegistrationResultState, string> = {
 };
 
 export const ClientLoginPage: React.FC = () => {
+  const fieldPrefix = React.useId();
   const {
     login,
     setCurrentPage,
@@ -188,10 +189,10 @@ export const ClientLoginPage: React.FC = () => {
         {isForgotPasswordMode ? (
           <form onSubmit={handlePasswordResetSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Registered Account Email</label>
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-1`}>Registered Account Email</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
+                <input id={`${fieldPrefix}-auth-1`}
                   type="email"
                   required
                   value={resetEmail}
@@ -231,10 +232,10 @@ export const ClientLoginPage: React.FC = () => {
           <>
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Email Address</label>
+                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-2`}>Email Address</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
+                  <input id={`${fieldPrefix}-auth-2`}
                     type="email"
                     required
                     value={email}
@@ -246,7 +247,7 @@ export const ClientLoginPage: React.FC = () => {
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-300 font-semibold">Password</label>
+                  <label className="text-slate-300 font-semibold" htmlFor={`${fieldPrefix}-auth-3`}>Password</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -263,7 +264,7 @@ export const ClientLoginPage: React.FC = () => {
                 </div>
                 <div className="relative">
                   <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
+                  <input id={`${fieldPrefix}-auth-3`}
                     type="password"
                     required
                     value={password}
@@ -317,6 +318,7 @@ export const ClientLoginPage: React.FC = () => {
 };
 
 export const ClientRegisterPage: React.FC = () => {
+  const fieldPrefix = React.useId();
   const {
     register,
     setCurrentPage,
@@ -500,7 +502,7 @@ export const ClientRegisterPage: React.FC = () => {
           )}
 
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2">
+            <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -608,8 +610,8 @@ export const ClientRegisterPage: React.FC = () => {
         <form onSubmit={handleRegister} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">First Name *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-4`}>First Name *</label>
+              <input id={`${fieldPrefix}-auth-4`}
                 type="text"
                 required
                 value={firstName}
@@ -619,8 +621,8 @@ export const ClientRegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Middle Name</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-5`}>Middle Name</label>
+              <input id={`${fieldPrefix}-auth-5`}
                 type="text"
                 value={middleName}
                 onChange={(e) => setMiddleName(e.target.value)}
@@ -629,8 +631,8 @@ export const ClientRegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Last Name *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-6`}>Last Name *</label>
+              <input id={`${fieldPrefix}-auth-6`}
                 type="text"
                 required
                 value={lastName}
@@ -643,8 +645,8 @@ export const ClientRegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Email Address *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-7`}>Email Address *</label>
+              <input id={`${fieldPrefix}-auth-7`}
                 type="email"
                 required
                 value={email}
@@ -655,8 +657,8 @@ export const ClientRegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Mobile Telephone *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-8`}>Mobile Telephone *</label>
+              <input id={`${fieldPrefix}-auth-8`}
                 type="tel"
                 required
                 value={phone}
@@ -669,8 +671,8 @@ export const ClientRegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Client Classification</label>
-              <select
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-9`}>Client Classification</label>
+              <select id={`${fieldPrefix}-auth-9`}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
@@ -685,8 +687,8 @@ export const ClientRegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Preferred Channel</label>
-              <select
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-10`}>Preferred Channel</label>
+              <select id={`${fieldPrefix}-auth-10`}
                 value={contactMethod}
                 onChange={(e) => setContactMethod(e.target.value)}
                 className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
@@ -701,8 +703,8 @@ export const ClientRegisterPage: React.FC = () => {
 
           {category !== 'individual' && (
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Entity / Business Legal Name *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-11`}>Entity / Business Legal Name *</label>
+              <input id={`${fieldPrefix}-auth-11`}
                 type="text"
                 required
                 value={company}
@@ -715,8 +717,8 @@ export const ClientRegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Time Zone</label>
-              <select
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-12`}>Time Zone</label>
+              <select id={`${fieldPrefix}-auth-12`}
                 value={timeZone}
                 onChange={(e) => setTimeZone(e.target.value)}
                 className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
@@ -729,8 +731,8 @@ export const ClientRegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Referral Source</label>
-              <select
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-13`}>Referral Source</label>
+              <select id={`${fieldPrefix}-auth-13`}
                 value={referralSource}
                 onChange={(e) => setReferralSource(e.target.value)}
                 className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
@@ -745,8 +747,8 @@ export const ClientRegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Secure Password *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-14`}>Secure Password *</label>
+              <input id={`${fieldPrefix}-auth-14`}
                 type="password"
                 required
                 minLength={8}
@@ -758,8 +760,8 @@ export const ClientRegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Confirm Password *</label>
-              <input
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-15`}>Confirm Password *</label>
+              <input id={`${fieldPrefix}-auth-15`}
                 type="password"
                 required
                 minLength={8}
@@ -812,6 +814,7 @@ export const ClientRegisterPage: React.FC = () => {
 };
 
 export const StaffLoginPage: React.FC = () => {
+  const fieldPrefix = React.useId();
   const { login, setCurrentPage } = useApp();
   const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation'>('signin');
 
@@ -943,7 +946,7 @@ export const StaffLoginPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+          <div role="alert" className="p-3 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{error}</span>
           </div>
@@ -974,8 +977,8 @@ export const StaffLoginPage: React.FC = () => {
 
             <form onSubmit={handleStaffLogin} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Staff Work Email</label>
-                <input
+                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-16`}>Staff Work Email</label>
+                <input id={`${fieldPrefix}-auth-16`}
                   type="text"
                   required
                   placeholder="practitioner@artaxservices.com"
@@ -986,8 +989,8 @@ export const StaffLoginPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Staff Security Token / Password</label>
-                <input
+                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-17`}>Staff Security Token / Password</label>
+                <input id={`${fieldPrefix}-auth-17`}
                   type="password"
                   required
                   placeholder="••••••••••••"
@@ -1021,9 +1024,9 @@ export const StaffLoginPage: React.FC = () => {
         ) : (
           <div className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Administrative Invitation Token *</label>
+              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-18`}>Administrative Invitation Token *</label>
               <div className="flex gap-2">
-                <input
+                <input id={`${fieldPrefix}-auth-18`}
                   type="text"
                   required
                   placeholder="inv_seed_marcus_2026"
@@ -1056,8 +1059,8 @@ export const StaffLoginPage: React.FC = () => {
 
             <form onSubmit={handleAcceptInvitation} className="space-y-4 pt-2">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Set Staff Password *</label>
-                <input
+                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-19`}>Set Staff Password *</label>
+                <input id={`${fieldPrefix}-auth-19`}
                   type="password"
                   required
                   minLength={8}

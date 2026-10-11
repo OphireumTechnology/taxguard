@@ -17,8 +17,8 @@ export function evaluateStageTenServerGate(snapshot: StageTenGateSnapshot): Stag
     returnApproved: snapshot.returnApproved === true,
     makerCheckerVerified: snapshot.makerCheckerVerified === true,
     reviewerCredentialVerified: snapshot.reviewerCredentialVerified === true,
-    noBlockingDiagnostics: (snapshot.unresolvedBlockingDiagnostics || 0) === 0,
-    noMaterialExceptions: (snapshot.unresolvedMaterialExceptions || 0) === 0,
+    noBlockingDiagnostics: snapshot.unresolvedBlockingDiagnostics === 0,
+    noMaterialExceptions: snapshot.unresolvedMaterialExceptions === 0,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
 

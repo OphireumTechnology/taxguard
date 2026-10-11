@@ -1,6 +1,7 @@
 import { StageOneIdentityWizard } from '../portal/StageOneIdentityWizard';
 import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 import { AuthenticatedClientDashboard } from '../portal/AuthenticatedClientDashboard';
+import { clearLegacyWorkflowHints } from '../../services/clearLegacyWorkflowHints';
 import React, {
   useCallback,
   useEffect,
@@ -103,20 +104,7 @@ React.FC<LiveClientWorkflowRouterProps> = ({
      * Authentication/session storage is intentionally
      * preserved.
      */
-    const legacyKeys = [
-      'taxguard_stage',
-      'taxguard_active_stage',
-      'stageOneCompleted',
-      'stageTwoCompleted',
-      'stageThreeCompleted',
-      'stage_one_completed',
-      'stage_two_completed',
-      'stage_three_completed'
-    ];
-
-    for (const key of legacyKeys) {
-      localStorage.removeItem(key);
-    }
+    clearLegacyWorkflowHints();
 
   }, []);
 

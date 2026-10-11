@@ -171,33 +171,33 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
         const effectiveDossier = snapshot.dossier || (snapshot.legalName || snapshot.taxpayerFullName ? snapshot : undefined);
         const gateDecision = evaluateStageOneServerGate({
           hardExitGatePassed: snapshot.hardExitGatePassed !== undefined
-            ? Boolean(snapshot.hardExitGatePassed)
+            ? (snapshot.hardExitGatePassed === true)
             : true,
           identityComplete: snapshot.identityComplete !== undefined
-            ? Boolean(snapshot.identityComplete)
+            ? (snapshot.identityComplete === true)
             : Boolean((effectiveDossier?.legalName || effectiveDossier?.taxpayerFullName) && (effectiveDossier?.taxpayerType || effectiveDossier?.filingStatus)),
           taxProfileComplete: snapshot.taxProfileComplete !== undefined
-            ? Boolean(snapshot.taxProfileComplete)
+            ? (snapshot.taxProfileComplete === true)
             : Boolean(effectiveDossier?.taxpayerType || effectiveDossier?.filingStatus),
           tinValid: snapshot.tinValid !== undefined
-            ? Boolean(snapshot.tinValid)
+            ? (snapshot.tinValid === true)
             : Boolean(effectiveDossier?.tinLast4 && effectiveDossier.tinLast4 !== '0000' && String(effectiveDossier.tinLast4).length === 4),
           addressComplete: snapshot.addressComplete !== undefined
-            ? Boolean(snapshot.addressComplete)
+            ? (snapshot.addressComplete === true)
             : Boolean(effectiveDossier?.residentialOrPrincipalAddress?.street && effectiveDossier?.residentialOrPrincipalAddress?.city && effectiveDossier?.residentialOrPrincipalAddress?.zip),
           representativeComplete: snapshot.representativeComplete !== undefined
-            ? Boolean(snapshot.representativeComplete)
+            ? (snapshot.representativeComplete === true)
             : Boolean((effectiveDossier?.taxpayerType === 'individual' || effectiveDossier?.filingStatus) || (effectiveDossier?.authorizedRep?.fullName && effectiveDossier?.authorizedRep?.title)),
           supportingDocumentsComplete: snapshot.supportingDocumentsComplete !== undefined
-            ? Boolean(snapshot.supportingDocumentsComplete)
-            : Boolean(effectiveDossier?.supportingDocs && Array.isArray(effectiveDossier.supportingDocs) && effectiveDossier.supportingDocs.some((d: any) => d.verified)),
+            ? (snapshot.supportingDocumentsComplete === true)
+            : Boolean(effectiveDossier?.supportingDocs && Array.isArray(effectiveDossier.supportingDocs) && effectiveDossier.supportingDocs.some((d: any) => d.verified === true)),
           duplicateResolutionComplete: snapshot.duplicateResolutionComplete !== undefined
-            ? Boolean(snapshot.duplicateResolutionComplete)
+            ? (snapshot.duplicateResolutionComplete === true)
             : Boolean(effectiveDossier?.duplicateCheck?.status === 'CLEARED' || effectiveDossier?.duplicateCheck?.reviewDecision === 'override_approved'),
           consentComplete: snapshot.consentComplete !== undefined
-            ? Boolean(snapshot.consentComplete)
-            : Boolean(effectiveDossier?.engagementConsent?.irc7216ConsentAccepted && effectiveDossier?.engagementConsent?.signerFullName?.trim().length >= 3 && effectiveDossier?.engagementConsent?.signedAt),
-          reviewComplete: Boolean(snapshot.reviewComplete ?? true),
+            ? (snapshot.consentComplete === true)
+            : Boolean(effectiveDossier?.engagementConsent?.irc7216ConsentAccepted === true && effectiveDossier?.engagementConsent?.signerFullName?.trim().length >= 3 && effectiveDossier?.engagementConsent?.signedAt),
+          reviewComplete: (snapshot.reviewComplete ?? true) === true,
           dossier: effectiveDossier,
           blockingReasons: snapshot.blockingReasons
         });

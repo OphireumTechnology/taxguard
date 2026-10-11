@@ -13,7 +13,7 @@ export function evaluateStageFifteenServerGate(snapshot: StageFifteenGateSnapsho
   const checks = {
     stageFourteenComplete: snapshot.stageFourteenComplete === true,
     monitoringItemsCurrent: snapshot.monitoringItemsCurrent === true,
-    noUnresolvedDeadlines: (snapshot.unresolvedDeadlines || 0) === 0,
+    noUnresolvedDeadlines: snapshot.unresolvedDeadlines === 0,
     followUpsCompleted: snapshot.followUpsCompleted === true,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
@@ -36,7 +36,7 @@ export function evaluateStageFifteenServerGate(snapshot: StageFifteenGateSnapsho
       checks,
       blockingReasons,
       metadata: {
-        unresolvedDeadlines: snapshot.unresolvedDeadlines || 0,
+        unresolvedDeadlines: snapshot.unresolvedDeadlines ?? null,
         followUpsCompleted: snapshot.followUpsCompleted === true,
       },
     },

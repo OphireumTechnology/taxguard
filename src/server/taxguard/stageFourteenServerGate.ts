@@ -13,7 +13,7 @@ export function evaluateStageFourteenServerGate(snapshot: StageFourteenGateSnaps
   const checks = {
     stageThirteenComplete: snapshot.stageThirteenComplete === true,
     rejectionsOrNoticesResolved: snapshot.rejectionsOrNoticesResolved === true,
-    noOpenResolutionIssues: (snapshot.openResolutionIssues || 0) === 0,
+    noOpenResolutionIssues: snapshot.openResolutionIssues === 0,
     professionalReviewComplete: snapshot.professionalReviewComplete === true,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
@@ -36,7 +36,7 @@ export function evaluateStageFourteenServerGate(snapshot: StageFourteenGateSnaps
       checks,
       blockingReasons,
       metadata: {
-        openResolutionIssues: snapshot.openResolutionIssues || 0,
+        openResolutionIssues: snapshot.openResolutionIssues ?? null,
         professionalReviewComplete: snapshot.professionalReviewComplete === true,
       },
     },

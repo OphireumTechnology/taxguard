@@ -341,6 +341,10 @@ export class TaxDecimal {
     return this.units === 0n;
   }
 
+  toNumber(): number {
+    return parseFloat(this.toFixed());
+  }
+
   toFixed(): string {
     const negative =
       this.units < 0n;

@@ -16,7 +16,7 @@ export function evaluateStageSixServerGate(snapshot: StageSixGateSnapshot): Stag
     reviewQueueCleared: snapshot.reviewQueueCleared === true,
     makerCheckerSatisfied: snapshot.makerCheckerSatisfied === true,
     workpapersComplete: snapshot.workpapersComplete === true,
-    noBlockingExceptions: (snapshot.unresolvedBlockingExceptions || 0) === 0,
+    noBlockingExceptions: snapshot.unresolvedBlockingExceptions === 0,
     existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
   };
 
@@ -38,7 +38,7 @@ export function evaluateStageSixServerGate(snapshot: StageSixGateSnapshot): Stag
       checks,
       blockingReasons,
       metadata: {
-        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions || 0,
+        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions ?? null,
         makerCheckerSatisfied: snapshot.makerCheckerSatisfied === true,
       },
     },

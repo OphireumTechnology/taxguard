@@ -1,14 +1,16 @@
 /**
  * TaxGuard Durable Background Job Queue & Dead-Letter Service
- * Implements server-authoritative, concurrent-safe background job execution,
- * exponential backoff, worker lease renewal, and dead-letter isolation.
+ * Legacy process-local scheduling simulation; not distributed durable authority.
+ * Production leases/fencing/worker recovery require a verified durable adapter.
  */
 
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { DurableJob, JobStatus, JobType, RetryAttempt } from './types';
 
 export class DurableJobQueueService {
   private jobs = new Map<string, DurableJob>();
+  private leaseDeadlines = new Map<string, number>();
 
   /**
    * Enqueue a new durable background job
@@ -24,16 +26,25 @@ export class DurableJobQueueService {
     availableAt?: string;
     idempotencyKey?: string;
   }): Promise<DurableJob<T>> {
+    if ((params.maxAttempts !== undefined && (!Number.isSafeInteger(params.maxAttempts) || params.maxAttempts < 1)) ||
+        (params.priority !== undefined && !Number.isFinite(params.priority)) ||
+        (params.availableAt !== undefined && (typeof params.availableAt !== 'string' || !Number.isFinite(Date.parse(params.availableAt))))) {
+      throw new Error('JOB_INVALID_SCHEDULE');
+    }
     // If idempotencyKey provided, prevent duplicate enqueue
     if (params.idempotencyKey) {
       for (const existing of this.jobs.values()) {
         if (
           existing.tenantId === params.tenantId &&
-          existing.idempotencyKey === params.idempotencyKey &&
-          existing.status !== 'CANCELLED' &&
-          existing.status !== 'FAILED'
+          existing.idempotencyKey === params.idempotencyKey
         ) {
-          return existing as unknown as DurableJob<T>;
+          if (existing.jobType !== params.jobType || existing.clientId !== params.clientId ||
+              existing.caseId !== params.caseId || !isDeepStrictEqual(existing.payload, params.payload)) {
+            throw new Error('JOB_IDEMPOTENCY_CONFLICT');
+          }
+          if (existing.status !== 'CANCELLED' && existing.status !== 'FAILED') {
+            return structuredClone(existing) as unknown as DurableJob<T>;
+          }
         }
       }
     }
@@ -47,7 +58,7 @@ export class DurableJobQueueService {
       clientId: params.clientId,
       caseId: params.caseId,
       jobType: params.jobType,
-      payload: params.payload,
+      payload: structuredClone(params.payload),
       status: 'PENDING',
       priority: Math.min(10, Math.max(1, params.priority ?? 5)),
       attemptCount: 0,
@@ -60,7 +71,7 @@ export class DurableJobQueueService {
     };
 
     this.jobs.set(id, job as unknown as DurableJob);
-    return job;
+    return structuredClone(job);
   }
 
   /**
@@ -72,11 +83,14 @@ export class DurableJobQueueService {
     workerId: string,
     leaseSeconds = 300
   ): Promise<DurableJob | null> {
+    if (typeof tenantId !== 'string' || !tenantId.trim() || typeof workerId !== 'string' || !workerId.trim() ||
+        !Number.isFinite(leaseSeconds) || leaseSeconds <= 0 ||
+        !Number.isFinite(Date.now() + leaseSeconds * 1000)) throw new Error('JOB_INVALID_CLAIM');
     const now = new Date();
     const nowIso = now.toISOString();
 
     // Find candidate jobs: status PENDING or RETRY_SCHEDULED, availableAt <= now
-    // OR CLAIMED/RUNNING whose lease expired (lockedAt + leaseSeconds < now)
+    // Recovery uses the originally granted expiry, never the next claimant's requested duration.
     const candidates = Array.from(this.jobs.values()).filter((j) => {
       if (j.tenantId !== tenantId) return false;
 
@@ -85,10 +99,8 @@ export class DurableJobQueueService {
       }
 
       if (j.status === 'CLAIMED' || j.status === 'RUNNING') {
-        if (j.lockedAt) {
-          const lockExpires = new Date(j.lockedAt).getTime() + leaseSeconds * 1000;
-          return now.getTime() > lockExpires; // Lease expired, claimable
-        }
+        const deadline = this.leaseDeadlines.get(j.id);
+        return deadline !== undefined && now.getTime() >= deadline;
       }
 
       return false;
@@ -111,7 +123,8 @@ export class DurableJobQueueService {
     claimed.updatedAt = nowIso;
 
     this.jobs.set(claimed.id, claimed);
-    return claimed;
+    this.leaseDeadlines.set(claimed.id, now.getTime() + leaseSeconds * 1000);
+    return structuredClone(claimed);
   }
 
   /**
@@ -123,9 +136,8 @@ export class DurableJobQueueService {
   ): Promise<DurableJob> {
     const job = this.jobs.get(jobId);
     if (!job) throw new Error(`JOB_NOT_FOUND: ${jobId}`);
-    if (job.lockedBy && job.lockedBy !== workerId) {
-      throw new Error(`WORKER_LOCK_MISMATCH: Job is locked by worker ${job.lockedBy}`);
-    }
+    if (!['CLAIMED', 'RUNNING'].includes(job.status) || !job.lockedBy || job.lockedBy !== workerId ||
+        (this.leaseDeadlines.get(jobId) ?? 0) <= Date.now()) throw new Error('JOB_WORKER_CLAIM_REQUIRED');
 
     const now = new Date().toISOString();
     job.status = 'COMPLETED';
@@ -134,8 +146,10 @@ export class DurableJobQueueService {
     job.lockedBy = undefined;
     job.updatedAt = now;
 
+    this.leaseDeadlines.delete(jobId);
+
     this.jobs.set(jobId, job);
-    return job;
+    return structuredClone(job);
   }
 
   /**
@@ -150,6 +164,8 @@ export class DurableJobQueueService {
   ): Promise<DurableJob> {
     const job = this.jobs.get(jobId);
     if (!job) throw new Error(`JOB_NOT_FOUND: ${jobId}`);
+    if (!['CLAIMED', 'RUNNING'].includes(job.status) || !job.lockedBy || job.lockedBy !== workerId ||
+        (this.leaseDeadlines.get(jobId) ?? 0) <= Date.now()) throw new Error('JOB_WORKER_CLAIM_REQUIRED');
 
     const now = new Date();
     const nowIso = now.toISOString();
@@ -173,6 +189,7 @@ export class DurableJobQueueService {
     job.lockedAt = undefined;
     job.lockedBy = undefined;
     job.updatedAt = nowIso;
+    this.leaseDeadlines.delete(jobId);
 
     if (isPermanent || job.attemptCount >= job.maxAttempts) {
       // Transition to DEAD_LETTER
@@ -180,7 +197,7 @@ export class DurableJobQueueService {
       job.failedAt = nowIso;
       job.retryHistory.push(retryRecord);
       this.jobs.set(jobId, job);
-      return job;
+      return structuredClone(job);
     }
 
     // Schedule bounded exponential retry: 2^(attempt-1) * 30 seconds + jitter
@@ -194,16 +211,16 @@ export class DurableJobQueueService {
     job.availableAt = nextAvailable;
 
     this.jobs.set(jobId, job);
-    return job;
+    return structuredClone(job);
   }
 
   /**
    * Admin inspection of dead-letter or failed jobs
    */
   getDeadLetterJobs(tenantId: string): DurableJob[] {
-    return Array.from(this.jobs.values()).filter(
+    return structuredClone(Array.from(this.jobs.values()).filter(
       (j) => j.tenantId === tenantId && (j.status === 'DEAD_LETTER' || j.status === 'FAILED')
-    );
+    ));
   }
 
   /**
@@ -223,9 +240,10 @@ export class DurableJobQueueService {
     job.lockedAt = undefined;
     job.lockedBy = undefined;
     job.updatedAt = now;
+    this.leaseDeadlines.delete(jobId);
 
     this.jobs.set(jobId, job);
-    return job;
+    return structuredClone(job);
   }
 
   /**
@@ -243,9 +261,10 @@ export class DurableJobQueueService {
     job.lockedAt = undefined;
     job.lockedBy = undefined;
     job.updatedAt = now;
+    this.leaseDeadlines.delete(jobId);
 
     this.jobs.set(jobId, job);
-    return job;
+    return structuredClone(job);
   }
 
   /**
@@ -253,7 +272,7 @@ export class DurableJobQueueService {
    */
   getJob(jobId: string, tenantId: string): DurableJob | undefined {
     const job = this.jobs.get(jobId);
-    return job?.tenantId === tenantId ? job : undefined;
+    return job?.tenantId === tenantId ? structuredClone(job) : undefined;
   }
 
   queryJobs(params: {
@@ -278,7 +297,7 @@ export class DurableJobQueueService {
     const limit = params.limit ?? 50;
 
     return {
-      jobs: list.slice(offset, offset + limit),
+      jobs: structuredClone(list.slice(offset, offset + limit)),
       total,
     };
   }
@@ -288,6 +307,7 @@ export class DurableJobQueueService {
    */
   clear(): void {
     this.jobs.clear();
+    this.leaseDeadlines.clear();
   }
 }
 

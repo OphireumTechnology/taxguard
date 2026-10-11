@@ -28,7 +28,7 @@ export async function persistPassedStageGate(
   input: StageGateBridgeInput
 ): Promise<TaxGuardLiveWorkflowCase> {
 
-  if (!input.gatePassed) {
+  if (input.gatePassed !== true) {
     throw new Error(
       `${input.gateName} did not pass. Workflow transition denied.`
     );

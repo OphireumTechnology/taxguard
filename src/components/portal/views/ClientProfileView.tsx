@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   Building2,
@@ -30,11 +30,13 @@ import {
   Check
 } from 'lucide-react';
 import { User as UserType } from '../../../types';
-import { StageOneOnboardingService } from '../../../services/stageOneOnboardingService';
-import { getStoredToken } from '../../../services/api';
+import { useAuthoritativeClientProfile } from '../../../hooks/useAuthoritativeClientProfile';
+import { ProfileEvidenceSections } from './ProfileEvidenceSections';
+import { api } from '../../../services/api';
 
 interface ClientProfileViewProps {
   currentUser: UserType | null;
+  authLifecycleState: string;
   onNavigateToDocuments?: () => void;
   onNavigateToStageTwo?: () => void;
 }
@@ -51,12 +53,17 @@ export type ProfileSectionKey =
 
 export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
   currentUser,
+  authLifecycleState,
   onNavigateToDocuments,
   onNavigateToStageTwo
 }) => {
   const [activeSection, setActiveSection] = useState<ProfileSectionKey>('personal');
-  const [profileData, setProfileData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [refresh, setRefresh] = useState(0);
+  const profile = useAuthoritativeClientProfile(currentUser, authLifecycleState, refresh);
+  const profileData = profile.data;
+  const isLoading = profile.status === 'loading';
+  const operationScope = useRef(profile.key);
+  operationScope.current = profile.key;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -86,200 +93,7 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
   const [isSubmittingAmendment, setIsSubmittingAmendment] = useState<boolean>(false);
   const [amendmentSubmitError, setAmendmentSubmitError] = useState<string | null>(null);
 
-  const clientId = currentUser?.clientId || currentUser?.id || 'client';
-
-  const fetchAuthoritativeProfile = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const token = getStoredToken();
-      const res = await fetch('/api/profile/authoritative', {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setProfileData(data);
-        syncEditFields(data);
-      } else {
-        // Fallback to local service dossier
-        buildFallbackData();
-      }
-    } catch {
-      buildFallbackData();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const buildFallbackData = () => {
-    const localDossier = StageOneOnboardingService.getDossier(clientId);
-    const legalName = localDossier?.legalName || currentUser?.name || 'Valued Taxpayer';
-    const email = localDossier?.email || currentUser?.email || '';
-    const phone = localDossier?.phone || currentUser?.phone || '';
-    const resAddr = localDossier?.residentialOrPrincipalAddress || {
-      street: '1428 Palmetto Crest Way',
-      unit: '',
-      city: 'Columbia',
-      state: 'SC',
-      zip: '29201',
-      country: 'United States'
-    };
-    const mailAddr = localDossier?.mailingAddress || resAddr;
-    const isEntity = localDossier?.taxpayerType === 'entity' || currentUser?.clientType === 'business';
-
-    const fallback = {
-      clientId,
-      version: 1,
-      effectiveAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-      personal: {
-        legalName,
-        taxpayerType: isEntity ? 'entity' : 'individual',
-        entityClassification: localDossier?.entityClassification || (isEntity ? 'llc' : 'individual'),
-        dbaName: localDossier?.dbaName || '',
-        maskedTIN: localDossier?.maskedTIN || (isEntity ? 'XX-XXX8842' : '***-**-9876'),
-        tinType: localDossier?.tinType || (isEntity ? 'ein' : 'ssn'),
-        tinLast4: localDossier?.tinLast4 || (isEntity ? '8842' : '9876'),
-        dateOfBirth: '1984-06-18',
-        stateOfIncorporation: resAddr.state || 'SC',
-        businessDetails: {
-          entityType: localDossier?.entityClassification || 'llc',
-          dbaName: localDossier?.dbaName || '',
-          stateOfIncorporation: resAddr.state || 'SC',
-          naicsCode: '541211',
-          taxClassification: isEntity ? 'Pass-Through Entity / Form 1065 / 1120-S' : 'Individual Form 1040'
-        }
-      },
-      contact: {
-        email,
-        phone,
-        residentialAddress: resAddr,
-        mailingAddress: mailAddr,
-        communicationPreferences: {
-          email: true,
-          sms: false,
-          portal: true
-        }
-      },
-      representative: {
-        name: localDossier?.authorizedRep?.fullName || (isEntity ? legalName : 'Desmond Hinds, Founder & CEO'),
-        title: localDossier?.authorizedRep?.title || (isEntity ? 'Managing Member' : 'Tax Advisory Representative'),
-        relationship: localDossier?.authorizedRep?.relationshipOrCapacity || 'Authorized Officer / Representative',
-        relationshipOrCapacity: localDossier?.authorizedRep?.relationshipOrCapacity || 'Authorized Officer / Representative',
-        phone: localDossier?.authorizedRep?.phone || phone,
-        email: localDossier?.authorizedRep?.email || email,
-        authorizationStatus: 'ACTIVE',
-        hasPowerOfAttorney: true,
-        hasForm2848: true,
-        hasForm8821: true,
-        supportingDocuments: [
-          {
-            id: `auth_doc_${clientId}`,
-            name: 'IRS Form 2848 Power of Attorney & Declaration of Representative',
-            category: 'authorization',
-            uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-            verified: true
-          }
-        ]
-      },
-      identity: {
-        status: 'VERIFIED',
-        verifiedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-        supportingDocsCount: localDossier?.supportingDocs?.length || 1,
-        documents: localDossier?.supportingDocs && localDossier.supportingDocs.length > 0
-          ? localDossier.supportingDocs
-          : [
-              {
-                id: 'doc_id_gov',
-                name: 'Government_Photo_ID_Verified.pdf',
-                category: 'government_id',
-                uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-                verified: true
-              }
-            ],
-        duplicateCheckStatus: localDossier?.duplicateCheck?.status || 'CLEARED'
-      },
-      engagement: {
-        engagementId: `eng_2025_${clientId}`,
-        taxYear: 2025,
-        agreementAccepted: true,
-        engagementTerms: 'Professional Tax Advisory & Form 1040 Compliance Engagement Agreement (Executed)',
-        feeScheduleAccepted: true,
-        feeScheduleAcknowledged: true,
-        acceptedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-        signerFullName: localDossier?.engagementConsent?.signerFullName || legalName
-      },
-      consentCenter: {
-        irc7216ConsentAccepted: true,
-        eSignConsentAccepted: true,
-        electronicSignatureConsentAccepted: true,
-        privacyConsentAccepted: true,
-        termsAndScopeAccepted: true,
-        consentVersion: localDossier?.engagementConsent?.consentVersion || 'v2025.1.0',
-        acceptedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-        signerFullName: localDossier?.engagementConsent?.signerFullName || legalName,
-        communicationPreferences: {
-          email: true,
-          sms: false,
-          portal: true
-        }
-      },
-      myDocuments: {
-        identityDocuments: [
-          {
-            id: 'doc_id_gov',
-            name: 'Government-Issued Photo ID (Verified)',
-            category: 'identity',
-            uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-            verified: true
-          }
-        ],
-        authorizationDocuments: [
-          {
-            id: `auth_doc_${clientId}`,
-            name: 'IRS Form 2848 Power of Attorney & Declaration of Representative',
-            category: 'authorization',
-            uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-            verified: true
-          }
-        ],
-        onboardingDocuments: [
-          {
-            id: `onb_dossier_${clientId}`,
-            name: 'Stage 01 Certified Taxpayer Onboarding Dossier & Identity Record',
-            category: 'onboarding',
-            uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-            verified: true
-          }
-        ],
-        engagementDocuments: [
-          {
-            id: `eng_doc_${clientId}`,
-            name: `Executed Engagement Terms & Fee Schedule Acknowledgement (${clientId})`,
-            category: 'engagement',
-            uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-            verified: true
-          }
-        ],
-        taxDocuments: [],
-        priorYearDocuments: [
-          {
-            id: 'doc_prior_2024',
-            name: 'Prior Year Federal & State Tax Return (Tax Year 2024)',
-            category: 'prior_tax_returns',
-            uploadedAt: localDossier?.stageOneCompletedAt || new Date().toISOString(),
-            verified: true
-          }
-        ]
-      },
-      amendments: []
-    };
-
-    setProfileData(fallback);
-    syncEditFields(fallback);
-  };
+  const fetchAuthoritativeProfile = async () => { setRefresh(value => value + 1); };
 
   const syncEditFields = (data: any) => {
     if (!data?.contact) return;
@@ -288,7 +102,7 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
     setEditMailingStreet(mail.street || '');
     setEditMailingUnit(mail.unit || '');
     setEditMailingCity(mail.city || '');
-    setEditMailingState(mail.state || 'SC');
+    setEditMailingState(mail.state || '');
     setEditMailingZip(mail.zip || '');
     const prefs = data.contact.communicationPreferences || {};
     setEditEmailPref(prefs.email !== false);
@@ -297,11 +111,21 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
   };
 
   useEffect(() => {
-    fetchAuthoritativeProfile();
-  }, [clientId]);
+    syncEditFields(profileData);
+  }, [profileData]);
+  useEffect(() => {
+    setSuccessMessage(null); setErrorMessage(null); setShowTIN(false);
+    setIsEditingContact(false); setAmendmentModalOpen(false); setAmendmentCurrentValue('');
+    setAmendmentProposedValue(''); setAmendmentReason(''); setAmendmentSubmitError(null);
+    setEditPhone(''); setEditMailingStreet(''); setEditMailingUnit(''); setEditMailingCity('');
+    setEditMailingState(''); setEditMailingZip('');
+    setIsSavingOrdinary(false); setIsSubmittingAmendment(false);
+  }, [profile.key]);
 
   // Handle saving permitted ordinary profile fields
   const handleSaveOrdinaryContact = async () => {
+    if (!profile.allowed || !profileData) return;
+    const operationKey = profile.key;
     setIsSavingOrdinary(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -324,40 +148,16 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
     };
 
     try {
-      const token = getStoredToken();
-      const res = await fetch('/api/profile/ordinary', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(updates)
-      });
-
-      if (res.ok) {
+      await api.profile.updateOrdinary(updates);
+      if (operationScope.current === operationKey) {
         setSuccessMessage('Contact information & communication preferences saved successfully.');
         setIsEditingContact(false);
         await fetchAuthoritativeProfile();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setErrorMessage(data.error || 'Failed to save contact profile updates.');
       }
     } catch {
-      // Local fallback
-      if (profileData) {
-        const updated = {
-          ...profileData,
-          contact: {
-            ...profileData.contact,
-            ...updates
-          }
-        };
-        setProfileData(updated);
-        setSuccessMessage('Contact information updated locally.');
-        setIsEditingContact(false);
-      }
+      if (operationScope.current === operationKey) setErrorMessage('Contact updates could not be saved. Retry when the service is available.');
     } finally {
-      setIsSavingOrdinary(false);
+      if (operationScope.current === operationKey) setIsSavingOrdinary(false);
     }
   };
 
@@ -375,6 +175,8 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
   // Submit formal amendment request to Practice Console
   const handleSubmitAmendment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!profile.allowed || !profileData) return;
+    const operationKey = profile.key;
     if (!amendmentProposedValue.trim()) {
       setAmendmentSubmitError('Proposed updated value is required.');
       return;
@@ -388,58 +190,43 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
     setAmendmentSubmitError(null);
 
     try {
-      const token = getStoredToken();
-      const res = await fetch('/api/profile/amendments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
+      await api.profile.requestAmendment({
           field: amendmentField,
           fieldLabel: amendmentFieldLabel,
           previousValue: amendmentCurrentValue,
           proposedValue: amendmentProposedValue.trim(),
           reason: amendmentReason.trim(),
           isSensitiveIdentityChange: true
-        })
       });
-
-      if (res.ok) {
+      if (operationScope.current === operationKey) {
         setSuccessMessage(
           `Formal amendment request for ${amendmentFieldLabel} recorded. It is currently pending review by A/R Tax Services CPAs.`
         );
         setAmendmentModalOpen(false);
         setActiveSection('amendments');
         await fetchAuthoritativeProfile();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        setAmendmentSubmitError(err.error || 'Failed to submit amendment request.');
       }
     } catch {
-      setAmendmentSubmitError('Network failure while submitting amendment. Please retry.');
+      if (operationScope.current === operationKey) setAmendmentSubmitError('Amendment could not be recorded. Please retry.');
     } finally {
-      setIsSubmittingAmendment(false);
+      if (operationScope.current === operationKey) setIsSubmittingAmendment(false);
     }
   };
 
-  if (isLoading && !profileData) {
+  if (!profile.allowed) return <p role="alert">An active authenticated client session is required to view your profile.</p>;
+  if (profile.status === 'error') return <div role="alert" className="rounded-2xl bg-[#07172B] p-6 text-slate-300"><p>Your recorded profile could not be loaded. Retry to restore access.</p><button type="button" onClick={fetchAuthoritativeProfile}>Retry profile</button></div>;
+  if (isLoading || !profileData) {
     return (
       <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-8 text-center space-y-4">
         <RefreshCw className="w-8 h-8 text-[#C6A15B] animate-spin mx-auto" />
         <div className="text-white font-bold text-sm">Retrieving Authoritative Client Profile...</div>
-        <p className="text-xs text-slate-400">Verifying immutable Stage 01 records and certified identity locks.</p>
+        <p className="text-xs text-slate-400">Loading your authorized recorded profile.</p>
       </div>
     );
   }
 
   const p = profileData?.personal || {};
   const c = profileData?.contact || {};
-  const rep = profileData?.representative || {};
-  const ident = profileData?.identity || {};
-  const eng = profileData?.engagement || {};
-  const consent = profileData?.consentCenter || {};
-  const docs = profileData?.myDocuments || {};
   const amendments = profileData?.amendments || [];
 
   return (
@@ -454,7 +241,7 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
           <h1 className="text-2xl font-serif font-bold text-white tracking-tight flex items-center gap-2">
             <span>{p.legalName || currentUser?.name || 'Client Taxpayer'}</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-              ✓ Identity Verified
+              {profileData.identity?.status || 'NOT_VERIFIED'}
             </span>
           </h1>
           <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
@@ -468,7 +255,7 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
             type="button"
             onClick={fetchAuthoritativeProfile}
             className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-200 bg-[#06172C] hover:bg-[#0D2340] border border-[#1E3A5F] transition flex items-center gap-1.5"
-            title="Refresh profile from PostgreSQL authority"
+            title="Refresh recorded profile"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Sync Authority</span>
@@ -594,7 +381,7 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
               <div>
                 <span className="text-slate-400 text-[11px] block font-mono">Taxpayer &amp; Filing Classification</span>
                 <span className="font-bold text-white text-base block mt-0.5 capitalize">
-                  {p.taxpayerType === 'entity' ? `Entity (${p.entityClassification?.toUpperCase() || 'LLC'})` : 'Individual (Form 1040)'}
+                  {p.taxpayerType === 'entity' ? `Entity (${p.entityClassification?.toUpperCase() || 'Classification not recorded'})` : p.taxpayerType === 'individual' ? 'Individual' : 'Not recorded'}
                 </span>
                 <span className="text-[10px] text-slate-400">Governs IRS filing forms, schedule attachments, and deduction rules</span>
               </div>
@@ -647,16 +434,16 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
             <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] flex flex-col justify-between space-y-2">
               <div>
                 <span className="text-slate-400 text-[11px] block font-mono">
-                  {p.taxpayerType === 'entity' ? 'Date of Formation' : 'Date of Birth (DOB)'}
+                  Recorded Date of Birth (DOB)
                 </span>
                 <span className="font-bold text-white text-base block mt-0.5">
-                  {p.dateOfBirth || (p.taxpayerType === 'entity' ? '2021-04-12' : '1984-06-18')}
+                  {p.dateOfBirth || 'Not recorded'}
                 </span>
                 <span className="text-[10px] text-slate-400">Required for SSA matching and electronic return authorization</span>
               </div>
               <button
                 type="button"
-                onClick={() => handleOpenAmendmentModal('dateOfBirth', 'Date of Birth', p.dateOfBirth || '1984-06-18')}
+                onClick={() => handleOpenAmendmentModal('dateOfBirth', 'Date of Birth', p.dateOfBirth || '')}
                 className="self-start text-[11px] text-[#C6A15B] hover:text-[#D9BF7A] font-semibold flex items-center gap-1 cursor-pointer pt-1"
               >
                 <Edit2 className="w-3 h-3" />
@@ -679,12 +466,12 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
                 </div>
                 <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F]">
                   <span className="text-slate-400 block text-[11px]">State of Organization:</span>
-                  <span className="font-bold text-white mt-0.5 block">{p.stateOfIncorporation || 'South Carolina'}</span>
+                  <span className="font-bold text-white mt-0.5 block">{p.stateOfIncorporation || 'Not recorded'}</span>
                 </div>
                 <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F]">
                   <span className="text-slate-400 block text-[11px]">Tax Return Type:</span>
                   <span className="font-bold text-[#C6A15B] mt-0.5 block">
-                    {p.businessDetails?.taxClassification || 'Pass-Through Entity / Schedule C'}
+                    {p.businessDetails?.taxClassification || 'Not recorded'}
                   </span>
                 </div>
               </div>
@@ -907,470 +694,8 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
       {/* ------------------------------------------------------------------ */}
       {/* 3. AUTHORIZED REPRESENTATIVE */}
       {/* ------------------------------------------------------------------ */}
-      {activeSection === 'representative' && (
-        <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E3A5F] pb-4">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[#C6A15B]" />
-                <span>Authorized Representative &amp; Signing Capacity</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Designated officer or professional representative empowered to execute tax documentation.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-lg self-start sm:self-auto">
-              ✓ Active Authorization (CAF Registered)
-            </span>
-          </div>
+      <ProfileEvidenceSections section={activeSection} profile={profileData} onNavigateToDocuments={onNavigateToDocuments}/>
 
-          <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-4 text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-slate-400 text-[11px] block font-mono">Representative Full Name</span>
-                <span className="font-bold text-white text-base block mt-0.5">{rep.name || 'Desmond Hinds, Founder & CEO'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px] block font-mono">Title / Fiduciary Capacity</span>
-                <span className="font-bold text-white text-base block mt-0.5">{rep.title || 'Managing Member'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px] block font-mono">Relationship / Capacity</span>
-                <span className="font-semibold text-white block mt-0.5">{rep.relationshipOrCapacity || 'Authorized Officer'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px] block font-mono">Contact Phone &amp; Email</span>
-                <span className="font-semibold text-white block mt-0.5">
-                  {rep.phone || '(803) 777-4411'} &bull; {rep.email || 'office@artaxservices.com'}
-                </span>
-              </div>
-            </div>
-
-            <div className="border-t border-[#1E3A5F] pt-4 space-y-2">
-              <span className="text-xs font-bold text-white block">Supporting Authorization Documentation:</span>
-              <div className="space-y-2">
-                {(rep.supportingDocuments && rep.supportingDocuments.length > 0
-                  ? rep.supportingDocuments
-                  : [
-                      {
-                        id: 'auth_doc_2848',
-                        name: 'IRS Form 2848 Power of Attorney & Declaration of Representative (CAF Validated)',
-                        category: 'authorization',
-                        uploadedAt: profileData?.effectiveAt || new Date().toISOString(),
-                        verified: true
-                      },
-                      {
-                        id: 'auth_doc_8821',
-                        name: 'IRS Form 8821 Tax Information Authorization',
-                        category: 'authorization',
-                        uploadedAt: profileData?.effectiveAt || new Date().toISOString(),
-                        verified: true
-                      }
-                    ]
-                ).map((doc: any, i: number) => (
-                  <div
-                    key={doc.id || i}
-                    className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[#C6A15B]" />
-                      <span className="font-bold text-white">{doc.name}</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                      ✓ Active Standing
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 4. IDENTITY & VERIFICATION */}
-      {/* ------------------------------------------------------------------ */}
-      {activeSection === 'identity' && (
-        <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E3A5F] pb-4">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Identity Verification &amp; Security Proofs</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Government-issued photo identification and entity formation proof on permanent legal record.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-lg">
-                Status: {ident.status || 'VERIFIED'}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F]">
-              <span className="text-slate-400 text-[11px] block font-mono">Identity Verification Gate</span>
-              <span className="font-bold text-emerald-400 text-sm block mt-1">✓ Hard Exit Gate Cleared</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">
-                Timestamp: {ident.verifiedAt ? new Date(ident.verifiedAt).toLocaleDateString() : 'Active'}
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F]">
-              <span className="text-slate-400 text-[11px] block font-mono">5-Point Duplicate Resolution</span>
-              <span className="font-bold text-emerald-400 text-sm block mt-1">✓ Zero Collision (Cleared)</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Checked across TIN, Name, Email, Phone, Address</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F]">
-              <span className="text-slate-400 text-[11px] block font-mono">Vault Storage Enclave</span>
-              <span className="font-bold text-white text-sm block mt-1">AES-256 Envelope Encrypted</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Supabase Storage Private Vault</span>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            <span className="font-bold text-white text-xs block">Verified Supporting Documents:</span>
-            {ident.documents && ident.documents.length > 0 ? (
-              <div className="space-y-2">
-                {ident.documents.map((doc: any, i: number) => (
-                  <div
-                    key={doc.id || i}
-                    className="p-3.5 rounded-xl bg-[#06172C] border border-[#1E3A5F] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-[#C6A15B] flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-white">{doc.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          Category: {doc.category || 'identification'} &bull; Uploaded:{' '}
-                          {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Onboarding'}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 self-start sm:self-auto">
-                      ✓ Verified by TaxGuard
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-[#06172C] border border-dashed border-slate-700 text-slate-400 text-center text-xs">
-                No identity documents uploaded during intake.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 5. ENGAGEMENT */}
-      {/* ------------------------------------------------------------------ */}
-      {activeSection === 'engagement' && (
-        <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E3A5F] pb-4">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileCheck className="w-4 h-4 text-[#C6A15B]" />
-                <span>Professional Engagement &amp; Fee Acknowledgement</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Contractual scope of representation, Circular 230 disclosures, and fee schedule terms.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-lg self-start sm:self-auto">
-              ✓ Executed &amp; Binding
-            </span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F]">
-                <span className="text-slate-400 text-[11px] block font-mono">Engagement ID:</span>
-                <span className="font-bold text-white block mt-0.5 font-mono">{eng.engagementId || `eng_2025_${clientId}`}</span>
-              </div>
-              <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F]">
-                <span className="text-slate-400 text-[11px] block font-mono">Filing Tax Year:</span>
-                <span className="font-bold text-[#C6A15B] block mt-0.5">{eng.taxYear || 2025}</span>
-              </div>
-              <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F]">
-                <span className="text-slate-400 text-[11px] block font-mono">Executed By:</span>
-                <span className="font-bold text-white block mt-0.5">{eng.signerFullName || p.legalName}</span>
-              </div>
-              <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F]">
-                <span className="text-slate-400 text-[11px] block font-mono">Execution Date:</span>
-                <span className="font-bold text-emerald-400 block mt-0.5">
-                  {eng.acceptedAt ? new Date(eng.acceptedAt).toLocaleDateString() : 'Certified'}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#07172B] border border-[#1E3A5F] space-y-2">
-              <span className="font-bold text-white text-xs block">Key Contractual Terms:</span>
-              <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11px] leading-relaxed">
-                <li>Scope covers preparation of federal and required resident state returns for Tax Year {eng.taxYear || 2025}.</li>
-                <li>Fee schedule acknowledged with standard electronic billing upon tax return final review (Stage 10).</li>
-                <li>Client affirms duty to provide complete, truthful, and substantiated records under penalty of perjury.</li>
-                <li>Firm abides by Treasury Department Circular 230 regulations and AICPA ethical standards.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 6. CONSENT CENTER */}
-      {/* ------------------------------------------------------------------ */}
-      {activeSection === 'consents' && (
-        <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E3A5F] pb-4">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Lock className="w-4 h-4 text-[#C6A15B]" />
-                <span>Statutory Consent Center &amp; Privacy Disclosures</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Treasury Reg. § 301.7216-3 consents, E-SIGN Act compliance, and data privacy disclosures.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-lg self-start sm:self-auto">
-              ✓ Active Consents Certified
-            </span>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            {/* IRC § 7216 Consent */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-sm">
-                  Internal Revenue Code § 7216 Tax Advisory &amp; Planning Consent
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                  ✓ Granted &amp; Active
-                </span>
-              </div>
-              <p className="text-slate-300 leading-relaxed text-[11px]">
-                Under Internal Revenue Code section 7216, you consented to allow A/R Tax Services, LLC to analyze your tax
-                return information to provide tax planning, Section 179 optimization, and proactive financial advisory.
-              </p>
-              <div className="text-[10px] text-slate-400 font-mono border-t border-[#1E3A5F] pt-2">
-                Consent Version: {consent.consentVersion || '2025.1-IRC7216'} &bull; Executed by:{' '}
-                {consent.signerFullName || p.legalName}
-              </div>
-            </div>
-
-            {/* Electronic Communication & E-Signature Consent */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-sm">
-                  Electronic Signature &amp; Digital Document Delivery Consent (ESIGN Act)
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                  ✓ Granted &amp; Active
-                </span>
-              </div>
-              <p className="text-slate-300 leading-relaxed text-[11px]">
-                Authorized the use of digital signatures for IRS Form 8879, engagement contracts, and secure portal
-                disclosures pursuant to the Electronic Signatures in Global and National Commerce Act.
-              </p>
-              <div className="text-[10px] text-slate-400 font-mono border-t border-[#1E3A5F] pt-2">
-                Valid for all filings during Tax Year {eng.taxYear || 2025}
-              </div>
-            </div>
-
-            {/* FTC & GLBA Privacy Safeguards */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-sm">
-                  FTC Safeguards Rule &amp; Gramm-Leach-Bliley Act (GLBA) Notice
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                  ✓ Acknowledged
-                </span>
-              </div>
-              <p className="text-slate-300 leading-relaxed text-[11px]">
-                Non-public personal financial information is guarded via multi-tenant database isolation, token-hashed session
-                enclaves, and zero-telemetry boundary policies.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 7. MY DOCUMENTS */}
-      {/* ------------------------------------------------------------------ */}
-      {activeSection === 'documents' && (
-        <div className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E3A5F] pb-4">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FolderLock className="w-4 h-4 text-[#C6A15B]" />
-                <span>My Documents Vault</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Organized client document repository spanning onboarding, authorization, engagement, and tax return records.
-              </p>
-            </div>
-            {onNavigateToDocuments && (
-              <button
-                type="button"
-                onClick={onNavigateToDocuments}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-              >
-                <span>Upload New Documents (Stage 02)</span>
-                <Upload className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-4 text-xs">
-            {/* Identity Documents */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <span className="font-bold text-white text-xs block text-[#C6A15B] font-mono">
-                1. Identity &amp; Formation Documents
-              </span>
-              <div className="space-y-1.5">
-                {(docs.identityDocuments && docs.identityDocuments.length > 0
-                  ? docs.identityDocuments
-                  : [
-                      {
-                        id: 'id_doc_1',
-                        name: 'Verified Government ID Photo Transcript',
-                        category: 'identity',
-                        uploadedAt: profileData?.effectiveAt
-                      }
-                    ]
-                ).map((d: any, idx: number) => (
-                  <div key={d.id || idx} className="p-2.5 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-slate-300" />
-                      <span className="text-white font-medium">{d.name}</span>
-                    </div>
-                    <span className="text-emerald-400 font-bold text-[10px]">✓ Verified</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Authorization Documents */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <span className="font-bold text-white text-xs block text-[#C6A15B] font-mono">
-                2. Authorization Documents
-              </span>
-              <div className="space-y-1.5">
-                {(docs.authorizationDocuments && docs.authorizationDocuments.length > 0
-                  ? docs.authorizationDocuments
-                  : [
-                      {
-                        id: 'auth_doc_1',
-                        name: 'IRS Form 2848 Power of Attorney Document',
-                        category: 'authorization',
-                        uploadedAt: profileData?.effectiveAt
-                      }
-                    ]
-                ).map((d: any, idx: number) => (
-                  <div key={d.id || idx} className="p-2.5 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-slate-300" />
-                      <span className="text-white font-medium">{d.name}</span>
-                    </div>
-                    <span className="text-emerald-400 font-bold text-[10px]">✓ Active</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Onboarding Documents */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <span className="font-bold text-white text-xs block text-[#C6A15B] font-mono">
-                3. Onboarding Documents
-              </span>
-              <div className="space-y-1.5">
-                {(docs.onboardingDocuments && docs.onboardingDocuments.length > 0
-                  ? docs.onboardingDocuments
-                  : [
-                      {
-                        id: 'onb_doc_1',
-                        name: 'Stage 01 Certified Taxpayer Onboarding Dossier',
-                        category: 'onboarding',
-                        uploadedAt: profileData?.effectiveAt
-                      }
-                    ]
-                ).map((d: any, idx: number) => (
-                  <div key={d.id || idx} className="p-2.5 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-slate-300" />
-                      <span className="text-white font-medium">{d.name}</span>
-                    </div>
-                    <span className="text-emerald-400 font-bold text-[10px]">✓ Certified Record</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Engagement Documents */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <span className="font-bold text-white text-xs block text-[#C6A15B] font-mono">
-                4. Engagement Documents
-              </span>
-              <div className="space-y-1.5">
-                {(docs.engagementDocuments && docs.engagementDocuments.length > 0
-                  ? docs.engagementDocuments
-                  : [
-                      {
-                        id: 'eng_doc_1',
-                        name: 'Executed Professional Engagement Agreement',
-                        category: 'engagement',
-                        uploadedAt: profileData?.effectiveAt
-                      }
-                    ]
-                ).map((d: any, idx: number) => (
-                  <div key={d.id || idx} className="p-2.5 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-slate-300" />
-                      <span className="text-white font-medium">{d.name}</span>
-                    </div>
-                    <span className="text-emerald-400 font-bold text-[10px]">✓ Executed</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Prior-Year Documents */}
-            <div className="p-4 rounded-xl bg-[#06172C] border border-[#1E3A5F] space-y-2">
-              <span className="font-bold text-white text-xs block text-[#C6A15B] font-mono">
-                5. Prior-Year Tax Documents
-              </span>
-              <div className="space-y-1.5">
-                {(docs.priorYearDocuments && docs.priorYearDocuments.length > 0
-                  ? docs.priorYearDocuments
-                  : [
-                      {
-                        id: 'prior_yr_1',
-                        name: 'Prior Year 2024 Federal Form 1040 & State Transcript',
-                        category: 'prior_tax_returns',
-                        uploadedAt: profileData?.effectiveAt
-                      }
-                    ]
-                ).map((d: any, idx: number) => (
-                  <div key={d.id || idx} className="p-2.5 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-slate-300" />
-                      <span className="text-white font-medium">{d.name}</span>
-                    </div>
-                    <span className="text-slate-400 font-bold text-[10px]">Archived</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
       {/* 8. AMENDMENTS & AUDIT TRAIL */}
       {/* ------------------------------------------------------------------ */}
       {activeSection === 'amendments' && (

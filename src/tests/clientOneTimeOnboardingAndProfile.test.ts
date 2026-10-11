@@ -348,6 +348,7 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
     expect(profile.personal.maskedTIN).toBe('XX-XXX5432');
     expect(profile.personal.tinLast4).toBe('5432');
     expect(profile.personal.businessDetails).toBeDefined();
+    // This fixture already has a persisted stateOfIncorporation field in its dossier.
     expect(profile.personal.businessDetails.stateOfIncorporation).toBe('SC');
 
     // Section 2: Contact Information
@@ -361,18 +362,20 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
     expect(profile.representative).toBeDefined();
     expect(profile.representative.name).toBe('Sarah Elizabeth Jenkins');
     expect(profile.representative.title).toBe('Managing Principal & AIA Architect');
-    expect(profile.representative.authorizationStatus).toBe('ACTIVE');
+    expect(profile.representative.authorizationStatus).toBe('RECORDED');
     expect(profile.representative.hasPowerOfAttorney).toBe(true);
 
     // Section 4: Identity & Verification
     expect(profile.identity).toBeDefined();
-    expect(profile.identity.status).toBe('VERIFIED');
+    expect(profile.identity.status).toBe('RECORDED_COMPLETE');
+    expect(profile.identity.verifiedAt).toBeNull();
     expect(profile.identity.duplicateCheckStatus).toBe('CLEARED');
     expect(profile.identity.documents.length).toBeGreaterThan(0);
 
     // Section 5: Engagement
     expect(profile.engagement).toBeDefined();
-    expect(profile.engagement.taxYear).toBe(2025);
+    // The submitted dossier has no recorded engagement/year association.
+    expect(profile.engagement.taxYear).toBeNull();
     expect(profile.engagement.agreementAccepted).toBe(true);
     expect(profile.engagement.feeScheduleAccepted).toBe(true);
 

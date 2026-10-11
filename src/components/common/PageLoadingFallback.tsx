@@ -3,7 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export const PageLoadingFallback: React.FC = () => {
   return (
-    <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
+    <div role="status" aria-live="polite" aria-busy="true" className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
       <div className="relative mb-4">
         <div className="w-12 h-12 rounded-2xl bg-[#0B2748] border border-[#C99A3D]/40 flex items-center justify-center animate-pulse">
           <ShieldCheck className="w-6 h-6 text-[#E2BD67]" />
@@ -14,7 +14,7 @@ export const PageLoadingFallback: React.FC = () => {
         Loading secure workspace...
       </p>
       <p className="text-xs text-slate-400 mt-1">
-        A/R Tax Services, LLC &bull; Confidential &amp; Encrypted
+        A/R Tax Services, LLC
       </p>
     </div>
   );

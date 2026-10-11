@@ -41,6 +41,13 @@ describe('Stage 02 Collect & Client Portal UI/UX Refinement', () => {
       expect(workspaceSource).toContain('Upload Document');
     });
 
+    it('supports dynamic Under Review, Action Required, and Complete states when documents are received', () => {
+      expect(workspaceSource).toContain('Collection Status: Under Review');
+      expect(workspaceSource).toContain('DOCUMENTS RECEIVED — UNDER REVIEW');
+      expect(workspaceSource).toContain('View Received Documents');
+      expect(workspaceSource).toContain('STAGE COMPLETE — READY FOR VALIDATION');
+    });
+
     it('passes client role from AuthenticatedClientDashboard', () => {
       expect(dashboardSource).toContain("userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}");
     });

@@ -136,6 +136,24 @@ function guard(
 }
 
 describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
+  it.each(['hardExitGatePassed', 'identityComplete', 'taxProfileComplete', 'tinValid', 'addressComplete', 'representativeComplete', 'supportingDocumentsComplete', 'duplicateResolutionComplete', 'consentComplete', 'reviewComplete'])('rejects nonboolean Stage 01 %s before transition', async flag => {
+    const { body } = await login('valid_sb_token');
+    const snapshot = Object.fromEntries(['hardExitGatePassed', 'identityComplete', 'taxProfileComplete', 'tinValid', 'addressComplete', 'representativeComplete', 'supportingDocumentsComplete', 'duplicateResolutionComplete', 'consentComplete', 'reviewComplete'].map(key => [key, true]));
+    snapshot[flag] = 'false' as any;
+    const response = await request('/api/case-authority/client-onboarding/stage-1', body.token, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taxYear: 2025, completeStage: true, snapshot }),
+    });
+    expect(response.status).toBe(422);
+    const denied = await response.json(); expect(denied.code).toBe('STAGE_01_GATE_LOCKED');
+    expect(denied.blockingReasons.join(' ')).toContain(flag === 'hardExitGatePassed' ? 'existingHardExitGatePassed' : flag);
+    const provisioned = await request('/api/case-authority/client-onboarding/provision', body.token, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taxYear: 2025 }),
+    });
+    expect(provisioned.status).toBe(200); const unchanged = await provisioned.json();
+    expect(unchanged.workflow.stage1.status).not.toBe('COMPLETED'); expect(unchanged.activeStage).toBe(1);
+  });
+
   it('SEC-CLIENT-001: allows Client A to read its own authoritative profile', async () => {
     const { body } = await login('valid_sb_token');
     const response = await request('/api/profile/authoritative', body.token);

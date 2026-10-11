@@ -14,7 +14,8 @@
  * 10. Cross-Client & Cross-Tenant IDOR Protection
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+afterEach(() => vi.useRealTimers());
 import { createHash } from 'node:crypto';
 import {
   ProviderReadinessRegistry,
@@ -121,6 +122,7 @@ describe('Production Release Hardening & Verification Suite', () => {
   // ==========================================================================
   describe('Worker Crash Recovery & Lease Expiration', () => {
     it('allows a secondary worker to claim a job when the first worker lease expires', async () => {
+      vi.useFakeTimers();
       const job = await globalDurableJobQueueService.enqueue({
         tenantId: 'tenantA',
         jobType: 'DOCUMENT_PROCESSING',
@@ -136,8 +138,8 @@ describe('Production Release Hardening & Verification Suite', () => {
       const claim2Immediate = await globalDurableJobQueueService.claimNextJob('tenantA', 'worker-2', 2);
       expect(claim2Immediate).toBeNull();
 
-      // Backdate lockedAt by 5 seconds (which exceeds the 2-second lease)
-      claim1!.lockedAt = new Date(Date.now() - 5000).toISOString();
+      // Advance real scheduling semantics beyond the 2-second lease.
+      vi.advanceTimersByTime(5000);
 
       // Worker 2 claims with 2-second lease -> successfully recovers the crashed job
       const claim2Recovered = await globalDurableJobQueueService.claimNextJob('tenantA', 'worker-2', 2);

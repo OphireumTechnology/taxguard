@@ -29,7 +29,17 @@ interface DashboardApplicationShellProps {
 }
 
 /** Shared live chrome only. Never loads demo data or changes identity/permissions. */
-export function DashboardApplicationShell({
+export function DashboardApplicationShell(props: DashboardApplicationShellProps) {
+  const { currentUser, authLifecycleState } = useApp();
+  // Remount navigation references, dialogs and focus state across authority changes.
+  // No access token is stored in the key or imported into the synthetic fixture.
+  const sessionKey = JSON.stringify([authLifecycleState, props.workspace, currentUser?.id,
+    currentUser?.tenantId, currentUser?.clientId, currentUser?.role, currentUser?.status,
+    currentUser?.lastLoginAt, currentUser?.updatedAt, [...(currentUser?.authorizedClientIds ?? [])].sort()]);
+  return <DashboardShellSession key={sessionKey} {...props} />;
+}
+
+function DashboardShellSession({
   workspace, title = DASHBOARD_EXPERIENCES[workspace], navigation, mobileNavigation,
   navigationCollapsed = false, mobileOpen, onMobileOpenChange, onSearch, onProfile,
   notifications, headerTools, id, children,

@@ -2,24 +2,20 @@ import { CaseWorkpaperList } from './CaseWorkpaperList';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
+import { accountantAccess, useAccountantDashboardData } from '../../hooks/useAccountantDashboardData';
 import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
-import { ACCOUNTANT_JOURNEY, ACCOUNTANT_STAGES, AccountantCase, confidence, KPI_LABELS, matchesQueue, safeCases } from './accountantDashboardModel';
+import { ACCOUNTANT_JOURNEY, ACCOUNTANT_STAGES, AccountantCase, confidence, KPI_LABELS, matchesQueue } from './accountantDashboardModel';
 import './accountantDashboard.css';
 import type { TaxWorkpaperEntity, StageStateEntity } from '../../server/taxguard/persistence.types';
 
 const tabs = ['Overview','Client Info','Documents','AI Preparation','Tax Forms','Review & Edit','Workpapers','State Forms','Client Approval','E-File','History'];
-export function accountantAccess(user: { role: string; status: string; tenantId?: string } | null, auth: string) {
-  return auth === 'AUTHENTICATED' && user?.status === 'active' && user.role === 'accountant' && Boolean(user.tenantId);
-}
+export { accountantAccess };
 interface Draft { returnId: string; tenantId: string; clientId: string; engagementId: string; taxYear: number; jurisdiction: string; status: string; returnType: string; version?: number; diagnostics: Array<{ message?: string }>; forms: Array<{ formNumber: string; formName: string; lineItems: Record<string, unknown> }>; }
 function Empty({ children }: { children: React.ReactNode }) { return <p className="tg-accountant-empty">{children}</p>; }
 export function AccountantDashboard() {
   const { currentUser, authLifecycleState } = useApp();
-  const allowed = accountantAccess(currentUser, authLifecycleState);
-  const session = allowed ? currentUser!.id + ':' + currentUser!.tenantId : '';
-  const [snapshot, setSnapshot] = useState<{ session: string; rows: AccountantCase[] }>({ session: '', rows: [] });
-  const rows = snapshot.session === session ? snapshot.rows : [];
-  const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [refresh, setRefresh] = useState(0);
+  const [refresh, setRefresh] = useState(0);
+  const { allowed, session, rows, loading, error } = useAccountantDashboardData(currentUser, authLifecycleState, refresh);
   const [selected, setSelected] = useState(''); const [filter, setFilter] = useState('Assigned Cases'); const [query, setQuery] = useState(''); const [year, setYear] = useState('All');
   const [tab, setTab] = useState('AI Preparation'); const [collapsed, setCollapsed] = useState(false);
   const [drafts, setDrafts] = useState<{ key: string; rows: Draft[]; error: string }>({key: '', rows: [], error: ''});
@@ -27,25 +23,12 @@ export function AccountantDashboard() {
   const [workpapers, setWorkpapers] = useState<{ key: string; rows: TaxWorkpaperEntity[]; error: string }>({key:'', rows:[], error:''});
   const [states, setStates] = useState<{ key: string; rows: StageStateEntity[]; error: string }>({key:'', rows:[], error:''});
   const searchRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (!allowed) return;
-    const abort = new AbortController(); let live = true; setLoading(true); setError('');
-    api.accountant.getDashboard(abort.signal).then(async data => {
-      const scoped = safeCases(data.cases, currentUser!.tenantId!);
-      const enriched = await Promise.all(scoped.map(async r => {
-        try {
-          const c = await api.caseAuthority.getCase(r.tenantId, r.authorityClientId, r.engagementId, r.taxYear);
-          return c.tenantId === r.tenantId && c.clientId === r.authorityClientId && c.engagementId === r.engagementId && c.taxYear === r.taxYear && Number.isInteger(c.activeStage) && c.activeStage >= 1 && c.activeStage <= 18 ? { ...r, activeStage: c.activeStage } : r;
-        } catch { return r; }
-      }));
-      if (live) setSnapshot({ session, rows: enriched });
-    }).catch(() => { if (live) { setSnapshot({ session, rows: [] }); setError('Authorized cases could not be loaded. Retry to restore your work queue.'); } }).finally(() => { if (live) setLoading(false); });
-    return () => { live = false; abort.abort(); };
-  }, [session, refresh]);
   const item = rows.find(r => r.id === selected);
-  const key = item ? session + ':' + item.id + ':' + item.taxYear : '';
+  const key = item ? JSON.stringify([session, item.id, item.tenantId, item.authorityClientId, item.engagementId, item.taxYear, refresh]) : '';
   useEffect(() => {
-    setPreview(''); if (!item) return;
+    setPreview('');
+    setDrafts({key:'', rows:[], error:''}); setWorkpapers({key:'', rows:[], error:''}); setStates({key:'', rows:[], error:''});
+    if (!allowed || !item) return;
     let live = true;
     const owns = (d: { tenantId: string; clientId: string; engagementId: string; taxYear: number }) => d.tenantId === item.tenantId && d.clientId === item.authorityClientId && d.engagementId === item.engagementId && d.taxYear === item.taxYear;
     api.caseAuthority.listWorkpapers(item.tenantId, item.authorityClientId, item.engagementId, item.taxYear).then(data => { if(live) setWorkpapers({key, rows:data.filter(owns), error:''}); }).catch(()=>{if(live)setWorkpapers({key, rows:[], error:'Scoped workpaper service unavailable.'});});
@@ -55,7 +38,7 @@ export function AccountantDashboard() {
       if (live) setDrafts({ key, rows: verified, error: '' });
     }).catch(() => { if (live) setDrafts({key, rows: [], error: 'Draft return service unavailable for this case.'}); });
     return () => { live = false; };
-  }, [key, refresh]);
+  }, [key, allowed]);
   if (!allowed) return <div role="alert">Authenticated accountant access is required.</div>;
   const now = new Date(); const today = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-');
   const visible = rows.filter(r => matchesQueue(r, filter, today) && (year === 'All' || String(r.taxYear) === year) && (r.clientName + ' ' + r.taxYear).toLowerCase().includes(query.toLowerCase()));

@@ -42,6 +42,22 @@ export class ProviderReadinessRegistry {
   }
 
   static getProviderStatus(type: ProviderType): ProviderReadinessInfo {
+    const info = this.getConfigurationStatus(type);
+    // Test evidence cannot commission a production dependency; credential presence is not a probe.
+    if (process.env.NODE_ENV === 'test' && this.mockOverrideStatuses?.[type]) {
+      return { ...info, verificationState: 'SYNTHETIC_TEST' };
+    }
+    return {
+      ...info,
+      isOperational: false,
+      verificationState: info.status === 'CONFIGURED' ? 'CONFIGURATION_ONLY' : 'NOT_VERIFIED',
+      description: info.status === 'CONFIGURED'
+        ? `${type} configuration is present. Connectivity, scoped authority and operational commissioning have not been verified.`
+        : info.description,
+    };
+  }
+
+  private static getConfigurationStatus(type: ProviderType): ProviderReadinessInfo {
     if (type === 'MALWARE_SCANNER' && process.env.NODE_ENV === 'production') {
       return {
         provider: type,
@@ -52,7 +68,7 @@ export class ProviderReadinessRegistry {
       };
     }
 
-    if (this.mockOverrideStatuses && this.mockOverrideStatuses[type]) {
+    if (process.env.NODE_ENV === 'test' && this.mockOverrideStatuses?.[type]) {
       const status = this.mockOverrideStatuses[type]!;
       return {
         provider: type,
@@ -245,8 +261,8 @@ export class ProviderReadinessRegistry {
    * - DATABASE_READY: All required relational tables present and queryable
    */
   static async checkDatabaseSchemaReadiness(clientInstance?: any): Promise<DatabaseSchemaReadinessResult> {
-    if (this.mockSchemaReadinessOverride) {
-      return this.mockSchemaReadinessOverride;
+    if (process.env.NODE_ENV === 'test' && this.mockSchemaReadinessOverride) {
+      return { ...this.mockSchemaReadinessOverride };
     }
 
     const now = new Date().toISOString();
@@ -274,6 +290,16 @@ export class ProviderReadinessRegistry {
       'taxguard_retention_policies',
     ];
 
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(() => {
+        controller.abort();
+        reject(new Error('READINESS_TIMEOUT'));
+      }, 5000);
+    });
+    // Attach a rejection handler immediately, including while the client module resolves.
+    void deadline.catch(() => undefined);
     try {
       let client = clientInstance;
       if (!client) {
@@ -295,9 +321,11 @@ export class ProviderReadinessRegistry {
 
       for (const table of REQUIRED_CORE_TABLES) {
         try {
-          const { error } = await client
+          let request = client
             .from(table)
-            .select('*', { count: 'exact', head: true });
+            .select('*', { head: true });
+          if (typeof request.abortSignal === 'function') request = request.abortSignal(controller.signal);
+          const { error } = await Promise.race([request, deadline]);
 
           if (error) {
             const errCode = (error.code || '').toUpperCase();
@@ -317,6 +345,7 @@ export class ProviderReadinessRegistry {
             verifiedCount += 1;
           }
         } catch (tableErr: any) {
+          if (controller.signal.aborted) throw tableErr;
           const msg = (tableErr?.message || '').toLowerCase();
           if (msg.includes('network') || msg.includes('fetch') || msg.includes('econnrefused')) {
             return {
@@ -355,7 +384,7 @@ export class ProviderReadinessRegistry {
         state: 'DATABASE_READY',
         verifiedTablesCount: verifiedCount,
         totalRequiredTables: REQUIRED_CORE_TABLES.length,
-        description: 'All core relational schema tables verified and ready.',
+        description: 'The six core tables are reachable. Full migration, grants, RLS and provider commissioning are not verified by this check.',
         checkedAt: now,
       };
     } catch {
@@ -366,6 +395,9 @@ export class ProviderReadinessRegistry {
         description: 'Database readiness check encountered an unexpected connectivity issue.',
         checkedAt: now,
       };
+    } finally {
+      if (timeout !== undefined) clearTimeout(timeout);
+      controller.abort();
     }
   }
 }

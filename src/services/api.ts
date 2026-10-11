@@ -30,42 +30,39 @@ import { apiEndpoint } from '../config/apiEndpoint';
 
 const TOKEN_KEY = 'artax_session_token';
 let memoryToken: string | null = null;
+let memoryAuthoritative = false;
+const tokenStores = ['localStorage', 'sessionStorage'] as const;
+const tokenKeys = [TOKEN_KEY, 'token'];
 
 export function getStoredToken(): string | null {
-  try {
-    return (
-      localStorage.getItem(TOKEN_KEY) ||
-      sessionStorage.getItem(TOKEN_KEY) ||
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('token') ||
-      memoryToken
-    );
-  } catch (e) {
-    return memoryToken;
+  // A failed write/removal must not resurrect an older persisted identity.
+  if (memoryAuthoritative) return memoryToken;
+  for (const key of tokenKeys) for (const store of tokenStores) {
+    try {
+      const token = globalThis[store].getItem(key);
+      if (token) return token;
+    } catch {
+      // One restricted store must not prevent reading the other store.
+    }
   }
+  return memoryToken;
 }
 
 export function setStoredToken(token: string) {
   memoryToken = token;
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-    sessionStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem('token', token);
-    sessionStorage.setItem('token', token);
-  } catch (e) {
-    // Storage restricted or unavailable in sandboxed iframe; memoryToken is active
+  memoryAuthoritative = false;
+  for (const key of tokenKeys) for (const store of tokenStores) {
+    try { globalThis[store].setItem(key, token); }
+    catch { memoryAuthoritative = true; }
   }
 }
 
 export function clearStoredToken() {
   memoryToken = null;
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-  } catch (e) {
-    // Storage restricted or unavailable in sandboxed iframe
+  memoryAuthoritative = true;
+  for (const key of tokenKeys) for (const store of tokenStores) {
+    try { globalThis[store].removeItem(key); }
+    catch { /* Session stays cleared even when persistent storage is restricted. */ }
   }
 }
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -85,7 +82,7 @@ const response = await fetch(apiEndpoint(endpoint), {
     headers
   });
 
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => undefined);
   if (getStoredToken() !== token) {
     const err = new Error('The authenticated session changed before this response completed.') as Error & {
       code?: string;
@@ -99,7 +96,8 @@ const response = await fetch(apiEndpoint(endpoint), {
       clearStoredToken();
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired'));
     }
-    let errorMsg = data.error || data.message;
+    const errorData = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+    let errorMsg = errorData.error || errorData.message;
     if (response.status === 405) {
       console.error(`[TaxGuard API] HTTP 405 Method Not Allowed on endpoint: ${endpoint}`);
       errorMsg = 'We could not securely connect to the TaxGuard authentication service. Please try again or contact support.';
@@ -113,11 +111,17 @@ const response = await fetch(apiEndpoint(endpoint), {
     }
     const err = new Error(errorMsg) as any;
     err.status = response.status;
-    err.code = data.code || (response.status === 405 ? 'METHOD_NOT_ALLOWED' : undefined);
-    err.data = data;
+    err.code = errorData.code || (response.status === 405 ? 'METHOD_NOT_ALLOWED' : undefined);
+    err.data = errorData;
     throw err;
   }
 
+  if (response.status === 204) return undefined as T;
+  if (data === undefined || data === null || typeof data !== 'object') {
+    const err = new Error('The TaxGuard service returned an invalid response. Please try again or contact support.') as Error & { code: string; status: number };
+    err.code = 'INVALID_API_RESPONSE'; err.status = response.status;
+    throw err;
+  }
   return data as T;
 }
 
@@ -324,9 +328,9 @@ export const api = {
 
   // Authoritative Profile & Versioned Amendments (Directives 3 & 4)
   profile: {
-    getAuthoritative: async (clientId?: string) => {
+    getAuthoritative: async (clientId?: string, signal?: AbortSignal) => {
       const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
-      return request<any>(`/api/profile/authoritative${q}`);
+      return request<any>(`/api/profile/authoritative${q}`, {signal});
     },
 
     updateOrdinary: async (payload: { phone?: string; mailingAddress?: any; communicationPreferences?: any; companyName?: string; notes?: string }) => {
@@ -951,8 +955,8 @@ export const api = {
         body: JSON.stringify(payload)
       });
     },
-    getProviderReadiness: async () => {
-      return request<{ providers: any[] }>('/api/provider-readiness');
+    getProviderReadiness: async (signal?: AbortSignal) => {
+      return request<{ providers: any[] }>('/api/provider-readiness', {signal});
     },
 
     // Stage 04: Record
