@@ -268,6 +268,10 @@ export interface AccountingConnection {
     accountantPrepared: boolean;
     reviewerApproved: boolean;
     explicitlyConfirmed: boolean;
+    /** Actors recorded server-side for maker-checker separation. */
+    clientAuthorizedBy?: string;
+    preparedBy?: string;
+    approvedBy?: string;
   };
 }
 
