@@ -104,6 +104,21 @@ export function resolveAuthorizedClientContext(
 
   const clientId = selectedClientId.trim();
   const isAdministrator = ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(user.role);
+
+  // Tenant ownership of the selected client. Production deployments are pinned to one
+  // tenant (checked above) and staff are limited to tenant-scoped authorizedClientIds.
+  // Locally, several tenants share the in-memory store, so the client's own tenant must match.
+  if (process.env.NODE_ENV !== 'production') {
+    const clientRecord = db.users.get(clientId) ||
+      Array.from(db.users.values()).find(candidate => CLIENT_ROLES.has(candidate.role) && candidate.clientId === clientId);
+    // Deny on positive evidence of another tenant. (Clients held only in the durable
+    // repository are not in db.users; their routes enforce tenant scope in the repository.)
+    if (clientRecord && clientRecord.tenantId && clientRecord.tenantId !== tenantId) {
+      logClientAuthorizationDenial(req, resourceType);
+      res.status(403).json({ error: 'Access to this client resource is denied.', code: 'CLIENT_ACCESS_DENIED' });
+      return null;
+    }
+  }
   const isAssigned = process.env.NODE_ENV === 'production'
     ? user.authorizedClientIds?.includes(clientId) === true
     : db.getClientBindings(clientId).some(binding =>

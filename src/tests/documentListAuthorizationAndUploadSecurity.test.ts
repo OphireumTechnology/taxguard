@@ -195,8 +195,11 @@ it('preserves tenant-limited administrator access', async () => {
   expect(allowed.status).toBe(200);
   expect(allowed.body.documents.map((doc: any) => doc.id).sort()).toEqual(['list-doc-a', 'list-doc-b']);
 
+  // Selecting another tenant's client is now an explicit denial (previously an empty 200).
   const denied = await list('list-admin-a', '?clientId=list-client-other');
-  expect(denied.body.documents).toEqual([]);
+  expect(denied.status).toBe(403);
+  expect(denied.body.code).toBe('CLIENT_ACCESS_DENIED');
+  expect(denied.body.documents).toBeUndefined();
   const otherTenantAdmin = await list('list-admin-b');
   expect(otherTenantAdmin.body.documents.map((doc: any) => doc.id)).toEqual(['list-doc-other']);
 });
