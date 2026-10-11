@@ -4177,14 +4177,30 @@
     },
     {
       "file": "docs/taxguard-development-cycle-20261012j-super-admin-login-troubleshooting.md",
-      "sha256": "9ae53e8b415b55871c7e56eb72aeccdf05d0f7a88f5dfc724df8049acbfffb1e",
-      "bytes": 3064,
+      "sha256": "aa7f07d82078c18d46bd5fe0eb6500b5b0e0d6224b2838b82aaf5b26432ee6a7",
+      "bytes": 7005,
       "headings": [
         "# TaxGuard development cycle — 2026-10-12 (j) — super administrator sign-in troubleshooting",
         "## 1. Defects found and fixed",
         "## 2. Utilities added (local, interactive, offline)",
         "## 3. Owner sign-in investigation (state at the time of writing)",
+        "### Update (04:14): local attempt reached the server",
+        "### Public site (artaxserv.com) — separate system",
+        "### Update (04:45): staff sign-in form defects found and fixed",
         "## 4. Verification"
+      ]
+    },
+    {
+      "file": "docs/taxguard-development-cycle-20261012k-accountant-dashboard-forms-library-public-readiness.md",
+      "sha256": "233dee6a06c8e4577a1cb3867a254d624ded09229c254709381e83d9a9ee1944",
+      "bytes": 6110,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-12 (k) — Accountant dashboard redesign, Tax Forms Library, public-access readiness",
+        "## 1. Accountant / Tax Preparer dashboard redesign",
+        "## 2. Tax Forms Library (`/staff/forms`)",
+        "## 3. Why public Accountant access is not available (investigation, read-only)",
+        "## 4. Production plan (awaiting explicit approval — nothing executed)",
+        "## 5. Validation"
       ]
     },
     {
@@ -4203,8 +4219,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "706a7761a6493951c9cbf394a31cbaeb9d7f1a1eb46d97c68eba9310e2a49d2e",
-      "bytes": 10411,
+      "sha256": "ab80e7d50f500a4558b17cbd0f4867c1ff513124b33fbe489bdece2e74ac3a02",
+      "bytes": 11312,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4473,11 +4489,11 @@
     "scripts/setup-local-browser.mjs": "6ebb75c4c5d8c965917039ece300fc49e7ebbaadf04d3367601ba1eac98a40c4",
     "scripts/synthetic-acceptance-plan.mjs": "9ffaaf343b846010ef6fad24d11b98b90e49e43a07b748e10583cb1801ac0df7",
     "scripts/verify-local-traceability.mjs": "e7aff96754962c5e14fadb07df2418912d926b72fc254a94d66dc6496018b000",
-    "src/App.tsx": "fa91550a615e3e8e175633caa74c9a181f92a59a40af8af0cc2536bf8c5d1d36",
+    "src/App.tsx": "a7273e7856b2e2ca5d3ef4ae2d2cc3449c474bfc27acad4fa154632c0e814535",
     "src/ai/architectureMapping.ts": "6d7af6b6cb2860e0247af0243b42e2704f1d77ee020cec5e6625a386115c9377",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/PracticeAdminWorkspace.tsx": "0360c0385d88cba0a5bde9e5af121f8f0f238784cb4c1687be4762f8151be650",
-    "src/components/auth/AuthPages.tsx": "be4e3a5a5de695494b90d0207ecc1c5ff8652e4c50e1d6e4a126518ec41d8f4e",
+    "src/components/auth/AuthPages.tsx": "c1445ce221f5d6a869f8f7a282f3cd9e11b832f20a5410f39c959f42ff4a46ba",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
     "src/components/portal/AuthenticatedClientDashboard.tsx": "acf6e8925425d50e3146c2a68c9a6872f799930d59ac806b111b20c7e3caaba1",
@@ -4487,7 +4503,7 @@
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
     "src/components/workspace/PracticeManagerDashboard.tsx": "069135d275c62f1d1368def3590e1bd9ef420b3a69fea6c9c750154f2225ed7a",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
-    "src/config/canonicalRouting.ts": "afc5204ff15bf515427c71a6a7b45591eb11983f2f3b2a71293f176e9847813a",
+    "src/config/canonicalRouting.ts": "dca5a17416fcaf77a7e3e8bffc565ec4e95b1865d35e9c84c286906b86b2c77f",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
     "src/server/ai/capabilities/GovernedCapabilityExecutor.ts": "7d9ed0170cd95372555e2398e44a41427fe5c1292f2256c64353afa1aa1d23c1",
     "src/server/ai/capabilities/ScopedReadRepository.ts": "c4c738163414daf292c20d13b395ea0e43c6ea2a822bea18c677faefe7f80f40",
@@ -4533,7 +4549,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "47eb3eec7a722b5b6ba34c03e40941ee257f8fb09b5fd5825652f546ade100ab",
+    "src/services/api.ts": "35f4c642cc55b410dc4128b2cea9a655eafbc068800768ca2764991937002399",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",

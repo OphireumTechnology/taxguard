@@ -1,6 +1,6 @@
 # TaxGuard Master Development Completion Matrix
 
-**PRODUCTION STATUS: NO-GO.** Last updated 2026-10-12 (cycle j: super administrator sign-in troubleshooting).
+**PRODUCTION STATUS: NO-GO.** Last updated 2026-10-12 (cycle k: Accountant dashboard redesign, Tax Forms Library, public-access readiness).
 
 This is the cumulative, verifiable feature register requested by the Master Development Completion Directive. It complements, and does not replace:
 
@@ -83,6 +83,8 @@ These are unchanged from the requirements matrix §3.2–3.5 and the remaining-w
 | --- | --- | --- |
 | Client, Accountant, Reviewer, Bookkeeper, Practice Manager, Client Service dashboards | IMPLEMENTED BUT INCOMPLETE | — |
 | Super Administrator console: 10-dashboard selector (URL + local persistence, audited), inspection mode (layout only, no role data, no permission change) | COMPLETE AND VERIFIED (local, cycle i): `superAdminConsole.test.tsx`, `superAdminAccess.test.ts`, localhost browser walk-through | — |
+| ACC-DASH-01 Accountant / Tax Preparer dashboard redesign: collapsible / icon sidebar, KPI cards, 18-stage pipeline summary, sortable work queue, deadlines, quick actions, responsive and accessible; unavailable metrics never shown as zero | COMPLETE AND VERIFIED (local, cycle k): `accountantDashboardRedesign.test.tsx`, browser check with synthetic data. Public availability **BLOCKED BY INTEGRATION (E01)** — no production accountant case read route | — |
+| FORMS-01 Tax Forms Library (`/staff/forms`): 63 federal entries (59 official-source verified), eight core categories, 50 states + D.C. category catalog (unverified), honest capability states, read-only staff API | COMPLETE AND VERIFIED as a **reference catalog** (cycle k): `taxFormsLibrary.test.tsx`. Preparation, PDF and e-file **NOT IMPLEMENTED / BLOCKED (E04)**; state applicability unverified | — |
 | Billing, Security / Compliance, Executive dashboards | NOT IMPLEMENTED or partial (shown as honest status cards in the console) | H06 |
 | Tax calculation engine and form coverage | IMPLEMENTED BUT INCOMPLETE; no jurisdiction certified | H07 |
 | E-signature, filing, payments, email / calendar providers | BLOCKED BY INTEGRATION | E04 |
