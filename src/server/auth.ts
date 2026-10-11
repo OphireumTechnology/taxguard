@@ -13,6 +13,7 @@ import { db } from './db';
 import { User, UserRole } from '../types';
 import { isSupabaseServerConfigured } from './supabase';
 import { SupabaseDurableSessions, hasFallbackSupabaseSession } from './supabase-db';
+import { requiresStaffMfa, sessionAssuranceLevel } from './staffMfa';
 import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 
 export interface AuthenticatedRequest extends Request {
@@ -318,6 +319,18 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
         }
       }
       if (!user) return res.status(401).json({ error: 'Invalid or expired session.', code: 'SESSION_INVALID' });
+      // Staff MFA: every request on a durable staff session must carry the AAL2 level recorded
+      // when the session was created from a verified Supabase token. Never taken from the client.
+      if (requiresStaffMfa(user.role) && sessionAssuranceLevel(user) !== 'aal2') {
+        db.logSecurityEvent({
+          eventType: 'STAFF_MFA_REQUIRED',
+          ipAddress: req.ip || 'unknown',
+          userId: user.id,
+          details: 'Staff request refused: the session was not established with multi-factor authentication (AAL2).',
+          severity: 'warning'
+        });
+        return res.status(403).json({ error: 'Multi-factor authentication is required for staff access. Sign in again with your authenticator.', code: 'STAFF_MFA_REQUIRED' });
+      }
       if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
   if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
   if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});

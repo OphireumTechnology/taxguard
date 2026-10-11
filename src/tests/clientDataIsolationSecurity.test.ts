@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import type { Response as ExpressResponse } from 'express';
 import { createProductionApp } from '../server/productionApp';
 import { setSupabaseAdmin } from '../server/supabase';
-import { createMockSupabaseClient } from './helpers/mockSupabase';
+import { createMockSupabaseClient, STAFF_AAL2_TOKEN } from './helpers/mockSupabase';
 import { db } from '../server/db';
 import {
   requireAccountantAssignment,
@@ -352,7 +352,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
       effective_from: new Date(Date.now() - 60_000).toISOString(),
       effective_to: null
     });
-    const staff = await login('valid_staff_token');
+    const staff = await login(STAFF_AAL2_TOKEN);
     expect(staff.response.status).toBe(200);
     expect((await request(`/api/profile/authoritative?clientId=${a.body.clientId}`, staff.body.token)).status).toBe(200);
     expect((await request(`/api/profile/authoritative?clientId=${b.body.clientId}`, staff.body.token)).status).toBe(403);
@@ -458,7 +458,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
       payload: { marker: 'assigned-job' }
     });
     seedStaff([{ client_id: a.body.clientId }]);
-    const assignedStaff = await login('valid_staff_token');
+    const assignedStaff = await login(STAFF_AAL2_TOKEN);
     const allowed = await request(`/api/operations/jobs/${assignedJob.id}/cancel`, assignedStaff.body.token, {
       method: 'POST'
     });
@@ -473,7 +473,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     });
     mockSupabase.store.assignments.length = 0;
     seedStaff();
-    const unassignedStaff = await login('valid_staff_token');
+    const unassignedStaff = await login(STAFF_AAL2_TOKEN);
     const denied = await request(`/api/operations/jobs/${unassignedJob.id}/cancel`, unassignedStaff.body.token, {
       method: 'POST'
     });
@@ -487,7 +487,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     seedReviewItem('review-a', a.body.clientId);
     seedReviewItem('review-b', b.body.clientId);
     seedStaff([{ client_id: a.body.clientId }]);
-    const staff = await login('valid_staff_token');
+    const staff = await login(STAFF_AAL2_TOKEN);
 
     const ownQueue = await request(
       `/api/stage-two-three/accountant/review-queue?clientId=${a.body.clientId}`,
@@ -532,7 +532,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
       } else {
         seedStaff([{ client_id: a.body.clientId, status: assignmentState }]);
       }
-      const staff = await login('valid_staff_token');
+      const staff = await login(STAFF_AAL2_TOKEN);
       const response = await request(
         `/api/stage-two-three/accountant/review-queue?clientId=${a.body.clientId}`,
         staff.body.token
@@ -543,7 +543,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
 
   it('SEC-CLIENT-025: requires non-administrator staff to select an assigned Stage 02 review client', async () => {
     seedStaff();
-    const staff = await login('valid_staff_token');
+    const staff = await login(STAFF_AAL2_TOKEN);
     const response = await request('/api/stage-two-three/accountant/review-queue', staff.body.token);
     expect(response.status).toBe(403);
   });

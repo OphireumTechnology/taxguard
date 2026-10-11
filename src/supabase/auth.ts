@@ -385,6 +385,33 @@ export async function loginWithEmail(
   }
 }
 
+/**
+ * Supabase MFA step for staff sign-in. After a password sign-in (AAL1), an account with an
+ * enrolled, verified TOTP factor must complete a challenge to reach AAL2 before the server will
+ * create a staff session. Uses the Supabase Auth MFA API only; no parallel authentication.
+ */
+export async function supabaseMfaStatus(): Promise<{ needsChallenge: boolean; factorId?: string }> {
+  try {
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || !data || data.currentLevel === 'aal2' || data.nextLevel !== 'aal2') return { needsChallenge: false };
+    const factors = await supabase.auth.mfa.listFactors();
+    const totp = factors.data?.totp?.find((factor: { status?: string }) => factor.status === 'verified');
+    return totp ? { needsChallenge: true, factorId: totp.id } : { needsChallenge: false };
+  } catch {
+    return { needsChallenge: false };
+  }
+}
+
+export async function verifySupabaseMfa(code: string): Promise<{ success: boolean; accessToken?: string; error?: string }> {
+  if (!/^\d{6}$/.test(code)) return { success: false, error: 'Enter the 6-digit code from your authenticator app.' };
+  const status = await supabaseMfaStatus();
+  if (!status.factorId) return { success: false, error: 'No enrolled authenticator was found for this account.' };
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: status.factorId, code });
+  if (error) return { success: false, error: 'Invalid authenticator code.' };
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ? { success: true, accessToken: data.session.access_token } : { success: false, error: 'The verified session could not be read. Sign in again.' };
+}
+
 export async function registerWithEmail(
   name: string,
   email: string,

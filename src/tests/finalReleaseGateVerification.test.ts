@@ -532,6 +532,9 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
         email: 'erostova@artaxservices.com',
         displayName: 'Elena Rostova, CPA',
         authTime: Math.floor(Date.now() / 1000),
+        // MFA-verified staff sign-in (Supabase AAL2 with an enrolled TOTP factor).
+        aal: 'aal2',
+        verifiedFactorCount: 1,
         metadata: {
           role: 'senior_reviewer',
           full_name: 'Elena Rostova, CPA'

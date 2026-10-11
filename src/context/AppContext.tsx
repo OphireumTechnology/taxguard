@@ -27,6 +27,8 @@ import { INITIAL_SERVICE_PLANS, INITIAL_JOBS } from '../data/mockData';
 import { api, getStoredToken, clearStoredToken } from '../services/api';
 import {
   loginWithEmail as supabaseLoginWithEmail,
+  supabaseMfaStatus,
+  verifySupabaseMfa,
   registerWithEmail as supabaseRegisterWithEmail,
   logout as supabaseLogout,
   getSupabaseAccessToken,
@@ -444,6 +446,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const authOperationInProgressRef = useRef(false);
+  // Last authenticated role, so an expired session returns staff to the staff sign-in page.
+  const lastRoleRef = useRef<string | undefined>(undefined);
+  useEffect(() => { if (currentUser?.role) lastRoleRef.current = currentUser.role; }, [currentUser?.role]);
   const authGenerationRef = useRef(0);
   const registrationStateRef = useRef<RegistrationResultState>(registrationState);
   registrationStateRef.current = registrationState;
@@ -793,17 +798,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let active = true;
     const expireSession = () => {
       if (authOperationInProgressRef.current) return;
+      const staffSession = Boolean(lastRoleRef.current && !['client', 'prospective_client'].includes(lastRoleRef.current));
       clearStoredToken();
       clearTaxpayerState();
       LiveWorkflowAuthority.clear();
       setCurrentUser(null);
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
-      setCurrentPageState('client_login');
+      setCurrentPageState(staffSession ? 'staff_login' : 'client_login');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('taxguard_environment');
         try {
-          window.history.replaceState({ page: 'client_login' }, '', '/portal/login');
+          window.history.replaceState({ page: staffSession ? 'staff_login' : 'client_login' }, '', staffSession ? '/staff/login' : '/portal/login');
         } catch {
           // fallback
         }
@@ -1063,7 +1069,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       }
 
-      const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
+      // Staff accounts must reach AAL2 (verified authenticator) before the server will create a
+      // staff session. The server enforces this independently; this step collects the code.
+      let accessToken = sbResult.accessToken;
+      const mfa = await supabaseMfaStatus();
+      if (mfa.needsChallenge) {
+        if (!mfaCode) {
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+          return { success: false, mfaRequired: true, error: 'Enter the 6-digit code from your authenticator app.' };
+        }
+        const verified = await verifySupabaseMfa(mfaCode);
+        if (!verified.success || !verified.accessToken) {
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+          return { success: false, mfaRequired: true, error: verified.error || 'Invalid authenticator code.' };
+        }
+        accessToken = verified.accessToken;
+      }
+
+      const { redirectPage } = await establishSupabaseServerSession(accessToken, {
         navigateIfAuthRoute: true
       });
       return { success: true, redirectPage };
@@ -1075,6 +1100,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
+      if (err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED') {
+        return { success: false, error: 'Staff accounts require an enrolled authenticator app. Complete authenticator enrollment from your staff invitation, then sign in again.' };
+      }
+      if (err?.code === 'STAFF_MFA_REQUIRED') {
+        return { success: false, mfaRequired: true, error: 'Multi-factor authentication is required for staff access. Enter the code from your authenticator app.' };
+      }
       const sanitized = sanitizeAuthErrorMessage(err, err?.code || 'SESSION_ESTABLISHMENT_FAILED');
       return {
         success: false,

@@ -92,7 +92,8 @@ const response = await fetch(apiEndpoint(endpoint), {
   }
 
   if (!response.ok) {
-    if (response.status === 401 && token) {
+    const staffMfaRequired = response.status === 403 && (data as any)?.code === 'STAFF_MFA_REQUIRED';
+    if ((response.status === 401 || staffMfaRequired) && token) {
       clearStoredToken();
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired'));
     }

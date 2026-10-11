@@ -5,6 +5,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { verifiedTokenAssuranceLevel } from './staffMfa';
 
 let _supabaseAdmin: SupabaseClient | null = null;
 
@@ -71,6 +72,10 @@ export interface VerifiedSupabaseUser {
   phone?: string;
   metadata?: Record<string, any>;
   authTime: number;
+  /** Authenticator assurance level of the verified access token (aal2 = an MFA factor was used). */
+  aal?: 'aal1' | 'aal2';
+  /** Number of verified MFA factors enrolled on the Supabase user. */
+  verifiedFactorCount?: number;
 }
 
 /**
@@ -100,6 +105,9 @@ export async function verifySupabaseAccessToken(accessToken: string, client?: Su
     displayName: user.user_metadata?.full_name || user.user_metadata?.name || email,
     phone: user.user_metadata?.phone || '',
     metadata: user.user_metadata || {},
-    authTime: user.last_sign_in_at ? Math.floor(new Date(user.last_sign_in_at).getTime() / 1000) : Math.floor(Date.now() / 1000)
+    authTime: user.last_sign_in_at ? Math.floor(new Date(user.last_sign_in_at).getTime() / 1000) : Math.floor(Date.now() / 1000),
+    // The token was just verified by the Supabase Auth server, so its claims can be read.
+    aal: verifiedTokenAssuranceLevel(accessToken),
+    verifiedFactorCount: (user.factors || []).filter((factor: { status?: string }) => factor.status === 'verified').length
   };
 }

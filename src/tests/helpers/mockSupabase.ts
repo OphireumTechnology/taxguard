@@ -1,5 +1,13 @@
 import { vi } from 'vitest';
 
+const b64url = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+/**
+ * Synthetic staff access token after a completed Supabase MFA challenge (claim aal = 'aal2').
+ * Unsigned and only accepted by this mock's getUser; real tokens are verified by Supabase Auth.
+ */
+export const STAFF_AAL2_TOKEN = [b64url({ alg: 'none', typ: 'JWT' }), b64url({ sub: 'sb_staff_001', aal: 'aal2', amr: [{ method: 'totp' }] }), 'synthetic'].join('.');
+const SYNTHETIC_STAFF_FACTORS = [{ id: 'synthetic-totp-factor', factor_type: 'totp', status: 'verified' }];
+
 export function createMockSupabaseClient() {
   const store = {
     identities: new Map<string, any>(),
@@ -54,14 +62,16 @@ export function createMockSupabaseClient() {
             error: null
           };
         }
-        if (token === 'valid_staff_token') {
+        // 'valid_staff_token' = password sign-in only (AAL1); STAFF_AAL2_TOKEN = MFA completed.
+        if (token === 'valid_staff_token' || token === STAFF_AAL2_TOKEN) {
           return {
             data: {
               user: {
                 id: 'sb_staff_001',
                 email: 'staff@example.com',
                 user_metadata: { full_name: 'Assigned Staff' },
-                last_sign_in_at: new Date().toISOString()
+                last_sign_in_at: new Date().toISOString(),
+                factors: SYNTHETIC_STAFF_FACTORS
               }
             },
             error: null

@@ -17,6 +17,7 @@ import { AuthorityError, safeId } from './taxguard/authority.repository';
 import { LiveWorkflowRepository } from './taxguard/liveWorkflow.repository';
 import { db } from './db';
 import { isAssignmentCurrentlyEffective } from './assignment-authorization';
+import { attachSessionAssuranceLevel, staffMfaDenial } from './staffMfa';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -41,6 +42,7 @@ interface FallbackSessionRow {
   auth_time: number;
   expires_at: number;
   revoked: boolean;
+  aal?: 'aal1' | 'aal2';
 }
 
 const fallbackIdentities = new Map<string, FallbackIdentityRow>();
@@ -251,6 +253,16 @@ export class SupabaseDurableSessions {
         }
       }
 
+      // Staff MFA gate: no staff session is minted unless the verified Supabase token is AAL2.
+      const mfaDenial = staffMfaDenial(resolvedMember?.role, verified);
+      if (mfaDenial) {
+        await Promise.resolve(this.client
+          .from('taxguard_audit_log')
+          .insert({ tenant_id: this.tenantId, action: mfaDenial, actor_uid: uid, actor_role: resolvedMember?.role || 'unknown', metadata: { aal: verified.aal || 'aal1' } }))
+          .catch(() => undefined);
+        throw new AuthorityError(mfaDenial, 403);
+      }
+
       const storedClientId = (resolvedIdentity?.user_data as User | undefined)?.clientId;
       const memberClientId = resolvedMember?.client_id;
       const ownedClientId = existingClientRow?.client_id;
@@ -436,7 +448,8 @@ export class SupabaseDurableSessions {
       const tokenHash = hashToken(token);
       const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 hour session
 
-      await this.client
+      const sessionAal = verified.aal === 'aal2' ? 'aal2' : 'aal1';
+      const { error: sessionInsertError } = (await this.client
         .from('taxguard_sessions')
         .insert({
           session_token_hash: tokenHash,
@@ -444,8 +457,13 @@ export class SupabaseDurableSessions {
           tenant_id: this.tenantId,
           auth_time: verified.authTime,
           expires_at: expiresAt,
-          revoked: false
-        });
+          revoked: false,
+          aal: sessionAal
+        })) ?? { error: null };
+      // A session that could not be stored must not be reported as created.
+      if (sessionInsertError && process.env.NODE_ENV === 'production') {
+        throw new AuthorityError('SESSION_STORE_UNAVAILABLE', 503);
+      }
 
       fallbackSessions.set(tokenHash, {
         session_token_hash: tokenHash,
@@ -453,7 +471,8 @@ export class SupabaseDurableSessions {
         tenant_id: this.tenantId,
         auth_time: verified.authTime,
         expires_at: expiresAt,
-        revoked: false
+        revoked: false,
+        aal: sessionAal
       });
 
       // 3. Write immutable audit log
@@ -618,6 +637,7 @@ export class SupabaseDurableSessions {
     }
 
     db.users.set(user.id, user);
+    attachSessionAssuranceLevel(user, resolvedSession.aal === 'aal2' ? 'aal2' : 'aal1');
     return user;
   }
 
