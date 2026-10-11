@@ -217,10 +217,12 @@ export const api = {
     },
 
     logout: async () => {
+      const token = getStoredToken();
       try {
         await request('/api/auth/logout', { method: 'POST' });
       } finally {
-        clearStoredToken();
+        // A delayed logout must not clear a newer authenticated session.
+        if (getStoredToken() === token) clearStoredToken();
       }
     },
 
