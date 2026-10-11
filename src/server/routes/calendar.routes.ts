@@ -8,6 +8,25 @@ import { Router, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../auth';
+import { ADMIN_ROLES, CLIENT_ROLES, canAccessStaffClient } from '../clientAccess';
+
+const STAFF_CALENDAR_ROLES = new Set(['accountant', 'senior_reviewer', 'reviewer', 'consultant', 'managing_consultant', 'founder', 'administrator', 'super_administrator', 'admin', 'super_admin', 'operations', 'practice_manager', 'bookkeeper', 'firm_manager']);
+const isoDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v));
+const shortText = (v: unknown, max: number) => typeof v === 'string' && v.trim().length > 0 && v.length <= max;
+// Slots are 24-hour HH:MM (as produced by /available-slots); formatSlotUtc throws on anything else.
+const slotTime = (v: unknown) => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+const staffTenantOf = (staffId: unknown) => (typeof staffId === 'string' ? db.users.get(staffId)?.tenantId : undefined);
+
+/** Owning client (id or booking e-mail), the assigned staff member, tenant administrators, or staff authorized for the client. */
+function canManageAppointment(user: NonNullable<AuthenticatedRequest['user']>, apt: { clientId?: string; clientEmail?: string; accountantId?: string }): boolean {
+  if (CLIENT_ROLES.has(user.role)) {
+    return apt.clientId === (user.clientId || user.id) ||
+      Boolean(apt.clientEmail && user.email && apt.clientEmail.toLowerCase() === user.email.toLowerCase());
+  }
+  if (apt.accountantId && apt.accountantId === user.id) return true;
+  if (ADMIN_ROLES.has(user.role)) return Boolean(user.tenantId) && staffTenantOf(apt.accountantId) === user.tenantId;
+  return Boolean(apt.clientId) && canAccessStaffClient(user, apt.clientId!);
+}
 import { 
   AppointmentTypeCode,
   SynchronizedAppointment, 
@@ -417,17 +436,13 @@ calendarRouter.post(['/book', '/confirm-booking'], authenticateToken, async (req
 
 calendarRouter.post('/reschedule', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { appointmentId, newDate, newTimeSlot, reason } = req.body;
-  if (!appointmentId || !newDate || !newTimeSlot) {
-    return res.status(400).json({ error: 'appointmentId, newDate, and newTimeSlot are required.' });
+  if (!appointmentId || !isoDate(newDate) || !slotTime(newTimeSlot) || (reason !== undefined && !shortText(reason, 2000))) {
+    return res.status(400).json({ error: 'appointmentId, newDate (YYYY-MM-DD) and newTimeSlot (HH:MM) are required.' });
   }
 
   const apt = db.appointments.get(appointmentId);
-  if (!apt) return res.status(404).json({ error: 'Appointment not found.' });
-
-  // Verify ownership or staff role
-  if (req.user!.role === 'client' && apt.clientId !== req.user!.id && apt.clientEmail !== req.user!.email) {
-    return res.status(403).json({ error: 'Access denied to reschedule this appointment.' });
-  }
+  // Previously only the "client" role was checked: any staff member (any tenant) could reschedule.
+  if (!apt || !canManageAppointment(req.user!, apt)) return res.status(404).json({ error: 'Appointment not found.' });
 
   // Check for conflict on new date/slot
   const conflict = Array.from(db.appointments.values()).find(
@@ -480,15 +495,12 @@ calendarRouter.post('/reschedule', authenticateToken, (req: AuthenticatedRequest
 calendarRouter.post('/cancel', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { appointmentId, reason } = req.body;
   if (!appointmentId) return res.status(400).json({ error: 'appointmentId is required.' });
+  if (reason !== undefined && !shortText(reason, 2000)) return res.status(400).json({ error: 'reason must be text of at most 2,000 characters.' });
 
   const apt = db.appointments.get(appointmentId);
-  if (!apt) return res.status(404).json({ error: 'Appointment not found.' });
+  if (!apt || !canManageAppointment(req.user!, apt)) return res.status(404).json({ error: 'Appointment not found.' });
 
-  if (req.user!.role === 'client' && apt.clientId !== req.user!.id && apt.clientEmail !== req.user!.email) {
-    return res.status(403).json({ error: 'Access denied to cancel this appointment.' });
-  }
-
-  apt.status = req.user!.role === 'client' ? 'canceled_by_client' : 'canceled_by_staff';
+  apt.status = CLIENT_ROLES.has(req.user!.role) ? 'canceled_by_client' : 'canceled_by_staff';
   apt.cancellationReason = reason || 'Schedule conflict';
   apt.updatedAt = new Date().toISOString();
   db.appointments.set(apt.id, apt);
@@ -517,7 +529,10 @@ calendarRouter.get('/connections', authenticateToken, (req: AuthenticatedRequest
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   let connections = Array.from(db.calendarConnections.values());
-  if (req.user.role !== 'administrator' && req.user.role !== 'super_administrator') {
+  if (ADMIN_ROLES.has(req.user.role)) {
+    // Administrators see their own tenant's staff connections only.
+    connections = connections.filter(c => Boolean(req.user!.tenantId) && staffTenantOf(c.staffId) === req.user!.tenantId);
+  } else {
     connections = connections.filter(c => c.staffId === req.user!.id);
   }
 
@@ -526,21 +541,27 @@ calendarRouter.get('/connections', authenticateToken, (req: AuthenticatedRequest
 
 calendarRouter.post('/connect-provider', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-  const { provider = 'google_calendar', email } = req.body;
+  const { provider = 'google_calendar', email } = req.body ?? {};
+  if (!['google_calendar', 'microsoft_outlook', 'outlook', 'apple_calendar'].includes(provider)) {
+    return res.status(400).json({ error: 'Unsupported calendar provider.', code: 'PROVIDER_INVALID' });
+  }
+  if (email !== undefined && (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254)) {
+    return res.status(400).json({ error: 'A valid provider account e-mail is required.', code: 'EMAIL_INVALID' });
+  }
 
   const connId = `conn_${req.user.id}_${provider}`;
+  // No calendar provider OAuth is commissioned (E04): record a pending authorization, never "connected".
   const connection: CalendarConnection = {
     id: connId,
     staffId: req.user.id,
     staffName: req.user.name,
     provider,
-    status: 'connected',
+    status: 'authorization_pending',
     providerAccountEmail: email || req.user.email,
     selectedCalendarId: 'primary',
     selectedCalendarName: `${req.user.name} Work Calendar`,
     syncFreeBusyOnly: true,
-    twoWaySyncEnabled: true,
-    lastSuccessfulSync: new Date().toISOString(),
+    twoWaySyncEnabled: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -557,7 +578,7 @@ calendarRouter.post('/connect-provider', authenticateToken, (req: AuthenticatedR
     req.ip || '127.0.0.1'
   );
 
-  return res.json({ success: true, message: `${provider} connected successfully with 2-way sync enabled.`, connection });
+  return res.json({ success: true, message: `${provider} connection request recorded. Provider authorization is not yet available; no calendar data is synchronized.`, connection });
 });
 
 calendarRouter.post('/disconnect-provider', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
@@ -565,7 +586,10 @@ calendarRouter.post('/disconnect-provider', authenticateToken, (req: Authenticat
   const { connectionId } = req.body;
 
   const conn = db.calendarConnections.get(connectionId);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+  // Only the connection's own staff member, or an administrator of that staff member's tenant.
+  const mayDisconnect = conn && (conn.staffId === req.user.id ||
+    (ADMIN_ROLES.has(req.user.role) && Boolean(req.user.tenantId) && staffTenantOf(conn.staffId) === req.user.tenantId));
+  if (!conn || !mayDisconnect) return res.status(404).json({ error: 'Connection not found.' });
 
   conn.status = 'disconnected';
   conn.updatedAt = new Date().toISOString();
@@ -587,9 +611,15 @@ calendarRouter.get('/founder-controls', authenticateToken, (req: AuthenticatedRe
 
 calendarRouter.post('/founder-controls', authenticateToken, requireRole('founder', 'administrator', 'super_administrator'), (req: AuthenticatedRequest, res: Response) => {
   const founderConfig = db.staffAvailability.get('user_accountant_desmond');
-  if (!founderConfig) return res.status(404).json({ error: 'Founder configuration not found.' });
+  // Only the founder's own tenant may change these controls.
+  if (!founderConfig || !req.user!.tenantId || staffTenantOf(founderConfig.staffId) !== req.user!.tenantId) {
+    return res.status(404).json({ error: 'Founder configuration not found.' });
+  }
 
-  const { controls } = req.body;
+  const { controls } = req.body ?? {};
+  if (!controls || typeof controls !== 'object' || Array.isArray(controls)) {
+    return res.status(400).json({ error: 'controls must be an object.', code: 'FOUNDER_CONTROLS_INVALID' });
+  }
   founderConfig.founderControls = {
     ...founderConfig.founderControls,
     ...controls
@@ -615,11 +645,14 @@ calendarRouter.post('/founder-controls', authenticateToken, requireRole('founder
 // -------------------------------------------------------------
 
 calendarRouter.get('/firm-overview', authenticateToken, requireRole('administrator', 'super_administrator', 'firm_manager'), (req: AuthenticatedRequest, res: Response) => {
-  const appointments = Array.from(db.appointments.values());
-  const staffConfigs = Array.from(db.staffAvailability.values());
+  // Scope to the caller's tenant via the staff member who owns each calendar (previously every tenant).
+  const tenantId = req.user!.tenantId;
+  const inTenant = (staffId: unknown) => Boolean(tenantId) && staffTenantOf(staffId) === tenantId;
+  const appointments = Array.from(db.appointments.values()).filter(a => inTenant(a.accountantId));
+  const staffConfigs = Array.from(db.staffAvailability.values()).filter(c => inTenant(c.staffId));
   const holidays = Array.from(db.firmHolidays.values());
   const locations = Array.from(db.meetingLocations.values());
-  const activeHolds = Array.from(db.appointmentSlotHolds.values()).filter(h => h.expiresAtMs > Date.now());
+  const activeHolds = Array.from(db.appointmentSlotHolds.values()).filter(h => h.expiresAtMs > Date.now() && inTenant(h.staffId));
 
   return res.json({
     totalAppointments: appointments.length,
@@ -633,29 +666,38 @@ calendarRouter.get('/firm-overview', authenticateToken, requireRole('administrat
 });
 
 calendarRouter.post('/admin-override-booking', authenticateToken, requireRole('administrator', 'super_administrator'), (req: AuthenticatedRequest, res: Response) => {
-  const { staffId, date, timeSlot, clientName, clientEmail, serviceType, overrideReason } = req.body;
-  if (!staffId || !date || !timeSlot || !overrideReason) {
-    return res.status(400).json({ error: 'staffId, date, timeSlot, and overrideReason are required for administrative overrides.' });
+  const { staffId, date, timeSlot, clientName, clientEmail, serviceType, overrideReason } = req.body ?? {};
+  if (!staffId || !isoDate(date) || !slotTime(timeSlot) || !shortText(overrideReason, 2000)) {
+    return res.status(400).json({ error: 'staffId, date (YYYY-MM-DD), timeSlot (HH:MM), and overrideReason are required for administrative overrides.' });
+  }
+  if ((clientName !== undefined && !shortText(clientName, 200)) || (serviceType !== undefined && !shortText(serviceType, 200)) ||
+      (clientEmail !== undefined && (typeof clientEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clientEmail) || clientEmail.length > 254))) {
+    return res.status(400).json({ error: 'Invalid client name, e-mail or service type.' });
+  }
+
+  // The staff member must exist, be staff, and belong to the administrator's tenant.
+  const staff = typeof staffId === 'string' ? db.users.get(staffId) : undefined;
+  if (!staff || !STAFF_CALENDAR_ROLES.has(staff.role) || !req.user!.tenantId || staff.tenantId !== req.user!.tenantId) {
+    return res.status(404).json({ error: 'Staff member not found.' });
   }
 
   const aptId = `apt_override_${randomUUID()}`;
   const referenceCode = `AR-ADM-${Math.floor(1000 + Math.random() * 9000)}`;
-  const staff = db.users.get(staffId);
 
+  // No invented contact details or meeting links: unknown values stay empty.
   const overrideAppointment: any = {
     id: aptId,
     referenceCode,
     clientId: 'admin_scheduled',
-    clientName: clientName || 'Executive Direct Client',
-    clientEmail: clientEmail || 'client@example.com',
-    clientPhone: '803-555-0100',
+    clientName: clientName || 'Unspecified client',
+    clientEmail: clientEmail || undefined,
     accountantId: staffId,
-    accountantName: staff?.name || 'Assigned Accountant',
-    serviceType: serviceType || 'Executive Administrative Consultation',
+    accountantName: staff.name,
+    serviceType: serviceType || 'Administrative Consultation',
     date,
     timeSlot,
     type: 'virtual',
-    meetingLink: `https://meet.google.com/art-admin-${randomUUID().slice(0, 4)}`,
+    meetingLink: undefined,
     status: 'confirmed',
     staffInternalNotes: `Administrative override scheduled by ${req.user!.name}. Reason: ${overrideReason}`,
     createdAt: new Date().toISOString(),
