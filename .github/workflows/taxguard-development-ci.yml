@@ -17,7 +17,9 @@ on:
       - '.github/workflows/taxguard-development-ci.yml'
   push:
     branches:
-      - 'sync/taxguard-development-20261010-053705'
+      # Validate every development sync branch exactly as pushed. Pull-request runs
+      # test the merge with main, which can fail because of main alone.
+      - 'sync/**'
   workflow_dispatch:
 
 permissions:
