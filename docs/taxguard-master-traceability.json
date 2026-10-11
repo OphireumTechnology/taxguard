@@ -3559,7 +3559,7 @@
     {
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "sha256": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
-      "bytes": 746,
+      "bytes": 762,
       "headings": []
     },
     {
@@ -3641,26 +3641,29 @@
     },
     {
       "file": "docs/taxguard-ai-agent-gate-ai-12.md",
-      "sha256": "89153f54cea92189509db864018a247043e1a7b85418d7b418095f42df884426",
-      "bytes": 1257,
+      "sha256": "d7f7ac5bbd055633d049844321018f0957139488fe491c719a2e0c5ebbd7a7bd",
+      "bytes": 1557,
       "headings": [
-        "# AI-12 Sign/File/Resolve restrictions"
+        "# AI-12 Sign/File/Resolve restrictions",
+        "## Merge evidence note — 2026-10-11"
       ]
     },
     {
       "file": "docs/taxguard-ai-agent-gate-ai-13.md",
-      "sha256": "e8fa36310215cdd75bc235f88883a99419876f89f668dce4d47ca5446c9c8428",
-      "bytes": 1176,
+      "sha256": "8271f940d7e6b09d99ec9580d1802959bb4e15dff1ae72dcb0059636be55fcea",
+      "bytes": 1476,
       "headings": [
-        "# AI-13 Practice Operations restrictions"
+        "# AI-13 Practice Operations restrictions",
+        "## Merge evidence note — 2026-10-11"
       ]
     },
     {
       "file": "docs/taxguard-ai-agent-gate-ai-14.md",
-      "sha256": "4b1ef352cffa3ab41fb545c44575634e15e531a5337685beaaa71b5502a0c746",
-      "bytes": 1117,
+      "sha256": "11f01a2dd709f6acb6b248319d144259e2249576ddef32629ca82a866537bb91",
+      "bytes": 1417,
       "headings": [
-        "# AI-14 Governance/Security/Platform restrictions"
+        "# AI-14 Governance/Security/Platform restrictions",
+        "## Merge evidence note — 2026-10-11"
       ]
     },
     {
@@ -3902,8 +3905,8 @@
     },
     {
       "file": "docs/taxguard-autonomous-development-checkpoint.md",
-      "sha256": "7ba63ae6c6500423a97ffe1fc572889ffddf4155441a0f4088d7423a34d3681b",
-      "bytes": 38087,
+      "sha256": "a5d8e3884ba28d48a21cd778117e2ae8c6223d27456ba489d86858d708760ea4",
+      "bytes": 38385,
       "headings": [
         "# TaxGuard autonomous development checkpoint",
         "## Latest diagnosis and validation",
@@ -3928,7 +3931,8 @@
         "## Synthetic browser label repair - 2026-10-10",
         "## Real-application storage recovery and acceptance reconciliation - 2026-10-10",
         "## API response and queue integrity increments - 2026-10-10",
-        "### Reviewer metadata, authentication accessibility and partial product browser increment - 2026-10-10"
+        "### Reviewer metadata, authentication accessibility and partial product browser increment - 2026-10-10",
+        "## Merge evidence note — 2026-10-11"
       ]
     },
     {
@@ -3971,15 +3975,16 @@
     },
     {
       "file": "docs/taxguard-autonomous-development-report-20261009-cycle5-bookkeeper-session-isolation.md",
-      "sha256": "1aded3074ea4a511b66db2c5932b48db98f342226f0fc0105f2e4eba754e0eed",
-      "bytes": 5744,
+      "sha256": "22c47d10fdb8740107c68aacdf793afc27b0dc63cdd3765866bab3d45745eb95",
+      "bytes": 6044,
       "headings": [
         "# Cycle 5 development report: Bookkeeper session isolation",
         "## Selected increment",
         "## Validation attempted",
         "## Resume validation — 2026-10-09",
         "## Completion validation — subsequent 2026-10-09 resume",
-        "## Preservation and remaining work"
+        "## Preservation and remaining work",
+        "## Merge evidence note — 2026-10-11"
       ]
     },
     {
@@ -4032,6 +4037,54 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-cycle-20261011-supabase-fail-closed.md",
+      "sha256": "28adf8756fa78ce012f7b49cbb0071ae7316476782ff40a566e38e53248bdd15",
+      "bytes": 9129,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-11 — Supabase configuration fail-closed",
+        "## 1. Baseline (verified this session)",
+        "## 2. Defects found and fixed",
+        "### Configuration contract (exact)",
+        "## 3. Files changed",
+        "## 4. Validation",
+        "## 5. Security findings this session",
+        "## 6. Remaining work (delta only — full register unchanged)",
+        "## 7. Next authorized cycle — exact steps"
+      ]
+    },
+    {
+      "file": "docs/taxguard-development-cycle-20261011b-ai-kill-switch.md",
+      "sha256": "48e70002a380b7584997648c20f24e70f6933012f4bf9c12a0878658484af3c9",
+      "bytes": 7273,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-11 (b) — AI emergency stop and service-credential enforcement",
+        "## 1. Status report",
+        "## 2. Changes (this cycle only)",
+        "## 3. Security notes",
+        "## 4. Validation",
+        "## 5. Not verified",
+        "## 6. Next implementation targets (ordered)"
+      ]
+    },
+    {
+      "file": "docs/taxguard-development-cycle-20261011c-auth-and-control-center.md",
+      "sha256": "22ad9bb8b752635f8113e10ea1ebc80c2bf23180762398a0b77ce7e4dc4fbf83",
+      "bytes": 8430,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-11 (c) — authentication experience and AI Control Center read views",
+        "## 1. Baseline re-confirmation",
+        "## 2. Work completed",
+        "### Directive Cycle 1 — authentication experience",
+        "### Directive Cycle 2 — AI Control Center read-only functions",
+        "### Emergency stop",
+        "## 3. Incident: encoding corruption introduced and repaired this session",
+        "## 4. Findings",
+        "## 5. Validation (final)",
+        "## 6. Directive cycles not completed in this session, and why",
+        "## 7. Next implementation targets"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4063,6 +4116,24 @@
         "## Increment 8 — core audit guard proposal and strict bridge evidence",
         "## Acceptance status",
         "## Final validation evidence"
+      ]
+    },
+    {
+      "file": "docs/taxguard-master-development-requirements-matrix-20261011.md",
+      "sha256": "b161e8df3a2a53e54a875a53b3adcb991a5dc548e9ffe02b7ca687490fea5e39",
+      "bytes": 17640,
+      "headings": [
+        "# TaxGuard Master Development Requirements Matrix — 2026-10-11",
+        "## 1. Reference inspection (this session)",
+        "## 2. Reference conflicts (recorded; established behaviour not changed)",
+        "## 3. Requirements matrix",
+        "### 3.1 Secure foundation (directive Phase 1, §13)",
+        "### 3.2 Role dashboards (§5, Masterplan)",
+        "### 3.3 Workflow (§6)",
+        "### 3.4 AI ecosystem and governance (§7–§11)",
+        "### 3.5 Persistence and integrations (§12, §14)",
+        "## 4. New decisions surfaced this cycle",
+        "## 5. Proposed agent-name reconciliation (H01a — not applied)"
       ]
     },
     {
@@ -4269,11 +4340,11 @@
     "scripts/setup-local-browser.mjs": "6ebb75c4c5d8c965917039ece300fc49e7ebbaadf04d3367601ba1eac98a40c4",
     "scripts/synthetic-acceptance-plan.mjs": "9ffaaf343b846010ef6fad24d11b98b90e49e43a07b748e10583cb1801ac0df7",
     "scripts/verify-local-traceability.mjs": "e7aff96754962c5e14fadb07df2418912d926b72fc254a94d66dc6496018b000",
-    "src/App.tsx": "bdb9e053c4fa6e7978f0e448bc9e1b4f2227590ee4da1ae4365d3b2d8fb8e970",
+    "src/App.tsx": "c348256f93cdada3f77f4f2314a5c3faac6bf98c0dc65e2a596bf4fc29ab52d7",
     "src/ai/architectureMapping.ts": "6d7af6b6cb2860e0247af0243b42e2704f1d77ee020cec5e6625a386115c9377",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
-    "src/components/admin/PracticeAdminWorkspace.tsx": "3c14c5958012962a759dcf6994e0da73a072a8e9b9f24271f2382ef2c00a7ff7",
-    "src/components/auth/AuthPages.tsx": "eb0fce8439bc3b8cf60c86e2f8fb8eaac31d6ce89f9cbfb93a497c54458b4454",
+    "src/components/admin/PracticeAdminWorkspace.tsx": "0360c0385d88cba0a5bde9e5af121f8f0f238784cb4c1687be4762f8151be650",
+    "src/components/auth/AuthPages.tsx": "e0b4bcc9c7af58109672774c45980efa6930ae264a30f4ffb5ee594afa5548b1",
     "src/components/layout/DashboardApplicationShell.tsx": "3f7d827643595da208aa14520dc7792aff59fa780f35ff50045871b368319a07",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
     "src/components/portal/AuthenticatedClientDashboard.tsx": "acf6e8925425d50e3146c2a68c9a6872f799930d59ac806b111b20c7e3caaba1",
@@ -4308,7 +4379,7 @@
     "src/server/taxguard/operations/durableIdempotency.service.ts": "36e14828cdae5a962a2b21b4fbcbf4742c433d6001393ab707470320d2317645",
     "src/server/taxguard/operations/durableJobQueue.service.ts": "8be77c25efeebce1e8715fbff686023c4c1b5e2df702c0593f9bd35c300b97b2",
     "src/server/taxguard/operations/engagementBilling.service.ts": "0197e9e564f6a8d8c6e6de1ec1151aa36cd6b0f30c22f3f3aea8ab46ec22433f",
-    "src/server/taxguard/providerReadiness.service.ts": "00eadfc8007b85c6adedb87232e1f9612e737fc730b9dbe51be7f6b6ce0ddec3",
+    "src/server/taxguard/providerReadiness.service.ts": "0cc09977a3ea0c1d076908dc27585a5e349042f35ef5752addb137d6e8e89228",
     "src/server/taxguard/stageEightServerGate.ts": "0df3b99d0c273d94e4181cd1e235936df375259e91a67de340cffaca4886f863",
     "src/server/taxguard/stageEighteenServerGate.ts": "ba92ef08d8c50ebe434bd3f55bf0167ca787a4360e7c842fc5d659983d8ca7fc",
     "src/server/taxguard/stageElevenServerGate.ts": "e1d632c317dd26bc1f7a8ce063cda73f3999bff5a52145591f0d42919ed6d7ba",
@@ -4329,7 +4400,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "18de5d00856c03f5bef97d3f1fcc038e9cda3255420b029a83a475721d26ffbd",
+    "src/services/api.ts": "8eddb87548eb844644f21e56aac979774d3d06626933acedf9ab481c30fdd58c",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
