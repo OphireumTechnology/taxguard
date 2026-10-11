@@ -16,7 +16,8 @@ import {
   recordLoginFailure,
   clearLoginFailures,
   authenticateToken,
-  AuthenticatedRequest
+  AuthenticatedRequest,
+  MAX_FAILED_ATTEMPTS_PER_ACCOUNT
 } from '../auth';
 import { User, OnboardingState } from '../../types';
 import { AuthorityError } from '../taxguard/authority.repository';
@@ -29,6 +30,14 @@ import { SupabaseDurableSessions } from '../supabase-db';
 import { provisionOrResolveClientOnboarding } from '../taxguard/clientOnboardingProvisioner';
 
 export const authRouter = Router();
+
+// Password-reset request throttle (per e-mail address, in-memory like the legacy session store).
+const resetRequestLog = new Map<string, number[]>();
+const RESET_WINDOW_MS = 60 * 60 * 1000;
+const MAX_RESET_REQUESTS_PER_WINDOW = 3;
+/** Test hook: clears reset throttling state between isolated tests. */
+export function clearPasswordResetThrottle(): void { resetRequestLog.clear(); }
+
 authRouter.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production' && !['/supabase-session', '/me', '/logout'].includes(req.path)) {
     return res.status(410).json({ error: 'Use Supabase Authentication for live account operations.', code: 'SUPABASE_AUTH_REQUIRED' });
@@ -144,13 +153,16 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Supabase authentication is required.', code: 'SUPABASE_AUTH_REQUIRED' });
   const { email, password, mfaCode } = req.body;
   const ip = req.ip || 'unknown';
-  const lockoutKey = `${ip}_${(email || '').toLowerCase()}`;
-
-  if (!email || !password) {
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
+  const lockoutKey = `${ip}_${email.toLowerCase()}`;
+  // Account-wide counter: rotating source IPs must not give unlimited guesses at one account.
+  const accountLockoutKey = `account_${email.toLowerCase()}`;
 
-  const lockout = checkBruteForceLockout(lockoutKey);
+  const accountLockout = checkBruteForceLockout(accountLockoutKey);
+  const ipLockout = checkBruteForceLockout(lockoutKey);
+  const lockout = accountLockout.locked ? accountLockout : ipLockout;
   if (lockout.locked) {
     db.logSecurityEvent({
       eventType: 'LOGIN_ATTEMPT_DURING_LOCKOUT',
@@ -170,6 +182,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
   if (!user || !storedHash || !verifyPassword(password, storedHash)) {
     recordLoginFailure(lockoutKey, ip, email);
+    recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
     return res.status(401).json({
       error: 'Invalid credentials. Please verify your email and password.',
       code: 'INVALID_CREDENTIALS'
@@ -190,15 +203,29 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     });
   }
 
-  if (user.mfaEnabled && !mfaCode) {
-    return res.status(200).json({
-      mfaRequired: true,
-      message: 'MFA authorization code required.',
-      userId: user.id
+  if (user.mfaEnabled) {
+    if (!mfaCode) {
+      return res.status(200).json({
+        mfaRequired: true,
+        message: 'MFA authorization code required.',
+        userId: user.id
+      });
+    }
+    // Previously any non-empty mfaCode was accepted without verification (MFA bypass).
+    // No TOTP / WebAuthn verifier is commissioned for local sessions, so a code cannot be
+    // verified and no session is issued. MFA for live sessions belongs to the identity provider.
+    db.logSecurityEvent({
+      eventType: 'MFA_VERIFICATION_UNAVAILABLE',
+      ipAddress: ip,
+      userId: user.id,
+      details: 'Login with an MFA code refused: no MFA verifier is configured for local sessions.',
+      severity: 'warning'
     });
+    return res.status(503).json({ error: 'Multi-factor verification is not available. Sign in through the configured identity provider.', code: 'MFA_VERIFICATION_UNAVAILABLE' });
   }
 
   clearLoginFailures(lockoutKey);
+  clearLoginFailures(accountLockoutKey);
   user.lastLoginAt = new Date().toISOString();
   db.users.set(user.id, user);
   const token = createSession(user.id, user.role);
@@ -287,12 +314,24 @@ authRouter.post('/verify-email', (req: Request, res: Response) => {
 });
 
 authRouter.post('/forgot-password', (req: Request, res: Response) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email address is required.' });
+  const { email } = req.body ?? {};
+  if (typeof email !== 'string' || !email) return res.status(400).json({ error: 'Email address is required.' });
+  const neutral = { message: 'If an account exists with this email, a secure reset token has been dispatched.' };
+
+  // Per-address throttle; the response stays neutral so it reveals nothing about the account.
+  const now = Date.now();
+  const throttleKey = email.toLowerCase();
+  const recent = (resetRequestLog.get(throttleKey) || []).filter(at => now - at < RESET_WINDOW_MS);
+  if (recent.length >= MAX_RESET_REQUESTS_PER_WINDOW) {
+    resetRequestLog.set(throttleKey, recent);
+    db.logSecurityEvent({ eventType: 'PASSWORD_RESET_THROTTLED', ipAddress: req.ip || 'unknown', details: 'Password reset requests throttled for an address.', severity: 'warning' });
+    return res.json(neutral);
+  }
+  resetRequestLog.set(throttleKey, [...recent, now]);
 
   const user = Array.from(db.users.values()).find(item => item.email.toLowerCase() === email.toLowerCase());
   if (!user) {
-    return res.json({ message: 'If an account exists with this email, a secure reset token has been dispatched.' });
+    return res.json(neutral);
   }
 
   const resetToken = randomBytes(24).toString('hex');
@@ -312,10 +351,10 @@ authRouter.post('/forgot-password', (req: Request, res: Response) => {
     severity: 'info'
   });
 
-  return res.json({
-    message: 'If an account exists with this email, a secure reset token has been dispatched.',
-    ...(process.env.NODE_ENV !== 'production' ? { devResetToken: resetToken } : {})
-  });
+  // Previously returned to any caller in every non-production environment (including staging),
+  // allowing anyone to reset any account. Now only with an explicit local-development opt-in.
+  const exposeToken = process.env.NODE_ENV === 'development' && process.env.TAXGUARD_DEV_EXPOSE_RESET_TOKEN === 'true';
+  return res.json({ ...neutral, ...(exposeToken ? { devResetToken: resetToken } : {}) });
 });
 
 authRouter.post('/change-password', authenticateToken, (req: AuthenticatedRequest, res: Response) => {

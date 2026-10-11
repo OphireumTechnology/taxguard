@@ -154,6 +154,11 @@ const DIGEST = 'sha512';
 const SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+/**
+ * Account-wide threshold (any source IP). Higher than the per-IP threshold so an attacker
+ * rotating addresses is still stopped, while limiting deliberate lockout of a victim.
+ */
+export const MAX_FAILED_ATTEMPTS_PER_ACCOUNT = 15;
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(SALT_LENGTH).toString('hex');
@@ -216,12 +221,12 @@ export function checkBruteForceLockout(key: string): { locked: boolean; remainin
 }
 
 // Record login failure and potentially lock account
-export function recordLoginFailure(key: string, ip: string, email: string) {
+export function recordLoginFailure(key: string, ip: string, email: string, maxAttempts: number = MAX_FAILED_ATTEMPTS) {
   const now = Date.now();
   const existing = db.loginAttempts.get(key) || { count: 0, lockedUntil: 0 };
   const newCount = existing.count + 1;
-  
-  if (newCount >= MAX_FAILED_ATTEMPTS) {
+
+  if (newCount >= maxAttempts) {
     const lockedUntil = now + LOCKOUT_DURATION_MS;
     db.loginAttempts.set(key, { count: newCount, lockedUntil });
     db.logSecurityEvent({
