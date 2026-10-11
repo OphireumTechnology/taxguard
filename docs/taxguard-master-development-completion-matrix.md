@@ -1,6 +1,6 @@
 # TaxGuard Master Development Completion Matrix
 
-**PRODUCTION STATUS: NO-GO.** Last updated 2026-10-12 (cycle g).
+**PRODUCTION STATUS: NO-GO.** Last updated 2026-10-12 (cycle h).
 
 This is the cumulative, verifiable feature register requested by the Master Development Completion Directive. It complements, and does not replace:
 
@@ -37,7 +37,8 @@ This is the cumulative, verifiable feature register requested by the Master Deve
 | P1-08 | Tenant ownership on admin-gated legacy routes: assignments, onboarding review / activation, calendar | Assignments already used `belongsToTenant` (now tested). Onboarding and calendar fixed in cycle (g). | — | COMPLETE AND VERIFIED (cycle g) | `assignmentsTenantOwnership.test.ts`, `onboardingReviewAuthorization.test.ts`, `calendarTenantOwnership.test.ts` |
 | P1-12 | Payment webhook authenticity: secret required everywhere, signature always required, event id required | `payments.routes.ts` | Stripe's real signature scheme with timestamp tolerance (E04) | IMPLEMENTED BUT INCOMPLETE (cycle g); unsigned settlement closed | `paymentsRouteAuthority.test.ts` |
 | P1-11 | Staff activation cannot grant roles outside the invitation vocabulary (privilege escalation) | `ACTIVATABLE_STAFF_ROLES` shared by invite and activation | — | COMPLETE AND VERIFIED (cycle g) | `onboardingReviewAuthorization.test.ts` |
-| P1-09 | MFA, session refresh, device / session monitoring, rate limiting | Partial / unknown | Audit and implementation | NOT IMPLEMENTED (unverified) | — |
+| P1-09 | MFA, rate limiting and lockout | Audited in cycle (h). Legacy local login: MFA-code bypass closed (fails closed with no verifier); account-wide lockout (15 / any IP) added beside per-IP lockout (5); reset-token exposure and throttling fixed. | Production (Supabase) sessions do not enforce MFA assurance level (AAL2): needs the role → MFA policy and Supabase MFA configuration. No general API rate limiter verified on legacy routes. | IMPLEMENTED BUT INCOMPLETE; production MFA **BLOCKED BY OWNER DECISION (H06 / H09) + INTEGRATION (E03)** | `authBruteForceAndMfa.test.ts` |
+| P1-13 | Password reset cannot be taken over outside production | `devResetToken` only with an explicit local-development opt-in; per-address throttle with neutral responses | — | COMPLETE AND VERIFIED (cycle h) | `authBruteForceAndMfa.test.ts` |
 | P1-10 | RLS on deployed Supabase | Migrations + disposable PGlite tests | Platform verification | BLOCKED BY INTEGRATION (E01 / E07) | `aiGovernanceFixture.ts` suites |
 
 ## 2. Documents (Phase 6 / directive §9)
@@ -59,7 +60,7 @@ This is the cumulative, verifiable feature register requested by the Master Deve
 
 | ID | Requirement | Status | Note |
 | --- | --- | --- | --- |
-| ACC-01 | Staging → ledger posting with maker-checker | IMPLEMENTED BUT INCOMPLETE | In-memory store; posted rollback now refused (`ROLLBACK_REQUIRES_REVERSAL`); a reversing-entry workflow is **NOT IMPLEMENTED** |
+| ACC-01 | Staging → ledger posting with maker-checker, and controlled reversal | IMPLEMENTED BUT INCOMPLETE | Reversing-entry workflow **COMPLETE AND VERIFIED (cycle h)**: request → independent approval / rejection, offsetting entry, original preserved (`stagingReversalWorkflow.test.ts`). The store is still in-memory (durable ledger E01). |
 | ACC-02 | Accounting-provider connections and write pipeline | BLOCKED BY INTEGRATION (E04) | Authorization gates real and tested; sync / commit return `ACCOUNTING_PROVIDER_NOT_COMMISSIONED` (previously fabricated success) |
 
 ## 5. AI governance (directive §11)
