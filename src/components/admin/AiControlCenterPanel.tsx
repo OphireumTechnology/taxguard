@@ -21,7 +21,7 @@ const FILTERS: Record<ControlCenterView, { key: string; label: string; options: 
 };
 
 const COLUMNS: Record<ControlCenterView, [string, string][]> = {
-  registry: [['agent_id', 'Agent'], ['agent_name', 'Name'], ['category', 'Category'], ['status', 'Registry status'], ['risk_class', 'Risk class'], ['stopped', 'Emergency stop']],
+  registry: [['agent_id', 'Agent'], ['agent_name', 'Name'], ['category', 'Category'], ['status', 'Registry status'], ['risk_class', 'Risk class'], ['stopped', 'Emergency stop'], ['stop_reason', 'Stopped by']],
   usage: [['agent_id', 'Agent'], ['runs', 'Runs'], ['tokens', 'Tokens'], ['estimated_cost', 'Recorded est. cost'], ['awaiting_review', 'Awaiting human review'], ['failed', 'Failed'], ['rejected', 'Rejected'], ['approved', 'Approved']],
   runs: [['created_at', 'Created'], ['agent_id', 'Agent'], ['status', 'Status'], ['model_id', 'Model'], ['prompt_version', 'Prompt ver.'], ['tax_case_id', 'Case'], ['tax_year', 'Year'], ['risk_level', 'Risk'], ['confidence', 'Confidence'], ['token_usage', 'Tokens'], ['estimated_cost', 'Est. cost']],
   decisions: [['created_at', 'Time'], ['agent_id', 'Agent'], ['outcome', 'Outcome'], ['reason_code', 'Reason'], ['action_state', 'Action state'], ['actor_uid', 'Actor'], ['tax_case_id', 'Case']],
@@ -35,6 +35,13 @@ const DENIED: Record<string, string> = {
 };
 export const controlCenterErrorMessage = (error: any): string => DENIED[error?.code] ?? 'The AI governance service is unavailable. No data is shown rather than stale or estimated values.';
 
+/** Only well-formed MODEL / TOOL / WORKFLOW entries are displayed; anything else is dropped. */
+export function parseScopedStops(value: unknown): { scope: string; target: string }[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((s: any) => s && ['MODEL', 'TOOL', 'WORKFLOW'].includes(s.scope) && typeof s.target === 'string' && s.target.length <= 300)
+    .map((s: any) => ({ scope: s.scope, target: s.target }));
+}
+
 export function formatCell(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
   if (key === 'stopped') return value === true ? 'STOPPED' : 'Not stopped';
@@ -43,7 +50,7 @@ export function formatCell(key: string, value: unknown): string {
   return String(value);
 }
 
-type State = { status: 'loading' | 'ready' | 'error'; rows: Record<string, unknown>[]; next: string | null; globalStop?: boolean; totals?: Record<string, number>; message?: string; appending?: boolean };
+type State = { status: 'loading' | 'ready' | 'error'; rows: Record<string, unknown>[]; next: string | null; globalStop?: boolean; scopedStops?: { scope: string; target: string }[]; totals?: Record<string, number>; message?: string; appending?: boolean };
 
 export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }> = ({ initialView = 'registry' }) => {
   const [view, setView] = useState<ControlCenterView>(initialView);
@@ -56,7 +63,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
     return api.caseAuthority.getAiControlCenter(view, view === 'registry' ? {} : view === 'usage' ? filters : query, signal).then((result: any) => {
       const rows = view === 'registry' ? result.agents : view === 'usage' ? result.by_agent : result.items;
       if (!Array.isArray(rows)) throw new Error('Invalid control-center response');
-      return { rows: rows as Record<string, unknown>[], next: typeof result.next_cursor === 'string' ? result.next_cursor : null, globalStop: result.global_stop === true, totals: view === 'usage' && result.totals && typeof result.totals === 'object' ? result.totals as Record<string, number> : undefined };
+      return { rows: rows as Record<string, unknown>[], next: typeof result.next_cursor === 'string' ? result.next_cursor : null, globalStop: result.global_stop === true, scopedStops: parseScopedStops(result.scoped_stops), totals: view === 'usage' && result.totals && typeof result.totals === 'object' ? result.totals as Record<string, number> : undefined };
     });
   };
 
@@ -74,7 +81,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
     if (!state.next) return;
     setState(current => ({ ...current, appending: true }));
     load(state.next)
-      .then(page => setState(current => ({ status: 'ready', rows: [...current.rows, ...page.rows], next: page.next, globalStop: current.globalStop })))
+      .then(page => setState(current => ({ status: 'ready', rows: [...current.rows, ...page.rows], next: page.next, globalStop: current.globalStop, scopedStops: current.scopedStops })))
       .catch(error => setState(current => ({ ...current, appending: false, message: controlCenterErrorMessage(error) })));
   };
 
@@ -103,7 +110,13 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
           ))}
         </div>
       )}
-      {view === 'registry' && state.status === 'ready' && state.globalStop && <p role="alert" className="text-red-300 font-semibold">A GLOBAL emergency stop is engaged for this tenant. All governed AI work is refused.</p>}
+      {view === 'registry' && state.status === 'ready' && (state.scopedStops?.length ?? 0) > 0 && (
+        <div role="alert" className="text-amber-200">
+          <p className="font-semibold">Scoped emergency stops in force (they block any request using this model, tool or stage):</p>
+          <ul className="list-disc pl-5">{state.scopedStops!.map(stop => <li key={`${stop.scope}:${stop.target}`}>{stop.scope}: {stop.target}</li>)}</ul>
+        </div>
+      )}
+      {view === 'registry' && state.status === 'ready' && state.globalStop &&<p role="alert" className="text-red-300 font-semibold">A GLOBAL emergency stop is engaged for this tenant. All governed AI work is refused.</p>}
       {state.status === 'loading' && <p role="status">Loading…</p>}
       {state.status === 'error' && <p role="alert" className="text-amber-300">{state.message}</p>}
       {state.status === 'ready' && state.rows.length === 0 && <p>No records match this view for your tenant.</p>}

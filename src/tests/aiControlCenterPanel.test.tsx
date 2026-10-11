@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('../services/api', () => ({ api: { caseAuthority: { getAiControlCenter: vi.fn(() => new Promise(() => {})) } } }));
-import { AiControlCenterPanel, controlCenterErrorMessage, formatCell } from '../components/admin/AiControlCenterPanel';
+import { AiControlCenterPanel, controlCenterErrorMessage, formatCell, parseScopedStops } from '../components/admin/AiControlCenterPanel';
 
 describe('AI Control Center panel', () => {
   it('renders the four read-only views with a loading state and no mutation controls', () => {
@@ -22,6 +22,11 @@ describe('AI Control Center panel', () => {
     const html = renderToStaticMarkup(<AiControlCenterPanel initialView="usage" />);
     expect(html).toContain('Usage &amp; review queue');
     for (const w of ['24h', '7d', '30d']) expect(html).toContain(`value="${w}"`);
+  });
+  it('accepts only well-formed scoped stops for the registry banner', () => {
+    expect(parseScopedStops([{ scope: 'MODEL', target: 'm@1' }, { scope: 'TOOL', target: 'document.read' }, { scope: 'GLOBAL', target: 'GLOBAL' }, { scope: 'WORKFLOW', target: 5 }, null]))
+      .toEqual([{ scope: 'MODEL', target: 'm@1' }, { scope: 'TOOL', target: 'document.read' }]);
+    expect(parseScopedStops(undefined)).toEqual([]);
   });
   it('formats values without inventing data', () => {
     expect(formatCell('confidence', null)).toBe('—');

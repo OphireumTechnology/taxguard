@@ -18,10 +18,16 @@ export const KILL_SWITCH_ROLES = GOVERNANCE_OPERATOR_ROLES;
 
 export type KillSwitchActivationRequest =
   | { scope: 'GLOBAL'; reason: string }
-  | { scope: 'AGENT'; agent_id: string; reason: string };
+  | { scope: 'AGENT'; agent_id: string; reason: string }
+  | { scope: 'MODEL'; model_id: string; model_version: string; reason: string }
+  | { scope: 'TOOL'; tool_id: string; reason: string }
+  | { scope: 'WORKFLOW'; workflow_stage: number; reason: string };
+
+/** WORKFLOW stops target the persisted stage identities only (H10 unresolved). */
+export const KILL_SWITCH_WORKFLOW_VERSION = 'LEGACY_18_V1';
 
 export interface KillSwitchActivationResult {
-  switch_id: string; scope: 'GLOBAL' | 'AGENT'; target: string; enabled: true;
+  switch_id: string; scope: KillSwitchActivationRequest['scope']; target: string; enabled: true;
   already_active: boolean; activated_by: string; activated_at: string;
 }
 
@@ -43,8 +49,44 @@ export function parseKillSwitchActivation(raw: unknown): KillSwitchActivationReq
     try { findCanonicalAgent(r.agent_id); } catch { deny('AI_KILL_SWITCH_UNKNOWN_AGENT', 400); }
     return { scope: 'AGENT', agent_id: r.agent_id as string, reason };
   }
-  // MODEL / TOOL / WORKFLOW scopes and any extra keys (tenant, actor, enabled flags) are refused.
+  if (r.scope === 'MODEL' && keys === 'model_id,model_version,reason,scope' && typeof r.model_id === 'string' && typeof r.model_version === 'string' &&
+      modelPart.test(r.model_id) && modelPart.test(r.model_version)) {
+    return { scope: 'MODEL', model_id: r.model_id, model_version: r.model_version, reason };
+  }
+  if (r.scope === 'TOOL' && keys === 'reason,scope,tool_id' && typeof r.tool_id === 'string' && toolPattern.test(r.tool_id)) {
+    return { scope: 'TOOL', tool_id: r.tool_id, reason };
+  }
+  if (r.scope === 'WORKFLOW' && keys === 'reason,scope,workflow_stage' && Number.isInteger(r.workflow_stage) && (r.workflow_stage as number) >= 1 && (r.workflow_stage as number) <= 18) {
+    return { scope: 'WORKFLOW', workflow_stage: r.workflow_stage as number, reason };
+  }
+  // Unknown scopes, malformed targets and extra keys (tenant, actor, enabled flags, workflow_version) are refused.
   return deny('AI_KILL_SWITCH_INVALID_REQUEST', 400);
+}
+
+const modelPart = /^[A-Za-z0-9._:-]{1,128}$/;
+const toolPattern = /^[a-z_]+[.][a-z_]+$/;
+
+/** Target string and column values exactly as the ai_kill_switches CHECK constraint requires. */
+export function killSwitchTarget(request: KillSwitchActivationRequest) {
+  const none = { agent_id: null, model_id: null, model_version: null, tool_id: null, workflow_version: null, workflow_stage: null } as
+    { agent_id: string | null; model_id: string | null; model_version: string | null; tool_id: string | null; workflow_version: string | null; workflow_stage: number | null };
+  switch (request.scope) {
+    case 'GLOBAL': return { target: 'GLOBAL', columns: none };
+    case 'AGENT': return { target: request.agent_id, columns: { ...none, agent_id: request.agent_id } };
+    case 'MODEL': return { target: `${request.model_id}@${request.model_version}`, columns: { ...none, model_id: request.model_id, model_version: request.model_version } };
+    case 'TOOL': return { target: request.tool_id, columns: { ...none, tool_id: request.tool_id } };
+    case 'WORKFLOW': return { target: `${KILL_SWITCH_WORKFLOW_VERSION}:${request.workflow_stage}`, columns: { ...none, workflow_version: KILL_SWITCH_WORKFLOW_VERSION, workflow_stage: request.workflow_stage } };
+  }
+}
+
+/** Targets must exist in the registry; a stop on a nonexistent target would silently protect nothing. */
+async function targetExists(sql: SqlConnection, request: KillSwitchActivationRequest): Promise<boolean> {
+  switch (request.scope) {
+    case 'MODEL': return (await sql.query('SELECT 1 FROM ai_models WHERE model_id=$1 AND model_version=$2', [request.model_id, request.model_version])).rows.length > 0;
+    case 'TOOL': return (await sql.query('SELECT 1 FROM ai_tools WHERE tool_id=$1', [request.tool_id])).rows.length > 0;
+    case 'WORKFLOW': return (await sql.query('SELECT 1 FROM ai_workflow_stages WHERE workflow_version=$1 AND stage=$2', [KILL_SWITCH_WORKFLOW_VERSION, request.workflow_stage])).rows.length > 0;
+    default: return true;
+  }
 }
 
 async function securityEvent(sql: SqlConnection, identity: VerifiedIdentity, memberExists: boolean, type: 'KILL_SWITCH' | 'AUTHORIZATION_DENIAL', agentId: string | null, details: Record<string, unknown>) {
@@ -64,8 +106,8 @@ export class KillSwitchService {
   async activate(token: string, raw: unknown): Promise<KillSwitchActivationResult> {
     const identity = await this.verifyIdentity(token);
     const request = parseKillSwitchActivation(raw);
-    const target = request.scope === 'GLOBAL' ? 'GLOBAL' : request.agent_id;
-    const agentId = request.scope === 'AGENT' ? request.agent_id : null;
+    const { target, columns } = killSwitchTarget(request);
+    const agentId = columns.agent_id;
     const reasonHash = createHash('sha256').update(request.reason).digest('hex');
     let outcome: { result: KillSwitchActivationResult | null; failure: GovernanceError | null };
     try {
@@ -76,6 +118,7 @@ export class KillSwitchService {
           await securityEvent(sql, identity, member.exists, 'AUTHORIZATION_DENIAL', agentId, { operation: 'KILL_SWITCH_ACTIVATE', scope: request.scope, target });
           return { result: null, failure: new GovernanceError('AI_KILL_SWITCH_ROLE_DENIED') };
         }
+        if (!(await targetExists(sql, request))) return { result: null, failure: new GovernanceError('AI_KILL_SWITCH_UNKNOWN_TARGET', 400) };
         const existing = (await sql.query<{ switch_id: string; enabled: boolean; activated_by: string; activated_at: string; deactivated_by: string | null; deactivated_at: string | null }>(
           'SELECT switch_id,enabled,activated_by,activated_at,deactivated_by,deactivated_at FROM ai_kill_switches WHERE tenant_id=$1 AND scope=$2 AND target=$3 FOR UPDATE',
           [identity.tenant_id, request.scope, target])).rows[0];
@@ -89,8 +132,8 @@ export class KillSwitchService {
             [existing.switch_id, request.reason, identity.uid])).rows[0];
         } else {
           row = (await sql.query<typeof row>(
-            'INSERT INTO ai_kill_switches(tenant_id,scope,target,agent_id,reason,activated_by)VALUES($1,$2,$3,$4,$5,$6) RETURNING switch_id,activated_by,activated_at',
-            [identity.tenant_id, request.scope, target, agentId, request.reason, identity.uid])).rows[0];
+            'INSERT INTO ai_kill_switches(tenant_id,scope,target,agent_id,model_id,model_version,tool_id,workflow_version,workflow_stage,reason,activated_by)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING switch_id,activated_by,activated_at',
+            [identity.tenant_id, request.scope, target, columns.agent_id, columns.model_id, columns.model_version, columns.tool_id, columns.workflow_version, columns.workflow_stage, request.reason, identity.uid])).rows[0];
         }
         await securityEvent(sql, identity, true, 'KILL_SWITCH', agentId, {
           operation: alreadyActive ? 'ACTIVATE_ALREADY_ACTIVE' : existing ? 'REACTIVATE' : 'ACTIVATE',

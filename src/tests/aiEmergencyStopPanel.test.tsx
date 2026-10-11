@@ -14,7 +14,7 @@ vi.mock('react', async importOriginal => {
   }) as typeof actual.useState;
   return { ...actual, useState: state };
 });
-import { AiEmergencyStopPanel, interpretKillSwitchActivation, killSwitchFailureMessage, parseKillSwitchRows } from '../components/admin/AiEmergencyStopPanel';
+import { AiEmergencyStopPanel, LEGACY_STAGE_NAMES, buildKillSwitchPayload, describeStopTarget, interpretKillSwitchActivation, killSwitchFailureMessage, parseKillSwitchRows } from '../components/admin/AiEmergencyStopPanel';
 afterEach(() => { fixture.mode = 'default'; });
 
 describe('activation result interpretation', () => {
@@ -36,6 +36,28 @@ describe('activation result interpretation', () => {
     expect(parseKillSwitchRows([{ switch_id: 's', scope: 'GLOBAL', target: 'GLOBAL', enabled: true, reason: 'r', activated_by: 'u', activated_at: 't' }])).toHaveLength(1);
     expect(() => parseKillSwitchRows({})).toThrow();
     expect(() => parseKillSwitchRows([{ switch_id: 's', scope: 'EVERYTHING', target: 'x', enabled: true, activated_by: 'u', activated_at: 't' }])).toThrow();
+  });
+});
+
+describe('scoped stop payloads', () => {
+  const f = { agentId: 'A07', modelId: ' isolated-model ', modelVersion: '1', toolId: 'document.read', stage: 3, reason: '  Synthetic incident reason  ' };
+  it('builds the exact server contract for each scope with a trimmed reason', () => {
+    expect(buildKillSwitchPayload('GLOBAL', f)).toEqual({ scope: 'GLOBAL', reason: 'Synthetic incident reason' });
+    expect(buildKillSwitchPayload('AGENT', f)).toEqual({ scope: 'AGENT', agent_id: 'A07', reason: 'Synthetic incident reason' });
+    expect(buildKillSwitchPayload('MODEL', f)).toEqual({ scope: 'MODEL', model_id: 'isolated-model', model_version: '1', reason: 'Synthetic incident reason' });
+    expect(buildKillSwitchPayload('TOOL', f)).toEqual({ scope: 'TOOL', tool_id: 'document.read', reason: 'Synthetic incident reason' });
+    expect(buildKillSwitchPayload('WORKFLOW', f)).toEqual({ scope: 'WORKFLOW', workflow_stage: 3, reason: 'Synthetic incident reason' });
+  });
+  it('returns null (engage disabled) for incomplete targets, and never sends a workflow version', () => {
+    expect(buildKillSwitchPayload('MODEL', { ...f, modelVersion: ' ' })).toBeNull();
+    expect(buildKillSwitchPayload('TOOL', { ...f, toolId: '' })).toBeNull();
+    expect(buildKillSwitchPayload('WORKFLOW', { ...f, stage: 19 })).toBeNull();
+    expect(buildKillSwitchPayload('WORKFLOW', f)).not.toHaveProperty('workflow_version');
+  });
+  it('describes the confirmation target with persisted LEGACY_18_V1 stage names', () => {
+    expect(describeStopTarget('WORKFLOW', f)).toBe('workflow stage 3 (Validate)');
+    expect(describeStopTarget('MODEL', f)).toBe('model isolated-model@1');
+    expect(LEGACY_STAGE_NAMES).toHaveLength(18);
   });
 });
 

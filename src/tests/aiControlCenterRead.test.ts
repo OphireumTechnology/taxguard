@@ -85,6 +85,17 @@ describe('registry view', () => {
     expect(a.agents.find(x => x.agent_id === 'A34')).toMatchObject({ status: 'ACTIVE', stopped: false });
     expect(a.agents.find(x => x.agent_id === 'A38')).toMatchObject({ status: 'DRAFT' });
   });
+  it('marks agents whose configured model is stopped and lists tool / stage stops', async () => {
+    await stops.activate('compliance', { scope: 'MODEL', model_id: 'isolated-model', model_version: '1', reason: 'Synthetic model incident for tests' });
+    await stops.activate('compliance', { scope: 'WORKFLOW', workflow_stage: 12, reason: 'Synthetic filing-stage stop for tests' });
+    const a = await service.registry('admin');
+    expect(a.agents.find((x: any) => x.agent_id === 'A34')).toMatchObject({ stopped: true, stop_reason: 'MODEL' });
+    expect(a.agents.find((x: any) => x.agent_id === 'A07')).toMatchObject({ stopped: true, stop_reason: 'AGENT' });
+    expect(a.agents.find((x: any) => x.agent_id === 'A38')).toMatchObject({ stopped: false, stop_reason: null });
+    expect(a.scoped_stops).toEqual(expect.arrayContaining([{ scope: 'MODEL', target: 'isolated-model@1' }, { scope: 'WORKFLOW', target: 'LEGACY_18_V1:12' }]));
+    // Tenant B sees none of tenant A's scoped stops.
+    expect((await service.registry('adminB')).scoped_stops).toEqual([]);
+  });
   it('reflects only the caller tenant\'s stops (tenant B has a global stop)', async () => {
     const b = await service.registry('adminB');
     expect(b.global_stop).toBe(true);

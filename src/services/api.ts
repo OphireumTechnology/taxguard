@@ -970,7 +970,9 @@ export const api = {
       const suffix = params.toString() ? `?${params.toString()}` : '';
       return request<Record<string, unknown>>(`/api/ai-governance/control-center/${view}${suffix}`, {signal});
     },
-    activateAiKillSwitch: async (payload: { scope: 'GLOBAL'; reason: string } | { scope: 'AGENT'; agent_id: string; reason: string }) => {
+    activateAiKillSwitch: async (payload: { scope: 'GLOBAL'; reason: string } | { scope: 'AGENT'; agent_id: string; reason: string }
+      | { scope: 'MODEL'; model_id: string; model_version: string; reason: string } | { scope: 'TOOL'; tool_id: string; reason: string }
+      | { scope: 'WORKFLOW'; workflow_stage: number; reason: string }) => {
       return request<Record<string, unknown>>('/api/ai-governance/kill-switches', { method: 'POST', body: JSON.stringify(payload) });
     },
 

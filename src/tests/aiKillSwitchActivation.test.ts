@@ -181,6 +181,53 @@ describe('server-side enforcement after activation', () => {
   });
 });
 
+describe('MODEL, TOOL and WORKFLOW-stage stops', () => {
+  it.each([
+    [{ scope: 'MODEL', model_id: 'isolated-model', model_version: '1', reason }, 'isolated-model@1'],
+    [{ scope: 'TOOL', tool_id: 'workflow.read', reason }, 'workflow.read'],
+    [{ scope: 'WORKFLOW', workflow_stage: 3, reason }, 'LEGACY_18_V1:3'],
+  ])('engages %j and the control plane then refuses A34 (which uses that model, tool and stage)', async (body, target) => {
+    await expect(plane.evaluate('valid', request())).resolves.toMatchObject({ agent_id: 'A34' });
+    const result = await service.activate('compliance', body);
+    expect(result).toMatchObject({ scope: (body as any).scope, target, enabled: true, already_active: false });
+    await expect(plane.evaluate('valid', request())).rejects.toThrow('AI_KILL_SWITCH_ACTIVE');
+    const [event] = await newEvents(`details->>'target'='${target}'`);
+    expect(event).toMatchObject({ event_type: 'KILL_SWITCH', severity: 'CRITICAL' });
+  });
+
+  it.each([
+    [{ scope: 'MODEL', model_id: 'isolated-model', model_version: '2', reason }],
+    [{ scope: 'TOOL', tool_id: 'document.read', reason }],
+    [{ scope: 'WORKFLOW', workflow_stage: 4, reason }],
+  ])('a stop on a different model, tool or stage (%j) does not block A34', async body => {
+    if ((body as any).scope === 'MODEL') await pg.exec(`INSERT INTO ai_models(model_id,model_version,provider,effective_date,approved_use_cases)VALUES('isolated-model','2','TEST',now(),ARRAY['IDENTIFY_REVIEW_QUESTIONS']) ON CONFLICT DO NOTHING`);
+    await service.activate('admin', body);
+    await expect(plane.evaluate('valid', request())).resolves.toMatchObject({ agent_id: 'A34' });
+  });
+
+  it.each([
+    [{ scope: 'MODEL', model_id: 'not-registered', model_version: '9', reason }],
+    [{ scope: 'TOOL', tool_id: 'ghost.tool', reason }],
+  ])('refuses a stop on an unregistered target %j without writing a switch', async body => {
+    await expect(service.activate('admin', body)).rejects.toThrow('AI_KILL_SWITCH_UNKNOWN_TARGET');
+    expect(await rows('SELECT * FROM ai_kill_switches')).toHaveLength(0);
+  });
+
+  it.each([
+    [{ scope: 'WORKFLOW', workflow_stage: 0, reason }], [{ scope: 'WORKFLOW', workflow_stage: 19, reason }], [{ scope: 'WORKFLOW', workflow_stage: '3', reason }],
+    [{ scope: 'WORKFLOW', workflow_stage: 3, workflow_version: 'MASTERPLAN_V2', reason }],
+    [{ scope: 'TOOL', tool_id: 'Workflow.Read; DROP', reason }], [{ scope: 'MODEL', model_id: 'x y', model_version: '1', reason }],
+    [{ scope: 'MODEL', model_id: 'isolated-model', reason }],
+  ])('rejects malformed or authority-bearing target %j', body => {
+    expect(() => parseKillSwitchActivation(body)).toThrow('AI_KILL_SWITCH_INVALID_REQUEST');
+  });
+
+  it('non-governance roles still cannot engage scoped stops', async () => {
+    await expect(service.activate('valid', { scope: 'TOOL', tool_id: 'workflow.read', reason })).rejects.toThrow('AI_KILL_SWITCH_ROLE_DENIED');
+    expect(await rows('SELECT * FROM ai_kill_switches')).toHaveLength(0);
+  });
+});
+
 describe('HTTP routes', () => {
   const post = (token: string, body: unknown) => fetch(`${origin}/api/ai-governance/kill-switches`, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
 

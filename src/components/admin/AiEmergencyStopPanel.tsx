@@ -14,6 +14,7 @@ const MESSAGES: Record<string, string> = {
   AI_KILL_SWITCH_ROLE_DENIED: 'Your role is not authorized to engage or view AI emergency stops.',
   AI_KILL_SWITCH_REASON_INVALID: 'Enter a reason between 10 and 500 characters.',
   AI_KILL_SWITCH_UNKNOWN_AGENT: 'Select a registered agent.',
+  AI_KILL_SWITCH_UNKNOWN_TARGET: 'That model, tool or stage is not registered. The stop was NOT engaged.',
   AI_KILL_SWITCH_INVALID_REQUEST: 'The stop request was rejected as invalid.',
   AI_AUTH_REQUIRED: 'Your session could not be verified. Sign in again.',
 };
@@ -38,12 +39,45 @@ export function interpretKillSwitchActivation(result: any): string {
     : `Emergency stop engaged for ${result.target}. Governed AI assessments in scope are now refused by the server.`;
 }
 
+export type StopScope = 'GLOBAL' | 'AGENT' | 'MODEL' | 'TOOL' | 'WORKFLOW';
+/** Persisted LEGACY_18_V1 stage names (ai_workflow_stages); the authoritative label set is pending decision H10. */
+export const LEGACY_STAGE_NAMES = ['Onboard', 'Collect', 'Validate', 'Record', 'Reconcile', 'Review', 'Report', 'Plan', 'Prepare Taxes', 'Approve', 'Sign', 'File', 'Government Feedback', 'Resolve', 'Monitor', 'Archive', 'Renew', 'Repeat'] as const;
+export interface StopFields { agentId: string; modelId: string; modelVersion: string; toolId: string; stage: number; reason: string }
+
+/** Builds the exact request body for a scope, or null when the target is incomplete. The server re-validates everything. */
+export function buildKillSwitchPayload(scope: StopScope, f: StopFields) {
+  const reason = f.reason.trim();
+  switch (scope) {
+    case 'GLOBAL': return { scope, reason } as const;
+    case 'AGENT': return f.agentId ? { scope, agent_id: f.agentId, reason } as const : null;
+    case 'MODEL': return f.modelId.trim() && f.modelVersion.trim() ? { scope, model_id: f.modelId.trim(), model_version: f.modelVersion.trim(), reason } as const : null;
+    case 'TOOL': return f.toolId.trim() ? { scope, tool_id: f.toolId.trim(), reason } as const : null;
+    case 'WORKFLOW': return Number.isInteger(f.stage) && f.stage >= 1 && f.stage <= 18 ? { scope, workflow_stage: f.stage, reason } as const : null;
+  }
+}
+
+export function describeStopTarget(scope: StopScope, f: StopFields): string {
+  switch (scope) {
+    case 'GLOBAL': return 'ALL AI agents';
+    case 'AGENT': return `agent ${f.agentId}`;
+    case 'MODEL': return `model ${f.modelId.trim()}@${f.modelVersion.trim()}`;
+    case 'TOOL': return `tool ${f.toolId.trim()}`;
+    case 'WORKFLOW': return `workflow stage ${f.stage} (${LEGACY_STAGE_NAMES[f.stage - 1] ?? 'unknown'})`;
+  }
+}
+
 export const AiEmergencyStopPanel: React.FC = () => {
   const [list, setList] = useState<{ status: 'loading' | 'ready' | 'error'; rows: KillSwitchRow[]; message?: string }>({ status: 'loading', rows: [] });
   const [refresh, setRefresh] = useState(0);
-  const [scope, setScope] = useState<'GLOBAL' | 'AGENT'>('GLOBAL');
+  const [scope, setScope] = useState<StopScope>('GLOBAL');
   const [agentId, setAgentId] = useState('A00');
+  const [modelId, setModelId] = useState('');
+  const [modelVersion, setModelVersion] = useState('');
+  const [toolId, setToolId] = useState('');
+  const [stage, setStage] = useState(1);
   const [reason, setReason] = useState('');
+  const fields: StopFields = { agentId, modelId, modelVersion, toolId, stage, reason };
+  const payload = buildKillSwitchPayload(scope, fields);
   const [confirming, setConfirming] = useState(false);
   const [submit, setSubmit] = useState<{ status: 'idle' | 'submitting' | 'engaged' | 'error'; message?: string }>({ status: 'idle' });
 
@@ -58,9 +92,9 @@ export const AiEmergencyStopPanel: React.FC = () => {
 
   const reasonValid = reason.trim().length >= 10 && reason.trim().length <= 500;
   const engage = async () => {
+    if (!payload) return;
     setSubmit({ status: 'submitting' });
     try {
-      const payload = scope === 'GLOBAL' ? { scope, reason: reason.trim() } as const : { scope, agent_id: agentId, reason: reason.trim() } as const;
       setSubmit({ status: 'engaged', message: interpretKillSwitchActivation(await api.caseAuthority.activateAiKillSwitch(payload)) });
       setConfirming(false); setReason(''); setRefresh(value => value + 1);
     } catch (error) {
@@ -76,12 +110,32 @@ export const AiEmergencyStopPanel: React.FC = () => {
         <p className="text-slate-400">Engaging a stop immediately blocks governed AI work for your tenant, enforced on the server. Lifting a stop is not available in this workspace; it requires an approved governance procedure.</p>
       </header>
 
-      <form className="p-4 rounded-xl border border-red-500/40 bg-red-950/30 space-y-3" onSubmit={event => { event.preventDefault(); if (reasonValid) setConfirming(true); }}>
-        <fieldset className="flex gap-4">
+      <form className="p-4 rounded-xl border border-red-500/40 bg-red-950/30 space-y-3" onSubmit={event => { event.preventDefault(); if (reasonValid && payload) setConfirming(true); }}>
+        <fieldset className="flex flex-wrap gap-4">
           <legend className="sr-only">Stop scope</legend>
-          <label className="flex items-center gap-1.5"><input type="radio" name="ai-stop-scope" checked={scope === 'GLOBAL'} onChange={() => { setScope('GLOBAL'); setConfirming(false); }} />All AI agents</label>
-          <label className="flex items-center gap-1.5"><input type="radio" name="ai-stop-scope" checked={scope === 'AGENT'} onChange={() => { setScope('AGENT'); setConfirming(false); }} />One agent</label>
+          {([['GLOBAL', 'All AI agents'], ['AGENT', 'One agent'], ['MODEL', 'One model version'], ['TOOL', 'One tool'], ['WORKFLOW', 'One workflow stage']] as [StopScope, string][]).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-1.5"><input type="radio" name="ai-stop-scope" checked={scope === value} onChange={() => { setScope(value); setConfirming(false); }} />{label}</label>
+          ))}
         </fieldset>
+        {scope === 'MODEL' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div><label htmlFor="ai-stop-model" className="block font-semibold mb-1">Model ID</label>
+              <input id="ai-stop-model" value={modelId} maxLength={128} onChange={event => { setModelId(event.target.value); setConfirming(false); }} className="w-full bg-[#071A2E] border border-slate-600 rounded-lg px-2 py-2" /></div>
+            <div><label htmlFor="ai-stop-model-version" className="block font-semibold mb-1">Model version</label>
+              <input id="ai-stop-model-version" value={modelVersion} maxLength={128} onChange={event => { setModelVersion(event.target.value); setConfirming(false); }} className="w-full bg-[#071A2E] border border-slate-600 rounded-lg px-2 py-2" /></div>
+          </div>
+        )}
+        {scope === 'TOOL' && (
+          <div><label htmlFor="ai-stop-tool" className="block font-semibold mb-1">Tool ID (e.g. document.read)</label>
+            <input id="ai-stop-tool" value={toolId} maxLength={128} onChange={event => { setToolId(event.target.value); setConfirming(false); }} className="w-full bg-[#071A2E] border border-slate-600 rounded-lg px-2 py-2" /></div>
+        )}
+        {scope === 'WORKFLOW' && (
+          <div><label htmlFor="ai-stop-stage" className="block font-semibold mb-1">Workflow stage (persisted LEGACY_18_V1)</label>
+            <select id="ai-stop-stage" value={stage} onChange={event => { setStage(Number(event.target.value)); setConfirming(false); }} className="w-full bg-[#071A2E] border border-slate-600 rounded-lg px-2 py-2">
+              {LEGACY_STAGE_NAMES.map((name, index) => <option key={name} value={index + 1}>{String(index + 1).padStart(2, '0')} — {name}</option>)}
+            </select></div>
+        )}
+        <p className="text-slate-400">Model and tool IDs must already be registered; unknown targets are refused by the server.</p>
         {scope === 'AGENT' && (
           <div>
             <label htmlFor="ai-stop-agent" className="block font-semibold mb-1">Agent</label>
@@ -95,10 +149,10 @@ export const AiEmergencyStopPanel: React.FC = () => {
           <textarea id="ai-stop-reason" value={reason} maxLength={500} onChange={event => { setReason(event.target.value); setConfirming(false); }} className="w-full bg-[#071A2E] border border-slate-600 rounded-lg px-2 py-2" rows={3} />
         </div>
         {!confirming ? (
-          <button type="submit" disabled={!reasonValid || submit.status === 'submitting'} className="px-4 py-2 rounded-lg font-bold bg-red-600 text-white disabled:opacity-50">Engage emergency stop…</button>
+          <button type="submit" disabled={!reasonValid || !payload || submit.status === 'submitting'} className="px-4 py-2 rounded-lg font-bold bg-red-600 text-white disabled:opacity-50">Engage emergency stop…</button>
         ) : (
           <div role="alertdialog" aria-labelledby="ai-stop-confirm" className="space-y-2">
-            <p id="ai-stop-confirm" className="flex items-center gap-2 font-semibold text-red-200"><AlertTriangle className="w-4 h-4" />Stop {scope === 'GLOBAL' ? 'ALL AI agents' : agentId} for this tenant? This cannot be lifted from this workspace.</p>
+            <p id="ai-stop-confirm" className="flex items-center gap-2 font-semibold text-red-200"><AlertTriangle className="w-4 h-4" />Stop {describeStopTarget(scope, fields)} for this tenant? This cannot be lifted from this workspace.</p>
             <div className="flex gap-2">
               <button type="button" onClick={engage} disabled={submit.status === 'submitting'} className="px-4 py-2 rounded-lg font-bold bg-red-600 text-white disabled:opacity-50">{submit.status === 'submitting' ? 'Engaging…' : 'Confirm emergency stop'}</button>
               <button type="button" onClick={() => setConfirming(false)} className="px-4 py-2 rounded-lg border border-slate-500">Cancel</button>

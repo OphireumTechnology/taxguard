@@ -99,12 +99,21 @@ export class ControlCenterReadService {
       const agents = (await sql.query<any>(
         'SELECT agent_id,agent_name,category,status,risk_class,version,default_model,default_model_version,prompt_id,prompt_version,confidence_threshold,human_review_threshold,token_budget,cost_budget FROM ai_agents ORDER BY agent_id')).rows;
       const stops = (await sql.query<{ scope: string; target: string }>(
-        "SELECT scope,target FROM ai_kill_switches WHERE tenant_id=$1 AND enabled AND scope IN ('GLOBAL','AGENT')", [identity.tenant_id])).rows;
+        'SELECT scope,target FROM ai_kill_switches WHERE tenant_id=$1 AND enabled ORDER BY scope,target', [identity.tenant_id])).rows;
       const global = stops.some(s => s.scope === 'GLOBAL');
-      const stopped = new Set(stops.filter(s => s.scope === 'AGENT').map(s => s.target));
-      return { global_stop: global, agents: agents.map(a => ({ ...a,
-        confidence_threshold: Number(a.confidence_threshold), human_review_threshold: Number(a.human_review_threshold), cost_budget: Number(a.cost_budget),
-        stopped: global || stopped.has(a.agent_id) })) };
+      const stoppedAgents = new Set(stops.filter(s => s.scope === 'AGENT').map(s => s.target));
+      const stoppedModels = new Set(stops.filter(s => s.scope === 'MODEL').map(s => s.target));
+      return {
+        global_stop: global,
+        // TOOL and WORKFLOW stops block any request using that tool or stage, whichever agent issues it.
+        scoped_stops: stops.filter(s => s.scope === 'MODEL' || s.scope === 'TOOL' || s.scope === 'WORKFLOW'),
+        agents: agents.map(a => {
+          const modelStopped = a.default_model ? stoppedModels.has(`${a.default_model}@${a.default_model_version}`) : false;
+          return { ...a,
+            confidence_threshold: Number(a.confidence_threshold), human_review_threshold: Number(a.human_review_threshold), cost_budget: Number(a.cost_budget),
+            stopped: global || stoppedAgents.has(a.agent_id) || modelStopped,
+            stop_reason: global ? 'GLOBAL' : stoppedAgents.has(a.agent_id) ? 'AGENT' : modelStopped ? 'MODEL' : null };
+        }) };
     });
   }
 
