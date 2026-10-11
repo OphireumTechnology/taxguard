@@ -34,7 +34,7 @@ The bootstrap refuses, with a logged security event and no account created, when
 ## 2. Start the server and sign in
 
 ```bash
-npx tsx --env-file=.env.superadmin.local server.ts
+npx.cmd tsx --env-file=.env.superadmin.local server.ts
 ```
 
 The console prints only `[auth] Local super administrator provisioned from environment (MFA required).` It never prints the address, hash or secret.
@@ -52,6 +52,8 @@ The console prints only `[auth] Local super administrator provisioned from envir
 - 30-minute idle timeout, with an absolute limit of 8 hours that activity cannot extend.
 - **Sign out** revokes the session on the server.
 - Suspending the account ends its sessions on the next request.
+
+On Windows PowerShell use `npx.cmd`: the default execution policy blocks the `npx.ps1` wrapper.
 
 ## 3. Switch dashboards
 
@@ -97,8 +99,22 @@ All URLs are under `http://localhost:3000/staff/super-admin`.
   - impersonate users.
 - **Known limitation (owner decision H06):** administrators, and therefore super administrators, can read taxpayer records of their own tenant through legacy administrative routes. The console does not list them.
 
-## 5. Not verified / blocked
+## 5. Credential maintenance and sign-in troubleshooting (local)
 
+All of these run in your own interactive terminal, work offline and print no secret except where stated.
+
+| Task | Command | Notes |
+| --- | --- | --- |
+| Check a password against the stored hash | `node scripts/super-admin-password.mjs --check` | No server request, so it does not count as a failed login. Detects hashes that captured Enter / newline characters (created by the provisioning prompt before it was fixed) |
+| Store a new password hash | `node scripts/super-admin-password.mjs --reset` | Replaces only the hash line; e-mail, tenant and authenticator secret unchanged. Restart the server |
+| Rotate the authenticator secret | `node scripts/rotate-super-admin-totp.mjs` | Shows the new secret only on screen, writes the file only after a correct code from the new entry, clears the screen. Restart the server; the old secret works until then |
+| Find why a sign-in is refused | Start the server with `$env:TAXGUARD_LOCAL_AUTH_DIAGNOSTICS = 'true'` first | Each refused or accepted password login prints one `[auth-diagnostic]` line in the server terminal: `account_not_found`, `password_mismatch` (with yes/no hints), `account_locked`, `source_ip_locked`, `missing_or_non_string_fields` or `password_accepted`. Off by default and never active in production; it prints no e-mail, password, hash, token or secret and does not change responses. **No line at all means the request did not reach this server** (wrong address or a server started before the attempt) |
+
+The sign-in page now reports "Invalid email or password" only for a genuine `INVALID_CREDENTIALS` response; other failures show their own message.
+
+## 6. Not verified / blocked
+
+- **Owner's personal local super administrator sign-in: UNVERIFIED.** The account is provisioned and loads at startup, the offline password check reports a match, and synthetic accounts reach the authenticator step in the browser, but the owner's own attempts have not yet succeeded. The latest diagnostic showed the attempt did not reach the local server; investigation is open.
 - **Supabase (production) sign-in for a super administrator:** not verified. It needs a configured Supabase project with MFA (E03). The server does not yet enforce MFA assurance level (AAL2) on Supabase sessions (P1-09; decisions H06 / H09).
 - **Durable sessions and audit logs:** the local server keeps sessions and audit logs in memory. A restart clears them.
 - **Production routes:** in production, `/api/*` is served by the separate production API, so the console's routes are not wired there.

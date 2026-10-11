@@ -4176,6 +4176,18 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-cycle-20261012j-super-admin-login-troubleshooting.md",
+      "sha256": "9ae53e8b415b55871c7e56eb72aeccdf05d0f7a88f5dfc724df8049acbfffb1e",
+      "bytes": 3064,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-12 (j) — super administrator sign-in troubleshooting",
+        "## 1. Defects found and fixed",
+        "## 2. Utilities added (local, interactive, offline)",
+        "## 3. Owner sign-in investigation (state at the time of writing)",
+        "## 4. Verification"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4191,8 +4203,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "622316af0dc4cc0ce4d5325a4fe120750745a8ed36f10fc412c70e66aa4415db",
-      "bytes": 10250,
+      "sha256": "706a7761a6493951c9cbf394a31cbaeb9d7f1a1eb46d97c68eba9310e2a49d2e",
+      "bytes": 10411,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4347,15 +4359,16 @@
     },
     {
       "file": "docs/taxguard-super-admin-local-access.md",
-      "sha256": "9494d6f2ab5d891d85b95e239e30372a5104f9da011438d96e9ba5fc7a2008f1",
-      "bytes": 6497,
+      "sha256": "2b8a1459db7ff024bbd331f8d33b2f84fad9c85249e439469956d287fdb14d11",
+      "bytes": 8667,
       "headings": [
         "# Super administrator: local provisioning, sign-in and dashboard inspection",
         "## 1. Provision the first super administrator (once)",
         "## 2. Start the server and sign in",
         "## 3. Switch dashboards",
         "## 4. What a super administrator can and cannot do",
-        "## 5. Not verified / blocked"
+        "## 5. Credential maintenance and sign-in troubleshooting (local)",
+        "## 6. Not verified / blocked"
       ]
     },
     {
