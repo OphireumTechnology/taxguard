@@ -461,7 +461,7 @@ accountantRouter.post('/tasks/:taskId/review', (req: AuthenticatedRequest, res) 
 
   // MAKER-CHECKER SECURITY CONSTRAINT:
   // Preparer cannot review or approve their own work!
-  if (task.assignedAccountantId === reviewer.id && reviewer.role !== 'super_admin') {
+  if (task.assignedAccountantId === reviewer.id) {
     db.logSecurityEvent({
       eventType: 'MAKER_CHECKER_VIOLATION_ATTEMPT',
       ipAddress: req.ip || 'unknown',
@@ -931,7 +931,7 @@ accountantRouter.post('/reconciliations', requireAccountantAssignment, (req: Aut
   const id = req.body.id || `rec_${randomUUID()}`;
   const existing = db.bankReconciliations.get(id);
 
-  if (existing && existing.isPeriodLocked && user.role !== 'super_admin') {
+  if (existing && existing.isPeriodLocked) {
     return res.status(400).json({ error: 'This reconciliation period is locked and cannot be edited.' });
   }
 
@@ -995,7 +995,7 @@ accountantRouter.post('/reconciliations/:id/sign-off', (req: AuthenticatedReques
   }
 
   // Maker-Checker Separation of Duties: Preparer cannot sign off their own reconciliation!
-  if (rec.preparedBy === user.id && user.role !== 'super_admin') {
+  if (rec.preparedBy === user.id) {
     return res.status(403).json({ error: 'Maker-Checker Violation: Preparer cannot sign off on their own reconciliation. An independent Senior Reviewer must approve.' });
   }
 
@@ -1105,7 +1105,7 @@ accountantRouter.post('/journal-entries', requireAccountantAssignment, (req: Aut
   const id = req.body.id || `je_${randomUUID()}`;
   const existing = db.journalEntries.get(id);
 
-  if (existing && existing.status === 'approved' && user.role !== 'senior_reviewer' && user.role !== 'super_admin') {
+  if (existing && existing.status === 'approved' && user.role !== 'senior_reviewer') {
     return res.status(403).json({ error: 'Approved journal entries cannot be edited without Senior CPA authorization.' });
   }
 
@@ -1171,7 +1171,7 @@ accountantRouter.post('/journal-entries/:id/review', (req: AuthenticatedRequest,
   }
 
   // Maker-Checker Separation of Duties: Preparer cannot approve their own journal entry!
-  if (je.preparedBy === user.id && user.role !== 'super_admin') {
+  if (je.preparedBy === user.id) {
     return res.status(403).json({ error: 'Maker-Checker Violation: You prepared this journal entry. An independent Senior Reviewer must approve it.' });
   }
 

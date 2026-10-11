@@ -6,7 +6,8 @@ import type { SqlConnection } from './SqlGovernanceStore';
  * per taxguardConfig canTriggerAiEmergencyDisable. Membership is always re-read from
  * taxguard_members inside the caller's transaction; role claims in requests are ignored.
  */
-export const GOVERNANCE_OPERATOR_ROLES: readonly string[] = ['administrator', 'admin', 'compliance_officer', 'cpa'];
+// super_admin is a superset of administrator (same rule as requireRole); it is not a universal override.
+export const GOVERNANCE_OPERATOR_ROLES: readonly string[] = ['administrator', 'admin', 'super_admin', 'compliance_officer', 'cpa'];
 
 const uidPattern = /^[A-Za-z0-9_-]{1,128}$/;
 export const governanceDeny = (code: string, status = 403): never => { throw new GovernanceError(code, status); };

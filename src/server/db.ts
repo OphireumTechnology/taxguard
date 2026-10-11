@@ -249,8 +249,7 @@ class Database {
     });
 
     // Seed initial passwords (hashed during runtime auth init)
-    // Default pass for demo clients: ClientPass123!
-    // Default pass for staff: FirmPass123!
+    // No default passwords: see initSeedPasswords (SEED_CLIENT_PASSWORD / SEED_STAFF_PASSWORD).
     // We will initialize hashes in auth.ts
 
     // Seed service plans

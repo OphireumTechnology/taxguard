@@ -151,7 +151,20 @@ const SALT_LENGTH = 16;
 const KEY_LENGTH = 64;
 const ITERATIONS = 10000;
 const DIGEST = 'sha512';
-const SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
+const SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours (idle, sliding)
+/** Super administrators: shorter idle timeout and an absolute lifetime that activity cannot extend. */
+export const PRIVILEGED_SESSION_IDLE_MS = 30 * 60 * 1000;
+export const PRIVILEGED_SESSION_ABSOLUTE_MS = 8 * 60 * 60 * 1000;
+const SESSION_ABSOLUTE_MS = 12 * 60 * 60 * 1000;
+export function isSuperAdministratorRole(role: string | undefined): boolean {
+  return role === 'super_admin' || role === 'super_administrator';
+}
+function sessionIdleMs(role: string): number {
+  return isSuperAdministratorRole(role) ? PRIVILEGED_SESSION_IDLE_MS : SESSION_DURATION_MS;
+}
+function sessionAbsoluteMs(role: string): number {
+  return isSuperAdministratorRole(role) ? PRIVILEGED_SESSION_ABSOLUTE_MS : SESSION_ABSOLUTE_MS;
+}
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 /**
@@ -180,27 +193,34 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   }
 }
 
-// Initialize seed user passwords (strictly development and testing only)
+// Initialize seed user passwords (strictly development and testing only).
+// There are no built-in default passwords: a seeded account can sign in only when the
+// operator supplies SEED_CLIENT_PASSWORD / SEED_STAFF_PASSWORD in the local environment.
+// The seeded super administrator never receives a seed password; super administrators
+// are provisioned through superAdminBootstrap.ts (password hash + mandatory TOTP).
 export function initSeedPasswords() {
   if (process.env.NODE_ENV === 'production') {
     // In production, seed credentials and demo users/data are strictly prohibited
     return;
   }
-  const clientSeed = process.env.SEED_CLIENT_PASSWORD || 'ClientPass123!';
-  const staffSeed = process.env.SEED_STAFF_PASSWORD || 'FirmPass123!';
+  const clientSeed = process.env.SEED_CLIENT_PASSWORD;
+  const staffSeed = process.env.SEED_STAFF_PASSWORD;
 
-  const clientHash = hashPassword(clientSeed);
-  db.userPasswords.set('m.perotti@example.com', clientHash);
-  db.userPasswords.set('comfort.d@example.com', clientHash);
-  db.userPasswords.set('suspended.test@example.com', clientHash);
+  if (clientSeed) {
+    const clientHash = hashPassword(clientSeed);
+    db.userPasswords.set('m.perotti@example.com', clientHash);
+    db.userPasswords.set('comfort.d@example.com', clientHash);
+    db.userPasswords.set('suspended.test@example.com', clientHash);
+  }
 
-  const staffHash = hashPassword(staffSeed);
-  db.userPasswords.set('dhinds@artaxservices.com', staffHash);
-  db.userPasswords.set('mvance@artaxservices.com', staffHash);
-  db.userPasswords.set('erostova@artaxservices.com', staffHash);
-  db.userPasswords.set('recruiter@artaxservices.com', staffHash);
-  db.userPasswords.set('admin@artaxservices.com', staffHash);
-  db.userPasswords.set('security@artaxservices.com', staffHash);
+  if (staffSeed) {
+    const staffHash = hashPassword(staffSeed);
+    db.userPasswords.set('dhinds@artaxservices.com', staffHash);
+    db.userPasswords.set('mvance@artaxservices.com', staffHash);
+    db.userPasswords.set('erostova@artaxservices.com', staffHash);
+    db.userPasswords.set('recruiter@artaxservices.com', staffHash);
+    db.userPasswords.set('admin@artaxservices.com', staffHash);
+  }
 }
 
 // Check brute-force lockout status
@@ -253,7 +273,7 @@ export function createSession(userId: string, role: string): string {
     userId,
     role,
     createdAt: now,
-    expiresAt: now + SESSION_DURATION_MS
+    expiresAt: now + sessionIdleMs(role)
   });
   return token;
 }
@@ -316,8 +336,9 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
     });
   }
 
-  // Check expiration
-  if (Date.now() > session.expiresAt) {
+  // Check expiration: idle window, and the absolute lifetime that activity cannot extend.
+  const pastAbsolute = typeof session.createdAt === 'number' && Date.now() > session.createdAt + sessionAbsoluteMs(session.role);
+  if (Date.now() > session.expiresAt || pastAbsolute) {
     db.sessions.delete(token);
     return res.status(401).json({ 
       error: 'Session expired. Please log in again.',
@@ -350,8 +371,11 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
     });
   }
 
-  // Slide expiration window on activity
-  session.expiresAt = Date.now() + SESSION_DURATION_MS;
+  // Slide the idle window on activity, never beyond the absolute session lifetime.
+  const slid = Date.now() + sessionIdleMs(user.role);
+  session.expiresAt = typeof session.createdAt === 'number'
+    ? Math.min(slid, session.createdAt + sessionAbsoluteMs(user.role))
+    : slid;
   if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
   if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
   if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
@@ -367,14 +391,16 @@ export function requireRole(...allowedRoles: UserRole[]) {
       return res.status(401).json({ error: 'Unauthorized. Authentication required.' });
     }
 
-    // Super Admin has universal operational override
-    if (req.user.role === 'super_admin' || req.user.role === 'super_administrator') {
-      return next();
-    }
-
+    // A super administrator is a superset of the administrator role only. There is no
+    // universal override: client-only, preparer-only and reviewer-only routes (and
+    // maker-checker controls) are not opened to super administrators.
     const effectiveAllowed = new Set(allowedRoles);
     if (effectiveAllowed.has('administrator')) effectiveAllowed.add('admin');
     if (effectiveAllowed.has('admin')) effectiveAllowed.add('administrator');
+    if (effectiveAllowed.has('admin') || effectiveAllowed.has('administrator')) {
+      effectiveAllowed.add('super_admin');
+      effectiveAllowed.add('super_administrator');
+    }
     if (effectiveAllowed.has('super_administrator')) effectiveAllowed.add('super_admin');
     if (effectiveAllowed.has('super_admin')) effectiveAllowed.add('super_administrator');
 
