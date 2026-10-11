@@ -8,9 +8,16 @@ export interface LocalLoginFailure {
   mfaRequired?: boolean;
   code?: 'INVALID_CREDENTIALS';
   error: string;
+  /** Server request ID (present only when local diagnostics are enabled). */
+  reference?: string;
 }
 
-export function mapLocalLoginError(err: { status?: number; code?: string; message?: string } | null | undefined): LocalLoginFailure {
+export function mapLocalLoginError(err: { status?: number; code?: string; message?: string; requestId?: string } | null | undefined): LocalLoginFailure {
+  const mapped = mapLocalLoginErrorMessage(err);
+  return err?.requestId ? { ...mapped, reference: err.requestId } : mapped;
+}
+
+function mapLocalLoginErrorMessage(err: { status?: number; code?: string; message?: string } | null | undefined): LocalLoginFailure {
   const code = err?.code;
   const status = err?.status;
   if (code === 'MFA_CODE_INVALID' || code === 'MFA_CODE_REPLAYED') {

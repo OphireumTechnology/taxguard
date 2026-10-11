@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useApp, isLocalServerLoginBuild } from '../../context/AppContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { isLocalServerLoginBuild } from '../../context/localServerLogin';
 import { BrandLogo } from '../common/BrandLogo';
 import {
   requestPasswordReset as requestSupabasePasswordReset,
@@ -842,18 +843,28 @@ export const StaffLoginPage: React.FC = () => {
   // Second factor: requested by the server after a correct password; verified server-side only.
   const [mfaCode, setMfaCode] = useState('');
   const [mfaStep, setMfaStep] = useState(false);
+  // Lets the user confirm exactly what will be submitted (autofill, keyboard layout, Caps Lock).
+  const [showPassword, setShowPassword] = useState(false);
   // Real server-side local login (non-production builds without Supabase only).
+  const localBuild = isLocalServerLoginBuild();
   const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
+  // Local diagnostics only: server request ID of the refused attempt, for log correlation.
+  const [errorReference, setErrorReference] = useState<string | null>(null);
+  const staffFormRef = useRef<HTMLFormElement>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
-    if (!isLocalServerLoginBuild()) return;
+    if (!localBuild) return;
     let active = true;
-    fetch('/api/auth/local-login-status')
+    const check = () => fetch('/api/auth/local-login-status', { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : null))
       .then(status => { if (active) setLocalLoginAvailable(status?.localLoginAvailable === true); })
       .catch(() => { if (active) setLocalLoginAvailable(false); });
-    return () => { active = false; };
-  }, []);
+    void check();
+    // Re-check when the tab regains focus (for example after the local server restarted).
+    window.addEventListener('focus', check);
+    return () => { active = false; window.removeEventListener('focus', check); };
+  }, [localBuild]);
 
   // Accept Invitation state
   const [invitationToken, setInvitationToken] = useState('');
@@ -876,28 +887,50 @@ export const StaffLoginPage: React.FC = () => {
 
   const handleStaffLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    // One request at a time: Enter key repeats and double clicks must not send duplicates.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
-    const result: any = await login(email, password, mfaStep ? mfaCode.trim() : undefined);
-    setLoading(false);
-    if (result === true || (result && result.success)) {
-      setMfaCode('');
-      setMfaStep(false);
-      setCurrentPage('staff');
-    } else if (result?.mfaRequired) {
-      setMfaStep(true);
-      setMfaCode('');
-      setError(mfaStep ? result.error : null);
-    } else {
-      setMfaCode('');
-      setError(result?.error || 'Invalid staff credentials. Please check your credentials or contact firm compliance.');
+    setErrorReference(null);
+    try {
+      const result: any = await login(email, password, mfaStep ? mfaCode : undefined);
+      if (result === true || (result && result.success)) {
+        setMfaCode('');
+        setMfaStep(false);
+        setCurrentPage('staff');
+      } else if (result?.mfaRequired) {
+        setMfaStep(true);
+        setMfaCode('');
+        setError(mfaStep ? result.error : null);
+        setErrorReference(mfaStep ? result.reference || null : null);
+      } else {
+        setMfaCode('');
+        setError(result?.error || 'Invalid staff credentials. Please check your credentials or contact firm compliance.');
+        setErrorReference(result?.reference || null);
+      }
+    } finally {
+      submittingRef.current = false;
+      setLoading(false);
     }
+  };
+
+  // A message belongs to the attempt that produced it: editing the form clears it, so an old
+  // error is never mistaken for the result of an attempt that was not sent.
+  const clearStaleError = () => { setError(null); setErrorReference(null); };
+
+  // Enter on a helper button (workspace label, Show / Hide) submits the form, like Enter in a field.
+  // Without this, Enter only re-activated the button and no sign-in request was sent.
+  const submitOnEnter = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    staffFormRef.current?.requestSubmit();
   };
 
   const handleLookupInvitation = async () => {
     if (!invitationToken.trim()) return;
     setInviteChecking(true);
-    setError(null);
+    clearStaleError();
     try {
       const res = await fetch(`/api/onboarding/staff/invitations/${invitationToken.trim()}`);
       if (!res.ok) throw new Error('Invitation token not found or already consumed');
@@ -915,7 +948,7 @@ export const StaffLoginPage: React.FC = () => {
     e.preventDefault();
     if (!invitationToken || !invitePassword) return;
     setLoading(true);
-    setError(null);
+    clearStaleError();
     try {
       const res = await fetch('/api/onboarding/staff/accept-invitation', {
         method: 'POST',
@@ -960,7 +993,7 @@ export const StaffLoginPage: React.FC = () => {
             type="button"
             onClick={() => {
               setLoginMode('signin');
-              setError(null);
+              clearStaleError();
             }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
               loginMode === 'signin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
@@ -972,7 +1005,7 @@ export const StaffLoginPage: React.FC = () => {
             type="button"
             onClick={() => {
               setLoginMode('accept_invitation');
-              setError(null);
+              clearStaleError();
             }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
               loginMode === 'accept_invitation' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
@@ -985,7 +1018,12 @@ export const StaffLoginPage: React.FC = () => {
         {error && (
           <div role="alert" className="p-3 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
+            <span>
+              {error}
+              {errorReference && (
+                <span data-testid="login-error-reference" className="block mt-1 text-[10px] text-red-300/80 font-mono">Reference: {errorReference}</span>
+              )}
+            </span>
           </div>
         )}
 
@@ -995,13 +1033,19 @@ export const StaffLoginPage: React.FC = () => {
               <div role="note" data-testid="local-server-login-notice" className="p-3 rounded-lg bg-[#071A2E] border border-[#D4A843]/40 text-slate-200 text-[11px]">
                 Local development sign-in: credentials and authenticator codes are verified by this TaxGuard server. Not a production identity provider.
               </div>
+            ) : localBuild ? (
+              <div role="status" data-testid="local-server-unreachable-notice" className="p-3 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-100 text-[11px]">
+                The local TaxGuard sign-in server is not responding. Start or restart it; this page checks again when you sign in.
+              </div>
             ) : (
               <AuthConfigurationNotice />
             )}
             <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
               <button
                 type="button"
-                onClick={() => setTargetRole('accountant')}
+                aria-pressed={targetRole === 'accountant'}
+                onKeyDown={submitOnEnter}
+                onClick={() => { setTargetRole('accountant'); clearStaleError(); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                   targetRole === 'accountant' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
                 }`}
@@ -1010,7 +1054,9 @@ export const StaffLoginPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setTargetRole('admin')}
+                aria-pressed={targetRole === 'admin'}
+                onKeyDown={submitOnEnter}
+                onClick={() => { setTargetRole('admin'); clearStaleError(); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                   targetRole === 'admin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
                 }`}
@@ -1018,30 +1064,47 @@ export const StaffLoginPage: React.FC = () => {
                 Compliance Admin
               </button>
             </div>
+            <p className="text-[10px] text-slate-400 -mt-1">
+              This choice only changes the button label. Your access is set by your account on the server.
+            </p>
 
-            <form onSubmit={handleStaffLogin} className="space-y-4 text-xs">
+            <form ref={staffFormRef} onSubmit={handleStaffLogin} className="space-y-4 text-xs">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-16`}>Staff Work Email</label>
                 <input id={`${fieldPrefix}-auth-16`}
                   type="text"
                   required
+                  autoComplete="username"
                   placeholder="practitioner@artaxservices.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); clearStaleError(); setMfaStep(false); setMfaCode(''); }}
                   className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-17`}>Staff Security Token / Password</label>
-                <input id={`${fieldPrefix}-auth-17`}
-                  type="password"
-                  required
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
-                />
+                <div className="flex gap-2">
+                  <input id={`${fieldPrefix}-auth-17`}
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); clearStaleError(); }}
+                    className="flex-1 bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                  />
+                  <button
+                    type="button"
+                    onKeyDown={submitOnEnter}
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-pressed={showPassword}
+                    aria-controls={`${fieldPrefix}-auth-17`}
+                    className="px-3 rounded-lg bg-[rgba(148,163,184,0.18)] text-slate-200 text-[11px] font-bold"
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               {mfaStep && (
@@ -1052,11 +1115,10 @@ export const StaffLoginPage: React.FC = () => {
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     pattern="[0-9]{6}"
-                    maxLength={6}
                     required
                     placeholder="6-digit code"
                     value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value.replace(/D/g, ''))}
+                    onChange={(e) => { setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6)); clearStaleError(); }}
                     className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white font-mono tracking-widest focus:outline-none focus:border-[#D4A843]"
                   />
                   <p className="mt-1 text-[10px] text-slate-400">Multi-factor authentication is required for this account.</p>
@@ -1066,7 +1128,7 @@ export const StaffLoginPage: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading || (!isSupabaseConfigured() && !localLoginAvailable)}
+                  disabled={loading || (!isSupabaseConfigured() && !localBuild)}
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />

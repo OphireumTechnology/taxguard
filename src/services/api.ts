@@ -113,6 +113,8 @@ const response = await fetch(apiEndpoint(endpoint), {
     err.status = response.status;
     err.code = errorData.code || (response.status === 405 ? 'METHOD_NOT_ALLOWED' : undefined);
     err.data = errorData;
+    // Local diagnostics only: correlates a refused request with its server log line.
+    err.requestId = response.headers?.get?.('x-taxguard-request-id') || undefined;
     throw err;
   }
 

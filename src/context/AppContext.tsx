@@ -41,12 +41,9 @@ import { StageOneOnboardingService } from '../services/stageOneOnboardingService
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
 import { normalizeLegacyUrl } from '../config/canonicalRouting';
-import { mapLocalLoginError } from './localLoginErrors';
+import { attemptLocalServerLogin, checkLocalLoginAvailable, isLocalServerLoginBuild } from './localServerLogin';
 
-/** Local server login is only offered by non-production builds with no Supabase configuration. */
-export function isLocalServerLoginBuild(): boolean {
-  return !import.meta.env.PROD && !isSupabaseConfigured();
-}
+export { isLocalServerLoginBuild } from './localServerLogin';
 
 export type PageRoute =
   | 'home'
@@ -157,6 +154,8 @@ interface AppContextType {
     emailVerificationRequired?: boolean;
     code?: ControlledAuthErrorCode;
     error?: string;
+    /** Local diagnostics only: server request ID for the refused attempt. */
+    reference?: string;
     redirectPage?: PageRoute;
   }>;
   register: (payload: {
@@ -987,6 +986,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     emailVerificationRequired?: boolean;
     code?: ControlledAuthErrorCode;
     error?: string;
+    reference?: string;
     redirectPage?: PageRoute;
   }> => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -1016,38 +1016,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Local development without Supabase: use the real server login (password + server-verified
       // TOTP, server-issued session). Never used by production builds or when Supabase is configured.
       if (isLocalServerLoginBuild()) {
-        const status = await fetch('/api/auth/local-login-status').then(r => (r.ok ? r.json() : null)).catch(() => null);
-        if (status?.localLoginAvailable === true) {
-          let res: Awaited<ReturnType<typeof api.auth.login>>;
-          try {
-            res = await api.auth.login(normalizedEmail, password, mfaCode || undefined);
-          } catch (err: any) {
-            // Server-controlled outcomes, mapped by code (not by message text).
-            clearStoredToken();
-            setAuthLifecycleState('UNAUTHENTICATED');
-            setIsInitialized(true);
-            return mapLocalLoginError(err);
-          }
-          if (!res?.token || !res.user) {
-            clearStoredToken();
-            setAuthLifecycleState('UNAUTHENTICATED');
-            setIsInitialized(true);
-            if (res?.mfaRequired) {
-              return { success: false, mfaRequired: true, error: 'Enter the 6-digit code from your authenticator app.' };
-            }
-            return { success: false, code: 'INVALID_CREDENTIALS', error: 'Invalid email or password.' };
-          }
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('taxguard_environment', 'local');
-            localStorage.removeItem('demo_session');
-            sessionStorage.removeItem('demo_session');
-          }
-          await refreshBackendData();
-          setAuthLifecycleState('AUTHENTICATED');
+        // Local builds never fall through to Supabase: an unreachable local server is reported
+        // as such, and every attempt that is sent goes to /api/auth/login on this server.
+        const outcome = await attemptLocalServerLogin(
+          { checkAvailable: () => checkLocalLoginAvailable(), login: (e, p, c) => api.auth.login(e, p, c) },
+          normalizedEmail, password, mfaCode
+        );
+        if (outcome.kind !== 'success') {
+          clearStoredToken();
+          setAuthLifecycleState('UNAUTHENTICATED');
           setIsInitialized(true);
-          const isClient = res.user.role === 'client' || res.user.role === 'prospective_client';
-          return { success: true, redirectPage: isClient ? 'portal' : 'staff' };
+          return outcome.result;
         }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('taxguard_environment', 'local');
+          localStorage.removeItem('demo_session');
+          sessionStorage.removeItem('demo_session');
+        }
+        await refreshBackendData();
+        setAuthLifecycleState('AUTHENTICATED');
+        setIsInitialized(true);
+        const isClient = outcome.user.role === 'client' || outcome.user.role === 'prospective_client';
+        return { success: true, redirectPage: isClient ? 'portal' : 'staff' };
       }
 
       const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);

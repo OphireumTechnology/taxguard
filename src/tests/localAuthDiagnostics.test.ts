@@ -35,7 +35,7 @@ const provision = (password: string) => {
 };
 const login = async (email: string, password: string, ip = '10.6.0.1') => {
   const r = await fetch(`${origin}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': ip }, body: JSON.stringify({ email, password }) });
-  return { status: r.status, body: await r.json() };
+  return { status: r.status, body: await r.json(), requestId: r.headers.get('x-taxguard-request-id') };
 };
 const diagnostics = () => lines.filter(l => l.startsWith('[auth-diagnostic] ')).map(l => JSON.parse(l.slice('[auth-diagnostic] '.length)));
 const assertNoSecrets = () => {
@@ -56,14 +56,16 @@ describe('reason categories', () => {
   it('a correct password reaches the authenticator step and is reported as accepted', async () => {
     provision(PASSWORD);
     expect((await login(EMAIL, PASSWORD)).body).toMatchObject({ mfaRequired: true });
-    expect(diagnostics()).toEqual([{ outcome: 'password_accepted', next: 'authenticator_code_required' }]);
+    expect(diagnostics()).toHaveLength(1);
+    expect(diagnostics()[0]).toMatchObject({ outcome: 'password_accepted', next: 'authenticator_code_required' });
     assertNoSecrets();
   });
   it('distinguishes an unknown account from a wrong password, while the HTTP responses stay identical', async () => {
     provision(PASSWORD);
     const unknown = await login('nobody-diag@example.invalid', PASSWORD);
     const wrong = await login(EMAIL, 'Wrong-Diag-Passw0rd!');
-    expect(unknown).toEqual(wrong);
+    expect(unknown.status).toBe(wrong.status);
+    expect(unknown.body).toEqual(wrong.body);
     expect(diagnostics().map(d => d.reason)).toEqual(['account_not_found', 'password_mismatch']);
     assertNoSecrets();
   });
@@ -93,12 +95,32 @@ describe('reason categories', () => {
   });
 });
 
+describe('browser / server correlation', () => {
+  it('returns a request ID header that appears in the matching server line, with a timestamp', async () => {
+    provision(PASSWORD);
+    const r = await login(EMAIL, 'Wrong-Diag-Passw0rd!');
+    expect(r.requestId).toMatch(/^[0-9a-f]{12}$/);
+    expect(diagnostics()[0]).toMatchObject({ requestId: r.requestId });
+    expect(Number.isFinite(Date.parse(diagnostics()[0].at))).toBe(true);
+  });
+  it('reports whether the server still holds the hash from its environment file', async () => {
+    provision(PASSWORD);
+    vi.stubEnv('TAXGUARD_SUPER_ADMIN_PASSWORD_HASH', storedHash);
+    await login(EMAIL, 'Wrong-Diag-Passw0rd!');
+    vi.stubEnv('TAXGUARD_SUPER_ADMIN_PASSWORD_HASH', hashPassword('Another-Synthetic-1!'));
+    await login(EMAIL, 'Wrong-Diag-Passw0rd!', '10.6.0.2');
+    expect(diagnostics().map(d => d.serverHashMatchesEnvironmentFile)).toEqual([true, false]);
+    assertNoSecrets();
+  });
+});
+
 describe('opt-in and production safety', () => {
   it('prints nothing unless explicitly enabled', async () => {
     vi.stubEnv('TAXGUARD_LOCAL_AUTH_DIAGNOSTICS', '');
     provision(PASSWORD);
     await login(EMAIL, 'Wrong-Diag-Passw0rd!');
     expect(diagnostics()).toEqual([]);
+    expect((await login(EMAIL, PASSWORD)).requestId).toBeNull();
   });
   it('does not change any decision: a wrong password is still refused and counted', async () => {
     provision(PASSWORD);

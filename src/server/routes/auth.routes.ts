@@ -165,8 +165,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Supabase authentication is required.', code: 'SUPABASE_AUTH_REQUIRED' });
   const { email, password, mfaCode } = req.body;
   const ip = req.ip || 'unknown';
+  // Opt-in local diagnostics: a request ID (also returned as a response header) correlates a
+  // browser attempt with its server line. Nothing is added when diagnostics are off.
+  const diagnosticId = localAuthDiagnosticsEnabled() ? randomBytes(6).toString('hex') : '';
+  if (diagnosticId) res.setHeader('X-TaxGuard-Request-Id', diagnosticId);
+  const diagnose = (entry: Record<string, unknown>) => logLocalAuthDiagnostic({ at: new Date().toISOString(), requestId: diagnosticId, ...entry });
   if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
-    logLocalAuthDiagnostic({ outcome: 'refused', reason: 'missing_or_non_string_fields', contentType: String(req.headers['content-type'] || 'none').slice(0, 80), bodyParsed: !!req.body });
+    diagnose({ outcome: 'refused', reason: 'missing_or_non_string_fields', contentType: String(req.headers['content-type'] || 'none').slice(0, 80), bodyParsed: !!req.body });
     return res.status(400).json({ error: 'Email and password are required.' });
   }
   const lockoutKey = `${ip}_${email.toLowerCase()}`;
@@ -177,7 +182,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const ipLockout = checkBruteForceLockout(lockoutKey);
   const lockout = accountLockout.locked ? accountLockout : ipLockout;
   if (lockout.locked) {
-    logLocalAuthDiagnostic({ outcome: 'refused', reason: accountLockout.locked ? 'account_locked' : 'source_ip_locked', remainingSec: lockout.remainingSec });
+    diagnose({ outcome: 'refused', reason: accountLockout.locked ? 'account_locked' : 'source_ip_locked', remainingSec: lockout.remainingSec });
     db.logSecurityEvent({
       eventType: 'LOGIN_ATTEMPT_DURING_LOCKOUT',
       ipAddress: ip,
@@ -196,7 +201,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
   if (!user || !storedHash || !verifyPassword(password, storedHash)) {
     if (localAuthDiagnosticsEnabled()) {
-      logLocalAuthDiagnostic({ outcome: 'refused', ...diagnoseRefusedLogin(user, storedHash, password), emailHadSurroundingWhitespace: email !== email.trim() });
+      diagnose({
+        outcome: 'refused', ...diagnoseRefusedLogin(user, storedHash, password), emailHadSurroundingWhitespace: email !== email.trim(),
+        // Super administrator only: is the hash held by this server still the one from its environment file?
+        ...(user && storedHash && isSuperAdministratorRole(user.role)
+          ? { serverHashMatchesEnvironmentFile: storedHash === (process.env.TAXGUARD_SUPER_ADMIN_PASSWORD_HASH || '').trim() }
+          : {}),
+      });
     }
     recordLoginFailure(lockoutKey, ip, email);
     recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
@@ -207,7 +218,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
 
   if (user.status === 'disabled' || user.status === 'suspended') {
-    logLocalAuthDiagnostic({ outcome: 'refused', reason: 'account_' + user.status });
+    diagnose({ outcome: 'refused', reason: 'account_' + user.status });
     db.logSecurityEvent({
       eventType: 'DISABLED_USER_LOGIN_ATTEMPT',
       ipAddress: ip,
@@ -224,7 +235,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   // Super administrators always require a second factor, whatever the stored flag says.
   if (user.mfaEnabled || isSuperAdministratorRole(user.role)) {
     if (!mfaCode) {
-      logLocalAuthDiagnostic({ outcome: 'password_accepted', next: 'authenticator_code_required' });
+      diagnose({ outcome: 'password_accepted', next: 'authenticator_code_required' });
       return res.status(200).json({
         mfaRequired: true,
         message: 'MFA authorization code required.',
