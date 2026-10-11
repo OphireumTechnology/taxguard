@@ -201,20 +201,19 @@ paymentsRouter.post('/charge', authenticateToken, requireLiveStripeProcessor, (r
 
 // Signed Webhook Verification Endpoint
 paymentsRouter.post('/webhook', (req: Request, res: Response) => {
-  const signature = req.headers['stripe-signature'] as string;
-  const isProduction = process.env.NODE_ENV === 'production';
+  const signature = req.headers['stripe-signature'];
 
-  // In production, missing webhook secret must fail closed
-  if (isProduction && !process.env.STRIPE_WEBHOOK_SECRET) {
-    return res.status(503).json({ error: 'Stripe webhook secret is not configured in production.' });
+  // Fail closed in every environment. Previously, outside production an unsigned request was
+  // accepted (anyone could mark an invoice paid), and a hard-coded fallback secret made
+  // signatures forgeable.
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return res.status(503).json({ error: 'Stripe webhook secret is not configured.', code: 'WEBHOOK_SECRET_NOT_CONFIGURED' });
   }
-
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_artax_sandbox_test_secret';
   const { id, type, data } = req.body || {};
 
-  // Verify HMAC signature in production or whenever stripe-signature header is present
-  if (isProduction || signature) {
-    if (!signature) {
+  {
+    if (typeof signature !== 'string' || !signature) {
       return res.status(400).json({ error: 'Missing stripe-signature header.' });
     }
 
@@ -242,8 +241,11 @@ paymentsRouter.post('/webhook', (req: Request, res: Response) => {
     }
   }
 
-  // Duplicate webhook replay protection
-  const eventId = id || `evt_${Date.now()}`;
+  // Duplicate webhook replay protection requires a stable provider event id (a generated id never deduplicates).
+  if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,255}$/.test(id)) {
+    return res.status(400).json({ error: 'A provider event id is required.', code: 'WEBHOOK_EVENT_ID_REQUIRED' });
+  }
+  const eventId = id;
   if (db.webhooks.has(eventId)) {
     return res.status(200).json({ received: true, status: 'duplicate_ignored' });
   }
