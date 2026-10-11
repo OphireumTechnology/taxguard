@@ -960,6 +960,19 @@ export const api = {
     getProviderReadiness: async (signal?: AbortSignal) => {
       return request<{ providers: any[] }>('/api/provider-readiness', {signal});
     },
+    // AI Control Center emergency stop: activation and listing only; the server re-verifies role and tenant.
+    listAiKillSwitches: async (signal?: AbortSignal) => {
+      return request<{ kill_switches: unknown[] }>('/api/ai-governance/kill-switches', {signal});
+    },
+    // AI Control Center read-only views; filters and cursor are validated server-side.
+    getAiControlCenter: async (view: 'registry' | 'runs' | 'decisions' | 'security-events' | 'usage', query: Record<string, string> = {}, signal?: AbortSignal) => {
+      const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== ''));
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      return request<Record<string, unknown>>(`/api/ai-governance/control-center/${view}${suffix}`, {signal});
+    },
+    activateAiKillSwitch: async (payload: { scope: 'GLOBAL'; reason: string } | { scope: 'AGENT'; agent_id: string; reason: string }) => {
+      return request<Record<string, unknown>>('/api/ai-governance/kill-switches', { method: 'POST', body: JSON.stringify(payload) });
+    },
 
     // Stage 04: Record
     createTaxRecord: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, payload: { version: number; operationId: string; record: Record<string, unknown> }) => {
