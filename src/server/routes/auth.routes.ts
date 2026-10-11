@@ -17,8 +17,10 @@ import {
   clearLoginFailures,
   authenticateToken,
   AuthenticatedRequest,
-  MAX_FAILED_ATTEMPTS_PER_ACCOUNT
+  MAX_FAILED_ATTEMPTS_PER_ACCOUNT,
+  isSuperAdministratorRole
 } from '../auth';
+import { hasTotpSecret, verifyTotp } from '../totp';
 import { User, OnboardingState } from '../../types';
 import { AuthorityError } from '../taxguard/authority.repository';
 import {
@@ -148,6 +150,15 @@ authRouter.post('/register', (_req: Request, res: Response) => {
   });
 });
 
+/**
+ * Tells the browser whether the server-side local login is available. It is never available
+ * in production (the router above returns 410 there); locally it lets the staff sign-in page
+ * use the real server login (password + server-verified TOTP) when Supabase is not configured.
+ */
+authRouter.get('/local-login-status', (_req: Request, res: Response) => {
+  return res.json({ localLoginAvailable: process.env.NODE_ENV !== 'production', mfa: 'totp' });
+});
+
 // Secure demonstration/staff login. LIVE public clients use Supabase.
 authRouter.post('/login', async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Supabase authentication is required.', code: 'SUPABASE_AUTH_REQUIRED' });
@@ -203,7 +214,8 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     });
   }
 
-  if (user.mfaEnabled) {
+  // Super administrators always require a second factor, whatever the stored flag says.
+  if (user.mfaEnabled || isSuperAdministratorRole(user.role)) {
     if (!mfaCode) {
       return res.status(200).json({
         mfaRequired: true,
@@ -211,17 +223,36 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         userId: user.id
       });
     }
-    // Previously any non-empty mfaCode was accepted without verification (MFA bypass).
-    // No TOTP / WebAuthn verifier is commissioned for local sessions, so a code cannot be
-    // verified and no session is issued. MFA for live sessions belongs to the identity provider.
-    db.logSecurityEvent({
-      eventType: 'MFA_VERIFICATION_UNAVAILABLE',
-      ipAddress: ip,
-      userId: user.id,
-      details: 'Login with an MFA code refused: no MFA verifier is configured for local sessions.',
-      severity: 'warning'
-    });
-    return res.status(503).json({ error: 'Multi-factor verification is not available. Sign in through the configured identity provider.', code: 'MFA_VERIFICATION_UNAVAILABLE' });
+    if (hasTotpSecret(user.id)) {
+      const result = verifyTotp(user.id, mfaCode);
+      if (result !== 'valid') {
+        recordLoginFailure(lockoutKey, ip, email);
+        recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
+        db.logSecurityEvent({
+          eventType: result === 'replayed' ? 'MFA_CODE_REPLAY_REJECTED' : 'MFA_CODE_INVALID',
+          ipAddress: ip,
+          userId: user.id,
+          details: `Login refused for ${user.email}: ${result === 'replayed' ? 'authenticator code already used' : 'invalid authenticator code'}.`,
+          severity: 'warning'
+        });
+        return res.status(401).json({
+          error: result === 'replayed' ? 'This authenticator code has already been used. Wait for the next code.' : 'Invalid authenticator code.',
+          code: result === 'replayed' ? 'MFA_CODE_REPLAYED' : 'MFA_CODE_INVALID'
+        });
+      }
+    } else {
+      // Previously any non-empty mfaCode was accepted without verification (MFA bypass).
+      // Accounts without an enrolled TOTP secret cannot be verified, so no session is issued.
+      // MFA for live sessions belongs to the identity provider.
+      db.logSecurityEvent({
+        eventType: 'MFA_VERIFICATION_UNAVAILABLE',
+        ipAddress: ip,
+        userId: user.id,
+        details: 'Login with an MFA code refused: no MFA verifier is configured for local sessions.',
+        severity: 'warning'
+      });
+      return res.status(503).json({ error: 'Multi-factor verification is not available. Sign in through the configured identity provider.', code: 'MFA_VERIFICATION_UNAVAILABLE' });
+    }
   }
 
   clearLoginFailures(lockoutKey);
@@ -236,9 +267,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     userRole: user.role,
     action: 'USER_LOGIN_SUCCESS',
     resource: 'Session Manager',
-    details: `Successful authentication from IP ${ip}. Role: ${user.role}.`,
+    details: `Successful authentication from IP ${ip}. Role: ${user.role}.${hasTotpSecret(user.id) ? ' Second factor: TOTP.' : ''}`,
     ipAddress: ip,
-    severity: 'info'
+    severity: isSuperAdministratorRole(user.role) ? 'warning' : 'info'
   });
 
   return res.json({ token, user });

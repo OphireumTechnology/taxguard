@@ -23,6 +23,8 @@ import { createServer as createViteServer } from 'vite';
 import {
   initSeedPasswords
 } from './src/server/auth';
+import { bootstrapSuperAdministrator } from './src/server/superAdminBootstrap';
+import { superAdminRouter } from './src/server/routes/superAdmin.routes';
 
 import {
   authRouter
@@ -188,7 +190,13 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
  * ============================================================
  */
 
-if (process.env.NODE_ENV !== 'production') initSeedPasswords();
+if (process.env.NODE_ENV !== 'production') {
+  initSeedPasswords();
+  const superAdmin = bootstrapSuperAdministrator();
+  // Status only: no e-mail address, hash or secret is printed.
+  if (superAdmin.status === 'provisioned') console.log('[auth] Local super administrator provisioned from environment (MFA required).');
+  else if (superAdmin.status === 'rejected') console.warn(`[auth] Super administrator bootstrap refused: ${superAdmin.reason}`);
+}
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (
@@ -463,6 +471,11 @@ app.use(
 app.use(
   '/api/admin',
   adminRouter
+);
+
+app.use(
+  '/api/super-admin',
+  superAdminRouter
 );
 
 app.use(
