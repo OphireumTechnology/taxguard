@@ -4103,6 +4103,35 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-cycle-20261011e-session-documents-tenancy.md",
+      "sha256": "c41406d6996f9d3124533b44180da2c9c5e505cb39798ab4f894c5a7aa816743",
+      "bytes": 6605,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-11 (e) — production session authorization, document intake validation, cross-tenant document access",
+        "## 1. Starting state",
+        "## 2. Defects found and fixed",
+        "## 3. Files changed (uncommitted)",
+        "## 4. Validation",
+        "## 5. Security review",
+        "## 6. Next cycle"
+      ]
+    },
+    {
+      "file": "docs/taxguard-development-cycle-20261011f-object-authorization.md",
+      "sha256": "845f283056639335231daa9249b77f29377190582c72d0bd80f5eb4d4d94fbd5",
+      "bytes": 7056,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-11 (f) — object-level authorization across legacy routes, deliverable validation, honest provider status",
+        "## Task A — baseline (verified)",
+        "## Task D — production-path session tests",
+        "## Defects found and fixed (all reproduced by a failing test first)",
+        "## Remaining scan findings (not changed this cycle)",
+        "## Files changed this cycle (in addition to the 12 pending cycle (e) files)",
+        "## Validation",
+        "## Next cycle"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4114,6 +4143,22 @@
         "## Provider and governance acceptance",
         "## Monitoring, incident response and recovery",
         "## Evidence record"
+      ]
+    },
+    {
+      "file": "docs/taxguard-master-development-completion-matrix.md",
+      "sha256": "694135ab47c267297d454c56ed22e1f9591c6073f1d95cd36ade7020b45062a3",
+      "bytes": 7356,
+      "headings": [
+        "# TaxGuard Master Development Completion Matrix",
+        "## Status vocabulary",
+        "## 1. Security, authentication and tenant isolation (Phase 1)",
+        "## 2. Documents (Phase 6 / directive §9)",
+        "## 3. Workflow (directive §6)",
+        "## 4. Accounting (directive §5.4)",
+        "## 5. AI governance (directive §11)",
+        "## 6. Dashboards, tax engine, integrations, operations, deployment",
+        "## 7. Open decisions (unchanged; not resolved by assumption)"
       ]
     },
     {
@@ -4138,8 +4183,8 @@
     },
     {
       "file": "docs/taxguard-master-development-requirements-matrix-20261011.md",
-      "sha256": "c1ea55e9cb4204fcf7242c9fb356daa7eb83dae6e50798061ca26ee063c41ca7",
-      "bytes": 18557,
+      "sha256": "37dd9cbeed3278cc8784b0c301b77dca69d7987a599fb5b8dc13bdf97011a0a9",
+      "bytes": 20412,
       "headings": [
         "# TaxGuard Master Development Requirements Matrix — 2026-10-11",
         "## 1. Reference inspection (this session)",
@@ -4385,7 +4430,7 @@
     "src/server/ai/review/HumanProposalReviewService.ts": "44146fdbbb0cd421e7afb2ad50a9a415ed803fdd4ee7f2d96b787cf2b2fc102b",
     "src/server/ai/review/MaterialActionPreparation.ts": "e02db6d93c432fa573229d59ddf51b84f9b7cd9f99eb80151efce1b170aaa6a6",
     "src/server/assignment-authorization.ts": "ade1e21aac6746875b9b5e99b9ebd265a477612670af0666ec7cf11d50647f6b",
-    "src/server/auth.ts": "da7b6fada8202755086d5801fae61bfabf919985edc2bc296c72ccef5a3b5beb",
+    "src/server/auth.ts": "45618e590a9ab715afd79f3184322ac88a0b4f98baa0c91e81d172fc5ee7e40c",
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
     "src/server/productionApp.ts": "9ff8ae9d40e348b58b77806bb313a3a77205072b2a8773ee4d02a3f0355c7d8c",
