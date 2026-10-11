@@ -18,6 +18,7 @@ import { pbkdf2Sync, randomBytes } from 'node:crypto';
 import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import readline from 'node:readline';
+import { askHidden, passwordProblems } from './lib/hiddenInput.mjs';
 
 const args = process.argv.slice(2);
 const outIndex = args.indexOf('--out');
@@ -41,36 +42,6 @@ function base32Encode(buf) {
 function ask(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise(res => rl.question(question, answer => { rl.close(); res(answer.trim()); }));
-}
-
-function askHidden(question) {
-  return new Promise((res, rej) => {
-    const stdin = process.stdin;
-    if (!stdin.isTTY) return rej(new Error('Run this script in an interactive terminal (password input must be hidden).'));
-    process.stdout.write(question);
-    stdin.setRawMode(true); stdin.resume(); stdin.setEncoding('utf8');
-    let value = '';
-    const onData = ch => {
-      if (ch === '\u0003') { stdin.setRawMode(false); process.stdout.write('\n'); process.exit(130); }
-      if (ch === '\r' || ch === '\n' || ch === '\u0004') {
-        stdin.setRawMode(false); stdin.pause(); stdin.removeListener('data', onData);
-        process.stdout.write('\n'); return res(value);
-      }
-      if (ch === '\u007f' || ch === '\b') { value = value.slice(0, -1); return; }
-      value += ch;
-    };
-    stdin.on('data', onData);
-  });
-}
-
-function passwordProblems(pw, email) {
-  const problems = [];
-  if (pw.length < 14) problems.push('at least 14 characters');
-  if (!/[a-z]/.test(pw) || !/[A-Z]/.test(pw)) problems.push('upper- and lower-case letters');
-  if (!/\d/.test(pw)) problems.push('a digit');
-  if (!/[^A-Za-z0-9]/.test(pw)) problems.push('a symbol');
-  if (email && pw.toLowerCase().includes(email.split('@')[0].toLowerCase())) problems.push('must not contain the e-mail name');
-  return problems;
 }
 
 async function main() {
