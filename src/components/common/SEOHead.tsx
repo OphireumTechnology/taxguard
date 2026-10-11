@@ -183,6 +183,12 @@ const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
     canonicalPath: '/admin',
     ogType: 'website'
   },
+  super_admin_console: {
+    title: 'Super Administrator Console | A/R Tax Services, LLC',
+    description: 'Authorized super administrator console.',
+    canonicalPath: '/staff/super-admin',
+    ogType: 'website'
+  },
   admin_dashboard: {
     title: 'Executive Admin Dashboard | A/R Tax Services, LLC',
     description: 'Firm operations, workflow queues, and practice analytics dashboard.',

@@ -42,6 +42,11 @@ import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
 import { normalizeLegacyUrl } from '../config/canonicalRouting';
 
+/** Local server login is only offered by non-production builds with no Supabase configuration. */
+export function isLocalServerLoginBuild(): boolean {
+  return !import.meta.env.PROD && !isSupabaseConfigured();
+}
+
 export type PageRoute =
   | 'home'
   | 'about'
@@ -69,6 +74,7 @@ export type PageRoute =
   | 'reviewer_portal'
   | 'admin_dashboard'
   | 'admin_portal'
+  | 'super_admin_console'
   | 'live_calendar'
   | 'virtual_consultation_room'
   | 'client_login'
@@ -244,6 +250,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clean === 'staff') return 'staff';
     if (clean === 'staff/workspace') return 'staff';
     if (clean === 'staff/login') return 'staff_login';
+    if (clean === 'staff/super-admin') return 'super_admin_console';
     if (clean === 'client/login') return 'client_login';
     if (clean === 'client/register') return 'client_register';
 
@@ -527,6 +534,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } else if (page === 'staff_login') {
         targetPath = '/staff/login';
+      } else if (page === 'super_admin_console') {
+        targetPath = '/staff/super-admin';
+        if (currentPathname === '/staff/super-admin' && window.location.search) targetPath += window.location.search;
       } else {
         targetPath = `/${page.replace(/_/g, '-')}`;
       }
@@ -547,7 +557,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const requestGeneration = authGenerationRef.current;
     const requestToken = getStoredToken();
     const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
-    if (environment !== 'live') {
+    if (environment !== 'live' && !(environment === 'local' && isLocalServerLoginBuild())) {
       throw new Error('LIVE workspace synchronization requires an authenticated LIVE environment.');
     }
 
@@ -805,7 +815,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
 
         // 1. If a durable TaxGuard session token already exists, verify & restore it
-        if (existingToken && environment === 'live') {
+        if (existingToken && (environment === 'live' || (environment === 'local' && isLocalServerLoginBuild()))) {
           try {
             await refreshBackendData();
             if (active && !authOperationInProgressRef.current) {
@@ -856,7 +866,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (active && !authOperationInProgressRef.current) {
-          if (environment !== 'live' && existingToken) {
+          if (environment !== 'live' && environment !== 'local' && existingToken) {
             clearStoredToken();
           }
           setAuthLifecycleState('UNAUTHENTICATED');
@@ -969,7 +979,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = async (
     email: string,
     password: string,
-    _mfaCode?: string
+    mfaCode?: string
   ): Promise<{
     success: boolean;
     mfaRequired?: boolean;
@@ -1001,6 +1011,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       clearStoredToken();
       clearTaxpayerState();
+
+      // Local development without Supabase: use the real server login (password + server-verified
+      // TOTP, server-issued session). Never used by production builds or when Supabase is configured.
+      if (isLocalServerLoginBuild()) {
+        const status = await fetch('/api/auth/local-login-status').then(r => (r.ok ? r.json() : null)).catch(() => null);
+        if (status?.localLoginAvailable === true) {
+          let res: Awaited<ReturnType<typeof api.auth.login>>;
+          try {
+            res = await api.auth.login(normalizedEmail, password, mfaCode || undefined);
+          } catch (err: any) {
+            // Server-controlled outcomes, mapped by code (not by message text).
+            clearStoredToken();
+            setAuthLifecycleState('UNAUTHENTICATED');
+            setIsInitialized(true);
+            if (err?.code === 'MFA_CODE_INVALID' || err?.code === 'MFA_CODE_REPLAYED') {
+              return { success: false, mfaRequired: true, error: err.message };
+            }
+            if (err?.status === 429 || err?.code === 'ACCOUNT_DISABLED' || err?.code === 'MFA_VERIFICATION_UNAVAILABLE') {
+              return { success: false, error: err.message };
+            }
+            return { success: false, code: 'INVALID_CREDENTIALS', error: 'Invalid email or password.' };
+          }
+          if (!res?.token || !res.user) {
+            clearStoredToken();
+            setAuthLifecycleState('UNAUTHENTICATED');
+            setIsInitialized(true);
+            if (res?.mfaRequired) {
+              return { success: false, mfaRequired: true, error: 'Enter the 6-digit code from your authenticator app.' };
+            }
+            return { success: false, code: 'INVALID_CREDENTIALS', error: 'Invalid email or password.' };
+          }
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('taxguard_environment', 'local');
+            localStorage.removeItem('demo_session');
+            sessionStorage.removeItem('demo_session');
+          }
+          await refreshBackendData();
+          setAuthLifecycleState('AUTHENTICATED');
+          setIsInitialized(true);
+          const isClient = res.user.role === 'client' || res.user.role === 'prospective_client';
+          return { success: true, redirectPage: isClient ? 'portal' : 'staff' };
+        }
+      }
 
       const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
       if (!sbResult.success || !sbResult.accessToken) {

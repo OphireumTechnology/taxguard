@@ -602,6 +602,20 @@ export const api = {
   },
 
   // Admin & Compliance Management
+  // Super administrator console (server verifies the super administrator role on every call).
+  superAdmin: {
+    getSession: async () => request<{
+      user: { id: string; email: string; name: string; role: string; tenantId?: string };
+      session: { createdAt: string; expiresAt: string; absoluteExpiresAt: string; idleTimeoutMinutes: number } | null;
+      secondFactor: 'totp' | 'identity_provider';
+      policy: string;
+    }>('/api/super-admin/session'),
+    recordDashboardView: async (dashboard: string) => request<{ recorded: boolean; dashboard: string; mode: string }>('/api/super-admin/dashboard-views', {
+      method: 'POST',
+      body: JSON.stringify({ dashboard })
+    }),
+  },
+
   admin: {
     getAuditLogs: async (params: { action?: string; userId?: string; severity?: string; limit?: number } = {}) => {
       const q = new URLSearchParams();

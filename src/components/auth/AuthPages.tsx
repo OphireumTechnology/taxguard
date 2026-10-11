@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, isLocalServerLoginBuild } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
 import {
   requestPasswordReset as requestSupabasePasswordReset,
@@ -839,6 +839,21 @@ export const StaffLoginPage: React.FC = () => {
   const [targetRole, setTargetRole] = useState<'accountant' | 'admin'>('accountant');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Second factor: requested by the server after a correct password; verified server-side only.
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaStep, setMfaStep] = useState(false);
+  // Real server-side local login (non-production builds without Supabase only).
+  const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
+
+  useEffect(() => {
+    if (!isLocalServerLoginBuild()) return;
+    let active = true;
+    fetch('/api/auth/local-login-status')
+      .then(r => (r.ok ? r.json() : null))
+      .then(status => { if (active) setLocalLoginAvailable(status?.localLoginAvailable === true); })
+      .catch(() => { if (active) setLocalLoginAvailable(false); });
+    return () => { active = false; };
+  }, []);
 
   // Accept Invitation state
   const [invitationToken, setInvitationToken] = useState('');
@@ -863,11 +878,18 @@ export const StaffLoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const result: any = await login(email, password, targetRole);
+    const result: any = await login(email, password, mfaStep ? mfaCode.trim() : undefined);
     setLoading(false);
     if (result === true || (result && result.success)) {
+      setMfaCode('');
+      setMfaStep(false);
       setCurrentPage('staff');
+    } else if (result?.mfaRequired) {
+      setMfaStep(true);
+      setMfaCode('');
+      setError(mfaStep ? result.error : null);
     } else {
+      setMfaCode('');
       setError(result?.error || 'Invalid staff credentials. Please check your credentials or contact firm compliance.');
     }
   };
@@ -969,7 +991,13 @@ export const StaffLoginPage: React.FC = () => {
 
         {loginMode === 'signin' ? (
           <>
-            <AuthConfigurationNotice />
+            {localLoginAvailable ? (
+              <div role="note" data-testid="local-server-login-notice" className="p-3 rounded-lg bg-[#071A2E] border border-[#D4A843]/40 text-slate-200 text-[11px]">
+                Local development sign-in: credentials and authenticator codes are verified by this TaxGuard server. Not a production identity provider.
+              </div>
+            ) : (
+              <AuthConfigurationNotice />
+            )}
             <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
               <button
                 type="button"
@@ -1016,10 +1044,29 @@ export const StaffLoginPage: React.FC = () => {
                 />
               </div>
 
+              {mfaStep && (
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-mfa`}>Authenticator Code</label>
+                  <input id={`${fieldPrefix}-auth-mfa`}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    required
+                    placeholder="6-digit code"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/D/g, ''))}
+                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white font-mono tracking-widest focus:outline-none focus:border-[#D4A843]"
+                  />
+                  <p className="mt-1 text-[10px] text-slate-400">Multi-factor authentication is required for this account.</p>
+                </div>
+              )}
+
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading || !isSupabaseConfigured()}
+                  disabled={loading || (!isSupabaseConfigured() && !localLoginAvailable)}
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />

@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { accountantAccess, useAccountantDashboardData } from '../../hooks/useAccountantDashboardData';
 import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
+import { useDashboardInspection } from '../layout/dashboardInspection';
 import { ACCOUNTANT_JOURNEY, ACCOUNTANT_STAGES, AccountantCase, confidence, KPI_LABELS, matchesQueue } from './accountantDashboardModel';
 import './accountantDashboard.css';
 import type { TaxWorkpaperEntity, StageStateEntity } from '../../server/taxguard/persistence.types';
@@ -16,6 +17,8 @@ export function AccountantDashboard() {
   const { currentUser, authLifecycleState } = useApp();
   const [refresh, setRefresh] = useState(0);
   const { allowed, session, rows, loading, error } = useAccountantDashboardData(currentUser, authLifecycleState, refresh);
+  // Inspection: no data is requested, so figures stay "unavailable" rather than showing zero.
+  const inspecting = useDashboardInspection();
   const [selected, setSelected] = useState(''); const [filter, setFilter] = useState('Assigned Cases'); const [query, setQuery] = useState(''); const [year, setYear] = useState('All');
   const [tab, setTab] = useState('AI Preparation'); const [collapsed, setCollapsed] = useState(false);
   const [drafts, setDrafts] = useState<{ key: string; rows: Draft[]; error: string }>({key: '', rows: [], error: ''});
@@ -39,7 +42,7 @@ export function AccountantDashboard() {
     }).catch(() => { if (live) setDrafts({key, rows: [], error: 'Draft return service unavailable for this case.'}); });
     return () => { live = false; };
   }, [key, allowed]);
-  if (!allowed) return <div role="alert">Authenticated accountant access is required.</div>;
+  if (!allowed && !inspecting) return <div role="alert">Authenticated accountant access is required.</div>;
   const now = new Date(); const today = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-');
   const visible = rows.filter(r => matchesQueue(r, filter, today) && (year === 'All' || String(r.taxYear) === year) && (r.clientName + ' ' + r.taxYear).toLowerCase().includes(query.toLowerCase()));
   const returns = drafts.key === key ? drafts.rows : [];
@@ -61,7 +64,7 @@ export function AccountantDashboard() {
   return <DashboardApplicationShell id="accountant-dashboard-shell" workspace="accountant" title="Accountant Dashboard" navigation={nav} navigationCollapsed={collapsed} onSearch={() => searchRef.current?.focus()} headerTools={<button onClick={() => setCollapsed(!collapsed)} aria-label="Toggle navigation">?</button>}>
     <div className="tg-accountant">
       <div className="tg-accountant-kpis">{KPI_LABELS.map((label, i) => <button key={label} disabled={i >= 7 || loading || !!error || (i === 6 && rows.some(r=>!r.activeStage))} onClick={() => setFilter(label)} aria-pressed={filter === label}><span>{label}</span><strong>{loading || error || i >= 7 || (i === 6 && rows.some(r=>!r.activeStage)) ? '?' : rows.filter(r => matchesQueue(r,label,today)).length}</strong><small>{i >= 7 ? 'Verified integration unavailable' : 'View cases'}</small></button>)}</div>
-      {error && <p role="alert">{error}</p>}{loading && <p role="status">Loading authorized cases and workflow?</p>}
+      {error && <p role="alert">{error}</p>}{loading && !inspecting && <p role="status">Loading authorized cases and workflow?</p>}
       <div className="tg-accountant-top">
         <section className="tg-accountant-card"><h2>My Work Queue <button onClick={() => setRefresh(refresh+1)}>Refresh</button></h2><div className="tg-accountant-filters">{['Assigned Cases','Needs Attention','Due Today','Overdue'].map(f => <button aria-pressed={filter===f} key={f} onClick={() => setFilter(f)}>{f === 'Assigned Cases' ? 'All' : f}</button>)}<label>Search clients <input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} /></label><label>Tax year <select value={year} onChange={e=>setYear(e.target.value)}><option>All</option>{[...new Set(rows.map(r=>r.taxYear))].sort((a,b)=>b-a).map(y=><option key={y}>{y}</option>)}</select></label></div>
           <div className="tg-accountant-table"><table><thead><tr>{['Client','Tax Year','Stage','Priority','Due Date'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{visible.map(r=><tr key={r.id} aria-selected={selected===r.id}><td><button onClick={()=>choose(r)}>{r.clientName}</button></td><td>{r.taxYear}</td><td>{r.activeStage ? ACCOUNTANT_STAGES[r.activeStage-1] : 'Workflow unavailable'}</td><td>{r.priority || 'Not recorded'}</td><td>{r.dueDate?.slice(0,10) || 'Not recorded'}</td></tr>)}</tbody></table></div>{!loading && !visible.length && <Empty>No authorized cases match this queue.</Empty>}</section>
