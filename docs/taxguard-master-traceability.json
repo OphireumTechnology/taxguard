@@ -4132,6 +4132,21 @@
       ]
     },
     {
+      "file": "docs/taxguard-development-cycle-20261012g-admin-route-tenancy.md",
+      "sha256": "8a273a53e6ae69675d4d365c91366654b10d126fb2083f49e2b9d6c3c1a891e9",
+      "bytes": 7229,
+      "headings": [
+        "# TaxGuard development cycle — 2026-10-12 (g) — tenant ownership on assignment, onboarding and calendar routes",
+        "## Starting state",
+        "## Findings and fixes",
+        "### Next-priority item delivered in the same cycle",
+        "## Files changed",
+        "## Validation",
+        "## Remaining blockers (unchanged)",
+        "## Next cycle"
+      ]
+    },
+    {
       "file": "docs/taxguard-master-commissioning-checklist.md",
       "sha256": "acb98cdacde422e6ba71ecf01b0332d6e195f719163e4695e62ad00447fac595",
       "bytes": 7612,
@@ -4147,8 +4162,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "694135ab47c267297d454c56ed22e1f9591c6073f1d95cd36ade7020b45062a3",
-      "bytes": 7356,
+      "sha256": "c740d955f98e0ad79c9a709f8a9504aaabb97039e305e7400ebab70715b3973f",
+      "bytes": 8002,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4505,7 +4520,7 @@
     "src/tests/localBrowserSetup.test.ts": "567354a7640e12a95da0cdb5acc2550cce7e87117255ac3d97eff9a41362d799",
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
-    "src/tests/paymentsRouteAuthority.test.ts": "75e769bd8e0d97b515a796bc2e722e6028db6fb34adb9c42a81e27a494f7b6e4",
+    "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
     "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
     "src/tests/productionApiHttp.test.ts": "373ec2c2eea158c3cba7a8b838e4545c71a536ad2faabb99b33b4f83c8d3e9f7",
