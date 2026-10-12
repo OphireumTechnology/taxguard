@@ -36,7 +36,21 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
   return data as T;
 }
 const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
+export interface MyWork { actorRole: string;
+  cases: Array<{ caseId: string; clientId: string; clientName: string | null; taxYear: number; activeStage: number; status: string; myRole: 'preparer' | 'reviewer'; evidence: string; awaitingMe: boolean; updatedAt: string }>;
+  documentsToReview: Array<{ documentId: string; version: number; clientId: string; fileName: string; taxYear: number; uploadedAt: string }>;
+  requestsOutstanding: Array<{ requestId: string; clientId: string; title: string; taxYear: number; status: string; required: boolean; dueDate: string | null; overdue: boolean }>;
+  entriesAwaitingMyReview: Array<{ entryId: string; clientId: string; entryNumber: string; description: string; postingDate: string }>;
+  entriesReturnedToMe: Array<{ entryId: string; clientId: string; entryNumber: string; description: string }>;
+  bookToTaxAwaitingReview: number; definitions: Record<string, string> }
+export interface PracticeSummary { taxYear: number | null; asOf: string; casesByStage: Array<{ stage: number; active: number; onHold: number }>;
+  deadlines: { dueThisWeek: number; overdue: number }; tasks: { open: number; overdue: number; waitingOnClient: number; readyForReview: number };
+  documentRequests: { open: number; submitted: number; overdue: number; requiredOutstanding: number }; documentsAwaitingReview: number; documentsAwaitingScan: number;
+  receivables: { openInvoices: number; balanceDue: string; pastDue: number; awaitingApproval: number }; staffCaseCounts: Array<{ userId: string; asPreparer: number; asReviewer: number }>;
+  definitions: Record<string, string> }
 export const practiceService = {
+  myWork: () => request<MyWork>('GET', '/my-work'),
+  summary: (taxYear?: number) => request<PracticeSummary>('GET', '/summary' + (taxYear ? `?taxYear=${taxYear}` : '')),
   listClients: (filter: { q?: string; status?: string; cursor?: string } = {}) => {
     const q = new URLSearchParams(Object.entries(filter).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1] !== ''));
     return request<{ items: PracticeClientRow[]; nextCursor: string | null }>('GET', '/clients' + (q.toString() ? '?' + q : ''));

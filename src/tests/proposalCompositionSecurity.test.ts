@@ -26,10 +26,10 @@ describe('proposal composition', () => {
     expect(proposals.length).toBeGreaterThanOrEqual(16);
     expect(proposals).toEqual(expect.arrayContaining(['20261012230000_taxguard_session_management.sql', '20261012240000_taxguard_durable_ledger.sql',
       '20261012250000_taxguard_practice_management.sql', '20261012260000_taxguard_case_workflow.sql', '20261012270000_taxguard_document_vault.sql', '20261012280000_taxguard_billing.sql', '20261012290000_taxguard_book_to_tax.sql', '20261012300000_taxguard_bookkeeper_workqueue.sql',
-      '20261012310000_taxguard_document_requests.sql']));
+      '20261012310000_taxguard_document_requests.sql', '20261012320000_taxguard_role_dashboards.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
-    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231/);
+    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232/);
   }, 60000);
 });
 

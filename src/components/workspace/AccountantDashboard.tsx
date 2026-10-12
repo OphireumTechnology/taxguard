@@ -15,6 +15,7 @@ import {
   matchesQueue, QueueSortKey, sortCases, stageCounts, upcomingDeadlines, type DashboardDataState,
 } from './accountantDashboardModel';
 import './accountantDashboard.css';
+import { DurableMyWorkPanel } from './DurableMyWorkPanel';
 import type { TaxWorkpaperEntity, StageStateEntity } from '../../server/taxguard/persistence.types';
 
 const tabs = ['Overview','Client Info','Documents','AI Preparation','Tax Forms','Review & Edit','Workpapers','State Forms','Client Approval','E-File','History'];
@@ -145,6 +146,7 @@ export function AccountantDashboard() {
       {error && <p className="tg-acct-banner tg-acct-banner--error" role="alert">{error} <button type="button" className="tg-acct-link" onClick={() => setRefresh(n => n + 1)}>Retry</button></p>}
       {loading && !inspecting && <p className="tg-acct-sr-status" role="status">Loading authorized cases and workflow…</p>}
 
+      {!inspecting && <DurableMyWorkPanel />}
       <section className="tg-acct-kpis" aria-label="Key metrics">
         {DASHBOARD_KPIS.map(kpi => {
           const value = kpiValue(kpi.label, rows, today, dataState, unavailableFields);

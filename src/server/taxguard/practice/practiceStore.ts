@@ -10,7 +10,7 @@ export class PracticeStoreError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
 }
 const STATUS: Record<string, number> = {
-  PRACTICE_ACCESS_DENIED: 403, PRACTICE_MANAGER_REQUIRED: 403, TASK_ACTION_NOT_AUTHORIZED: 403, DEADLINE_WAIVER_NOT_AUTHORIZED: 403,
+  PRACTICE_ACCESS_DENIED: 403, PRACTICE_MANAGER_REQUIRED: 403, DASHBOARD_MANAGER_REQUIRED: 403, DASHBOARD_ROLE_NOT_SUPPORTED: 403, TASK_ACTION_NOT_AUTHORIZED: 403, DEADLINE_WAIVER_NOT_AUTHORIZED: 403,
   PRACTICE_VERSION_CONFLICT: 409, PRACTICE_CONCURRENT_UPDATE: 409, PRACTICE_IDEMPOTENCY_CONFLICT: 409, PRACTICE_BUSY: 409,
   CLIENT_HAS_OPEN_ENGAGEMENTS: 409, ENGAGEMENT_HAS_OPEN_TASKS: 409, TASK_DEPENDENCIES_OPEN: 409, ASSIGNMENT_SEGREGATION_OF_DUTIES: 409,
 };
@@ -38,6 +38,13 @@ export class PracticeStore {
   }
   private base(tenantId: string, clientId: string, actor: string) { return { p_tenant: tenantId, p_client: clientId, p_actor: actor }; }
 
+  /** Proposal 032: the actor's own durable work queue (cases, reviews, requests, returned entries). */
+  myWork(tenantId: string, actor: string) { return this.call('taxguard_dash_my_work', { p_tenant: tenantId, p_actor: actor }); }
+  /** Proposal 032: manager summary computed only from recorded rows, with definitions. */
+  practiceSummary(tenantId: string, actor: string, taxYear?: number) {
+    if (taxYear !== undefined && (!Number.isInteger(taxYear) || taxYear < 2000 || taxYear > 2100)) throw new PracticeStoreError('DASHBOARD_INPUT_INVALID', 400);
+    return this.call('taxguard_dash_practice_summary', { p_tenant: tenantId, p_actor: actor, p_tax_year: taxYear ?? null });
+  }
   async listClients(tenantId: string, actor: string, filter: ClientListFilter = {}) {
     const limit = filter.limit ?? 25;
     const rows = await this.call<any[]>('taxguard_practice_list_clients', { p_tenant: tenantId, p_actor: actor, p_filter: { ...filter, limit: limit + 1 } });

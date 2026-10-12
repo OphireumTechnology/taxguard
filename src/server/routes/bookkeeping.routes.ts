@@ -5,6 +5,8 @@
  */
 
 import { projectBookkeeper } from '../bookkeeperDashboardProjection';
+import { projectDurableBookkeeper } from '../bookkeeperDurableProjection';
+import { LedgerStoreError } from '../taxguard/bookkeeping/sqlLedgerStore';
 import { Router, Response } from 'express';
 import {
   authenticateToken,
@@ -27,7 +29,7 @@ bookkeepingRouter.get('/bookkeeper-clients', authenticateToken, (req: Authentica
   if(user.role!=='bookkeeper' || user.status!=='active' || !user.tenantId || (process.env.NODE_ENV==='production' && user.tenantId!==process.env.TAXGUARD_TENANT_ID?.trim()))return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   return res.json({tenantId:user.tenantId,clientIds:[...new Set(user.authorizedClientIds||[])]});
 });
-bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, (req: AuthenticatedRequest, res) => {
+bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, async (req: AuthenticatedRequest, res) => {
   res.setHeader('Cache-Control','no-store');
   const user=req.user!;
   if(user.role!=='bookkeeper' || user.status!=='active') return res.status(403).json({code:'BOOKKEEPER_REQUIRED'});
@@ -37,9 +39,19 @@ bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, (req: Authenti
   if(!tenant || !client || !user.authorizedClientIds?.includes(client) || (req.query.tenantId && req.query.tenantId!==tenant) || (req.get('x-tenant-id') && req.get('x-tenant-id')!==tenant)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   if(process.env.NODE_ENV==='production' && (!process.env.TAXGUARD_TENANT_ID || tenant!==process.env.TAXGUARD_TENANT_ID.trim())) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   if(!Number.isInteger(year) || year<2022 || year>9999) return res.status(400).json({code:'EXPLICIT_TAX_YEAR_REQUIRED'});
-  // The current accounting engine is volatile. Never substitute it for production PostgreSQL.
-  if(process.env.NODE_ENV==='production') return res.status(503).json({code:'DURABLE_ACCOUNTING_PROVIDER_REQUIRED'});
   const period=typeof req.query.periodId==='string'?req.query.periodId:undefined;
+  // Durable ledger selected: the same panels read PostgreSQL; the database re-checks the assignment.
+  const ledger=selectLedger();
+  if(ledger.mode==='durable'){
+    try {return res.json(await projectDurableBookkeeper(ledger.store,user.id,tenant,client,year,period));}
+    catch(error){
+      if(error instanceof LedgerStoreError) return res.status(error.status).json({code:error.code});
+      if(error instanceof Error && error.message==='PERIOD_ACCESS_DENIED') return res.status(403).json({code:'PERIOD_ACCESS_DENIED'});
+      return res.status(503).json({code:'LEDGER_UNAVAILABLE'});
+    }
+  }
+  // The in-memory accounting engine is volatile. Never substitute it for production PostgreSQL.
+  if(process.env.NODE_ENV==='production' || ledger.mode==='unavailable') return res.status(503).json({code:'DURABLE_ACCOUNTING_PROVIDER_REQUIRED'});
   try {return res.json(projectBookkeeper(globalBookkeepingEngine,tenant,client,year,period));}
   catch {return res.status(403).json({code:'PERIOD_ACCESS_DENIED'});}
 });

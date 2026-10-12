@@ -42,6 +42,8 @@ export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
   const str = (v: unknown) => typeof v === 'string' ? v : undefined;
   const int = (v: unknown) => typeof v === 'number' ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN;
 
+  router.get('/my-work', run(req => store().myWork(t(req), u(req))));
+  router.get('/summary', run(req => store().practiceSummary(t(req), u(req), req.query.taxYear ? int(req.query.taxYear) : undefined)));
   router.get('/clients', run(req => store().listClients(t(req), u(req), { q: str(req.query.q), status: str(req.query.status) as any, clientType: str(req.query.clientType),
     after: str(req.query.cursor), limit: req.query.limit === undefined ? undefined : int(req.query.limit) })));
   router.get('/clients/:clientId', run(req => store().clientDetail(t(req), req.params.clientId, u(req))));

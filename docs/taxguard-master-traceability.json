@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-ROLE-DASHBOARDS-DURABLE",
+      "requirement": "Durable role dashboards with recorded figures and definitions only (work queues, manager summary, bookkeeper panels, client status)",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+      ],
+      "tests": [
+        "src/tests/roleDashboardsHttp.test.ts"
+      ],
+      "remaining": "Proposal 032 unapplied; legacy KPIs remain beside the durable panels; no capacity/SLA policy exists.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-DOCUMENT-REQUESTS",
       "requirement": "Engagement-year document requests and firm checklists with review-driven fulfilment, in-app client notices and stage 2/3 gates",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3958,6 +3977,18 @@
       ]
     },
     {
+      "file": "docs/development/role-dashboards.md",
+      "sha256": "6992796d0689ca01fd8f4bd9369f55d94b9725225d4cde5ee32281ded10c7264",
+      "bytes": 4033,
+      "headings": [
+        "# Durable role dashboards (Phase 4)",
+        "## Principle: no invented metrics",
+        "## What each role sees",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/session-handoff.md",
       "sha256": "0d677e83418abee11174d36f44878af6f99539c829b912020c5bcd0230bbb313",
       "bytes": 5865,
@@ -4213,6 +4244,12 @@
       "file": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
       "sha256": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
       "bytes": 39806,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+      "sha256": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
+      "bytes": 11833,
       "headings": []
     },
     {
@@ -4932,8 +4969,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "1aa0ad66b953715af9fab0f16cf9aa601894398194b125ef133383f4dbdb825c",
-      "bytes": 25695,
+      "sha256": "39324aac0f91aafd24857c902aff1f751c8d80d4d322d228fe69bc6a45bde16b",
+      "bytes": 26137,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5194,6 +5231,7 @@
     "docs/proposed-migrations/20261012280000_taxguard_billing.sql": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
     "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
     "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
+    "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "3464961bae3dfa62347eed210f1a87a0ffbbc7fd292a116a2be1bfc52404a0e2",
@@ -5224,12 +5262,12 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "ae4dbb7fa84b7ddd6b9c73ff73d91278a80fd18a394f54500daf4152b73fb3f3",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "b4efe0966e7c4fdbaa466cdb997cc53ca84ad6d8133f53bfd7b6700860cd28ab",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "5b3225c9e91e3c08975629640a42cf287e10b9e416132a8e5b8d7c3aa12ecdb6",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "78c42ab05796f6374e6de5c9368105d2a7c536f9b1dfb8062c2e9fb0b458925a",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "db084acdaf62877367411ad85f2988720ec86ad4e553b84bc88ace9e73dbf214",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "2cb95495831d5a3a121d15db0db71f7f22c7dd8c6561a7d15548225d580615a5",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "9c4148bd3b97f1fabd0591b1af22238064c90492c8234fea20b3295a69a6665c",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
@@ -5342,10 +5380,11 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "70c612c85dd36c17e26c3f8dd05981444e5624dcc9cd8984f1fe2bc13ef29f33",
+    "src/tests/proposalCompositionSecurity.test.ts": "439876bd49013fc90cea4c0e302b8a85054a227f6d164bde185a0ad69d55f249",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
+    "src/tests/roleDashboardsHttp.test.ts": "2548e0e4af23d96c1f058fcaef9330804c231b2fd64904bad72de5de690434af",
     "src/tests/serverStageGateOrchestrator.test.ts": "82912d65ff4f3c6fc5205432ac1b3f66a1c9562a1fc1e5f0755ef8a22c8da5ee",
     "src/tests/sessionTokenStorageRecovery.test.ts": "07b2a4020a6a7679117c52783055536d063fa2bff5d724fb998de90ceea98dc9",
     "src/tests/sqlCaseReadPreparation.test.ts": "cedf0b873212eb2e4ca02825b8434d89196c35583f0ab281ac385b66c7c9e8e3",
