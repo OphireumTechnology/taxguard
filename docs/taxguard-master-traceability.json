@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-BILLING",
+      "requirement": "Durable billing with independent approval, gapless numbering, idempotent payments, refunds, approved credits and AR aging",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "tests": [
+        "src/tests/billingHttp.test.ts"
+      ],
+      "remaining": "Proposal 028 unapplied; sandbox payment provider only (E04); no sales tax rules; browser NOT VERIFIED.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-DOCUMENT-VAULT",
       "requirement": "Durable private document vault with scan boundary, versioning, independent review, audited downloads and verified OCR proposals",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3618,6 +3637,19 @@
       ]
     },
     {
+      "file": "docs/development/billing.md",
+      "sha256": "ace27763549e2709a18643df3d94be45417030b675ee3c24422fda09fbf1be17",
+      "bytes": 3299,
+      "headings": [
+        "# Billing and invoicing (Batch 2, Module 2)",
+        "## Data",
+        "## Rules (database-enforced)",
+        "## API and UI",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/case-workflow.md",
       "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
       "bytes": 4748,
@@ -3733,8 +3765,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "dcd3686462e448227d075f9e52844983e506fc121f257ce0111d57aa5294e438",
-      "bytes": 27642,
+      "sha256": "def18696722dc838eb041898441c49b56adc9ec9d3dae897bedb577b650471b8",
+      "bytes": 27873,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3759,7 +3791,8 @@
         "## Claude worktree — durable case workflow (2026-10-12)",
         "## Claude worktree — staff account security (2026-10-12)",
         "## Claude worktree — cross-module hardening (2026-10-12)",
-        "## Claude worktree — secure document vault (2026-10-12)"
+        "## Claude worktree — secure document vault (2026-10-12)",
+        "## Claude worktree — billing (2026-10-12)"
       ]
     },
     {
@@ -4005,6 +4038,12 @@
       "file": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
       "sha256": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
       "bytes": 28770,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+      "sha256": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
+      "bytes": 34598,
       "headings": []
     },
     {
@@ -4724,8 +4763,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "600a4ed8e8c8053fd1c288090ea43704636fa67a92a93dcc79a911283875a1c8",
-      "bytes": 23187,
+      "sha256": "97d51ad529466d29c50d0449aa403d8123bdcc460a3565688af63b6afa4927f6",
+      "bytes": 23547,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4983,6 +5022,7 @@
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
     "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
+    "docs/proposed-migrations/20261012280000_taxguard_billing.sql": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
@@ -5012,12 +5052,12 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "6f12e32ffbc1e6c79c824e0e30133f80d42db08f23bcc9e884ddda7c818c91cf",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "13a0839e22d844b276d642a3fab2254405fc462159f0078a855d4d9a5eaf2adf",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "5b3225c9e91e3c08975629640a42cf287e10b9e416132a8e5b8d7c3aa12ecdb6",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "880c6627785d22ebc6eaa0cfe36fa43b92722b0d89fcf042ea593b886285bf93",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "649d756099367299c959f0d19e669c4f7f20256e1f62ab5c131448f5ae34e56e",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "71d9009e123bccbf30f30942ee89c451095125149c4aec77bf1adc87f1cdf964",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "9c4148bd3b97f1fabd0591b1af22238064c90492c8234fea20b3295a69a6665c",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
@@ -5087,6 +5127,7 @@
     "src/tests/apiResponseRecovery.test.ts": "19420de069febcb49b8bfabd1c600c298cc402c68df94a093259e376d9fd6a67",
     "src/tests/auditAppendOnlyProposal.test.ts": "5564438b5da4b5cdf9eda09a89bc5b2ff4f71154cff652b1c46833fafeb7af64",
     "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
+    "src/tests/billingHttp.test.ts": "59269fa02ffaa96b802d9fb59d822c997a825ec4fc2a91516df62427e9be307c",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/caseAuthorityHttp.test.ts": "5923e4668b65d55ebdd40299647dc5d7183099a7c910500f23692f6a2acfa458",
     "src/tests/caseWorkflowHttp.test.ts": "4e6a5dae9197e10d8a7ae8d0e6ad2c52e58d1645e097cf8d712490155aa6a7bf",
@@ -5122,7 +5163,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "c99ccd02d28720363e131489113d8d377de8abc2a9f83989b09f3c0bbdc60c19",
+    "src/tests/proposalCompositionSecurity.test.ts": "a5d4e57a823a9ac9425eb478bad78607314db5c25c85e0520c32093bda31a008",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",

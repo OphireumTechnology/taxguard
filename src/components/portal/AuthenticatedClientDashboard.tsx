@@ -65,6 +65,7 @@ import { ProfileSecurityView } from './views/ProfileSecurityView';
 import { ClientProfileView } from './views/ClientProfileView';
 import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
 import { ClientDocumentVaultPanel } from '../documents/ClientDocumentVaultPanel';
+import { ClientInvoicesPanel } from '../billing/ClientInvoicesPanel';
 import { useLiveWorkflowAuthority } from '../../hooks/useLiveWorkflowAuthority';
 import { ClientStageReadUnavailable, unavailableClientStage } from './views/stages/ClientStageReadUnavailable';
 import { StageFourRecordView } from './views/stages/StageFourRecordView';
@@ -548,6 +549,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           </div>
 
           <ClientDocumentVaultPanel clientId={clientId} />
+          <ClientInvoicesPanel clientId={clientId} />
 
           <MyDocumentsClientVault
             clientId={clientId}

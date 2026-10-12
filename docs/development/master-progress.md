@@ -200,3 +200,7 @@ All proposals compose; security-definer, privilege and isolation invariants pass
 ## Claude worktree — secure document vault (2026-10-12)
 
 Proposal 027 (unapplied); development-only `/api/vault`; client upload panel and Practice Manager *Document Review*. Details: [document-vault.md](document-vault.md). Production NO-GO.
+
+## Claude worktree — billing (2026-10-12)
+
+Proposal 028 (unapplied); development-only `/api/billing`; Practice Manager *Billing* and client *Invoices*; sandbox payments only. Details: [billing.md](billing.md). Production NO-GO.
