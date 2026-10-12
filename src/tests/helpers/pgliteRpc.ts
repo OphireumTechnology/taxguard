@@ -8,7 +8,11 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
       calls?.push({ name, args });
       if (!/^taxguard_[a-z_]+$/.test(name)) throw new Error('unexpected rpc');
       const keys = Object.keys(args);
-      const values = keys.map(k => { const v = args[k]; return v !== null && typeof v === 'object' ? JSON.stringify(v) : v; });
+      // Arrays of plain values map to Postgres arrays (as PostgREST does for array parameters);
+      // objects and arrays of objects are JSON for jsonb parameters.
+      const values = keys.map(k => { const v = args[k];
+        if (Array.isArray(v) && v.every(x => x === null || typeof x !== 'object')) return v;
+        return v !== null && typeof v === 'object' ? JSON.stringify(v) : v; });
       try {
         const result = await pg().query<{ r: unknown }>(`SELECT public.${name}(${keys.map((k, i) => `${k} => $${i + 1}`).join(',')}) AS r`, values);
         return { data: JSON.parse(JSON.stringify(result.rows[0].r)), error: null };

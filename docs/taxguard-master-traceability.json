@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-PRACTICE-CLIENTS",
+      "requirement": "Client directory and engagement lifecycle with team, tasks, notes and deadlines",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ],
+      "tests": [
+        "src/tests/practiceManagementHttp.test.ts"
+      ],
+      "remaining": "Proposal 025 unapplied; development-only API; staff client creation and representatives blocked; browser NOT VERIFIED.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-LEDGER-DURABLE",
       "requirement": "Durable tenant/client-isolated ledger with database-enforced balance, immutability, period locks and idempotency",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3512,6 +3531,20 @@
       ]
     },
     {
+      "file": "docs/development/client-engagement-management.md",
+      "sha256": "a62760abfbfcc8624d1c47db2f1652d6112bad413aeda6ba84ae55450915168f",
+      "bytes": 4100,
+      "headings": [
+        "# Client and engagement management (Module 3)",
+        "## Design decisions",
+        "## Rules enforced in the database",
+        "## API (`/api/practice`)",
+        "## UI",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/durable-accounting-ledger.md",
       "sha256": "daab47e5f7db2562fc151a6703727f8091fed52c24162c84e434ecf572a5e020",
       "bytes": 5790,
@@ -3584,8 +3617,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "4fe0d5d9cc908928a4b25e1ed2b88ebcd0e2cd5b4d8f7f79976d3ed8de00ad90",
-      "bytes": 26185,
+      "sha256": "af20b415ee08732fb5e86c491cce945cf76f8ad9d9b921367b197501798cc61f",
+      "bytes": 26553,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3605,7 +3638,8 @@
         "### Frozen-source recovery/security checkpoint",
         "## Claude worktree — staff session management (2026-10-12)",
         "## Claude worktree — ledger integrity and period close (2026-10-12)",
-        "## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)"
+        "## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)",
+        "## Claude worktree — client and engagement management (2026-10-12)"
       ]
     },
     {
@@ -3820,6 +3854,12 @@
       "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
       "sha256": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
       "bytes": 67825,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+      "sha256": "38bee43e7d959b0e84a94aca7a21302e3e77759bc5f810a935f6d66b4e97274c",
+      "bytes": 42880,
       "headings": []
     },
     {
@@ -4539,8 +4579,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "b42ea6c9b342b9f873eda64847a849252ced25241a5d03370fc6d21e46f56b4b",
-      "bytes": 21111,
+      "sha256": "2d0a4e7566aaa5627173c2d0c84eb5d31a905ec5a5fa2ff0e6235928b6817ae8",
+      "bytes": 21683,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4794,6 +4834,7 @@
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
     "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
+    "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "38bee43e7d959b0e84a94aca7a21302e3e77759bc5f810a935f6d66b4e97274c",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
@@ -4827,7 +4868,7 @@
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "880c6627785d22ebc6eaa0cfe36fa43b92722b0d89fcf042ea593b886285bf93",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "069135d275c62f1d1368def3590e1bd9ef420b3a69fea6c9c750154f2225ed7a",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "ce2a8b92264fa59d3a2b46924a34af76acfb6be7420f6b50594b648b73f5adf3",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "dca5a17416fcaf77a7e3e8bffc565ec4e95b1865d35e9c84c286906b86b2c77f",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
@@ -4924,6 +4965,7 @@
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
+    "src/tests/practiceManagementHttp.test.ts": "1004e5d96081e29a86c3cfe23c98ec19dcf08e319c07266cf06355bc578f1e72",
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
     "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",

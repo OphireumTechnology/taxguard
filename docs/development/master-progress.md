@@ -180,3 +180,7 @@ Fixed cross-client approval/mutation by ID on the production-mounted bookkeeping
 ## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)
 
 Proposal 024 (unapplied) and SqlLedgerStore behind the existing `/api/bookkeeping` contracts; production fails closed unless the durable store is configured. Review approve / reject / correction, replacement entries, reports, search and history added. Details: [durable-accounting-ledger.md](durable-accounting-ledger.md). Production NO-GO.
+
+## Claude worktree — client and engagement management (2026-10-12)
+
+Proposal 025 (unapplied) on existing practice tables; development-only `/api/practice`; Practice Manager *Clients & Engagements* module. Staff client creation blocked pending proposal-006 coordination. Details: [client-engagement-management.md](client-engagement-management.md). Production NO-GO.

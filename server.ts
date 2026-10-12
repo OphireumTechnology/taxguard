@@ -1,4 +1,5 @@
 import { createStaffAccessRouter } from './src/server/routes/staff-access.routes';
+import { createPracticeRouter } from './src/server/routes/practice.routes';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -427,6 +428,8 @@ app.use(
 
 // New durable staff identity APIs are guarded for approved non-production projects only.
 app.use('/api/staff-access', createStaffAccessRouter());
+// Client and engagement management (proposal 025): development-only, 503 unless configured.
+app.use('/api/practice', createPracticeRouter());
 
 app.use(
   '/api/onboarding',
