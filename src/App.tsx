@@ -43,6 +43,7 @@ const BookkeeperDashboard = lazy(() => import('./components/workspace/Bookkeeper
 const ReviewerWorkspace = lazy(() => import('./components/workspace/ReviewerWorkspace').then(m => ({ default: m.ReviewerWorkspace })));
 const PracticeAdminWorkspace = lazy(() => import('./components/admin/PracticeAdminWorkspace').then(m => ({ default: m.PracticeAdminWorkspace })));
 const TaxFormsLibrary = lazy(() => import('./components/taxForms/TaxFormsLibrary').then(m => ({ default: m.TaxFormsLibrary })));
+const StaffAccountSecurityPage = lazy(() => import('./components/auth/StaffAccountSecurityPage').then(m => ({ default: m.StaffAccountSecurityPage })));
 const SuperAdminConsole = lazy(() => import('./components/admin/SuperAdminConsole').then(m => ({ default: m.SuperAdminConsole })));
 const LiveClientWorkflowRouter = lazy(() => import('./components/workflow/LiveClientWorkflowRouter').then(m => ({ default: m.LiveClientWorkflowRouter })));
 import {
@@ -218,7 +219,8 @@ const AppContent: React.FC = () => {
       'admin_dashboard',
       'admin_portal',
       'super_admin_console',
-      'tax_forms_library'
+      'tax_forms_library',
+      'staff_account_security'
     ].includes(currentPage);
 
     // Client route guarding
@@ -389,6 +391,12 @@ const AppContent: React.FC = () => {
       return <AccountantWorkspace />;
     }
 
+    if (currentPage === 'staff_account_security') {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
+      return <StaffAccountSecurityPage />;
+    }
+
     if (currentPage === 'tax_forms_library') {
       if (isInitializingAuth) return renderAuthInitializingState();
       if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
@@ -466,6 +474,7 @@ const AppContent: React.FC = () => {
     'admin_portal',
     'super_admin_console',
     'tax_forms_library',
+    'staff_account_security',
     'live_calendar',
     'virtual_consultation_room'
   ]);

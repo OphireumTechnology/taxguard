@@ -188,3 +188,7 @@ Proposal 025 (unapplied) on existing practice tables; development-only `/api/pra
 ## Claude worktree — durable case workflow (2026-10-12)
 
 Proposal 026 (unapplied); development-only `/api/cases`; Practice Manager *Case Workflow*. Stages 01–08 can progress with durable or attested evidence; 09+ blocked by named dependencies. Details: [case-workflow.md](case-workflow.md). Production NO-GO.
+
+## Claude worktree — staff account security (2026-10-12)
+
+Staff-wide `/staff/account-security` page with sessions and own security history; step-up extension recommendations recorded. Details: [staff-account-security.md](staff-account-security.md). Production NO-GO.

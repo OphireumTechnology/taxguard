@@ -157,6 +157,7 @@ export const api = {
     requestRecovery: (input: StaffRecoveryRequestInput, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries', { method: 'POST', body: JSON.stringify(input), signal }),
     approveRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/approve', { method: 'POST', signal }),
     sessions: (signal?: AbortSignal) => staffAccessRequest<DurableSessionList>('/api/staff-access/sessions', { method: 'GET', signal }),
+    securityEvents: (signal?: AbortSignal) => staffAccessRequest<{items: Array<{action: string; actorUid: string; actorRole: string | null; at: string; byAdministrator: boolean; details: Record<string, unknown>}>}>('/api/staff-access/sessions/events', { method: 'GET', signal }),
     revokeSession: (sessionId: string, signal?: AbortSignal) => staffAccessRequest<{revoked: boolean}>('/api/staff-access/sessions/' + encodeURIComponent(sessionId) + '/revoke', { method: 'POST', signal }),
     revokeOtherSessions: (signal?: AbortSignal) => staffAccessRequest<{revokedSessions: number}>('/api/staff-access/sessions/revoke-others', { method: 'POST', signal }),
     revokeMemberSessions: (uid: string, reasonCategory: SessionRevocationReason, signal?: AbortSignal) => staffAccessRequest<{revokedSessions: number}>('/api/staff-access/members/' + encodeURIComponent(uid) + '/sessions/revoke', { method: 'POST', body: JSON.stringify({reasonCategory}), signal }),

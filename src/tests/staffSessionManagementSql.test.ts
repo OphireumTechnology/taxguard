@@ -140,4 +140,16 @@ describe('session management proposal 023', () => {
       await expect(fixture.pg.query("SELECT * FROM taxguard_session_actor('tenantA','sess-staff',repeat('a',64))")).rejects.toThrow('permission denied');
     } finally { await fixture.pg.exec('RESET ROLE'); }
   });
+
+  it('returns the caller\'s own security history, including administrator actions against them, without proof fields', async () => {
+    await fixture.pg.exec("INSERT INTO taxguard_audit_log(tenant_id,action,actor_uid,actor_role,metadata,timestamp) VALUES('tenantA','SESSION_CREATED','sess-staff','accountant','{\"tokenHashPrefix\":\"abcd1234\"}',now()-interval '1 minute'),('tenantA','SESSION_CREATED','sess-admin','admin','{\"tokenHashPrefix\":\"ffff0000\"}',now()-interval '1 minute'),('tenantB','SESSION_CREATED','sess-staff','accountant','{}',now()-interval '1 minute')");
+    await adminRevoke('sess-staff', { category: 'security_incident' });
+    await fixture.pg.exec("INSERT INTO taxguard_sessions(tenant_id,uid,session_token_hash,auth_time,expires_at,aal) VALUES('tenantA','sess-staff',repeat('7',64),floor(extract(epoch FROM now()))::bigint,floor(extract(epoch FROM now())*1000)::bigint+3600000,'aal2')");
+    const events = await call<any[]>('SELECT taxguard_list_own_security_events($1,$2,$3,$4) AS result', ['tenantA', 'sess-staff', h('7'), 50]);
+    expect(events.map(e => [e.action, e.byAdministrator])).toEqual([['STAFF_SESSIONS_REVOKED_BY_ADMIN', true], ['SESSION_CREATED', false]]);
+    expect(JSON.stringify(events)).not.toMatch(/tokenHashPrefix|abcd1234|ffff0000/);
+    expect(events[0].details).toMatchObject({ targetUid: 'sess-staff', reasonCategory: 'security_incident' });
+    await expect(call('SELECT taxguard_list_own_security_events($1,$2,$3,$4) AS result', ['tenantA', 'sess-staff', h('7'), 101])).rejects.toThrow('SESSION_INPUT_INVALID');
+    await expect(call('SELECT taxguard_list_own_security_events($1,$2,$3,$4) AS result', ['tenantA', 'sess-staff', h('a'), 10])).rejects.toThrow('SESSION_AUTHORITY_DENIED');
+  });
 });

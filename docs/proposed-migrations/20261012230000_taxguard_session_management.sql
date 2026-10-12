@@ -105,6 +105,28 @@ END $$;
 REVOKE ALL ON FUNCTION public.taxguard_revoke_other_own_sessions(text,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.taxguard_revoke_other_own_sessions(text,text,text) TO service_role;
 
+-- The caller's own security history: sign-in, session revocation, administrator actions that
+-- targeted the caller, and membership / MFA lifecycle events. Session token hash prefixes and
+-- other proof fields are not returned.
+CREATE OR REPLACE FUNCTION public.taxguard_list_own_security_events(p_tenant text, p_uid text, p_hash text, p_limit integer)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE actor record;
+BEGIN
+  SELECT * INTO actor FROM public.taxguard_session_actor(p_tenant, p_uid, p_hash);
+  IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 THEN RAISE EXCEPTION 'SESSION_INPUT_INVALID' USING ERRCODE = 'P0001'; END IF;
+  RETURN (SELECT COALESCE(jsonb_agg(jsonb_build_object('action', e.action, 'actorUid', e.actor_uid, 'actorRole', e.actor_role, 'at', e.timestamp,
+      'byAdministrator', e.actor_uid <> p_uid,
+      'details', COALESCE(e.metadata, '{}'::jsonb) - 'tokenHashPrefix' - 'sessionHash' - 'tokenHash' - 'proof' - 'factorId' - 'secret')
+      ORDER BY e.timestamp DESC, e.id), '[]'::jsonb)
+    FROM (SELECT * FROM public.taxguard_audit_log
+      WHERE tenant_id = p_tenant AND (
+        (actor_uid = p_uid AND (action LIKE 'SESSION%' OR action LIKE 'STAFF\_MFA%' OR action LIKE 'STAFF\_SESSIONS%'))
+        OR metadata->>'targetUid' = p_uid OR metadata->>'uid' = p_uid)
+      ORDER BY timestamp DESC, id LIMIT p_limit) e);
+END $$;
+REVOKE ALL ON FUNCTION public.taxguard_list_own_security_events(text,text,text,integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.taxguard_list_own_security_events(text,text,text,integer) TO service_role;
+
 -- Administrator step-up: the acting session's primary authentication must be at most 900
 -- seconds old. Targets: other staff members of the same tenant. Platform super administrator
 -- sessions can be revoked only by a super administrator. Audit stores the reason category.

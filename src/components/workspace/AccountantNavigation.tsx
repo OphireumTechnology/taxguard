@@ -3,7 +3,7 @@ import {
   Activity, AlarmClock, AlertTriangle, BadgeCheck, BarChart3, Bot, Briefcase, Calculator, CalendarClock,
   ChevronDown, ChevronRight, ClipboardCheck, FileSearch, FileText, FolderOpen, Hourglass, Landmark,
   LayoutDashboard, LayoutTemplate, Library, ListChecks, PenLine, Search, Send, Signature, Sparkles,
-  TrendingUp, UserPlus, Users, UsersRound, Workflow, Wrench, type LucideIcon,
+  ShieldCheck, TrendingUp, UserPlus, Users, UsersRound, Workflow, Wrench, type LucideIcon,
 } from 'lucide-react';
 
 /**
@@ -35,6 +35,7 @@ export const ACCOUNTANT_NAV_SECTIONS: NavSection[] = [
     { label: 'AI Assistant', icon: Bot }, { label: 'Form Library', icon: Library },
     { label: 'State Tax Rules', icon: Landmark }, { label: 'Calculators', icon: Calculator, disabledReason: UNAVAILABLE },
     { label: 'Checklists', icon: ListChecks }, { label: 'Templates', icon: LayoutTemplate, disabledReason: UNAVAILABLE },
+    { label: 'Account Security', icon: ShieldCheck },
   ] },
   { id: 'reports', label: 'Reports', icon: BarChart3, items: [
     { label: 'My Productivity', icon: TrendingUp, disabledReason: UNAVAILABLE },

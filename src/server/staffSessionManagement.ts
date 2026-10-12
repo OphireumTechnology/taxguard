@@ -80,3 +80,19 @@ export async function revokeMemberSessions(client: SupabaseClient, tenant: strin
   return { revokedSessions: count(await rpc(client, 'taxguard_admin_revoke_member_sessions',
     { p_tenant: tenant, p_actor: actor.id, p_hash: hash, p_target: targetUid, p_reason_category: reasonCategory })) };
 }
+
+export interface SecurityEventRecord { action: string; actorUid: string; actorRole: string | null; at: string; byAdministrator: boolean; details: Record<string, unknown> }
+/** The caller's own security history; proof fields are removed in the database. */
+export async function listOwnSecurityEvents(client: SupabaseClient, tenant: string, actor: User, verifiedApplicationToken: string, limit: unknown = 50): Promise<{ items: SecurityEventRecord[] }> {
+  const hash = proof(actor, tenant, verifiedApplicationToken);
+  const n = typeof limit === 'string' && /^\d{1,3}$/.test(limit) ? Number(limit) : limit;
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 100) throw invalid();
+  const data = await rpc(client, 'taxguard_list_own_security_events', { p_tenant: tenant, p_uid: actor.id, p_hash: hash, p_limit: n });
+  if (!Array.isArray(data) || data.length > n) throw unavailable();
+  return { items: data.map((row: any) => {
+    if (!row || typeof row.action !== 'string' || !/^[A-Z_]{3,64}$/.test(row.action) || typeof row.actorUid !== 'string' || !timestamp(row.at) || typeof row.byAdministrator !== 'boolean') throw unavailable();
+    const details = row.details && typeof row.details === 'object' && !Array.isArray(row.details) ? row.details : {};
+    if (/tokenHash|sessionHash|secret|factorId/i.test(JSON.stringify(details))) throw unavailable();
+    return { action: row.action, actorUid: row.actorUid, actorRole: typeof row.actorRole === 'string' ? row.actorRole : null, at: row.at, byAdministrator: row.byAdministrator, details };
+  }) };
+}

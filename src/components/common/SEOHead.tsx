@@ -183,6 +183,12 @@ const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
     canonicalPath: '/admin',
     ogType: 'website'
   },
+  staff_account_security: {
+    title: 'Account Security | A/R Tax Services, LLC',
+    description: 'Session and security history management for authorized practice staff.',
+    canonicalPath: '/staff/account-security',
+    ogType: 'website'
+  },
   tax_forms_library: {
     title: 'Tax Forms Library | A/R Tax Services, LLC',
     description: 'Reference catalog of federal, state and local tax forms for authorized practice staff.',

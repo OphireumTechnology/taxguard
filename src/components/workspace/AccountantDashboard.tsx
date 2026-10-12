@@ -113,6 +113,7 @@ export function AccountantDashboard() {
     if (label === 'Dashboard') { clearFilters(); setSelected(''); return; }
     if (label === 'Search Clients') { searchRef.current?.focus(); return; }
     if (label === 'Form Library') { setCurrentPage('tax_forms_library'); return; }
+    if (label === 'Account Security') { setCurrentPage('staff_account_security'); return; }
     const destinations: Record<string,string> = {'Document Review':'Documents','AI Document Prep':'AI Preparation','Tax Return (Draft)':'Tax Forms','E-Signature':'Client Approval','File to IRS/State':'E-File','Track Status':'History','Checklists':'Documents','State Tax Rules':'State Forms','AI Assistant':'AI Preparation'};
     if (destinations[label] || tabs.includes(label)) { setTab(destinations[label] || label); (item ? caseRef : queueRef).current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     showQueue(['My Cases','All Clients'].includes(label) ? 'Assigned Cases' : label);

@@ -154,4 +154,15 @@ describe('staff session management over HTTP with the proposed SQL', () => {
     const odd = { rpc: vi.fn().mockResolvedValue({ data: [{ sessionId: 'x' }], error: null }) } as any;
     await expect(listOwnSessions(odd, 'tenantA', user, tokenOf('d'))).rejects.toMatchObject({ code: 'SESSION_STORE_UNAVAILABLE' });
   });
+
+  it('serves the caller\'s security history over HTTP and refuses it after an administrator revokes the session', async () => {
+    const own = await send('GET', '/sessions/events?limit=10');
+    expect(own.status).toBe(200);
+    expect((await own.json()).items).toEqual([]);
+    expect((await send('GET', '/sessions/events?limit=500')).status).toBe(400);
+    as('http-admin', 'admin', tokenOf('d'));
+    await send('POST', '/members/http-staff/sessions/revoke', { reasonCategory: 'lost_or_stolen_device' });
+    as('http-staff', 'accountant', tokenOf('a'));
+    expect((await send('GET', '/sessions/events')).status).toBe(403);
+  });
 });
