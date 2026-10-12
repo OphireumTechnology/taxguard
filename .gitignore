@@ -90,3 +90,5 @@ docs/checkpoints/
 _hardening_backup_*/
 *.backup-[0-9]*
 
+# Local synthetic browser fixture build output
+qa/synthetic-shell/artifacts/

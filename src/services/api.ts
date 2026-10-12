@@ -1,3 +1,5 @@
+import type { StaffDirectoryQuery, StaffDirectoryPage, StaffMemberRecord, StaffInvitationRecord, StaffInvitationIssueInput, StaffInvitationIssueResult, StaffMembershipAction } from '../types/staffAccess';
+import { isStaffIdentityDevelopmentConfigured } from '../supabase/config';
 /**
  * Enterprise API Client for A/R Tax Services, LLC
  * Bridges client React interface to the secure Express + Vite backend.
@@ -128,7 +130,34 @@ const response = await fetch(apiEndpoint(endpoint), {
   return data as T;
 }
 
+/** New staff management stays development-only and never targets the protected public API. */
+function staffAccessRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const denied = (code: string, status: number) => Promise.reject(Object.assign(new Error('Staff management is unavailable for this session or environment.'), { code, status }));
+  if (!getStoredToken()) return denied('AUTH_REQUIRED', 401);
+  if (!isStaffIdentityDevelopmentConfigured()) return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503);
+  try {
+    const target = new URL(apiEndpoint(endpoint), typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1');
+    if (['api.artaxserv.com','artaxserv.com','www.artaxserv.com'].includes(target.hostname)) return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503);
+  } catch { return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503); }
+  return request<T>(endpoint, { cache: 'no-store', credentials: 'omit', ...options });
+}
+function staffDirectoryQuery(query: StaffDirectoryQuery): string {
+  const params = new URLSearchParams();
+  if (query.limit !== undefined) params.set('limit', String(query.limit));
+  if (query.status !== undefined) params.set('status', query.status);
+  if (query.cursor !== undefined) params.set('cursor', query.cursor);
+  const suffix = params.toString(); return suffix ? '?' + suffix : '';
+}
+
 export const api = {
+  staffAccess: {
+    members: (query: StaffDirectoryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffDirectoryPage<StaffMemberRecord>>('/api/staff-access/members' + staffDirectoryQuery(query), { method: 'GET', signal }),
+    invitations: (query: StaffDirectoryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffDirectoryPage<StaffInvitationRecord>>('/api/staff-access/invitations' + staffDirectoryQuery(query), { method: 'GET', signal }),
+    createInvitation: (input: StaffInvitationIssueInput, signal?: AbortSignal) => staffAccessRequest<StaffInvitationIssueResult>('/api/staff-access/invitations', { method: 'POST', body: JSON.stringify(input), signal }),
+    revokeInvitation: (id: string, signal?: AbortSignal) => staffAccessRequest<{status: 'revoked'}>('/api/staff-access/invitations/' + encodeURIComponent(id) + '/revoke', { method: 'POST', signal }),
+    approveMember: (uid: string, signal?: AbortSignal) => staffAccessRequest<{status: 'active'}>('/api/staff-access/members/' + encodeURIComponent(uid) + '/approve', { method: 'POST', signal }),
+    changeMemberStatus: (uid: string, action: StaffMembershipAction, reason: string, signal?: AbortSignal) => staffAccessRequest<{status: string; revokedSessions: number}>('/api/staff-access/members/' + encodeURIComponent(uid) + '/status', { method: 'POST', body: JSON.stringify({action, reason}), signal }),
+  },
   // Read-only Gate 3 adapter. Existing server authorization is unchanged.
   clientDashboard: {
     saveQuestionnaire: (clientId: string, taxYear: number, answers: unknown) => request<{ success: boolean }>(`/api/stage-two-three/questionnaire/${taxYear}`, { method: 'POST', body: JSON.stringify({ clientId, answers }) }),

@@ -1,3 +1,4 @@
+import { providerOnlyIdentityFlowActive } from './providerOnlyIdentityFlow';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   User,
@@ -154,6 +155,7 @@ interface AppContextType {
   login: (email: string, password: string, mfaCode?: string) => Promise<{
     success: boolean;
     mfaRequired?: boolean;
+    mfaEnrollmentRequired?: boolean;
     emailVerificationRequired?: boolean;
     code?: ControlledAuthErrorCode;
     error?: string;
@@ -842,7 +844,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // 2. Check for an active Supabase browser session (e.g. after refresh or email verification callback)
         const sbAccessToken = await getSupabaseAccessToken();
-        if (sbAccessToken && active && !authOperationInProgressRef.current) {
+        if (sbAccessToken && active && !authOperationInProgressRef.current && !providerOnlyIdentityFlowActive()) {
           try {
             const currentRoute = getPageFromUrl() || 'home';
             const hasAuthCallbackInUrl =
@@ -897,6 +899,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!active || authOperationInProgressRef.current) return;
 
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
+        // Invitation sessions prove identity only; they must never trigger client auto-provisioning.
+        if (providerOnlyIdentityFlowActive()) return;
         const existingToken = getStoredToken();
         if (!existingToken) {
           try {
@@ -993,6 +997,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ): Promise<{
     success: boolean;
     mfaRequired?: boolean;
+    mfaEnrollmentRequired?: boolean;
     emailVerificationRequired?: boolean;
     code?: ControlledAuthErrorCode;
     error?: string;
@@ -1093,7 +1098,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return { success: true, redirectPage };
     } catch (err: any) {
-      await supabaseLogout().catch(() => {});
+      // Keep only the provider session for enrollment; no TaxGuard session or data is retained.
+      if (err?.code !== 'STAFF_MFA_ENROLLMENT_REQUIRED') await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
@@ -1101,7 +1107,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAuthLifecycleState('UNAUTHENTICATED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
       if (err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED') {
-        return { success: false, error: 'Staff accounts require an enrolled authenticator app. Complete authenticator enrollment from your staff invitation, then sign in again.' };
+        return { success: false, mfaEnrollmentRequired: true, error: 'Set up an authenticator to continue.' };
       }
       if (err?.code === 'STAFF_MFA_REQUIRED') {
         return { success: false, mfaRequired: true, error: 'Multi-factor authentication is required for staff access. Enter the code from your authenticator app.' };

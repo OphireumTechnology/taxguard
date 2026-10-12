@@ -52,7 +52,7 @@ it('associates staff sign-in controls', () => {
 it('associates invitation and staff password controls without inventing invitation authority', () => {
   fixture.mode = 'invitation';
   const labels = associations(renderToStaticMarkup(<StaffLoginPage />));
-  expect(labels).toEqual(['Administrative Invitation Token *', 'Set Staff Password *']);
+  expect(labels).toEqual(['Provider account', 'Invitation code', 'Invited work email', 'Password']);
 });
 it('keeps IDs unique across multiple simultaneously rendered authentication forms', () => {
   const html = renderToStaticMarkup(<><ClientLoginPage /><StaffLoginPage /><ClientRegisterPage /></>);

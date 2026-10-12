@@ -51,8 +51,9 @@ authRouter.use((req, res, next) => {
 /**
  * Supabase -> TaxGuard LIVE session bridge.
  * Supabase proves external identity. TaxGuard restores or provisions the
- * permanent application identity, tenant membership, client profile, engagement,
- * tax year, tax case, and Stage 01 state, and creates the server-authoritative session.
+ * permanent application identity and tenant membership and creates the server-authoritative session.
+ * Engagement/year/case/Stage 01 initialization remains a demonstration adapter;
+ * durable sessions must report it unavailable until a durable provider exists.
  *
  * Security Invariant: Never trust role, tenantId, clientId, engagementId, or caseId
  * supplied by the browser.
@@ -88,7 +89,7 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
     const session = await sessions.create(verifiedUser);
 
     let onboardingBundle = null;
-    if (session.user.role === 'client' && session.clientId) {
+    if (!sessions.usesDurableAuthority && session.user.role === 'client' && session.clientId) {
       onboardingBundle = await provisionOrResolveClientOnboarding({
         tenantId: session.tenantId,
         user: session.user
@@ -127,6 +128,9 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
             workflow: onboardingBundle.workflow,
             eligibility: onboardingBundle.eligibility
           }
+        : {}),
+      ...(sessions.usesDurableAuthority && session.user.role === 'client'
+        ? { onboardingAvailability: { status: 'unavailable', code: 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' } }
         : {}),
       message: 'Live TaxGuard session established.'
     });
@@ -313,15 +317,11 @@ authRouter.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Respon
 authRouter.post('/logout', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (req.token?.startsWith('tg_live_')) {
     try {
-      if (isSupabaseServerConfigured()) {
-        try {
-          await new SupabaseDurableSessions().revoke(req.token);
-        } catch {
-          // Fall through
-        }
-      }
+      await new SupabaseDurableSessions(undefined, req.user?.tenantId).revoke(req.token);
       return res.json({ message: 'Logged out successfully.' });
-    } catch { return res.status(503).json({ error: 'Session revocation unavailable.' }); }
+    } catch {
+      return res.status(503).json({ error: 'Session revocation unavailable.', code: 'SESSION_REVOCATION_UNAVAILABLE' });
+    }
   }
   if (req.token) revokeSession(req.token);
   db.logAudit({

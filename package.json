@@ -16,7 +16,8 @@
     "qa:fixture:build": "vite build --config qa/synthetic-shell/vite.config.ts",
     "qa:browser:setup": "node scripts/setup-local-browser.mjs",
     "qa:browser": "node scripts/run-local-browser.mjs",
-    "qa:browser:product:anonymous": "node scripts/run-local-product-browser.mjs"
+    "qa:browser:product:anonymous": "node scripts/run-local-product-browser.mjs",
+    "test:identity": "vitest run staffInvitation staffActivation staffMembership durableMembership staffSessionEpoch staffAccess mfaEnrollment providerOnlyIdentityFlow supabaseStaffMfaClient supabaseProductionInfrastructure productionApiHttp clientDataIsolationSecurity clientOneTimeOnboardingAndProfile finalReleaseGateVerification clientRegistrationAndOnboardingFlow stageTwoReconciliationAuthorization"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

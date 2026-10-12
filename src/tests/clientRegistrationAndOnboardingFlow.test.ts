@@ -1,8 +1,19 @@
+import { mockAtomicClientIdentityRpc } from './helpers/mockSupabase';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { setSupabaseAdmin } from '../server/supabase';
-import { createProductionApp } from '../server/productionApp';
+import express from 'express';
+import { authRouter } from '../server/routes/auth.routes';
+import { caseAuthorityRouter } from '../server/routes/case-authority.routes';
+import { profileAmendmentRouter } from '../server/routes/profile-amendment.routes';
+// Exercises only isolated demonstration adapters; production mounting is tested separately.
+function createIsolatedDemonstrationApp() {
+  const app = express(); app.use(express.json());
+  app.use('/api/auth', authRouter); app.use('/api/case-authority', caseAuthorityRouter);
+  app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
+  return app;
+}
 import {
   validateRegistrationInput,
   validatePasswordStrength,
@@ -27,6 +38,7 @@ function createMockSupabaseBackend() {
   };
 
   const client: any = {
+    rpc: mockAtomicClientIdentityRpc(store),
     auth: {
       getUser: vi.fn(async (token: string) => {
         if (token === 'valid_new_client_jwt') {
@@ -41,6 +53,7 @@ function createMockSupabaseBackend() {
                   company_name: 'Vance Advisory LLC',
                   role: 'admin' // Forged metadata role — server must ignore and assign client
                 },
+                email_confirmed_at: new Date().toISOString(),
                 last_sign_in_at: new Date().toISOString()
               }
             },
@@ -56,6 +69,7 @@ function createMockSupabaseBackend() {
                 user_metadata: {
                   full_name: 'Arthur Pendleton'
                 },
+                email_confirmed_at: new Date().toISOString(),
                 last_sign_in_at: new Date().toISOString()
               }
             },
@@ -74,6 +88,7 @@ function createMockSupabaseBackend() {
 
       const builder: any = {
         select: vi.fn(() => builder),
+        limit: vi.fn(async () => table === 'taxguard_staff_invitations' ? { data: [], error: null } : { data: null, error: { message: 'Unsupported fixture query' } }),
         eq: vi.fn((col: string, val: any) => {
           if (!filterCol) {
             filterCol = col;
@@ -161,12 +176,13 @@ describe('Post-Registration Client Routing, Session Establishment & Stage 01 Pro
   beforeEach(async () => {
     mockSupabase = createMockSupabaseBackend();
     setSupabaseAdmin(mockSupabase.client);
-    vi.stubEnv('SUPABASE_URL', 'https://mock.supabase.co');
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'mock-service-key');
+    // Explicit isolated demonstration fixture; never evidence of durable production onboarding.
+    vi.stubEnv('SUPABASE_URL', '');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
     vi.stubEnv('TAXGUARD_TENANT_ID', 'tenantA');
-    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NODE_ENV', 'test');
 
-    server = createServer(createProductionApp());
+    server = createServer(createIsolatedDemonstrationApp());
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
@@ -415,7 +431,7 @@ describe('Post-Registration Client Routing, Session Establishment & Stage 01 Pro
       expect(secondBody.resumed).toBe(true);
     });
 
-    it('serves scoped Stage 01 workflow state in production and allows Stage 01 save & completion', async () => {
+    it('serves scoped Stage 01 workflow state in the isolated demonstration fixture and allows Stage 01 save & completion', async () => {
       const sessionRes = await fetch(`${origin}/api/auth/supabase-session`, {
         method: 'POST',
         headers: {
@@ -432,7 +448,7 @@ describe('Post-Registration Client Routing, Session Establishment & Stage 01 Pro
       const sessionData = await sessionRes.json();
       const serverToken = sessionData.token;
 
-      // 1. Fetch workflow state via production-authorized scoped endpoint
+      // 1. Fetch workflow state via demonstration-scoped scoped endpoint
       const workflowRes = await fetch(
         `${origin}/api/case-authority/client-onboarding/workflow?taxYear=2025`,
         {

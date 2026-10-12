@@ -5,6 +5,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { isProtectedIdentityDestination } from './protectedDestination';
 
 export const SUPABASE_NOT_CONFIGURED_ERROR = 'SUPABASE_NOT_CONFIGURED';
 
@@ -25,7 +26,9 @@ export type SupabaseBrowserConfigIssue =
   | 'ANON_KEY_MISSING'
   | 'URL_INVALID'
   | 'URL_INSECURE'
-  | 'PLACEHOLDER_VALUE';
+  | 'PLACEHOLDER_VALUE'
+  | 'PROTECTED_PRODUCTION_DESTINATION'
+  | 'URL_CREDENTIALS';
 
 export interface SupabaseBrowserConfig {
   configured: boolean;
@@ -45,7 +48,7 @@ function looksLikePlaceholder(value: string): boolean {
  * Pure resolution of the browser Supabase contract (VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY).
  * Reports issue codes only; never echoes configured values.
  */
-export function resolveSupabaseBrowserConfig(rawUrl?: string, rawAnonKey?: string): SupabaseBrowserConfig {
+export function resolveSupabaseBrowserConfig(rawUrl?: string, rawAnonKey?: string, development = false): SupabaseBrowserConfig {
   const url = cleanSupabaseUrl(rawUrl);
   const anonKey = (rawAnonKey || '').trim();
   const issues: SupabaseBrowserConfigIssue[] = [];
@@ -60,6 +63,8 @@ export function resolveSupabaseBrowserConfig(rawUrl?: string, rawAnonKey?: strin
       issues.push('URL_INVALID');
     }
     if (parsed) {
+      if (parsed.username || parsed.password) issues.push('URL_CREDENTIALS');
+      if (development && isProtectedIdentityDestination(url)) issues.push('PROTECTED_PRODUCTION_DESTINATION');
       if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && LOOPBACK_HOSTS.has(parsed.hostname))) {
         issues.push(parsed.protocol === 'http:' ? 'URL_INSECURE' : 'URL_INVALID');
       }
@@ -75,13 +80,16 @@ export function resolveSupabaseBrowserConfig(rawUrl?: string, rawAnonKey?: strin
 
 const browserConfig = resolveSupabaseBrowserConfig(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  import.meta.env.DEV === true
 );
 
 let _supabaseClient: SupabaseClient | null = null;
+let _blockedDevelopmentClient: SupabaseClient | null = null;
 
 export function setSupabaseClient(client: SupabaseClient | null): void {
   _supabaseClient = client;
+  _blockedDevelopmentClient = null;
 }
 
 const blockedFetch: typeof fetch = async () => {
@@ -105,6 +113,10 @@ export function createUnconfiguredSupabaseClient(): SupabaseClient {
 }
 
 export function getSupabase(): SupabaseClient {
+  if (import.meta.env.DEV === true && isProtectedIdentityDestination(browserConfig.url)) {
+    _blockedDevelopmentClient ??= createUnconfiguredSupabaseClient();
+    return _blockedDevelopmentClient;
+  }
   if (!_supabaseClient) {
     if (!browserConfig.configured) {
       console.warn(
@@ -143,4 +155,10 @@ export function isSupabaseConfigured(): boolean {
 
 export function getSupabaseConfigIssues(): readonly SupabaseBrowserConfigIssue[] {
   return [...browserConfig.issues];
+}
+
+/** New staff onboarding is never enabled against the protected project or a production build. */
+export function isStaffIdentityDevelopmentConfigured(): boolean {
+  if (!import.meta.env.DEV || import.meta.env.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED !== 'true' || !browserConfig.configured) return false;
+  return !isProtectedIdentityDestination(browserConfig.url);
 }

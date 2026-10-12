@@ -1,9 +1,10 @@
+import { mockAtomicClientIdentityRpc } from './helpers/mockSupabase';
 /**
  * finalReleaseGateVerification.test.ts
  *
- * FINAL RELEASE-GATE VERIFICATION
+ * ISOLATED DEVELOPMENT WORKFLOW REGRESSION (NO RELEASE AUTHORIZATION)
  *
- * Verifies all 7 authoritative release gates:
+ * Exercises seven synthetic development scenarios; durable/provider/production release gates remain unverified:
  * 1. ZERO-DATA CLIENT STATE: Clean test client starts with strictly 0 uploaded docs,
  *    0 unverified requests, 0 exceptions, 0 fake history, 0 demo records.
  * 2. RETURNING-CLIENT ROUTING: Register -> Complete Stage 01 gate -> Stage 01 locked ->
@@ -20,7 +21,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { setSupabaseAdmin } from '../server/supabase';
-import { createProductionApp } from '../server/productionApp';
+import express from 'express';
+import { authRouter } from '../server/routes/auth.routes';
+import { caseAuthorityRouter } from '../server/routes/case-authority.routes';
+import { profileAmendmentRouter } from '../server/routes/profile-amendment.routes';
+// Exercises only isolated demonstration adapters; production mounting is tested separately.
+function createIsolatedDemonstrationApp() {
+  const app = express(); app.use(express.json());
+  app.use('/api/auth', authRouter); app.use('/api/case-authority', caseAuthorityRouter);
+  app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
+  return app;
+}
 import { StageTwoCollectionService } from '../services/stageTwoCollectionService';
 import { StageTwoCollectionOperationsService } from '../services/stageTwoCollectionOperationsService';
 import {
@@ -31,32 +42,38 @@ import { ProviderReadinessRegistry } from '../server/taxguard/providerReadiness.
 import { db } from '../server/db';
 import { SupabaseDurableSessions } from '../server/supabase-db';
 
+let mockIdentitySerial = 0;
 function createMockSupabaseBackend() {
+  const serial = ++mockIdentitySerial;
+  const uid = `sb_uid_rel_${serial}`;
+  const email = `release.fixture.${serial}@example.invalid`;
   const store = {
     identities: new Map<string, any>(),
     members: new Map<string, any>(),
     clients: new Map<string, any>(),
     sessions: new Map<string, any>(),
-    sequence: { current_sequence: 800, last_issued_client_id: '800' },
+    sequence: { current_sequence: 800 + serial * 100, last_issued_client_id: String(800 + serial * 100) },
     audit: [] as any[],
     documents: new Map<string, any>(),
     assignments: [] as any[]
   };
 
   const client: any = {
+    rpc: mockAtomicClientIdentityRpc(store),
     auth: {
       getUser: vi.fn(async (token: string) => {
         if (token === 'release_gate_client_jwt') {
           return {
             data: {
               user: {
-                id: 'sb_uid_rel_01',
-                email: 'marcus.vance@example.com',
+                id: uid,
+                email,
                 user_metadata: {
                   full_name: 'Marcus Aurelius Vance',
                   phone: '843-555-9090',
                   company_name: 'Vance Capital Consulting LLC'
                 },
+                email_confirmed_at: new Date().toISOString(),
                 last_sign_in_at: new Date().toISOString()
               }
             },
@@ -76,6 +93,7 @@ function createMockSupabaseBackend() {
 
       const builder: any = {
         select: vi.fn(() => builder),
+        limit: vi.fn(async () => table === 'taxguard_staff_invitations' ? { data: [], error: null } : { data: null, error: { message: 'Unsupported fixture query' } }),
         eq: vi.fn((col: string, val: any) => {
           filters.push([col, val]);
           if (!filterCol) {
@@ -159,10 +177,10 @@ function createMockSupabaseBackend() {
     })
   };
 
-  return { client, store };
+  return { client, store, uid };
 }
 
-describe('FINAL RELEASE-GATE VERIFICATION', () => {
+describe('ISOLATED DEVELOPMENT WORKFLOW REGRESSION (NO RELEASE AUTHORIZATION)', () => {
   let server: Server;
   let origin: string;
   let mockSupabase: ReturnType<typeof createMockSupabaseBackend>;
@@ -170,12 +188,13 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
   beforeEach(async () => {
     mockSupabase = createMockSupabaseBackend();
     setSupabaseAdmin(mockSupabase.client);
-    vi.stubEnv('SUPABASE_URL', 'https://mock.supabase.co');
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'mock-service-key');
+    // Explicit isolated demonstration fixture; never evidence of durable production onboarding.
+    vi.stubEnv('SUPABASE_URL', '');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
     vi.stubEnv('TAXGUARD_TENANT_ID', 'tenantReleaseGate');
-    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NODE_ENV', 'test');
 
-    const app = createProductionApp();
+    const app = createIsolatedDemonstrationApp();
     await new Promise<void>((resolve) => {
       server = createServer(app);
       server.listen(0, '127.0.0.1', () => {
@@ -482,7 +501,7 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
 
       db.users.set(reviewerUser.id, reviewerUser);
 
-      const clientUser = db.users.get('sb_uid_rel_01');
+      const clientUser = db.users.get(mockSupabase.uid);
       if (clientUser) {
         clientUser.assignedReviewerId = reviewerUser.id;
       }
@@ -494,7 +513,9 @@ describe('FINAL RELEASE-GATE VERIFICATION', () => {
             id: `${reviewerUser.id}:${clientUser.clientId}`,
             accountantId: reviewerUser.id,
             clientId: clientUser.clientId,
-            status: 'active'
+            status: 'active',
+            assignedAt: new Date(Date.now() - 60_000).toISOString(),
+            effectiveDate: new Date(Date.now() - 60_000).toISOString()
           } as any
         );
 

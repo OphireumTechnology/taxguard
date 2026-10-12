@@ -1,3 +1,4 @@
+import { StaffAccessManagementPanel } from './StaffAccessManagementPanel';
 import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 import { useAdminProviderReadiness } from '../../hooks/useAdminProviderReadiness';
 import { AdminOperationalPanel } from './AdminOperationalPanel';
@@ -5,7 +6,7 @@ import { AiEmergencyStopPanel } from './AiEmergencyStopPanel';
 import { AiControlCenterPanel } from './AiControlCenterPanel';
 /**
  * A/R Tax Services, LLC — Practice Administration Console
- * Read-only reported provider configuration and controlled unavailable integrations.
+ * Reported provider configuration, guarded staff administration and unavailable integrations.
  */
 
 import React, { useState } from 'react';
@@ -149,11 +150,11 @@ export const PracticeAdminWorkspace: React.FC = () => {
           </div>
 
           <div className="p-3 border-t border-slate-800 text-[10px] text-slate-400 font-mono space-y-1">
-            <div>Environment: <span className="text-white">Read-only administration</span></div>
+            <div>Environment: <span className="text-white">Controlled administration</span></div>
             <div>Postgres / Supabase: <span className="text-slate-300">Not verified by this workspace</span></div>
           </div>
         </aside>)} >
-      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'users' ? <StaffAccessManagementPanel user={currentUser} authStatus={authLifecycleState} refresh={refresh} /> : activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
         ? <AiEmergencyStopPanel />
         : <AdminOperationalPanel tab={activeTab} status={readiness.status} providers={readiness.providers} onRefresh={() => setRefresh(value => value + 1)}/>}</main>
 

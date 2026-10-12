@@ -1,3 +1,4 @@
+import { createStaffAccessRouter } from './src/server/routes/staff-access.routes';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -423,6 +424,9 @@ app.use(
   '/api/auth',
   authRouter
 );
+
+// New durable staff identity APIs are guarded for approved non-production projects only.
+app.use('/api/staff-access', createStaffAccessRouter());
 
 app.use(
   '/api/onboarding',

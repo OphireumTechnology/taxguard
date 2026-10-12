@@ -18,6 +18,16 @@ import { FEDERAL_FORMS } from '../taxForms/federalForms';
 type Row = Record<string, any>;
 function fakeSupabase(tables: Record<string, Row[]>, failing: Set<string> = new Set(), failingInserts: Set<string> = new Set()) {
   return {
+    rpc: async (name: string, input: Row) => {
+      if (name !== 'taxguard_create_session') return { data:null,error:{code:'42883'} };
+      if (failingInserts.has('taxguard_sessions') || failingInserts.has('taxguard_audit_log')) return { data:null,error:{code:'08006'} };
+      const member = tables.taxguard_members.find(row=>row.tenant_id===input.p_tenant && row.uid===input.p_uid && row.status==='active');
+      const identity = tables.taxguard_identities.find(row=>row.tenant_id===input.p_tenant && row.uid===input.p_uid);
+      if (!member || !identity || identity.user_data.role!==member.role || identity.user_data.status!=='active') return { data:null,error:{code:'P0001',message:'SESSION_AUTHORITY_DENIED'} };
+      tables.taxguard_sessions.push({tenant_id:input.p_tenant,uid:input.p_uid,session_token_hash:input.p_token_hash,auth_time:input.p_auth_time,expires_at:input.p_expires_at,aal:input.p_aal,revoked:false});
+      tables.taxguard_audit_log.push({tenant_id:input.p_tenant,actor_uid:input.p_uid,actor_role:member.role,action:'SESSION_CREATED'});
+      return {data:{created:true},error:null};
+    },
     from(table: string) {
       const filters: Array<(r: Row) => boolean> = [];
       let patch: Row | null = null;

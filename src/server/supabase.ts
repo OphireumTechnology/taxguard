@@ -1,3 +1,5 @@
+import { verifiedPrimaryAuthTime } from './verifiedPrimaryAuthTime';
+import { isProtectedIdentityDestination } from '../supabase/protectedDestination';
 /**
  * Server-Side Supabase Administration & JWT Verification
  * Provides privileged database access and cryptographic token validation.
@@ -22,6 +24,9 @@ export function setSupabaseAdmin(client: SupabaseClient | null): void {
 }
 
 export function getSupabaseAdmin(): SupabaseClient {
+  if (process.env.NODE_ENV !== 'production' && isProtectedIdentityDestination(cleanSupabaseUrl(process.env.SUPABASE_URL))) {
+    throw new Error('SUPABASE_PRODUCTION_PROJECT_BLOCKED');
+  }
   if (!_supabaseAdmin) {
     const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
     // The public anon key is never a substitute for the privileged service credential.
@@ -59,6 +64,7 @@ export function getSupabaseAdmin(): SupabaseClient {
 
 export function isSupabaseServerConfigured(): boolean {
   const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
+  if (process.env.NODE_ENV !== 'production' && isProtectedIdentityDestination(url)) return false;
   if (!url || url.includes('your-project') || url.includes('placeholder')) {
     return false;
   }
@@ -69,9 +75,12 @@ export interface VerifiedSupabaseUser {
   uid: string;
   email: string;
   displayName?: string;
+  emailVerified?: boolean;
   phone?: string;
   metadata?: Record<string, any>;
   authTime: number;
+  /** Token-bound primary sign-in proof; absent if verified AMR evidence is missing or malformed. */
+  primaryAuthTime?: number;
   /** Authenticator assurance level of the verified access token (aal2 = an MFA factor was used). */
   aal?: 'aal1' | 'aal2';
   /** Number of verified MFA factors enrolled on the Supabase user. */
@@ -102,10 +111,12 @@ export async function verifySupabaseAccessToken(accessToken: string, client?: Su
   return {
     uid: user.id,
     email,
+    emailVerified: Boolean(user.email_confirmed_at),
     displayName: user.user_metadata?.full_name || user.user_metadata?.name || email,
     phone: user.user_metadata?.phone || '',
     metadata: user.user_metadata || {},
     authTime: user.last_sign_in_at ? Math.floor(new Date(user.last_sign_in_at).getTime() / 1000) : Math.floor(Date.now() / 1000),
+    primaryAuthTime: verifiedPrimaryAuthTime(accessToken),
     // The token was just verified by the Supabase Auth server, so its claims can be read.
     aal: verifiedTokenAssuranceLevel(accessToken),
     verifiedFactorCount: (user.factors || []).filter((factor: { status?: string }) => factor.status === 'verified').length

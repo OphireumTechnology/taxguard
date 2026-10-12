@@ -136,7 +136,7 @@ function guard(
 }
 
 describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
-  it.each(['hardExitGatePassed', 'identityComplete', 'taxProfileComplete', 'tinValid', 'addressComplete', 'representativeComplete', 'supportingDocumentsComplete', 'duplicateResolutionComplete', 'consentComplete', 'reviewComplete'])('rejects nonboolean Stage 01 %s before transition', async flag => {
+  it.each(['hardExitGatePassed', 'identityComplete', 'taxProfileComplete', 'tinValid', 'addressComplete', 'representativeComplete', 'supportingDocumentsComplete', 'duplicateResolutionComplete', 'consentComplete', 'reviewComplete'])('refuses volatile production Stage 01 with nonboolean %s before transition', async flag => {
     const { body } = await login('valid_sb_token');
     const snapshot = Object.fromEntries(['hardExitGatePassed', 'identityComplete', 'taxProfileComplete', 'tinValid', 'addressComplete', 'representativeComplete', 'supportingDocumentsComplete', 'duplicateResolutionComplete', 'consentComplete', 'reviewComplete'].map(key => [key, true]));
     snapshot[flag] = 'false' as any;
@@ -144,21 +144,22 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taxYear: 2025, completeStage: true, snapshot }),
     });
-    expect(response.status).toBe(422);
-    const denied = await response.json(); expect(denied.code).toBe('STAGE_01_GATE_LOCKED');
-    expect(denied.blockingReasons.join(' ')).toContain(flag === 'hardExitGatePassed' ? 'existingHardExitGatePassed' : flag);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ code: 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' });
     const provisioned = await request('/api/case-authority/client-onboarding/provision', body.token, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taxYear: 2025 }),
     });
-    expect(provisioned.status).toBe(200); const unchanged = await provisioned.json();
-    expect(unchanged.workflow.stage1.status).not.toBe('COMPLETED'); expect(unchanged.activeStage).toBe(1);
+    expect(provisioned.status).toBe(503);
+    expect(await provisioned.json()).toEqual({ code: 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' });
+    expect(mockSupabase.store.identities.get('sb_user_001').user_data.onboardingStatus).toBe('NOT_STARTED');
+
   });
 
-  it('SEC-CLIENT-001: allows Client A to read its own authoritative profile', async () => {
+  it('SEC-CLIENT-001: refuses unavailable durable profile evidence for Client A', async () => {
     const { body } = await login('valid_sb_token');
     const response = await request('/api/profile/authoritative', body.token);
-    expect(response.status).toBe(200);
-    expect((await response.json()).clientId).toBe(body.clientId);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ code: 'DURABLE_PROFILE_PROVIDER_REQUIRED' });
   });
 
   it('SEC-CLIENT-002: denies Client A access to Client B profile ID', async () => {
@@ -354,7 +355,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     });
     const staff = await login(STAFF_AAL2_TOKEN);
     expect(staff.response.status).toBe(200);
-    expect((await request(`/api/profile/authoritative?clientId=${a.body.clientId}`, staff.body.token)).status).toBe(200);
+    expect((await request(`/api/profile/authoritative?clientId=${a.body.clientId}`, staff.body.token)).status).toBe(503);
     expect((await request(`/api/profile/authoritative?clientId=${b.body.clientId}`, staff.body.token)).status).toBe(403);
   });
 
