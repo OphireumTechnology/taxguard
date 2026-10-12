@@ -196,3 +196,7 @@ Staff-wide `/staff/account-security` page with sessions and own security history
 ## Claude worktree — cross-module hardening (2026-10-12)
 
 All proposals compose; security-definer, privilege and isolation invariants pass; npm audit 0 known vulnerabilities. Details: [batch-hardening-report.md](batch-hardening-report.md). Production NO-GO.
+
+## Claude worktree — secure document vault (2026-10-12)
+
+Proposal 027 (unapplied); development-only `/api/vault`; client upload panel and Practice Manager *Document Review*. Details: [document-vault.md](document-vault.md). Production NO-GO.

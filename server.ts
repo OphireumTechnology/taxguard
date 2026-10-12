@@ -1,6 +1,7 @@
 import { createStaffAccessRouter } from './src/server/routes/staff-access.routes';
 import { createPracticeRouter } from './src/server/routes/practice.routes';
 import { createCasesRouter } from './src/server/routes/cases.routes';
+import { createVaultRouter } from './src/server/routes/vault.routes';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -432,6 +433,7 @@ app.use('/api/staff-access', createStaffAccessRouter());
 // Client and engagement management (proposal 025): development-only, 503 unless configured.
 app.use('/api/practice', createPracticeRouter());
 app.use('/api/cases', createCasesRouter());
+app.use('/api/vault', createVaultRouter());
 
 app.use(
   '/api/onboarding',

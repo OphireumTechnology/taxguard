@@ -64,6 +64,7 @@ import { ClientAuditUnavailable, recordedMfaSetting } from './views/ClientSecuri
 import { ProfileSecurityView } from './views/ProfileSecurityView';
 import { ClientProfileView } from './views/ClientProfileView';
 import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
+import { ClientDocumentVaultPanel } from '../documents/ClientDocumentVaultPanel';
 import { useLiveWorkflowAuthority } from '../../hooks/useLiveWorkflowAuthority';
 import { ClientStageReadUnavailable, unavailableClientStage } from './views/stages/ClientStageReadUnavailable';
 import { StageFourRecordView } from './views/stages/StageFourRecordView';
@@ -545,6 +546,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               Upload New Documents &rarr;
             </button>
           </div>
+
+          <ClientDocumentVaultPanel clientId={clientId} />
 
           <MyDocumentsClientVault
             clientId={clientId}
