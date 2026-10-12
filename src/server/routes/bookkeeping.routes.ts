@@ -16,6 +16,7 @@ import { db } from '../db';
 import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.engine';
 import { globalAccountingSyncService } from '../taxguard/bookkeeping/accountingSync.service';
 import { registerLedgerDispatch } from './ledgerDispatch.routes';
+import { selectLedger } from '../taxguard/bookkeeping/ledgerBackend';
 
 export const bookkeepingRouter = Router();
 
@@ -64,7 +65,18 @@ bookkeepingRouter.use((req, res, next) => {
 });
 
 bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res, next) => {
-  if(req.user?.role==='bookkeeper') return res.status(403).json({code:'BOOKKEEPER_OPERATION_NOT_RELEASED'});
+  if(req.user?.role==='bookkeeper') {
+    // Bookkeepers use the durable ledger only: explicit client grant, deployment tenant, and the
+    // database re-checks the assignment and forces their postings into independent review.
+    if (selectLedger().mode !== 'durable') return res.status(403).json({code:'BOOKKEEPER_OPERATION_NOT_RELEASED'});
+    const user = req.user;
+    const clientId = typeof req.query.clientId === 'string' ? req.query.clientId : typeof req.body?.clientId === 'string' ? req.body.clientId : '';
+    const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
+    if (user.status !== 'active' || !user.tenantId || !clientId || !user.authorizedClientIds?.includes(clientId)
+      || (process.env.NODE_ENV === 'production' && user.tenantId !== configured)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
+    req.authorizedClientContext = { authUserId: user.id, clientId, tenantId: user.tenantId, role: user.role } as any;
+    return next();
+  }
   const requestedClientId =
     typeof req.query.clientId === 'string'
       ? req.query.clientId

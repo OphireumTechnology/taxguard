@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-BOOKKEEPER-LEDGER",
+      "requirement": "Bookkeeper durable ledger workspace with forced independent review and explicit capability list",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/server/bookkeeperAccess.ts"
+      ],
+      "tests": [
+        "src/tests/bookkeeperDurableHttp.test.ts"
+      ],
+      "remaining": "Proposals 024/030 unapplied; legacy bookkeeper modules still read the in-memory projection; browser NOT VERIFIED.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-BOOK-TO-TAX",
       "requirement": "Durable book-to-tax mappings, reviewed adjustments and reconciled workpapers (no tax computation)",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3682,6 +3701,19 @@
       ]
     },
     {
+      "file": "docs/development/bookkeeper-dashboard.md",
+      "sha256": "52cdaf4da753cc77beca8dd8e004003c17f122a5d695c419632ca2e14efba230",
+      "bytes": 2887,
+      "headings": [
+        "# Bookkeeper dashboard on the durable ledger (Batch 2, Module 4)",
+        "## Authority (defence in depth)",
+        "## Work queue (proposal 030, `GET /api/bookkeeping/work-queue`)",
+        "## UI",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/case-workflow.md",
       "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
       "bytes": 4748,
@@ -3797,8 +3829,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "071afc65f4f0c9b0ef3f1bee5c30b2d53182d4c8e821274da7464adf0b59228b",
-      "bytes": 28096,
+      "sha256": "e4b45a507f67f9c8a34378308d2534909c65f5fb84051f7a12949139183dc234",
+      "bytes": 28343,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3825,7 +3857,8 @@
         "## Claude worktree — cross-module hardening (2026-10-12)",
         "## Claude worktree — secure document vault (2026-10-12)",
         "## Claude worktree — billing (2026-10-12)",
-        "## Claude worktree — durable book-to-tax (2026-10-12)"
+        "## Claude worktree — durable book-to-tax (2026-10-12)",
+        "## Claude worktree — Bookkeeper ledger workspace (2026-10-12)"
       ]
     },
     {
@@ -4051,8 +4084,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
-      "sha256": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
-      "bytes": 67825,
+      "sha256": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
+      "bytes": 68050,
       "headings": []
     },
     {
@@ -4083,6 +4116,12 @@
       "file": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
       "sha256": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
       "bytes": 33340,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql",
+      "sha256": "616596e3f0f3a31727a92c20f36e48cc9cac2748699a86148a648eae3943371e",
+      "bytes": 4431,
       "headings": []
     },
     {
@@ -4802,8 +4841,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "1343a728a76f614eee1c3e0ef97da514da3e303967fe72a8c19c24958aac3203",
-      "bytes": 23861,
+      "sha256": "05ff296baf84598968ef1314cc40e99999c25af2c6a987e62c7c477f7e24c85d",
+      "bytes": 24267,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5057,7 +5096,7 @@
   ],
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
-    "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
+    "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
     "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
@@ -5095,7 +5134,7 @@
     "src/components/portal/AuthenticatedClientDashboard.tsx": "13a0839e22d844b276d642a3fab2254405fc462159f0078a855d4d9a5eaf2adf",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "5b3225c9e91e3c08975629640a42cf287e10b9e416132a8e5b8d7c3aa12ecdb6",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
-    "src/components/workspace/BookkeeperDashboard.tsx": "880c6627785d22ebc6eaa0cfe36fa43b92722b0d89fcf042ea593b886285bf93",
+    "src/components/workspace/BookkeeperDashboard.tsx": "78c42ab05796f6374e6de5c9368105d2a7c536f9b1dfb8062c2e9fb0b458925a",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
     "src/components/workspace/PracticeManagerDashboard.tsx": "71d9009e123bccbf30f30942ee89c451095125149c4aec77bf1adc87f1cdf964",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
@@ -5113,10 +5152,11 @@
     "src/server/ai/review/MaterialActionPreparation.ts": "e02db6d93c432fa573229d59ddf51b84f9b7cd9f99eb80151efce1b170aaa6a6",
     "src/server/assignment-authorization.ts": "ade1e21aac6746875b9b5e99b9ebd265a477612670af0666ec7cf11d50647f6b",
     "src/server/auth.ts": "b667e80896fbda27b1e1fad40337d356c2a4c90c86b5aea8ce6b62ba4c63dfdd",
+    "src/server/bookkeeperAccess.ts": "5227ef220351a66b8505f7388d22d40f19deed72ac46ccd18f763269112ff30c",
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
     "src/server/productionApp.ts": "812c6e32ac4d631e52b2f4b766e1f64bd13d45930915887c9beefa3a7cd83ada",
-    "src/server/routes/ledgerDispatch.routes.ts": "27701fd46808ab4abaf7eb3727d1e5b846f21034dd45693f04a942fe6aa42497",
+    "src/server/routes/ledgerDispatch.routes.ts": "8f31ed13030cb6057c5f72fe8f4158ddefafe7f76565d78b4ad91ee5750ac3f9",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
     "src/server/staffSessionManagement.ts": "689f4b705b9499814bf2852f277b170522b8d3baf2bd31e0aae404dee23590d0",
     "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
@@ -5170,6 +5210,7 @@
     "src/tests/billingHttp.test.ts": "59269fa02ffaa96b802d9fb59d822c997a825ec4fc2a91516df62427e9be307c",
     "src/tests/bookToTaxHttp.test.ts": "97eadc3446c41f631daa8c371a516ea2d41483b98e7242b68112b21074877764",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
+    "src/tests/bookkeeperDurableHttp.test.ts": "0225e02509de2193a7e917566a124e4aa72a7dce6cd364b78c240795d7b866e3",
     "src/tests/caseAuthorityHttp.test.ts": "5923e4668b65d55ebdd40299647dc5d7183099a7c910500f23692f6a2acfa458",
     "src/tests/caseWorkflowHttp.test.ts": "4e6a5dae9197e10d8a7ae8d0e6ad2c52e58d1645e097cf8d712490155aa6a7bf",
     "src/tests/clientDashboardMasterplan.test.tsx": "8eeff4559f21f88dcdce2699a15e82250dac15979bdddea0895f14e8dfe6350a",
@@ -5204,7 +5245,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "26d5aa5bd47248f936d885646bb05912e38505b80695fb4cc4b260cc8e611f3f",
+    "src/tests/proposalCompositionSecurity.test.ts": "0fd36bb279dcce335a0176248218b2eb14b9737351ed62e58dd92ea512df3c40",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",

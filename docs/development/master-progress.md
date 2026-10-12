@@ -208,3 +208,7 @@ Proposal 028 (unapplied); development-only `/api/billing`; Practice Manager *Bil
 ## Claude worktree — durable book-to-tax (2026-10-12)
 
 Proposal 029 (unapplied); development-only `/api/book-to-tax`; Accountant *Book-to-Tax Workpapers* tab. Details: [book-to-tax.md](book-to-tax.md). Production NO-GO.
+
+## Claude worktree — Bookkeeper ledger workspace (2026-10-12)
+
+Bookkeepers can work assigned clients on the durable ledger; every posting awaits independent review. Details: [bookkeeper-dashboard.md](bookkeeper-dashboard.md). Production NO-GO.

@@ -395,7 +395,9 @@ BEGIN
       AND period_id = period AND posting BETWEEN start_date AND end_date AND tax_year = (p_entry->>'taxYear')::integer) THEN
     RAISE EXCEPTION 'PERIOD_MISMATCH' USING ERRCODE = 'P0001';
   END IF;
-  reviewed := COALESCE((p_entry->>'isAdjusting')::boolean, false) OR p_reversal_of IS NOT NULL OR p_replaces IS NOT NULL;
+  -- Entries created by bookkeepers (journal or bank categorization) always await independent review.
+  reviewed := COALESCE((p_entry->>'isAdjusting')::boolean, false) OR p_reversal_of IS NOT NULL OR p_replaces IS NOT NULL
+    OR EXISTS (SELECT 1 FROM public.taxguard_members WHERE tenant_id = p_tenant AND uid = p_actor AND role = 'bookkeeper');
   INSERT INTO public.taxguard_ledger_counters(tenant_id, client_id) VALUES (p_tenant, p_client) ON CONFLICT DO NOTHING;
   UPDATE public.taxguard_ledger_counters SET next_entry_number = next_entry_number + 1 WHERE tenant_id = p_tenant AND client_id = p_client
     RETURNING next_entry_number - 1 INTO n;

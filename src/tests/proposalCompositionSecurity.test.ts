@@ -25,10 +25,10 @@ describe('proposal composition', () => {
   it('applies every proposal in order without conflicts', () => {
     expect(proposals.length).toBeGreaterThanOrEqual(16);
     expect(proposals).toEqual(expect.arrayContaining(['20261012230000_taxguard_session_management.sql', '20261012240000_taxguard_durable_ledger.sql',
-      '20261012250000_taxguard_practice_management.sql', '20261012260000_taxguard_case_workflow.sql', '20261012270000_taxguard_document_vault.sql', '20261012280000_taxguard_billing.sql', '20261012290000_taxguard_book_to_tax.sql']));
+      '20261012250000_taxguard_practice_management.sql', '20261012260000_taxguard_case_workflow.sql', '20261012270000_taxguard_document_vault.sql', '20261012280000_taxguard_billing.sql', '20261012290000_taxguard_book_to_tax.sql', '20261012300000_taxguard_bookkeeper_workqueue.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
-    await applyProposals(fixture.pg, /^202610122[3-9]/);
+    await applyProposals(fixture.pg, /^202610122[3-9]|^20261012300000/);
   }, 60000);
 });
 

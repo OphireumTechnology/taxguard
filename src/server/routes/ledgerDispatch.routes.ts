@@ -221,6 +221,9 @@ export function registerLedgerDispatch(router: Router) {
     return res.json({ events: await store.history(s, uid(req), limit) });
   }, (_req, res) => res.status(503).json({ code: 'LEDGER_HISTORY_REQUIRES_DURABLE_STORE' }));
 
+  route('get', '/work-queue', async (req, res, s, store) => res.json(await store.workQueue(s, uid(req), s.taxYear)),
+    (_req, res) => res.status(503).json({ code: 'LEDGER_WORK_QUEUE_REQUIRES_DURABLE_STORE' }));
+
   // Remaining ledger features have no durable implementation yet: refuse rather than mix stores.
   router.use((req: AuthenticatedRequest, res: Response, next) => {
     const selection = selectLedger();

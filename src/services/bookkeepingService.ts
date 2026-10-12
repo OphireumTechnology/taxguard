@@ -121,6 +121,16 @@ export interface GeneralLedgerAccountItem {
 }
 export interface LedgerHistoryEvent { action: string; actorUid: string; actorRole: string | null; metadata: Record<string, unknown>; at: string }
 
+export interface LedgerWorkQueue {
+  actorRole: string;
+  uncategorized: Array<{ transactionId: string; accountId: string; transactionDate: string; description: string; amountCents: number; duplicateStatus: string }>;
+  possibleDuplicates: number;
+  awaitingReview: Array<{ entryId: string; entryNumber: string; postingDate: string; description: string; totalCents: number; creatorUid: string; version: number }>;
+  returnedToMe: Array<{ entryId: string; entryNumber: string; description: string; reviewNote: string | null }>;
+  openReconciliations: Array<{ reconciliationId: string; accountId: string; statementStart: string; statementEnd: string; varianceCents: number; clearedCount: number; clearedTransactionIds: string[] }>;
+  periods: Array<{ periodId: string; periodName: string; startDate: string; endDate: string; status: string; preparedEntries: number; uncategorizedTransactions: number }>;
+}
+
 export interface AccountingPeriodItem {
   id: string;
   periodName: string;
@@ -203,6 +213,21 @@ class BookkeepingService {
   }
   getGeneralLedger(clientId: string, taxYear: number, accountId?: string) {
     return this.read<{ accounts: GeneralLedgerAccountItem[] }>('/general-ledger', { clientId, taxYear: String(taxYear), accountId });
+  }
+  getWorkQueue(clientId: string, taxYear: number) {
+    return this.read<LedgerWorkQueue>('/work-queue', { clientId, taxYear: String(taxYear) });
+  }
+  categorize(clientId: string, taxYear: number, transactionId: string, assignedAccountId: string) {
+    return this.mutate<{ journalEntry: JournalEntryItem }>(`/transactions/${encodeURIComponent(transactionId)}/categorize`, { clientId, taxYear, assignedAccountId });
+  }
+  startReconciliation(clientId: string, taxYear: number, r: { accountId: string; statementPeriodStart: string; statementPeriodEnd: string; statementBeginningBalance: string; statementEndingBalance: string }) {
+    return this.mutate('/reconciliations/start', { clientId, taxYear, ...r, statementBeginningBalance: Number(r.statementBeginningBalance), statementEndingBalance: Number(r.statementEndingBalance) });
+  }
+  clearReconciliationItem(clientId: string, taxYear: number, reconciliationId: string, transactionId: string, isCleared: boolean) {
+    return this.mutate(`/reconciliations/${encodeURIComponent(reconciliationId)}/clear`, { clientId, taxYear, transactionId, isCleared });
+  }
+  finalizeReconciliation(clientId: string, taxYear: number, reconciliationId: string) {
+    return this.mutate(`/reconciliations/${encodeURIComponent(reconciliationId)}/finalize`, { clientId, taxYear });
   }
   getLedgerHistory(clientId: string, taxYear: number) {
     return this.read<{ events: LedgerHistoryEvent[] }>('/history', { clientId, taxYear: String(taxYear) });

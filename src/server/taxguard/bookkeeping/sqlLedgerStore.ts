@@ -193,6 +193,10 @@ export class SqlLedgerStore {
       data.rawEntries.map(e => ({ entryId: e.entryId, entryNumber: e.entryNumber, postingDate: date(e.postingDate), description: e.description, status: e.status,
         lines: e.lines.map((l: any) => ({ accountId: l.accountId, debitCents: Number(l.debitCents), creditCents: Number(l.creditCents) })) })), accountId);
   }
+  /** Bookkeeper work queue (proposal 030): uncategorized and duplicate bank items, entries awaiting review, returned entries, open reconciliations, periods. */
+  workQueue(scope: LedgerScope, actor: string, taxYear: number) {
+    return this.call('taxguard_ledger_work_queue', { ...this.base(scope, actor), p_tax_year: taxYear });
+  }
   async history(scope: LedgerScope, actor: string, limit = 50) {
     const rows = await this.call<any[]>('taxguard_ledger_history', { ...this.base(scope, actor), p_limit: limit });
     return rows.map(r => ({ action: r.action as string, actorUid: r.actorUid as string, actorRole: r.actorRole as string | null, metadata: r.metadata as Record<string, unknown>, at: iso(r.at)! }));
