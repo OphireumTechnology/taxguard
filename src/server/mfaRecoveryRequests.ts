@@ -33,7 +33,7 @@ async function rpc(client: SupabaseClient, name: string, args: Record<string,unk
       if(message==='MFA_RECOVERY_INPUT_INVALID') throw invalid();
       if(message==='MFA_RECOVERY_NOT_FOUND') throw new AuthorityError(message,404);
       if(['MFA_RECOVERY_REQUEST_CONFLICT','MFA_RECOVERY_STATE_CONFLICT','MFA_RECOVERY_ALREADY_OUTSTANDING'].includes(message)) throw new AuthorityError(message,409);
-      if(['INDEPENDENT_ACTOR_REQUIRED','INDEPENDENT_APPROVER_REQUIRED','MFA_RECOVERY_DENIED','STAFF_TARGET_DENIED','STAFF_ADMIN_REQUIRED','STAFF_IDENTITY_INCONSISTENT','STAFF_MFA_REENROLLMENT_REQUIRED','STAFF_FRESH_SIGN_IN_REQUIRED'].includes(message)) throw new AuthorityError(message,403);
+      if(['INDEPENDENT_ACTOR_REQUIRED','INDEPENDENT_APPROVER_REQUIRED','MFA_RECOVERY_DENIED','STAFF_TARGET_DENIED','STAFF_ADMIN_REQUIRED','STAFF_IDENTITY_INCONSISTENT','STAFF_MFA_REENROLLMENT_REQUIRED','STAFF_FRESH_SIGN_IN_REQUIRED','STAFF_RECENT_SIGN_IN_REQUIRED'].includes(message)) throw new AuthorityError(message,403);
     }
     throw unavailable();
   }

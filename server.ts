@@ -1,10 +1,13 @@
-import { createStaffAccessRouter } from './src/server/routes/staff-access.routes';
+import { createStaffAccessRouter, staffAccessDevelopmentConfigured } from './src/server/routes/staff-access.routes';
 import { createPracticeRouter } from './src/server/routes/practice.routes';
 import { createCasesRouter } from './src/server/routes/cases.routes';
 import { createVaultRouter } from './src/server/routes/vault.routes';
 import { createBillingRouter } from './src/server/routes/billing.routes';
 import { createBookToTaxRouter } from './src/server/routes/bookToTax.routes';
 import { createTaxEngineRouter } from './src/server/routes/taxEngine.routes';
+import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
+import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
+import { getSupabaseAdmin } from './src/server/supabase';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -433,6 +436,11 @@ app.use(
 
 // New durable staff identity APIs are guarded for approved non-production projects only.
 app.use('/api/staff-access', createStaffAccessRouter());
+// MFA reset jobs (proposal 034) run only with the development staff-access APIs and a configured provider.
+if (staffAccessDevelopmentConfigured()) {
+  const mfaProvider = configuredMfaResetProvider();
+  if (mfaProvider) startMfaResetWorker({ client: getSupabaseAdmin, tenant: process.env.TAXGUARD_TENANT_ID || '', provider: mfaProvider, workerId: 'server-' + process.pid });
+}
 // Client and engagement management (proposal 025): development-only, 503 unless configured.
 app.use('/api/practice', createPracticeRouter());
 app.use('/api/cases', createCasesRouter());

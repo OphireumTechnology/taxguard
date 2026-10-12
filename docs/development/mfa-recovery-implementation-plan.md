@@ -23,3 +23,7 @@ Recovery follows durable profile/session write corrections; live integration/bro
 ## Foundation implementation status
 
 Proposed010 and mfaRecoveryRequests.ts implement request and independent approval. Both mutations hash the verified application bearer and atomically recheck the actor's current durable AAL2 session, expiry/revocation/tenant/UID/epoch. Approval suspends and gates the target, revokes sessions, records audit and creates a pending job. No raw bearer/factor/seed/code fields are accepted or audited; administrative free-text reason is stored in the protected request, while audit retains its category only. Job execution is unavailable. No HTTP/UI mounting, provider operation, enrollment verification, gate clearing, recovery completion, cancellation or retention implementation yet. SQL contention uses NOWAIT and requires real multi-connection PostgreSQL verification.
+
+## Completion status (2026-10-13, Claude branch)
+
+Proposal 034 implements job execution (fenced leases, verified reset by re-listing, classified retries), provider adapter (disabled by default), provider-verified re-enrolment, independent reactivation with a moved status epoch, cancellation, failed-job re-queue and recent-sign-in enforcement. See `mfa-recovery-completion.md`. Still required: real provider verification in a non-production project, administrator UI, browser evidence and production approval.

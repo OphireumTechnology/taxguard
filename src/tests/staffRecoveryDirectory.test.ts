@@ -5,7 +5,7 @@ import { attachSessionAssuranceLevel } from '../server/staffMfa';
 import { listStaffRecoveries } from '../server/staffRecoveryDirectory';
 const id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',id2='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',token='tg_live_'+'a'.repeat(64);
 function actor(aal:'aal1'|'aal2'='aal2'){const u={id:'checker',tenantId:'tenantA',role:'admin',status:'active'} as User;attachSessionAssuranceLevel(u,aal);return u;}
-const row=(patch:Record<string,unknown>={})=>({requestId:id,targetUid:'target',targetName:'Synthetic',targetRole:'accountant',makerUid:'maker',checkerUid:null,reasonCategory:'lost_authenticator',reason:'Synthetic loss',status:'pending_approval',createdAt:'2026-10-12T00:00:00.123456Z',approvedAt:null,jobId:null,jobStatus:null,approveEligible:true,...patch});
+const row=(patch:Record<string,unknown>={})=>({requestId:id,targetUid:'target',targetName:'Synthetic',targetRole:'accountant',makerUid:'maker',checkerUid:null,reasonCategory:'lost_authenticator',reason:'Synthetic loss',status:'pending_approval',createdAt:'2026-10-12T00:00:00.123456Z',approvedAt:null,jobId:null,jobStatus:null,approveEligible:true,completeEligible:false,cancelEligible:true,jobAttempts:null,jobLastError:null,completedAt:null,completedBy:null,cancelledAt:null,...patch});
 const client=(data:unknown)=>({rpc:vi.fn(async(_name:string,_args:Record<string,unknown>)=>({data,error:null}))});
 const run=(c:any,q:unknown={},u=actor(),bearer=token)=>listStaffRecoveries(c,'tenantA',u,bearer,q);
 describe('durable recovery directory adapter',()=>{

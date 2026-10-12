@@ -77,7 +77,15 @@ it('authorizes lifecycle changes from the session and path, ignoring spoofed act
   rpc.mockResolvedValue({data:{status:'suspended',revokedSessions:2},error:null});
   const response=await post('/staff/members/staff/status',{action:'suspend',reason:'Synthetic access review',targetUid:'checker',actor:'spoof',tenantId:'tenantB'});
   expect(response.status).toBe(200); expect(await response.json()).toEqual({status:'suspended',revokedSessions:2});
-  expect(rpc.mock.calls[0]).toEqual(['taxguard_change_staff_membership_status',{p_tenant:'tenantA',p_actor:'checker',p_uid:'staff',p_action:'suspend',p_reason:'Synthetic access review'}]);
+  // Proposal 034: a recent AAL2 sign-in of the session's own actor is checked first (never the body's).
+  expect(rpc.mock.calls[0]).toEqual(['taxguard_privileged_session',{p_tenant:'tenantA',p_actor:'checker',p_session_hash:createHash('sha256').update(applicationToken!).digest('hex'),p_roles:['admin','administrator','super_admin','super_administrator']}]);
+  expect(rpc.mock.calls[1]).toEqual(['taxguard_change_staff_membership_status',{p_tenant:'tenantA',p_actor:'checker',p_uid:'staff',p_action:'suspend',p_reason:'Synthetic access review'}]);
+});
+it('refuses privileged lifecycle changes without a recent sign-in and never reaches the membership RPC',async()=> {
+  rpc.mockResolvedValueOnce({data:null,error:{code:'P0001',message:'STAFF_RECENT_SIGN_IN_REQUIRED'}});
+  const response=await post('/staff/members/staff/status',{action:'suspend',reason:'Synthetic access review'});
+  expect(response.status).toBe(403); expect(await response.json()).toEqual({code:'STAFF_RECENT_SIGN_IN_REQUIRED'});
+  expect(rpc.mock.calls.map(c=>c[0])).toEqual(['taxguard_privileged_session']);
 });
 
 const directoryMember = { uid:'directory-staff', name:'Synthetic Staff', email:'directory@example.test', role:'accountant', status:'pending_approval', createdAt:'2026-10-12T00:00:00.000002Z', invitedBy:'maker', approvedBy:null, approvedAt:null, statusChangedBy:null, statusChangedAt:null, mfaReenrollmentRequired:false, identityConsistent:true, mfaEnabled:true };
