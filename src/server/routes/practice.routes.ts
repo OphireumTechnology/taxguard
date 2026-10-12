@@ -6,15 +6,13 @@
  */
 import { Router, type RequestHandler, type Response } from 'express';
 import { authenticateToken, type AuthenticatedRequest } from '../auth';
-import { getSupabaseAdmin, isSupabaseServerConfigured } from '../supabase';
+import { getSupabaseAdmin } from '../supabase';
+import { practiceStoreConfigured } from '../taxguard/practice/practiceStoreConfig';
 import { PracticeStore, PracticeStoreError } from '../taxguard/practice/practiceStore';
 
 export interface PracticeRouterDeps { store?: () => PracticeStore; authenticate?: RequestHandler }
 
-export function practiceStoreConfigured(): boolean {
-  if (process.env.NODE_ENV === 'production' || process.env.TAXGUARD_PRACTICE_STORE !== 'durable' || !isSupabaseServerConfigured()) return false;
-  return !(process.env.SUPABASE_URL || '').includes('cvrlhixxczerytiocxid');
-}
+export { practiceStoreConfigured };
 
 export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
   const router = Router();

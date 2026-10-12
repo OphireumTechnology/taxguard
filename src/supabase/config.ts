@@ -78,10 +78,13 @@ export function resolveSupabaseBrowserConfig(rawUrl?: string, rawAnonKey?: strin
   return { configured: issues.length === 0, url, anonKey, issues };
 }
 
+// Server code (tsx in development) also loads this module; there import.meta.env is undefined and
+// the browser client must stay unconfigured (fail-closed), exactly as the esbuild define makes it.
+const viteEnv: Partial<ImportMetaEnv> = import.meta.env ?? {};
 const browserConfig = resolveSupabaseBrowserConfig(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-  import.meta.env.DEV === true
+  viteEnv.VITE_SUPABASE_URL,
+  viteEnv.VITE_SUPABASE_ANON_KEY,
+  viteEnv.DEV === true
 );
 
 let _supabaseClient: SupabaseClient | null = null;
@@ -113,7 +116,7 @@ export function createUnconfiguredSupabaseClient(): SupabaseClient {
 }
 
 export function getSupabase(): SupabaseClient {
-  if (import.meta.env.DEV === true && isProtectedIdentityDestination(browserConfig.url)) {
+  if (viteEnv.DEV === true && isProtectedIdentityDestination(browserConfig.url)) {
     _blockedDevelopmentClient ??= createUnconfiguredSupabaseClient();
     return _blockedDevelopmentClient;
   }
@@ -159,6 +162,6 @@ export function getSupabaseConfigIssues(): readonly SupabaseBrowserConfigIssue[]
 
 /** New staff onboarding is never enabled against the protected project or a production build. */
 export function isStaffIdentityDevelopmentConfigured(): boolean {
-  if (!import.meta.env.DEV || import.meta.env.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED !== 'true' || !browserConfig.configured) return false;
+  if (!viteEnv.DEV || viteEnv.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED !== 'true' || !browserConfig.configured) return false;
   return !isProtectedIdentityDestination(browserConfig.url);
 }

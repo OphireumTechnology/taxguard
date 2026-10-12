@@ -2423,6 +2423,44 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-E2E-BROWSER",
+      "requirement": "Opt-in browser end-to-end suite on the real server with local PostgreSQL and synthetic users (Edge)",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "scripts/e2e/e2e-server.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts"
+      ],
+      "remaining": "Local identity path only; Supabase sign-in, provider MFA and real scanner/storage not exercised; Edge only.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-DB-CONCURRENCY",
+      "requirement": "Real PostgreSQL multi-connection composition, concurrency, idempotency and rollback tests",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/tests-db/harness.ts"
+      ],
+      "tests": [
+        "src/tests-db/concurrency.db.test.ts"
+      ],
+      "remaining": "Opt-in local server; proposals remain unapplied to any hosted database.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-BOOKKEEPER-LEDGER",
       "requirement": "Bookkeeper durable ledger workspace with forced independent review and explicit capability list",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3714,6 +3752,19 @@
       ]
     },
     {
+      "file": "docs/development/browser-e2e-and-database-tests.md",
+      "sha256": "f14011ea43964b51e6c1e684a64f392d6375a4757c31e45e9c0f6ad47224dd15",
+      "bytes": 7421,
+      "headings": [
+        "# Browser end-to-end and non-production database tests (Phases 1 and 2)",
+        "## How to run",
+        "## Phase 2 — database (`src/tests-db`, 15 tests)",
+        "## Phase 1 — browser (`src/tests-e2e`, 25 tests, Edge)",
+        "## Defects found by these suites and fixed",
+        "## Limitations (not verified here)"
+      ]
+    },
+    {
       "file": "docs/development/case-workflow.md",
       "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
       "bytes": 4748,
@@ -4085,7 +4136,7 @@
     {
       "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
       "sha256": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
-      "bytes": 68050,
+      "bytes": 68885,
       "headings": []
     },
     {
@@ -4841,8 +4892,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "05ff296baf84598968ef1314cc40e99999c25af2c6a987e62c7c477f7e24c85d",
-      "bytes": 24267,
+      "sha256": "e8ca2228a654467b6f5d73ced21fd2b6a956594900a48627e0bbeb9dc905912e",
+      "bytes": 25184,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4908,8 +4959,8 @@
     },
     {
       "file": "docs/taxguard-master-remaining-decisions.md",
-      "sha256": "1d397651b419e52c22dddffecf5e7d5ccd04f042db8b5e9b80f0eb61dec7944f",
-      "bytes": 5267,
+      "sha256": "f039588e620b9ea6498316b1eb2d8dbc5f2fa0a32a43d84cc9ce62fb16709734",
+      "bytes": 5573,
       "headings": [
         "# Remaining human decisions and external dependencies",
         "## Decisions raised on the Claude branch (2026-10-12)"
@@ -5104,7 +5155,7 @@
     "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
+    "package.json": "3464961bae3dfa62347eed210f1a87a0ffbbc7fd292a116a2be1bfc52404a0e2",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
@@ -5115,6 +5166,7 @@
     "qa/synthetic-shell/README.md": "9a697ca76ff1a3c60a337b4042914a075c5ec6fc03f3239e0ea0fb82af741544",
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
+    "scripts/e2e/e2e-server.ts": "f69f01980ad39d411c5ef15ff90ccfb095d4ed25fd29a981e4f01d511b9511a7",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/record-local-browser-blockers.mjs": "5ebae5a42e083c3f98f832fa43033db24d4d03df0694fd74e440368518be5901",
     "scripts/run-local-browser.mjs": "b86f7c7307dec27e5315e3acac3e9d158802319593af11f8459b47575b684e9c",
@@ -5191,6 +5243,9 @@
     "src/services/api.ts": "7acfe8eefd956723a36c1c2494723adef59f3a01b22d35c75f439926a2424998",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
+    "src/tests-db/concurrency.db.test.ts": "ad4aa01f0eea91d0626d77ec8e4015a2255be9ac21281a8e54a1f16ebc8db086",
+    "src/tests-db/harness.ts": "888115eb9bc809450ef60e1aba9352802488863979564686cfa24a07afffcd14",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
     "src/tests/aiA00Orchestration.test.ts": "69af6e1bc5ec551894cc8152e9d9ccb2c59cf855d6fffd21e2000a443e39f86c",

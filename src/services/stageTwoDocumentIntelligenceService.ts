@@ -440,6 +440,12 @@ export interface DocumentIntelligenceRecord {
 // 8. OCR SIMULATION & PARSER ENGINE (Clearly labeled SIMULATED / DEVELOPMENT)
 // ============================================================================
 
+// Shared by server and browser code: the browser has no `process`, so read server variables
+// defensively (absent in the browser) and treat a production Vite build as production.
+const runtimeEnv: Record<string, string | undefined> = typeof process !== 'undefined' && process?.env ? process.env : {};
+const viteProductionBuild = (import.meta as { env?: { PROD?: boolean; VITE_APP_ENV?: string } }).env?.PROD === true
+  || (import.meta as { env?: { VITE_APP_ENV?: string } }).env?.VITE_APP_ENV === 'production';
+
 const DEV_OCR_PROVIDER = 'SIMULATED / DEVELOPMENT OCR (Development & Test Harness - Non-Production)';
 const DEV_OCR_VERSION = 'v2.4-dev';
 
@@ -447,8 +453,8 @@ export class StageTwoDocumentIntelligenceService {
   private static inMemoryRecords: Map<string, DocumentIntelligenceRecord> = new Map();
   private static inMemoryReviewQueue: Map<string, HumanReviewQueueItem> = new Map();
   private static providerMode: DocumentIntelligenceProviderMode =
-    (process.env.TAXGUARD_OCR_PROVIDER_MODE as DocumentIntelligenceProviderMode) ||
-    (process.env.NODE_ENV === 'production' || process.env.VITE_APP_ENV === 'production' ? 'CLOUD' : 'LOCAL');
+    (runtimeEnv.TAXGUARD_OCR_PROVIDER_MODE as DocumentIntelligenceProviderMode) ||
+    (runtimeEnv.NODE_ENV === 'production' || runtimeEnv.VITE_APP_ENV === 'production' || viteProductionBuild ? 'CLOUD' : 'LOCAL');
   private static cloudTransportHandler?: DocumentAiTransportHandler;
 
   public static getProviderMode(): DocumentIntelligenceProviderMode {
@@ -462,8 +468,8 @@ export class StageTwoDocumentIntelligenceService {
   public static isCloudConfigured(): boolean {
     if (this.cloudTransportHandler) return true;
     return Boolean(
-      process.env.DOCUMENT_AI_PROCESSOR_ID ||
-      (process.env.TAXGUARD_OCR_ENABLED === 'true' && process.env.GOOGLE_CLOUD_VISION_KEY)
+      runtimeEnv.DOCUMENT_AI_PROCESSOR_ID ||
+      (runtimeEnv.TAXGUARD_OCR_ENABLED === 'true' && runtimeEnv.GOOGLE_CLOUD_VISION_KEY)
     );
   }
 
@@ -573,14 +579,14 @@ export class StageTwoDocumentIntelligenceService {
     if (currentMode === 'CLOUD') {
       providerName = 'Google Cloud Document AI';
       providerVersion = 'v2.1-enterprise';
-      processor = process.env.DOCUMENT_AI_PROCESSOR_ID || 'projects/taxguard-prod/locations/us/processors/tax-doc-v2';
+      processor = runtimeEnv.DOCUMENT_AI_PROCESSOR_ID || 'projects/taxguard-prod/locations/us/processors/tax-doc-v2';
       isCloudOCR = true;
 
       // Check if Cloud Document AI transport or credentials are configured
       const hasCloudCredentials = Boolean(
         this.cloudTransportHandler ||
-        process.env.DOCUMENT_AI_PROCESSOR_ID ||
-        (process.env.TAXGUARD_OCR_ENABLED === 'true' && process.env.GOOGLE_CLOUD_VISION_KEY)
+        runtimeEnv.DOCUMENT_AI_PROCESSOR_ID ||
+        (runtimeEnv.TAXGUARD_OCR_ENABLED === 'true' && runtimeEnv.GOOGLE_CLOUD_VISION_KEY)
       );
 
       if (!hasCloudCredentials) {

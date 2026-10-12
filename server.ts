@@ -901,7 +901,7 @@ async function startServer() {
 
   const server = app.listen(
     PORT,
-    '0.0.0.0',
+    process.env.NODE_ENV !== 'production' && process.env.TAXGUARD_LISTEN_HOST === '127.0.0.1' ? '127.0.0.1' : '0.0.0.0',
     () => {
       console.log(
         `[A/R Tax Services] Server successfully initialized on port ${PORT}`
