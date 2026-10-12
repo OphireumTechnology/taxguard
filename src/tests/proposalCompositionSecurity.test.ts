@@ -29,10 +29,11 @@ describe('proposal composition', () => {
       '20261012310000_taxguard_document_requests.sql', '20261012320000_taxguard_role_dashboards.sql',
       '20261012330000_taxguard_tax_engine_foundation.sql',
       '20261012340000_taxguard_mfa_recovery_completion.sql',
-      '20261012350000_taxguard_staff_access_hardening.sql']));
+      '20261012350000_taxguard_staff_access_hardening.sql',
+      '20261012360000_taxguard_tax_rule_verification_cases.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
-    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235/);
+    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236/);
   }, 60000);
 });
 

@@ -6,7 +6,7 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|cases/${ID}/runs))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/tests|cases/${ID}/runs))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
   `cases/?`, `cases/${ID}/(advance|return|hold|notes)`,
@@ -16,6 +16,7 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
   `billing/clients/${ID}/payments/${ID}/refund`, `billing/clients/${ID}/credits/${ID}/(apply|reject)`,
   // Managers may register sources and draft / submit rule sets; verification and approval need a reviewer.
   `tax-engine/sources`, `tax-engine/rule-sets`, `tax-engine/rule-sets/${ID}/submit`,
+  `tax-engine/rule-sets/${ID}/(tests|run-tests)`, `tax-engine/rule-sets/${ID}/tests/${ID}/remove`,
 ].join('|') + `)$`);
 
 export function practiceManagerRequestAllowed(role:string,method:string,url:string):boolean {

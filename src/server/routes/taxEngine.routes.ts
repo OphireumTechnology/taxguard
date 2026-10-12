@@ -45,6 +45,10 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.post('/rule-sets', run(req => store().draftRuleSet(t(req), u(req), req.body?.definition), 201));
   router.post('/rule-sets/:ruleSetId/:action(submit|approve|reject)', run(req => store().transitionRuleSet(t(req), u(req), req.params.ruleSetId,
     req.params.action as 'submit' | 'approve' | 'reject', note(req.body?.note))));
+  router.get('/rule-sets/:ruleSetId/tests', run(req => store().tests(t(req), u(req), req.params.ruleSetId)));
+  router.post('/rule-sets/:ruleSetId/tests', run(req => store().addTest(t(req), u(req), req.params.ruleSetId, req.body ?? {}), 201));
+  router.post('/rule-sets/:ruleSetId/tests/:testId/remove', run(req => store().removeTest(t(req), u(req), req.params.ruleSetId, req.params.testId)));
+  router.post('/rule-sets/:ruleSetId/run-tests', run(req => store().runTests(t(req), u(req), req.params.ruleSetId)));
   router.get('/cases/:caseId/runs', run(async req => ({ items: await store().runs(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
   router.post('/cases/:caseId/runs', run(req => store().calculate(t(req), u(req), req.params.caseId, String(req.body?.ruleSetId ?? ''),
     { filingStatus: typeof req.body?.filingStatus === 'string' ? req.body.filingStatus : undefined, inputs: Array.isArray(req.body?.inputs) ? req.body.inputs : [] }), 201));

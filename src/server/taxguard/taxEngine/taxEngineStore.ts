@@ -5,7 +5,8 @@
  * idempotency, nondeterminism refusal and immutability. Stages 9-18 stay blocked.
  */
 import type { PracticeRpcClient } from '../practice/practiceStore';
-import { definitionHash, evaluateRuleSet, TaxEngineError, validateRuleSet, type CalculationRequest, type RuleSetDefinition } from './ruleSetDefinition';
+import { definitionHash, evaluateRuleSet, TaxEngineError, TAX_ENGINE_VERSION, validateRuleSet, type CalculationRequest, type RuleSetDefinition } from './ruleSetDefinition';
+import { TaxDecimal } from '../../../taxguard/calculation/TaxDecimal';
 
 export class TaxEngineStoreError extends Error {
   constructor(public readonly code: string, public readonly status: number, public readonly detail?: string) { super(code); }
@@ -13,7 +14,8 @@ export class TaxEngineStoreError extends Error {
 const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CONTENT_REVIEWER_REQUIRED: 403, MAKER_CHECKER_VIOLATION: 403, TAX_CALC_REVIEWER_REQUIRED: 403,
   PRACTICE_ACCESS_DENIED: 403, TAX_SOURCE_EXISTS: 409, TAX_SOURCE_NOT_PROPOSED: 409, TAX_RULE_SET_DUPLICATE: 409, TAX_RULE_SET_NOT_DRAFT: 409, TAX_RULE_SET_NOT_PENDING: 409,
   TAX_RULE_SET_NOT_APPROVED: 409, TAX_SOURCE_NOT_VERIFIED: 409, TAX_CALC_ALREADY_REVIEWED: 409, TAX_CALC_TAX_YEAR_MISMATCH: 409, TAX_ENGINE_NONDETERMINISM: 409,
-  TAX_RULE_SET_INTEGRITY: 409, TAX_RULE_SET_IMMUTABLE: 409, TAX_CALC_RUN_IMMUTABLE: 409 };
+  TAX_RULE_SET_INTEGRITY: 409, TAX_RULE_SET_IMMUTABLE: 409, TAX_CALC_RUN_IMMUTABLE: 409,
+  TAX_RULE_SET_TESTS_REQUIRED: 409, TAX_RULE_SET_TESTS_NOT_RUN: 409, TAX_RULE_SET_TESTS_FAILING: 409, TAX_RULE_TESTS_CHANGED: 409, TAX_RULE_TEST_IMMUTABLE: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -67,6 +69,38 @@ export class TaxEngineStore {
   reviewRun(tenant: string, actor: string, runId: string, decision: 'approve' | 'reject', note: string) {
     if (!UUID.test(runId)) throw new TaxEngineStoreError('TAX_CALC_RUN_NOT_FOUND', 404);
     return this.call('taxguard_tax_run_review', { p_tenant: tenant, p_actor: actor, p_run: runId, p_decision: decision, p_note: note ?? null });
+  }
+  // ---- Source-cited verification cases (proposal 036) -----------------------------------------
+  addTest(tenant: string, actor: string, ruleSetId: string, test: Record<string, unknown>) {
+    return this.call('taxguard_tax_rule_test_add', { p_tenant: tenant, p_actor: actor, p_rule_set: this.id(ruleSetId), p_test: test });
+  }
+  removeTest(tenant: string, actor: string, ruleSetId: string, testId: string) {
+    if (!UUID.test(testId)) throw new TaxEngineStoreError('TAX_RULE_TEST_NOT_FOUND', 404);
+    return this.call('taxguard_tax_rule_test_remove', { p_tenant: tenant, p_actor: actor, p_rule_set: this.id(ruleSetId), p_test: testId });
+  }
+  tests(tenant: string, actor: string, ruleSetId: string) {
+    return this.call<{ testsSha256: string; tests: any[]; latestRun: any }>('taxguard_tax_rule_test_list', { p_tenant: tenant, p_actor: actor, p_rule_set: this.id(ruleSetId) });
+  }
+  /** Runs every case with the deterministic engine; a case passes only if every expected output matches exactly. */
+  async runTests(tenant: string, actor: string, ruleSetId: string) {
+    const rs = await this.ruleSet(tenant, actor, ruleSetId);
+    const definition = rs.definition as RuleSetDefinition;
+    if (this.engine(() => definitionHash(definition)) !== rs.contentSha256) throw new TaxEngineStoreError('TAX_RULE_SET_INTEGRITY', 409);
+    const { testsSha256, tests } = await this.tests(tenant, actor, ruleSetId);
+    const results = tests.map((t: any) => {
+      try {
+        const outcome = evaluateRuleSet(definition, { filingStatus: t.filingStatus ?? undefined, inputs: t.inputs });
+        const mismatches = Object.entries(t.expected as Record<string, string>).filter(([key, value]) => {
+          const actual = outcome.outputs[key];
+          return actual === undefined || typeof value !== 'string' || TaxDecimal.parse(actual).compare(TaxDecimal.parse(value)) !== 0;
+        }).map(([key, value]) => ({ output: key, expected: value, actual: outcome.outputs[key] ?? null }));
+        return { testId: t.testId, passed: mismatches.length === 0 && Object.keys(t.expected).length > 0, mismatches };
+      } catch (e) {
+        return { testId: t.testId, passed: false, error: e instanceof TaxEngineError ? e.code : 'TAX_ENGINE_EVALUATION_FAILED' };
+      }
+    });
+    return this.call('taxguard_tax_rule_test_run_record', { p_tenant: tenant, p_actor: actor, p_rule_set: this.id(ruleSetId), p_run: { contentSha256: rs.contentSha256,
+      testsSha256, engineVersion: TAX_ENGINE_VERSION, testCount: tests.length, passedCount: results.filter((r: any) => r.passed).length, results } });
   }
   runs(tenant: string, actor: string, caseId: string) { return this.call<any[]>('taxguard_tax_run_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
 }

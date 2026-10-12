@@ -43,3 +43,19 @@ No federal or state rule content, brackets, thresholds, rates or forms; no retur
 e-file. Commissioning a real rule set requires the firm to register and verify actual sources, author
 and independently approve the rule set, and a separate decision to unblock stage 9 — none of which is
 assumed.
+
+## Source-cited verification cases (proposal 036, added 2026-10-13)
+
+Approval by reading is not evidence that a rule set computes what its sources say. Proposal 036
+(`20261012360000_taxguard_tax_rule_verification_cases.sql`, **not applied**) adds worked cases:
+inputs as exact decimal strings, expected outputs, and the **verified** source (with pinpoint
+citation, e.g. a published worksheet example) the expectation comes from. Cases can be added or
+removed only while the rule set is a DRAFT. `POST /rule-sets/:id/run-tests` evaluates every case
+with the deterministic engine (exact decimal comparison; any engine error fails that case with its
+code) and records an **immutable** run pinned to the definition hash, the case-set hash (recomputed
+by the database) and the engine version. Submitting and approving (superseded 033 transition,
+generated with anchored patches) require at least one case and a recorded **all-passing run for the
+current content and case set**; adding a case after a run invalidates it. TaxGuard ships no cases.
+
+Tests: `taxRuleVerificationCases.test.ts` (4; removing the submission gate fails 3), browser-suite
+`07-tax-engine` updated (a case is required and must pass before submission on the real server).
