@@ -192,3 +192,7 @@ Proposal 026 (unapplied); development-only `/api/cases`; Practice Manager *Case 
 ## Claude worktree — staff account security (2026-10-12)
 
 Staff-wide `/staff/account-security` page with sessions and own security history; step-up extension recommendations recorded. Details: [staff-account-security.md](staff-account-security.md). Production NO-GO.
+
+## Claude worktree — cross-module hardening (2026-10-12)
+
+All proposals compose; security-definer, privilege and isolation invariants pass; npm audit 0 known vulnerabilities. Details: [batch-hardening-report.md](batch-hardening-report.md). Production NO-GO.

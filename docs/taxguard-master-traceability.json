@@ -2518,6 +2518,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-PROPOSAL-COMPOSITION",
+      "requirement": "All proposals composed on the core schema with database security invariants and cross-module isolation",
+      "status": "IMPLEMENTED AND VALIDATED",
+      "implementation": [
+        "src/tests/proposalCompositionSecurity.test.ts"
+      ],
+      "tests": [
+        "src/tests/proposalCompositionSecurity.test.ts"
+      ],
+      "remaining": "Local PGlite only; proposals unapplied; multi-connection concurrency unverified.",
+      "releaseClassification": "COMPLETE AND VALIDATED",
+      "functionality": "Named bounded function exists; full product integration is not implied",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-STAFF-ACCOUNT-SECURITY",
       "requirement": "Staff-wide account security page with own sessions and security history",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3569,6 +3588,17 @@
       ]
     },
     {
+      "file": "docs/development/batch-hardening-report.md",
+      "sha256": "3badc38928e2f91bf4172670f554b32ae5fd22cf76ccc9eb1e997c29834bd3e4",
+      "bytes": 3996,
+      "headings": [
+        "# Cross-module quality, security and integration pass (Module 6) — 2026-10-12",
+        "## Checks performed",
+        "## Defects found and fixed during the batch",
+        "## Integration dependencies with the Codex workstream"
+      ]
+    },
+    {
       "file": "docs/development/case-workflow.md",
       "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
       "bytes": 4748,
@@ -3670,8 +3700,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "bd0cf9dc322bdd201d01bdd8907bb3040904d0bc27b466cc3bffe86e48761fbe",
-      "bytes": 27137,
+      "sha256": "49307ac9c4dd01cfe9487a2a21381b96addd5f34621ba7728b2f09eb11b46f8a",
+      "bytes": 27398,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3694,7 +3724,8 @@
         "## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)",
         "## Claude worktree — client and engagement management (2026-10-12)",
         "## Claude worktree — durable case workflow (2026-10-12)",
-        "## Claude worktree — staff account security (2026-10-12)"
+        "## Claude worktree — staff account security (2026-10-12)",
+        "## Claude worktree — cross-module hardening (2026-10-12)"
       ]
     },
     {
@@ -4653,8 +4684,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "00e55f4d1d69583cd7a74c0c855dbdd049c340f027598e6d69b2e8c6f3b9b829",
-      "bytes": 22473,
+      "sha256": "a3f69902cc1cc6647448f42f28f1db20d53c7d17db93aea8f22ab82ed143ce85",
+      "bytes": 22804,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5049,6 +5080,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
+    "src/tests/proposalCompositionSecurity.test.ts": "3ea14a9b21ee66f71f882e3d933b0b030d945aa7d2eb2d190e137fc3ed78bb32",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
