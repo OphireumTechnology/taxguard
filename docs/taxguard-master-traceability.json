@@ -3436,6 +3436,111 @@
       ]
     },
     {
+      "file": "docs/development/federal-form-source-register.md",
+      "sha256": "3d79673afb2a34390a85064923f7181bfd6155b194be0c4c6ad8365593c88feb",
+      "bytes": 3595,
+      "headings": [
+        "# Federal form source register — initial official-page verification",
+        "## Verified source-page signals needing follow-up",
+        "## Next evidence requirements"
+      ]
+    },
+    {
+      "file": "docs/development/identity-integration-notes.md",
+      "sha256": "91b21fbef109bfc72a96be09ee978defb77b48bd360a9182e44cc0e3998fcb24",
+      "bytes": 7588,
+      "headings": [
+        "# Staff identity integration notes",
+        "## Implemented boundary",
+        "## Remaining implementation",
+        "## Verification limits",
+        "## Development HTTP integration",
+        "## Security review corrections",
+        "## Staff administration directory",
+        "### Durable identity/intake boundary"
+      ]
+    },
+    {
+      "file": "docs/development/master-completion-plan.md",
+      "sha256": "f92c3e19efb3dbde8335db35a8162f267f8f244788a2a1ed913823885ce87112",
+      "bytes": 17664,
+      "headings": [
+        "# TaxGuard AI — Master Completion Plan",
+        "## Status vocabulary (Definition of Done)",
+        "## Audit baseline (2026-10-12, commit `d6be0e5`)",
+        "## Backlog (dependency and security-risk order)",
+        "## Standing restrictions",
+        "## Master directive re-audit — 2026-10-12",
+        "## Concrete execution checklist",
+        "### 1. Immediate security and identity",
+        "### 2. Canonical workflow and documents",
+        "### 3. All eleven functional role experiences",
+        "### 4. Federal and state preparation capabilities",
+        "### 5. AI, integrations and platform",
+        "## Validation, progress and Git checkpoints"
+      ]
+    },
+    {
+      "file": "docs/development/master-progress.md",
+      "sha256": "dde10efaebe059b918acae496247838d5961cd740173756a11b62684198cb287",
+      "bytes": 24642,
+      "headings": [
+        "# TaxGuard AI — Master Progress Log",
+        "## Handoff state",
+        "## Log",
+        "## Continuation — 2026-10-12",
+        "### Validation results and next slice",
+        "### Final validation for this slice",
+        "## Master-instruction continuation — 2026-10-12",
+        "### Invitation UI and lifecycle continuation",
+        "### Checkpoint review limits",
+        "### Frozen-source validation result",
+        "## Administrator staff management continuation — 2026-10-12",
+        "### Atomic client identity work in progress",
+        "### Frozen-source identity/intake checkpoint",
+        "## Durable session/profile continuation — 2026-10-12",
+        "### MFA recovery foundation in progress",
+        "### Frozen-source recovery/security checkpoint"
+      ]
+    },
+    {
+      "file": "docs/development/mfa-recovery-implementation-plan.md",
+      "sha256": "54f4e500b7be461ff83f70e6b5f9d8cad2966692df23652e016c6eb03697be06",
+      "bytes": 4141,
+      "headings": [
+        "# Staff MFA recovery implementation boundary",
+        "## Next coherent transaction and adapter",
+        "## Synthetic development checks",
+        "## Foundation implementation status"
+      ]
+    },
+    {
+      "file": "docs/development/session-handoff.md",
+      "sha256": "0d677e83418abee11174d36f44878af6f99539c829b912020c5bcd0230bbb313",
+      "bytes": 5865,
+      "headings": [
+        "# TaxGuard AI development handoff — 2026-10-12",
+        "## Branch, safety and session evidence",
+        "## Completed local development slices",
+        "## Next work, in dependency/security order"
+      ]
+    },
+    {
+      "file": "docs/development/shared-identity-transaction-plan.md",
+      "sha256": "dc12dcc66ba62378b2546bddd4341c58f2e8792c2cf2a3ea4a4a59c0458b9940",
+      "bytes": 6841,
+      "headings": [
+        "# Shared identity provisioning transaction plan",
+        "## Current defects confirmed from source",
+        "## Next identity boundary",
+        "## Validation",
+        "## Separate durable hierarchy work",
+        "## Session bridge review corrections",
+        "## Next security dependency: profile persistence and revocation",
+        "## Implemented write corrections and remaining authorization work"
+      ]
+    },
+    {
       "file": "docs/DISASTER_RECOVERY.md",
       "sha256": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
       "bytes": 6285,
@@ -3520,6 +3625,66 @@
       "file": "docs/proposed-migrations/20261012000000_taxguard_staff_session_assurance.sql",
       "sha256": "7c4a077ff30fb90c71e3731dc5e0dd195bc64974fc91c2b1cebf8e9dc3bbde51",
       "bytes": 1235,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012010000_taxguard_staff_invitations.sql",
+      "sha256": "c482a5719e9481a24ba3c43700cf80a8d6202f6ec1d05dbf2b35ef002f81f3b2",
+      "bytes": 2776,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql",
+      "sha256": "0afd83a05fafc498780b8a36bc57a736dce97b2e9da639374c5eeef52c735269",
+      "bytes": 4192,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012030000_taxguard_staff_invitation_management.sql",
+      "sha256": "b25cb872bd890f922d0a262953912aad158f30ccd28abf97f1ba8441a2f9fbc0",
+      "bytes": 4678,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
+      "sha256": "e12fafb172622d0b2329239a677ade9168d4d0bf63400606b481c38da86b86a6",
+      "bytes": 4885,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012050000_taxguard_staff_access_directory.sql",
+      "sha256": "669d835858308ee80115e1ba1298bc50acffd2b9afa6bb5715f50b5def7ed32b",
+      "bytes": 5875,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
+      "sha256": "5cf5cc0344f124784668cfe9b52986a1742841c5ae55b78a3e64c79b15dd75c2",
+      "bytes": 18293,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012070000_taxguard_client_intake_drafts.sql",
+      "sha256": "82996fd5ce158d4fd72422c929851014fb6f35c456eaa25358a5b53d6ae5dc3c",
+      "bytes": 15008,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012080000_taxguard_session_transactions.sql",
+      "sha256": "9ccf1da2022e6b4ae82b1be846dd5edd2049c5b321ba924aa77e4d5a7ea35f05",
+      "bytes": 6915,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012090000_taxguard_client_profile_updates.sql",
+      "sha256": "17748ef32286e0a0a28e2092b08c6c6de2c88072eb1dc6947a09ab5700916d93",
+      "bytes": 6937,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012100000_taxguard_mfa_recovery_requests.sql",
+      "sha256": "caeab54c0d1452f01c59691012038526ef187994ec4f0088d349016721195086",
+      "bytes": 15907,
       "headings": []
     },
     {
@@ -4239,8 +4404,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "ae0357ab0d202e0fdcf2add5e086db1ef1b869a3e3118d143f6333862e788229",
-      "bytes": 11860,
+      "sha256": "29065cce4a5fe440b1881163e9c164910b8927b98f1e15b0bc68fd0688c15aee",
+      "bytes": 19163,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4250,7 +4415,11 @@
         "## 4. Accounting (directive §5.4)",
         "## 5. AI governance (directive §11)",
         "## 6. Dashboards, tax engine, integrations, operations, deployment",
-        "## 7. Open decisions (unchanged; not resolved by assumption)"
+        "## 7. Open decisions (unchanged; not resolved by assumption)",
+        "## Autonomous continuation — identity/security development (2026-10-12)",
+        "### Administrator directory and staff management development slice",
+        "## Development continuation — 2026-10-12 identity and intake",
+        "## Durable identity continuation — 2026-10-12"
       ]
     },
     {
@@ -4490,7 +4659,7 @@
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "c4ee0930bac240ef2f4f9afc1e8a4d361684d0b2fa892524c4c9e8c3af1111cb",
+    "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
@@ -4498,7 +4667,7 @@
     "qa/product-browser/boundary.mjs": "9945f6daf2eead644e34cc19ed0de5aed00b9c15a7def81c20fb7ad0ec8b54c4",
     "qa/staging-acceptance-plan.mjs": "66311ca7a93ac4bdf14ab4da266756fb9efa5ee552976e8b1bb86a6e7f70b846",
     "qa/synthetic-shell/FixtureSelect.tsx": "fda2b6f1590d27f10515cf7b91cb6daee8fcb775a692d4d4df8016252e3e01f9",
-    "qa/synthetic-shell/README.md": "d439a5a97f075d17fa3dde44e52a284ac67abb08fcccafee2e24bf65f80cbf55",
+    "qa/synthetic-shell/README.md": "9a697ca76ff1a3c60a337b4042914a075c5ec6fc03f3239e0ea0fb82af741544",
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
@@ -4512,8 +4681,8 @@
     "src/App.tsx": "a7273e7856b2e2ca5d3ef4ae2d2cc3449c474bfc27acad4fa154632c0e814535",
     "src/ai/architectureMapping.ts": "6d7af6b6cb2860e0247af0243b42e2704f1d77ee020cec5e6625a386115c9377",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
-    "src/components/admin/PracticeAdminWorkspace.tsx": "0360c0385d88cba0a5bde9e5af121f8f0f238784cb4c1687be4762f8151be650",
-    "src/components/auth/AuthPages.tsx": "c1445ce221f5d6a869f8f7a282f3cd9e11b832f20a5410f39c959f42ff4a46ba",
+    "src/components/admin/PracticeAdminWorkspace.tsx": "a20f0c2b3c5ab841741838fe65a26ec46816b0bbcefd86336ea37261746d8220",
+    "src/components/auth/AuthPages.tsx": "01ead251370b872d4837f5c8afe56c7e38f2216cbdd716c2feb932a143fbd873",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
     "src/components/portal/AuthenticatedClientDashboard.tsx": "acf6e8925425d50e3146c2a68c9a6872f799930d59ac806b111b20c7e3caaba1",
@@ -4540,7 +4709,7 @@
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
     "src/server/productionApp.ts": "812c6e32ac4d631e52b2f4b766e1f64bd13d45930915887c9beefa3a7cd83ada",
-    "src/server/routes/profile-amendment.routes.ts": "4369679255de2c1e47bc558b5d3a66f658d1b742ed0b033d4a3fe0d15065a714",
+    "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
     "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
     "src/server/taxguard/authority.repository.ts": "775ac57a1954ea44e0d58f79c039c52c1757099e3a06e6a91d076475c3bb3884",
     "src/server/taxguard/bookkeeping/accountingSync.service.ts": "003165a06c6e9c83f948365900dbc88df2dcf9aa6ee5e481aa36f95f6e571037",
@@ -4569,7 +4738,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "2e0926d1c7221a406b7de9de983404a18cda1e82e766bb9f0d9166915bcad902",
+    "src/services/api.ts": "36ae8b4f6dd774e14bc72ecd795bfa1dbe7a027d690066b5118975066af4aabc",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
@@ -4587,7 +4756,7 @@
     "src/tests/aiMaterialActionPreparation.test.ts": "3eb2692f81a4297085daa12b719c87af609c76e4e7c7b6528df60e4ebeeb9eef",
     "src/tests/apiResponseRecovery.test.ts": "19420de069febcb49b8bfabd1c600c298cc402c68df94a093259e376d9fd6a67",
     "src/tests/auditAppendOnlyProposal.test.ts": "5564438b5da4b5cdf9eda09a89bc5b2ff4f71154cff652b1c46833fafeb7af64",
-    "src/tests/authFormLabelAssociations.test.tsx": "7470faaee4aab88f554261d886b5a17be132abf2bee47354970daabe36439ad3",
+    "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/caseAuthorityHttp.test.ts": "5923e4668b65d55ebdd40299647dc5d7183099a7c910500f23692f6a2acfa458",
     "src/tests/clientDashboardMasterplan.test.tsx": "8eeff4559f21f88dcdce2699a15e82250dac15979bdddea0895f14e8dfe6350a",
@@ -4600,7 +4769,7 @@
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
-    "src/tests/finalReleaseGateVerification.test.ts": "3dfd0ffe9fcd3ac79d4163e0693ed55f6d97c003d16a8bbbad717dedf653b17c",
+    "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
     "src/tests/lazyWorkspaceRouting.test.tsx": "c3c37d7e22fd803411a4c3e015e6d948215edfbfd5386b9a020e5f1a03a88140",
     "src/tests/legacyIdempotencyIntegrity.test.ts": "8f330a1bb9df8d15972f959b7a3ce4e44a3cd726b06484860035c914f6bdb718",
     "src/tests/legacyJobClaimIntegrity.test.ts": "00051245b8229bf8f2ea974cf589e7ef532063fa39975196fd75d5815448911e",
@@ -4614,7 +4783,7 @@
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
     "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
-    "src/tests/productionApiHttp.test.ts": "373ec2c2eea158c3cba7a8b838e4545c71a536ad2faabb99b33b4f83c8d3e9f7",
+    "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",

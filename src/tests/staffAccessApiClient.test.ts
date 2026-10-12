@@ -4,7 +4,7 @@ vi.mock('../supabase/config',()=>({isStaffIdentityDevelopmentConfigured:()=>conf
 vi.mock('../config/apiEndpoint',()=>({apiEndpoint:(path:string)=>config.base+path}));
 import { api, setStoredToken, clearStoredToken, getStoredToken } from '../services/api';
 const transport=vi.fn();
-beforeEach(()=>{config.enabled=true;config.base='http://127.0.0.1:3000';transport.mockReset().mockResolvedValue(new Response(JSON.stringify({items:[],nextCursor:null,source:'durable'}),{status:200}));vi.stubGlobal('fetch',transport);setStoredToken('synthetic-session-A');});
+beforeEach(()=>{config.enabled=true;config.base='http://127.0.0.1:3000';transport.mockReset().mockImplementation(async()=>new Response(JSON.stringify({items:[],nextCursor:null,source:'durable'}),{status:200}));vi.stubGlobal('fetch',transport);setStoredToken('synthetic-session-A');});
 afterEach(()=>{clearStoredToken();vi.unstubAllGlobals();});
 it('sends directory scope through approved fixed paths with authenticated no-store requests',async()=>{
   await api.staffAccess.members({limit:25,status:'pending_approval',cursor:'opaque_cursor'});
@@ -33,4 +33,21 @@ it('encodes fixed mutation target paths and does not accept caller authority arg
 it('propagates abort signals and API unavailable codes without fabricating rows',async()=>{
   const controller=new AbortController();transport.mockResolvedValue(new Response(JSON.stringify({code:'STAFF_DIRECTORY_STORE_UNAVAILABLE'}),{status:503}));
   await expect(api.staffAccess.members({},controller.signal)).rejects.toMatchObject({code:'STAFF_DIRECTORY_STORE_UNAVAILABLE',status:503});expect(transport.mock.calls[0][1].signal).toBe(controller.signal);
+});
+
+it('uses guarded recovery endpoints with query scope, encoded IDs, signals and no body authority',async()=>{
+  const controller=new AbortController();
+  await api.staffAccess.recoveries({status:'pending_approval',limit:25},controller.signal);
+  expect(transport.mock.calls[0][0]).toBe(config.base+'/api/staff-access/mfa-recoveries?limit=25&status=pending_approval');
+  expect(transport.mock.calls[0][1]).toMatchObject({signal:controller.signal,cache:'no-store',credentials:'omit'});
+  const input={requestId:'11111111-1111-4111-8111-111111111111',targetUid:'staff-target',reasonCategory:'lost_authenticator' as const,reason:'Synthetic report'};
+  await api.staffAccess.requestRecovery(input,controller.signal);
+  expect(JSON.parse(transport.mock.calls[1][1].body)).toEqual(input);
+  await api.staffAccess.approveRecovery('request/id',controller.signal);
+  expect(transport.mock.calls[2][0]).toBe(config.base+'/api/staff-access/mfa-recoveries/request%2Fid/approve');
+  expect(transport.mock.calls[2][1].body).toBeUndefined();
+});
+it('keeps recovery endpoints unavailable in protected environments',async()=>{
+  config.enabled=false;await expect(api.staffAccess.recoveries()).rejects.toMatchObject({status:503});
+  await expect(api.staffAccess.approveRecovery('request-id')).rejects.toMatchObject({status:503});expect(transport).not.toHaveBeenCalled();
 });

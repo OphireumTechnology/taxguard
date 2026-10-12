@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import express from 'express';
 import { createServer, type Server } from 'node:http';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
@@ -5,6 +6,7 @@ import { createStaffAccessRouter, staffAccessDevelopmentConfigured } from '../se
 import { attachSessionAssuranceLevel } from '../server/staffMfa';
 import { StaffAccessRateLimit } from '../server/staffAccessRateLimit';
 let server: Server; let origin: string; let user: any;
+let applicationToken: string | undefined;
 const rpc = vi.fn(); const verifyIdentity = vi.fn();
 const token = 'a'.repeat(64);
 let httpTime = 1000;
@@ -12,7 +14,7 @@ const staffLimiter = new StaffAccessRateLimit(20, 60_000, 10_000, () => httpTime
 beforeAll(async () => {
   const app=express(); app.use(express.json({limit:'32kb'}));
   app.use('/staff',createStaffAccessRouter({ client: () => ({rpc} as any), tenantId: () => 'tenantA', verifyIdentity, limiter: staffLimiter,
-    authenticate: (req: any,res,next) => {if (!user) return res.status(401).json({code:'AUTH_REQUIRED'}); req.user=user; next();} }));
+    authenticate: (req: any,res,next) => {if (!user) return res.status(401).json({code:'AUTH_REQUIRED'}); req.user=user; req.token=applicationToken; next();} }));
   app.use('/closed',createStaffAccessRouter());
   app.use('/limited',createStaffAccessRouter({client:()=>({rpc} as any),limiter:new StaffAccessRateLimit(1)}));
   server=createServer(app); await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -21,6 +23,7 @@ beforeAll(async () => {
 afterAll(async()=> {server.closeAllConnections(); await new Promise<void>(resolve=>server.close(()=>resolve()));});
 afterEach(()=>vi.unstubAllEnvs());
 beforeEach(()=> {
+  applicationToken = 'tg_live_' + 'b'.repeat(64);
   httpTime += 60_000; // Each test has its own limiter window; individual abuse tests remain bounded.
   vi.stubEnv('NODE_ENV','test'); vi.stubEnv('TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED','false');
   user={id:'checker',tenantId:'tenantA',status:'active',role:'admin'}; attachSessionAssuranceLevel(user,'aal2');
@@ -112,4 +115,44 @@ it('redacts storage diagnostic errors from directory responses',async()=> {
 });
 it('directory remains unavailable before authentication/provider calls when integration is disabled',async()=> {
   expect((await fetch(origin+'/closed/members')).status).toBe(503);expect(rpc).not.toHaveBeenCalled();expect(verifyIdentity).not.toHaveBeenCalled();
+});
+
+const recoveryId = '11111111-1111-4111-8111-111111111111';
+const recoveryInput = {requestId:recoveryId,targetUid:'staff-target',reasonCategory:'lost_authenticator',reason:'Synthetic lost device report'};
+it('routes recovery requests with authenticated server authority and hashed current session proof', async()=>{
+  rpc.mockResolvedValue({data:{requestId:recoveryId,targetUid:'staff-target',status:'pending_approval',resumed:false},error:null});
+  const response=await post('/staff/mfa-recoveries',recoveryInput);
+  expect(response.status).toBe(201);
+  expect(await response.json()).toMatchObject({status:'pending_approval',resetAvailability:'unavailable'});
+  expect(rpc).toHaveBeenCalledWith('taxguard_request_mfa_recovery',expect.objectContaining({p_tenant:'tenantA',p_actor:'checker',p_actor_session_hash:createHash('sha256').update(applicationToken!).digest('hex')}));
+  expect(JSON.stringify(rpc.mock.calls)).not.toContain(applicationToken);
+});
+it('requires authenticated application proof, not a caller supplied recovery token',async()=>{
+  applicationToken=undefined;
+  expect((await fetch(origin+'/staff/mfa-recoveries')).status).toBe(401);
+  expect((await post('/staff/mfa-recoveries',recoveryInput)).status).toBe(401);
+  expect(rpc).not.toHaveBeenCalled();
+});
+it('rejects recovery actor spoofing and approval body authority before storage',async()=>{
+  expect((await post('/staff/mfa-recoveries',{...recoveryInput,actor:'attacker'})).status).toBe(400);
+  expect((await post('/staff/mfa-recoveries/'+recoveryId+'/approve',{actor:'attacker'})).status).toBe(400);
+  expect(rpc).not.toHaveBeenCalled();
+});
+it('routes recovery approval and preserves independent-checker denial',async()=>{
+  rpc.mockResolvedValue({data:{requestId:recoveryId,targetUid:'staff-target',status:'approved',resumed:false,jobId:recoveryId},error:null});
+  const response=await post('/staff/mfa-recoveries/'+recoveryId+'/approve');
+  expect(response.status).toBe(200);expect(await response.json()).toMatchObject({status:'approved',resetAvailability:'unavailable'});
+  expect(rpc.mock.calls[0][0]).toBe('taxguard_approve_mfa_recovery');
+  rpc.mockResolvedValue({data:null,error:{code:'P0001',message:'INDEPENDENT_APPROVER_REQUIRED'}});
+  expect((await post('/staff/mfa-recoveries/'+recoveryId+'/approve')).status).toBe(403);
+});
+it('routes scoped recovery reads and fails closed for AAL1 and storage errors',async()=>{
+  rpc.mockResolvedValue({data:[],error:null});
+  const response=await fetch(origin+'/staff/mfa-recoveries?status=pending_approval&limit=25');
+  expect(response.status).toBe(200);expect(await response.json()).toEqual({items:[],nextCursor:null,source:'durable'});
+  expect(rpc.mock.calls[0]).toEqual(['taxguard_list_mfa_recoveries',expect.objectContaining({p_tenant:'tenantA',p_actor:'checker',p_status:'pending_approval',p_page_size:26})]);
+  rpc.mockClear();attachSessionAssuranceLevel(user,'aal1');
+  expect((await fetch(origin+'/staff/mfa-recoveries')).status).toBe(403);expect(rpc).not.toHaveBeenCalled();
+  attachSessionAssuranceLevel(user,'aal2');rpc.mockRejectedValue(new Error('private store diagnostic'));
+  const denied=await fetch(origin+'/staff/mfa-recoveries');expect(denied.status).toBe(503);expect(await denied.text()).not.toContain('private');
 });

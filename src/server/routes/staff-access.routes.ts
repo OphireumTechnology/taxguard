@@ -1,3 +1,5 @@
+import { listStaffRecoveries } from '../staffRecoveryDirectory';
+import { requestMfaRecovery, approveMfaRecovery } from '../mfaRecoveryRequests';
 import { listStaffMembers, listStaffInvitations } from '../staffAccessDirectory';
 import { changeStaffMembershipStatus } from '../staffMembershipLifecycle';
 import { Router, type RequestHandler } from 'express';
@@ -53,6 +55,16 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   router.post('/invitation/lookup', run(async req => lookupStaffInvitation(client(), tenant(), req.body?.token, await identity(req))));
   router.post('/invitation/accept', run(async req => acceptStaffInvitation(client(), tenant(), req.body?.token, await identity(req))));
   router.use(deps.authenticate || authenticateToken);
+  const recoveryToken = (req: AuthenticatedRequest) => {
+    if (!req.token || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new AuthorityError('AUTH_REQUIRED', 401);
+    return req.token;
+  };
+  router.get('/mfa-recoveries', run(async req => listStaffRecoveries(client(), tenant(), req.user!, recoveryToken(req), req.query)));
+  router.post('/mfa-recoveries', run(async req => requestMfaRecovery(client(), tenant(), req.user!, recoveryToken(req), req.body), 201));
+  router.post('/mfa-recoveries/:id/approve', run(async req => {
+    if (req.body && (typeof req.body !== 'object' || Array.isArray(req.body) || Object.keys(req.body).length)) throw new AuthorityError('MFA_RECOVERY_INPUT_INVALID', 400);
+    return approveMfaRecovery(client(), tenant(), req.user!, recoveryToken(req), req.params.id);
+  }));
   router.get('/members', run(async req => listStaffMembers(client(), tenant(), req.user!, req.query)));
   router.get('/invitations', run(async req => listStaffInvitations(client(), tenant(), req.user!, req.query)));
   router.post('/invitations', run(async req => createStaffInvitation(client(), tenant(), req.user!, req.body), 201));

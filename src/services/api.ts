@@ -1,3 +1,4 @@
+import type { StaffRecoveryQuery, StaffRecoveryPage, StaffRecoveryRequestInput, StaffRecoveryMutationResult } from '../types/staffRecovery';
 import type { StaffDirectoryQuery, StaffDirectoryPage, StaffMemberRecord, StaffInvitationRecord, StaffInvitationIssueInput, StaffInvitationIssueResult, StaffMembershipAction } from '../types/staffAccess';
 import { isStaffIdentityDevelopmentConfigured } from '../supabase/config';
 /**
@@ -141,7 +142,7 @@ function staffAccessRequest<T>(endpoint: string, options: RequestInit = {}): Pro
   } catch { return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503); }
   return request<T>(endpoint, { cache: 'no-store', credentials: 'omit', ...options });
 }
-function staffDirectoryQuery(query: StaffDirectoryQuery): string {
+function staffDirectoryQuery(query: StaffDirectoryQuery | StaffRecoveryQuery): string {
   const params = new URLSearchParams();
   if (query.limit !== undefined) params.set('limit', String(query.limit));
   if (query.status !== undefined) params.set('status', query.status);
@@ -151,6 +152,9 @@ function staffDirectoryQuery(query: StaffDirectoryQuery): string {
 
 export const api = {
   staffAccess: {
+    recoveries: (query: StaffRecoveryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryPage>('/api/staff-access/mfa-recoveries' + staffDirectoryQuery(query), { method: 'GET', signal }),
+    requestRecovery: (input: StaffRecoveryRequestInput, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries', { method: 'POST', body: JSON.stringify(input), signal }),
+    approveRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/approve', { method: 'POST', signal }),
     members: (query: StaffDirectoryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffDirectoryPage<StaffMemberRecord>>('/api/staff-access/members' + staffDirectoryQuery(query), { method: 'GET', signal }),
     invitations: (query: StaffDirectoryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffDirectoryPage<StaffInvitationRecord>>('/api/staff-access/invitations' + staffDirectoryQuery(query), { method: 'GET', signal }),
     createInvitation: (input: StaffInvitationIssueInput, signal?: AbortSignal) => staffAccessRequest<StaffInvitationIssueResult>('/api/staff-access/invitations', { method: 'POST', body: JSON.stringify(input), signal }),
