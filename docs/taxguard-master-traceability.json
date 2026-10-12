@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-CASE-WORKFLOW",
+      "requirement": "Durable case creation and sequential canonical 18-stage transitions with database-computed or reviewer-attested evidence",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "tests": [
+        "src/tests/caseWorkflowHttp.test.ts"
+      ],
+      "remaining": "Proposal 026 unapplied; stages 09-18 blocked; attestable-stage policy requires owner decision; reconcile with intake proposal 007.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-PRACTICE-CLIENTS",
       "requirement": "Client directory and engagement lifecycle with team, tasks, notes and deadlines",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3531,6 +3550,21 @@
       ]
     },
     {
+      "file": "docs/development/case-workflow.md",
+      "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
+      "bytes": 4748,
+      "headings": [
+        "# Durable tax case management and the canonical 18-stage workflow (Module 4)",
+        "## Model",
+        "## Stage evidence policy (single SQL function `taxguard_case_stage_policy`)",
+        "## Transitions",
+        "## Work queues and reporting",
+        "## UI",
+        "## Tests",
+        "## Limitations / integration dependencies"
+      ]
+    },
+    {
       "file": "docs/development/client-engagement-management.md",
       "sha256": "a62760abfbfcc8624d1c47db2f1652d6112bad413aeda6ba84ae55450915168f",
       "bytes": 4100,
@@ -3617,8 +3651,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "af20b415ee08732fb5e86c491cce945cf76f8ad9d9b921367b197501798cc61f",
-      "bytes": 26553,
+      "sha256": "06d6dc475dafc74bbccae7971804b5b9bbeb9766dc543fbaab961152b83f5950",
+      "bytes": 26867,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3639,7 +3673,8 @@
         "## Claude worktree — staff session management (2026-10-12)",
         "## Claude worktree — ledger integrity and period close (2026-10-12)",
         "## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)",
-        "## Claude worktree — client and engagement management (2026-10-12)"
+        "## Claude worktree — client and engagement management (2026-10-12)",
+        "## Claude worktree — durable case workflow (2026-10-12)"
       ]
     },
     {
@@ -3858,8 +3893,14 @@
     },
     {
       "file": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
-      "sha256": "38bee43e7d959b0e84a94aca7a21302e3e77759bc5f810a935f6d66b4e97274c",
-      "bytes": 42880,
+      "sha256": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
+      "bytes": 43402,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+      "sha256": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
+      "bytes": 31610,
       "headings": []
     },
     {
@@ -4579,8 +4620,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "2d0a4e7566aaa5627173c2d0c84eb5d31a905ec5a5fa2ff0e6235928b6817ae8",
-      "bytes": 21683,
+      "sha256": "ca2849c881840a65baeb04037afec8351668d8a7c77618a7ec9d243caa1bb2b1",
+      "bytes": 22135,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4646,10 +4687,11 @@
     },
     {
       "file": "docs/taxguard-master-remaining-decisions.md",
-      "sha256": "1e010611eb6193815998f0169bc458a4b8cad77b9aee46302e649bbbc603e77b",
-      "bytes": 4512,
+      "sha256": "1d397651b419e52c22dddffecf5e7d5ccd04f042db8b5e9b80f0eb61dec7944f",
+      "bytes": 5267,
       "headings": [
-        "# Remaining human decisions and external dependencies"
+        "# Remaining human decisions and external dependencies",
+        "## Decisions raised on the Claude branch (2026-10-12)"
       ]
     },
     {
@@ -4834,7 +4876,8 @@
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
     "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
-    "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "38bee43e7d959b0e84a94aca7a21302e3e77759bc5f810a935f6d66b4e97274c",
+    "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
+    "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
@@ -4868,7 +4911,7 @@
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "880c6627785d22ebc6eaa0cfe36fa43b92722b0d89fcf042ea593b886285bf93",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "ce2a8b92264fa59d3a2b46924a34af76acfb6be7420f6b50594b648b73f5adf3",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "62681c2c346c561bc0b41c9de07c78bf7b9ba60d4296b67897a52995d36cb5f6",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "dca5a17416fcaf77a7e3e8bffc565ec4e95b1865d35e9c84c286906b86b2c77f",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
@@ -4940,6 +4983,7 @@
     "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/caseAuthorityHttp.test.ts": "5923e4668b65d55ebdd40299647dc5d7183099a7c910500f23692f6a2acfa458",
+    "src/tests/caseWorkflowHttp.test.ts": "4e6a5dae9197e10d8a7ae8d0e6ad2c52e58d1645e097cf8d712490155aa6a7bf",
     "src/tests/clientDashboardMasterplan.test.tsx": "8eeff4559f21f88dcdce2699a15e82250dac15979bdddea0895f14e8dfe6350a",
     "src/tests/clientServiceAuthority.test.ts": "5002c2b48bd210f87c83550d9cd8a59d64abb70d434aba9675713d43d2790771",
     "src/tests/clientStageActionTruthfulness.test.tsx": "f200a45d301e18a3e67a74d0bc03d3b5f0b5362e91e805e1df196d0799b0f52e",

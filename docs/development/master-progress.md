@@ -184,3 +184,7 @@ Proposal 024 (unapplied) and SqlLedgerStore behind the existing `/api/bookkeepin
 ## Claude worktree — client and engagement management (2026-10-12)
 
 Proposal 025 (unapplied) on existing practice tables; development-only `/api/practice`; Practice Manager *Clients & Engagements* module. Staff client creation blocked pending proposal-006 coordination. Details: [client-engagement-management.md](client-engagement-management.md). Production NO-GO.
+
+## Claude worktree — durable case workflow (2026-10-12)
+
+Proposal 026 (unapplied); development-only `/api/cases`; Practice Manager *Case Workflow*. Stages 01–08 can progress with durable or attested evidence; 09+ blocked by named dependencies. Details: [case-workflow.md](case-workflow.md). Production NO-GO.

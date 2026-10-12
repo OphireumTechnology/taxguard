@@ -25,3 +25,11 @@ Continuation evidence: 175 files / 3,255 local tests PASS; core RLS policies now
 | E08 | Authorized deployment environment, artifact/configuration review, migration/cutover and rollback approval | Deployment; never performed here |
 
 No production service, credential, original repository or preservation backup is required to read these artifacts. Do not resolve dependencies by assigning permissive defaults. Existing migration definitions, adapters and synthetic fixtures are preparation evidence only.
+
+## Decisions raised on the Claude branch (2026-10-12)
+
+| ID | Decision needed | Current conservative default |
+| --- | --- | --- |
+| HC1 | Which canonical stages may be completed by human attestation, by whom, and with which checklist items (proposal 026 `taxguard_case_stage_policy`) | Stages 02, 03, 06, 07, 08 attestable by the case's independent reviewer only; 01, 04, 05 system-verified; 09-18 blocked |
+| HC2 | Staff-initiated client creation before the client has a portal identity, and how it allocates the permanent client ID (must align with proposal 006) | Not implemented; only existing client records are managed |
+| HC3 | Whether authorized representatives / additional contacts are stored, with what consent and retention | Not modelled |

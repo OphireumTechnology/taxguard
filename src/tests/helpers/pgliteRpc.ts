@@ -16,7 +16,7 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
       try {
         const result = await pg().query<{ r: unknown }>(`SELECT public.${name}(${keys.map((k, i) => `${k} => $${i + 1}`).join(',')}) AS r`, values);
         return { data: JSON.parse(JSON.stringify(result.rows[0].r)), error: null };
-      } catch (error: any) { return { data: null, error: { code: error.code, message: error.message } }; }
+      } catch (error: any) { return { data: null, error: { code: error.code, message: error.message, details: error.detail ?? null } }; }
     },
   };
 }

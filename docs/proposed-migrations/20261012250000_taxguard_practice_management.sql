@@ -393,6 +393,9 @@ BEGIN
   IF eng IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.taxguard_engagements WHERE tenant_id = p_tenant AND client_id = p_client AND engagement_id = eng) THEN
     RAISE EXCEPTION 'ENGAGEMENT_NOT_FOUND' USING ERRCODE = 'P0001';
   END IF;
+  IF NULLIF(p_body->>'caseId', '') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.taxguard_cases WHERE tenant_id = p_tenant AND client_id = p_client AND case_id = p_body->>'caseId') THEN
+    RAISE EXCEPTION 'CASE_NOT_FOUND' USING ERRCODE = 'P0001';
+  END IF;
   FOR dep IN SELECT value FROM jsonb_array_elements_text(COALESCE(p_body->'dependencies', '[]'::jsonb)) LOOP
     PERFORM 1 FROM public.taxguard_practice_tasks WHERE id = dep AND tenant_id = p_tenant AND client_id = p_client;
     IF NOT FOUND THEN RAISE EXCEPTION 'TASK_DEPENDENCY_NOT_FOUND' USING ERRCODE = 'P0001'; END IF;
@@ -450,6 +453,9 @@ BEGIN
     RAISE EXCEPTION 'PRACTICE_INPUT_INVALID' USING ERRCODE = 'P0001';
   END IF;
   BEGIN due := (p_body->>'dueDate')::timestamptz; EXCEPTION WHEN others THEN RAISE EXCEPTION 'PRACTICE_INPUT_INVALID' USING ERRCODE = 'P0001'; END;
+  IF NULLIF(p_body->>'caseId', '') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.taxguard_cases WHERE tenant_id = p_tenant AND client_id = p_client AND case_id = p_body->>'caseId') THEN
+    RAISE EXCEPTION 'CASE_NOT_FOUND' USING ERRCODE = 'P0001';
+  END IF;
   IF due IS NULL THEN RAISE EXCEPTION 'PRACTICE_INPUT_INVALID' USING ERRCODE = 'P0001'; END IF;
   INSERT INTO public.taxguard_deadlines(id, tenant_id, client_id, case_id, tax_year, category, title, due_date, authority_type, status, provenance)
     VALUES (p_deadline, p_tenant, p_client, NULLIF(p_body->>'caseId', ''), NULLIF(p_body->>'taxYear', '')::integer, p_body->>'category',
