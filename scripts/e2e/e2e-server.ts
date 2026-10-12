@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { pgRpc, startDatabase } from '../../src/tests-db/harness';
+import { handleProviderEmulation } from './providerEmulator';
 
 if (process.env.NODE_ENV === 'production') throw new Error('E2E server refuses to run in production.');
 for (const f of ['.env', '.env.local', '.env.development', '.env.development.local'])
@@ -36,7 +37,13 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
   INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${E2E.tenant}','${E2E.client}','e2e-client','Synthetic Client One'),
     ('${E2E.tenant}','${E2E.unassignedClient}','e2e-nobody','Synthetic Unassigned Client'),('${E2E.other}','${E2E.otherTenantClient}','e2e-foreign-owner','Synthetic Foreign Client');
   INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES ${members};
-  INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status) FROM taxguard_members WHERE uid LIKE 'e2e-%';`);
+  INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status) FROM taxguard_members WHERE uid LIKE 'e2e-%';
+  -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
+  -- created by the tests through /e2e/provider-user; they have no local password.
+  INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000a','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-00000000000b','admin','active'),
+    ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000c','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000001','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000002','accountant','active');
+  INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,
+    'email',uid||'@example.test','name','Synthetic '||uid,'mfaEnabled',true,'isVerified',true) FROM taxguard_members WHERE uid LIKE 'd0000000-%';`);
 
 // Loopback stand-in for the project's service endpoints, keyed per run:
 //   POST /rest/v1/rpc/<taxguard_*>        -> the database RPC (PostgREST semantics)
@@ -60,6 +67,16 @@ const shim = http.createServer((req, res) => {
     const raw = Buffer.concat(chunks);
     const json = () => { try { return raw.length ? JSON.parse(raw.toString('utf8')) : {}; } catch { return null; } };
     let m: RegExpExecArray | null;
+    // Provider and PostgREST-table emulation for the durable identity paths (providerEmulator.ts).
+    if (await handleProviderEmulation(req.method || 'GET', new URL(req.url || '/', 'http://127.0.0.1'), req.headers, json() ?? {}, database.pool, send)) return;
+    // Runs one MFA reset-worker step now, through the real provider adapter against the emulation.
+    if (req.method === 'POST' && path === '/e2e/run-reset-worker') {
+      const { runMfaResetJob } = await import('../../src/server/mfaRecoveryCompletion');
+      const { configuredMfaResetProvider } = await import('../../src/server/mfaResetProvider');
+      const { getSupabaseAdmin } = await import('../../src/server/supabase');
+      try { return send(200, { outcome: await runMfaResetJob(getSupabaseAdmin(), E2E.tenant, configuredMfaResetProvider(), 'e2e-worker') }); }
+      catch (e: any) { return send(409, { code: e?.code ?? 'WORKER_ERROR' }); }
+    }
     if (req.method === 'POST' && (m = /^\/rest\/v1\/rpc\/(taxguard_[a-z0-9_]+)$/.exec(path))) {
       const args = json(); if (!args) return send(400, { code: 'PGRST102', message: 'Invalid JSON' });
       const r = await rpc.rpc(m[1], args);
@@ -92,6 +109,9 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey;
 process.env.TAXGUARD_PRACTICE_STORE = 'durable';
 process.env.TAXGUARD_LEDGER_STORE = 'durable';
 process.env.TAXGUARD_TENANT_ID = E2E.tenant;
+// Durable staff identity paths (provider sessions, staff access APIs, MFA reset via the adapter).
+process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED = 'true';
+process.env.TAXGUARD_MFA_RESET_PROVIDER = 'supabase-admin';
 if (process.env.E2E_CONTROL_FILE) fs.writeFileSync(process.env.E2E_CONTROL_FILE, JSON.stringify({ origin: process.env.SUPABASE_URL, key: serviceKey }), { mode: 0o600 });
 
 // Enrol the synthetic users in the local identity store, then start the real server.

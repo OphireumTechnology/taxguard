@@ -87,3 +87,33 @@ only); `practiceStoreConfigured` moved to `taxguard/practice/practiceStoreConfig
 - The malware scanner and storage are local stand-ins; no real scanner, OCR or storage provider.
 - Legacy dashboard panels that call non-durable endpoints show their existing "unavailable" states.
 - Only Microsoft Edge (Chromium) is exercised; no Firefox / WebKit, no mobile viewport pass.
+
+## Durable staff security (added 2026-10-13)
+
+`scripts/e2e/providerEmulator.ts` extends the loopback stand-in so the real server can run its
+**durable** identity paths: a synthetic identity provider (`GET /auth/v1/user` for tokens it minted,
+with `aal` and `amr` claims; admin MFA factor list / delete) and an allow-listed slice of PostgREST
+tables (parameterized SQL, validated identifiers, filtered writes only). Test controls create provider
+users, mint tokens with a chosen assurance level and sign-in age, add factors, and run one MFA reset
+worker step through the **real provider adapter**. Durable users have UUID IDs, as real provider IDs do.
+
+`08-durable-staff-security` (7): AAL1 staff refused and AAL2 sign-in yields a durable session; durable
+sessions listed (current marked, no token material) and "sign out other sessions" revokes the others;
+an administrator whose sign-in is 20 minutes old is refused a membership change
+(`STAFF_RECENT_SIGN_IN_REQUIRED`) while a fresh one succeeds; full MFA recovery — request, independent
+approval (target signed out and unable to sign in), provider factors removed by the adapter and verified
+by inventory, re-enrolment refused without a new factor then accepted, reactivation refused for a stale
+administrator then completed, and the member signs in afresh as active.
+
+Defects found by this suite and fixed:
+- The reset adapter classified any status-less SDK error as a retryable outage, so a permanent failure
+  (the SDK requires UUID user and factor IDs) would retry with back-off. It now validates UUIDs up front
+  (`PROVIDER_ID_NOT_UUID`), treats only the SDK's network failure (`AuthRetryableFetchError` / status 0)
+  as retryable, and other status-less errors as permanent (`PROVIDER_REQUEST_INVALID`).
+- The shared portal header labelled staff with "Client ID: #&lt;last five characters of their user ID&gt;";
+  staff are now labelled by role and only clients show a client ID.
+
+Limitation recorded: the browser **account-security tools** (session list and revocation, security
+history) are gated on the browser's provider configuration, so without it the page states the tools are
+unavailable and does not call the API, even for a durable session. The flows are verified through the
+real server's API; browser coverage of those panels needs a run with browser provider configuration.

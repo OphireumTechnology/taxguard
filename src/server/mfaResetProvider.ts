@@ -25,13 +25,21 @@ export class MfaProviderError extends Error {
   constructor(public readonly code: string, public readonly retryable: boolean) { super(code); }
 }
 const FACTOR_ID = /^[A-Za-z0-9_-]{1,128}$/;
+// The SDK's admin MFA calls require UUID user and factor IDs (validateUUID in @supabase/auth-js) and throw
+// a plain Error otherwise; reject earlier with a permanent, explicit code.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function requireUuid(value: string) { if (!UUID.test(value)) throw new MfaProviderError('PROVIDER_ID_NOT_UUID', false); }
 
 /** Salted with tenant and user so equal provider IDs never correlate across members. */
 export const factorHash = (tenant: string, uid: string, factorId: string) => createHash('sha256').update(`${tenant}|${uid}|${factorId}`).digest('hex');
 
 function classify(error: unknown): MfaProviderError {
-  const status = Number((error as { status?: unknown })?.status);
-  if (status === 429 || status >= 500 || !Number.isFinite(status)) return new MfaProviderError(status === 429 ? 'PROVIDER_RATE_LIMITED' : 'PROVIDER_UNAVAILABLE', true);
+  const e = error as { status?: unknown; name?: unknown };
+  // Network failures surface as AuthRetryableFetchError (status 0); a status-less error is not an outage.
+  if (e?.name === 'AuthRetryableFetchError' || e?.status === 0) return new MfaProviderError('PROVIDER_UNAVAILABLE', true);
+  const status = Number(e?.status);
+  if (!Number.isFinite(status)) return new MfaProviderError('PROVIDER_REQUEST_INVALID', false);
+  if (status === 429 || status >= 500) return new MfaProviderError(status === 429 ? 'PROVIDER_RATE_LIMITED' : 'PROVIDER_UNAVAILABLE', true);
   if (status === 401 || status === 403) return new MfaProviderError('PROVIDER_NOT_AUTHORIZED', false);
   if (status === 404) return new MfaProviderError('PROVIDER_USER_NOT_FOUND', false);
   return new MfaProviderError('PROVIDER_REQUEST_REJECTED', false);
@@ -41,6 +49,7 @@ export class SupabaseAdminMfaProvider implements MfaFactorProvider {
   readonly name = 'supabase-admin-mfa';
   constructor(private readonly client: SupabaseClient) {}
   async listFactors(uid: string): Promise<ProviderFactor[]> {
+    requireUuid(uid);
     let response;
     try { response = await this.client.auth.admin.mfa.listFactors({ userId: uid }); } catch (e) { throw classify(e); }
     if (response.error) throw classify(response.error);
@@ -54,6 +63,7 @@ export class SupabaseAdminMfaProvider implements MfaFactorProvider {
   }
   async deleteFactor(uid: string, factorId: string): Promise<void> {
     if (!FACTOR_ID.test(factorId)) throw new MfaProviderError('PROVIDER_RESPONSE_INVALID', false);
+    requireUuid(uid); requireUuid(factorId);
     let response;
     try { response = await this.client.auth.admin.mfa.deleteFactor({ id: factorId, userId: uid }); } catch (e) { throw classify(e); }
     // A 404 may mean "already removed" or "never existed"; the caller decides from a fresh inventory.

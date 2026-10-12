@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-E2E-DURABLE-STAFF-SECURITY",
+      "requirement": "Browser/real-server E2E of durable staff identity: provider MFA sign-in, durable sessions, recent sign-in, full MFA recovery via the real adapter",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/tests-e2e/08-durable-staff-security.e2e.test.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/08-durable-staff-security.e2e.test.ts"
+      ],
+      "remaining": "Provider is a loopback emulation; browser account-security panels gated without browser provider configuration.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-STAFF-ACCESS-HARDENING",
       "requirement": "Staff invitation, activation and membership hardening with safe search_path, actor gating, issuer-bound invitations and serialized administrator changes",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3848,15 +3867,16 @@
     },
     {
       "file": "docs/development/browser-e2e-and-database-tests.md",
-      "sha256": "f14011ea43964b51e6c1e684a64f392d6375a4757c31e45e9c0f6ad47224dd15",
-      "bytes": 7421,
+      "sha256": "cf96d9125f06a40c0407a3bb4ab2a33534edab5428958a387ed14eb83083aa72",
+      "bytes": 9769,
       "headings": [
         "# Browser end-to-end and non-production database tests (Phases 1 and 2)",
         "## How to run",
         "## Phase 2 — database (`src/tests-db`, 15 tests)",
         "## Phase 1 — browser (`src/tests-e2e`, 25 tests, Edge)",
         "## Defects found by these suites and fixed",
-        "## Limitations (not verified here)"
+        "## Limitations (not verified here)",
+        "## Durable staff security (added 2026-10-13)"
       ]
     },
     {
@@ -5082,8 +5102,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "63ab40e0cc0e4256c22d9e0e72385084c420e0f3a1472afd880071cc841f63f4",
-      "bytes": 27809,
+      "sha256": "80143aa055f28ab51fa825010677354e9cefddbfd3c2be08f26dd0844da98844",
+      "bytes": 28146,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5361,7 +5381,7 @@
     "qa/synthetic-shell/README.md": "9a697ca76ff1a3c60a337b4042914a075c5ec6fc03f3239e0ea0fb82af741544",
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
-    "scripts/e2e/e2e-server.ts": "f69f01980ad39d411c5ef15ff90ccfb095d4ed25fd29a981e4f01d511b9511a7",
+    "scripts/e2e/e2e-server.ts": "16669dfa17e2694986e0c2ccbdb8b499a0dcf04ab420b680c1939cf0c6964237",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/record-local-browser-blockers.mjs": "5ebae5a42e083c3f98f832fa43033db24d4d03df0694fd74e440368518be5901",
     "scripts/run-local-browser.mjs": "b86f7c7307dec27e5315e3acac3e9d158802319593af11f8459b47575b684e9c",
@@ -5441,6 +5461,7 @@
     "src/tests-db/concurrency.db.test.ts": "ad4aa01f0eea91d0626d77ec8e4015a2255be9ac21281a8e54a1f16ebc8db086",
     "src/tests-db/harness.ts": "1145786554a33743fab7b8733842611ee02c21d29fb0d4d1ca38cf1675d14b83",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
+    "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
     "src/tests/aiA00Orchestration.test.ts": "69af6e1bc5ec551894cc8152e9d9ccb2c59cf855d6fffd21e2000a443e39f86c",

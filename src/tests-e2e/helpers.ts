@@ -151,3 +151,25 @@ export async function ensureStaffed(mgrToken: string) {
       await api(mgrToken, 'POST', `/api/practice/clients/${C}/engagements/${eng.engagementId}/team`, { taxYear: 2025, role, userId, reason: 'Synthetic initial staffing for E2E' }, 'e2e-ensure-' + role);
   return eng.engagementId as string;
 }
+
+/** Provider emulation controls (scripts/e2e/providerEmulator.ts); per-run key, loopback only. */
+export async function providerControl(path: string, body: unknown) {
+  const c = control();
+  const r = await fetch(c.origin + path, { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  return { status: r.status, body: await r.json().catch(() => null) as any };
+}
+export const providerToken = async (uid: string, opts: { aal?: 'aal1' | 'aal2'; primaryAgeSeconds?: number } = {}) =>
+  (await providerControl('/e2e/provider-token', { uid, aal: opts.aal ?? 'aal2', primaryAgeSeconds: opts.primaryAgeSeconds ?? 0 })).body.accessToken as string;
+/** Exchanges a provider access token for a durable TaxGuard session through the real server. */
+export async function durableSession(providerAccessToken: string) {
+  const r = await fetch(ORIGIN + '/api/auth/supabase-session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accessToken: providerAccessToken }) });
+  return { status: r.status, body: await r.json().catch(() => null) as any };
+}
+/** A browser context restoring a durable ("live") TaxGuard session. */
+export async function liveSessionWithToken(token: string, path: string) {
+  const s = await newSession();
+  await s.context.addInitScript(t => { localStorage.setItem('artax_session_token', t); localStorage.setItem('token', t); localStorage.setItem('taxguard_environment', 'live'); }, token);
+  await s.page.goto(ORIGIN + path, { waitUntil: 'domcontentloaded' });
+  return s;
+}
+export const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
