@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-STAFF-ACCESS-HARDENING",
+      "requirement": "Staff invitation, activation and membership hardening with safe search_path, actor gating, issuer-bound invitations and serialized administrator changes",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
+      ],
+      "tests": [
+        "src/tests/staffAccessHardening.test.ts"
+      ],
+      "remaining": "Proposal 035 unapplied; administrator-invitation policy (HC7) open.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-MFA-RECOVERY-COMPLETION",
       "requirement": "Staff MFA recovery completion with fenced reset jobs, verified provider reset, provider-verified re-enrolment and independent reactivation; recent-sign-in enforcement",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4069,6 +4088,16 @@
       ]
     },
     {
+      "file": "docs/development/staff-access-hardening.md",
+      "sha256": "d95ff3d0d433b3554ee030b98e5c831c1348b6db711bc087e48955b5520d3931",
+      "bytes": 2595,
+      "headings": [
+        "# Staff invitations, activation and membership hardening (proposal 035)",
+        "## Tests",
+        "## Not changed (policy, recorded as decision HC7)"
+      ]
+    },
+    {
       "file": "docs/development/staff-account-security.md",
       "sha256": "ad318f932e6405603660162e0a404708a4e1197a5c6f938f1e92a7157121715f",
       "bytes": 3261,
@@ -4328,6 +4357,12 @@
       "file": "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
       "sha256": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
       "bytes": 47653,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql",
+      "sha256": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
+      "bytes": 17749,
       "headings": []
     },
     {
@@ -5047,8 +5082,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "e2dff4164456d04e8c20f0e7c643f7effe08ef74f93ed168eb15dd968d4f7315",
-      "bytes": 27424,
+      "sha256": "63ab40e0cc0e4256c22d9e0e72385084c420e0f3a1472afd880071cc841f63f4",
+      "bytes": 27809,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5114,8 +5149,8 @@
     },
     {
       "file": "docs/taxguard-master-remaining-decisions.md",
-      "sha256": "e9b706e2da05ad61a5ba2c5bdcbe6e05055a9f2861363a35acc601b8f46a58c0",
-      "bytes": 6270,
+      "sha256": "c0a9a0713389f1bd5231a24c10ed630a6aa08b03f2ee723d8869616a94b73e13",
+      "bytes": 6429,
       "headings": [
         "# Remaining human decisions and external dependencies",
         "## Decisions raised on the Claude branch (2026-10-12)"
@@ -5312,6 +5347,7 @@
     "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
     "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
     "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
+    "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "3464961bae3dfa62347eed210f1a87a0ffbbc7fd292a116a2be1bfc52404a0e2",
@@ -5461,7 +5497,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "e47c6346fa6004b3e5463828c1691023276661802edae81fc125e527f5f15a14",
+    "src/tests/proposalCompositionSecurity.test.ts": "a17fa35b0a12912137fb89fc2a9f38aa3b784ca911379a57978133350061cd06",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
@@ -5470,6 +5506,7 @@
     "src/tests/sessionTokenStorageRecovery.test.ts": "07b2a4020a6a7679117c52783055536d063fa2bff5d724fb998de90ceea98dc9",
     "src/tests/sqlCaseReadPreparation.test.ts": "cedf0b873212eb2e4ca02825b8434d89196c35583f0ab281ac385b66c7c9e8e3",
     "src/tests/sqlReviewerQueuePreparation.test.ts": "49baf34f194392bc55c4eae4fab1396490cce6553524ea7e9e98269106c0be0f",
+    "src/tests/staffAccessHardening.test.ts": "a4459de7f511cb9733562f459cbb6f75d0e8d4cb240c2cab5b1f3c6531edc78d",
     "src/tests/staffAccountSecurityPage.test.tsx": "5feca740f558a64a1b2d73952307feb61f4e20a4887f7233c5c409bce46a7400",
     "src/tests/staffAssignmentDateAuthorization.test.ts": "feb894945bb673466d5ad77a9348f0609e94acc6672979465ce17f4c3b08652c",
     "src/tests/staffRoutingAuthorityCeiling.test.ts": "2d7cc74ec7f9c4056a2804d37bd4140e9fc7df914cae9759d447fea4792ba3f6",

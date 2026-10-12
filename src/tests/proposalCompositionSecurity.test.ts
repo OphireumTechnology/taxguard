@@ -28,10 +28,11 @@ describe('proposal composition', () => {
       '20261012250000_taxguard_practice_management.sql', '20261012260000_taxguard_case_workflow.sql', '20261012270000_taxguard_document_vault.sql', '20261012280000_taxguard_billing.sql', '20261012290000_taxguard_book_to_tax.sql', '20261012300000_taxguard_bookkeeper_workqueue.sql',
       '20261012310000_taxguard_document_requests.sql', '20261012320000_taxguard_role_dashboards.sql',
       '20261012330000_taxguard_tax_engine_foundation.sql',
-      '20261012340000_taxguard_mfa_recovery_completion.sql']));
+      '20261012340000_taxguard_mfa_recovery_completion.sql',
+      '20261012350000_taxguard_staff_access_hardening.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
-    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234/);
+    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235/);
   }, 60000);
 });
 
@@ -39,6 +40,11 @@ describe('database-wide security invariants', () => {
   it('every SECURITY DEFINER taxguard function pins search_path', async () => {
     const rows = (await fixture.pg.query<{ proname: string }>(`SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.proname LIKE 'taxguard%' AND p.prosecdef AND NOT EXISTS (SELECT 1 FROM unnest(COALESCE(p.proconfig, '{}')) c WHERE c LIKE 'search_path=%')`)).rows;
+    expect(rows.map(r => r.proname)).toEqual([]);
+  });
+  it('every SECURITY DEFINER function pins a safe search_path (pg_temp never implicitly first)', async () => {
+    const rows = (await fixture.pg.query<{ proname: string }>(`SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.prosecdef
+      AND EXISTS (SELECT 1 FROM unnest(p.proconfig) c WHERE c LIKE 'search_path=%' AND c NOT IN ('search_path=pg_catalog, public, pg_temp', 'search_path=public, pg_temp', 'search_path=pg_catalog'))`)).rows;
     expect(rows.map(r => r.proname)).toEqual([]);
   });
   it('no taxguard function added by the Claude proposals is executable by anon or authenticated', async () => {
