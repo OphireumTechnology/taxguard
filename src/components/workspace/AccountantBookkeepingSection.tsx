@@ -36,6 +36,7 @@ import {
 } from '../../services/bookkeepingService';
 import { LedgerControlsPanel, ledgerMessage } from './LedgerControlsPanel';
 import { LedgerReportsPanel } from './LedgerReportsPanel';
+import { BookToTaxPanel } from './BookToTaxPanel';
 
 interface AccountantBookkeepingSectionProps {
   clientId: string;
@@ -179,7 +180,7 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
           { id: 'coa', label: 'Chart of Accounts', icon: Building2 },
           { id: 'reconciliation', label: 'Reconciliation', icon: Scale },
           { id: 'financials', label: 'Trial Balance & Financials', icon: FileSpreadsheet },
-          { id: 'book_to_tax', label: 'Schedule M-1 Bridge', icon: FileText },
+          { id: 'book_to_tax', label: 'Book-to-Tax Workpapers', icon: FileText },
           { id: 'sync', label: 'QuickBooks / Xero Sync', icon: Link },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -385,6 +386,10 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
       )}
 
       {/* TAB: FINANCIAL STATEMENTS */}
+      {activeSubTab === 'book_to_tax' && (
+        <BookToTaxPanel clientId={clientId} taxYear={taxYear} accounts={accounts} />
+      )}
+
       {activeSubTab === 'financials' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

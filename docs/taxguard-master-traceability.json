@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-BOOK-TO-TAX",
+      "requirement": "Durable book-to-tax mappings, reviewed adjustments and reconciled workpapers (no tax computation)",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ],
+      "tests": [
+        "src/tests/bookToTaxHttp.test.ts"
+      ],
+      "remaining": "Proposal 029 unapplied; firm categories required (H07); browser NOT VERIFIED.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-BILLING",
       "requirement": "Durable billing with independent approval, gapless numbering, idempotent payments, refunds, approved credits and AR aging",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3650,6 +3669,19 @@
       ]
     },
     {
+      "file": "docs/development/book-to-tax.md",
+      "sha256": "6bec5c83472722d27c47348b1304f1f280105969d2815053bd8655af946025c8",
+      "bytes": 2813,
+      "headings": [
+        "# Durable book-to-tax workpapers (Batch 2, Module 3)",
+        "## Model",
+        "## Controls",
+        "## UI",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/case-workflow.md",
       "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
       "bytes": 4748,
@@ -3765,8 +3797,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "def18696722dc838eb041898441c49b56adc9ec9d3dae897bedb577b650471b8",
-      "bytes": 27873,
+      "sha256": "071afc65f4f0c9b0ef3f1bee5c30b2d53182d4c8e821274da7464adf0b59228b",
+      "bytes": 28096,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3792,7 +3824,8 @@
         "## Claude worktree — staff account security (2026-10-12)",
         "## Claude worktree — cross-module hardening (2026-10-12)",
         "## Claude worktree — secure document vault (2026-10-12)",
-        "## Claude worktree — billing (2026-10-12)"
+        "## Claude worktree — billing (2026-10-12)",
+        "## Claude worktree — durable book-to-tax (2026-10-12)"
       ]
     },
     {
@@ -4044,6 +4077,12 @@
       "file": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
       "sha256": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
       "bytes": 34598,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+      "sha256": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
+      "bytes": 33340,
       "headings": []
     },
     {
@@ -4763,8 +4802,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "97d51ad529466d29c50d0449aa403d8123bdcc460a3565688af63b6afa4927f6",
-      "bytes": 23547,
+      "sha256": "1343a728a76f614eee1c3e0ef97da514da3e303967fe72a8c19c24958aac3203",
+      "bytes": 23861,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5023,6 +5062,7 @@
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
     "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
     "docs/proposed-migrations/20261012280000_taxguard_billing.sql": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
+    "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
@@ -5128,6 +5168,7 @@
     "src/tests/auditAppendOnlyProposal.test.ts": "5564438b5da4b5cdf9eda09a89bc5b2ff4f71154cff652b1c46833fafeb7af64",
     "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
     "src/tests/billingHttp.test.ts": "59269fa02ffaa96b802d9fb59d822c997a825ec4fc2a91516df62427e9be307c",
+    "src/tests/bookToTaxHttp.test.ts": "97eadc3446c41f631daa8c371a516ea2d41483b98e7242b68112b21074877764",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/caseAuthorityHttp.test.ts": "5923e4668b65d55ebdd40299647dc5d7183099a7c910500f23692f6a2acfa458",
     "src/tests/caseWorkflowHttp.test.ts": "4e6a5dae9197e10d8a7ae8d0e6ad2c52e58d1645e097cf8d712490155aa6a7bf",
@@ -5163,7 +5204,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "a5d4e57a823a9ac9425eb478bad78607314db5c25c85e0520c32093bda31a008",
+    "src/tests/proposalCompositionSecurity.test.ts": "26d5aa5bd47248f936d885646bb05912e38505b80695fb4cc4b260cc8e611f3f",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",

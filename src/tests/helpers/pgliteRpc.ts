@@ -6,7 +6,7 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
   return {
     async rpc(name: string, args: Record<string, unknown>) {
       calls?.push({ name, args });
-      if (!/^taxguard_[a-z_]+$/.test(name)) throw new Error('unexpected rpc');
+      if (!/^taxguard_[a-z0-9_]+$/.test(name)) throw new Error('unexpected rpc');
       const keys = Object.keys(args);
       // Arrays of plain values map to Postgres arrays (as PostgREST does for array parameters);
       // objects and arrays of objects are JSON for jsonb parameters.

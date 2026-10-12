@@ -3,6 +3,7 @@ import { createPracticeRouter } from './src/server/routes/practice.routes';
 import { createCasesRouter } from './src/server/routes/cases.routes';
 import { createVaultRouter } from './src/server/routes/vault.routes';
 import { createBillingRouter } from './src/server/routes/billing.routes';
+import { createBookToTaxRouter } from './src/server/routes/bookToTax.routes';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -436,6 +437,7 @@ app.use('/api/practice', createPracticeRouter());
 app.use('/api/cases', createCasesRouter());
 app.use('/api/vault', createVaultRouter());
 app.use('/api/billing', createBillingRouter());
+app.use('/api/book-to-tax', createBookToTaxRouter());
 
 app.use(
   '/api/onboarding',

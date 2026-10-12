@@ -204,3 +204,7 @@ Proposal 027 (unapplied); development-only `/api/vault`; client upload panel and
 ## Claude worktree — billing (2026-10-12)
 
 Proposal 028 (unapplied); development-only `/api/billing`; Practice Manager *Billing* and client *Invoices*; sandbox payments only. Details: [billing.md](billing.md). Production NO-GO.
+
+## Claude worktree — durable book-to-tax (2026-10-12)
+
+Proposal 029 (unapplied); development-only `/api/book-to-tax`; Accountant *Book-to-Tax Workpapers* tab. Details: [book-to-tax.md](book-to-tax.md). Production NO-GO.
