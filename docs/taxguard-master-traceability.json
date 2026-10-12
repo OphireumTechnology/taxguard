@@ -2423,6 +2423,44 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-LEDGER-DURABLE",
+      "requirement": "Durable tenant/client-isolated ledger with database-enforced balance, immutability, period locks and idempotency",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ],
+      "tests": [
+        "src/tests/durableLedgerSql.test.ts"
+      ],
+      "remaining": "Proposal 024 unapplied; PGlite single-connection only (multi-connection concurrency unverified); commissioning and migration approval required.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-LEDGER-WORKFLOWS",
+      "requirement": "Bookkeeping review, correction, reversal, period, reconciliation and reporting workflows on the durable store",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/server/routes/ledgerDispatch.routes.ts"
+      ],
+      "tests": [
+        "src/tests/durableLedgerHttp.test.ts"
+      ],
+      "remaining": "Synthetic HTTP cycle against PGlite; book-to-tax, document matching, sync and bookkeeper dashboard not durable; browser NOT VERIFIED.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-LEDGER-INTEGRITY",
       "requirement": "Scoped ledger mutations, cent-exact balancing, reversing entries and period close controls",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3474,6 +3512,20 @@
       ]
     },
     {
+      "file": "docs/development/durable-accounting-ledger.md",
+      "sha256": "daab47e5f7db2562fc151a6703727f8091fed52c24162c84e434ecf572a5e020",
+      "bytes": 5790,
+      "headings": [
+        "# Durable accounting ledger and bookkeeping workflows (Modules 1–2)",
+        "## Architecture",
+        "## Schema (`docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql`)",
+        "## API additions (both modes unless noted)",
+        "## UI",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/federal-form-source-register.md",
       "sha256": "3d79673afb2a34390a85064923f7181bfd6155b194be0c4c6ad8365593c88feb",
       "bytes": 3595,
@@ -3532,8 +3584,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "c684657ec90d5b237b22cb59320a53ca6e9c287010ce53a5275d39b8411808e7",
-      "bytes": 25765,
+      "sha256": "4fe0d5d9cc908928a4b25e1ed2b88ebcd0e2cd5b4d8f7f79976d3ed8de00ad90",
+      "bytes": 26185,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3552,7 +3604,8 @@
         "### MFA recovery foundation in progress",
         "### Frozen-source recovery/security checkpoint",
         "## Claude worktree — staff session management (2026-10-12)",
-        "## Claude worktree — ledger integrity and period close (2026-10-12)"
+        "## Claude worktree — ledger integrity and period close (2026-10-12)",
+        "## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)"
       ]
     },
     {
@@ -3761,6 +3814,12 @@
       "file": "docs/proposed-migrations/20261012230000_taxguard_session_management.sql",
       "sha256": "b424dbdeb87220da8609c04c0a98b7ad2292db9aa7887b13eafc67e65671cc3b",
       "bytes": 10491,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+      "sha256": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
+      "bytes": 67825,
       "headings": []
     },
     {
@@ -4480,8 +4539,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "29065cce4a5fe440b1881163e9c164910b8927b98f1e15b0bc68fd0688c15aee",
-      "bytes": 19163,
+      "sha256": "b42ea6c9b342b9f873eda64847a849252ced25241a5d03370fc6d21e46f56b4b",
+      "bytes": 21111,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -4495,7 +4554,8 @@
         "## Autonomous continuation — identity/security development (2026-10-12)",
         "### Administrator directory and staff management development slice",
         "## Development continuation — 2026-10-12 identity and intake",
-        "## Durable identity continuation — 2026-10-12"
+        "## Durable identity continuation — 2026-10-12",
+        "## Claude branch `claude/taxguard-dev-20261012` — 2026-10-12 (not yet integrated into the shared branch)"
       ]
     },
     {
@@ -4733,6 +4793,7 @@
   ],
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
+    "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "c73b841be737071913a7a23a1750d9ad2c5a59e977fdcf4b20253f7fe0ea6567",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "1f9cf935cc466481b773bebc4f7679e6f8164ceaa69ef6e9e0109bd12d4f5b4b",
@@ -4785,12 +4846,13 @@
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "7ed4c3507a001f9e8996a527c2c7108dc71b5e6023e8032f5c694db30b7b00aa",
     "src/server/productionApp.ts": "812c6e32ac4d631e52b2f4b766e1f64bd13d45930915887c9beefa3a7cd83ada",
+    "src/server/routes/ledgerDispatch.routes.ts": "27701fd46808ab4abaf7eb3727d1e5b846f21034dd45693f04a942fe6aa42497",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
     "src/server/staffSessionManagement.ts": "652e1680a3fa071f5516dd239809ffa2c91afc2732ab79704bd176eed7e037c3",
     "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
     "src/server/taxguard/authority.repository.ts": "775ac57a1954ea44e0d58f79c039c52c1757099e3a06e6a91d076475c3bb3884",
     "src/server/taxguard/bookkeeping/accountingSync.service.ts": "003165a06c6e9c83f948365900dbc88df2dcf9aa6ee5e481aa36f95f6e571037",
-    "src/server/taxguard/bookkeeping/bookkeeping.engine.ts": "8c6ca4d6de536d247a147103feebb51b7f8d78a585b6e4004333eebb9b53fa8e",
+    "src/server/taxguard/bookkeeping/bookkeeping.engine.ts": "d76087793d287d6c0126021e9caaba3c910da0f013c8d68103ec0fee17480a56",
     "src/server/taxguard/ocrProvider.ts": "7ece0f89567ea15108933b62b02e221a134d553a9ec5a8b3c2dfd3c7d6b0f1d0",
     "src/server/taxguard/operations/durableIdempotency.service.ts": "36e14828cdae5a962a2b21b4fbcbf4742c433d6001393ab707470320d2317645",
     "src/server/taxguard/operations/durableJobQueue.service.ts": "8be77c25efeebce1e8715fbff686023c4c1b5e2df702c0593f9bd35c300b97b2",
@@ -4846,6 +4908,8 @@
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
+    "src/tests/durableLedgerHttp.test.ts": "6074c97174479bea7bff8c447f3af7935612e9daeb44b1c3fae986b339705963",
+    "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
     "src/tests/lazyWorkspaceRouting.test.tsx": "c3c37d7e22fd803411a4c3e015e6d948215edfbfd5386b9a020e5f1a03a88140",

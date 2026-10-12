@@ -52,3 +52,32 @@ describe('ledger controls model', () => {
     expect(html).toContain('Loading periods');
   });
 });
+
+describe('durable review workflow in the UI layer', () => {
+  it('sends the optimistic version and the recorded note with review decisions', async () => {
+    transport.mockImplementation(async () => new Response(JSON.stringify({ entry: entry({ status: 'CORRECTION_REQUIRED' }) }), { status: 200 }));
+    await bookkeepingService.approveJournalEntry('client-a', 2025, 'je-1', 3);
+    await bookkeepingService.requestJournalCorrection('client-a', 2025, 'je-1', 'Use the accrual account', 4);
+    await bookkeepingService.rejectJournalEntry('client-a', 2025, 'je-1', 'Not supported by evidence', 5);
+    const bodies = transport.mock.calls.map(c => [c[0], JSON.parse(c[1].body)]);
+    expect(bodies[0]).toEqual(['http://127.0.0.1:3000/api/bookkeeping/journal-entries/je-1/approve', { clientId: 'client-a', taxYear: 2025, version: 3 }]);
+    expect(bodies[1][1]).toEqual({ clientId: 'client-a', taxYear: 2025, note: 'Use the accrual account', version: 4 });
+    expect(bodies[2][0]).toContain('/reject');
+  });
+  it('sends a caller-held idempotency key for postings and reversals', async () => {
+    await bookkeepingService.postJournalEntry('client-a', 2025, { description: 'x' }, 'ui-fixed-key-1');
+    await bookkeepingService.reverseJournalEntry('client-a', 2025, 'je-1', '2025-03-01', 'Synthetic correction', 'ui-fixed-key-2');
+    expect(transport.mock.calls.map(c => c[1].headers['Idempotency-Key'])).toEqual(['ui-fixed-key-1', 'ui-fixed-key-2']);
+    expect(bookkeepingService.newIdempotencyKey()).not.toBe(bookkeepingService.newIdempotencyKey());
+  });
+  it('offers return-for-correction and rejection beside approval, and lists returned entries with the reviewer note', () => {
+    const html = renderToStaticMarkup(<LedgerControlsPanel clientId="client-a" taxYear={2025} onChanged={() => {}}
+      entries={[entry({ id: 'p', entryNumber: 'JE-PREP', status: 'PREPARED' }), entry({ id: 'c', entryNumber: 'JE-BACK', status: 'CORRECTION_REQUIRED', reviewNote: 'Wrong account used' })]} />);
+    expect(html).toContain('Return JE-PREP for correction'); expect(html).toContain('Reject JE-PREP');
+    expect(html).toContain('Returned for correction (1)'); expect(html).toContain('Wrong account used');
+  });
+  it('explains version conflicts and assignment refusals', () => {
+    expect(ledgerMessage(new BookkeepingRequestError('x', 409, 'LEDGER_VERSION_CONFLICT'))).toMatch(/changed since it was loaded/);
+    expect(ledgerMessage(new BookkeepingRequestError('x', 403, 'LEDGER_ACCESS_DENIED'))).toMatch(/not authorized|not assigned/);
+  });
+});

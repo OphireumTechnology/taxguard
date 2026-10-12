@@ -119,6 +119,12 @@ export interface JournalEntry {
   reversalOfEntryId?: string;
   /** Set on a posted entry once a reversing entry has been prepared for it. */
   reversedByEntryId?: string;
+  /** Set on a replacement prepared for an entry returned with CORRECTION_REQUIRED. */
+  replacesEntryId?: string;
+  /** Reviewer note recorded with a rejection or correction request. */
+  reviewNote?: string;
+  /** Optimistic concurrency version (durable store). */
+  version?: number;
 }
 
 export type DuplicateStatus = 'NOT_DUPLICATE' | 'POSSIBLE_DUPLICATE' | 'CONFIRMED_DUPLICATE';

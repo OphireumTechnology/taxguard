@@ -12,6 +12,11 @@ const MESSAGES: Record<string, string> = {
   REOPEN_REASON_REQUIRED: 'Enter a justification of 5 to 500 characters.',
   REVERSAL_REASON_REQUIRED: 'Enter a reason of 5 to 500 characters.',
   ENTRY_ALREADY_REVERSED: 'This entry already has a reversing entry.',
+  LEDGER_VERSION_CONFLICT: 'This entry changed since it was loaded. Refresh and review it again.',
+  LEDGER_INPUT_INVALID: 'Check the entered values; a review note of 5 to 500 characters is required to reject or return an entry.',
+  LEDGER_REVIEWER_REQUIRED: 'Only a reviewer can take this action.',
+  LEDGER_ACCESS_DENIED: 'You are not assigned to this client\'s ledger.',
+  IDEMPOTENCY_KEY_REQUIRED: 'The request could not be safely repeated. Try the action again.',
   INVALID_POSTING_DATE: 'The reversal date must be a valid date on or after the original entry.',
   TRANSACTION_ALREADY_POSTED: 'This transaction is already in the ledger. Reverse its entry to change the categorization.',
   ACCOUNT_NOT_IN_CHART: 'The selected account is not an active account in this client\'s chart of accounts.',
@@ -42,7 +47,10 @@ export function LedgerControlsPanel({ clientId, taxYear, entries, onChanged }: {
   const [newPeriod, setNewPeriod] = useState({ periodName: '', startDate: '', endDate: '' });
   const [reopen, setReopen] = useState<{ id: string; reason: string } | null>(null);
   const [reversal, setReversal] = useState<{ id: string; postingDate: string; reason: string } | null>(null);
+  const [returning, setReturning] = useState<{ id: string; decision: 'reject' | 'request_correction'; note: string } | null>(null);
   const scopeKey = clientId + '|' + taxYear;
+  // One idempotency key per prepared reversal so a retried submit cannot create a second one.
+  const reversalKey = useRef(bookkeepingService.newIdempotencyKey());
   const latest = useRef(scopeKey); latest.current = scopeKey;
 
   const loadPeriods = useCallback(() => {
@@ -61,7 +69,7 @@ export function LedgerControlsPanel({ clientId, taxYear, entries, onChanged }: {
     try {
       await operation();
       if (latest.current !== key) return false;
-      setNotice({ error: false, text: success }); setReopen(null); setReversal(null); loadPeriods(); onChanged();
+      setNotice({ error: false, text: success }); setReopen(null); setReversal(null); setReturning(null); loadPeriods(); onChanged();
       return true;
     } catch (error) {
       if (latest.current === key) setNotice({ error: true, text: ledgerMessage(error) });
@@ -71,6 +79,7 @@ export function LedgerControlsPanel({ clientId, taxYear, entries, onChanged }: {
 
   const pending = entries.filter(e => ledgerActions(e).approve);
   const reversible = entries.filter(e => ledgerActions(e).reverse);
+  const returned = entries.filter(e => e.status === 'CORRECTION_REQUIRED' && !entries.some(r => r.replacesEntryId === e.id));
   return <section aria-labelledby="ledger-controls-heading" className="space-y-4 rounded-2xl border border-slate-700/60 bg-[#0D2745] p-4 text-xs text-slate-300">
     <h3 id="ledger-controls-heading" className="font-mono font-bold uppercase tracking-wider text-slate-300">Periods &amp; corrections</h3>
     {notice && <p role={notice.error ? 'alert' : 'status'} className={notice.error ? 'text-red-300' : 'text-emerald-300'}>{notice.text}</p>}
@@ -102,16 +111,26 @@ export function LedgerControlsPanel({ clientId, taxYear, entries, onChanged }: {
       <h4 className="font-bold text-white">Awaiting independent review ({pending.length})</h4>
       {pending.length === 0 ? <p>No prepared entries are waiting for review.</p> : <ul className="space-y-1">{pending.map(e => <li key={e.id} className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-white">{e.entryNumber}</span><span>{e.postingDate}</span><span>{e.description}</span><span>${e.totalDebit.toFixed(2)}</span><span>Prepared by {e.creatorUid}</span>
-        <button type="button" className={button} disabled={busy} aria-label={`Approve ${e.entryNumber}`} onClick={() => run(() => bookkeepingService.approveJournalEntry(clientId, taxYear, e.id), `${e.entryNumber} approved and posted.`)}>Approve</button>
+        <button type="button" className={button} disabled={busy} aria-label={`Approve ${e.entryNumber}`} onClick={() => run(() => bookkeepingService.approveJournalEntry(clientId, taxYear, e.id, e.version), `${e.entryNumber} approved and posted.`)}>Approve</button>
+        <button type="button" className={button} disabled={busy} aria-label={`Return ${e.entryNumber} for correction`} onClick={() => setReturning({ id: e.id, decision: 'request_correction', note: '' })}>Return for correction</button>
+        <button type="button" className={button} disabled={busy} aria-label={`Reject ${e.entryNumber}`} onClick={() => setReturning({ id: e.id, decision: 'reject', note: '' })}>Reject</button>
+        {returning?.id === e.id && <form className="flex w-full flex-wrap items-end gap-2" onSubmit={ev => { ev.preventDefault(); const r = returning; void run(() => r.decision === 'reject'
+            ? bookkeepingService.rejectJournalEntry(clientId, taxYear, e.id, r.note, e.version) : bookkeepingService.requestJournalCorrection(clientId, taxYear, e.id, r.note, e.version),
+            r.decision === 'reject' ? `${e.entryNumber} rejected.` : `${e.entryNumber} returned to the preparer.`); }}>
+          <label className="flex flex-1 flex-col">{returning.decision === 'reject' ? 'Rejection reason (recorded)' : 'Correction requested (recorded)'}<input className={input} required minLength={5} maxLength={500} value={returning.note} onChange={ev => setReturning({ ...returning, note: ev.target.value })} /></label>
+          <button className={button} disabled={busy || returning.note.trim().length < 5}>Confirm</button><button type="button" className={button} onClick={() => setReturning(null)}>Cancel</button>
+        </form>}
       </li>)}</ul>}
+      {returned.length > 0 && <div className="space-y-1"><h5 className="font-bold text-amber-200">Returned for correction ({returned.length})</h5><ul>{returned.map(e => <li key={e.id}>
+        <span className="font-mono text-white">{e.entryNumber}</span> · {e.description} · Reviewer note: {e.reviewNote ?? 'not recorded'} · Prepare a replacement entry referencing this entry.</li>)}</ul></div>}
     </div>
 
     <div className="space-y-2">
       <h4 className="font-bold text-white">Correct a posted entry</h4>
       <p>Posted entries are never edited. A reversing entry with debits and credits swapped is prepared and must be approved by an independent reviewer.</p>
-      <label className="flex flex-col">Posted entry<select className={input} value={reversal?.id ?? ''} onChange={e => setReversal(e.target.value ? { id: e.target.value, postingDate: reversible.find(r => r.id === e.target.value)?.postingDate ?? '', reason: '' } : null)}>
+      <label className="flex flex-col">Posted entry<select className={input} value={reversal?.id ?? ''} onChange={e => { reversalKey.current = bookkeepingService.newIdempotencyKey(); setReversal(e.target.value ? { id: e.target.value, postingDate: reversible.find(r => r.id === e.target.value)?.postingDate ?? '', reason: '' } : null); }}>
         <option value="">Select an entry</option>{reversible.map(e => <option key={e.id} value={e.id}>{e.entryNumber} · {e.postingDate} · {e.description}</option>)}</select></label>
-      {reversal && <form className="flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); void run(() => bookkeepingService.reverseJournalEntry(clientId, taxYear, reversal.id, reversal.postingDate, reversal.reason), 'Reversing entry prepared for review.'); }}>
+      {reversal && <form className="flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); void run(() => bookkeepingService.reverseJournalEntry(clientId, taxYear, reversal.id, reversal.postingDate, reversal.reason, reversalKey.current), 'Reversing entry prepared for review.'); }}>
         <label className="flex flex-col">Reversal date<input type="date" className={input} required value={reversal.postingDate} onChange={e => setReversal({ ...reversal, postingDate: e.target.value })} /></label>
         <label className="flex flex-1 flex-col">Reason (recorded)<input className={input} required minLength={5} maxLength={500} value={reversal.reason} onChange={e => setReversal({ ...reversal, reason: e.target.value })} /></label>
         <button className={button} disabled={busy || reversal.reason.trim().length < 5}>Prepare reversal</button>

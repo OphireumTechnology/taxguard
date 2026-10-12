@@ -40,6 +40,9 @@ export interface JournalEntryItem {
   reviewerUid?: string;
   reversalOfEntryId?: string;
   reversedByEntryId?: string;
+  replacesEntryId?: string;
+  reviewNote?: string;
+  version?: number;
   lines: Array<{
     id: string;
     accountId: string;
@@ -112,6 +115,12 @@ export interface FinancialStatementsData {
   };
 }
 
+export interface GeneralLedgerAccountItem {
+  accountId: string; accountNumber: string; accountName: string; accountType: string; endingBalance: number;
+  lines: Array<{ entryId: string; entryNumber: string; postingDate: string; description: string; debit: number; credit: number; runningBalance: number }>;
+}
+export interface LedgerHistoryEvent { action: string; actorUid: string; actorRole: string | null; metadata: Record<string, unknown>; at: string }
+
 export interface AccountingPeriodItem {
   id: string;
   periodName: string;
@@ -144,8 +153,9 @@ class BookkeepingService {
     return headers;
   }
 
-  private async mutate<T>(path: string, body: Record<string, unknown>): Promise<T> {
-    const res = await fetch(apiEndpoint('/api/bookkeeping' + path), { method: 'POST', headers: this.getHeaders(), cache: 'no-store', body: JSON.stringify(body) });
+  private async mutate<T>(path: string, body: Record<string, unknown>, idempotencyKey?: string): Promise<T> {
+    const headers = { ...this.getHeaders(), ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) };
+    const res = await fetch(apiEndpoint('/api/bookkeeping' + path), { method: 'POST', headers, cache: 'no-store', body: JSON.stringify(body) });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const code = typeof data?.code === 'string' ? data.code : undefined;
@@ -157,11 +167,45 @@ class BookkeepingService {
   categorizeTransaction(clientId: string, taxYear: number, transactionId: string, assignedAccountId: string, notes: string) {
     return this.mutate<{ transaction: BankTransactionItem; journalEntry: JournalEntryItem }>(`/transactions/${encodeURIComponent(transactionId)}/categorize`, { clientId, taxYear, assignedAccountId, notes });
   }
-  approveJournalEntry(clientId: string, taxYear: number, entryId: string) {
-    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/approve`, { clientId, taxYear });
+  /** version is the entry's optimistic-concurrency version (required by the durable store). */
+  approveJournalEntry(clientId: string, taxYear: number, entryId: string, version?: number) {
+    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/approve`, { clientId, taxYear, version });
   }
-  reverseJournalEntry(clientId: string, taxYear: number, entryId: string, postingDate: string, reason: string) {
-    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/reverse`, { clientId, taxYear, postingDate, reason });
+  rejectJournalEntry(clientId: string, taxYear: number, entryId: string, note: string, version?: number) {
+    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/reject`, { clientId, taxYear, note, version });
+  }
+  requestJournalCorrection(clientId: string, taxYear: number, entryId: string, note: string, version?: number) {
+    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/request-correction`, { clientId, taxYear, note, version });
+  }
+  /** A fresh idempotency key per user action; retries of the same action should reuse it. */
+  newIdempotencyKey() { return 'ui-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2)); }
+  postJournalEntry(clientId: string, taxYear: number, entry: Record<string, unknown>, idempotencyKey = this.newIdempotencyKey()) {
+    return this.mutate<{ entry: JournalEntryItem }>('/journal-entries', { clientId, taxYear, ...entry }, idempotencyKey);
+  }
+  reverseJournalEntry(clientId: string, taxYear: number, entryId: string, postingDate: string, reason: string, idempotencyKey = this.newIdempotencyKey()) {
+    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/reverse`, { clientId, taxYear, postingDate, reason }, idempotencyKey);
+  }
+  bootstrapStandardChart(clientId: string, taxYear: number, formTarget = '1040_SCHED_C') {
+    return this.mutate<{ created: number; accounts: ChartOfAccountItem[] }>('/chart-of-accounts/standard', { clientId, taxYear, formTarget });
+  }
+  setAccountActive(clientId: string, taxYear: number, accountId: string, active: boolean) {
+    return this.mutate<{ accountId: string; isActive: boolean }>(`/chart-of-accounts/${encodeURIComponent(accountId)}/status`, { clientId, taxYear, active });
+  }
+  private async read<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
+    const query = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1] !== ''));
+    const res = await fetch(apiEndpoint(`/api/bookkeeping${path}?${query.toString()}`), { headers: this.getHeaders(), cache: 'no-store' });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new BookkeepingRequestError('The bookkeeping service could not load this view.', res.status, typeof data?.code === 'string' ? data.code : undefined);
+    return data as T;
+  }
+  searchJournal(clientId: string, taxYear: number, filter: { q?: string; status?: string; fromDate?: string; toDate?: string; accountId?: string }) {
+    return this.read<{ entries: JournalEntryItem[] }>('/journal-entries', { clientId, taxYear: String(taxYear), ...filter });
+  }
+  getGeneralLedger(clientId: string, taxYear: number, accountId?: string) {
+    return this.read<{ accounts: GeneralLedgerAccountItem[] }>('/general-ledger', { clientId, taxYear: String(taxYear), accountId });
+  }
+  getLedgerHistory(clientId: string, taxYear: number) {
+    return this.read<{ events: LedgerHistoryEvent[] }>('/history', { clientId, taxYear: String(taxYear) });
   }
   async getPeriods(clientId: string, taxYear: number): Promise<{ periods: AccountingPeriodItem[] }> {
     const params = new URLSearchParams({ clientId, taxYear: String(taxYear) });

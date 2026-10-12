@@ -170,12 +170,13 @@ export class BookkeepingEngine {
     creatorUid: string;
     documentProvenanceIds?: string[];
     reversalOfEntryId?: string;
+    replacesEntryId?: string;
   }): JournalEntry {
     // 1. Period controls: the named period must belong to this scope and contain the posting
     //    date, and no closed period of this scope may cover the posting date, whichever
     //    period ID the caller supplies.
     if (!isoDate(entry.postingDate)) throw new Error('INVALID_POSTING_DATE: Posting date must be a valid YYYY-MM-DD date.');
-    const requiresReview = Boolean(entry.isAdjusting) || Boolean(entry.reversalOfEntryId);
+    const requiresReview = Boolean(entry.isAdjusting) || Boolean(entry.reversalOfEntryId) || Boolean(entry.replacesEntryId);
     const named = this.periods.get(entry.periodId);
     if (named && (named.tenantId !== entry.tenantId || named.clientId !== entry.clientId || named.taxYear !== entry.taxYear ||
       entry.postingDate < named.startDate || entry.postingDate > named.endDate)) {
@@ -221,6 +222,7 @@ export class BookkeepingEngine {
       postedAt: requiresReview ? undefined : now,
       documentProvenanceIds: entry.documentProvenanceIds || [],
       ...(entry.reversalOfEntryId ? { reversalOfEntryId: entry.reversalOfEntryId } : {}),
+      ...(entry.replacesEntryId ? { replacesEntryId: entry.replacesEntryId } : {}),
     };
 
     this.journalEntries.set(id, newEntry);
@@ -640,6 +642,38 @@ export class BookkeepingEngine {
     this.journalEntries.set(entry.id, entry);
     this.triggerInvalidation(entry.tenantId, entry.clientId, entry.taxYear, `Journal Entry #${entry.entryNumber} approved and posted.`);
     return entry;
+  }
+
+  /** Reviewer outcome other than approval: REJECTED (final) or CORRECTION_REQUIRED (a replacement may be prepared). */
+  reviewJournalEntryOutcome(entryId: string, reviewerUid: string, outcome: 'REJECTED' | 'CORRECTION_REQUIRED', note: unknown, scope?: LedgerScope): JournalEntry {
+    const entry = this.journalEntries.get(entryId);
+    if (!entry || !inScope(entry, scope)) throw new Error('ENTRY_NOT_FOUND');
+    if (entry.status !== 'PREPARED') throw new Error('ENTRY_NOT_PENDING_REVIEW: Only prepared entries awaiting review can be reviewed.');
+    if (entry.creatorUid === reviewerUid) throw new Error('MAKER_CHECKER_VIOLATION: Preparer cannot review their own journal entry.');
+    const text = typeof note === 'string' ? note.trim() : '';
+    if (text.length < 5 || text.length > 500 || /[\x00-\x1f\x7f]/.test(text)) throw new Error('LEDGER_INPUT_INVALID: A review note of 5 to 500 characters is required.');
+    entry.status = outcome;
+    entry.reviewerUid = reviewerUid;
+    entry.reviewNote = text;
+    this.journalEntries.set(entry.id, entry);
+    return entry;
+  }
+
+  /** A replacement for an entry returned for correction; one replacement per entry, reviewed before posting. */
+  prepareReplacementEntry(replacesEntryId: string, entry: Parameters<BookkeepingEngine['createJournalEntry']>[0], scope?: LedgerScope): JournalEntry {
+    const original = this.journalEntries.get(replacesEntryId);
+    if (!original || !inScope(original, scope) || original.tenantId !== entry.tenantId || original.clientId !== entry.clientId) throw new Error('ENTRY_NOT_FOUND');
+    if (original.status !== 'CORRECTION_REQUIRED') throw new Error('ENTRY_NOT_CORRECTABLE: Only entries returned for correction can be replaced.');
+    if ([...this.journalEntries.values()].some(e => e.replacesEntryId === replacesEntryId)) throw new Error('ENTRY_ALREADY_CORRECTED: This entry already has a replacement.');
+    return this.createJournalEntry({ ...entry, replacesEntryId });
+  }
+
+  setAccountActive(accountId: string, active: boolean, scope?: LedgerScope): ChartOfAccount {
+    const account = this.accounts.get(accountId);
+    if (!account || !inScope(account, scope)) throw new Error('ACCOUNT_NOT_FOUND');
+    account.isActive = active;
+    account.updatedAt = new Date().toISOString();
+    return account;
   }
 
   /**

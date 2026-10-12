@@ -150,3 +150,14 @@ Current integrated checkpoint: 236files /4,589 tests passed; typecheck/lint/buil
 Session/profile checkpoint241files/4,755 tests passed. Entire application incomplete, production NO-GO; no migration applied or provider/production operation performed.
 
 Current frozen-source checkpoint244files/4,853 tests passed; typecheck/lint/build/diff and scoped credential scan passed. Browser/provider/production validation absent. All proposed migrations unapplied.
+
+## Claude branch `claude/taxguard-dev-20261012` — 2026-10-12 (not yet integrated into the shared branch)
+
+| ID | Feature | Status | Evidence / remaining |
+| --- | --- | --- | --- |
+| STAFF-SESS-01 | Own-session list / revoke / sign out others; administrator member-session revocation with 15-minute step-up | IMPLEMENTED, AWAITING INTEGRATION | Proposal 023 (unapplied); `staffSessionManagementSql/Http`, `staffSessionsPanel` tests. Development-only router |
+| ACC-03 | Ledger scope hardening, cent-exact balancing, period locks by date, reversal and close controls (in-memory engine) | COMPLETE AND VERIFIED (development) | `ledgerIntegrityAndPeriodClose.test.ts` (mutation-checked) |
+| ACC-04 | Durable tenant/client-isolated ledger: accounts, periods, entries/lines, bank transactions, reconciliations, counters, audit; DB-enforced balance, immutability, period locks, idempotency | IMPLEMENTED, AWAITING INTEGRATION | Proposal 024 (unapplied); `durableLedgerSql.test.ts` incl. simulated restart (PGlite on disk); multi-connection PostgreSQL concurrency NOT VERIFIED |
+| ACC-05 | Bookkeeping workflows on the durable store: review approve / reject / request correction, replacement entries, reversal, period open/close/reopen, bank ingestion & categorization, reconciliation, trial balance, P&L, balance sheet, general ledger, search, audit history | IMPLEMENTED, AWAITING INTEGRATION | `durableLedgerHttp.test.ts` (full synthetic cycle), UI panels in Accountant ledger tab; production requires `TAXGUARD_LEDGER_STORE=durable` after migration, otherwise 503 |
+| ACC-06 | Book-to-tax, document matching and provider sync on the durable store | NOT IMPLEMENTED | Return 503 `DURABLE_FEATURE_NOT_AVAILABLE` in durable mode |
+| ACC-07 | Bookkeeper dashboard on durable data; bookkeeper ledger mutations | BLOCKED BY ROLE POLICY | Bookkeeper operations remain `BOOKKEEPER_OPERATION_NOT_RELEASED`; read projection still uses the in-memory engine |

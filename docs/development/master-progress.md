@@ -176,3 +176,7 @@ Isolated worktree `123-claude`, branch `claude/taxguard-dev-20261012` from `3750
 ## Claude worktree — ledger integrity and period close (2026-10-12)
 
 Fixed cross-client approval/mutation by ID on the production-mounted bookkeeping router, date-based period locking, cent-exact balancing, chart-of-accounts validation, double posting and close/reopen controls; added reversing entries, period routes and a UI panel. Engine remains in-memory (not durable). Details: [ledger-integrity-and-period-close.md](ledger-integrity-and-period-close.md). Production NO-GO.
+
+## Claude worktree — durable ledger and bookkeeping workflows (2026-10-12)
+
+Proposal 024 (unapplied) and SqlLedgerStore behind the existing `/api/bookkeeping` contracts; production fails closed unless the durable store is configured. Review approve / reject / correction, replacement entries, reports, search and history added. Details: [durable-accounting-ledger.md](durable-accounting-ledger.md). Production NO-GO.

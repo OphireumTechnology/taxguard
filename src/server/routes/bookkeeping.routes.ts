@@ -15,6 +15,7 @@ import {
 import { db } from '../db';
 import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.engine';
 import { globalAccountingSyncService } from '../taxguard/bookkeeping/accountingSync.service';
+import { registerLedgerDispatch } from './ledgerDispatch.routes';
 
 export const bookkeepingRouter = Router();
 
@@ -79,6 +80,9 @@ bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: Aut
   req.authorizedClientContext = context;
   next();
 });
+
+// Durable / memory ledger persistence dispatch (see ledgerDispatch.routes.ts).
+registerLedgerDispatch(bookkeepingRouter);
 
 // Helper to resolve tenant and client IDs safely
 function resolveScope(req: AuthenticatedRequest) {
