@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-DOCUMENT-REQUESTS",
+      "requirement": "Engagement-year document requests and firm checklists with review-driven fulfilment, in-app client notices and stage 2/3 gates",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "tests": [
+        "src/tests/documentRequestsHttp.test.ts"
+      ],
+      "remaining": "Proposal 031 unapplied; no e-mail/SMS delivery provider; outbox only.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-E2E-BROWSER",
       "requirement": "Opt-in browser end-to-end suite on the real server with local PostgreSQL and synthetic users (Edge)",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3794,6 +3813,21 @@
       ]
     },
     {
+      "file": "docs/development/document-requests.md",
+      "sha256": "ab6daab3682b5614a9d0bc35fb9ab28223a1e6c629c64e056425056644db8ddb",
+      "bytes": 4538,
+      "headings": [
+        "# Document requests and checklists (Phase 3)",
+        "## Model",
+        "## Authority (database-enforced)",
+        "## Stage 2 and 3 integration",
+        "## API (`/api/vault`)",
+        "## UI",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/document-vault.md",
       "sha256": "29ba96b74bd492b8d70e3af9ce12fb059679075cabd8539ca584b0f059a5b9c2",
       "bytes": 3896,
@@ -4147,8 +4181,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
-      "sha256": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
-      "bytes": 31610,
+      "sha256": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
+      "bytes": 32355,
       "headings": []
     },
     {
@@ -4173,6 +4207,12 @@
       "file": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql",
       "sha256": "616596e3f0f3a31727a92c20f36e48cc9cac2748699a86148a648eae3943371e",
       "bytes": 4431,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+      "sha256": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
+      "bytes": 39806,
       "headings": []
     },
     {
@@ -4892,8 +4932,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "e8ca2228a654467b6f5d73ced21fd2b6a956594900a48627e0bbeb9dc905912e",
-      "bytes": 25184,
+      "sha256": "1aa0ad66b953715af9fab0f16cf9aa601894398194b125ef133383f4dbdb825c",
+      "bytes": 25695,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5149,10 +5189,11 @@
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
     "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
-    "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "374d8b5b8cce099032d6e6c492995699d94244f7f4635448af9139488ccfa296",
+    "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
     "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
     "docs/proposed-migrations/20261012280000_taxguard_billing.sql": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
     "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
+    "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "3464961bae3dfa62347eed210f1a87a0ffbbc7fd292a116a2be1bfc52404a0e2",
@@ -5183,12 +5224,12 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "13a0839e22d844b276d642a3fab2254405fc462159f0078a855d4d9a5eaf2adf",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "ae4dbb7fa84b7ddd6b9c73ff73d91278a80fd18a394f54500daf4152b73fb3f3",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "5b3225c9e91e3c08975629640a42cf287e10b9e416132a8e5b8d7c3aa12ecdb6",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "78c42ab05796f6374e6de5c9368105d2a7c536f9b1dfb8062c2e9fb0b458925a",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "71d9009e123bccbf30f30942ee89c451095125149c4aec77bf1adc87f1cdf964",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "db084acdaf62877367411ad85f2988720ec86ad4e553b84bc88ace9e73dbf214",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "9c4148bd3b97f1fabd0591b1af22238064c90492c8234fea20b3295a69a6665c",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
@@ -5276,6 +5317,7 @@
     "src/tests/dashboardApplicationShell.test.tsx": "c086eea43f27415d303a6234e85b065e85e5a03b6cbe96a0eff36f58115251b4",
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
+    "src/tests/documentRequestsHttp.test.ts": "076812ddacc17ef31bb5fc4a96ba7ff561bef358ec6245b81a4d35392a44bb65",
     "src/tests/documentVaultHttp.test.ts": "7b66bc6172212f013931d727cccf1147b99cedb2ff5a1cbdd514381726f0cb93",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
     "src/tests/durableLedgerHttp.test.ts": "6074c97174479bea7bff8c447f3af7935612e9daeb44b1c3fae986b339705963",
@@ -5300,7 +5342,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "0fd36bb279dcce335a0176248218b2eb14b9737351ed62e58dd92ea512df3c40",
+    "src/tests/proposalCompositionSecurity.test.ts": "70c612c85dd36c17e26c3f8dd05981444e5624dcc9cd8984f1fe2bc13ef29f33",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",

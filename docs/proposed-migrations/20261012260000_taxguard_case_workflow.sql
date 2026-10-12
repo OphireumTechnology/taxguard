@@ -124,6 +124,15 @@ BEGIN
     'noEntriesAwaitingReview', prepared = 0);
 END $$;
 
+-- Extension hook for computed evidence on attested stages. Defined here as a no-op only when it
+-- does not exist yet, so re-applying this proposal never replaces a later proposal's version.
+DO $hook$ BEGIN
+  IF to_regprocedure('public.taxguard_case_evidence_checks(public.taxguard_cases)') IS NULL THEN
+    EXECUTE $create$CREATE FUNCTION public.taxguard_case_evidence_checks(p_case public.taxguard_cases) RETURNS jsonb
+      LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $body$ SELECT '{}'::jsonb $body$$create$;
+  END IF;
+END $hook$;
+
 -- ------------------------------------------------------------------------------------------
 -- Service RPCs
 -- ------------------------------------------------------------------------------------------
@@ -201,6 +210,8 @@ BEGIN
       checks := checks || jsonb_build_object('noEntriesAwaitingReview', NOT EXISTS (SELECT 1 FROM public.taxguard_ledger_entries WHERE tenant_id = c.tenant_id
         AND client_id = c.client_id AND status = 'PREPARED' AND posting_date BETWEEN make_date(c.tax_year, 1, 1) AND make_date(c.tax_year, 12, 31)));
     END IF;
+    -- Computed evidence contributed by later proposals (031: document requests for stages 2 and 3).
+    checks := checks || public.taxguard_case_evidence_checks(c);
   END IF;
   SELECT COALESCE(jsonb_agg(key), '[]'::jsonb) INTO failed FROM jsonb_each(checks) WHERE value <> 'true'::jsonb;
   IF jsonb_array_length(failed) > 0 THEN
