@@ -32,6 +32,11 @@ export type TestDatabase = {
 
 export async function startDatabase(): Promise<TestDatabase> {
   fs.mkdirSync(ROOT, { recursive: true });
+  // Remove directories left by earlier runs (older than an hour, so a parallel run is never touched).
+  for (const name of fs.readdirSync(ROOT).filter(n => n.startsWith('pg-'))) {
+    const dir = path.join(ROOT, name);
+    try { if (Date.now() - fs.statSync(dir).mtimeMs > 3_600_000) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* still in use */ }
+  }
   const databaseDir = path.join(ROOT, 'pg-' + process.pid + '-' + randomBytes(4).toString('hex'));
   const port = await freePort(), password = randomBytes(18).toString('hex');
   const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: false, onLog: () => {},
@@ -45,7 +50,12 @@ export async function startDatabase(): Promise<TestDatabase> {
   return {
     pool,
     async connect() { const c = new pg.Client(config); await c.connect(); return c; },
-    async stop() { await pool.end(); await server.stop(); fs.rmSync(databaseDir, { recursive: true, force: true }); },
+    async stop() {
+      await pool.end(); await server.stop();
+      // Windows may keep the data directory locked briefly after the server exits.
+      try { fs.rmSync(databaseDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }); }
+      catch { console.warn('[db-tests] data directory still locked; it is removed on the next run'); }
+    },
   };
 }
 

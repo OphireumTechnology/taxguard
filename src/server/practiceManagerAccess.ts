@@ -6,7 +6,7 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|cases/${ID}/runs))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
   `cases/?`, `cases/${ID}/(advance|return|hold|notes)`,
@@ -14,6 +14,8 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
   `vault/request-templates`, `vault/clients/${ID}/requests`, `vault/clients/${ID}/requests/apply-template`, `vault/clients/${ID}/requests/${ID}/(link|waive|cancel|remind)`,
   `billing/catalog`, `billing/clients/${ID}/invoices`, `billing/clients/${ID}/invoices/${ID}/(lines|lines/\\d{1,4}/remove|submit|approve|return|void|payments|credits)`,
   `billing/clients/${ID}/payments/${ID}/refund`, `billing/clients/${ID}/credits/${ID}/(apply|reject)`,
+  // Managers may register sources and draft / submit rule sets; verification and approval need a reviewer.
+  `tax-engine/sources`, `tax-engine/rule-sets`, `tax-engine/rule-sets/${ID}/submit`,
 ].join('|') + `)$`);
 
 export function practiceManagerRequestAllowed(role:string,method:string,url:string):boolean {

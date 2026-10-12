@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-TAX-ENGINE-FOUNDATION",
+      "requirement": "Tax engine foundation: verified sources, versioned independently approved rule sets, deterministic exact-decimal evaluation with pinned provenance and reviewer-only run review (no tax rules shipped)",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ],
+      "tests": [
+        "src/tests/taxEngineHttp.test.ts"
+      ],
+      "remaining": "Proposal 033 unapplied; no real rule content; stage 9-18 remain blocked by policy.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-ROLE-DASHBOARDS-DURABLE",
       "requirement": "Durable role dashboards with recorded figures and definitions only (work queues, manager summary, bookkeeper panels, client status)",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4040,6 +4059,18 @@
       ]
     },
     {
+      "file": "docs/development/tax-engine-foundation.md",
+      "sha256": "3f591b97765d16405ae24cdead99621974624f5f824c357a6e5648c7f791fa2d",
+      "bytes": 4976,
+      "headings": [
+        "# Tax engine foundation (Phase 5)",
+        "## Building blocks",
+        "## API (`/api/tax-engine`, development only)",
+        "## Tests",
+        "## What is deliberately not here"
+      ]
+    },
+    {
       "file": "docs/DISASTER_RECOVERY.md",
       "sha256": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
       "bytes": 6285,
@@ -4250,6 +4281,12 @@
       "file": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
       "sha256": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
       "bytes": 11833,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+      "sha256": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
+      "bytes": 28923,
       "headings": []
     },
     {
@@ -4969,8 +5006,8 @@
     },
     {
       "file": "docs/taxguard-master-development-completion-matrix.md",
-      "sha256": "39324aac0f91aafd24857c902aff1f751c8d80d4d322d228fe69bc6a45bde16b",
-      "bytes": 26137,
+      "sha256": "eb18717ff2471b0689c600ff3b875d519509524082ac140b276398420a9bfca3",
+      "bytes": 26629,
       "headings": [
         "# TaxGuard Master Development Completion Matrix",
         "## Status vocabulary",
@@ -5036,8 +5073,8 @@
     },
     {
       "file": "docs/taxguard-master-remaining-decisions.md",
-      "sha256": "f039588e620b9ea6498316b1eb2d8dbc5f2fa0a32a43d84cc9ce62fb16709734",
-      "bytes": 5573,
+      "sha256": "9af4b770f729724ab5d67bce369c4a1ca06adff7aa2a64d172d1116c4ab8d23a",
+      "bytes": 5989,
       "headings": [
         "# Remaining human decisions and external dependencies",
         "## Decisions raised on the Claude branch (2026-10-12)"
@@ -5232,6 +5269,7 @@
     "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
     "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
     "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
+    "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "3464961bae3dfa62347eed210f1a87a0ffbbc7fd292a116a2be1bfc52404a0e2",
@@ -5323,7 +5361,7 @@
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests-db/concurrency.db.test.ts": "ad4aa01f0eea91d0626d77ec8e4015a2255be9ac21281a8e54a1f16ebc8db086",
-    "src/tests-db/harness.ts": "888115eb9bc809450ef60e1aba9352802488863979564686cfa24a07afffcd14",
+    "src/tests-db/harness.ts": "1145786554a33743fab7b8733842611ee02c21d29fb0d4d1ca38cf1675d14b83",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
@@ -5380,7 +5418,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "439876bd49013fc90cea4c0e302b8a85054a227f6d164bde185a0ad69d55f249",
+    "src/tests/proposalCompositionSecurity.test.ts": "a3f90408e527f9076a905c90c9a8f190025192fdf309f03c3e01c38ba01ec661",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
@@ -5403,6 +5441,7 @@
     "src/tests/syntheticFixtureLabels.test.tsx": "36246a115afa65bc0c7b6e494df12b1c96d7dd990e06f78ce8a2e731e97fde8f",
     "src/tests/syntheticShellIsolation.test.ts": "d0708698c732c38278572a0c7001a75fb46d03346622d6f09133eec1aa4c1ab9",
     "src/tests/taxCalculationCore.test.ts": "b018057026066e7cb382b6929dd14172bbad32195ab0944060078d5a07a289f9",
+    "src/tests/taxEngineHttp.test.ts": "7d16366412359d88e793e2f6e78326bdfc6857e3e638fc3c9e942ed7c4f574d1",
     "src/tests/taxGuardBookkeepingEngine.test.ts": "f796feedbe701b400f55f5faf946d04b268cb53f2ed92fa1572707883703173b",
     "src/tests/traceabilityEvidenceIntegrity.test.ts": "679deceba1ae27afe433e3a8240fb37c05db05b8ff5cf3837f3f3aab1dbdd6e3",
     "supabase/migrations/20260928000000_taxguard_core_schema.sql": "168f9766b3afa275bd05a30a64318c5b18c4f863083a247b2f121003a33329eb",

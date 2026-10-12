@@ -4,6 +4,7 @@ import { createCasesRouter } from './src/server/routes/cases.routes';
 import { createVaultRouter } from './src/server/routes/vault.routes';
 import { createBillingRouter } from './src/server/routes/billing.routes';
 import { createBookToTaxRouter } from './src/server/routes/bookToTax.routes';
+import { createTaxEngineRouter } from './src/server/routes/taxEngine.routes';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -438,6 +439,7 @@ app.use('/api/cases', createCasesRouter());
 app.use('/api/vault', createVaultRouter());
 app.use('/api/billing', createBillingRouter());
 app.use('/api/book-to-tax', createBookToTaxRouter());
+app.use('/api/tax-engine', createTaxEngineRouter());
 
 app.use(
   '/api/onboarding',
