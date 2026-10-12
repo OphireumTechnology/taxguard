@@ -96,3 +96,57 @@ These are unchanged from the requirements matrix §3.2–3.5 and the remaining-w
 - **Decisions:** H10 (stage list), H11 (stop deactivation), H06 (roles), H01a (agent names).
 - **Platform conflict:** Supabase vs Firebase / Google GenAI on `main` (`fc36cac`).
 - **Dependencies:** E01–E08.
+
+## Autonomous continuation — identity/security development (2026-10-12)
+
+Production remains NO-GO. The original Step 1 inventory above is preserved; these rows record the newer uncommitted development slice.
+
+| Capability | Current bounded status | Remaining | Evidence |
+| --- | --- | --- | --- |
+| Invitation issuance/revocation and confirmed-email lookup | Implemented, awaiting integration | Approved non-production provider commissioning; administrator UI | staffInvitationManagement service; actual-core SQL and HTTP fixture tests; unapplied 20261012030000 proposal |
+| Provider-only invitation onboarding UI | Implemented, testing in progress | Browser interaction and authorized provider end-to-end validation | StaffInvitationFlow and staffInvitationApi; synthetic adapter tests |
+| TOTP setup and challenge | Implemented, awaiting integration | Approved recovery for lost pending setup material; real provider/browser validation | TotpEnrollmentPanel, mfaEnrollment, supabaseStaffMfaClient and adapter tests |
+| Acceptance and independent activation | Implemented, awaiting integration | Shared client/invitation transaction; administrator management UI | Acceptance/activation services; actual-core SQL tests; unapplied 20261012020000 proposal |
+| Suspension/deactivation/independent reactivation | Implemented, testing in progress | Administrator UI; approved provider integration | Lifecycle service/proposal; session revocation and fresh sign-in proof tests |
+| Durable inactive membership denial | Implemented and locally tested | Deployment/independent review | All-environment durableMembershipLifecycle tests |
+| Stage 02 reconciliation authority | Implemented and locally tested | Durable tenant-aware adapter; production stays unavailable | stageTwoReconciliationAuthorization tests |
+| MFA recovery and provider factor replacement | Not implemented | Approved recovery workflow and idempotent provider adapter | Future reenrollment gate cannot be cleared by ordinary reactivation |
+
+Browser and server staff onboarding are disabled by default, development-only, and reject the protected Supabase project. No production connections, deployments, migrations, real identities or taxpayer data were used. Ordinary eleven-role local architecture is authorized by the new master instruction; external, legal and release approvals still apply.
+
+### Administrator directory and staff management development slice
+
+Durable, tenant/AAL2-authorized member/invitation directory services and a service-only SQL proposal now provide status filters and bounded, deterministic microsecond keyset pagination. Staff directory DTOs omit token hashes, factor/provider metadata and unrequested fields. The existing Practice Staff & Roles tab has connected invitation issuance/revocation, independent approval and reasoned lifecycle actions, with session-isolated forms, confirmations and once-only token handoff.
+
+Status: implemented locally, validation in progress; authorized non-production provider/browser integration remains outstanding. New APIs and browser operations remain development-gated and unavailable for protected production destinations. This does not complete MFA recovery, shared provisioning transactions, the role model or the rest of the application.
+
+## Development continuation — 2026-10-12 identity and intake
+
+| Capability | Current classification | Evidence / remaining boundary |
+| --- | --- | --- |
+| Administrator paginated staff/invitation directory and lifecycle UI | Implemented and tested locally | Directory snapshot228files /4,356tests; no provider/browser/production validation |
+| Atomic client identity and permanent ID allocation | Implemented and tested locally; awaiting integration | Service-only proposal006; confirmedemail, coherent replay, invitation serialization, rollback; counter commissioning and real PostgreSQL concurrency outstanding |
+| Durable client session bridge | Implemented and tested locally; awaiting integration | Strict configured authority, RPC resume, no cached onboarding promotion; durable hierarchy explicitly unavailable |
+| Client onboarding hierarchy | Prototype only / durable provider not implemented | Existing process-local route disabled for production/configured identity projects; no fabricated assignments or18stage completion |
+| Client intake draft save/submit/read | Implemented, validation/integration pending | Proposed007 + server adapter; existing real engagement/year required, revisions/idempotency/audit; no HTTP/UI mount or provider commissioning yet |
+| Provider identity change privacy in staff onboarding/MFA | Implemented, integration pending | UID/email/sign-out/new sign-in generation invalidation; refresh/MFA event continuity;59focusedtests, no real browser/provider evidence |
+| MFA recovery / replacement | Not implemented | Independent approval, suspend/revoke/providerjob/re-enroll/re-AAL2 gates remain next identity dependency |
+
+None of these capabilities is production validated. All migrations remain proposals. Existing historical synthetic workflow tests now explicitly describe demonstration adapters rather than production readiness.
+
+Current integrated checkpoint: 236files /4,589 tests passed; typecheck/lint/build/diff pass. Browser/provider/production validation absent.
+
+## Durable identity continuation — 2026-10-12
+
+| Capability | Classification | Evidence / limits |
+| --- | --- | --- |
+| Atomic session mint/revoke/audit | Implemented and tested locally; awaiting integration | Proposed008; authority/AAL2/epoch recheck, suspension race ordering, audit rollback, tenant/idempotent revocation; actual provider/multi-connection PostgreSQL unverified |
+| Ordinary client contact updates | Implemented and tested locally; awaiting integration | Proposed009, strict phone/companyName-only RPC and HTTP PATCH; no cache publication on failure, preserved authority/progress; historical contacts require independent reconciliation |
+| Seven-section profiles and amendments | Prototype only; durable provider not implemented | Production/configured handlers fail503; isolated demonstration workflows retained; no durable name/approval/readiness claim |
+| Contacts across client login | Implemented and tested locally |006 whitelisted optional contact replay, coherent phone check, Unicode boundaries; no broad profile JSON spread |
+| Development production-destination guard | Implemented and tested locally |242 files/4,773 tests snapshot; known protected browser/server destinations refused, browser credentials rejected, cached browser override hardening included in final rerun |
+| MFA recovery request/approval/outbox | Partial implementation; locally tested, awaiting integration | Proposed010 + service, independent current durable AAL2 actor proof, suspension/revoke/reenrollment/audit/pending job; HTTP/UI, provider reset/fenced worker, enrollment proof/final activation/cancellation unimplemented |
+
+Session/profile checkpoint241files/4,755 tests passed. Entire application incomplete, production NO-GO; no migration applied or provider/production operation performed.
+
+Current frozen-source checkpoint244files/4,853 tests passed; typecheck/lint/build/diff and scoped credential scan passed. Browser/provider/production validation absent. All proposed migrations unapplied.
