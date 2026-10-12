@@ -172,3 +172,7 @@ Normal Git staging retry and read-only gh PR10 metadata query were both rejected
 ## Claude worktree — staff session management (2026-10-12)
 
 Isolated worktree `123-claude`, branch `claude/taxguard-dev-20261012` from `37506f9` (Codex active in `123`). Baseline re-verified: 248 files / 4,939 tests, typecheck PASS. Added proposal 023 (unapplied) and development-only own-session list/revoke, sign out other sessions, and administrator member-session revocation with 15-minute step-up re-authentication; UI in Practice Staff & Roles. Validation: **251 files / 4,990 tests passed**, typecheck, build, diff check and traceability PASS. Details: [staff-session-management.md](staff-session-management.md). Production NO-GO.
+
+## Claude worktree — ledger integrity and period close (2026-10-12)
+
+Fixed cross-client approval/mutation by ID on the production-mounted bookkeeping router, date-based period locking, cent-exact balancing, chart-of-accounts validation, double posting and close/reopen controls; added reversing entries, period routes and a UI panel. Engine remains in-memory (not durable). Details: [ledger-integrity-and-period-close.md](ledger-integrity-and-period-close.md). Production NO-GO.

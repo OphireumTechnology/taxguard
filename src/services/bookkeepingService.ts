@@ -3,7 +3,8 @@
  * Front-end adapter for the TaxGuard Bookkeeping & Accounting REST API.
  */
 
-import { api } from './api';
+import { api, getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export interface ChartOfAccountItem {
   id: string;
@@ -37,6 +38,8 @@ export interface JournalEntryItem {
   status: string;
   creatorUid: string;
   reviewerUid?: string;
+  reversalOfEntryId?: string;
+  reversedByEntryId?: string;
   lines: Array<{
     id: string;
     accountId: string;
@@ -109,17 +112,71 @@ export interface FinancialStatementsData {
   };
 }
 
+export interface AccountingPeriodItem {
+  id: string;
+  periodName: string;
+  taxYear: number;
+  startDate: string;
+  endDate: string;
+  status: 'OPEN' | 'SOFT_CLOSED' | 'HARD_CLOSED';
+  closedByUid?: string;
+  closedAt?: string;
+  reopenedByUid?: string;
+  reopenedAt?: string;
+  reopenReason?: string;
+}
+
+/** Server refusal with its machine-readable code (for example PERIOD_HAS_UNAPPROVED_ENTRIES). */
+export class BookkeepingRequestError extends Error {
+  constructor(message: string, public readonly status: number, public readonly code?: string) { super(message); }
+}
+
 class BookkeepingService {
+  // Same session store and API host as the rest of the application.
   private getHeaders() {
-    const token = localStorage.getItem('artax_session_token') || localStorage.getItem('supabase_auth_token');
+    const token = getStoredToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      headers['x-session-token'] = token;
     }
     return headers;
+  }
+
+  private async mutate<T>(path: string, body: Record<string, unknown>): Promise<T> {
+    const res = await fetch(apiEndpoint('/api/bookkeeping' + path), { method: 'POST', headers: this.getHeaders(), cache: 'no-store', body: JSON.stringify(body) });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const code = typeof data?.code === 'string' ? data.code : undefined;
+      throw new BookkeepingRequestError(typeof data?.error === 'string' ? data.error : 'The bookkeeping service did not accept this request.', res.status, code);
+    }
+    return data as T;
+  }
+
+  categorizeTransaction(clientId: string, taxYear: number, transactionId: string, assignedAccountId: string, notes: string) {
+    return this.mutate<{ transaction: BankTransactionItem; journalEntry: JournalEntryItem }>(`/transactions/${encodeURIComponent(transactionId)}/categorize`, { clientId, taxYear, assignedAccountId, notes });
+  }
+  approveJournalEntry(clientId: string, taxYear: number, entryId: string) {
+    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/approve`, { clientId, taxYear });
+  }
+  reverseJournalEntry(clientId: string, taxYear: number, entryId: string, postingDate: string, reason: string) {
+    return this.mutate<{ entry: JournalEntryItem }>(`/journal-entries/${encodeURIComponent(entryId)}/reverse`, { clientId, taxYear, postingDate, reason });
+  }
+  async getPeriods(clientId: string, taxYear: number): Promise<{ periods: AccountingPeriodItem[] }> {
+    const params = new URLSearchParams({ clientId, taxYear: String(taxYear) });
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/periods?${params.toString()}`), { headers: this.getHeaders(), cache: 'no-store' });
+    if (!res.ok) throw new BookkeepingRequestError('Failed to load accounting periods', res.status);
+    return res.json();
+  }
+  openPeriod(clientId: string, taxYear: number, periodName: string, startDate: string, endDate: string) {
+    return this.mutate<{ period: AccountingPeriodItem }>('/periods', { clientId, taxYear, periodName, startDate, endDate });
+  }
+  closePeriod(clientId: string, taxYear: number, periodId: string, status: 'SOFT_CLOSED' | 'HARD_CLOSED') {
+    return this.mutate<{ period: AccountingPeriodItem }>(`/periods/${encodeURIComponent(periodId)}/close`, { clientId, taxYear, status });
+  }
+  reopenPeriod(clientId: string, taxYear: number, periodId: string, reason: string) {
+    return this.mutate<{ period: AccountingPeriodItem }>(`/periods/${encodeURIComponent(periodId)}/reopen`, { clientId, taxYear, reason });
   }
 
   async getChartOfAccounts(clientId?: string, taxYear?: number): Promise<{ accounts: ChartOfAccountItem[] }> {
@@ -127,7 +184,7 @@ class BookkeepingService {
     if (clientId) params.set('clientId', clientId);
     if (taxYear) params.set('taxYear', String(taxYear));
 
-    const res = await fetch(`/api/bookkeeping/chart-of-accounts?${params.toString()}`, {
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/chart-of-accounts?${params.toString()}`), {
       headers: this.getHeaders(),
     });
     if (!res.ok) throw new Error('Failed to load chart of accounts');
@@ -139,7 +196,7 @@ class BookkeepingService {
     if (clientId) params.set('clientId', clientId);
     if (taxYear) params.set('taxYear', String(taxYear));
 
-    const res = await fetch(`/api/bookkeeping/journal-entries?${params.toString()}`, {
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/journal-entries?${params.toString()}`), {
       headers: this.getHeaders(),
     });
     if (!res.ok) throw new Error('Failed to load journal entries');
@@ -151,7 +208,7 @@ class BookkeepingService {
     if (clientId) params.set('clientId', clientId);
     if (accountId) params.set('accountId', accountId);
 
-    const res = await fetch(`/api/bookkeeping/transactions?${params.toString()}`, {
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/transactions?${params.toString()}`), {
       headers: this.getHeaders(),
     });
     if (!res.ok) throw new Error('Failed to load bank transactions');
@@ -163,7 +220,7 @@ class BookkeepingService {
     if (clientId) params.set('clientId', clientId);
     if (taxYear) params.set('taxYear', String(taxYear));
 
-    const res = await fetch(`/api/bookkeeping/trial-balance?${params.toString()}`, {
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/trial-balance?${params.toString()}`), {
       headers: this.getHeaders(),
     });
     if (!res.ok) throw new Error('Failed to load trial balance');
@@ -175,7 +232,7 @@ class BookkeepingService {
     if (clientId) params.set('clientId', clientId);
     if (taxYear) params.set('taxYear', String(taxYear));
 
-    const res = await fetch(`/api/bookkeeping/financial-statements?${params.toString()}`, {
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/financial-statements?${params.toString()}`), {
       headers: this.getHeaders(),
     });
     if (!res.ok) throw new Error('Failed to load financial statements');
@@ -183,7 +240,7 @@ class BookkeepingService {
   }
 
   async matchDocument(transactionId: string, documentId: string): Promise<any> {
-    const res = await fetch(`/api/bookkeeping/transactions/${transactionId}/match-document`, {
+    const res = await fetch(apiEndpoint(`/api/bookkeeping/transactions/${transactionId}/match-document`), {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({ documentId }),
@@ -193,7 +250,7 @@ class BookkeepingService {
   }
 
   async executeReadOnlySync(provider: 'QUICKBOOKS' | 'XERO', clientId?: string): Promise<any> {
-    const res = await fetch('/api/bookkeeping/sync/read-only', {
+    const res = await fetch(apiEndpoint('/api/bookkeeping/sync/read-only'), {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({ provider, clientId, idempotencyKey: `sync_${Date.now()}` }),

@@ -115,6 +115,10 @@ export interface JournalEntry {
   createdAt: string;
   postedAt?: string;
   documentProvenanceIds: string[];
+  /** Set on a reversing entry: the posted entry it reverses. */
+  reversalOfEntryId?: string;
+  /** Set on a posted entry once a reversing entry has been prepared for it. */
+  reversedByEntryId?: string;
 }
 
 export type DuplicateStatus = 'NOT_DUPLICATE' | 'POSSIBLE_DUPLICATE' | 'CONFIRMED_DUPLICATE';

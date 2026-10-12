@@ -2423,6 +2423,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-LEDGER-INTEGRITY",
+      "requirement": "Scoped ledger mutations, cent-exact balancing, reversing entries and period close controls",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/server/taxguard/bookkeeping/bookkeeping.engine.ts"
+      ],
+      "tests": [
+        "src/tests/ledgerIntegrityAndPeriodClose.test.ts"
+      ],
+      "remaining": "In-memory engine (not durable); no database schema for the ledger; legacy accountant journal routes remain a separate ledger; browser execution NOT VERIFIED.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-STAFF-SESSIONS",
       "requirement": "Durable own-session list/revocation and administrator step-up session revocation",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -3480,6 +3499,18 @@
       ]
     },
     {
+      "file": "docs/development/ledger-integrity-and-period-close.md",
+      "sha256": "315a735ad9995b2b7186863f3301414b37a8d95da50ac3468e603e1788ac6f14",
+      "bytes": 4966,
+      "headings": [
+        "# Ledger integrity, reversing entries and period close (Milestone 9 slice)",
+        "## Defects found and fixed",
+        "## New capabilities",
+        "## Tests",
+        "## Limitations"
+      ]
+    },
+    {
       "file": "docs/development/master-completion-plan.md",
       "sha256": "f92c3e19efb3dbde8335db35a8162f267f8f244788a2a1ed913823885ce87112",
       "bytes": 17664,
@@ -3501,8 +3532,8 @@
     },
     {
       "file": "docs/development/master-progress.md",
-      "sha256": "c430e9bbc432d4ec1ffa9d1eea7f023e00eef5f51b6704d49079139a80da5d76",
-      "bytes": 25283,
+      "sha256": "c684657ec90d5b237b22cb59320a53ca6e9c287010ce53a5275d39b8411808e7",
+      "bytes": 25765,
       "headings": [
         "# TaxGuard AI — Master Progress Log",
         "## Handoff state",
@@ -3520,7 +3551,8 @@
         "## Durable session/profile continuation — 2026-10-12",
         "### MFA recovery foundation in progress",
         "### Frozen-source recovery/security checkpoint",
-        "## Claude worktree — staff session management (2026-10-12)"
+        "## Claude worktree — staff session management (2026-10-12)",
+        "## Claude worktree — ledger integrity and period close (2026-10-12)"
       ]
     },
     {
@@ -4758,6 +4790,7 @@
     "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
     "src/server/taxguard/authority.repository.ts": "775ac57a1954ea44e0d58f79c039c52c1757099e3a06e6a91d076475c3bb3884",
     "src/server/taxguard/bookkeeping/accountingSync.service.ts": "003165a06c6e9c83f948365900dbc88df2dcf9aa6ee5e481aa36f95f6e571037",
+    "src/server/taxguard/bookkeeping/bookkeeping.engine.ts": "8c6ca4d6de536d247a147103feebb51b7f8d78a585b6e4004333eebb9b53fa8e",
     "src/server/taxguard/ocrProvider.ts": "7ece0f89567ea15108933b62b02e221a134d553a9ec5a8b3c2dfd3c7d6b0f1d0",
     "src/server/taxguard/operations/durableIdempotency.service.ts": "36e14828cdae5a962a2b21b4fbcbf4742c433d6001393ab707470320d2317645",
     "src/server/taxguard/operations/durableJobQueue.service.ts": "8be77c25efeebce1e8715fbff686023c4c1b5e2df702c0593f9bd35c300b97b2",
@@ -4816,6 +4849,7 @@
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
     "src/tests/lazyWorkspaceRouting.test.tsx": "c3c37d7e22fd803411a4c3e015e6d948215edfbfd5386b9a020e5f1a03a88140",
+    "src/tests/ledgerIntegrityAndPeriodClose.test.ts": "e4ad4219a908f5eb441d394348d3fa745afafb4129340dd7180cdd7a2f902f0b",
     "src/tests/legacyIdempotencyIntegrity.test.ts": "8f330a1bb9df8d15972f959b7a3ce4e44a3cd726b06484860035c914f6bdb718",
     "src/tests/legacyJobClaimIntegrity.test.ts": "00051245b8229bf8f2ea974cf589e7ef532063fa39975196fd75d5815448911e",
     "src/tests/legacyJobSnapshotIsolation.test.ts": "3a5ec96cb8b5b0e7b3c2a9d0fc663063856cac4621cdbf4bdc83f568af1aa8ca",
