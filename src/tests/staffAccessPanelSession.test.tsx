@@ -7,6 +7,7 @@ vi.mock('react',async importOriginal=>{const actual=await importOriginal<any>();
 vi.mock('../hooks/useStaffAccessDirectory',()=>({staffSessionKey:(u:any,a:string,t:string)=>JSON.stringify([u?.id,u?.tenantId,u?.clientId,u?.role,u?.status,a,t]),useStaffAccessDirectory:()=>h.directory}));
 vi.mock('../services/api',()=>({getStoredToken:()=>h.token,api:{staffAccess:{createInvitation:h.create,changeMemberStatus:h.status}}}));
 vi.mock('../components/admin/StaffMfaRecoveryPanel',()=>({StaffMfaRecoveryPanel:()=>null}));
+vi.mock('../components/admin/StaffSessionsPanel',()=>({StaffSessionsPanel:()=>null}));
 import { StaffAccessManagementPanel } from '../components/admin/StaffAccessManagementPanel';
 const user={id:'admin-a',tenantId:'tenant-a',role:'admin',status:'active'} as User;
 const key=()=>JSON.stringify([user.id,user.tenantId,user.clientId,user.role,user.status,'AUTHENTICATED',h.token]);

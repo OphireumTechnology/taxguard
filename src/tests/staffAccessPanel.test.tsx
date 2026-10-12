@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h=vi.hoisted(()=>({directory: {} as any}));
 vi.mock('../hooks/useStaffAccessDirectory',()=>({useStaffAccessDirectory:()=>h.directory}));
 vi.mock('../components/admin/StaffMfaRecoveryPanel',()=>({StaffMfaRecoveryPanel:()=>null}));
+vi.mock('../components/admin/StaffSessionsPanel',()=>({StaffSessionsPanel:()=>null}));
 import { StaffAccessManagementPanel, normalizeStaffInvitation, staffActionAvailable, validateIssuedInvitation } from '../components/admin/StaffAccessManagementPanel';
 const row={uid:'synthetic-staff',name:'Synthetic Staff',email:'staff@example.invalid',role:'accountant',status:'active',createdAt:'2026-01-01T00:00:00Z',approvedBy:'synthetic-checker',approvedAt:null,statusChangedAt:null,mfaReenrollmentRequired:false,actions:{approve:false,suspend:true,deactivate:true,reactivate:false}};
 function markup(){return renderToStaticMarkup(<StaffAccessManagementPanel user={null} authStatus="AUTHENTICATED"/>);}

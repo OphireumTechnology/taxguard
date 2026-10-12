@@ -1,4 +1,5 @@
 import { listStaffRecoveries } from '../staffRecoveryDirectory';
+import { listOwnSessions, revokeOwnSession, revokeOtherOwnSessions, revokeMemberSessions } from '../staffSessionManagement';
 import { requestMfaRecovery, approveMfaRecovery } from '../mfaRecoveryRequests';
 import { listStaffMembers, listStaffInvitations } from '../staffAccessDirectory';
 import { changeStaffMembershipStatus } from '../staffMembershipLifecycle';
@@ -65,6 +66,13 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
     if (req.body && (typeof req.body !== 'object' || Array.isArray(req.body) || Object.keys(req.body).length)) throw new AuthorityError('MFA_RECOVERY_INPUT_INVALID', 400);
     return approveMfaRecovery(client(), tenant(), req.user!, recoveryToken(req), req.params.id);
   }));
+  const emptyBody = (req: AuthenticatedRequest) => {
+    if (req.body && (typeof req.body !== 'object' || Array.isArray(req.body) || Object.keys(req.body).length)) throw new AuthorityError('SESSION_INPUT_INVALID', 400);
+  };
+  router.get('/sessions', run(async req => listOwnSessions(client(), tenant(), req.user!, recoveryToken(req))));
+  router.post('/sessions/revoke-others', run(async req => { emptyBody(req); return revokeOtherOwnSessions(client(), tenant(), req.user!, recoveryToken(req)); }));
+  router.post('/sessions/:id/revoke', run(async req => { emptyBody(req); return revokeOwnSession(client(), tenant(), req.user!, recoveryToken(req), req.params.id); }));
+  router.post('/members/:uid/sessions/revoke', run(async req => revokeMemberSessions(client(), tenant(), req.user!, recoveryToken(req), { ...req.body, targetUid: req.params.uid })));
   router.get('/members', run(async req => listStaffMembers(client(), tenant(), req.user!, req.query)));
   router.get('/invitations', run(async req => listStaffInvitations(client(), tenant(), req.user!, req.query)));
   router.post('/invitations', run(async req => createStaffInvitation(client(), tenant(), req.user!, req.body), 201));

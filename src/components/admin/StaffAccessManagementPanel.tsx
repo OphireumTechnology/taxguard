@@ -1,4 +1,5 @@
 import { StaffMfaRecoveryPanel } from './StaffMfaRecoveryPanel';
+import { StaffSessionsPanel } from './StaffSessionsPanel';
 import React, { useEffect, useRef, useState } from 'react';
 import { api, getStoredToken } from '../../services/api';
 import type { User } from '../../types';
@@ -124,6 +125,7 @@ export function StaffAccessManagementPanel({user, authStatus, refresh = 0}: {use
       <div className="flex gap-3"><button disabled={isBusy('uid' in action.row ? action.row.uid : action.row.id) || (['suspend', 'deactivate', 'reactivate'].includes(action.action) && !reason.trim())} className={buttonClass + ' text-amber-200'}>Confirm {action.action}</button><button type="button" className={buttonClass} onClick={cancel}>Cancel</button></div>
     </form>}
     <StaffMfaRecoveryPanel user={user} authStatus={authStatus} refresh={refresh} members={directory.items.filter((row): row is StaffMemberRecord => 'uid' in row)} />
+    <StaffSessionsPanel user={user} authStatus={authStatus} refresh={refresh} members={directory.items.filter((row): row is StaffMemberRecord => 'uid' in row)} />
     <nav aria-label="Directory pagination" className="flex gap-3"><button type="button" className={buttonClass} disabled={!directory.query.cursor || directory.status === 'loading'} onClick={directory.firstPage}>First page</button><button type="button" className={buttonClass} disabled={!directory.nextCursor || directory.status === 'loading'} onClick={directory.nextPage}>Next page</button></nav>
   </section>;
 }

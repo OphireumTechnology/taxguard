@@ -168,3 +168,7 @@ Recovery diagnostic:243 files /4,847 tests passed, with one stale traceability i
 Recovery request/approval is a tested local FOUNDATION, not end-to-end recovery. No HTTP/UI, factor-reset adapter/worker, enrollment proof or gate-clearing/final activation exists. All jobs remain pending/unavailable. No production operation, migration application, real identity/data processing, paid integration or deployment performed.
 
 Normal Git staging retry and read-only gh PR10 metadata query were both rejected before process creation with helper_unknown_error / setup refresh errors. No commit, push, remote PR mutation or alternate index/process bypass occurred. PR10 draft status remains policy and cannot be independently confirmed here. Keep all changes local pending security/integration review. Goal remains active; this turn is progress, not an impasse or application completion.
+
+## Claude worktree — staff session management (2026-10-12)
+
+Isolated worktree `123-claude`, branch `claude/taxguard-dev-20261012` from `37506f9` (Codex active in `123`). Baseline re-verified: 248 files / 4,939 tests, typecheck PASS. Added proposal 023 (unapplied) and development-only own-session list/revoke, sign out other sessions, and administrator member-session revocation with 15-minute step-up re-authentication; UI in Practice Staff & Roles. Validation: **251 files / 4,990 tests passed**, typecheck, build, diff check and traceability PASS. Details: [staff-session-management.md](staff-session-management.md). Production NO-GO.
