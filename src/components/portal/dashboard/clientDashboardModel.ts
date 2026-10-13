@@ -1,4 +1,5 @@
 import type { Appointment, DocumentItem, Engagement, Invoice, Message, User } from '../../../types';
+import type { CommThread } from '../../../services/communicationsService';
 import type { GeneratedDocumentRequirement, StoredQuestionnaireRecord } from '../../../server/taxguard/taxQuestionnaire';
 
 export interface ClientScope { userId: string; clientId: string; tenantId: string; taxYear: number }
@@ -50,6 +51,16 @@ export function scopeDocuments(rows: DocumentItem[], scope: ClientScope) {
 }
 export function scopeEngagements(rows: Engagement[], scope: ClientScope) {
   return rows.filter(row => row.clientId === scope.clientId && tenantMatches(row, scope) && Number.isInteger(row.taxYear) && row.taxYear >= 2022);
+}
+/**
+ * Durable conversations (proposal 039) as one overview row each: the subject, the time of the latest
+ * client-visible message and whether anything is unread. Whether the client spoke last is the only
+ * sender fact used; no advisor name is invented.
+ */
+export function threadSummaries(threads: CommThread[], scope: ClientScope): Message[] {
+  return threads.filter(t => t.clientId === scope.clientId).map(t => ({ id: t.threadId, clientId: t.clientId, subject: t.subject, content: t.subject,
+    senderId: t.awaitingStaffReply ? scope.userId : 'advisor-team', senderName: 'Your advisor team', senderRole: (t.awaitingStaffReply ? 'client' : 'accountant') as Message['senderRole'],
+    recipientId: t.awaitingStaffReply ? undefined : scope.userId, createdAt: t.lastMessageAt, isRead: t.unread === 0 }));
 }
 export function scopeMessages(rows: Message[], engagements: Engagement[], scope: ClientScope) {
   const validEngagements = new Set(engagements.filter(e => e.taxYear === scope.taxYear).map(e => e.id));

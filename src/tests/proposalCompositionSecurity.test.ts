@@ -32,10 +32,11 @@ describe('proposal composition', () => {
       '20261012350000_taxguard_staff_access_hardening.sql',
       '20261012360000_taxguard_tax_rule_verification_cases.sql',
       '20261012370000_taxguard_mfa_recovery_history.sql',
-      '20261012380000_taxguard_tax_rule_coverage.sql']));
+      '20261012380000_taxguard_tax_rule_coverage.sql',
+      '20261013390000_taxguard_client_messaging.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
-    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236|^2026101237|^2026101238/);
+    await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236|^2026101237|^2026101238|^20261013/);
   }, 60000);
 });
 
@@ -52,7 +53,7 @@ describe('database-wide security invariants', () => {
   });
   it('no taxguard function added by the Claude proposals is executable by anon or authenticated', async () => {
     const rows = (await fixture.pg.query<{ proname: string }>(`SELECT DISTINCT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public' AND (p.proname LIKE 'taxguard\\_ledger\\_%' OR p.proname LIKE 'taxguard\\_practice\\_%' OR p.proname LIKE 'taxguard\\_case\\_%' OR p.proname LIKE 'taxguard\\_doc\\_%' OR p.proname LIKE 'taxguard\\_bill\\_%' OR p.proname LIKE 'taxguard\\_b2t\\_%' OR p.proname LIKE 'taxguard\\_docreq\\_%' OR p.proname LIKE 'taxguard\\_client\\_notification%'
+      WHERE n.nspname = 'public' AND (p.proname LIKE 'taxguard\\_ledger\\_%' OR p.proname LIKE 'taxguard\\_comm\\_%' OR p.proname LIKE 'taxguard\\_practice\\_%' OR p.proname LIKE 'taxguard\\_case\\_%' OR p.proname LIKE 'taxguard\\_doc\\_%' OR p.proname LIKE 'taxguard\\_bill\\_%' OR p.proname LIKE 'taxguard\\_b2t\\_%' OR p.proname LIKE 'taxguard\\_docreq\\_%' OR p.proname LIKE 'taxguard\\_client\\_notification%'
         OR p.proname IN ('taxguard_session_actor','taxguard_list_own_sessions','taxguard_revoke_own_session','taxguard_revoke_other_own_sessions',
           'taxguard_admin_revoke_member_sessions','taxguard_list_own_security_events',
           'taxguard_staff_admin_session','taxguard_mfa_recovery_history','taxguard_mfa_recovery_step'))

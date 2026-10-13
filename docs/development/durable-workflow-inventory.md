@@ -1,57 +1,39 @@
-# Durable workflow inventory (Phase 6)
+# Durable workflow inventory and implementation matrix (Phase 7, 2026-10-13)
 
-What still runs on the in-memory development store (`src/server/db.ts`) or on demonstration data,
-and what already reads recorded data only. No figures are invented anywhere in the durable paths:
-unavailable data is shown as unavailable.
+Baseline `main` `edcc472`. "Durable" means PostgreSQL through service-role-only SECURITY DEFINER
+proposal functions, enforced per (tenant, client) by the database, surviving a server restart. A
+screen or legacy route over the in-memory store (`src/server/db.ts`) is **not** a durable workflow.
+All proposals are unapplied; durable routers answer only with `TAXGUARD_PRACTICE_STORE=durable`
+against a non-production project (otherwise 503) and are not mounted in `createProductionApp`.
 
-## Change in this phase: no demonstration records in a durable deployment
+## Matrix
 
-`db.ts` seeded demonstration users, engagements, documents, appointments, invoices, messages,
-ledgers, legal records, accountant profiles, onboarding (including a made-up EIN) and audit entries
-in every non-production process. In a deployment configured with `TAXGUARD_PRACTICE_STORE=durable`
-those records reached the legacy panels as if they were operational data. The seed now stops after
-the public catalog content (service plans, job postings) when the durable store is configured
-(`durableDemoSeed.test.ts`); the local in-memory development mode is unchanged. Both browser E2E
-profiles run with the durable store and therefore without demonstration records.
+| Workflow | Frontend (reachable?) | API | Service / store | Tables / proposal | Authorization & tenant isolation | Survives restart | Tests | Missing |
+|---|---|---|---|---|---|---|---|---|
+| **Staff assignments** | `PracticeClientsPanel` Team section (yes, manager dashboard); `AssignmentGovernanceTab` (no — not mounted) | `/api/practice/clients/:id/engagements/:e/team`, `/team/:a/revoke` | `PracticeStore` | `taxguard_staff_assignments`, history — 025 | managers only; partial unique ACTIVE index; reason required | yes | `practiceManagementHttp.test.ts`, E2E staffing via `ensureStaffed` | legacy `/api/assignments` + unmounted tab still present (in-memory) |
+| **Accountant task queue** | `DurableMyWorkPanel` (yes, accountant/reviewer), `PracticeClientsPanel` Tasks | `/api/practice/my-work`, `/clients/:id/tasks` | `PracticeStore` | `taxguard_practice_tasks` — 025 | assigned staff / managers; optimistic version | yes | `practiceManagementHttp.test.ts` (no browser E2E for tasks yet) | legacy `/api/accountant/tasks*` (no UI caller) |
+| **Client engagements & cases** | `PracticeClientsPanel`, case workspace (yes) | `/api/practice/...engagements`, `/api/cases` | `PracticeStore`, `CaseStore` | 025, 026 | managers create; stage gates; maker-checker | yes | E2E 02/03 | `AppContext` still loads legacy `/api/engagements` for legacy panels |
+| **Client / staff messaging** (Phase 7) | client portal Messages module and overview; `StaffMessageInboxPanel` (accountant, reviewer, manager); client detail conversations (yes) | `/api/communications/*` | `CommunicationStore` | core `taxguard_communication_threads/_messages` + `taxguard_comm_reads` — **039** | `taxguard_doc_actor`: own client / assigned staff / managers; internal notes never to clients; immutable messages; idempotent IDs; audited without content | yes (restart test) | `clientMessaging.test.ts` (8), `clientMessagingUi.test.tsx` (4), `messaging.db.test.ts` (3), E2E 10 (4) | legacy `/api/messages` still serves local in-memory mode (list leak fixed); attachments via vault only; no e-mail/SMS |
+| **Appointments & scheduling** | `LiveCalendarModule` (yes), booking page (yes) | `/api/appointments`, `/api/calendar/*` | in-memory `db.appointments`, slot holds | none (no appointment or calendar table in the core schema or any proposal) | legacy object checks only | **no** | `legacyRouteObjectAuthorization` | durable proposal + store + UI (Phase 8 priority) |
+| **Administrator operational views** | `SuperAdminConsole` (yes) | `/api/admin/*` | in-memory users, audit logs, security events | durable staff directory / audit only for staff access (003–011) | admin role; legacy | **no** (except staff access) | `superAdminConsole.test.tsx` | durable audit-log reader, system health from recorded sources |
+| **Legal / compliance coordination** | `AppContext.legalRecords` (no dedicated screen) | `/api/legal` | in-memory `db.legalRecords` | none | legacy | **no** | — | proposal + store + UI |
+| **Documents & deliverables** | client vault, document review, requests (yes) | `/api/vault/*` | `DocumentVaultStore`, `DocumentRequestStore` | 027, 031 | client own uploads; staff assigned; scan quarantine | yes | E2E 02/05 | legacy `/api/documents` still loaded by `AppContext` |
+| **Billing & receivables** | billing panels (yes) | `/api/billing/*` | `BillingStore` | 028 | maker-checker approval; sandbox only | yes | E2E 02 | legacy `/api/payments/*`; no live payments by design |
+| **Audit activity** | per-module activity (practice, recovery history) | per router | audit rows in `taxguard_audit_log` | every proposal | per scope | yes | per suite | tenant-wide durable audit viewer for administrators |
+| **Integrations** | `PortalDirectoryPage` | `/api/integrations` | in-memory | none | legacy | **no** | — | no real connectors by design |
 
-## Already durable (recorded data only)
+## Changes in Phase 7
 
-| Area | Server | Proposal |
-|---|---|---|
-| Practice clients, engagements, team, notes | `/api/practice` | 025 |
-| Case workflow stages | `/api/cases` | 026 |
-| Document vault, scanning, requests, checklists, notices | `/api/vault`, document requests | 027, 031 |
-| Billing / invoices (no live payments) | `/api/billing` | 028 |
-| Ledger, book-to-tax, bookkeeper work queue with independent review | `/api/bookkeeping`, `/api/book-to-tax` | 024, 029, 030 |
-| Role dashboards (accountant, reviewer, bookkeeper, practice manager, client) from recorded figures | dashboard routes | 032 |
-| Tax-rule sources, rule sets, pinned runs | `/api/tax-engine` | 033, 036 |
-| Staff access, sessions, invitations, MFA recovery | `/api/staff-access` | 003–011, 034, 035, 037 |
+- Proposal 039 messaging (above), its API, the client portal and staff UI, and `practiceManagerAccess` entries for it.
+- Legacy `/api/messages` GET listed every message of an engagement, and every message for staff,
+  without the per-message access check; it now applies `canAccessMessage` to each row (clients never
+  receive either internal flag). Covered in `legacyRouteObjectAuthorization.test.ts`.
+- Earlier (Phase 6/7 reconciliation): no in-memory demonstration seed in durable deployments;
+  unreachable demonstration portal views removed.
 
-## Still in-memory (lost on restart; empty in durable deployments)
+## Phase 8 candidates (in order)
 
-Loaded by `refreshBackendData` after sign-in or by individual panels:
-
-| Legacy route | Collections | Durable replacement |
-|---|---|---|
-| `/api/documents`, `/api/engagements`, `/api/engagements/journal-entries` | documents, engagements, journalEntries | vault (027) and practice engagements (025) exist; the legacy panels still call these routes |
-| `/api/accountant/*` (overview, clients, tasks, notes, document requests, deliverables) | accountingTasks, clientAccountantAssignments, documentRequests, … | role dashboards (032) and document requests (031) cover the read side; task and note writes have no durable store yet |
-| `/api/assignments/*` (bind, reassign, workload) | clientAccountantAssignments, reassignmentRequests | practice team assignments (025); legacy reassignment workflow not migrated |
-| `/api/messages`, `/api/appointments`, calendar, consultation room | messages, appointments, calendar collections | none yet |
-| `/api/payments/*` | invoices, webhooks | billing (028) for invoices; no live payment processing by design |
-| `/api/integrations`, staging | accountingConnections, accountingStagingRecords | none (no real connectors) |
-| `/api/legal`, `/api/intake`, onboarding, profile amendments, case authority | legal, intake, onboarding and profile collections | none yet |
-| `/api/admin/*` (users, audit logs, security events, health), super admin | users, auditLogs, securityEvents, sessions | durable staff directory and audit log exist for staff access only |
-| `/api/careers` | jobs, applicants | none (public content) |
-
-## Client portal demonstration views (removed 2026-10-13)
-
-`AmendmentView`, `AuditActivityView`, `ExpensesView`, `FinancialConnectionsView`, `OverviewView`,
-`TaxWorkspaceView`, `ApprovalsView`, `DeliverablesView` and their only data source
-`clientPortalService.ts` (`MOCK_*` / `INITIAL_*` demonstration records) were unreachable and were
-removed during the main reconciliation; see `docs/development/main-reconciliation-20261013.md`.
-The authenticated client dashboard uses the durable stage views and document vault instead.
-
-## Next steps (not done here)
-
-Point the legacy staff panels at the durable practice, vault and dashboard APIs and retire the
-matching legacy routes; durable stores for tasks/notes, messages and appointments need new proposals.
+1. Appointments and scheduling: new tables and proposal, store, `LiveCalendarModule` on the durable API.
+2. Point `AppContext` legacy loads (engagements, documents, invoices) at the durable APIs and retire
+   the legacy routes and the unmounted `AssignmentGovernanceTab`.
+3. Durable administrator audit-log viewer; legal coordination records.

@@ -7,6 +7,7 @@ import { useDashboardInspection } from '../layout/dashboardInspection';
 import { REVIEW_FILTERS, REVIEW_TABS, REVIEWER_STAGES, reviewFilter, reviewerDecisionBlock } from './reviewerDashboardModel';
 import { ReviewEmpty, ReviewerExceptionPanel, ReviewerQualityPanel, ReviewerReadPanel } from './ReviewerCasePanels';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
+import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
 import './reviewerDashboard.css';
 
 const kpis=['Ready for Review','High Risk','Returned','Awaiting Approval','Due Today','Overdue'];
@@ -52,6 +53,7 @@ export function ReviewerDashboard() {
     <div className="tg-reviewer">
       <div className="tg-review-kpis">{kpis.map((label,i)=><button key={label} className={'tg-review-kpi tg-review-kpi-'+i} disabled={data.queue.status!=='ready'} aria-pressed={filter===label} onClick={()=>setFilter(label)}><span>{label}</span><strong>{data.queue.status==='ready'?rows.filter(r=>reviewFilter(r,label,today)).length:'—'}</strong><small>{label==='High Risk'?'Critical return diagnostics':label==='Overdue'?'Recorded deadlines · SLA unavailable':'View authorized cases'}</small></button>)}</div>
       {!inspecting && <DurableMyWorkPanel heading="My durable review queue" />}
+      {!inspecting && <StaffMessageInboxPanel />}
       <section className="tg-review-card tg-review-queue"><h2>Quality Review Queue <button disabled={busy} onClick={()=>setRefresh(n=>n+1)}>Refresh</button></h2><div className="tg-review-filters">{REVIEW_FILTERS.slice(0,6).map(f=><button key={f} aria-pressed={filter===f} onClick={()=>setFilter(f)}>{f}</button>)}<label>Search authorized cases<input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)}/></label><label>Tax year<select value={year} onChange={e=>setYear(e.target.value)}><option>All</option>{[...new Set(rows.map(r=>r.scope.taxYear))].sort((a,b)=>b-a).map(y=><option key={y}>{y}</option>)}</select></label></div>
         {data.queue.status==='loading' && !inspecting && <p role="status">Loading authorized review cases…</p>}{data.queue.status==='error' && <p role="alert">{data.queue.error}</p>}
         <div className="tg-review-scroll"><table><thead><tr>{['Client','Tax Year / Period','Current Stage','Preparer','Risk / Priority','Review Status','Due Date'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{visible.map(r=><tr key={r.id} aria-selected={r.id===selectedId}><td><button disabled={busy} onClick={()=>choose(r.id)}>{r.clientName}</button></td><td>{r.scope.taxYear}</td><td>{String(r.activeStage).padStart(2,'0')} {REVIEWER_STAGES[r.activeStage-1]}</td><td>{r.preparerName}</td><td>{r.highRisk?'Critical diagnostics':r.priority || 'Not recorded'}</td><td>{r.reviewStatus}</td><td>{r.dueDate?.slice(0,10) || 'Not recorded'}</td></tr>)}</tbody></table></div>{data.queue.status==='ready' && !visible.length && <ReviewEmpty>No authorized cases match this review queue.</ReviewEmpty>}
