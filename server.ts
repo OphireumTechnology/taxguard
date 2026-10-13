@@ -15,6 +15,9 @@ import { createReassignmentRouter } from './src/server/routes/reassignment.route
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
+import { SecurityEventRecorder, securityDenialObserver } from './src/server/securityEventRecorder';
+import { practiceStoreConfigured } from './src/server/taxguard/practice/practiceStoreConfig';
+import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -209,6 +212,14 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
  */
 
 if (process.env.NODE_ENV !== 'production') {
+  if (process.env.TAXGUARD_SECURITY_EVENTS === 'durable' && practiceStoreConfigured()) {
+    const recorder = new SecurityEventRecorder(getSupabaseAdmin() as any, process.env.TAXGUARD_TENANT_ID || '');
+    db.securityEventSink = event => recorder.record(event);
+    app.use('/api', securityDenialObserver(recorder));
+    // Report only counters, never event content. Health monitoring must alert on failures/drops.
+    const timer = setInterval(() => { const status = recorder.status(); if (status.failed || status.dropped) console.warn('[security-ingest]', status); }, 60_000);
+    timer.unref();
+  }
   initSeedPasswords();
   const superAdmin = bootstrapSuperAdministrator();
   // Status only: no e-mail address, hash or secret is printed.
@@ -474,6 +485,7 @@ app.use('/api/client-portal', createClientPortalRouter());
 // Durable reassignment requests (proposal 045): development-only, 503 unless configured.
 app.use('/api/reassignment', createReassignmentRouter());
 
+app.use('/api', legacyRouteBoundary());
 app.use(
   '/api/onboarding',
   onboardingRouter

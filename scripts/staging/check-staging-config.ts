@@ -13,7 +13,8 @@ import { isProtectedIdentityDestination } from '../../src/supabase/protectedDest
 
 const names = fs.readFileSync('docs/development/staging.env.template', 'utf8').split(/\r?\n/)
   .map(l => /^([A-Z0-9_]+)=/.exec(l)?.[1]).filter((n): n is string => Boolean(n));
-const values = Object.fromEntries(names.map(n => [n, process.env[n]]));
+const extra = Object.keys(process.env).filter(n => /^VITE_|^TAXGUARD_/i.test(n));
+const values = Object.fromEntries([...new Set([...names, ...extra])].map(n => [n, process.env[n]]));
 const assessment = assessStagingConfiguration(values);
 const issues = [...assessment.issues];
 for (const field of ['SUPABASE_URL', 'VITE_SUPABASE_URL']) {

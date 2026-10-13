@@ -8,6 +8,10 @@ beforeAll(async () => { db = await startDatabase(); });
 afterAll(async () => { await db?.stop(); });
 
 describe('composition on a real PostgreSQL server', () => {
+  it('enables RLS on every exposed public table after composing all files', async () => {
+    const r = await db.pool.query("SELECT relname FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind IN ('r','p') AND NOT relrowsecurity ORDER BY relname");
+    expect(r.rows.map(row => row.relname)).toEqual([]);
+  });
   it('applies every migration then every proposal in name order', async () => {
     expect(MIGRATIONS.length).toBeGreaterThan(0);
     expect(PROPOSALS).toEqual([...PROPOSALS].sort());

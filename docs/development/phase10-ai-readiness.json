@@ -1,0 +1,1000 @@
+{
+  "releaseAuthorized": false,
+  "materialActionsEnabled": false,
+  "controls": {
+    "gateway": "src/server/ai/governance/GovernanceControlPlane.ts",
+    "killSwitches": "src/server/ai/governance/KillSwitchService.ts",
+    "humanReview": "src/server/ai/review/HumanProposalReviewService.ts",
+    "executionLedger": "src/server/ai/governance/SqlGovernanceStore.ts",
+    "orchestration": "src/server/ai/orchestration/A00Orchestrator.ts"
+  },
+  "agents": [
+    {
+      "id": "A00",
+      "name": "Supervisor / Orchestrator",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "bounded advisory orchestration tests",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A01",
+      "name": "CLIENT SERVICES 01",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A02",
+      "name": "CLIENT SERVICES 02",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A03",
+      "name": "CLIENT SERVICES 03",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A04",
+      "name": "CLIENT SERVICES 04",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A05",
+      "name": "Document Intake",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A06",
+      "name": "Document Classification",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A07",
+      "name": "OCR / Extraction",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A08",
+      "name": "Extraction Validation",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A09",
+      "name": "DOCUMENT INTELLIGENCE 09",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A10",
+      "name": "Duplicate / Fraud Check",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "duplicate-byte advisory tests",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A11",
+      "name": "Evidence",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A12",
+      "name": "ACCOUNTING 12",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A13",
+      "name": "ACCOUNTING 13",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A14",
+      "name": "ACCOUNTING 14",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A15",
+      "name": "ACCOUNTING 15",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A16",
+      "name": "ACCOUNTING 16",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A17",
+      "name": "TAX INTELLIGENCE 17",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A18",
+      "name": "Federal Tax Analysis",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A19",
+      "name": "State Tax Analysis",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A20",
+      "name": "TAX INTELLIGENCE 20",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A21",
+      "name": "TAX INTELLIGENCE 21",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A22",
+      "name": "TAX INTELLIGENCE 22",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A23",
+      "name": "TAX INTELLIGENCE 23",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A24",
+      "name": "TAX INTELLIGENCE 24",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A25",
+      "name": "TAX INTELLIGENCE 25",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A26",
+      "name": "TAX INTELLIGENCE 26",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A27",
+      "name": "TAX INTELLIGENCE 27",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A28",
+      "name": "Calculation Verification",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A29",
+      "name": "TAX INTELLIGENCE 29",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A30",
+      "name": "Form Mapping",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A31",
+      "name": "Diagnostics",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A32",
+      "name": "RISK QC 32",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A33",
+      "name": "RISK QC 33",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A34",
+      "name": "Reviewer Support",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "workflow-read and human return/reject proposal tests",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A35",
+      "name": "RISK QC 35",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A36",
+      "name": "SIGN FILE RESOLVE 36",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A37",
+      "name": "SIGN FILE RESOLVE 37",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A38",
+      "name": "SIGN FILE RESOLVE 38",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A39",
+      "name": "SIGN FILE RESOLVE 39",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A40",
+      "name": "SIGN FILE RESOLVE 40",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A41",
+      "name": "SIGN FILE RESOLVE 41",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A42",
+      "name": "SIGN FILE RESOLVE 42",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A43",
+      "name": "PRACTICE OPERATIONS 43",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A44",
+      "name": "PRACTICE OPERATIONS 44",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A45",
+      "name": "PRACTICE OPERATIONS 45",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A46",
+      "name": "PRACTICE OPERATIONS 46",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A47",
+      "name": "PRACTICE OPERATIONS 47",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A48",
+      "name": "PRACTICE OPERATIONS 48",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A49",
+      "name": "PRACTICE OPERATIONS 49",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A50",
+      "name": "PRACTICE OPERATIONS 50",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A51",
+      "name": "GOVERNANCE SECURITY PLATFORM 51",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A52",
+      "name": "GOVERNANCE SECURITY PLATFORM 52",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A53",
+      "name": "GOVERNANCE SECURITY PLATFORM 53",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A54",
+      "name": "GOVERNANCE SECURITY PLATFORM 54",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A55",
+      "name": "GOVERNANCE SECURITY PLATFORM 55",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A56",
+      "name": "GOVERNANCE SECURITY PLATFORM 56",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A57",
+      "name": "GOVERNANCE SECURITY PLATFORM 57",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A58",
+      "name": "GOVERNANCE SECURITY PLATFORM 58",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A59",
+      "name": "GOVERNANCE SECURITY PLATFORM 59",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    },
+    {
+      "id": "A60",
+      "name": "GOVERNANCE SECURITY PLATFORM 60",
+      "status": "DRAFT",
+      "model": null,
+      "tokenBudget": 0,
+      "costBudget": 0,
+      "humanReviewThreshold": 1,
+      "commissioned": false,
+      "localScope": "metadata and denial controls only",
+      "blockingDependencies": [
+        "approved specialist authority and mapping",
+        "provider commissioning",
+        "environment governance and independent acceptance"
+      ]
+    }
+  ],
+  "taxEngine": {
+    "stages9Through18": "BLOCKED",
+    "realRulesApproved": false,
+    "efiling": false,
+    "signatures": false,
+    "evidence": [
+      "src/tests/taxEngineHttp.test.ts",
+      "src/tests/taxRuleCoverage.test.ts",
+      "src/tests/taxRuleVerificationCases.test.ts"
+    ]
+  }
+}

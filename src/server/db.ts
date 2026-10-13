@@ -1277,6 +1277,7 @@ class Database {
   }
 
   // Security event recording
+  securityEventSink?: (event: SecurityEventRecord) => void;
   logSecurityEvent(event: Omit<SecurityEventRecord, 'id' | 'timestamp'>) {
     const secEvent: SecurityEventRecord = {
       id: `sec_${randomUUID()}`,
@@ -1284,6 +1285,8 @@ class Database {
       ...event
     };
     this.securityEvents.unshift(secEvent);
+    if (this.securityEvents.length > 500) this.securityEvents.pop();
+    this.securityEventSink?.(secEvent);
     return secEvent;
   }
 

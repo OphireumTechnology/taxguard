@@ -5,6 +5,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createVaultRouter } from '../server/routes/vault.routes';
 import { DocumentVaultStore } from '../server/taxguard/documents/documentVaultStore';
 import { contentMatchesType, SupabaseVaultStorage, type MalwareScanner, type OcrProvider, type VaultStorage } from '../server/taxguard/documents/vaultIntegrations';
+import { AuthenticatedMalwareScanner, scanVerdictSignature } from '../server/taxguard/documents/authenticatedScanner';
+import { randomBytes } from 'node:crypto';
 import { PracticeStore } from '../server/taxguard/practice/practiceStore';
 import { capabilityFixture } from './aiCapabilities.fixture';
 import { applyProposals, pgliteRpc } from './helpers/pgliteRpc';
@@ -59,6 +61,21 @@ beforeEach(() => { useScanner = true; as('client'); });
 
 describe('document vault', () => {
   let docId = '';
+  it('keeps forged authenticated scanner verdicts quarantined and blocks infected downloads', async () => {
+    const key = randomBytes(32);
+    const scannerStorage = new MemoryStorage();
+    for (const mode of ['forged', 'infected']) {
+      const adapter = new AuthenticatedMalwareScanner({ async scan(request) {
+        const result = { requestId: request.requestId, digest: request.digest, issuedAt: request.issuedAt, verdict: mode === 'infected' ? 'INFECTED' as const : 'CLEAN' as const };
+        return { ...result, signature: mode === 'forged' ? '0'.repeat(64) : scanVerdictSignature(key, result) };
+      } }, key);
+      const store = new DocumentVaultStore(pgliteRpc(() => fixture.pg), scannerStorage, adapter);
+      const uploaded = await store.upload(T, C, 'dv-client', { engagementId, taxYear: 2025, category: 'income', fileName: `scanner-${mode}.pdf`, mimeType: 'application/pdf', idempotencyKey: `scanner-${mode}-key` }, PDF('synthetic scanner boundary'));
+      expect(uploaded.status).toBe(mode === 'forged' ? 'SCAN_PENDING' : 'REJECTED_MALWARE');
+      await expect(store.downloadUrl(T, C, 'dv-client', uploaded.documentId, uploaded.version)).rejects.toThrow('DOCUMENT_NOT_AVAILABLE');
+    }
+    expect(scannerStorage.signed).toHaveLength(0);
+  });
   it('stores a client upload privately under a server-computed path, scans it and queues it for review', async () => {
     const r = await upload(C, PDF('synthetic W-2'));
     expect(r.status).toBe(201); expect(r.body).toMatchObject({ version: 1, status: 'PENDING_REVIEW', replayed: false });
@@ -126,6 +143,8 @@ describe('document vault', () => {
     as('acct', 'tenantB');
     expect((await get(`/clients/${C}/documents`)).body.code).toBe('DOCUMENT_NOT_FOUND'); // other tenant: indistinguishable from absent
     as('rev');
+    // Force a clock tie in this disposable fixture: UUID ordering must not reorder causal events.
+    await fixture.pg.query("UPDATE taxguard_audit_log SET timestamp='2026-01-01T00:00:00Z' WHERE metadata->>'documentId'=$1", [docId]);
     const history = (await get(`/clients/${C}/documents/${docId}`)).body.history.map((h: any) => h.action);
     expect(history).toEqual(['DOCUMENT_UPLOAD_REGISTERED', 'DOCUMENT_UPLOADED', 'DOCUMENT_SCANNED', 'DOCUMENT_EXTRACTION_PROPOSED', 'DOCUMENT_VERIFIED', 'DOCUMENT_DOWNLOAD_AUTHORIZED']);
   });

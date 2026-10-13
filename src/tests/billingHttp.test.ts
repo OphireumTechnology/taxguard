@@ -96,12 +96,13 @@ describe('billing', () => {
   it('records payments idempotently, refuses duplicates and overpayment, and settles in exact decimals', async () => {
     as('client');
     const mine = (await call('GET', `/clients/${C}/invoices`)).body.items;
-    expect(mine.map((i: any) => i.status)).toEqual(['VOID', 'ISSUED']);
+    // An unissued draft that was voided is also confidential.
+    expect(mine.map((i: any) => i.status)).toEqual(['ISSUED']);
     // Phase 9: staff-only financial details never reach clients (allow-listed client projection).
     const text = JSON.stringify(mine);
     for (const internal of ['preparedBy', 'approvedBy', 'reviewNote', 'voidReason', 'rateOverrideReason', 'Agreed synthetic discount', 'Add the engagement reference', 'bl-mgr', 'bl-acct', 'provider'])
       expect(text, internal).not.toContain(internal);
-    expect(mine[1].lines.map((l: any) => l.serviceCode)).toEqual(['IND-1040', 'BK-HOUR']);
+    expect(mine[0].lines.map((l: any) => l.serviceCode)).toEqual(['IND-1040', 'BK-HOUR']);
     expect((await call('POST', `/clients/${C}/invoices/${inv}/payments`, { amount: '10.00', method: 'CHECK' })).body.code).toBe('PAYMENT_NOT_AUTHORIZED');
     expect((await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '100.00', testCard: '5555555555554444' })).body.code).toBe('SANDBOX_TEST_CARD_REQUIRED');
     expect((await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '100.00', testCard: SANDBOX_DECLINE_CARD })).status).toBe(402);
@@ -150,6 +151,34 @@ describe('billing', () => {
     expect((await call('GET', '/ar-aging')).body.code).toBe('BILLING_STAFF_REQUIRED');
   });
 
+  it('enforces confidentiality in direct database RPCs without the HTTP projection', async () => {
+    const rpc = pgliteRpc(() => fixture.pg);
+    const store = new BillingStore(rpc, new SandboxPaymentProvider());
+    const mine = await store.list(T, C, 'bl-client');
+    const internal = /preparedBy|approvedBy|reviewNote|voidReason|rateOverrideReason|requestedBy|decidedBy|provider|Synthetic goodwill|bl-mgr|bl-acct/;
+    expect(JSON.stringify(mine)).not.toMatch(internal);
+    const paid = await store.paySandbox(T, C, 'bl-client', inv, { amount: '1.00', idempotencyKey: 'bl-direct-payment', testCard: SANDBOX_SUCCESS_CARD });
+    expect(paid.invoice.amountPaid).toBe('125.90');
+    expect(JSON.stringify(paid)).not.toMatch(internal);
+    expect(JSON.stringify(await store.list(T, C, 'bl-mgr'))).toMatch(/preparedBy/);
+    await expect(store.list('tenantB', C, 'bl-client')).rejects.toThrow();
+    await expect(store.list(T, OTHER, 'bl-client')).rejects.toThrow();
+    await expect(store.list(T, C, 'bl-outsider')).rejects.toThrow();
+    await expect(store.paySandbox(T, OTHER, 'bl-other', inv, { amount: '1.00', idempotencyKey: 'bl-direct-payment', testCard: SANDBOX_SUCCESS_CARD })).rejects.toThrow('INVOICE_NOT_FOUND');
+    for (const table of ['taxguard_invoices', 'taxguard_invoice_lines', 'taxguard_invoice_payments', 'taxguard_service_price_history', 'taxguard_invoice_credits']) {
+      for (const role of ['anon', 'authenticated', 'service_role']) {
+        const r = await fixture.pg.query<{ ok: boolean }>('SELECT has_table_privilege($1, $2, \'SELECT\') AS ok', [role, table]);
+        expect(r.rows[0].ok).toBe(false);
+      }
+    }
+    for (const fn of ['taxguard_bill_invoice_json(taxguard_invoices)', 'taxguard_bill_client_invoice_json(taxguard_invoices)']) {
+      for (const role of ['anon', 'authenticated', 'service_role']) {
+        const r = await fixture.pg.query<{ ok: boolean }>('SELECT has_function_privilege($1, $2, \'EXECUTE\') AS ok', [role, fn]);
+        expect(r.rows[0].ok).toBe(false);
+      }
+    }
+  });
+
   it('isolates clients and tenants', async () => {
     as('other');
     expect((await call('GET', `/clients/${C}/invoices`)).body.code).toBe('INVOICE_NOT_FOUND');
@@ -158,6 +187,18 @@ describe('billing', () => {
     expect((await call('POST', `/clients/${C}/invoices`, { dueDate: '2026-04-30' })).body.code).toBe('CLIENT_NOT_FOUND');
     as('mgr', 'tenantB');
     expect((await call('GET', `/clients/${C}/invoices`)).body.code).toBe('CLIENT_NOT_FOUND'); // other tenant: indistinguishable from absent
+  });
+
+  it('detects a confidentiality mutation of the database projection and restores it', async () => {
+    await fixture.pg.exec('BEGIN');
+    try {
+      await fixture.pg.exec(`CREATE OR REPLACE FUNCTION public.taxguard_bill_client_invoice_json(i public.taxguard_invoices) RETURNS jsonb
+        LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$ SELECT public.taxguard_bill_invoice_json(i) $$`);
+      const exposed = await new BillingStore(pgliteRpc(() => fixture.pg)).list(T, C, 'bl-client');
+      // The same confidentiality predicate used by the direct-RPC regression catches this mutant.
+      expect(() => expect(JSON.stringify(exposed)).not.toMatch(/preparedBy|approvedBy|rateOverrideReason/)).toThrow();
+    } finally { await fixture.pg.exec('ROLLBACK'); }
+    expect(JSON.stringify(await new BillingStore(pgliteRpc(() => fixture.pg)).list(T, C, 'bl-client'))).not.toMatch(/preparedBy|approvedBy|rateOverrideReason/);
   });
 
   it('validates money without rounding and keeps the sandbox provider out of production', () => {

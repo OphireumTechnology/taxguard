@@ -22,3 +22,9 @@ it('returns immutable detached results', () => {
   const input = { ...fixture, PORT: '0' }; const result = assess(input); input.PORT = '3000';
   expect(result.state).toBe('INVALID'); expect(Object.isFrozen(result.issues[0])).toBe(true);
 });
+it('centrally refuses protected projects, key reuse, mismatched projects and live action flags', () => {
+  const result = assess({ ...fixture, SUPABASE_URL: 'https://cvrlhixxczerytiocxid.supabase.co', SUPABASE_SERVICE_ROLE_KEY: fixture.SUPABASE_ANON_KEY,
+    VITE_SUPABASE_URL: 'https://other.invalid', TAXGUARD_LIVE_PAYMENTS_ENABLED: 'true', TAXGUARD_LEGACY_ROUTES: 'enabled' });
+  expect(result.issues.map(i => i.code)).toEqual(expect.arrayContaining(['PROTECTED_PRODUCTION_PROJECT_REFUSED', 'KEY_SEPARATION_REQUIRED', 'PROJECT_MISMATCH', 'UNAPPROVED_ACTION_DENIED', 'LEGACY_RETIREMENT_REQUIRED']));
+  expect(JSON.stringify(result)).not.toContain('https://');
+});

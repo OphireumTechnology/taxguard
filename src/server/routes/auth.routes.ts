@@ -215,6 +215,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     }
     recordLoginFailure(lockoutKey, ip, email);
     recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
+    db.logSecurityEvent({ eventType: 'INVALID_CREDENTIALS', ipAddress: 'withheld', details: 'Authentication refused.', severity: 'warning' });
     return res.status(401).json({
       error: 'Invalid credentials. Please verify your email and password.',
       code: 'INVALID_CREDENTIALS'
