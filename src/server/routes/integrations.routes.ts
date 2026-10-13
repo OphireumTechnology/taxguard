@@ -4,6 +4,10 @@
  * Defaults to Read-Only access. Any write operation strictly requires:
  * 1. Client authorization, 2. Accountant preparation, 3. Reviewer approval,
  * 4. Explicit confirmation, 5. Complete audit logging.
+ *
+ * No accounting-provider adapter is commissioned (dependency E04). Connection records,
+ * authorization gates and audit entries are real; provider sync and ledger commits are
+ * reported as unavailable rather than simulated as successful.
  */
 
 import { Router, Response } from 'express';
@@ -11,153 +15,136 @@ import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, blockRecruiterFromTaxRecords } from '../auth';
 import { AccountingConnection } from '../../types';
+import { CLIENT_ROLES, canAccessClientRecord } from '../clientAccess';
 
 export const integrationsRouter = Router();
 
-// List active accounting connections
+const STAFF_PREPARER_ROLES = new Set(['accountant', 'senior_reviewer', 'admin', 'super_admin']);
+const REVIEWER_ROLES = new Set(['senior_reviewer', 'admin', 'super_admin']);
+const PROVIDERS = new Set(['quickbooks_online', 'quickbooks', 'xero', 'freshbooks', 'sage', 'csv_manual']);
+const PROVIDER_UNAVAILABLE = {
+  error: 'No accounting provider integration is commissioned. Nothing was sent to or received from the provider.',
+  code: 'ACCOUNTING_PROVIDER_NOT_COMMISSIONED'
+};
+
+function emptyWriteAuthorization(): NonNullable<AccountingConnection['writeAuthorization']> {
+  return { clientAuthorized: false, accountantPrepared: false, reviewerApproved: false, explicitlyConfirmed: false };
+}
+
+/** Loads a connection and enforces client ownership / staff tenant + assignment. Responds and returns null on failure. */
+function authorizedConnection(req: AuthenticatedRequest, res: Response): AccountingConnection | null {
+  if (!req.user) { res.status(401).json({ error: 'Unauthorized' }); return null; }
+  const conn = db.accountingConnections.get(req.params.id);
+  // Same response for "missing" and "not yours": do not reveal other clients' connections.
+  if (!conn || !canAccessClientRecord(req.user, conn.clientId)) {
+    res.status(404).json({ error: 'Connection not found.' });
+    return null;
+  }
+  conn.writeAuthorization ??= emptyWriteAuthorization();
+  return conn;
+}
+
+// List accounting connections the caller is authorized for
 integrationsRouter.get('/', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-
-  let list = Array.from(db.accountingConnections.values());
-
-  if (req.user.role === 'client' || req.user.role === 'prospective_client') {
-    list = list.filter(c => c.clientId === req.user!.id);
-  }
-
+  const list = Array.from(db.accountingConnections.values()).filter(c => canAccessClientRecord(req.user!, c.clientId));
   return res.json({ connections: list });
 });
 
-// Connect accounting provider (Defaulting to Read-Only)
+// Record a provider connection request (read-only by default). Provider authorization is not commissioned.
 integrationsRouter.post('/connect', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { provider, companyName, realmId } = req.body;
+  const { provider, companyName } = req.body ?? {};
+  if (typeof provider !== 'string' || !PROVIDERS.has(provider)) {
+    return res.status(400).json({ error: 'A supported provider is required (quickbooks_online, xero, freshbooks, sage, csv_manual).', code: 'PROVIDER_INVALID' });
+  }
 
-  if (!provider) return res.status(400).json({ error: 'Provider is required (quickbooks, xero, freshbooks, sage, etc.).' });
-
-  const targetClientId = (req.user.role === 'client' || req.user.role === 'prospective_client')
-    ? req.user.id
-    : (req.body.clientId || req.user.id);
+  const isClient = CLIENT_ROLES.has(req.user.role);
+  const targetClientId = isClient ? (req.user.clientId || req.user.id) : req.body?.clientId;
+  if (typeof targetClientId !== 'string' || !targetClientId || !canAccessClientRecord(req.user, targetClientId)) {
+    return res.status(403).json({ error: 'Access to this client resource is denied.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   const connId = `conn_${randomUUID()}`;
   const newConn: AccountingConnection = {
     id: connId,
     clientId: targetClientId,
     provider,
-    companyName: companyName || (req.user.companyName || `${req.user.name}'s Ledger`),
-    realmId: realmId || `realm_${randomUUID().slice(0, 8)}`,
-    status: 'connected',
-    readOnlyDefault: true, // DEFAULT IS READ ONLY
-    lastSyncAt: new Date().toISOString(),
-    accountCount: 42,
+    companyName: typeof companyName === 'string' && companyName.trim() ? companyName.trim().slice(0, 200) : `${provider} ledger`,
+    // Not connected: no OAuth exchange with the provider has occurred.
+    status: 'pending_auth',
+    readOnlyDefault: true,
     errorCount: 0,
     syncErrors: [],
-    writeAuthorization: {
-      clientAuthorized: false,
-      accountantPrepared: false,
-      reviewerApproved: false,
-      explicitlyConfirmed: false
-    }
+    writeAuthorization: emptyWriteAuthorization()
   };
-
   db.accountingConnections.set(connId, newConn);
-
-  // Update onboarding
-  const onboarding = db.onboardingStates.get(targetClientId);
-  if (onboarding) {
-    onboarding.accountingSoftwareConnected = true;
-    db.onboardingStates.set(targetClientId, onboarding);
-  }
 
   db.logAudit({
     userId: req.user.id,
     userName: req.user.name,
     userRole: req.user.role,
-    action: `ACCOUNTING_INTEGRATION_CONNECTED`,
-    resource: `${(provider || 'intuit').toUpperCase()} Integration #${connId}`,
-    details: `Connected ${provider || 'accounting system'} in Read-Only mode. 42 ledger accounts synchronized.`,
+    action: 'ACCOUNTING_INTEGRATION_REQUESTED',
+    resource: `${provider.toUpperCase()} Integration #${connId}`,
+    details: `Read-only ${provider} connection requested; provider authorization not commissioned.`,
     ipAddress: req.ip || 'unknown',
     severity: 'info'
   });
 
   return res.status(201).json({
-    message: `${provider} successfully linked in secure Read-Only mode.`,
+    message: `${provider} connection request recorded. Provider authorization is not yet available; no ledger data has been synchronized.`,
     connection: newConn
   });
 });
 
-// Trigger Re-Sync
+// Re-sync: requires a commissioned provider adapter
 integrationsRouter.post('/:id/sync', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
-  const conn = db.accountingConnections.get(req.params.id);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
-
-  conn.lastSyncAt = new Date().toISOString();
-  conn.status = 'connected';
-  conn.errorCount = 0;
-  conn.syncErrors = [];
-
-  db.accountingConnections.set(conn.id, conn);
-
-  db.logAudit({
-    userId: req.user?.id || 'unknown',
-    userName: req.user?.name || 'User',
-    userRole: req.user?.role || 'client',
-    action: 'ACCOUNTING_INTEGRATION_SYNCED',
-    resource: `${(conn.provider || 'INTUIT').toUpperCase()} #${conn.id}`,
-    details: 'General ledger, trial balance, and chart of accounts synchronized.',
-    ipAddress: req.ip || 'unknown',
-    severity: 'info'
-  });
-
-  return res.json({ message: 'Ledger data re-synchronized successfully.', connection: conn });
+  const conn = authorizedConnection(req, res);
+  if (!conn) return;
+  return res.status(503).json(PROVIDER_UNAVAILABLE);
 });
 
-// Disconnect integration
+// Disconnect integration (local state; revokes all write authorization)
 integrationsRouter.post('/:id/disconnect', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
-  const conn = db.accountingConnections.get(req.params.id);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+  const conn = authorizedConnection(req, res);
+  if (!conn) return;
 
   conn.status = 'disconnected';
-  conn.writeAuthorization = {
-    clientAuthorized: false,
-    accountantPrepared: false,
-    reviewerApproved: false,
-    explicitlyConfirmed: false
-  };
-
+  conn.writeAuthorization = emptyWriteAuthorization();
   db.accountingConnections.set(conn.id, conn);
 
   db.logAudit({
-    userId: req.user?.id || 'unknown',
-    userName: req.user?.name || 'User',
-    userRole: req.user?.role || 'client',
+    userId: req.user!.id,
+    userName: req.user!.name,
+    userRole: req.user!.role,
     action: 'ACCOUNTING_INTEGRATION_DISCONNECTED',
-    resource: `${(conn.provider || 'INTUIT').toUpperCase()} #${conn.id}`,
-    details: 'Integration disconnected and OAuth tokens invalidated.',
+    resource: `${(conn.provider || 'unknown').toUpperCase()} #${conn.id}`,
+    details: 'Integration disconnected and all write authorizations revoked.',
     ipAddress: req.ip || 'unknown',
     severity: 'warning'
   });
 
-  return res.json({ message: `${conn.provider} disconnected successfully.`, connection: conn });
+  return res.json({ message: `${conn.provider} disconnected.`, connection: conn });
 });
 
 // 5-STAGE WRITE OPERATION AUTHORIZATION PIPELINE
-// 1. Client Authorization
+// 1. Client Authorization — the client's own consent; staff cannot record it on the client's behalf.
 integrationsRouter.post('/:id/authorize-write/client', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const conn = db.accountingConnections.get(req.params.id);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
-
-  if (req.user?.role !== 'client' && req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
-    return res.status(403).json({ error: 'Only the business client or primary admin can authorize write operations.' });
+  const conn = authorizedConnection(req, res);
+  if (!conn) return;
+  if (!CLIENT_ROLES.has(req.user!.role)) {
+    return res.status(403).json({ error: 'Only the business client can grant client write authorization.', code: 'CLIENT_CONSENT_REQUIRED' });
   }
 
-  conn.writeAuthorization.clientAuthorized = true;
+  conn.writeAuthorization!.clientAuthorized = true;
+  conn.writeAuthorization!.clientAuthorizedBy = req.user!.id;
   db.accountingConnections.set(conn.id, conn);
 
   db.logAudit({
-    userId: req.user.id,
-    userName: req.user.name,
-    userRole: req.user.role,
+    userId: req.user!.id,
+    userName: req.user!.name,
+    userRole: req.user!.role,
     action: 'WRITE_AUTH_STAGE_1_CLIENT_AUTHORIZED',
     resource: `${conn.provider} #${conn.id}`,
     details: 'Client granted provisional authorization for journal modifications.',
@@ -168,16 +155,19 @@ integrationsRouter.post('/:id/authorize-write/client', authenticateToken, (req: 
   return res.json({ message: 'Stage 1: Client write authorization recorded.', writeAuthorization: conn.writeAuthorization });
 });
 
-// 2. Accountant Preparation
+// 2. Accountant Preparation — staff only
 integrationsRouter.post('/:id/authorize-write/accountant-prepare', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const conn = db.accountingConnections.get(req.params.id);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
-
-  if (!conn.writeAuthorization.clientAuthorized) {
+  const conn = authorizedConnection(req, res);
+  if (!conn) return;
+  if (!STAFF_PREPARER_ROLES.has(req.user!.role)) {
+    return res.status(403).json({ error: 'Only authorized accounting staff can prepare a write batch.', code: 'PREPARER_ROLE_REQUIRED' });
+  }
+  if (!conn.writeAuthorization!.clientAuthorized) {
     return res.status(400).json({ error: 'Stage 1 (Client Authorization) is required before accountant preparation.' });
   }
 
-  conn.writeAuthorization.accountantPrepared = true;
+  conn.writeAuthorization!.accountantPrepared = true;
+  conn.writeAuthorization!.preparedBy = req.user!.id;
   db.accountingConnections.set(conn.id, conn);
 
   db.logAudit({
@@ -186,28 +176,30 @@ integrationsRouter.post('/:id/authorize-write/accountant-prepare', authenticateT
     userRole: req.user!.role,
     action: 'WRITE_AUTH_STAGE_2_ACCOUNTANT_PREPARED',
     resource: `${conn.provider} #${conn.id}`,
-    details: 'Accountant verified entry batches and balancing debit/credit schedules.',
+    details: 'Accountant prepared the entry batch for independent review.',
     ipAddress: req.ip || 'unknown',
     severity: 'info'
   });
 
-  return res.json({ message: 'Stage 2: Accountant preparation verified.', writeAuthorization: conn.writeAuthorization });
+  return res.json({ message: 'Stage 2: Accountant preparation recorded.', writeAuthorization: conn.writeAuthorization });
 });
 
-// 3. Reviewer Approval
+// 3. Reviewer Approval — independent of the preparer (maker-checker)
 integrationsRouter.post('/:id/authorize-write/reviewer-approve', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const conn = db.accountingConnections.get(req.params.id);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
-
-  if (!['senior_reviewer', 'admin', 'super_admin'].includes(req.user!.role)) {
+  const conn = authorizedConnection(req, res);
+  if (!conn) return;
+  if (!REVIEWER_ROLES.has(req.user!.role)) {
     return res.status(403).json({ error: 'Only Senior Reviewers or Compliance Admins can grant Stage 3 approval.' });
   }
-
-  if (!conn.writeAuthorization.clientAuthorized || !conn.writeAuthorization.accountantPrepared) {
+  if (!conn.writeAuthorization!.clientAuthorized || !conn.writeAuthorization!.accountantPrepared) {
     return res.status(400).json({ error: 'Stages 1 and 2 must be complete before reviewer approval.' });
   }
+  if (conn.writeAuthorization!.preparedBy === req.user!.id) {
+    return res.status(403).json({ error: 'Maker-Checker Violation: the preparer cannot approve their own write batch.', code: 'MAKER_CHECKER_VIOLATION' });
+  }
 
-  conn.writeAuthorization.reviewerApproved = true;
+  conn.writeAuthorization!.reviewerApproved = true;
+  conn.writeAuthorization!.approvedBy = req.user!.id;
   db.accountingConnections.set(conn.id, conn);
 
   db.logAudit({
@@ -216,7 +208,7 @@ integrationsRouter.post('/:id/authorize-write/reviewer-approve', authenticateTok
     userRole: req.user!.role,
     action: 'WRITE_AUTH_STAGE_3_REVIEWER_APPROVED',
     resource: `${conn.provider} #${conn.id}`,
-    details: `Senior reviewer ${req.user!.name} approved the journal posting schedule.`,
+    details: `Independent reviewer ${req.user!.name} approved the journal posting schedule.`,
     ipAddress: req.ip || 'unknown',
     severity: 'info'
   });
@@ -224,17 +216,20 @@ integrationsRouter.post('/:id/authorize-write/reviewer-approve', authenticateTok
   return res.json({ message: 'Stage 3: Reviewer approval granted.', writeAuthorization: conn.writeAuthorization });
 });
 
-// 4. Explicit Confirmation & Execution
+// 4. Explicit Confirmation & Execution — every gate is enforced; transmission requires a commissioned provider
 integrationsRouter.post('/:id/authorize-write/execute-commit', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const conn = db.accountingConnections.get(req.params.id);
-  if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+  const conn = authorizedConnection(req, res);
+  if (!conn) return;
+  if (!STAFF_PREPARER_ROLES.has(req.user!.role)) {
+    return res.status(403).json({ error: 'Only authorized accounting staff can execute a ledger write.', code: 'EXECUTOR_ROLE_REQUIRED' });
+  }
 
-  const { confirmationPhrase } = req.body;
+  const { confirmationPhrase } = req.body ?? {};
   if (confirmationPhrase !== 'CONFIRM_WRITE_TO_LEDGER') {
     return res.status(400).json({ error: 'Explicit confirmation phrase "CONFIRM_WRITE_TO_LEDGER" is required for Stage 4 commitment.' });
   }
 
-  const auth = conn.writeAuthorization;
+  const auth = conn.writeAuthorization!;
   if (!auth.clientAuthorized || !auth.accountantPrepared || !auth.reviewerApproved) {
     return res.status(403).json({
       error: 'Cannot execute write operation: All prior stages (Client Auth, Accountant Prep, Reviewer Approval) must be certified.',
@@ -242,25 +237,17 @@ integrationsRouter.post('/:id/authorize-write/execute-commit', authenticateToken
     });
   }
 
-  auth.explicitlyConfirmed = true;
-  conn.lastSyncAt = new Date().toISOString();
-  db.accountingConnections.set(conn.id, conn);
-
-  // 5. Complete Audit Logging
+  // 5. Audit the attempt. Nothing is transmitted: no provider adapter is commissioned.
   db.logAudit({
     userId: req.user!.id,
     userName: req.user!.name,
     userRole: req.user!.role,
-    action: 'WRITE_AUTH_STAGE_5_LEDGER_COMMITTED',
-    resource: `${(conn.provider || 'INTUIT').toUpperCase()} #${conn.id}`,
-    details: 'All 5 authorization checkpoints passed. Journal entries successfully committed to remote accounting ledger.',
+    action: 'WRITE_AUTH_COMMIT_NOT_TRANSMITTED',
+    resource: `${(conn.provider || 'unknown').toUpperCase()} #${conn.id}`,
+    details: 'All authorization stages verified; ledger write NOT transmitted because no accounting provider is commissioned.',
     ipAddress: req.ip || 'unknown',
-    severity: 'critical'
+    severity: 'warning'
   });
 
-  return res.json({
-    success: true,
-    message: 'Write operation committed successfully through all 5 enterprise security gates.',
-    connection: conn
-  });
+  return res.status(503).json({ ...PROVIDER_UNAVAILABLE, writeAuthorization: auth, transmitted: false });
 });

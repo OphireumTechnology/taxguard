@@ -18,6 +18,7 @@ import {
 } from '../auth';
 import { randomUUID } from 'crypto';
 import { isStaffCurrentlyAssignedToClient, isAssignmentCurrentlyEffective } from '../assignment-authorization';
+import { decodeBase64Strict, formatDocumentSize, isUploadRejected, matchesFileSignature, validateDocumentUpload } from '../documentUploadValidation';
 import { 
   AccountingWorkflowTask, 
   DocumentRequest, 
@@ -30,34 +31,8 @@ import {
 
 export const accountantRouter = Router();
 
-const ADMIN_ROLES = new Set(['admin', 'administrator', 'super_admin', 'super_administrator']);
-
-function getClientUser(clientId: string) {
-  return db.users.get(clientId) ||
-    Array.from(db.users.values()).find(user =>
-      ['client', 'prospective_client'].includes(user.role) && user.clientId === clientId
-    );
-}
-
-function canAccessStaffClient(
-  user: NonNullable<AuthenticatedRequest['user']>,
-  clientId: string,
-  scope: { engagementId?: string; taxYear?: number; caseId?: string } = {}
-): boolean {
-  const client = getClientUser(clientId);
-  if (!user.tenantId || client?.tenantId !== user.tenantId) return false;
-  if (ADMIN_ROLES.has(user.role)) return true;
-  return isStaffCurrentlyAssignedToClient({
-    userId: user.id,
-    tenantId: user.tenantId,
-    clientId,
-    clientTenantId: client.tenantId,
-    assignments: db.getClientBindings(clientId),
-    authorizedClientIds: user.authorizedClientIds,
-    production: process.env.NODE_ENV === 'production',
-    ...scope
-  });
-}
+// Object-level client/tenant authorization is shared with other legacy routers.
+import { ADMIN_ROLES, canAccessStaffClient, getClientUser } from '../clientAccess';
 
 function getCurrentlyAssignedClientIds(user: NonNullable<AuthenticatedRequest['user']>): Set<string> {
   return new Set(Array.from(db.users.values())
@@ -471,14 +446,22 @@ accountantRouter.post('/tasks/:taskId/review', (req: AuthenticatedRequest, res) 
   const { taskId } = req.params;
   const { action, notes } = req.body; // 'approved' | 'rejected' | 'requested_changes'
 
+  if (!['approved', 'rejected', 'requested_changes'].includes(action)) {
+    return res.status(400).json({ error: 'Invalid review action. Must be approved, rejected or requested_changes.', code: 'REVIEW_ACTION_INVALID' });
+  }
+
   const task = db.accountingTasks.get(taskId);
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
   }
+  // Object-level authorization: the reviewer must be authorized for this task's client and tenant.
+  if (!canAccessStaffClient(reviewer, task.clientId)) {
+    return res.status(403).json({ error: 'Forbidden: You are not authorized for this client task.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   // MAKER-CHECKER SECURITY CONSTRAINT:
   // Preparer cannot review or approve their own work!
-  if (task.assignedAccountantId === reviewer.id && reviewer.role !== 'super_admin') {
+  if (task.assignedAccountantId === reviewer.id) {
     db.logSecurityEvent({
       eventType: 'MAKER_CHECKER_VIOLATION_ATTEMPT',
       ipAddress: req.ip || 'unknown',
@@ -595,10 +578,42 @@ accountantRouter.post('/documents/request', requireAccountantAssignment, (req: A
  */
 accountantRouter.post('/documents/upload-deliverable', requireAccountantAssignment, (req: AuthenticatedRequest, res) => {
   const user = req.user!;
-  const { clientId, fileName, category = 'firm_deliverable', taxYear = 2025, notes, fileBase64, isClientVisible = true } = req.body;
+  // Deliverables are stored only in the legacy in-memory store; never claim durable storage in production.
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({ error: 'Deliverable storage is unavailable until the private document vault is commissioned.', code: 'DOCUMENT_INTAKE_NOT_READY' });
+  }
+  const { clientId, notes, fileBase64 } = req.body ?? {};
 
-  if (!clientId || !fileName) {
-    return res.status(400).json({ error: 'clientId and fileName are required.' });
+  if (!clientId) {
+    return res.status(400).json({ error: 'clientId is required.' });
+  }
+
+  // When real bytes are supplied, their size and file signature are authoritative.
+  let bytes: Buffer | null = null;
+  if (fileBase64 !== undefined) {
+    bytes = decodeBase64Strict(fileBase64);
+    if (!bytes) return res.status(400).json({ error: 'File content is not valid base64.', code: 'FILE_CONTENT_INVALID' });
+  }
+  const validation = validateDocumentUpload({
+    ...req.body,
+    category: req.body?.category ?? 'firm_deliverable',
+    fileSize: bytes ? bytes.length : req.body?.fileSize,
+  });
+  if (isUploadRejected(validation)) {
+    if (validation.suspicious) {
+      db.logSecurityEvent({
+        eventType: 'MALWARE_SIGNATURE_DETECTED',
+        ipAddress: req.ip || 'unknown',
+        userId: user.id,
+        details: 'Deliverable upload blocked a file with an executable or active-content extension.',
+        severity: 'critical'
+      });
+    }
+    return res.status(400).json({ error: validation.error, code: validation.code });
+  }
+  const { fileName, fileType, sizeBytes, taxYear, category } = validation.value;
+  if (bytes && !matchesFileSignature(bytes, fileType)) {
+    return res.status(400).json({ error: 'File content does not match the declared file type.', code: 'FILE_SIGNATURE_MISMATCH' });
   }
 
   const client = db.users.get(clientId);
@@ -612,14 +627,15 @@ accountantRouter.post('/documents/upload-deliverable', requireAccountantAssignme
     clientId,
     clientName: client.name,
     fileName,
-    fileType: fileName.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf',
-    fileSize: '1.4 MB',
+    fileType,
+    fileSize: formatDocumentSize(sizeBytes),
     uploadedAt: new Date().toISOString(),
-    status: 'verified',
+    // A deliverable is not verified merely because staff uploaded it; it awaits review.
+    status: 'pending_review',
     category: category as any,
-    taxYear: Number(taxYear),
-    notes: notes || `Prepared and delivered by ${user.name}.`,
-    url: `/documents/${docId}/${fileName}`,
+    taxYear,
+    notes: typeof notes === 'string' && notes.trim() ? notes.trim().slice(0, 2000) : `Prepared and delivered by ${user.name}.`,
+    url: `/documents/${docId}/${encodeURIComponent(fileName)}`,
     uploadedBy: user.name,
     version: 1,
     isEncrypted: true
@@ -915,7 +931,7 @@ accountantRouter.post('/reconciliations', requireAccountantAssignment, (req: Aut
   const id = req.body.id || `rec_${randomUUID()}`;
   const existing = db.bankReconciliations.get(id);
 
-  if (existing && existing.isPeriodLocked && user.role !== 'super_admin') {
+  if (existing && existing.isPeriodLocked) {
     return res.status(400).json({ error: 'This reconciliation period is locked and cannot be edited.' });
   }
 
@@ -974,9 +990,12 @@ accountantRouter.post('/reconciliations/:id/sign-off', (req: AuthenticatedReques
   if (!rec) {
     return res.status(404).json({ error: 'Reconciliation not found.' });
   }
+  if (!canAccessStaffClient(user, rec.clientId)) {
+    return res.status(403).json({ error: 'Forbidden: You are not authorized for this client reconciliation.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   // Maker-Checker Separation of Duties: Preparer cannot sign off their own reconciliation!
-  if (rec.preparedBy === user.id && user.role !== 'super_admin') {
+  if (rec.preparedBy === user.id) {
     return res.status(403).json({ error: 'Maker-Checker Violation: Preparer cannot sign off on their own reconciliation. An independent Senior Reviewer must approve.' });
   }
 
@@ -1012,12 +1031,23 @@ accountantRouter.post('/reconciliations/:id/sign-off', (req: AuthenticatedReques
 accountantRouter.post('/reconciliations/:id/lock', (req: AuthenticatedRequest, res) => {
   const user = req.user!;
   const { id } = req.params;
-  const { isLocked } = req.body;
+  const { isLocked } = req.body ?? {};
+
+  // Locking or unlocking an accounting period requires the same authority as sign-off.
+  if (!['senior_reviewer', 'admin', 'super_admin'].includes(user.role)) {
+    return res.status(403).json({ error: 'Only Senior Reviewers or Firm Administrators can change a reconciliation period lock.', code: 'PERIOD_LOCK_ROLE_DENIED' });
+  }
+  if (typeof isLocked !== 'boolean') {
+    return res.status(400).json({ error: 'isLocked must be true or false.', code: 'PERIOD_LOCK_INVALID' });
+  }
 
   const rec = db.bankReconciliations.get(id);
   if (!rec) return res.status(404).json({ error: 'Reconciliation not found.' });
+  if (!canAccessStaffClient(user, rec.clientId)) {
+    return res.status(403).json({ error: 'Forbidden: You are not authorized for this client reconciliation.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
-  rec.isPeriodLocked = Boolean(isLocked);
+  rec.isPeriodLocked = isLocked;
   db.bankReconciliations.set(id, rec);
 
   db.logAudit({
@@ -1075,7 +1105,7 @@ accountantRouter.post('/journal-entries', requireAccountantAssignment, (req: Aut
   const id = req.body.id || `je_${randomUUID()}`;
   const existing = db.journalEntries.get(id);
 
-  if (existing && existing.status === 'approved' && user.role !== 'senior_reviewer' && user.role !== 'super_admin') {
+  if (existing && existing.status === 'approved' && user.role !== 'senior_reviewer') {
     return res.status(403).json({ error: 'Approved journal entries cannot be edited without Senior CPA authorization.' });
   }
 
@@ -1136,9 +1166,12 @@ accountantRouter.post('/journal-entries/:id/review', (req: AuthenticatedRequest,
   if (!je) {
     return res.status(404).json({ error: 'Journal entry not found.' });
   }
+  if (!canAccessStaffClient(user, je.clientId)) {
+    return res.status(403).json({ error: 'Forbidden: You are not authorized for this client journal entry.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   // Maker-Checker Separation of Duties: Preparer cannot approve their own journal entry!
-  if (je.preparedBy === user.id && user.role !== 'super_admin') {
+  if (je.preparedBy === user.id) {
     return res.status(403).json({ error: 'Maker-Checker Violation: You prepared this journal entry. An independent Senior Reviewer must approve it.' });
   }
 
@@ -1179,6 +1212,9 @@ accountantRouter.post('/journal-entries/:id/post', (req: AuthenticatedRequest, r
 
   const je = db.journalEntries.get(id);
   if (!je) return res.status(404).json({ error: 'Journal entry not found.' });
+  if (!canAccessStaffClient(user, je.clientId)) {
+    return res.status(403).json({ error: 'Forbidden: You are not authorized for this client journal entry.', code: 'CLIENT_ACCESS_DENIED' });
+  }
 
   if (je.status !== 'approved') {
     return res.status(400).json({ error: 'Only approved journal entries can be posted to the general ledger.' });
@@ -1208,31 +1244,30 @@ accountantRouter.post('/journal-entries/:id/post', (req: AuthenticatedRequest, r
  */
 accountantRouter.post('/ai-tax-assistant', async (req: AuthenticatedRequest, res) => {
   const user = req.user!;
-  const { query, clientContext, entityType } = req.body;
+  const { query } = req.body ?? {};
 
-  if (!query) {
+  if (typeof query !== 'string' || !query.trim()) {
     return res.status(400).json({ error: 'Query is required.' });
   }
 
-  const disclaimer = 'DISCLAIMER: AI-generated research and synthesis is intended exclusively for authorized accounting professionals of A/R Tax Services, LLC. It does not constitute formal legal or tax opinion under Treasury Department Circular 230. All citations and conclusions must be independently verified with the Internal Revenue Code (IRC), Treasury Regulations, and applicable state statutes.';
-
-  let answer = `Regarding your inquiry: "${query}":\n\nUnder Internal Revenue Code (IRC) §162, ordinary and necessary business expenses are deductible in the taxable year paid or incurred. For pass-through entities (${entityType || 'S-Corporation'}), ensure proper substantiation under IRC §274, verify reasonable officer compensation under Rev. Rul. 74-44 prior to shareholder distributions, and evaluate applicable state income/sales tax withholding with SC Department of Revenue.`;
-
+  // Previously this returned a fixed, pre-written paragraph (IRC §162 / S-Corp / SC DOR) for
+  // every question while labelling it AI-generated research. No governed AI research path is
+  // commissioned (decision H02), so the request is recorded and reported as unavailable.
+  // The query text is not logged: it may contain taxpayer information.
   db.logAudit({
     userId: user.id,
     userName: user.name,
     userRole: user.role,
-    action: 'AI_TAX_RESEARCH_QUERY',
+    action: 'AI_TAX_RESEARCH_UNAVAILABLE',
     entityType: 'AI_ASSISTANT',
     entityId: `query_${randomUUID()}`,
-    details: `Practitioner ${user.name} queried AI Tax Assistant: "${query.substring(0, 100)}..."`,
+    details: `AI tax research requested (${Math.min(query.length, 100000)} characters); no commissioned governed AI path.`,
     ipAddress: req.ip || '127.0.0.1'
   });
 
-  res.json({
-    query,
-    answer,
-    disclaimer,
-    generatedAt: new Date().toISOString()
+  res.status(503).json({
+    error: 'AI tax research is not available. No governed, commissioned AI research service is configured; no answer has been generated.',
+    code: 'AI_TAX_ASSISTANT_UNAVAILABLE',
+    requiresHumanResearch: true
   });
 });

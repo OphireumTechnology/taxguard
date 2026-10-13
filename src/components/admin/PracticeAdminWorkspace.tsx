@@ -1,9 +1,12 @@
+import { StaffAccessManagementPanel } from './StaffAccessManagementPanel';
 import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 import { useAdminProviderReadiness } from '../../hooks/useAdminProviderReadiness';
 import { AdminOperationalPanel } from './AdminOperationalPanel';
+import { AiEmergencyStopPanel } from './AiEmergencyStopPanel';
+import { AiControlCenterPanel } from './AiControlCenterPanel';
 /**
  * A/R Tax Services, LLC — Practice Administration Console
- * Read-only reported provider configuration and controlled unavailable integrations.
+ * Reported provider configuration, guarded staff administration and unavailable integrations.
  */
 
 import React, { useState } from 'react';
@@ -15,13 +18,15 @@ import {
   RefreshCw,
   Search,
   History,
-  Briefcase
+  Briefcase,
+  Power,
+  Cpu
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const PracticeAdminWorkspace: React.FC = () => {
   const { currentUser, authLifecycleState } = useApp();
-  const [activeTab, setActiveTab] = useState<'providers' | 'users' | 'workload' | 'billing' | 'jobs' | 'search' | 'retention' | 'audit'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'users' | 'workload' | 'billing' | 'jobs' | 'search' | 'retention' | 'audit' | 'ai_stop' | 'ai_control'>('providers');
   const [refresh, setRefresh] = useState(0);
   const readiness = useAdminProviderReadiness(currentUser, authLifecycleState, refresh);
   if (!readiness.allowed) return <p role="alert">An active administrator session with tenant context is required.</p>;
@@ -120,14 +125,38 @@ export const PracticeAdminWorkspace: React.FC = () => {
               <History className="w-4 h-4" />
               <span>Compliance Audit Log</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('ai_control')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'ai_control' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <Cpu className="w-4 h-4" />
+              <span>AI Control Center</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('ai_stop')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'ai_stop' ? 'bg-red-600 text-white font-bold shadow-md' : 'text-red-300 hover:bg-[#0D2745]'
+              }`}
+            >
+              <Power className="w-4 h-4" />
+              <span>AI Emergency Stop</span>
+            </button>
           </div>
 
           <div className="p-3 border-t border-slate-800 text-[10px] text-slate-400 font-mono space-y-1">
-            <div>Environment: <span className="text-white">Read-only administration</span></div>
+            <div>Environment: <span className="text-white">Controlled administration</span></div>
             <div>Postgres / Supabase: <span className="text-slate-300">Not verified by this workspace</span></div>
           </div>
         </aside>)} >
-      <main className="flex-1 overflow-y-auto p-6 space-y-6"><AdminOperationalPanel tab={activeTab} status={readiness.status} providers={readiness.providers} onRefresh={() => setRefresh(value => value + 1)}/></main>
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'users' ? <StaffAccessManagementPanel user={currentUser} authStatus={authLifecycleState} refresh={refresh} /> : activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
+        ? <AiEmergencyStopPanel />
+        : <AdminOperationalPanel tab={activeTab} status={readiness.status} providers={readiness.providers} onRefresh={() => setRefresh(value => value + 1)}/>}</main>
 
     </DashboardApplicationShell>
   );

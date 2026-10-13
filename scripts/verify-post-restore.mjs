@@ -21,7 +21,8 @@ console.log(`===================================================================
 
 async function checkDatabaseReadiness() {
   const url = process.env.SUPABASE_URL || '';
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  // The public anon key is never a substitute for the privileged service credential.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   if (!url || !key) {
     console.log(`[-] Database: NOT CONFIGURED in current environment.`);

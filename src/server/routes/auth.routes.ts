@@ -16,8 +16,12 @@ import {
   recordLoginFailure,
   clearLoginFailures,
   authenticateToken,
-  AuthenticatedRequest
+  AuthenticatedRequest,
+  MAX_FAILED_ATTEMPTS_PER_ACCOUNT,
+  isSuperAdministratorRole
 } from '../auth';
+import { hasTotpSecret, verifyTotp } from '../totp';
+import { diagnoseRefusedLogin, localAuthDiagnosticsEnabled, logLocalAuthDiagnostic } from '../localAuthDiagnostics';
 import { User, OnboardingState } from '../../types';
 import { AuthorityError } from '../taxguard/authority.repository';
 import {
@@ -29,6 +33,14 @@ import { SupabaseDurableSessions } from '../supabase-db';
 import { provisionOrResolveClientOnboarding } from '../taxguard/clientOnboardingProvisioner';
 
 export const authRouter = Router();
+
+// Password-reset request throttle (per e-mail address, in-memory like the legacy session store).
+const resetRequestLog = new Map<string, number[]>();
+const RESET_WINDOW_MS = 60 * 60 * 1000;
+const MAX_RESET_REQUESTS_PER_WINDOW = 3;
+/** Test hook: clears reset throttling state between isolated tests. */
+export function clearPasswordResetThrottle(): void { resetRequestLog.clear(); }
+
 authRouter.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production' && !['/supabase-session', '/me', '/logout'].includes(req.path)) {
     return res.status(410).json({ error: 'Use Supabase Authentication for live account operations.', code: 'SUPABASE_AUTH_REQUIRED' });
@@ -39,8 +51,9 @@ authRouter.use((req, res, next) => {
 /**
  * Supabase -> TaxGuard LIVE session bridge.
  * Supabase proves external identity. TaxGuard restores or provisions the
- * permanent application identity, tenant membership, client profile, engagement,
- * tax year, tax case, and Stage 01 state, and creates the server-authoritative session.
+ * permanent application identity and tenant membership and creates the server-authoritative session.
+ * Engagement/year/case/Stage 01 initialization remains a demonstration adapter;
+ * durable sessions must report it unavailable until a durable provider exists.
  *
  * Security Invariant: Never trust role, tenantId, clientId, engagementId, or caseId
  * supplied by the browser.
@@ -76,7 +89,7 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
     const session = await sessions.create(verifiedUser);
 
     let onboardingBundle = null;
-    if (session.user.role === 'client' && session.clientId) {
+    if (!sessions.usesDurableAuthority && session.user.role === 'client' && session.clientId) {
       onboardingBundle = await provisionOrResolveClientOnboarding({
         tenantId: session.tenantId,
         user: session.user
@@ -116,6 +129,9 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
             eligibility: onboardingBundle.eligibility
           }
         : {}),
+      ...(sessions.usesDurableAuthority && session.user.role === 'client'
+        ? { onboardingAvailability: { status: 'unavailable', code: 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' } }
+        : {}),
       message: 'Live TaxGuard session established.'
     });
   } catch (error: any) {
@@ -139,19 +155,38 @@ authRouter.post('/register', (_req: Request, res: Response) => {
   });
 });
 
+/**
+ * Tells the browser whether the server-side local login is available. It is never available
+ * in production (the router above returns 410 there); locally it lets the staff sign-in page
+ * use the real server login (password + server-verified TOTP) when Supabase is not configured.
+ */
+authRouter.get('/local-login-status', (_req: Request, res: Response) => {
+  return res.json({ localLoginAvailable: process.env.NODE_ENV !== 'production', mfa: 'totp' });
+});
+
 // Secure demonstration/staff login. LIVE public clients use Supabase.
 authRouter.post('/login', async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') return res.status(410).json({ error: 'Supabase authentication is required.', code: 'SUPABASE_AUTH_REQUIRED' });
   const { email, password, mfaCode } = req.body;
   const ip = req.ip || 'unknown';
-  const lockoutKey = `${ip}_${(email || '').toLowerCase()}`;
-
-  if (!email || !password) {
+  // Opt-in local diagnostics: a request ID (also returned as a response header) correlates a
+  // browser attempt with its server line. Nothing is added when diagnostics are off.
+  const diagnosticId = localAuthDiagnosticsEnabled() ? randomBytes(6).toString('hex') : '';
+  if (diagnosticId) res.setHeader('X-TaxGuard-Request-Id', diagnosticId);
+  const diagnose = (entry: Record<string, unknown>) => logLocalAuthDiagnostic({ at: new Date().toISOString(), requestId: diagnosticId, ...entry });
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+    diagnose({ outcome: 'refused', reason: 'missing_or_non_string_fields', contentType: String(req.headers['content-type'] || 'none').slice(0, 80), bodyParsed: !!req.body });
     return res.status(400).json({ error: 'Email and password are required.' });
   }
+  const lockoutKey = `${ip}_${email.toLowerCase()}`;
+  // Account-wide counter: rotating source IPs must not give unlimited guesses at one account.
+  const accountLockoutKey = `account_${email.toLowerCase()}`;
 
-  const lockout = checkBruteForceLockout(lockoutKey);
+  const accountLockout = checkBruteForceLockout(accountLockoutKey);
+  const ipLockout = checkBruteForceLockout(lockoutKey);
+  const lockout = accountLockout.locked ? accountLockout : ipLockout;
   if (lockout.locked) {
+    diagnose({ outcome: 'refused', reason: accountLockout.locked ? 'account_locked' : 'source_ip_locked', remainingSec: lockout.remainingSec });
     db.logSecurityEvent({
       eventType: 'LOGIN_ATTEMPT_DURING_LOCKOUT',
       ipAddress: ip,
@@ -169,7 +204,17 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const storedHash = db.userPasswords.get(email.toLowerCase());
 
   if (!user || !storedHash || !verifyPassword(password, storedHash)) {
+    if (localAuthDiagnosticsEnabled()) {
+      diagnose({
+        outcome: 'refused', ...diagnoseRefusedLogin(user, storedHash, password), emailHadSurroundingWhitespace: email !== email.trim(),
+        // Super administrator only: is the hash held by this server still the one from its environment file?
+        ...(user && storedHash && isSuperAdministratorRole(user.role)
+          ? { serverHashMatchesEnvironmentFile: storedHash === (process.env.TAXGUARD_SUPER_ADMIN_PASSWORD_HASH || '').trim() }
+          : {}),
+      });
+    }
     recordLoginFailure(lockoutKey, ip, email);
+    recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
     return res.status(401).json({
       error: 'Invalid credentials. Please verify your email and password.',
       code: 'INVALID_CREDENTIALS'
@@ -177,6 +222,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
 
   if (user.status === 'disabled' || user.status === 'suspended') {
+    diagnose({ outcome: 'refused', reason: 'account_' + user.status });
     db.logSecurityEvent({
       eventType: 'DISABLED_USER_LOGIN_ATTEMPT',
       ipAddress: ip,
@@ -190,15 +236,50 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     });
   }
 
-  if (user.mfaEnabled && !mfaCode) {
-    return res.status(200).json({
-      mfaRequired: true,
-      message: 'MFA authorization code required.',
-      userId: user.id
-    });
+  // Super administrators always require a second factor, whatever the stored flag says.
+  if (user.mfaEnabled || isSuperAdministratorRole(user.role)) {
+    if (!mfaCode) {
+      diagnose({ outcome: 'password_accepted', next: 'authenticator_code_required' });
+      return res.status(200).json({
+        mfaRequired: true,
+        message: 'MFA authorization code required.',
+        userId: user.id
+      });
+    }
+    if (hasTotpSecret(user.id)) {
+      const result = verifyTotp(user.id, mfaCode);
+      if (result !== 'valid') {
+        recordLoginFailure(lockoutKey, ip, email);
+        recordLoginFailure(accountLockoutKey, ip, email, MAX_FAILED_ATTEMPTS_PER_ACCOUNT);
+        db.logSecurityEvent({
+          eventType: result === 'replayed' ? 'MFA_CODE_REPLAY_REJECTED' : 'MFA_CODE_INVALID',
+          ipAddress: ip,
+          userId: user.id,
+          details: `Login refused for ${user.email}: ${result === 'replayed' ? 'authenticator code already used' : 'invalid authenticator code'}.`,
+          severity: 'warning'
+        });
+        return res.status(401).json({
+          error: result === 'replayed' ? 'This authenticator code has already been used. Wait for the next code.' : 'Invalid authenticator code.',
+          code: result === 'replayed' ? 'MFA_CODE_REPLAYED' : 'MFA_CODE_INVALID'
+        });
+      }
+    } else {
+      // Previously any non-empty mfaCode was accepted without verification (MFA bypass).
+      // Accounts without an enrolled TOTP secret cannot be verified, so no session is issued.
+      // MFA for live sessions belongs to the identity provider.
+      db.logSecurityEvent({
+        eventType: 'MFA_VERIFICATION_UNAVAILABLE',
+        ipAddress: ip,
+        userId: user.id,
+        details: 'Login with an MFA code refused: no MFA verifier is configured for local sessions.',
+        severity: 'warning'
+      });
+      return res.status(503).json({ error: 'Multi-factor verification is not available. Sign in through the configured identity provider.', code: 'MFA_VERIFICATION_UNAVAILABLE' });
+    }
   }
 
   clearLoginFailures(lockoutKey);
+  clearLoginFailures(accountLockoutKey);
   user.lastLoginAt = new Date().toISOString();
   db.users.set(user.id, user);
   const token = createSession(user.id, user.role);
@@ -209,9 +290,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     userRole: user.role,
     action: 'USER_LOGIN_SUCCESS',
     resource: 'Session Manager',
-    details: `Successful authentication from IP ${ip}. Role: ${user.role}.`,
+    details: `Successful authentication from IP ${ip}. Role: ${user.role}.${hasTotpSecret(user.id) ? ' Second factor: TOTP.' : ''}`,
     ipAddress: ip,
-    severity: 'info'
+    severity: isSuperAdministratorRole(user.role) ? 'warning' : 'info'
   });
 
   return res.json({ token, user });
@@ -236,15 +317,11 @@ authRouter.get('/me', authenticateToken, (req: AuthenticatedRequest, res: Respon
 authRouter.post('/logout', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (req.token?.startsWith('tg_live_')) {
     try {
-      if (isSupabaseServerConfigured()) {
-        try {
-          await new SupabaseDurableSessions().revoke(req.token);
-        } catch {
-          // Fall through
-        }
-      }
+      await new SupabaseDurableSessions(undefined, req.user?.tenantId).revoke(req.token);
       return res.json({ message: 'Logged out successfully.' });
-    } catch { return res.status(503).json({ error: 'Session revocation unavailable.' }); }
+    } catch {
+      return res.status(503).json({ error: 'Session revocation unavailable.', code: 'SESSION_REVOCATION_UNAVAILABLE' });
+    }
   }
   if (req.token) revokeSession(req.token);
   db.logAudit({
@@ -287,12 +364,24 @@ authRouter.post('/verify-email', (req: Request, res: Response) => {
 });
 
 authRouter.post('/forgot-password', (req: Request, res: Response) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email address is required.' });
+  const { email } = req.body ?? {};
+  if (typeof email !== 'string' || !email) return res.status(400).json({ error: 'Email address is required.' });
+  const neutral = { message: 'If an account exists with this email, a secure reset token has been dispatched.' };
+
+  // Per-address throttle; the response stays neutral so it reveals nothing about the account.
+  const now = Date.now();
+  const throttleKey = email.toLowerCase();
+  const recent = (resetRequestLog.get(throttleKey) || []).filter(at => now - at < RESET_WINDOW_MS);
+  if (recent.length >= MAX_RESET_REQUESTS_PER_WINDOW) {
+    resetRequestLog.set(throttleKey, recent);
+    db.logSecurityEvent({ eventType: 'PASSWORD_RESET_THROTTLED', ipAddress: req.ip || 'unknown', details: 'Password reset requests throttled for an address.', severity: 'warning' });
+    return res.json(neutral);
+  }
+  resetRequestLog.set(throttleKey, [...recent, now]);
 
   const user = Array.from(db.users.values()).find(item => item.email.toLowerCase() === email.toLowerCase());
   if (!user) {
-    return res.json({ message: 'If an account exists with this email, a secure reset token has been dispatched.' });
+    return res.json(neutral);
   }
 
   const resetToken = randomBytes(24).toString('hex');
@@ -312,10 +401,10 @@ authRouter.post('/forgot-password', (req: Request, res: Response) => {
     severity: 'info'
   });
 
-  return res.json({
-    message: 'If an account exists with this email, a secure reset token has been dispatched.',
-    ...(process.env.NODE_ENV !== 'production' ? { devResetToken: resetToken } : {})
-  });
+  // Previously returned to any caller in every non-production environment (including staging),
+  // allowing anyone to reset any account. Now only with an explicit local-development opt-in.
+  const exposeToken = process.env.NODE_ENV === 'development' && process.env.TAXGUARD_DEV_EXPOSE_RESET_TOKEN === 'true';
+  return res.json({ ...neutral, ...(exposeToken ? { devResetToken: resetToken } : {}) });
 });
 
 authRouter.post('/change-password', authenticateToken, (req: AuthenticatedRequest, res: Response) => {

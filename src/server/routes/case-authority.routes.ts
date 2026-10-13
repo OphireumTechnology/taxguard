@@ -21,6 +21,7 @@ import { LiveWorkflowRepository } from '../taxguard/liveWorkflow.repository';
 import { evaluateStageOneServerGate } from '../taxguard/stageOneServerGate';
 import { SupabaseDurableSessions } from '../supabase-db';
 import { db } from '../db';
+import { isSupabaseServerConfigured } from '../supabase';
 
 export const caseAuthorityRouter = Router();
 
@@ -33,6 +34,13 @@ caseAuthorityRouter.get('/provider-readiness', (_req, res) => {
 });
 
 caseAuthorityRouter.use(authenticateToken);
+caseAuthorityRouter.use((req, res, next) => {
+  if (req.path.startsWith('/client-onboarding') &&
+    (process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true' || isSupabaseServerConfigured())) {
+    return res.status(503).json({ code: 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' });
+  }
+  next();
+});
 caseAuthorityRouter.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();

@@ -178,3 +178,7 @@ Final full suite: `npm.cmd test -- --maxWorkers=2`, exit 0, **175 files / 3,255 
 Added disabled/test-only SQL reviewer metadata discovery with scoped assignment locks, bounded pagination, audit and final identity/revision checks, including the extra pagination row. It is not commissioned durable queue decision hydration. Associated 19 authentication form labels with unique input/select IDs and exposed existing staff/verification errors as alerts. Prepared 18 anonymous actual-product browser checks across three viewports, fixed localhost GET-only boundaries and a disabled runner; not executed and not full-product acceptance.
 
 Added three regression files / 56 tests. Final `npm.cmd test -- --maxWorkers=2`: exit 0, **174 files / 3,233 tests PASS**, 84.93s. TypeScript, lint, JavaScript syntax, 160-requirement traceability and diff checks exit 0. Current builds/browser NOT VERIFIED; no retry of known sandbox restrictions. Stored shell 36/36 remains prior evidence; all 29 product scenarios NOT VERIFIED. Maintained release report lists exact changed files and consolidated operator command. H01-H09/E01-E08 remain unresolved; NO-GO, AI-16 disabled, no prohibited operations.
+
+## Merge evidence note — 2026-10-11
+
+The validation and status statements above describe historical branch work. They do not validate the current integration merge or establish production readiness. Production remains NO-GO; existing security, consent and human approval gates remain controlling.

@@ -1,8 +1,19 @@
+import { mockAtomicClientIdentityRpc } from './helpers/mockSupabase';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { setSupabaseAdmin } from '../server/supabase';
-import { createProductionApp } from '../server/productionApp';
+import express from 'express';
+import { authRouter } from '../server/routes/auth.routes';
+import { caseAuthorityRouter } from '../server/routes/case-authority.routes';
+import { profileAmendmentRouter } from '../server/routes/profile-amendment.routes';
+// Exercises only isolated demonstration adapters; production mounting is tested separately.
+function createIsolatedDemonstrationApp() {
+  const app = express(); app.use(express.json());
+  app.use('/api/auth', authRouter); app.use('/api/case-authority', caseAuthorityRouter);
+  app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
+  return app;
+}
 import { db } from '../server/db';
 import { SupabaseDurableSessions } from '../server/supabase-db';
 
@@ -19,6 +30,7 @@ function createMockSupabaseBackend() {
   };
 
   const client: any = {
+    rpc: mockAtomicClientIdentityRpc(store),
     auth: {
       getUser: vi.fn(async (token: string) => {
         if (token === 'returning_client_jwt') {
@@ -32,6 +44,7 @@ function createMockSupabaseBackend() {
                   phone: '803-555-4321',
                   company_name: 'Jenkins Architectural Design LLC'
                 },
+                email_confirmed_at: new Date().toISOString(),
                 last_sign_in_at: new Date().toISOString()
               }
             },
@@ -51,6 +64,7 @@ function createMockSupabaseBackend() {
 
       const builder: any = {
         select: vi.fn(() => builder),
+        limit: vi.fn(async () => table === 'taxguard_staff_invitations' ? { data: [], error: null } : { data: null, error: { message: 'Unsupported fixture query' } }),
         eq: vi.fn((col: string, val: any) => {
           filters.push([col, val]);
           if (!filterCol) {
@@ -137,7 +151,7 @@ function createMockSupabaseBackend() {
   return { client, store };
 }
 
-describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returning Client Routing', () => {
+describe('Isolated demonstration — One-Time Onboarding & Persistent Client Profile & Returning Client Routing', () => {
   let server: Server;
   let origin: string;
   let mockSupabase: ReturnType<typeof createMockSupabaseBackend>;
@@ -145,12 +159,13 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
   beforeEach(async () => {
     mockSupabase = createMockSupabaseBackend();
     setSupabaseAdmin(mockSupabase.client);
-    vi.stubEnv('SUPABASE_URL', 'https://mock.supabase.co');
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'mock-service-key');
+    // Explicit isolated demonstration fixture; never evidence of durable production onboarding.
+    vi.stubEnv('SUPABASE_URL', '');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
     vi.stubEnv('TAXGUARD_TENANT_ID', 'tenantA');
-    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NODE_ENV', 'test');
 
-    const app = createProductionApp();
+    const app = createIsolatedDemonstrationApp();
     await new Promise<void>((resolve) => {
       server = createServer(app);
       server.listen(0, '127.0.0.1', () => {
@@ -492,7 +507,9 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
         id: `${reviewerUser.id}:${clientUser.clientId}`,
         accountantId: reviewerUser.id,
         clientId: clientUser.clientId,
-        status: 'active'
+        status: 'active',
+        assignedAt: new Date(Date.now() - 60_000).toISOString(),
+        effectiveDate: new Date(Date.now() - 60_000).toISOString()
       } as any);
       mockSupabase.store.assignments.push({
         tenant_id: 'tenantA',
@@ -521,6 +538,9 @@ describe('TaxGuard — One-Time Onboarding & Persistent Client Profile & Returni
       email: 'erostova@artaxservices.com',
       displayName: 'Elena Rostova, CPA',
       authTime: Math.floor(Date.now() / 1000),
+      // MFA-verified staff sign-in (Supabase AAL2 with an enrolled TOTP factor).
+      aal: 'aal2',
+      verifiedFactorCount: 1,
       metadata: {
         role: 'senior_reviewer',
         full_name: 'Elena Rostova, CPA'

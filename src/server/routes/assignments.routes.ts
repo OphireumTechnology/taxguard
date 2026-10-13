@@ -359,6 +359,10 @@ assignmentsRouter.post('/restore', requireRole('admin', 'super_admin'), (req: Au
   if (!belongsToTenant(binding.clientId, admin.tenantId)) {
     return res.status(404).json({ error: 'Assignment binding not found.' });
   }
+  // Only a suspension can be lifted here; an unbound or otherwise ended binding must go through /bind.
+  if (binding.status !== 'suspended') {
+    return res.status(409).json({ error: 'Only a suspended assignment can be restored.', code: 'ASSIGNMENT_NOT_SUSPENDED' });
+  }
 
   binding.status = 'active';
   binding.internalNotes = `${binding.internalNotes || ''} [Restored active by ${admin.name} on ${new Date().toISOString()}]`;
@@ -538,7 +542,14 @@ assignmentsRouter.get('/reassignment-requests', (req: AuthenticatedRequest, res)
 assignmentsRouter.post('/reassignment-requests/:id/review', requireRole('admin', 'super_admin'), (req: AuthenticatedRequest, res) => {
   const admin = req.user!;
   const { id } = req.params;
-  const { action, notes } = req.body; // 'approved' | 'rejected'
+  const { action, notes } = req.body ?? {}; // 'approved' | 'rejected'
+  // Unsupported actions must not crash (toUpperCase) or silently become a rejection.
+  if (action !== 'approved' && action !== 'rejected') {
+    return res.status(400).json({ error: 'action must be "approved" or "rejected".', code: 'REVIEW_ACTION_INVALID' });
+  }
+  if (notes !== undefined && (typeof notes !== 'string' || notes.length > 2000)) {
+    return res.status(400).json({ error: 'notes must be text of at most 2,000 characters.', code: 'REVIEW_NOTES_INVALID' });
+  }
 
   const request = db.reassignmentRequests.get(id);
   if (!request) {
@@ -548,7 +559,7 @@ assignmentsRouter.post('/reassignment-requests/:id/review', requireRole('admin',
     return res.status(404).json({ error: 'Reassignment request not found.' });
   }
 
-  request.status = action === 'approved' ? 'approved' : 'rejected';
+  request.status = action;
   request.reviewedBy = admin.name;
   request.reviewedAt = new Date().toISOString();
   request.notes = notes;

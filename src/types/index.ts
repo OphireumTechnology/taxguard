@@ -268,6 +268,10 @@ export interface AccountingConnection {
     accountantPrepared: boolean;
     reviewerApproved: boolean;
     explicitlyConfirmed: boolean;
+    /** Actors recorded server-side for maker-checker separation. */
+    clientAuthorizedBy?: string;
+    preparedBy?: string;
+    approvedBy?: string;
   };
 }
 
@@ -741,6 +745,10 @@ export interface BookkeepingTransaction {
   source: 'bank_feed' | 'document_extraction' | 'manual';
   sourceDocumentId?: string;
   reviewerNotes?: string;
+  /** Set on a reversing entry: the original transaction it offsets. */
+  reversesTransactionId?: string;
+  /** Set on an original transaction once a reversing entry offsets it (amounts are never changed). */
+  reversedByTransactionId?: string;
 }
 
 export interface BankReconciliation {

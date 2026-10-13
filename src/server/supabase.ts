@@ -1,3 +1,5 @@
+import { verifiedPrimaryAuthTime } from './verifiedPrimaryAuthTime';
+import { isProtectedIdentityDestination } from '../supabase/protectedDestination';
 /**
  * Server-Side Supabase Administration & JWT Verification
  * Provides privileged database access and cryptographic token validation.
@@ -5,6 +7,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { verifiedTokenAssuranceLevel } from './staffMfa';
 
 let _supabaseAdmin: SupabaseClient | null = null;
 
@@ -21,16 +24,27 @@ export function setSupabaseAdmin(client: SupabaseClient | null): void {
 }
 
 export function getSupabaseAdmin(): SupabaseClient {
+  if (process.env.NODE_ENV !== 'production' && isProtectedIdentityDestination(cleanSupabaseUrl(process.env.SUPABASE_URL))) {
+    throw new Error('SUPABASE_PRODUCTION_PROJECT_BLOCKED');
+  }
   if (!_supabaseAdmin) {
     const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    // The public anon key is never a substitute for the privileged service credential.
+    const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
     if (!url || !serviceRoleKey) {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('SUPABASE_CONFIG_MISSING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in production.');
       }
-      // Development fallback client
-      _supabaseAdmin = createClient(url || 'http://127.0.0.1:54321', serviceRoleKey || 'dev-service-role-key', {
+      // Fail-closed development client: never invents credentials or targets an assumed
+      // local endpoint. Every request rejects locally with SUPABASE_CONFIG_MISSING.
+      _supabaseAdmin = createClient('https://supabase-not-configured.invalid', 'not-configured', {
+        global: {
+          fetch: async () => {
+            throw new Error('SUPABASE_CONFIG_MISSING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not configured.');
+          }
+        },
+        db: { retry: false },
         auth: {
           autoRefreshToken: false,
           persistSession: false
@@ -50,19 +64,27 @@ export function getSupabaseAdmin(): SupabaseClient {
 
 export function isSupabaseServerConfigured(): boolean {
   const url = cleanSupabaseUrl(process.env.SUPABASE_URL);
+  if (process.env.NODE_ENV !== 'production' && isProtectedIdentityDestination(url)) return false;
   if (!url || url.includes('your-project') || url.includes('placeholder')) {
     return false;
   }
-  return Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY));
+  return Boolean((process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim());
 }
 
 export interface VerifiedSupabaseUser {
   uid: string;
   email: string;
   displayName?: string;
+  emailVerified?: boolean;
   phone?: string;
   metadata?: Record<string, any>;
   authTime: number;
+  /** Token-bound primary sign-in proof; absent if verified AMR evidence is missing or malformed. */
+  primaryAuthTime?: number;
+  /** Authenticator assurance level of the verified access token (aal2 = an MFA factor was used). */
+  aal?: 'aal1' | 'aal2';
+  /** Number of verified MFA factors enrolled on the Supabase user. */
+  verifiedFactorCount?: number;
 }
 
 /**
@@ -89,9 +111,14 @@ export async function verifySupabaseAccessToken(accessToken: string, client?: Su
   return {
     uid: user.id,
     email,
+    emailVerified: Boolean(user.email_confirmed_at),
     displayName: user.user_metadata?.full_name || user.user_metadata?.name || email,
     phone: user.user_metadata?.phone || '',
     metadata: user.user_metadata || {},
-    authTime: user.last_sign_in_at ? Math.floor(new Date(user.last_sign_in_at).getTime() / 1000) : Math.floor(Date.now() / 1000)
+    authTime: user.last_sign_in_at ? Math.floor(new Date(user.last_sign_in_at).getTime() / 1000) : Math.floor(Date.now() / 1000),
+    primaryAuthTime: verifiedPrimaryAuthTime(accessToken),
+    // The token was just verified by the Supabase Auth server, so its claims can be read.
+    aal: verifiedTokenAssuranceLevel(accessToken),
+    verifiedFactorCount: (user.factors || []).filter((factor: { status?: string }) => factor.status === 'verified').length
   };
 }

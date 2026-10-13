@@ -5,7 +5,7 @@ import {beforeAll,afterAll,beforeEach,afterEach,it,expect,vi} from 'vitest';
 import {bookkeepingRouter} from '../server/routes/bookkeeping.routes';
 import * as supabaseServer from '../server/supabase';
 const durable=vi.hoisted(()=>({user:null as any}));
-vi.mock('../server/supabase-db',async original=>({...await original<typeof import('../server/supabase-db')>(),SupabaseDurableSessions:class {async verify(){return durable.user;}}}));
+vi.mock('../server/supabase-db',async original=>({...await original<typeof import('../server/supabase-db')>(),SupabaseDurableSessions:class {async verify(){/* MFA-verified (AAL2) staff session fixture */if(durable.user)Object.defineProperty(durable.user,'sessionAssuranceLevel',{value:'aal2',configurable:true});return durable.user;}}}));
 import {SupabaseDurableSessions} from '../server/supabase-db';
 import {db} from '../server/db';
 import {globalBookkeepingEngine} from '../server/taxguard/bookkeeping/bookkeeping.engine';

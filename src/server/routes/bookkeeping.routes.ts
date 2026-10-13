@@ -5,6 +5,8 @@
  */
 
 import { projectBookkeeper } from '../bookkeeperDashboardProjection';
+import { projectDurableBookkeeper } from '../bookkeeperDurableProjection';
+import { LedgerStoreError } from '../taxguard/bookkeeping/sqlLedgerStore';
 import { Router, Response } from 'express';
 import {
   authenticateToken,
@@ -15,6 +17,8 @@ import {
 import { db } from '../db';
 import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.engine';
 import { globalAccountingSyncService } from '../taxguard/bookkeeping/accountingSync.service';
+import { registerLedgerDispatch } from './ledgerDispatch.routes';
+import { selectLedger } from '../taxguard/bookkeeping/ledgerBackend';
 
 export const bookkeepingRouter = Router();
 
@@ -25,7 +29,7 @@ bookkeepingRouter.get('/bookkeeper-clients', authenticateToken, (req: Authentica
   if(user.role!=='bookkeeper' || user.status!=='active' || !user.tenantId || (process.env.NODE_ENV==='production' && user.tenantId!==process.env.TAXGUARD_TENANT_ID?.trim()))return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   return res.json({tenantId:user.tenantId,clientIds:[...new Set(user.authorizedClientIds||[])]});
 });
-bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, (req: AuthenticatedRequest, res) => {
+bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, async (req: AuthenticatedRequest, res) => {
   res.setHeader('Cache-Control','no-store');
   const user=req.user!;
   if(user.role!=='bookkeeper' || user.status!=='active') return res.status(403).json({code:'BOOKKEEPER_REQUIRED'});
@@ -35,9 +39,19 @@ bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, (req: Authenti
   if(!tenant || !client || !user.authorizedClientIds?.includes(client) || (req.query.tenantId && req.query.tenantId!==tenant) || (req.get('x-tenant-id') && req.get('x-tenant-id')!==tenant)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   if(process.env.NODE_ENV==='production' && (!process.env.TAXGUARD_TENANT_ID || tenant!==process.env.TAXGUARD_TENANT_ID.trim())) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   if(!Number.isInteger(year) || year<2022 || year>9999) return res.status(400).json({code:'EXPLICIT_TAX_YEAR_REQUIRED'});
-  // The current accounting engine is volatile. Never substitute it for production PostgreSQL.
-  if(process.env.NODE_ENV==='production') return res.status(503).json({code:'DURABLE_ACCOUNTING_PROVIDER_REQUIRED'});
   const period=typeof req.query.periodId==='string'?req.query.periodId:undefined;
+  // Durable ledger selected: the same panels read PostgreSQL; the database re-checks the assignment.
+  const ledger=selectLedger();
+  if(ledger.mode==='durable'){
+    try {return res.json(await projectDurableBookkeeper(ledger.store,user.id,tenant,client,year,period));}
+    catch(error){
+      if(error instanceof LedgerStoreError) return res.status(error.status).json({code:error.code});
+      if(error instanceof Error && error.message==='PERIOD_ACCESS_DENIED') return res.status(403).json({code:'PERIOD_ACCESS_DENIED'});
+      return res.status(503).json({code:'LEDGER_UNAVAILABLE'});
+    }
+  }
+  // The in-memory accounting engine is volatile. Never substitute it for production PostgreSQL.
+  if(process.env.NODE_ENV==='production' || ledger.mode==='unavailable') return res.status(503).json({code:'DURABLE_ACCOUNTING_PROVIDER_REQUIRED'});
   try {return res.json(projectBookkeeper(globalBookkeepingEngine,tenant,client,year,period));}
   catch {return res.status(403).json({code:'PERIOD_ACCESS_DENIED'});}
 });
@@ -63,7 +77,18 @@ bookkeepingRouter.use((req, res, next) => {
 });
 
 bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res, next) => {
-  if(req.user?.role==='bookkeeper') return res.status(403).json({code:'BOOKKEEPER_OPERATION_NOT_RELEASED'});
+  if(req.user?.role==='bookkeeper') {
+    // Bookkeepers use the durable ledger only: explicit client grant, deployment tenant, and the
+    // database re-checks the assignment and forces their postings into independent review.
+    if (selectLedger().mode !== 'durable') return res.status(403).json({code:'BOOKKEEPER_OPERATION_NOT_RELEASED'});
+    const user = req.user;
+    const clientId = typeof req.query.clientId === 'string' ? req.query.clientId : typeof req.body?.clientId === 'string' ? req.body.clientId : '';
+    const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
+    if (user.status !== 'active' || !user.tenantId || !clientId || !user.authorizedClientIds?.includes(clientId)
+      || (process.env.NODE_ENV === 'production' && user.tenantId !== configured)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
+    req.authorizedClientContext = { authUserId: user.id, clientId, tenantId: user.tenantId, role: user.role } as any;
+    return next();
+  }
   const requestedClientId =
     typeof req.query.clientId === 'string'
       ? req.query.clientId
@@ -80,6 +105,9 @@ bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: Aut
   next();
 });
 
+// Durable / memory ledger persistence dispatch (see ledgerDispatch.routes.ts).
+registerLedgerDispatch(bookkeepingRouter);
+
 // Helper to resolve tenant and client IDs safely
 function resolveScope(req: AuthenticatedRequest) {
   const user = req.user!;
@@ -89,6 +117,20 @@ function resolveScope(req: AuthenticatedRequest) {
   const taxYear = Number(req.query.taxYear || req.body.taxYear) || 2025;
 
   return { tenantId, clientId, taxYear, user };
+}
+
+const CLIENT_ROLES = ['client', 'prospective_client'];
+const LEDGER_REVIEWER_ROLES = ['reviewer', 'senior_reviewer', 'admin', 'super_admin'];
+/** Records outside the authorized scope are reported as not found; maker-checker refusals as 403. */
+function ledgerError(res: Response, err: any, fallback: string) {
+  const message = typeof err?.message === 'string' ? err.message : fallback;
+  const code = /^[A-Z_]+/.exec(message)?.[0];
+  const status = code?.endsWith('_NOT_FOUND') ? 404 : code === 'MAKER_CHECKER_VIOLATION' ? 403 : 400;
+  return res.status(status).json({ error: message, ...(code ? { code } : {}) });
+}
+function ledgerAudit(req: AuthenticatedRequest, action: string, resource: string, details: string) {
+  const user = req.user!;
+  db.logAudit({ userId: user.id, userName: user.name, userRole: user.role, action, resource, details, ipAddress: req.ip || 'unknown', severity: 'info' });
 }
 
 // ============================================================
@@ -190,7 +232,7 @@ bookkeepingRouter.post('/journal-entries', authenticateToken, blockRecruiterFrom
 
     return res.status(201).json({ entry });
   } catch (err: any) {
-    return res.status(400).json({ error: err?.message || 'Failed to post journal entry.' });
+    return ledgerError(res, err, 'Failed to post journal entry.');
   }
 });
 
@@ -202,7 +244,8 @@ bookkeepingRouter.post('/journal-entries/:id/approve', authenticateToken, blockR
   }
 
   try {
-    const approved = globalBookkeepingEngine.reviewAndApproveJournalEntry(req.params.id, user.id);
+    const { tenantId, clientId } = resolveScope(req);
+    const approved = globalBookkeepingEngine.reviewAndApproveJournalEntry(req.params.id, user.id, { tenantId, clientId });
 
     db.logAudit({
       userId: user.id,
@@ -217,8 +260,55 @@ bookkeepingRouter.post('/journal-entries/:id/approve', authenticateToken, blockR
 
     return res.json({ message: 'Journal entry successfully approved by reviewer.', entry: approved });
   } catch (err: any) {
-    return res.status(400).json({ error: err?.message || 'Failed to approve journal entry.' });
+    return ledgerError(res, err, 'Failed to approve journal entry.');
   }
+});
+
+// Corrections: prepare a reversing entry for independent approval (posted entries are never edited)
+bookkeepingRouter.post('/journal-entries/:id/reverse', (req: AuthenticatedRequest, res: Response) => {
+  const { tenantId, clientId, user } = resolveScope(req);
+  if (CLIENT_ROLES.includes(user.role)) return res.status(403).json({ error: 'Only practice staff may prepare reversing entries.' });
+  try {
+    const reversal = globalBookkeepingEngine.reverseJournalEntry({ entryId: req.params.id, postingDate: req.body?.postingDate, reason: req.body?.reason,
+      periodId: typeof req.body?.periodId === 'string' ? req.body.periodId : undefined, preparerUid: user.id, scope: { tenantId, clientId } });
+    ledgerAudit(req, 'JOURNAL_ENTRY_REVERSAL_PREPARED', `Journal Entry #${reversal.reference}`, `Reversing entry #${reversal.entryNumber} prepared; independent approval required.`);
+    return res.status(201).json({ entry: reversal });
+  } catch (err: any) { return ledgerError(res, err, 'Failed to prepare reversing entry.'); }
+});
+
+// Accounting periods: creation, close (soft / hard) and reopen with justification
+bookkeepingRouter.get('/periods', (req: AuthenticatedRequest, res: Response) => {
+  const { tenantId, clientId, taxYear } = resolveScope(req);
+  return res.json({ periods: globalBookkeepingEngine.getPeriods(tenantId, clientId, taxYear) });
+});
+bookkeepingRouter.post('/periods', (req: AuthenticatedRequest, res: Response) => {
+  const { tenantId, clientId, taxYear, user } = resolveScope(req);
+  if (CLIENT_ROLES.includes(user.role)) return res.status(403).json({ error: 'Only practice staff may define accounting periods.' });
+  try {
+    const period = globalBookkeepingEngine.openPeriod({ tenantId, clientId }, taxYear, req.body?.periodName, req.body?.startDate, req.body?.endDate);
+    ledgerAudit(req, 'ACCOUNTING_PERIOD_OPENED', `Accounting period ${period.periodName}`, `Period ${period.startDate} to ${period.endDate} defined.`);
+    return res.status(201).json({ period });
+  } catch (err: any) { return ledgerError(res, err, 'Failed to define accounting period.'); }
+});
+bookkeepingRouter.post('/periods/:id/close', (req: AuthenticatedRequest, res: Response) => {
+  const { tenantId, clientId, user } = resolveScope(req);
+  if (!LEDGER_REVIEWER_ROLES.includes(user.role)) return res.status(403).json({ error: 'Closing an accounting period requires reviewer authority.' });
+  const status = req.body?.status;
+  if (status !== 'SOFT_CLOSED' && status !== 'HARD_CLOSED') return res.status(400).json({ error: 'status must be SOFT_CLOSED or HARD_CLOSED.', code: 'PERIOD_STATUS_TRANSITION_INVALID' });
+  try {
+    const period = globalBookkeepingEngine.closePeriod(req.params.id, status, user.id, { tenantId, clientId });
+    ledgerAudit(req, 'ACCOUNTING_PERIOD_CLOSED', `Accounting period ${period.periodName}`, `Period set to ${status}.`);
+    return res.json({ period });
+  } catch (err: any) { return ledgerError(res, err, 'Failed to close accounting period.'); }
+});
+bookkeepingRouter.post('/periods/:id/reopen', (req: AuthenticatedRequest, res: Response) => {
+  const { tenantId, clientId, user } = resolveScope(req);
+  if (!LEDGER_REVIEWER_ROLES.includes(user.role)) return res.status(403).json({ error: 'Reopening an accounting period requires reviewer authority.' });
+  try {
+    const period = globalBookkeepingEngine.reopenPeriod(req.params.id, user.id, req.body?.reason, { tenantId, clientId });
+    ledgerAudit(req, 'ACCOUNTING_PERIOD_REOPENED', `Accounting period ${period.periodName}`, 'Period reopened with recorded justification.');
+    return res.json({ period });
+  } catch (err: any) { return ledgerError(res, err, 'Failed to reopen accounting period.'); }
 });
 
 // ============================================================
@@ -265,7 +355,7 @@ bookkeepingRouter.post('/transactions/ingest', authenticateToken, blockRecruiter
 });
 
 bookkeepingRouter.post('/transactions/:id/categorize', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
-  const { taxYear, user } = resolveScope(req);
+  const { tenantId, clientId, taxYear, user } = resolveScope(req);
   if (['client', 'prospective_client'].includes(user.role)) {
     return res.status(403).json({ error: 'Only accountants and reviewers can finalize transaction categorization.' });
   }
@@ -279,24 +369,25 @@ bookkeepingRouter.post('/transactions/:id/categorize', authenticateToken, blockR
       periodId: req.body.periodId || `period_default`,
       taxYear,
       notes: req.body.notes,
+      scope: { tenantId, clientId },
     });
 
     return res.json(result);
   } catch (err: any) {
-    return res.status(400).json({ error: err?.message || 'Failed to categorize transaction.' });
+    return ledgerError(res, err, 'Failed to categorize transaction.');
   }
 });
 
 bookkeepingRouter.post('/transactions/:id/match-document', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
-  const { user } = resolveScope(req);
+  const { tenantId, clientId, user } = resolveScope(req);
   const { documentId } = req.body;
-  if (!documentId) return res.status(400).json({ error: 'documentId is required.' });
+  if (typeof documentId !== 'string' || !/^[A-Za-z0-9_.:-]{1,128}$/.test(documentId)) return res.status(400).json({ error: 'documentId is required.' });
 
   try {
-    const txn = globalBookkeepingEngine.matchDocumentToTransaction(req.params.id, documentId, user.id);
+    const txn = globalBookkeepingEngine.matchDocumentToTransaction(req.params.id, documentId, user.id, { tenantId, clientId });
     return res.json({ transaction: txn });
   } catch (err: any) {
-    return res.status(400).json({ error: err?.message || 'Failed to match document.' });
+    return ledgerError(res, err, 'Failed to match document.');
   }
 });
 
@@ -328,14 +419,16 @@ bookkeepingRouter.post('/reconciliations/start', authenticateToken, blockRecruit
 });
 
 bookkeepingRouter.post('/reconciliations/:id/clear', authenticateToken, blockRecruiterFromTaxRecords, (req: AuthenticatedRequest, res: Response) => {
+  const { tenantId, clientId, user } = resolveScope(req);
+  if (CLIENT_ROLES.includes(user.role)) return res.status(403).json({ error: 'Reconciliation work requires accountant or reviewer credentials.' });
   const { transactionId, isCleared } = req.body;
   if (!transactionId) return res.status(400).json({ error: 'transactionId is required.' });
 
   try {
-    const updated = globalBookkeepingEngine.clearTransaction(req.params.id, transactionId, Boolean(isCleared));
+    const updated = globalBookkeepingEngine.clearTransaction(req.params.id, transactionId, Boolean(isCleared), { tenantId, clientId });
     return res.json({ reconciliation: updated });
   } catch (err: any) {
-    return res.status(400).json({ error: err?.message || 'Failed to clear transaction.' });
+    return ledgerError(res, err, 'Failed to clear transaction.');
   }
 });
 
@@ -346,10 +439,11 @@ bookkeepingRouter.post('/reconciliations/:id/finalize', authenticateToken, block
   }
 
   try {
-    const finalized = globalBookkeepingEngine.finalizeReconciliation(req.params.id, user.id);
+    const { tenantId, clientId } = resolveScope(req);
+    const finalized = globalBookkeepingEngine.finalizeReconciliation(req.params.id, user.id, { tenantId, clientId });
     return res.json({ message: 'Reconciliation completed and locked.', reconciliation: finalized });
   } catch (err: any) {
-    return res.status(400).json({ error: err?.message || 'Failed to finalize reconciliation.' });
+    return ledgerError(res, err, 'Failed to finalize reconciliation.');
   }
 });
 

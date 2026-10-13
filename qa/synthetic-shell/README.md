@@ -22,3 +22,7 @@ Acceptance scenarios still awaiting browser evidence:
 6. Real viewport widths at 390/768/desktop sizes have no unintended page overflow; zoom/keyboard/screen-reader checks pass.
 
 The fixture width selectors add fixture-only responsive styles and do not substitute for real viewport/device acceptance. This fixture tests shared chrome behavior, not full provider-backed role workflows, tax forms or deployed authentication/RLS.
+
+## Re-audit 2026-10-12
+
+The historical build blocker above is no longer current: npm.cmd run qa:fixture:build succeeded with the existing installed toolchain, generating the isolated fixture artifact. Generated artifacts are ignored by Git. The fixed runner (node scripts/run-local-browser.mjs) then returned BLOCKED: PLAYWRIGHT_PACKAGE_MISSING. No browser interaction, screenshot or acceptance claim is made; no install, external provider or production request was performed. This fixture validates shared shell chrome only and does not commission the new provider-backed invitation flow.

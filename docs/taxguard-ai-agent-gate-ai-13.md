@@ -7,3 +7,7 @@ Canonical entries are generic category/ID labels. Existing requests/messages/app
 Eight A00 zero-handler ID-denial regressions and explicit CONTACT_CLIENT/TRANSMIT_PAYMENT refusals validate the server boundary. No communications/payment provider or API is commissioned, no live data altered, no schema grant or migration. This is denial control, not built operational automation.
 
 Continue to Governance/Security/Platform restrictions; autonomous policy modification remains prohibited.
+
+## Merge evidence note — 2026-10-11
+
+The validation and status statements above describe historical branch work. They do not validate the current integration merge or establish production readiness. Production remains NO-GO; existing security, consent and human approval gates remain controlling.

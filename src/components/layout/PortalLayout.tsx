@@ -146,7 +146,10 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                         {currentUser.name || currentUser.email}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Client ID: #{currentUser.clientId || currentUser.id?.slice(-5) || 'USER'}
+                        {/* Only clients have a client ID; never derive one from a staff user ID. */}
+                        {['client', 'prospective_client'].includes(currentUser.role)
+                          ? `Client ID: #${currentUser.clientId || currentUser.id?.slice(-5) || 'USER'}`
+                          : `Staff · ${String(currentUser.role || '').replace(/_/g, ' ')}`}
                       </span>
                     </div>
                   </div>

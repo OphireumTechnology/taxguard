@@ -1,3 +1,13 @@
+import { createStaffAccessRouter, staffAccessDevelopmentConfigured } from './src/server/routes/staff-access.routes';
+import { createPracticeRouter } from './src/server/routes/practice.routes';
+import { createCasesRouter } from './src/server/routes/cases.routes';
+import { createVaultRouter } from './src/server/routes/vault.routes';
+import { createBillingRouter } from './src/server/routes/billing.routes';
+import { createBookToTaxRouter } from './src/server/routes/bookToTax.routes';
+import { createTaxEngineRouter } from './src/server/routes/taxEngine.routes';
+import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
+import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
+import { getSupabaseAdmin } from './src/server/supabase';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
 /**
@@ -23,6 +33,9 @@ import { createServer as createViteServer } from 'vite';
 import {
   initSeedPasswords
 } from './src/server/auth';
+import { bootstrapSuperAdministrator } from './src/server/superAdminBootstrap';
+import { superAdminRouter } from './src/server/routes/superAdmin.routes';
+import { taxFormsRouter } from './src/server/routes/taxForms.routes';
 
 import {
   authRouter
@@ -188,7 +201,13 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
  * ============================================================
  */
 
-if (process.env.NODE_ENV !== 'production') initSeedPasswords();
+if (process.env.NODE_ENV !== 'production') {
+  initSeedPasswords();
+  const superAdmin = bootstrapSuperAdministrator();
+  // Status only: no e-mail address, hash or secret is printed.
+  if (superAdmin.status === 'provisioned') console.log('[auth] Local super administrator provisioned from environment (MFA required).');
+  else if (superAdmin.status === 'rejected') console.warn(`[auth] Super administrator bootstrap refused: ${superAdmin.reason}`);
+}
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (
@@ -415,6 +434,21 @@ app.use(
   authRouter
 );
 
+// New durable staff identity APIs are guarded for approved non-production projects only.
+app.use('/api/staff-access', createStaffAccessRouter());
+// MFA reset jobs (proposal 034) run only with the development staff-access APIs and a configured provider.
+if (staffAccessDevelopmentConfigured()) {
+  const mfaProvider = configuredMfaResetProvider();
+  if (mfaProvider) startMfaResetWorker({ client: getSupabaseAdmin, tenant: process.env.TAXGUARD_TENANT_ID || '', provider: mfaProvider, workerId: 'server-' + process.pid });
+}
+// Client and engagement management (proposal 025): development-only, 503 unless configured.
+app.use('/api/practice', createPracticeRouter());
+app.use('/api/cases', createCasesRouter());
+app.use('/api/vault', createVaultRouter());
+app.use('/api/billing', createBillingRouter());
+app.use('/api/book-to-tax', createBookToTaxRouter());
+app.use('/api/tax-engine', createTaxEngineRouter());
+
 app.use(
   '/api/onboarding',
   onboardingRouter
@@ -463,6 +497,16 @@ app.use(
 app.use(
   '/api/admin',
   adminRouter
+);
+
+app.use(
+  '/api/super-admin',
+  superAdminRouter
+);
+
+app.use(
+  '/api/tax-forms',
+  taxFormsRouter
 );
 
 app.use(
@@ -867,7 +911,7 @@ async function startServer() {
 
   const server = app.listen(
     PORT,
-    '0.0.0.0',
+    process.env.NODE_ENV !== 'production' && process.env.TAXGUARD_LISTEN_HOST === '127.0.0.1' ? '127.0.0.1' : '0.0.0.0',
     () => {
       console.log(
         `[A/R Tax Services] Server successfully initialized on port ${PORT}`

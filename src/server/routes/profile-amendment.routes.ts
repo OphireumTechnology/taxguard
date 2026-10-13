@@ -17,12 +17,26 @@ import {
   resolveAuthorizedClientContext
 } from '../auth';
 import { SupabaseDurableSessions } from '../supabase-db';
+import { isSupabaseServerConfigured } from '../supabase';
+const durableProfileAuthority = () => process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true' || isSupabaseServerConfigured();
 
 export const profileAmendmentRouter = Router();
 
 profileAmendmentRouter.use(authenticateToken);
 profileAmendmentRouter.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
+
+// Seven-section profiles and independent amendment evidence remain process-local.
+profileAmendmentRouter.use((req: AuthenticatedRequest, res, next) => {
+  if (durableProfileAuthority() && req.path !== '/ordinary') {
+    if (req.path === '/authoritative' || req.path === '/amendments') {
+      const selection = typeof req.query.clientId === 'string' ? req.query.clientId : typeof req.body?.clientId === 'string' ? req.body.clientId : undefined;
+      if (!resolveAuthorizedClientContext(req, res, 'durable_profile', selection)) return;
+    }
+    return res.status(503).json({ code: 'DURABLE_PROFILE_PROVIDER_REQUIRED' });
+  }
   next();
 });
 
@@ -260,7 +274,7 @@ profileAmendmentRouter.patch('/ordinary', async (req: AuthenticatedRequest, res:
     req,
     res,
     'ordinary_profile_update',
-    typeof req.body.clientId === 'string' ? req.body.clientId : undefined
+    typeof req.body?.clientId === 'string' ? req.body.clientId : undefined
   );
   if (!context) return;
   const { clientId } = context;
@@ -287,6 +301,21 @@ profileAmendmentRouter.patch('/ordinary', async (req: AuthenticatedRequest, res:
 
   if (Object.keys(sanitizedUpdates).length === 0) {
     return res.status(400).json({ error: 'No valid permitted fields to update.' });
+  }
+
+  if (durableProfileAuthority()) {
+    if (!updates || typeof updates !== 'object' || Array.isArray(updates) || Object.keys(updates).some(key => ![...allowedFields,'clientId'].includes(key))) return res.status(400).json({ code: 'CLIENT_PROFILE_INPUT_INVALID' });
+    if (req.user.role !== 'client') return res.status(403).json({ code: 'CLIENT_PROFILE_DENIED' });
+    if (Object.keys(sanitizedUpdates).some(key => !['phone','companyName'].includes(key))) {
+      return res.status(503).json({ code: 'DURABLE_PROFILE_FIELD_PROVIDER_REQUIRED' });
+    }
+    try {
+      const updated = await new SupabaseDurableSessions(undefined, context.tenantId).updateUser(req.user.id, sanitizedUpdates);
+      return res.json({ success: true, message: 'Profile contact fields updated.', amendedFields: sanitizedUpdates, user: updated });
+    } catch (error) {
+      const status = error instanceof Error && 'status' in error && typeof error.status === 'number' ? error.status : 503;
+      return res.status(status).json({ code: status === 400 ? 'CLIENT_PROFILE_INPUT_INVALID' : status === 403 ? 'CLIENT_PROFILE_DENIED' : 'CLIENT_PROFILE_STORE_UNAVAILABLE' });
+    }
   }
 
   const now = new Date().toISOString();

@@ -261,52 +261,51 @@ stageTwoThreeRouter.post('/requirements/:taxYear/:reqCode/not-applicable', (req:
   }
 });
 
-stageTwoThreeRouter.get('/snapshot/:taxYear', (req: AuthenticatedRequest, res: Response) => {
+// The legacy reconciler writes process-local manifests/checklists even for a snapshot read.
+// It cannot be used as an authoritative production read or write until durable tenant-scoped
+// reconciliation exists. Resolve the selected client before invoking any development adapter.
+function reconcileAuthorizedCollection(req: AuthenticatedRequest, res: Response, forceRefresh: boolean) {
   try {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
-    const taxYear = Number(req.params.taxYear) || 2025;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.query.clientId as string || req.user.clientId || req.user.id);
-
+    if (!/^\d{4}$/.test(req.params.taxYear)) {
+      return res.status(400).json({ code: 'TAX_YEAR_INVALID' });
+    }
+    const taxYear = Number(req.params.taxYear);
+    if (taxYear < 2022 || taxYear > 2200) {
+      return res.status(400).json({ code: 'TAX_YEAR_INVALID' });
+    }
+    const selection = forceRefresh ? req.body?.clientId : req.query.clientId;
+    if (selection !== undefined && (typeof selection !== 'string' || !selection.trim())) {
+      return res.status(400).json({ code: 'CLIENT_SELECTION_INVALID' });
+    }
+    const context = resolveAuthorizedClientContext(
+      req, res, forceRefresh ? 'stage_two_reconcile' : 'stage_two_snapshot', selection, tenantId
+    );
+    if (!context) return;
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({ code: 'DURABLE_RECONCILIATION_REQUIRED' });
+    }
     const snapshot = StageTwoReconciliationService.reconcileStageTwoCollection({
-      clientId,
+      clientId: context.clientId,
       taxYear,
-      tenantId,
-      engagementId: `eng_${taxYear}_${clientId}`
+      tenantId: context.tenantId,
+      engagementId: `eng_${taxYear}_${context.clientId}`,
+      ...(forceRefresh ? { forceRefresh: true } : {})
     });
-
-    return res.json({
-      success: true,
-      snapshot
-    });
-  } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return res.json({ success: true, snapshot });
+  } catch (err) {
+    return res.status(err instanceof AuthorityError ? err.status : 503)
+      .json({ code: err instanceof AuthorityError ? err.code : 'RECONCILIATION_UNAVAILABLE' });
   }
-});
+}
 
-stageTwoThreeRouter.post('/reconcile/:taxYear', (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const tenantId = resolveTenantId();
-    const taxYear = Number(req.params.taxYear) || 2025;
-    const clientId = req.user.role === 'client' ? (req.user.clientId || req.user.id) : (req.body.clientId || req.user.clientId || req.user.id);
+stageTwoThreeRouter.get('/snapshot/:taxYear', (req: AuthenticatedRequest, res: Response) =>
+  reconcileAuthorizedCollection(req, res, false)
+);
 
-    const snapshot = StageTwoReconciliationService.reconcileStageTwoCollection({
-      clientId,
-      taxYear,
-      tenantId,
-      engagementId: `eng_${taxYear}_${clientId}`,
-      forceRefresh: true
-    });
-
-    return res.json({
-      success: true,
-      snapshot
-    });
-  } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
-  }
-});
+stageTwoThreeRouter.post('/reconcile/:taxYear', (req: AuthenticatedRequest, res: Response) =>
+  reconcileAuthorizedCollection(req, res, true)
+);
 
 // ============================================================================
 // 3. CLIENT CASE REQUESTS LOOP
@@ -563,7 +562,8 @@ stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant'
         try {
           const { data, error } = await getSupabaseAdmin()
             .from('taxguard_staff_assignments')
-            .select('client_id, engagement_id, tax_year, effective_from, effective_to')
+            // status is required by isAssignmentCurrentlyEffective; without it every assignment was rejected.
+            .select('client_id, engagement_id, tax_year, status, effective_from, effective_to')
             .eq('tenant_id', tenantId)
             .eq('user_id', req.user.id)
             .eq('client_id', ownerClientId)

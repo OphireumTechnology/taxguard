@@ -1,3 +1,4 @@
+import { mockAtomicClientIdentityRpc } from './helpers/mockSupabase';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -22,10 +23,12 @@ function createMockSupabaseClient() {
     sequence: { current_sequence: 100, last_issued_client_id: '100' },
     audit: [] as any[],
     documents: new Map<string, any>(),
-    assignments: [] as any[]
+    assignments: [] as any[],
+    invitations: [] as any[]
   };
 
   const client: any = {
+    rpc: mockAtomicClientIdentityRpc(store),
     auth: {
       getUser: vi.fn(async (token: string) => {
         if (token === 'valid_sb_token') {
@@ -35,6 +38,7 @@ function createMockSupabaseClient() {
                 id: 'sb_user_001',
                 email: 'client@example.com',
                 user_metadata: { full_name: 'Jane Doe' },
+                email_confirmed_at: new Date().toISOString(),
                 last_sign_in_at: new Date().toISOString()
               }
             },
@@ -68,6 +72,7 @@ function createMockSupabaseClient() {
 
       const builder: any = {
         select: vi.fn(() => builder),
+        limit: vi.fn(async () => ({ data: store.invitations.filter(row => filters.every(([column, value]) => row[column] === value)).slice(0, 1), error: null })),
         eq: vi.fn((col: string, val: any) => {
           filters.push([col, val]);
           if (!filterCol) {
@@ -195,6 +200,7 @@ describe('Supabase Production Infrastructure & Authority', () => {
         uid: 'user_123',
         email: 'test@example.com',
         displayName: 'Test Client',
+        emailVerified: true,
         authTime: Math.floor(Date.now() / 1000)
       };
 
@@ -211,11 +217,20 @@ describe('Supabase Production Infrastructure & Authority', () => {
       expect(mockSupabase.store.sequence.current_sequence).toBe(101);
     });
 
+    it('blocks invited staff before allocating a client or creating a session', async () => {
+      mockSupabase.store.invitations.push({ id: 'invited', tenant_id: 'tenantA', email: 'staff@example.test' });
+      await expect(new SupabaseDurableSessions(mockSupabase.client, 'tenantA').create({ uid: 'staff-invited', email: 'staff@example.test', emailVerified: true, authTime: 1 })).rejects.toThrow('STAFF_INVITATION_ACCEPTANCE_REQUIRED');
+      expect(mockSupabase.store.identities.size).toBe(0);
+      expect(mockSupabase.store.sessions.size).toBe(0);
+      expect(mockSupabase.store.sequence.current_sequence).toBe(100);
+    });
+
     it('verifies an active durable session and restores authenticated identity', async () => {
       const sessions = new SupabaseDurableSessions(mockSupabase.client, 'tenantA');
       const verified = {
         uid: 'user_456',
         email: 'restore@example.com',
+        emailVerified: true,
         authTime: Math.floor(Date.now() / 1000)
       };
 
@@ -231,6 +246,7 @@ describe('Supabase Production Infrastructure & Authority', () => {
       const { token } = await sessions.create({
         uid: 'staff_assignments',
         email: 'staff@example.com',
+        emailVerified: true,
         authTime: Math.floor(Date.now() / 1000)
       });
       mockSupabase.store.identities.get('staff_assignments').user_data.role = 'accountant';
@@ -279,6 +295,7 @@ describe('Supabase Production Infrastructure & Authority', () => {
       const verified = {
         uid: 'user_exp',
         email: 'exp@example.com',
+        emailVerified: true,
         authTime: Math.floor(Date.now() / 1000)
       };
 
@@ -297,6 +314,7 @@ describe('Supabase Production Infrastructure & Authority', () => {
       const verified = {
         uid: 'user_rev',
         email: 'rev@example.com',
+        emailVerified: true,
         authTime: Math.floor(Date.now() / 1000)
       };
 
@@ -312,6 +330,7 @@ describe('Supabase Production Infrastructure & Authority', () => {
       const verified = {
         uid: 'user_iso',
         email: 'iso@example.com',
+        emailVerified: true,
         authTime: Math.floor(Date.now() / 1000)
       };
 
