@@ -5,6 +5,7 @@ import {useDashboardInspection} from '../layout/dashboardInspection';
 import {usePracticeManagerDashboardData} from '../../hooks/usePracticeManagerDashboardData';
 import {MANAGER_MODULES,MANAGER_STAGES,managerDistribution,managerMetrics,managerWorkload,managerMatches,activeCase,updateAge} from './practiceManagerModel';
 import {PracticeClientsPanel} from './PracticeClientsPanel';
+import {StaffMessageInboxPanel} from '../communications/StaffMessageInboxPanel';
 import {CaseWorkflowPanel} from './CaseWorkflowPanel';
 import {StaffDocumentReviewPanel} from '../documents/StaffDocumentReviewPanel';
 import {BillingWorkspacePanel} from '../billing/BillingWorkspacePanel';
@@ -25,7 +26,7 @@ export function PracticeManagerDashboard(){
  <div className="tg-manager-kpis">{[['Active Cases',metrics?.active],['Due This Week',metrics?.due],['Overdue',metrics?.overdue],['Waiting on Client',metrics?.waiting],['Ready for Review',metrics?.review],['SLA Risk / Escalations',metrics?.escalations],['Team Capacity / Workload',metrics?.active]].map(([label,value],i)=><button key={String(label)} disabled={!data} onClick={()=>{if(i===5)setModule('SLA & Escalations');else if(i===6)setModule('Team Capacity');else{setModule('Workload');setFilter(String(label));}}}><span>{label}</span><strong>{value??'Unavailable'}</strong><small>{i===5?'Recorded deadline escalations; SLA unavailable':i===6?'Active case volume; capacity unavailable':'View authorized operational cases'}</small></button>)}</div>
  {state.status==='loading'&&!inspecting&&<p role="status" className="tg-manager-empty">Loading authorized practice operations...</p>}{state.status==='error'&&<p role="alert" className="tg-manager-empty">Practice operations unavailable. Production requires durable workflow and operations providers. No local or demonstration records are substituted. Refresh to retry.</p>}
  {module==='Dashboard'&&!inspecting&&<PracticeSummaryPanel taxYear={year==='All'?undefined:Number(year)}/>}
- {module==='Clients & Engagements'&&<PracticeClientsPanel/>}
+ {module==='Clients & Engagements'&&<><StaffMessageInboxPanel canArchive/><PracticeClientsPanel/></>}
  {module==='Case Workflow'&&<CaseWorkflowPanel/>}
  {module==='Document Review'&&<StaffDocumentReviewPanel/>}
  {module==='Document Requests'&&<StaffDocumentRequestsPanel/>}

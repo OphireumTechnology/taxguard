@@ -13,7 +13,9 @@ import { CLIENT_ROLES, canAccessStaffClient } from '../clientAccess';
 
 /** Sender, recipient, the owning client (never internal-only notes), or staff authorized for the client. */
 function canAccessMessage(user: NonNullable<AuthenticatedRequest['user']>, msg: Message): boolean {
-  if (msg.senderId === user.id || msg.recipientId === user.id) return true;
+  if (msg.senderId === user.id) return true;
+  if (CLIENT_ROLES.has(user.role) && (msg.isInternalOnly || msg.isInternalNote)) return false;
+  if (msg.recipientId === user.id) return true;
   if (!msg.clientId) return false;
   if (CLIENT_ROLES.has(user.role)) return !msg.isInternalOnly && (user.clientId || user.id) === msg.clientId;
   return canAccessStaffClient(user, msg.clientId);
@@ -27,7 +29,9 @@ messagesRouter.get('/', authenticateToken, (req: AuthenticatedRequest, res: Resp
 
   const { engagementId, recipientId } = req.query;
 
-  let list = Array.from(db.messages.values());
+  // Every listed message passes the same object check as a single read: a filter value (for
+  // example engagementId) never widens access to other clients' or tenants' messages.
+  let list = Array.from(db.messages.values()).filter(m => canAccessMessage(req.user!, m));
 
   if (engagementId && typeof engagementId === 'string') {
     list = list.filter(m => m.engagementId === engagementId);

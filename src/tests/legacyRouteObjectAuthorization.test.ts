@@ -60,6 +60,18 @@ afterEach(() => {
   db.appointments.delete('lr-apt'); db.documents.delete('lr-doc');
 });
 
+describe('GET /messages', () => {
+  it('lists only messages the caller may read, whatever the filter', async () => {
+    db.messages.get('lr-msg')!.engagementId = 'lr-eng'; db.messages.get('lr-msg-internal')!.engagementId = 'lr-eng';
+    for (const who of ['clientA2', 'unassigned', 'adminB'] as Who[]) {
+      expect((await call('GET', '/messages?engagementId=lr-eng', who)).body.messages, who).toEqual([]);
+      expect((await call('GET', '/messages', who)).body.messages.filter((m: any) => m.id.startsWith('lr-')), who).toEqual([]);
+    }
+    expect((await call('GET', '/messages?engagementId=lr-eng', 'clientA')).body.messages.map((m: any) => m.id)).toEqual(['lr-msg']);
+    expect((await call('GET', '/messages?engagementId=lr-eng', 'accountant')).body.messages.map((m: any) => m.id).sort()).toEqual(['lr-msg', 'lr-msg-internal']);
+  });
+});
+
 describe('PATCH /messages/:id/read', () => {
   it.each(['clientA2', 'unassigned', 'adminB'] as const)('%s cannot mark another client\'s message read', async who => {
     expect((await call('PATCH', '/messages/lr-msg/read', who)).status).toBe(404);

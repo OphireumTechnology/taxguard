@@ -16,6 +16,7 @@ import {
 } from './accountantDashboardModel';
 import './accountantDashboard.css';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
+import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
 import type { TaxWorkpaperEntity, StageStateEntity } from '../../server/taxguard/persistence.types';
 
 const tabs = ['Overview','Client Info','Documents','AI Preparation','Tax Forms','Review & Edit','Workpapers','State Forms','Client Approval','E-File','History'];
@@ -147,6 +148,7 @@ export function AccountantDashboard() {
       {loading && !inspecting && <p className="tg-acct-sr-status" role="status">Loading authorized cases and workflow…</p>}
 
       {!inspecting && <DurableMyWorkPanel />}
+      {!inspecting && <StaffMessageInboxPanel />}
       <section className="tg-acct-kpis" aria-label="Key metrics">
         {DASHBOARD_KPIS.map(kpi => {
           const value = kpiValue(kpi.label, rows, today, dataState, unavailableFields);
