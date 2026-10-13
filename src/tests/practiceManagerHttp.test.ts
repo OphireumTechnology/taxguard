@@ -2,7 +2,7 @@ import express from 'express';
 import {createServer,type Server} from 'node:http';import type {AddressInfo} from 'node:net';
 import {beforeAll,afterAll,beforeEach,afterEach,it,expect,vi} from 'vitest';
 const durable=vi.hoisted(()=>({user:null as any}));
-vi.mock('../server/supabase-db',async original=>({...await original<typeof import('../server/supabase-db')>(),SupabaseDurableSessions:class {async verify(){return durable.user;}}}));
+vi.mock('../server/supabase-db',async original=>({...await original<typeof import('../server/supabase-db')>(),SupabaseDurableSessions:class {async verify(){/* MFA-verified (AAL2) staff session fixture */if(durable.user)Object.defineProperty(durable.user,'sessionAssuranceLevel',{value:'aal2',configurable:true});return durable.user;}}}));
 import * as supabaseServer from '../server/supabase';
 import {practiceOperationsRouter} from '../server/routes/practice-operations.routes';
 import {db} from '../server/db';import {globalAuthorityDatabase} from '../server/taxguard/transactionalDatabase';

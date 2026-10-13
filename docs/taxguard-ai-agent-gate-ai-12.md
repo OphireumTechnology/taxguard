@@ -7,3 +7,7 @@ A36-A42 individual identities/responsibilities remain generic SIGN FILE RESOLVE 
 Added seven A00 zero-handler ID-denial regressions and explicit SIGN_RETURN/FILE_RETURN denial cases within the existing suite. No action API, provider, model, permission, migration or workflow mutation. Production filing/signature/payment remain hard stops; this restricted scope does not claim external integration built.
 
 Next legitimate work: preserve Practice Operations restrictions, then governed human review and authoritative-action controls within proven authority.
+
+## Merge evidence note — 2026-10-11
+
+The validation and status statements above describe historical branch work. They do not validate the current integration merge or establish production readiness. Production remains NO-GO; existing security, consent and human approval gates remain controlling.

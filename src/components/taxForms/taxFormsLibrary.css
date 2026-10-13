@@ -1,0 +1,78 @@
+/* Tax Forms Library — A/R Tax Services brand: deep navy, gold accents, blue interactive elements. */
+.tg-forms{--f-bg:#06182B;--f-card:#0D2745;--f-raised:#102D4F;--f-border:rgba(148,163,184,.22);--f-gold:#D4A843;--f-blue:#1A7FD4;--f-blue-strong:#0068BD;--f-text:#F8FAFC;--f-text-2:#B4C2D3;
+  background:var(--f-bg);color:var(--f-text);min-height:100dvh;padding:20px;font-size:13px;display:flex;flex-direction:column;gap:14px}
+.tg-forms :is(button,input,select,a):focus-visible{outline:2px solid var(--f-gold);outline-offset:2px}
+.tg-forms button{cursor:pointer;font:inherit}
+.tg-forms-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tg-forms-denied,.tg-forms-error{padding:16px;border-radius:8px;background:rgba(190,37,60,.18);border:1px solid rgba(255,138,138,.5);color:#FFD5D5}
+.tg-forms-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.tg-forms-header h1{margin:2px 0;font-family:Georgia,serif;font-size:26px}
+.tg-forms-eyebrow{display:flex;align-items:center;gap:6px;margin:0;color:var(--f-gold);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.tg-forms-subtle{margin:0;color:var(--f-text-2);font-size:12px}
+.tg-forms-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tg-forms-button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:7px 12px;border-radius:8px;border:1px solid var(--f-blue);background:var(--f-blue-strong);color:#fff;font-weight:600}
+.tg-forms-button--ghost{background:transparent;color:var(--f-text);border-color:var(--f-border)}
+.tg-forms-disclaimer{display:flex;align-items:center;gap:8px;margin:0;padding:10px 14px;border-radius:8px;border:1px solid rgba(212,168,67,.45);background:rgba(212,168,67,.12);color:#F3DFAE}
+.tg-forms-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+.tg-forms-layout--wide{grid-template-columns:minmax(0,1fr)}
+.tg-forms-nav{background:var(--f-card);border:1px solid var(--f-border);border-radius:12px;padding:10px;position:sticky;top:12px}
+.tg-forms-nav ul{list-style:none;margin:0 0 8px;padding:0}
+.tg-forms-nav li button{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 10px;border:0;border-left:3px solid transparent;border-radius:6px;background:none;color:#DCE8F5}
+.tg-forms-nav li button:hover{background:#0F3A5F}
+.tg-forms-nav li button[aria-current=page]{background:rgba(212,168,67,.14);border-left-color:var(--f-gold);color:#fff}
+.tg-forms-nav-heading{display:flex;align-items:center;gap:6px;width:100%;padding:8px;border:0;background:none;color:#9CC9E8;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:left}
+.tg-forms-nav-label{margin:10px 8px 4px;color:#9CC9E8;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.tg-forms-count{min-width:26px;text-align:center;padding:1px 6px;border-radius:999px;background:rgba(148,163,184,.18);color:var(--f-text-2);font-size:11px}
+.tg-forms-main{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tg-forms-section-title{margin:0;font-size:18px}
+.tg-forms-card{background:var(--f-card);border:1px solid var(--f-border);border-radius:12px;padding:16px}
+.tg-forms-card h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+.tg-forms-card h3 svg{color:var(--f-gold)}
+.tg-forms-card h4{margin:14px 0 8px;font-size:13px;color:var(--f-gold)}
+.tg-forms-core{border-left:3px solid var(--f-gold)}
+.tg-forms-core p{margin:0;color:var(--f-text-2)}
+.tg-forms-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.tg-forms-toolbar label{display:flex;align-items:center;gap:6px;color:var(--f-text-2);font-size:12px}
+.tg-forms-toolbar select{min-height:36px;border-radius:8px;border:1px solid var(--f-border);background:var(--f-bg);color:var(--f-text);padding:6px 8px;max-width:260px}
+.tg-forms-search{flex:1 1 240px;min-height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--f-border);background:var(--f-bg)}
+.tg-forms-search:focus-within{border-color:var(--f-gold)}
+.tg-forms-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--f-text);padding:8px 0}
+.tg-forms-search input:focus-visible{outline:none}
+.tg-forms-check input{accent-color:var(--f-gold)}
+.tg-forms-table{overflow-x:auto;border:1px solid var(--f-border);border-radius:10px}
+.tg-forms-table table,.tg-forms-mini{width:100%;border-collapse:collapse}
+.tg-forms-table table{min-width:620px}
+.tg-forms th{background:var(--f-raised);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--f-text-2);padding:9px 12px}
+.tg-forms td{padding:9px 12px;border-top:1px solid var(--f-border);vertical-align:top}
+.tg-forms tr[aria-selected=true]{background:rgba(212,168,67,.10)}
+.tg-forms-link{background:none;border:0;padding:0;color:#8CC8FF;font-weight:700;text-align:left;text-decoration:underline;text-underline-offset:2px}
+.tg-forms a{color:#8CC8FF}
+.tg-forms-cap{text-transform:capitalize}
+.tg-forms-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.tg-forms-badge--gold{background:rgba(212,168,67,.16);color:#F0CC7A}
+.tg-forms-badge--muted{background:rgba(148,163,184,.18);color:#C9D5E2}
+.tg-forms-badge--blocked{background:rgba(255,138,138,.16);color:#FF9F9F}
+.tg-forms-badge--amber{background:rgba(245,194,107,.16);color:#F5C26B}
+.tg-forms-app--applies{background:rgba(95,211,163,.16);color:#7FE0B8}
+.tg-forms-app--limited{background:rgba(245,194,107,.16);color:#F5C26B}
+.tg-forms-app--does-not-apply{background:rgba(148,163,184,.18);color:#C9D5E2}
+.tg-forms-app--not-confirmed{background:rgba(140,200,255,.14);color:#A9D5FF}
+.tg-forms-pipe--implemented{background:rgba(95,211,163,.16);color:#7FE0B8}
+.tg-forms-pipe--partial,.tg-forms-pipe--prototype{background:rgba(245,194,107,.16);color:#F5C26B}
+.tg-forms-pipe--not_implemented,.tg-forms-pipe--blocked{background:rgba(255,138,138,.16);color:#FF9F9F}
+.tg-forms-note{display:block;margin-top:4px;color:var(--f-text-2);font-size:11px}
+.tg-forms-empty{padding:14px;border:1px dashed rgba(148,163,184,.4);border-radius:8px;color:var(--f-text-2)}
+.tg-forms-facts{display:grid;grid-template-columns:180px minmax(0,1fr);gap:8px 14px;margin:0}
+.tg-forms-facts dt{color:var(--f-text-2);font-weight:600}
+.tg-forms-facts dd{margin:0;overflow-wrap:anywhere}
+.tg-forms-facts small,.tg-forms-detail small{display:block;color:var(--f-text-2);font-size:11px;margin-top:3px}
+.tg-forms-facts ul{margin:0;padding-left:18px}
+.tg-forms-capabilities{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.tg-forms-capabilities li{padding:10px;border-radius:8px;border:1px solid var(--f-border);background:var(--f-raised);display:flex;flex-direction:column;gap:3px}
+.tg-forms-capabilities li[data-status=prototype]{border-color:rgba(245,194,107,.5)}
+.tg-forms-capabilities li[data-status=blocked]{border-color:rgba(255,138,138,.45)}
+.tg-forms-capabilities span{font-weight:700;color:var(--f-text-2)}
+.tg-forms-ladder{margin:0 0 8px;padding-left:22px;display:grid;gap:4px}
+.tg-forms-ladder li::marker{color:var(--f-gold);font-weight:700}
+@media (max-width:900px){.tg-forms-layout{grid-template-columns:1fr}.tg-forms-nav{position:static}.tg-forms-facts{grid-template-columns:1fr}}
+@media (max-width:600px){.tg-forms{padding:12px}.tg-forms-header h1{font-size:22px}}

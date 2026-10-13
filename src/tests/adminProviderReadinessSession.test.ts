@@ -56,3 +56,7 @@ describe('admin provider report', () => {
     render({ ...user, role: 'super_admin' }); await settle(); expect(render({ ...user, role: 'super_admin' }).providers).toHaveLength(1);
   });
 });
+
+it.each(['administrator','super_administrator'])('recognizes canonical %s authority without exposing private provider fields', async role => {
+  render({...user,role} as User);await settle();const report=render({...user,role} as User);expect(report.allowed).toBe(true);expect(report.providers).toHaveLength(1);expect(JSON.stringify(report.providers)).not.toContain(row.secret);
+});

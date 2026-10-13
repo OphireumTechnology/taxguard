@@ -9,6 +9,17 @@ import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest } from '../auth';
 import { Appointment } from '../../types';
+import { CLIENT_ROLES, canAccessStaffClient } from '../clientAccess';
+
+const APPOINTMENT_STATUSES: ReadonlySet<Appointment['status']> = new Set<Appointment['status']>(['confirmed', 'pending', 'rescheduled', 'cancelled', 'completed', 'no_show', 'canceled_by_client', 'canceled_by_staff']);
+// A client may cancel or reschedule; outcomes such as completed / no_show are recorded by staff.
+const CLIENT_SETTABLE_STATUSES: ReadonlySet<string> = new Set(['canceled_by_client', 'rescheduled']);
+
+function canAccessAppointment(user: NonNullable<AuthenticatedRequest['user']>, apt: Appointment): boolean {
+  if (CLIENT_ROLES.has(user.role)) return Boolean(apt.clientId) && (user.clientId || user.id) === apt.clientId;
+  if (apt.accountantId === user.id) return true;
+  return Boolean(apt.clientId) && canAccessStaffClient(user, apt.clientId!);
+}
 
 export const appointmentsRouter = Router();
 
@@ -144,9 +155,23 @@ appointmentsRouter.post('/book', async (req: AuthenticatedRequest, res: Response
 // Cancel or Reschedule
 appointmentsRouter.patch('/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const apt = db.appointments.get(req.params.id);
-  if (!apt) return res.status(404).json({ error: 'Appointment not found.' });
+  if (!apt || !req.user || !canAccessAppointment(req.user, apt)) return res.status(404).json({ error: 'Appointment not found.' });
 
-  const { status, date, timeSlot, notes } = req.body;
+  const { status, date, timeSlot, notes } = req.body ?? {};
+  if (status !== undefined) {
+    if (typeof status !== 'string' || !APPOINTMENT_STATUSES.has(status as Appointment['status'])) {
+      return res.status(400).json({ error: 'Invalid appointment status.', code: 'APPOINTMENT_STATUS_INVALID' });
+    }
+    if (CLIENT_ROLES.has(req.user.role) && !CLIENT_SETTABLE_STATUSES.has(status)) {
+      return res.status(403).json({ error: 'Clients may only cancel or reschedule an appointment.', code: 'APPOINTMENT_STATUS_FORBIDDEN' });
+    }
+  }
+  if (date !== undefined && (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)))) {
+    return res.status(400).json({ error: 'date must be YYYY-MM-DD.', code: 'APPOINTMENT_DATE_INVALID' });
+  }
+  if ((timeSlot !== undefined && (typeof timeSlot !== 'string' || timeSlot.length > 32)) || (notes !== undefined && (typeof notes !== 'string' || notes.length > 2000))) {
+    return res.status(400).json({ error: 'Invalid time slot or notes.', code: 'APPOINTMENT_FIELDS_INVALID' });
+  }
 
   if (status) apt.status = status;
   if (date) apt.date = date;

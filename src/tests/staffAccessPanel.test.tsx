@@ -1,0 +1,21 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+const h=vi.hoisted(()=>({directory: {} as any}));
+vi.mock('../hooks/useStaffAccessDirectory',()=>({useStaffAccessDirectory:()=>h.directory}));
+vi.mock('../components/admin/StaffMfaRecoveryPanel',()=>({StaffMfaRecoveryPanel:()=>null}));
+vi.mock('../components/admin/StaffSessionsPanel',()=>({StaffSessionsPanel:()=>null}));
+import { StaffAccessManagementPanel, normalizeStaffInvitation, staffActionAvailable, validateIssuedInvitation } from '../components/admin/StaffAccessManagementPanel';
+const row={uid:'synthetic-staff',name:'Synthetic Staff',email:'staff@example.invalid',role:'accountant',status:'active',createdAt:'2026-01-01T00:00:00Z',approvedBy:'synthetic-checker',approvedAt:null,statusChangedAt:null,mfaReenrollmentRequired:false,actions:{approve:false,suspend:true,deactivate:true,reactivate:false}};
+function markup(){return renderToStaticMarkup(<StaffAccessManagementPanel user={null} authStatus="AUTHENTICATED"/>);}
+beforeEach(()=>{h.directory={allowed:true,sessionKey:'synthetic-key',kind:'members',query:{limit:25},status:'ready',items:[row],nextCursor:null};});
+describe('administrator staff panel',()=>{
+ it.each(['loading','empty','unavailable','error'])('renders %s with an accessible status',status=>{h.directory.status=status;h.directory.items=[];const html=markup();expect(html).toContain(status==='error'?'could not be loaded':status==='empty'?'No staff members':status==='unavailable'?'directory is unavailable':'Loading staff directory');expect(html).not.toContain('Synthetic Staff');});
+ it('renders membership facts and only server-advertised actions',()=>{const html=markup();expect(html).toContain('synthetic-checker');expect(html).toContain('suspend staff@example.invalid');expect(html).toContain('deactivate staff@example.invalid');expect(html).not.toContain('approve staff@example.invalid');expect(html).not.toContain('reactivate staff@example.invalid');expect(html).not.toContain('Total staff');});
+ it('renders invitation expiry and revocation policy',()=>{h.directory.kind='invitations';h.directory.items=[{id:'synthetic-invite',email:'invite@example.invalid',role:'reviewer',legalFirstName:'Synthetic',legalLastName:'Invitee',status:'pending',createdAt:'2026-01-01T00:00:00Z',expiresAt:'2026-10-13T00:00:00Z',invitedBy:'synthetic-admin',actions:{revoke:true}}];const html=markup();expect(html).toContain('Synthetic Invitee');expect(html).toContain('2026-10-13');expect(html).toContain('revoke invite@example.invalid');});
+ it('hides all controls when session is disallowed',()=>{h.directory.allowed=false;const html=markup();expect(html).toContain('active administrator session');expect(html).not.toContain('<form');expect(html).not.toContain('staff@example.invalid');});
+ it('normalizes email and legal names without changing role',()=>{expect(normalizeStaffInvitation({email:'  TEST@EXAMPLE.INVALID ',legalFirstName:'  Synthetic   Given ',legalLastName:' Family  ',role:'reviewer'})).toEqual({email:'test@example.invalid',legalFirstName:'Synthetic Given',legalLastName:'Family',role:'reviewer'});});
+ it.each(['client','super_admin','administrator','founder'])('refuses disallowed invitation role %s',role=>{expect(()=>normalizeStaffInvitation({email:'staff@example.invalid',legalFirstName:'Synthetic',legalLastName:'Staff',role} as any)).toThrow();});
+ it('never enables missing or truthy action flags',()=>{expect(staffActionAvailable({actions:{approve:'true'}} as any,'approve')).toBe(false);expect(staffActionAvailable({actions:{}} as any,'reactivate')).toBe(false);});
+ it('accepts only administrator-handoff token confirmations',()=>{const result={id:'synthetic',token:'a'.repeat(64),expiresAt:new Date(Date.now()+60000).toISOString(),delivery:'administrator_handoff'};expect(validateIssuedInvitation(result as any)).toEqual(result);for(const patch of [{id:'../invalid'},{token:''},{token:'synthetic-one-time-secret'},{delivery:'email'},{expiresAt:'invalid'},{expiresAt:'2020-01-01T00:00:00Z'}])expect(()=>validateIssuedInvitation({...result,...patch} as any)).toThrow();});
+});

@@ -16,18 +16,15 @@ import {
 import { DocumentItem, DocumentCategory, DocumentStatus } from '../../types';
 import { processDocumentExtraction } from '../aiExtraction';
 import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
+import { MAX_BATCH_FILES, formatDocumentSize, isUploadRejected, validateDocumentUpload, type UploadRejectionCode } from '../documentUploadValidation';
 
 export const documentsRouter = Router();
 
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/csv'
-];
-const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 const SIGNED_TOKEN_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
+const REVIEW_DECISION_STATUSES: ReadonlySet<DocumentStatus> = new Set<DocumentStatus>([
+  'accountant_reviewing', 'needs_review', 'pending_review', 'missing_information', 'client_action_required',
+  'needs_correction', 'approved', 'verified', 'rejected'
+]);
 
 function requireCommissionedDocumentIntake(_req: Request, res: Response, next: (error?: unknown) => void): void {
   if (process.env.NODE_ENV === 'production') {
@@ -239,41 +236,21 @@ documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords,
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { 
-      fileName, 
-      fileSize, 
-      fileType, 
-      category, 
-      taxYear, 
-      description,
-      rawContentSample 
-    } = req.body;
-
-    if (!fileName) {
-      return res.status(400).json({ error: 'File name is required.' });
+    const { description, rawContentSample } = req.body ?? {};
+    const validation = validateDocumentUpload(req.body ?? {});
+    if (isUploadRejected(validation)) {
+      if (validation.suspicious) {
+        db.logSecurityEvent({
+          eventType: 'MALWARE_SIGNATURE_DETECTED',
+          ipAddress: req.ip || 'unknown',
+          userId: req.user.id,
+          details: 'Pre-upload heuristics blocked a file with an executable or active-content extension.',
+          severity: 'critical'
+        });
+      }
+      return res.status(400).json({ error: validation.error, code: validation.code });
     }
-
-    // Supported file validation
-    if (fileType && !ALLOWED_MIME_TYPES.includes(fileType)) {
-      return res.status(400).json({ 
-        error: `Unsupported file format (${fileType}). Permitted types: PDF, PNG, JPG, XLSX, CSV.` 
-      });
-    }
-
-    // Malware scanning simulation hook
-    const isSuspicious = fileName.toLowerCase().includes('.exe') || 
-                         fileName.toLowerCase().includes('.bat') ||
-                         fileName.toLowerCase().includes('.scr');
-    if (isSuspicious) {
-      db.logSecurityEvent({
-        eventType: 'MALWARE_SIGNATURE_DETECTED',
-        ipAddress: req.ip || 'unknown',
-        userId: req.user.id,
-        details: `Malware protection hook blocked file ${fileName}.`,
-        severity: 'critical'
-      });
-      return res.status(400).json({ error: 'Security alert: File failed pre-upload anti-malware heuristics.' });
-    }
+    const { fileName, fileType, sizeBytes, taxYear, category } = validation.value;
 
     const docId = `doc_${randomUUID()}`;
     const context = resolveAuthorizedClientContext(
@@ -299,15 +276,15 @@ documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords,
       clientId: targetClientId,
       clientName: client?.name || req.user.name,
       fileName,
-      fileSize: fileSize || '1.2 MB',
-      fileType: fileType || 'application/pdf',
-      category: (extraction.documentCategory as DocumentCategory) || category || 'other',
-      taxYear: Number(taxYear) || 2025,
+      fileSize: formatDocumentSize(sizeBytes),
+      fileType,
+      category: (extraction.documentCategory as DocumentCategory) || (category as DocumentCategory) || 'other',
+      taxYear,
       status: 'uploaded',
       uploadedAt: new Date().toISOString(),
       uploadedBy: req.user.name,
       version: 1,
-      description: description || 'Uploaded to 256-bit encrypted vault',
+      description: typeof description === 'string' && description.trim() ? description.trim().slice(0, 500) : 'Uploaded to 256-bit encrypted vault',
       isAiProcessed: true,
       ocrConfidence: extraction.confidenceScore,
       extractedData: extraction.extractedFields,
@@ -339,8 +316,9 @@ documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords,
       document: newDoc,
       extractionSummary: extraction
     });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Upload processing error.' });
+  } catch {
+    // Never echo internal error text to the caller.
+    return res.status(500).json({ error: 'Upload processing error.', code: 'DOCUMENT_UPLOAD_FAILED' });
   }
 });
 
@@ -354,9 +332,19 @@ documentsRouter.patch('/:id/review', authenticateToken, blockRecruiterFromTaxRec
   if (!doc) return res.status(404).json({ error: 'Document not found.' });
   if (!resolveAuthorizedClientContext(req, res, 'document_review', doc.clientId)) return;
 
-  const { status, reviewerNotes, correctedFields } = req.body;
+  const { status, reviewerNotes, correctedFields } = req.body ?? {};
+  // Reviewers may set review outcomes only; system states (scanning, delivered, archived, ...) are not reviewer decisions.
+  if (typeof status !== 'string' || !REVIEW_DECISION_STATUSES.has(status as DocumentStatus)) {
+    return res.status(400).json({ error: 'A valid review status is required.', code: 'REVIEW_STATUS_INVALID' });
+  }
+  if (reviewerNotes !== undefined && (typeof reviewerNotes !== 'string' || reviewerNotes.length > 2000)) {
+    return res.status(400).json({ error: 'Reviewer notes must be text of at most 2,000 characters.', code: 'REVIEW_NOTES_INVALID' });
+  }
+  if (correctedFields !== undefined && (!Array.isArray(correctedFields) || correctedFields.length > 200)) {
+    return res.status(400).json({ error: 'Corrected fields must be a list of at most 200 entries.', code: 'CORRECTED_FIELDS_INVALID' });
+  }
 
-  if (status) doc.status = status;
+  doc.status = status as DocumentStatus;
   if (reviewerNotes) doc.reviewerNotes = reviewerNotes;
   doc.reviewedBy = req.user.name;
   doc.reviewedAt = new Date().toISOString();
@@ -415,9 +403,12 @@ documentsRouter.post('/:id/withdraw', authenticateToken, blockRecruiterFromTaxRe
 documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRecords, requireCommissionedDocumentIntake, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { files, taxYear = 2025 } = req.body;
+  const { files, taxYear } = req.body ?? {};
   if (!Array.isArray(files) || files.length === 0) {
     return res.status(400).json({ error: 'Files array is required.' });
+  }
+  if (files.length > MAX_BATCH_FILES) {
+    return res.status(400).json({ error: `A batch may contain at most ${MAX_BATCH_FILES} files.`, code: 'BATCH_TOO_LARGE' });
   }
 
   const context = resolveAuthorizedClientContext(
@@ -431,27 +422,29 @@ documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRe
 
   const client = db.users.get(targetClientId);
   const ingestedDocs: DocumentItem[] = [];
+  const rejected: { index: number; code: UploadRejectionCode }[] = [];
 
-  for (const item of files) {
-    const { fileName, fileSize, fileType, category, rawContentSample, sha256 } = item;
-    if (!fileName) continue;
-
-    // Check suspicious extension
-    const isSuspicious = fileName.toLowerCase().includes('.exe') ||
-                         fileName.toLowerCase().includes('.bat') ||
-                         fileName.toLowerCase().includes('.scr');
-    if (isSuspicious) {
-      db.logSecurityEvent({
-        eventType: 'MALWARE_SIGNATURE_DETECTED',
-        ipAddress: req.ip || 'unknown',
-        userId: req.user.id,
-        details: `Batch upload blocked suspicious file: ${fileName}`,
-        severity: 'critical'
-      });
+  for (const [index, item] of files.entries()) {
+    const entry = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+    const { rawContentSample, sha256 } = entry;
+    // The batch-level tax year applies to every file; a per-file year cannot override it.
+    const validation = validateDocumentUpload({ ...entry, taxYear });
+    if (isUploadRejected(validation)) {
+      if (validation.suspicious) {
+        db.logSecurityEvent({
+          eventType: 'MALWARE_SIGNATURE_DETECTED',
+          ipAddress: req.ip || 'unknown',
+          userId: req.user.id,
+          details: 'Batch upload blocked a file with an executable or active-content extension.',
+          severity: 'critical'
+        });
+      }
+      rejected.push({ index, code: validation.code });
       continue;
     }
+    const { fileName, fileType, sizeBytes, category } = validation.value;
 
-    const docId = `DOC-${taxYear}-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const docId = `DOC-${validation.value.taxYear}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
     // Extract proposed fields
     const extraction = await processDocumentExtraction(
@@ -465,15 +458,17 @@ documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRe
       clientId: targetClientId,
       clientName: client?.name || req.user.name,
       fileName,
-      fileSize: fileSize ? (typeof fileSize === 'number' ? `${(fileSize / (1024 * 1024)).toFixed(2)} MB` : String(fileSize)) : '1.0 MB',
-      fileType: fileType || 'application/pdf',
-      category: (extraction.documentCategory as DocumentCategory) || category || 'other',
-      taxYear: Number(taxYear) || 2025,
+      fileSize: formatDocumentSize(sizeBytes),
+      fileType,
+      category: (extraction.documentCategory as DocumentCategory) || (category as DocumentCategory) || 'other',
+      taxYear: validation.value.taxYear,
       status: 'uploaded',
       uploadedAt: new Date().toISOString(),
       uploadedBy: req.user.name,
       version: 1,
-      description: `Ingested via TaxGuard Secure Intake. SHA-256: ${(sha256 || 'computed').slice(0, 16)}...`,
+      description: typeof sha256 === 'string' && /^[a-f0-9]{64}$/i.test(sha256)
+        ? `Ingested via TaxGuard Secure Intake. Client-reported SHA-256: ${sha256.slice(0, 16)}...`
+        : 'Ingested via TaxGuard Secure Intake. No verified content hash.',
       isAiProcessed: true,
       ocrConfidence: extraction.confidenceScore,
       extractedData: extraction.extractedFields,
@@ -495,8 +490,12 @@ documentsRouter.post('/upload-batch', authenticateToken, blockRecruiterFromTaxRe
     });
   }
 
+  if (ingestedDocs.length === 0) {
+    return res.status(400).json({ error: 'No files in the batch passed validation.', code: 'BATCH_REJECTED', rejected });
+  }
   return res.status(201).json({
-    message: `Successfully ingested ${ingestedDocs.length} documents.`,
-    documents: ingestedDocs
+    message: `Ingested ${ingestedDocs.length} of ${files.length} documents.`,
+    documents: ingestedDocs,
+    rejected
   });
 });

@@ -40,3 +40,7 @@ The user's latest instruction is to batch routine development and record sandbox
 Only the existing untracked Bookkeeper hook, new regression file and this report were edited for this increment. Prior uncommitted work and protected backup were preserved. No commit, push, deployment, migration, production access, taxpayer seed, grant, workflow transition or AI execution occurred. The authoritative 18-stage workflow, advisory-only AI, immutable records and server security boundaries are unchanged.
 
 Durable accounting providers and authenticated browser QA remain unfinished. This cache-isolation improvement does not release production accounting reads or mutations, establish client authorization, or complete a dashboard/AI gate. AI-16 remains BLOCKED and untouched.
+
+## Merge evidence note — 2026-10-11
+
+The validation and status statements above describe historical branch work. They do not validate the current integration merge or establish production readiness. Production remains NO-GO; existing security, consent and human approval gates remain controlling.

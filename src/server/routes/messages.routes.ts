@@ -9,6 +9,15 @@ import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest } from '../auth';
 import { Message } from '../../types';
+import { CLIENT_ROLES, canAccessStaffClient } from '../clientAccess';
+
+/** Sender, recipient, the owning client (never internal-only notes), or staff authorized for the client. */
+function canAccessMessage(user: NonNullable<AuthenticatedRequest['user']>, msg: Message): boolean {
+  if (msg.senderId === user.id || msg.recipientId === user.id) return true;
+  if (!msg.clientId) return false;
+  if (CLIENT_ROLES.has(user.role)) return !msg.isInternalOnly && (user.clientId || user.id) === msg.clientId;
+  return canAccessStaffClient(user, msg.clientId);
+}
 
 export const messagesRouter = Router();
 
@@ -92,7 +101,7 @@ messagesRouter.post('/', authenticateToken, (req: AuthenticatedRequest, res: Res
 // Mark messages as read
 messagesRouter.patch('/:id/read', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const msg = db.messages.get(req.params.id);
-  if (!msg) return res.status(404).json({ error: 'Message not found.' });
+  if (!msg || !req.user || !canAccessMessage(req.user, msg)) return res.status(404).json({ error: 'Message not found.' });
 
   msg.isRead = true;
   db.messages.set(msg.id, msg);

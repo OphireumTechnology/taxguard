@@ -343,6 +343,40 @@ describe('Payments Route Authority and Security Gate', () => {
     vi.unstubAllEnvs();
   });
 
+  describe('webhook fails closed outside production too', () => {
+    const forged = { id: 'evt_forged_1', type: 'payment_intent.succeeded', data: { invoiceId: 'inv_client1_1040' } };
+    const send = (body: unknown, headers: Record<string, string> = {}) => fetch(`${origin}/api/payments/webhook`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+
+    it('rejects an unsigned settlement attempt even when a secret is configured (previously accepted outside production)', async () => {
+      vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('STRIPE_WEBHOOK_SECRET', testSecret);
+      const before = db.invoices.get('inv_client1_1040')?.status;
+      const res = await send(forged);
+      expect(res.status).toBe(400);
+      expect(db.invoices.get('inv_client1_1040')?.status).toBe(before);
+      vi.unstubAllEnvs();
+    });
+    it('returns 503 when no secret is configured, and never accepts the old hard-coded fallback secret', async () => {
+      vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('STRIPE_WEBHOOK_SECRET', '');
+      const before = db.invoices.get('inv_client1_1040')?.status;
+      const payload = JSON.stringify(forged);
+      const fallbackSig = createHmac('sha256', 'whsec_artax_sandbox_test_secret').update(payload).digest('hex');
+      const res = await fetch(`${origin}/api/payments/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'stripe-signature': fallbackSig }, body: payload });
+      expect(res.status).toBe(503);
+      expect(db.invoices.get('inv_client1_1040')?.status).toBe(before);
+      vi.unstubAllEnvs();
+    });
+    it('requires a provider event id so replays cannot bypass deduplication', async () => {
+      vi.stubEnv('STRIPE_WEBHOOK_SECRET', testSecret);
+      const payload = JSON.stringify({ type: 'payment_intent.succeeded', data: { invoiceId: 'inv_client1_1040' } });
+      const sig = createHmac('sha256', testSecret).update(payload).digest('hex');
+      const res = await fetch(`${origin}/api/payments/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'stripe-signature': sig }, body: payload });
+      expect(res.status).toBe(400);
+      expect((await res.json()).code).toBe('WEBHOOK_EVENT_ID_REQUIRED');
+      vi.unstubAllEnvs();
+    });
+  });
+
   it('isolates invoice listings by client (client 1 only sees their invoice)', async () => {
     const res = await fetch(`${origin}/api/payments/invoices`, {
       headers: {

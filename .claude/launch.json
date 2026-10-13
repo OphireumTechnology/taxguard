@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "taxguard-local-superadmin-e2e",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "--env-file=.env.superadmin.e2e.local", "server.ts"],
+      "port": 3000
+    }
+  ]
+}

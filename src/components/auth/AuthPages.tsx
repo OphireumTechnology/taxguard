@@ -1,5 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { StaffInvitationFlow } from './StaffInvitationFlow';
+import { StaffMfaRecoveryEnrollmentFlow } from './StaffMfaRecoveryEnrollmentFlow';
+import { isStaffIdentityDevelopmentConfigured } from '../../supabase/config';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { isLocalServerLoginBuild } from '../../context/localServerLogin';
 import { BrandLogo } from '../common/BrandLogo';
 import {
   requestPasswordReset as requestSupabasePasswordReset,
@@ -7,6 +11,10 @@ import {
   ControlledAuthErrorCode,
   RegistrationResultState
 } from '../../supabase/auth';
+import { isSupabaseConfigured } from '../../supabase/config';
+import { TotpEnrollmentPanel } from './TotpEnrollmentPanel';
+import { logout as signOutProvider } from '../../supabase/auth';
+import { AuthConfigurationNotice } from './AuthConfigurationNotice';
 import {
   Lock,
   Mail,
@@ -32,6 +40,11 @@ const REGISTRATION_STATE_LABELS: Record<RegistrationResultState, string> = {
   READY: 'Onboarding Workspace Ready — Redirecting...',
   FAILED: 'Registration Could Not Be Completed'
 };
+
+/** Failures (rate limit, unconfigured service) must never be presented as a sent recovery email. */
+export function passwordResetOutcome(result: { success: boolean; error?: string }): { error?: string } {
+  return result.success ? {} : { error: result.error || 'Password recovery could not be requested. Please try again later.' };
+}
 
 export const ClientLoginPage: React.FC = () => {
   const fieldPrefix = React.useId();
@@ -114,12 +127,17 @@ export const ClientLoginPage: React.FC = () => {
 
   const handlePasswordResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetEmail.trim()) return;
+    if (!resetEmail.trim() || !isSupabaseConfigured()) return;
     setResetLoading(true);
     setError(null);
     setResetSuccess(null);
     const result = await requestSupabasePasswordReset(resetEmail.trim());
     setResetLoading(false);
+    const outcome = passwordResetOutcome(result);
+    if (outcome.error) {
+      setError(outcome.error);
+      return;
+    }
     setResetSuccess(
       result.message ||
         'If an account exists for this email address, password recovery instructions have been sent.'
@@ -141,6 +159,7 @@ export const ClientLoginPage: React.FC = () => {
       </div>
 
       <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
+        <AuthConfigurationNotice />
         {error && (
           <div
             role="alert"
@@ -206,7 +225,7 @@ export const ClientLoginPage: React.FC = () => {
             <div className="pt-2 space-y-2">
               <button
                 type="submit"
-                disabled={resetLoading}
+                disabled={resetLoading || !isSupabaseConfigured()}
                 className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
               >
                 <Mail className="w-4 h-4" />
@@ -277,7 +296,7 @@ export const ClientLoginPage: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isSupabaseConfigured()}
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                 >
                   <Lock className="w-4 h-4" />
@@ -364,6 +383,7 @@ export const ClientRegisterPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSupabaseConfigured()) return;
     setError(null);
     setErrorCode(null);
     setDuplicateAccountDetected(false);
@@ -607,6 +627,7 @@ export const ClientRegisterPage: React.FC = () => {
           </div>
         )}
 
+        <AuthConfigurationNotice />
         <form onSubmit={handleRegister} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -788,7 +809,7 @@ export const ClientRegisterPage: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isProcessingState}
+              disabled={isProcessingState || !isSupabaseConfigured()}
               className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg disabled:opacity-50"
             >
               {isProcessingState
@@ -816,7 +837,9 @@ export const ClientRegisterPage: React.FC = () => {
 export const StaffLoginPage: React.FC = () => {
   const fieldPrefix = React.useId();
   const { login, setCurrentPage } = useApp();
-  const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation'>('signin');
+  const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation' | 'mfa_recovery'>('signin');
+  // Recovery re-enrolment is provider-only; the tab exists only where provider identity is configured.
+  const recoveryAvailable = isStaffIdentityDevelopmentConfigured();
 
   // Sign in state
   const [email, setEmail] = useState('');
@@ -824,12 +847,33 @@ export const StaffLoginPage: React.FC = () => {
   const [targetRole, setTargetRole] = useState<'accountant' | 'admin'>('accountant');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Second factor: requested by the server after a correct password; verified server-side only.
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaEnrollmentRequired, setMfaEnrollmentRequired] = useState(false);
+  // Lets the user confirm exactly what will be submitted (autofill, keyboard layout, Caps Lock).
+  const [showPassword, setShowPassword] = useState(false);
+  // Real server-side local login (non-production builds without Supabase only).
+  const localBuild = isLocalServerLoginBuild();
+  const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
+  // Local diagnostics only: server request ID of the refused attempt, for log correlation.
+  const [errorReference, setErrorReference] = useState<string | null>(null);
+  const staffFormRef = useRef<HTMLFormElement>(null);
+  const submittingRef = useRef(false);
 
-  // Accept Invitation state
-  const [invitationToken, setInvitationToken] = useState('');
-  const [invitationDetails, setInvitationDetails] = useState<any | null>(null);
-  const [invitePassword, setInvitePassword] = useState('');
-  const [inviteChecking, setInviteChecking] = useState(false);
+  useEffect(() => {
+    if (!localBuild) return;
+    let active = true;
+    const check = () => fetch('/api/auth/local-login-status', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(status => { if (active) setLocalLoginAvailable(status?.localLoginAvailable === true); })
+      .catch(() => { if (active) setLocalLoginAvailable(false); });
+    void check();
+    // Re-check when the tab regains focus (for example after the local server restarted).
+    window.addEventListener('focus', check);
+    return () => { active = false; window.removeEventListener('focus', check); };
+  }, [localBuild]);
+
 
   useEffect(() => {
     if (
@@ -846,61 +890,50 @@ export const StaffLoginPage: React.FC = () => {
 
   const handleStaffLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    // One request at a time: Enter key repeats and double clicks must not send duplicates.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
-    const result: any = await login(email, password, targetRole);
-    setLoading(false);
-    if (result === true || (result && result.success)) {
-      setCurrentPage('staff');
-    } else {
-      setError(result?.error || 'Invalid staff credentials. Please check your credentials or contact firm compliance.');
-    }
-  };
-
-  const handleLookupInvitation = async () => {
-    if (!invitationToken.trim()) return;
-    setInviteChecking(true);
-    setError(null);
+    setErrorReference(null);
     try {
-      const res = await fetch(`/api/onboarding/staff/invitations/${invitationToken.trim()}`);
-      if (!res.ok) throw new Error('Invitation token not found or already consumed');
-      const data = await res.json();
-      setInvitationDetails(data.invitation);
-    } catch (err: any) {
-      setError(err.message);
-      setInvitationDetails(null);
-    } finally {
-      setInviteChecking(false);
-    }
-  };
-
-  const handleAcceptInvitation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!invitationToken || !invitePassword) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/onboarding/staff/accept-invitation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: invitationToken.trim(),
-          password: invitePassword
-        })
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to accept invitation');
+      const result: any = await login(email, password, mfaStep ? mfaCode : undefined);
+      if (result === true || (result && result.success)) {
+        setMfaCode('');
+        setMfaStep(false);
+        setCurrentPage('staff');
+      } else if (result?.mfaEnrollmentRequired) {
+        setMfaEnrollmentRequired(true);
+        setMfaStep(false);
+        setMfaCode('');
+      } else if (result?.mfaRequired) {
+        setMfaStep(true);
+        setMfaCode('');
+        setError(mfaStep ? result.error : null);
+        setErrorReference(mfaStep ? result.reference || null : null);
+      } else {
+        setMfaCode('');
+        setError(result?.error || 'Invalid staff credentials. Please check your credentials or contact firm compliance.');
+        setErrorReference(result?.reference || null);
       }
-      const data = await res.json();
-      localStorage.setItem('token', data.sessionToken);
-      setCurrentPage('staff_onboarding');
-    } catch (err: any) {
-      setError(err.message);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
+
+  // A message belongs to the attempt that produced it: editing the form clears it, so an old
+  // error is never mistaken for the result of an attempt that was not sent.
+  const clearStaleError = () => { setError(null); setErrorReference(null); };
+
+  // Enter on a helper button (workspace label, Show / Hide) submits the form, like Enter in a field.
+  // Without this, Enter only re-activated the button and no sign-in request was sent.
+  const submitOnEnter = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    staffFormRef.current?.requestSubmit();
+  };
+
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-slate-100 space-y-8">
@@ -918,12 +951,13 @@ export const StaffLoginPage: React.FC = () => {
 
       <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
         {/* Mode switcher */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
+        <div className={`grid ${recoveryAvailable ? 'grid-cols-3' : 'grid-cols-2'} gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]`}>
           <button
             type="button"
+            disabled={loginMode === 'accept_invitation'}
             onClick={() => {
               setLoginMode('signin');
-              setError(null);
+              clearStaleError();
             }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
               loginMode === 'signin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
@@ -933,9 +967,10 @@ export const StaffLoginPage: React.FC = () => {
           </button>
           <button
             type="button"
+            disabled={loading || mfaEnrollmentRequired}
             onClick={() => {
               setLoginMode('accept_invitation');
-              setError(null);
+              clearStaleError();
             }}
             className={`py-2 rounded-lg text-xs font-bold transition-all ${
               loginMode === 'accept_invitation' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
@@ -943,21 +978,47 @@ export const StaffLoginPage: React.FC = () => {
           >
             Accept Staff Invite
           </button>
+          {recoveryAvailable && <button
+            type="button"
+            disabled={loading || mfaEnrollmentRequired}
+            onClick={() => { setLoginMode('mfa_recovery'); clearStaleError(); }}
+            className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'mfa_recovery' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'}`}
+          >
+            Complete MFA Recovery
+          </button>}
         </div>
 
         {error && (
           <div role="alert" className="p-3 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
+            <span>
+              {error}
+              {errorReference && (
+                <span data-testid="login-error-reference" className="block mt-1 text-[10px] text-red-300/80 font-mono">Reference: {errorReference}</span>
+              )}
+            </span>
           </div>
         )}
 
         {loginMode === 'signin' ? (
           <>
+            {localLoginAvailable ? (
+              <div role="note" data-testid="local-server-login-notice" className="p-3 rounded-lg bg-[#071A2E] border border-[#D4A843]/40 text-slate-200 text-[11px]">
+                Local development sign-in: credentials and authenticator codes are verified by this TaxGuard server. Not a production identity provider.
+              </div>
+            ) : localBuild ? (
+              <div role="status" data-testid="local-server-unreachable-notice" className="p-3 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-100 text-[11px]">
+                The local TaxGuard sign-in server is not responding. Start or restart it; this page checks again when you sign in.
+              </div>
+            ) : (
+              <AuthConfigurationNotice />
+            )}
             <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
               <button
                 type="button"
-                onClick={() => setTargetRole('accountant')}
+                aria-pressed={targetRole === 'accountant'}
+                onKeyDown={submitOnEnter}
+                onClick={() => { setTargetRole('accountant'); clearStaleError(); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                   targetRole === 'accountant' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
                 }`}
@@ -966,7 +1027,9 @@ export const StaffLoginPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setTargetRole('admin')}
+                aria-pressed={targetRole === 'admin'}
+                onKeyDown={submitOnEnter}
+                onClick={() => { setTargetRole('admin'); clearStaleError(); }}
                 className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                   targetRole === 'admin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
                 }`}
@@ -974,42 +1037,80 @@ export const StaffLoginPage: React.FC = () => {
                 Compliance Admin
               </button>
             </div>
+            <p className="text-[10px] text-slate-400 -mt-1">
+              This choice only changes the button label. Your access is set by your account on the server.
+            </p>
 
-            <form onSubmit={handleStaffLogin} className="space-y-4 text-xs">
+            {mfaEnrollmentRequired && <TotpEnrollmentPanel onComplete={() => { setMfaEnrollmentRequired(false); setMfaStep(true); setError('Authenticator verified. Sign in to enter your workspace.'); }} onCancel={() => { void signOutProvider(); setMfaEnrollmentRequired(false); setPassword(''); }} />}
+            <form ref={staffFormRef} onSubmit={handleStaffLogin} className="space-y-4 text-xs">
+              <fieldset disabled={mfaEnrollmentRequired} className="space-y-4">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-16`}>Staff Work Email</label>
                 <input id={`${fieldPrefix}-auth-16`}
                   type="text"
                   required
+                  autoComplete="username"
                   placeholder="practitioner@artaxservices.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); clearStaleError(); setMfaStep(false); setMfaCode(''); }}
                   className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
                 />
               </div>
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-17`}>Staff Security Token / Password</label>
-                <input id={`${fieldPrefix}-auth-17`}
-                  type="password"
-                  required
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
-                />
+                <div className="flex gap-2">
+                  <input id={`${fieldPrefix}-auth-17`}
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); clearStaleError(); }}
+                    className="flex-1 bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                  />
+                  <button
+                    type="button"
+                    onKeyDown={submitOnEnter}
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-pressed={showPassword}
+                    aria-controls={`${fieldPrefix}-auth-17`}
+                    className="px-3 rounded-lg bg-[rgba(148,163,184,0.18)] text-slate-200 text-[11px] font-bold"
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
+
+              {mfaStep && (
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-mfa`}>Authenticator Code</label>
+                  <input id={`${fieldPrefix}-auth-mfa`}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    required
+                    placeholder="6-digit code"
+                    value={mfaCode}
+                    onChange={(e) => { setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6)); clearStaleError(); }}
+                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white font-mono tracking-widest focus:outline-none focus:border-[#D4A843]"
+                  />
+                  <p className="mt-1 text-[10px] text-slate-400">Multi-factor authentication is required for this account.</p>
+                </div>
+              )}
 
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || mfaEnrollmentRequired || (!isSupabaseConfigured() && !localBuild)}
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />
                   {loading ? 'Validating Token...' : `Enter ${targetRole === 'admin' ? 'Admin Control' : 'Staff Workspace'}`}
                 </button>
               </div>
+              </fieldset>
             </form>
 
             <div className="pt-2 border-t border-[rgba(148,163,184,0.18)] text-center space-y-1">
@@ -1021,66 +1122,10 @@ export const StaffLoginPage: React.FC = () => {
               </p>
             </div>
           </>
+        ) : loginMode === 'mfa_recovery' ? (
+          <StaffMfaRecoveryEnrollmentFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
         ) : (
-          <div className="space-y-4 text-xs">
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-18`}>Administrative Invitation Token *</label>
-              <div className="flex gap-2">
-                <input id={`${fieldPrefix}-auth-18`}
-                  type="text"
-                  required
-                  placeholder="inv_seed_marcus_2026"
-                  value={invitationToken}
-                  onChange={(e) => setInvitationToken(e.target.value)}
-                  className="flex-1 bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 font-mono text-white focus:outline-none focus:border-[#D4A843]"
-                />
-                <button
-                  type="button"
-                  onClick={handleLookupInvitation}
-                  disabled={inviteChecking}
-                  className="px-3 py-2 bg-[rgba(148,163,184,0.18)] hover:bg-[#2B4E7E] text-white font-bold rounded-lg text-xs"
-                >
-                  Verify
-                </button>
-              </div>
-            </div>
-
-            {invitationDetails && (
-              <div className="p-3 bg-[#071A2E] rounded-xl border border-emerald-500/40 text-[11px] space-y-1.5 text-slate-300">
-                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Verified Invitation from Desmond Hinds</span>
-                </div>
-                <div>Invited Email: <strong className="text-white">{invitationDetails.email}</strong></div>
-                <div>Role: <strong className="text-amber-400 capitalize">{invitationDetails.role}</strong></div>
-                <div>Department: <strong className="text-white">{invitationDetails.department}</strong></div>
-              </div>
-            )}
-
-            <form onSubmit={handleAcceptInvitation} className="space-y-4 pt-2">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-19`}>Set Staff Password *</label>
-                <input id={`${fieldPrefix}-auth-19`}
-                  type="password"
-                  required
-                  minLength={8}
-                  placeholder="Create your practitioner password"
-                  value={invitePassword}
-                  onChange={(e) => setInvitePassword(e.target.value)}
-                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !invitationToken || !invitePassword}
-                className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{loading ? 'Activating Credentials...' : 'Accept Invitation & Launch Onboarding'}</span>
-              </button>
-            </form>
-          </div>
+          <StaffInvitationFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
         )}
       </div>
     </div>

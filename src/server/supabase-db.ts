@@ -1,3 +1,4 @@
+import { staffAuthProofIsCurrent } from './staffSessionEpoch';
 /**
  * Supabase Database Authority & Durable Session Engine
  * Replaces Firestore authority with PostgreSQL/Supabase tables while enforcing:
@@ -10,13 +11,20 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseAdmin, VerifiedSupabaseUser } from './supabase';
+import { getSupabaseAdmin, isSupabaseServerConfigured, VerifiedSupabaseUser } from './supabase';
 import { formatTaxGuardClientId } from './client-id.service';
 import { User } from '../types';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
 import { LiveWorkflowRepository } from './taxguard/liveWorkflow.repository';
 import { db } from './db';
 import { isAssignmentCurrentlyEffective } from './assignment-authorization';
+import { provisionClientIdentity } from './atomicClientIdentity';
+import { createDurableSession, revokeDurableSession } from './durableSessionTransactions';
+import { updateClientProfile } from './clientProfileUpdate';
+import { attachSessionAssuranceLevel, staffMfaDenial } from './staffMfa';
+
+// An explicitly enabled non-production identity project uses durable authority without demo fallbacks.
+const strictDurableAuthority = () => process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -41,6 +49,7 @@ interface FallbackSessionRow {
   auth_time: number;
   expires_at: number;
   revoked: boolean;
+  aal?: 'aal1' | 'aal2';
 }
 
 const fallbackIdentities = new Map<string, FallbackIdentityRow>();
@@ -90,11 +99,13 @@ export class SupabaseDurableSessions {
   private readonly client: SupabaseClient;
   private readonly tenantId: string;
   private readonly usesCustomClient: boolean;
+  readonly usesDurableAuthority: boolean;
 
   constructor(client?: SupabaseClient, tenantId?: string) {
+    this.usesDurableAuthority = strictDurableAuthority() || (!client && isSupabaseServerConfigured());
     const resolved = (tenantId || process.env.TAXGUARD_TENANT_ID || '').trim();
     if (!resolved) {
-      if (process.env.NODE_ENV === 'production') {
+      if (this.usesDurableAuthority) {
         throw new AuthorityError('PRODUCTION_TENANT_REQUIRED: Missing authoritative production TAXGUARD_TENANT_ID.', 500);
       }
       this.tenantId = 'tenantA';
@@ -113,7 +124,9 @@ export class SupabaseDurableSessions {
   private async getAuthorizedClientIds(uid: string): Promise<string[]> {
     const { data, error } = await this.client
       .from('taxguard_staff_assignments')
-      .select('client_id, engagement_id, tax_year, effective_from, effective_to')
+      // status must be selected: isAssignmentCurrentlyEffective rejects rows without it,
+      // which previously left every production staff session with no authorized clients.
+      .select('client_id, engagement_id, tax_year, status, effective_from, effective_to')
       .eq('tenant_id', this.tenantId)
       .eq('user_id', uid)
       .eq('status', 'ACTIVE');
@@ -169,7 +182,7 @@ export class SupabaseDurableSessions {
       } catch (err: any) {
         identityErr = err;
       }
-      if (process.env.NODE_ENV === 'production' && identityErr) {
+      if (this.usesDurableAuthority && identityErr) {
         throw new AuthorityError('IDENTITY_STORE_UNAVAILABLE', 503);
       }
 
@@ -187,7 +200,7 @@ export class SupabaseDurableSessions {
       } catch (err: any) {
         memberErr = err;
       }
-      if (process.env.NODE_ENV === 'production' && memberErr) {
+      if (this.usesDurableAuthority && memberErr) {
         throw new AuthorityError('MEMBERSHIP_STORE_UNAVAILABLE', 503);
       }
 
@@ -205,34 +218,34 @@ export class SupabaseDurableSessions {
       } catch (err: any) {
         clientErr = err;
       }
-      if (process.env.NODE_ENV === 'production' && clientErr) {
+      if (this.usesDurableAuthority && clientErr) {
         throw new AuthorityError('CLIENT_STORE_UNAVAILABLE', 503);
       }
 
-      const inMemoryCached = process.env.NODE_ENV === 'production'
+      const inMemoryCached = this.usesDurableAuthority
         ? null
         : db.users.get(uid) ||
           Array.from(db.users.values()).find(u => u.email?.toLowerCase() === email);
 
       const fbIdentity =
-        (process.env.NODE_ENV === 'production' ? null : fallbackIdentities.get(uid)) ||
+        (this.usesDurableAuthority ? null : fallbackIdentities.get(uid)) ||
         (inMemoryCached ? fallbackIdentities.get(inMemoryCached.id) : null) ||
         Array.from(fallbackIdentities.values()).find(
           fi => (fi.user_data as User)?.email?.toLowerCase() === email
         );
 
       const fbMember =
-        (process.env.NODE_ENV === 'production' ? null : fallbackMembers.get(`${this.tenantId}:${uid}`)) ||
+        (this.usesDurableAuthority ? null : fallbackMembers.get(`${this.tenantId}:${uid}`)) ||
         (inMemoryCached ? fallbackMembers.get(`${this.tenantId}:${inMemoryCached.id}`) : null);
 
       const resolvedIdentity =
         existingIdentity ||
-        (process.env.NODE_ENV === 'production' ? null : fbIdentity) ||
+        (this.usesDurableAuthority ? null : fbIdentity) ||
         (inMemoryCached ? { uid, tenant_id: this.tenantId, user_data: inMemoryCached } : null);
 
       const resolvedMember =
         existingMember ||
-        (process.env.NODE_ENV === 'production' ? null : fbMember) ||
+        (this.usesDurableAuthority ? null : fbMember) ||
         (inMemoryCached
           ? {
               tenant_id: this.tenantId,
@@ -243,10 +256,30 @@ export class SupabaseDurableSessions {
             }
           : null);
 
-      if (process.env.NODE_ENV === 'production' && (resolvedIdentity || resolvedMember)) {
+      // Membership lifecycle is authoritative in development and production alike.
+      // Cached active profile data must never reactivate pending or suspended staff.
+      if (resolvedMember && resolvedMember.status !== 'active') {
+        throw new AuthorityError('IDENTITY_DENIED', 403);
+      }
+
+      if (this.usesDurableAuthority && (resolvedIdentity || resolvedMember)) {
         if (!resolvedIdentity || !resolvedMember || resolvedMember.status !== 'active') {
           throw new AuthorityError('IDENTITY_DENIED', 403);
         }
+      }
+
+      if (resolvedMember && !staffAuthProofIsCurrent(resolvedMember, verified.primaryAuthTime)) {
+        throw new AuthorityError('STAFF_FRESH_SIGN_IN_REQUIRED', 403);
+      }
+
+      // Staff MFA gate: no staff session is minted unless the verified Supabase token is AAL2.
+      const mfaDenial = staffMfaDenial(resolvedMember?.role, verified);
+      if (mfaDenial) {
+        await Promise.resolve(this.client
+          .from('taxguard_audit_log')
+          .insert({ tenant_id: this.tenantId, action: mfaDenial, actor_uid: uid, actor_role: resolvedMember?.role || 'unknown', metadata: { aal: verified.aal || 'aal1' } }))
+          .catch(() => undefined);
+        throw new AuthorityError(mfaDenial, 403);
       }
 
       const storedClientId = (resolvedIdentity?.user_data as User | undefined)?.clientId;
@@ -254,7 +287,7 @@ export class SupabaseDurableSessions {
       const ownedClientId = existingClientRow?.client_id;
       const isClientRole = resolvedMember?.role === 'client' || resolvedMember?.role === 'prospective_client';
       if (
-        process.env.NODE_ENV === 'production' &&
+        this.usesDurableAuthority &&
         isClientRole &&
         (!ownedClientId ||
           existingClientRow.owner_uid !== uid ||
@@ -267,12 +300,14 @@ export class SupabaseDurableSessions {
 
       const knownClientId =
         isClientRole
-          ? ownedClientId || (process.env.NODE_ENV === 'production' ? undefined : memberClientId || storedClientId)
+          ? ownedClientId || (this.usesDurableAuthority ? undefined : memberClientId || storedClientId)
           : undefined;
 
       let user: User;
 
-      if (resolvedIdentity || knownClientId) {
+      if (this.usesDurableAuthority && isClientRole) {
+        user = (await provisionClientIdentity(this.client, this.tenantId, verified)).user;
+      } else if (resolvedIdentity || knownClientId) {
         if (
           resolvedIdentity &&
           resolvedIdentity.tenant_id !== this.tenantId
@@ -295,13 +330,13 @@ export class SupabaseDurableSessions {
           isVerified: true
         };
         if (
-          process.env.NODE_ENV === 'production' &&
+          this.usesDurableAuthority &&
           ASSIGNMENT_REQUIRED_ROLES.has(user.role)
         ) {
           attachAuthorizedClientIds(user, await this.getAuthorizedClientIds(uid));
         }
 
-        const inMemUser = inMemoryCached || db.users.get(user.id);
+        const inMemUser = this.usesDurableAuthority ? null : inMemoryCached || db.users.get(user.id);
         const isDbCompleted = (user.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(user.onboardingCompletedAt);
         const isInMemCompleted = (inMemUser?.onboardingStatus || '').toUpperCase() === 'COMPLETED' || Boolean(inMemUser?.onboardingCompletedAt);
 
@@ -317,7 +352,7 @@ export class SupabaseDurableSessions {
         }
 
         // Authoritatively check workflow state for completed Stage 01
-        if (effectiveClientId) {
+        if (!this.usesDurableAuthority && effectiveClientId) {
           const wf = await LiveWorkflowRepository.getCase(effectiveClientId, 2025).catch(() => null);
           if (wf && (wf.stage1?.status === 'COMPLETED' || wf.activeStage >= 2)) {
             user.onboardingStatus = 'COMPLETED';
@@ -340,6 +375,9 @@ export class SupabaseDurableSessions {
           });
         }
       } else {
+        if (this.usesDurableAuthority) {
+          user = (await provisionClientIdentity(this.client, this.tenantId, verified)).user;
+        } else {
         // Allocate next permanent Client ID
         const { data: counterData } = await this.client
           .from('taxguard_client_id_sequence')
@@ -425,33 +463,49 @@ export class SupabaseDurableSessions {
           status: 'active',
           client_id: clientId
         });
+        }
       }
-
-      db.users.set(user.id, user);
 
       // 2. Mint session token
       const token = 'tg_live_' + randomBytes(32).toString('hex');
       const tokenHash = hashToken(token);
       const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 hour session
 
-      await this.client
+      const sessionAal = verified.aal === 'aal2' ? 'aal2' : 'aal1';
+      if (this.usesDurableAuthority) {
+        await createDurableSession(this.client, this.tenantId, { uid, tokenHash,
+          authTime: verified.primaryAuthTime ?? verified.authTime, expiresAt, aal: sessionAal,
+          verifiedFactorCount: verified.verifiedFactorCount ?? 0 });
+      } else {
+      let sessionInsertError: unknown;
+      try {
+        ({ error: sessionInsertError } = (await this.client
         .from('taxguard_sessions')
         .insert({
           session_token_hash: tokenHash,
           uid,
           tenant_id: this.tenantId,
-          auth_time: verified.authTime,
+          auth_time: verified.primaryAuthTime ?? verified.authTime,
           expires_at: expiresAt,
-          revoked: false
-        });
+          revoked: false,
+          aal: sessionAal
+        })) ?? { error: null });
+      } catch {
+        throw new AuthorityError('SESSION_STORE_UNAVAILABLE', 503);
+      }
+      // A session that could not be stored must not be reported as created.
+      if (sessionInsertError && this.usesDurableAuthority) {
+        throw new AuthorityError('SESSION_STORE_UNAVAILABLE', 503);
+      }
 
       fallbackSessions.set(tokenHash, {
         session_token_hash: tokenHash,
         uid,
         tenant_id: this.tenantId,
-        auth_time: verified.authTime,
+        auth_time: verified.primaryAuthTime ?? verified.authTime,
         expires_at: expiresAt,
-        revoked: false
+        revoked: false,
+        aal: sessionAal
       });
 
       // 3. Write immutable audit log
@@ -465,6 +519,9 @@ export class SupabaseDurableSessions {
           metadata: { tokenHashPrefix: tokenHash.slice(0, 8), email }
         });
 
+      }
+
+      db.users.set(user.id, user);
       return {
         token,
         user,
@@ -494,7 +551,7 @@ export class SupabaseDurableSessions {
     const resolvedSession =
       !error && session
         ? session
-        : process.env.NODE_ENV === 'production'
+        : this.usesDurableAuthority
           ? null
           : fallbackSessions.get(tokenHash) || null;
 
@@ -507,13 +564,13 @@ export class SupabaseDurableSessions {
       return null;
     }
 
-    const { data: identity } = await this.client
+    const { data: identity, error: identityError } = await this.client
       .from('taxguard_identities')
       .select('*')
       .eq('uid', resolvedSession.uid)
       .maybeSingle();
 
-    const { data: member } = await this.client
+    const { data: member, error: memberError } = await this.client
       .from('taxguard_members')
       .select('*')
       .eq('tenant_id', this.tenantId)
@@ -521,17 +578,22 @@ export class SupabaseDurableSessions {
       .maybeSingle();
 
     const inMemUserForVerify = db.users.get(resolvedSession.uid);
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = this.usesDurableAuthority;
+    // Local fallbacks apply only when the database could not be read. A successful
+    // lookup that finds no row is authoritative: a removed identity or membership
+    // must revoke access immediately, even though verify() caches users in db.users.
+    const identityFallbackAllowed = !isProduction && Boolean(identityError);
+    const memberFallbackAllowed = !isProduction && Boolean(memberError);
     const resolvedIdentity =
       identity ||
-      (!isProduction ? fallbackIdentities.get(resolvedSession.uid) : null) ||
-      (!isProduction && inMemUserForVerify
+      (identityFallbackAllowed ? fallbackIdentities.get(resolvedSession.uid) : null) ||
+      (identityFallbackAllowed && inMemUserForVerify
         ? { uid: resolvedSession.uid, tenant_id: this.tenantId, user_data: inMemUserForVerify }
         : null);
     const resolvedMember =
       member ||
-      (!isProduction ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) : null) ||
-      (!isProduction && inMemUserForVerify
+      (memberFallbackAllowed ? fallbackMembers.get(`${this.tenantId}:${resolvedSession.uid}`) : null) ||
+      (memberFallbackAllowed && inMemUserForVerify
         ? {
             tenant_id: this.tenantId,
             uid: resolvedSession.uid,
@@ -549,6 +611,8 @@ export class SupabaseDurableSessions {
     ) {
       return null;
     }
+
+    if (!staffAuthProofIsCurrent(resolvedMember, resolvedSession.auth_time)) return null;
 
     const user = { ...(resolvedIdentity.user_data as User) };
     if (isProduction && (resolvedMember.role === 'client' || resolvedMember.role === 'prospective_client')) {
@@ -598,7 +662,7 @@ export class SupabaseDurableSessions {
       }
     }
 
-    if (user.clientId) {
+    if (!this.usesDurableAuthority && user.clientId) {
       const wf = await LiveWorkflowRepository.getCase(user.clientId, 2025).catch(() => null);
       if (wf && (wf.stage1?.status === 'COMPLETED' || wf.activeStage >= 2)) {
         user.onboardingStatus = 'COMPLETED';
@@ -611,6 +675,7 @@ export class SupabaseDurableSessions {
     }
 
     db.users.set(user.id, user);
+    attachSessionAssuranceLevel(user, resolvedSession.aal === 'aal2' ? 'aal2' : 'aal1');
     return user;
   }
 
@@ -619,6 +684,11 @@ export class SupabaseDurableSessions {
    */
   async updateUser(uid: string, patch: Partial<User>): Promise<User | null> {
     safeId(uid);
+    if (this.usesDurableAuthority) {
+      const updated = await updateClientProfile(this.client, this.tenantId, uid, patch);
+      db.users.set(uid, updated);
+      return updated;
+    }
     const existing = db.users.get(uid);
     const updated: User = {
       ...(existing || ({} as User)),
@@ -719,6 +789,11 @@ export class SupabaseDurableSessions {
     if (!token || !/^tg_live_[a-f0-9]{64}$/.test(token)) return;
 
     const tokenHash = hashToken(token);
+    if (this.usesDurableAuthority) {
+      await revokeDurableSession(this.client, this.tenantId, tokenHash);
+      return;
+    }
+
 
     const { data: session } = await this.client
       .from('taxguard_sessions')
@@ -732,7 +807,7 @@ export class SupabaseDurableSessions {
     }
 
     const activeSession = session || fallbackSession;
-    if (!activeSession || (session && session.revoked)) return;
+    if (!activeSession || activeSession.tenant_id !== this.tenantId || (session && session.revoked)) return;
 
     await this.client
       .from('taxguard_sessions')

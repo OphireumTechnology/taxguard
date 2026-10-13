@@ -34,6 +34,9 @@ import {
   TrialBalanceReportItem,
   FinancialStatementsData
 } from '../../services/bookkeepingService';
+import { LedgerControlsPanel, ledgerMessage } from './LedgerControlsPanel';
+import { LedgerReportsPanel } from './LedgerReportsPanel';
+import { BookToTaxPanel } from './BookToTaxPanel';
 
 interface AccountantBookkeepingSectionProps {
   clientId: string;
@@ -104,20 +107,12 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
   const handleApproveProposal = async (txn: BankTransactionItem) => {
     if (!txn.aiProposal) return;
     try {
-      const res = await fetch(`/api/bookkeeping/transactions/${txn.id}/categorize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assignedAccountId: txn.aiProposal.suggestedAccountId,
-          taxYear,
-          notes: 'Accountant approved AI categorization proposal.'
-        })
-      });
-      if (!res.ok) throw new Error('Failed to categorize transaction.');
+      // Authenticated, client-scoped request; the accountant's approval of the AI proposal is the posting decision.
+      await bookkeepingService.categorizeTransaction(clientId, taxYear, txn.id, txn.aiProposal.suggestedAccountId, 'Accountant approved AI categorization proposal.');
       setNotice({ type: 'success', message: `Transaction "${txn.description}" posted to General Ledger.` });
       loadData();
     } catch (err: any) {
-      setNotice({ type: 'error', message: err.message });
+      setNotice({ type: 'error', message: ledgerMessage(err) });
     }
   };
 
@@ -185,7 +180,7 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
           { id: 'coa', label: 'Chart of Accounts', icon: Building2 },
           { id: 'reconciliation', label: 'Reconciliation', icon: Scale },
           { id: 'financials', label: 'Trial Balance & Financials', icon: FileSpreadsheet },
-          { id: 'book_to_tax', label: 'Schedule M-1 Bridge', icon: FileText },
+          { id: 'book_to_tax', label: 'Book-to-Tax Workpapers', icon: FileText },
           { id: 'sync', label: 'QuickBooks / Xero Sync', icon: Link },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -286,6 +281,8 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
       {/* TAB: GENERAL LEDGER */}
       {activeSubTab === 'ledger' && (
         <div className="space-y-4">
+          <LedgerControlsPanel clientId={clientId} taxYear={taxYear} entries={journalEntries} onChanged={loadData} />
+          <LedgerReportsPanel clientId={clientId} taxYear={taxYear} accounts={accounts} />
           <div className="bg-[#0D2745] border border-slate-700/60 rounded-2xl p-4 shadow-xl space-y-3">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
               Posted Journal Entries ({journalEntries.length})
@@ -389,6 +386,10 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
       )}
 
       {/* TAB: FINANCIAL STATEMENTS */}
+      {activeSubTab === 'book_to_tax' && (
+        <BookToTaxPanel clientId={clientId} taxYear={taxYear} accounts={accounts} />
+      )}
+
       {activeSubTab === 'financials' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

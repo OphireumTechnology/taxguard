@@ -6,6 +6,8 @@ import { profileAmendmentRouter } from './routes/profile-amendment.routes';
 import { stageTwoThreeRouter } from './routes/stage-two-three.routes';
 import { bookkeepingRouter } from './routes/bookkeeping.routes';
 import { practiceOperationsRouter } from './routes/practice-operations.routes';
+import { createAccountantDashboardRouter, type AccountantDashboardDeps } from './routes/accountantDashboard.routes';
+import { taxFormsRouter } from './routes/taxForms.routes';
 import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service';
 import {
   protectServerBuildArtifacts,
@@ -15,7 +17,7 @@ import {
 } from './staticAssetPolicy';
 
 /** Shared Node/Cloud Functions boundary. Only durable APIs are released; clean frontend routes serve the SPA. */
-export function createProductionApp(options?: { distPath?: string; publicPath?: string }) {
+export function createProductionApp(options?: { distPath?: string; publicPath?: string; accountantDashboard?: AccountantDashboardDeps }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -100,6 +102,12 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.use(['/api/stage-two-three', '/api/stage-workflow'], stageTwoThreeRouter);
   app.use('/api/bookkeeping', bookkeepingRouter);
   app.use('/api/operations', practiceOperationsRouter);
+  // Accountant dashboard: durable, tenant-scoped, AAL2 staff sessions only (read-only).
+  app.use('/api/accountant', createAccountantDashboardRouter(options?.accountantDashboard));
+  // Tax Forms Library: read-only reference catalog for practice staff.
+  app.use('/api/tax-forms', taxFormsRouter);
+  // Deliberately NOT released in production: /api/super-admin (local console) and the local
+  // password / TOTP login routes (auth router returns 410 outside the Supabase session bridge).
 
   // API production boundary: never allow unknown /api or /webhooks routes to reach SPA fallback
   app.use('/api', (_req, res) =>

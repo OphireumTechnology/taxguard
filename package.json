@@ -12,11 +12,14 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:db": "vitest run -c vitest.db.config.ts",
+    "test:e2e": "node scripts/e2e/run-e2e.mjs",
     "taxguard:complete": "node scripts/taxguard-complete-system.mjs",
     "qa:fixture:build": "vite build --config qa/synthetic-shell/vite.config.ts",
     "qa:browser:setup": "node scripts/setup-local-browser.mjs",
     "qa:browser": "node scripts/run-local-browser.mjs",
-    "qa:browser:product:anonymous": "node scripts/run-local-product-browser.mjs"
+    "qa:browser:product:anonymous": "node scripts/run-local-product-browser.mjs",
+    "test:identity": "vitest run staffInvitation staffActivation staffMembership durableMembership staffSessionEpoch staffAccess mfaEnrollment providerOnlyIdentityFlow supabaseStaffMfaClient supabaseProductionInfrastructure productionApiHttp clientDataIsolationSecurity clientOneTimeOnboardingAndProfile finalReleaseGateVerification clientRegistrationAndOnboardingFlow stageTwoReconciliationAuthorization"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -40,7 +43,9 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
+    "embedded-postgres": "17.10.0-beta.17",
     "esbuild": "^0.25.0",
+    "playwright-core": "1.64.0",
     "rimraf": "^6.0.1",
     "sharp": "^0.35.4",
     "tailwindcss": "^4.1.14",
@@ -50,7 +55,7 @@
     "vitest": "^5.0.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.63.1",
+    "@rollup/rollup-linux-x64-gnu": "4.64.5",
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.3",
     "lightningcss-linux-x64-gnu": "1.32.0"
   }

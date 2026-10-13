@@ -76,3 +76,19 @@ TAXGUARD_SERVER_AUTHORITY_MILESTONE.md
 NEXT_STAGE02_DEVELOPMENT.md
 TAXGUARD_LIVE_DEVELOPMENT_POLICY.md
 
+# Credentials and key material (never commit)
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+*-service-account*.json
+secrets/
+
+# Local pre-edit checkpoints and ad-hoc backups (kept on disk, not synchronized)
+docs/checkpoints/
+_hardening_backup_*/
+*.backup-[0-9]*
+
+# Local synthetic browser fixture build output
+qa/synthetic-shell/artifacts/

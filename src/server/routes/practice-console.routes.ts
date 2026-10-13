@@ -19,6 +19,7 @@
 import { Router, Response } from 'express';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../auth';
+import { canAccessStaffClient } from '../clientAccess';
 import { LiveWorkflowRepository } from '../taxguard/liveWorkflow.repository';
 
 export const practiceConsoleRouter = Router();
@@ -158,15 +159,16 @@ practiceConsoleRouter.get('/queues', async (req: AuthenticatedRequest, res: Resp
 practiceConsoleRouter.post('/resolve-tax-year', (req: AuthenticatedRequest, res: Response) => {
   const { documentId, resolvedTaxYear, reason } = req.body;
 
-  if (!documentId || !resolvedTaxYear) {
-    return res.status(400).json({ error: 'documentId and resolvedTaxYear are required.' });
+  const year = Number(resolvedTaxYear);
+  if (!documentId || !Number.isInteger(year) || year < 2000 || year > new Date().getUTCFullYear() + 1) {
+    return res.status(400).json({ error: 'documentId and a valid resolvedTaxYear are required.' });
   }
 
   const doc = db.documents.get(documentId);
-  if (!doc) return res.status(404).json({ error: 'Document not found.' });
+  if (!doc || !canAccessStaffClient(req.user!, doc.clientId)) return res.status(404).json({ error: 'Document not found.' });
 
   const previousYear = doc.taxYear;
-  doc.taxYear = Number(resolvedTaxYear);
+  doc.taxYear = year;
   db.documents.set(doc.id, doc);
 
   db.logAuditEvent(
@@ -192,15 +194,15 @@ practiceConsoleRouter.post('/resolve-tax-year', (req: AuthenticatedRequest, res:
 practiceConsoleRouter.post('/resolve-classification', (req: AuthenticatedRequest, res: Response) => {
   const { documentId, newCategory, reason } = req.body;
 
-  if (!documentId || !newCategory) {
-    return res.status(400).json({ error: 'documentId and newCategory are required.' });
+  if (!documentId || typeof newCategory !== 'string' || !/^[a-z0-9_]{1,64}$/.test(newCategory)) {
+    return res.status(400).json({ error: 'documentId and a valid newCategory are required.' });
   }
 
   const doc = db.documents.get(documentId);
-  if (!doc) return res.status(404).json({ error: 'Document not found.' });
+  if (!doc || !canAccessStaffClient(req.user!, doc.clientId)) return res.status(404).json({ error: 'Document not found.' });
 
   const previousCategory = doc.category;
-  doc.category = newCategory;
+  doc.category = newCategory as typeof doc.category;
   doc.status = 'verified';
   doc.reviewedBy = req.user!.name;
   doc.reviewedAt = new Date().toISOString();

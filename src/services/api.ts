@@ -1,3 +1,7 @@
+import type { StaffRecoveryQuery, StaffRecoveryPage, StaffRecoveryRequestInput, StaffRecoveryMutationResult } from '../types/staffRecovery';
+import type { StaffDirectoryQuery, StaffDirectoryPage, StaffMemberRecord, StaffInvitationRecord, StaffInvitationIssueInput, StaffInvitationIssueResult, StaffMembershipAction } from '../types/staffAccess';
+import type { DurableSessionList, SessionRevocationReason } from '../types/staffSessions';
+import { isStaffIdentityDevelopmentConfigured } from '../supabase/config';
 /**
  * Enterprise API Client for A/R Tax Services, LLC
  * Bridges client React interface to the secure Express + Vite backend.
@@ -92,7 +96,8 @@ const response = await fetch(apiEndpoint(endpoint), {
   }
 
   if (!response.ok) {
-    if (response.status === 401 && token) {
+    const staffMfaRequired = response.status === 403 && (data as any)?.code === 'STAFF_MFA_REQUIRED';
+    if ((response.status === 401 || staffMfaRequired) && token) {
       clearStoredToken();
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired'));
     }
@@ -113,6 +118,8 @@ const response = await fetch(apiEndpoint(endpoint), {
     err.status = response.status;
     err.code = errorData.code || (response.status === 405 ? 'METHOD_NOT_ALLOWED' : undefined);
     err.data = errorData;
+    // Local diagnostics only: correlates a refused request with its server log line.
+    err.requestId = response.headers?.get?.('x-taxguard-request-id') || undefined;
     throw err;
   }
 
@@ -125,7 +132,47 @@ const response = await fetch(apiEndpoint(endpoint), {
   return data as T;
 }
 
+/** New staff management stays development-only and never targets the protected public API. */
+function staffAccessRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const denied = (code: string, status: number) => Promise.reject(Object.assign(new Error('Staff management is unavailable for this session or environment.'), { code, status }));
+  if (!getStoredToken()) return denied('AUTH_REQUIRED', 401);
+  if (!isStaffIdentityDevelopmentConfigured()) return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503);
+  try {
+    const target = new URL(apiEndpoint(endpoint), typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1');
+    if (['api.artaxserv.com','artaxserv.com','www.artaxserv.com'].includes(target.hostname)) return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503);
+  } catch { return denied('STAFF_ACCESS_DEVELOPMENT_UNAVAILABLE', 503); }
+  return request<T>(endpoint, { cache: 'no-store', credentials: 'omit', ...options });
+}
+function staffDirectoryQuery(query: StaffDirectoryQuery | StaffRecoveryQuery): string {
+  const params = new URLSearchParams();
+  if (query.limit !== undefined) params.set('limit', String(query.limit));
+  if (query.status !== undefined) params.set('status', query.status);
+  if (query.cursor !== undefined) params.set('cursor', query.cursor);
+  const suffix = params.toString(); return suffix ? '?' + suffix : '';
+}
+
 export const api = {
+  staffAccess: {
+    recoveries: (query: StaffRecoveryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryPage>('/api/staff-access/mfa-recoveries' + staffDirectoryQuery(query), { method: 'GET', signal }),
+    requestRecovery: (input: StaffRecoveryRequestInput, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries', { method: 'POST', body: JSON.stringify(input), signal }),
+    approveRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/approve', { method: 'POST', signal }),
+    // Proposal 034/037: completion, cancellation, failed-reset re-queue and audit history.
+    completeRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<{requestId: string; targetUid: string; status: 'completed'; resumed: boolean}>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/complete', { method: 'POST', signal }),
+    cancelRecovery: (requestId: string, reason: string, signal?: AbortSignal) => staffAccessRequest<{requestId: string; targetUid: string; status: 'cancelled'}>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/cancel', { method: 'POST', body: JSON.stringify({reason}), signal }),
+    retryRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<{jobId: string; status: 'pending'}>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/retry', { method: 'POST', signal }),
+    recoveryHistory: (requestId: string, signal?: AbortSignal) => staffAccessRequest<{requestId: string; targetUid: string; items: Array<{action: string; actorUid: string; actorRole: string | null; at: string; details: Record<string, unknown>}>}>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/history', { method: 'GET', signal }),
+    sessions: (signal?: AbortSignal) => staffAccessRequest<DurableSessionList>('/api/staff-access/sessions', { method: 'GET', signal }),
+    securityEvents: (signal?: AbortSignal) => staffAccessRequest<{items: Array<{action: string; actorUid: string; actorRole: string | null; at: string; byAdministrator: boolean; details: Record<string, unknown>}>}>('/api/staff-access/sessions/events', { method: 'GET', signal }),
+    revokeSession: (sessionId: string, signal?: AbortSignal) => staffAccessRequest<{revoked: boolean}>('/api/staff-access/sessions/' + encodeURIComponent(sessionId) + '/revoke', { method: 'POST', signal }),
+    revokeOtherSessions: (signal?: AbortSignal) => staffAccessRequest<{revokedSessions: number}>('/api/staff-access/sessions/revoke-others', { method: 'POST', signal }),
+    revokeMemberSessions: (uid: string, reasonCategory: SessionRevocationReason, signal?: AbortSignal) => staffAccessRequest<{revokedSessions: number}>('/api/staff-access/members/' + encodeURIComponent(uid) + '/sessions/revoke', { method: 'POST', body: JSON.stringify({reasonCategory}), signal }),
+    members: (query: StaffDirectoryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffDirectoryPage<StaffMemberRecord>>('/api/staff-access/members' + staffDirectoryQuery(query), { method: 'GET', signal }),
+    invitations: (query: StaffDirectoryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffDirectoryPage<StaffInvitationRecord>>('/api/staff-access/invitations' + staffDirectoryQuery(query), { method: 'GET', signal }),
+    createInvitation: (input: StaffInvitationIssueInput, signal?: AbortSignal) => staffAccessRequest<StaffInvitationIssueResult>('/api/staff-access/invitations', { method: 'POST', body: JSON.stringify(input), signal }),
+    revokeInvitation: (id: string, signal?: AbortSignal) => staffAccessRequest<{status: 'revoked'}>('/api/staff-access/invitations/' + encodeURIComponent(id) + '/revoke', { method: 'POST', signal }),
+    approveMember: (uid: string, signal?: AbortSignal) => staffAccessRequest<{status: 'active'}>('/api/staff-access/members/' + encodeURIComponent(uid) + '/approve', { method: 'POST', signal }),
+    changeMemberStatus: (uid: string, action: StaffMembershipAction, reason: string, signal?: AbortSignal) => staffAccessRequest<{status: string; revokedSessions: number}>('/api/staff-access/members/' + encodeURIComponent(uid) + '/status', { method: 'POST', body: JSON.stringify({action, reason}), signal }),
+  },
   // Read-only Gate 3 adapter. Existing server authorization is unchanged.
   clientDashboard: {
     saveQuestionnaire: (clientId: string, taxYear: number, answers: unknown) => request<{ success: boolean }>(`/api/stage-two-three/questionnaire/${taxYear}`, { method: 'POST', body: JSON.stringify({ clientId, answers }) }),
@@ -217,10 +264,12 @@ export const api = {
     },
 
     logout: async () => {
+      const token = getStoredToken();
       try {
         await request('/api/auth/logout', { method: 'POST' });
       } finally {
-        clearStoredToken();
+        // A delayed logout must not clear a newer authenticated session.
+        if (getStoredToken() === token) clearStoredToken();
       }
     },
 
@@ -600,6 +649,25 @@ export const api = {
   },
 
   // Admin & Compliance Management
+  // Tax Forms Library: read-only reference catalog (server restricts to practice staff roles).
+  taxForms: {
+    getCatalog: async (signal?: AbortSignal) => request<import('../taxForms/registry').LibraryCatalog>('/api/tax-forms', { method: 'GET', signal }),
+  },
+
+  // Super administrator console (server verifies the super administrator role on every call).
+  superAdmin: {
+    getSession: async () => request<{
+      user: { id: string; email: string; name: string; role: string; tenantId?: string };
+      session: { createdAt: string; expiresAt: string; absoluteExpiresAt: string; idleTimeoutMinutes: number } | null;
+      secondFactor: 'totp' | 'identity_provider';
+      policy: string;
+    }>('/api/super-admin/session'),
+    recordDashboardView: async (dashboard: string) => request<{ recorded: boolean; dashboard: string; mode: string }>('/api/super-admin/dashboard-views', {
+      method: 'POST',
+      body: JSON.stringify({ dashboard })
+    }),
+  },
+
   admin: {
     getAuditLogs: async (params: { action?: string; userId?: string; severity?: string; limit?: number } = {}) => {
       const q = new URLSearchParams();
@@ -771,7 +839,7 @@ export const api = {
     decide: (scope: import('../types/reviewerDashboard').ReviewScope, input: import('../types/reviewerDashboard').ReviewerDecision) => request<{ revision: number; version: number; approvalId?: string }>(`/api/case-authority/${encodeURIComponent(scope.tenantId)}/${encodeURIComponent(scope.clientId)}/${encodeURIComponent(scope.engagementId)}/${scope.taxYear}/reviewer-decision`, { method: 'POST', body: JSON.stringify(input) }),
   },
   accountant: {
-    getDashboard: async (signal?: AbortSignal) => request<{ cases: import('../components/workspace/accountantDashboardModel').AccountantCase[] }>('/api/accountant/dashboard', { signal }),
+    getDashboard: async (signal?: AbortSignal) => request<{ cases: import('../components/workspace/accountantDashboardModel').AccountantCase[]; source?: 'durable'; unavailableFields?: string[] }>('/api/accountant/dashboard', { signal }),
     getOverview: async () => {
       return request<{
         metrics: {
@@ -957,6 +1025,21 @@ export const api = {
     },
     getProviderReadiness: async (signal?: AbortSignal) => {
       return request<{ providers: any[] }>('/api/provider-readiness', {signal});
+    },
+    // AI Control Center emergency stop: activation and listing only; the server re-verifies role and tenant.
+    listAiKillSwitches: async (signal?: AbortSignal) => {
+      return request<{ kill_switches: unknown[] }>('/api/ai-governance/kill-switches', {signal});
+    },
+    // AI Control Center read-only views; filters and cursor are validated server-side.
+    getAiControlCenter: async (view: 'registry' | 'runs' | 'decisions' | 'security-events' | 'usage', query: Record<string, string> = {}, signal?: AbortSignal) => {
+      const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== ''));
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      return request<Record<string, unknown>>(`/api/ai-governance/control-center/${view}${suffix}`, {signal});
+    },
+    activateAiKillSwitch: async (payload: { scope: 'GLOBAL'; reason: string } | { scope: 'AGENT'; agent_id: string; reason: string }
+      | { scope: 'MODEL'; model_id: string; model_version: string; reason: string } | { scope: 'TOOL'; tool_id: string; reason: string }
+      | { scope: 'WORKFLOW'; workflow_stage: number; reason: string }) => {
+      return request<Record<string, unknown>>('/api/ai-governance/kill-switches', { method: 'POST', body: JSON.stringify(payload) });
     },
 
     // Stage 04: Record

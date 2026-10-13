@@ -175,6 +175,25 @@ export interface AccountingStagingRecord {
   };
   isDuplicateFlag: boolean;
   duplicateConfidence?: number;
+  /** Ledger transaction created by the most recent posting (cleared once reversed). */
+  postedTransactionId?: string;
+  /** Pending, human-requested reversal awaiting independent approval. */
+  reversalRequest?: {
+    originalTransactionId: string;
+    requestedBy: string;
+    requestedByName: string;
+    requestedAt: string;
+    reason: string;
+  };
+  /** Completed reversals; original ledger transactions are never modified or deleted. */
+  reversals?: Array<{
+    originalTransactionId: string;
+    reversingTransactionId: string;
+    requestedBy: string;
+    approvedBy: string;
+    reason: string;
+    approvedAt: string;
+  }>;
   auditTrail: Array<{
     action: string;
     actor: string;

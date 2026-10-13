@@ -1,3 +1,4 @@
+import { providerOnlyIdentityFlowActive } from './providerOnlyIdentityFlow';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   User,
@@ -27,6 +28,8 @@ import { INITIAL_SERVICE_PLANS, INITIAL_JOBS } from '../data/mockData';
 import { api, getStoredToken, clearStoredToken } from '../services/api';
 import {
   loginWithEmail as supabaseLoginWithEmail,
+  supabaseMfaStatus,
+  verifySupabaseMfa,
   registerWithEmail as supabaseRegisterWithEmail,
   logout as supabaseLogout,
   getSupabaseAccessToken,
@@ -41,6 +44,9 @@ import { StageOneOnboardingService } from '../services/stageOneOnboardingService
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
 import { normalizeLegacyUrl } from '../config/canonicalRouting';
+import { attemptLocalServerLogin, checkLocalLoginAvailable, isLocalServerLoginBuild } from './localServerLogin';
+
+export { isLocalServerLoginBuild } from './localServerLogin';
 
 export type PageRoute =
   | 'home'
@@ -69,6 +75,9 @@ export type PageRoute =
   | 'reviewer_portal'
   | 'admin_dashboard'
   | 'admin_portal'
+  | 'super_admin_console'
+  | 'tax_forms_library'
+  | 'staff_account_security'
   | 'live_calendar'
   | 'virtual_consultation_room'
   | 'client_login'
@@ -147,9 +156,12 @@ interface AppContextType {
   login: (email: string, password: string, mfaCode?: string) => Promise<{
     success: boolean;
     mfaRequired?: boolean;
+    mfaEnrollmentRequired?: boolean;
     emailVerificationRequired?: boolean;
     code?: ControlledAuthErrorCode;
     error?: string;
+    /** Local diagnostics only: server request ID for the refused attempt. */
+    reference?: string;
     redirectPage?: PageRoute;
   }>;
   register: (payload: {
@@ -244,6 +256,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clean === 'staff') return 'staff';
     if (clean === 'staff/workspace') return 'staff';
     if (clean === 'staff/login') return 'staff_login';
+    if (clean === 'staff/super-admin') return 'super_admin_console';
+    if (clean === 'staff/forms') return 'tax_forms_library';
+    if (clean === 'staff/account-security') return 'staff_account_security';
     if (clean === 'client/login') return 'client_login';
     if (clean === 'client/register') return 'client_register';
 
@@ -435,6 +450,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const authOperationInProgressRef = useRef(false);
+  // Last authenticated role, so an expired session returns staff to the staff sign-in page.
+  const lastRoleRef = useRef<string | undefined>(undefined);
+  useEffect(() => { if (currentUser?.role) lastRoleRef.current = currentUser.role; }, [currentUser?.role]);
   const authGenerationRef = useRef(0);
   const registrationStateRef = useRef<RegistrationResultState>(registrationState);
   registrationStateRef.current = registrationState;
@@ -527,6 +545,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } else if (page === 'staff_login') {
         targetPath = '/staff/login';
+      } else if (page === 'tax_forms_library') {
+        targetPath = '/staff/forms';
+      } else if (page === 'staff_account_security') {
+        targetPath = '/staff/account-security';
+      } else if (page === 'super_admin_console') {
+        targetPath = '/staff/super-admin';
+        if (currentPathname === '/staff/super-admin' && window.location.search) targetPath += window.location.search;
       } else {
         targetPath = `/${page.replace(/_/g, '-')}`;
       }
@@ -547,7 +572,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const requestGeneration = authGenerationRef.current;
     const requestToken = getStoredToken();
     const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
-    if (environment !== 'live') {
+    if (environment !== 'live' && !(environment === 'local' && isLocalServerLoginBuild())) {
       throw new Error('LIVE workspace synchronization requires an authenticated LIVE environment.');
     }
 
@@ -779,17 +804,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let active = true;
     const expireSession = () => {
       if (authOperationInProgressRef.current) return;
+      const staffSession = Boolean(lastRoleRef.current && !['client', 'prospective_client'].includes(lastRoleRef.current));
       clearStoredToken();
       clearTaxpayerState();
       LiveWorkflowAuthority.clear();
       setCurrentUser(null);
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
-      setCurrentPageState('client_login');
+      setCurrentPageState(staffSession ? 'staff_login' : 'client_login');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('taxguard_environment');
         try {
-          window.history.replaceState({ page: 'client_login' }, '', '/portal/login');
+          window.history.replaceState({ page: staffSession ? 'staff_login' : 'client_login' }, '', staffSession ? '/staff/login' : '/portal/login');
         } catch {
           // fallback
         }
@@ -805,7 +831,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const environment = typeof window !== 'undefined' ? localStorage.getItem('taxguard_environment') : null;
 
         // 1. If a durable TaxGuard session token already exists, verify & restore it
-        if (existingToken && environment === 'live') {
+        if (existingToken && (environment === 'live' || (environment === 'local' && isLocalServerLoginBuild()))) {
           try {
             await refreshBackendData();
             if (active && !authOperationInProgressRef.current) {
@@ -822,7 +848,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // 2. Check for an active Supabase browser session (e.g. after refresh or email verification callback)
         const sbAccessToken = await getSupabaseAccessToken();
-        if (sbAccessToken && active && !authOperationInProgressRef.current) {
+        if (sbAccessToken && active && !authOperationInProgressRef.current && !providerOnlyIdentityFlowActive()) {
           try {
             const currentRoute = getPageFromUrl() || 'home';
             const hasAuthCallbackInUrl =
@@ -856,7 +882,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (active && !authOperationInProgressRef.current) {
-          if (environment !== 'live' && existingToken) {
+          if (environment !== 'live' && environment !== 'local' && existingToken) {
             clearStoredToken();
           }
           setAuthLifecycleState('UNAUTHENTICATED');
@@ -877,6 +903,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!active || authOperationInProgressRef.current) return;
 
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
+        // Invitation sessions prove identity only; they must never trigger client auto-provisioning.
+        if (providerOnlyIdentityFlowActive()) return;
         const existingToken = getStoredToken();
         if (!existingToken) {
           try {
@@ -969,13 +997,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = async (
     email: string,
     password: string,
-    _mfaCode?: string
+    mfaCode?: string
   ): Promise<{
     success: boolean;
     mfaRequired?: boolean;
+    mfaEnrollmentRequired?: boolean;
     emailVerificationRequired?: boolean;
     code?: ControlledAuthErrorCode;
     error?: string;
+    reference?: string;
     redirectPage?: PageRoute;
   }> => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -1002,6 +1032,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearStoredToken();
       clearTaxpayerState();
 
+      // Local development without Supabase: use the real server login (password + server-verified
+      // TOTP, server-issued session). Never used by production builds or when Supabase is configured.
+      if (isLocalServerLoginBuild()) {
+        // Local builds never fall through to Supabase: an unreachable local server is reported
+        // as such, and every attempt that is sent goes to /api/auth/login on this server.
+        const outcome = await attemptLocalServerLogin(
+          { checkAvailable: () => checkLocalLoginAvailable(), login: (e, p, c) => api.auth.login(e, p, c) },
+          normalizedEmail, password, mfaCode
+        );
+        if (outcome.kind !== 'success') {
+          clearStoredToken();
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+          return outcome.result;
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('taxguard_environment', 'local');
+          localStorage.removeItem('demo_session');
+          sessionStorage.removeItem('demo_session');
+        }
+        await refreshBackendData();
+        setAuthLifecycleState('AUTHENTICATED');
+        setIsInitialized(true);
+        const isClient = outcome.user.role === 'client' || outcome.user.role === 'prospective_client';
+        return { success: true, redirectPage: isClient ? 'portal' : 'staff' };
+      }
+
       const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
       if (!sbResult.success || !sbResult.accessToken) {
         if (sbResult.emailVerificationRequired || sbResult.code === 'EMAIL_VERIFICATION_REQUIRED') {
@@ -1021,18 +1078,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       }
 
-      const { redirectPage } = await establishSupabaseServerSession(sbResult.accessToken, {
+      // Staff accounts must reach AAL2 (verified authenticator) before the server will create a
+      // staff session. The server enforces this independently; this step collects the code.
+      let accessToken = sbResult.accessToken;
+      const mfa = await supabaseMfaStatus();
+      if (mfa.needsChallenge) {
+        if (!mfaCode) {
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+          return { success: false, mfaRequired: true, error: 'Enter the 6-digit code from your authenticator app.' };
+        }
+        const verified = await verifySupabaseMfa(mfaCode);
+        if (!verified.success || !verified.accessToken) {
+          setAuthLifecycleState('UNAUTHENTICATED');
+          setIsInitialized(true);
+          return { success: false, mfaRequired: true, error: verified.error || 'Invalid authenticator code.' };
+        }
+        accessToken = verified.accessToken;
+      }
+
+      const { redirectPage } = await establishSupabaseServerSession(accessToken, {
         navigateIfAuthRoute: true
       });
       return { success: true, redirectPage };
     } catch (err: any) {
-      await supabaseLogout().catch(() => {});
+      // Keep only the provider session for enrollment; no TaxGuard session or data is retained.
+      if (err?.code !== 'STAFF_MFA_ENROLLMENT_REQUIRED') await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
+      if (err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED') {
+        return { success: false, mfaEnrollmentRequired: true, error: 'Set up an authenticator to continue.' };
+      }
+      if (err?.code === 'STAFF_MFA_REQUIRED') {
+        return { success: false, mfaRequired: true, error: 'Multi-factor authentication is required for staff access. Enter the code from your authenticator app.' };
+      }
       const sanitized = sanitizeAuthErrorMessage(err, err?.code || 'SESSION_ESTABLISHMENT_FAILED');
       return {
         success: false,

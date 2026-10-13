@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { NotificationBell } from '../common/NotificationBell';
 import { DASHBOARD_THEME } from '../../theme/tokens';
 import { canRenderDashboardShell, DASHBOARD_EXPERIENCES, DashboardWorkspace } from './dashboardAccess';
+import { useDashboardInspection } from './dashboardInspection';
 import './dashboardShell.css';
 
 const dashboardVariables = Object.fromEntries(
@@ -57,7 +58,8 @@ function DashboardShellSession({
   const drawerId = useId();
   const isMobileOpen = mobileOpen ?? localMobileOpen;
   const setMobileOpen = onMobileOpenChange ?? setLocalMobileOpen;
-  const allowed = canRenderDashboardShell(currentUser, authLifecycleState, workspace);
+  const inspecting = useDashboardInspection();
+  const allowed = canRenderDashboardShell(currentUser, authLifecycleState, workspace) || inspecting;
 
   useEffect(() => {
     const dialog = dialogRef.current;

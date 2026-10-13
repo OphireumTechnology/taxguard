@@ -8,7 +8,7 @@ const providerTypes = new Set(['DATABASE', 'AUTHENTICATION', 'DOCUMENT_STORAGE',
 const statuses = new Set(['CONFIGURED', 'DEGRADED', 'NOT_CONFIGURED', 'DISABLED', 'ERROR']);
 
 export function useAdminProviderReadiness(user: User | null, auth: string, refresh: number) {
-  const allowed = auth === 'AUTHENTICATED' && user?.status === 'active' && ['admin', 'super_admin'].includes(user.role) && Boolean(user.tenantId && getStoredToken());
+  const allowed = auth === 'AUTHENTICATED' && user?.status === 'active' && ['admin', 'administrator', 'super_admin', 'super_administrator'].includes(user.role) && Boolean(user.tenantId && getStoredToken());
   const key = JSON.stringify([user?.id, user?.tenantId, user?.role, user?.status, auth, getStoredToken(), refresh]);
   const [state, setState] = useState<{key: string; status: 'loading' | 'ready' | 'error'; providers: ReportedProvider[]}>({key: '', status: 'loading', providers: []});
   useEffect(() => {

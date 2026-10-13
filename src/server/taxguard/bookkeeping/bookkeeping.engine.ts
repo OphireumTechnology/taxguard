@@ -24,6 +24,20 @@ import {
 } from './types';
 import { generateStandardChartOfAccounts } from './defaultAccounts';
 
+/** Authorized tenant/client scope resolved by the route; records outside it are reported as not found. */
+export interface LedgerScope { tenantId: string; clientId: string }
+const inScope = (record: { tenantId: string; clientId: string } | undefined, scope?: LedgerScope) =>
+  Boolean(record) && (!scope || (record!.tenantId === scope.tenantId && record!.clientId === scope.clientId));
+const isoDate = (value: unknown): value is string =>
+  typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
+/** Money is validated as non-negative with at most two decimals and summed in integer cents. */
+function cents(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1e12) throw new Error('INVALID_AMOUNT: Amounts must be finite, non-negative numbers.');
+  const scaled = Math.round(value * 100);
+  if (Math.abs(scaled - value * 100) > 1e-6) throw new Error('INVALID_AMOUNT: Amounts are limited to whole cents.');
+  return scaled;
+}
+
 export class BookkeepingEngine {
   // In-memory persistent collections (backed by durable tenant/client scopes)
   private accounts = new Map<string, ChartOfAccount>();
@@ -111,24 +125,29 @@ export class BookkeepingEngine {
       throw new Error('JOURNAL_ENTRY_INVALID: Double-entry journal requires at least two lines.');
     }
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    let debitCents = 0;
+    let creditCents = 0;
 
     for (const line of lines) {
       if (line.debit < 0 || line.credit < 0) {
         throw new Error('NEGATIVE_AMOUNT_PROHIBITED: Debit and credit amounts must be non-negative.');
       }
-      if (line.debit > 0 && line.credit > 0) {
+      const debit = cents(line.debit ?? 0);
+      const credit = cents(line.credit ?? 0);
+      if (debit > 0 && credit > 0) {
         throw new Error('AMBIGUOUS_LINE: A journal entry line cannot contain both debit and credit amounts.');
       }
-      totalDebit += line.debit;
-      totalCredit += line.credit;
+      if (debit === 0 && credit === 0) {
+        throw new Error('ZERO_LINE: Each journal entry line must carry a debit or a credit amount.');
+      }
+      debitCents += debit;
+      creditCents += credit;
     }
 
-    const roundedDebit = Math.round(totalDebit * 100) / 100;
-    const roundedCredit = Math.round(totalCredit * 100) / 100;
+    const roundedDebit = debitCents / 100;
+    const roundedCredit = creditCents / 100;
 
-    if (Math.abs(roundedDebit - roundedCredit) > 0.001) {
+    if (debitCents !== creditCents) {
       throw new Error(
         `UNBALANCED_JOURNAL_ENTRY: Total Debits ($${roundedDebit.toFixed(2)}) do not equal Total Credits ($${roundedCredit.toFixed(2)}). Variance: $${(roundedDebit - roundedCredit).toFixed(2)}`
       );
@@ -150,18 +169,32 @@ export class BookkeepingEngine {
     lines: JournalEntryLine[];
     creatorUid: string;
     documentProvenanceIds?: string[];
+    reversalOfEntryId?: string;
+    replacesEntryId?: string;
   }): JournalEntry {
-    // 1. Verify period is not hard-closed
-    const period = this.periods.get(entry.periodId);
-    if (period && period.status === 'HARD_CLOSED') {
-      throw new Error(`PERIOD_HARD_CLOSED: Period ${period.periodName} is locked. Modifications require authorized reopening.`);
+    // 1. Period controls: the named period must belong to this scope and contain the posting
+    //    date, and no closed period of this scope may cover the posting date, whichever
+    //    period ID the caller supplies.
+    if (!isoDate(entry.postingDate)) throw new Error('INVALID_POSTING_DATE: Posting date must be a valid YYYY-MM-DD date.');
+    const requiresReview = Boolean(entry.isAdjusting) || Boolean(entry.reversalOfEntryId) || Boolean(entry.replacesEntryId);
+    const named = this.periods.get(entry.periodId);
+    if (named && (named.tenantId !== entry.tenantId || named.clientId !== entry.clientId || named.taxYear !== entry.taxYear ||
+      entry.postingDate < named.startDate || entry.postingDate > named.endDate)) {
+      throw new Error('PERIOD_MISMATCH: The posting date is outside the selected accounting period for this client.');
+    }
+    this.assertPostingAllowed(entry.tenantId, entry.clientId, entry.postingDate, requiresReview);
+
+    // 2. Validate double-entry balance and that every line names an active account of this client
+    this.assertDoubleEntryBalance(entry.lines);
+    for (const line of entry.lines) {
+      const account = this.accounts.get(line.accountId);
+      if (!account || account.tenantId !== entry.tenantId || account.clientId !== entry.clientId || !account.isActive) {
+        throw new Error('ACCOUNT_NOT_IN_CHART: Journal lines must reference active accounts in this client\'s chart of accounts.');
+      }
     }
 
-    // 2. Validate double-entry balance
-    this.assertDoubleEntryBalance(entry.lines);
-
-    const totalDebit = entry.lines.reduce((sum, l) => sum + (l.debit || 0), 0);
-    const totalCredit = entry.lines.reduce((sum, l) => sum + (l.credit || 0), 0);
+    const totalDebit = entry.lines.reduce((sum, l) => sum + cents(l.debit ?? 0), 0) / 100;
+    const totalCredit = entry.lines.reduce((sum, l) => sum + cents(l.credit ?? 0), 0) / 100;
 
     const id = `je_${entry.tenantId}_${entry.clientId}_${Date.now()}_${randomUUID().slice(0, 6)}`;
     const now = new Date().toISOString();
@@ -183,11 +216,13 @@ export class BookkeepingEngine {
       lines: entry.lines,
       totalDebit: Math.round(totalDebit * 100) / 100,
       totalCredit: Math.round(totalCredit * 100) / 100,
-      status: entry.isAdjusting ? 'PREPARED' : 'POSTED',
+      status: requiresReview ? 'PREPARED' : 'POSTED',
       creatorUid: entry.creatorUid,
       createdAt: now,
-      postedAt: now,
+      postedAt: requiresReview ? undefined : now,
       documentProvenanceIds: entry.documentProvenanceIds || [],
+      ...(entry.reversalOfEntryId ? { reversalOfEntryId: entry.reversalOfEntryId } : {}),
+      ...(entry.replacesEntryId ? { replacesEntryId: entry.replacesEntryId } : {}),
     };
 
     this.journalEntries.set(id, newEntry);
@@ -304,15 +339,17 @@ export class BookkeepingEngine {
     periodId: string;
     taxYear: number;
     notes?: string;
+    scope?: LedgerScope;
   }): { transaction: BankTransaction; journalEntry: JournalEntry } {
     const txn = this.transactions.get(params.transactionId);
-    if (!txn) throw new Error('TRANSACTION_NOT_FOUND');
+    if (!txn || !inScope(txn, params.scope)) throw new Error('TRANSACTION_NOT_FOUND');
+    if (txn.classificationStatus === 'POSTED' || txn.journalEntryId) throw new Error('TRANSACTION_ALREADY_POSTED: This transaction already has a ledger entry; reverse it to correct the categorization.');
 
     const bankAccount = this.accounts.get(txn.accountId);
     const targetAccount = this.accounts.get(params.assignedAccountId);
 
-    if (!bankAccount) throw new Error('BANK_ACCOUNT_NOT_FOUND');
-    if (!targetAccount) throw new Error('TARGET_CATEGORY_ACCOUNT_NOT_FOUND');
+    if (!bankAccount || !inScope(bankAccount, txn)) throw new Error('BANK_ACCOUNT_NOT_FOUND');
+    if (!targetAccount || !inScope(targetAccount, txn)) throw new Error('TARGET_CATEGORY_ACCOUNT_NOT_FOUND');
 
     // Build balancing journal entry:
     // If expense (amount < 0, e.g. -$150 Office Supplies):
@@ -403,9 +440,9 @@ export class BookkeepingEngine {
   // 5. DOCUMENT-TO-TRANSACTION MATCHING
   // ============================================================
 
-  matchDocumentToTransaction(transactionId: string, documentId: string, actorUid: string): BankTransaction {
+  matchDocumentToTransaction(transactionId: string, documentId: string, actorUid: string, scope?: LedgerScope): BankTransaction {
     const txn = this.transactions.get(transactionId);
-    if (!txn) throw new Error('TRANSACTION_NOT_FOUND');
+    if (!txn || !inScope(txn, scope)) throw new Error('TRANSACTION_NOT_FOUND');
 
     if (!txn.matchedDocumentIds.includes(documentId)) {
       txn.matchedDocumentIds.push(documentId);
@@ -474,13 +511,14 @@ export class BookkeepingEngine {
     return recon;
   }
 
-  clearTransaction(reconciliationId: string, transactionId: string, isCleared: boolean): BankReconciliation {
+  clearTransaction(reconciliationId: string, transactionId: string, isCleared: boolean, scope?: LedgerScope): BankReconciliation {
     const recon = this.reconciliations.get(reconciliationId);
-    if (!recon) throw new Error('RECONCILIATION_NOT_FOUND');
+    if (!recon || !inScope(recon, scope)) throw new Error('RECONCILIATION_NOT_FOUND');
     if (recon.status === 'CLOSED') throw new Error('RECONCILIATION_ALREADY_CLOSED');
 
+    // Only a transaction of the reconciled account of the same client can be cleared into it.
     const txn = this.transactions.get(transactionId);
-    if (!txn) throw new Error('TRANSACTION_NOT_FOUND');
+    if (!txn || !inScope(txn, recon) || txn.accountId !== recon.accountId) throw new Error('TRANSACTION_NOT_FOUND');
 
     txn.reconciliationStatus = isCleared ? 'CLEARED' : 'UNRECONCILED';
     txn.reconciliationId = isCleared ? reconciliationId : undefined;
@@ -506,15 +544,15 @@ export class BookkeepingEngine {
     return recon;
   }
 
-  toggleTransactionCleared(reconciliationId: string, transactionId: string, _performedBy?: string): BankReconciliation {
+  toggleTransactionCleared(reconciliationId: string, transactionId: string, _performedBy?: string, scope?: LedgerScope): BankReconciliation {
     const txn = this.transactions.get(transactionId);
     const isCurrentlyCleared = txn?.reconciliationStatus === 'CLEARED' && txn?.reconciliationId === reconciliationId;
-    return this.clearTransaction(reconciliationId, transactionId, !isCurrentlyCleared);
+    return this.clearTransaction(reconciliationId, transactionId, !isCurrentlyCleared, scope);
   }
 
-  finalizeReconciliation(reconciliationId: string, completedByUid: string): BankReconciliation {
+  finalizeReconciliation(reconciliationId: string, completedByUid: string, scope?: LedgerScope): BankReconciliation {
     const recon = this.reconciliations.get(reconciliationId);
-    if (!recon) throw new Error('RECONCILIATION_NOT_FOUND');
+    if (!recon || !inScope(recon, scope)) throw new Error('RECONCILIATION_NOT_FOUND');
     if (recon.status === 'CLOSED') throw new Error('RECONCILIATION_ALREADY_CLOSED');
 
     // Strict validation: variance must be within tolerance OR have resolved exceptions
@@ -587,19 +625,100 @@ export class BookkeepingEngine {
     });
   }
 
-  reviewAndApproveJournalEntry(entryId: string, reviewerUid: string): JournalEntry {
+  reviewAndApproveJournalEntry(entryId: string, reviewerUid: string, scope?: LedgerScope): JournalEntry {
     const entry = this.journalEntries.get(entryId);
-    if (!entry) throw new Error('ENTRY_NOT_FOUND');
+    if (!entry || !inScope(entry, scope)) throw new Error('ENTRY_NOT_FOUND');
+    if (entry.status !== 'PREPARED') throw new Error('ENTRY_NOT_PENDING_REVIEW: Only prepared entries awaiting review can be approved.');
 
     // Strict Maker-Checker: preparer cannot review/approve their own adjusting entry!
     if (entry.creatorUid === reviewerUid) {
       throw new Error('MAKER_CHECKER_VIOLATION: Preparer cannot approve their own journal entry. Independent reviewer required.');
     }
+    this.assertPostingAllowed(entry.tenantId, entry.clientId, entry.postingDate, true);
 
     entry.reviewerUid = reviewerUid;
     entry.status = 'POSTED';
+    entry.postedAt = new Date().toISOString();
+    this.journalEntries.set(entry.id, entry);
+    this.triggerInvalidation(entry.tenantId, entry.clientId, entry.taxYear, `Journal Entry #${entry.entryNumber} approved and posted.`);
+    return entry;
+  }
+
+  /** Reviewer outcome other than approval: REJECTED (final) or CORRECTION_REQUIRED (a replacement may be prepared). */
+  reviewJournalEntryOutcome(entryId: string, reviewerUid: string, outcome: 'REJECTED' | 'CORRECTION_REQUIRED', note: unknown, scope?: LedgerScope): JournalEntry {
+    const entry = this.journalEntries.get(entryId);
+    if (!entry || !inScope(entry, scope)) throw new Error('ENTRY_NOT_FOUND');
+    if (entry.status !== 'PREPARED') throw new Error('ENTRY_NOT_PENDING_REVIEW: Only prepared entries awaiting review can be reviewed.');
+    if (entry.creatorUid === reviewerUid) throw new Error('MAKER_CHECKER_VIOLATION: Preparer cannot review their own journal entry.');
+    const text = typeof note === 'string' ? note.trim() : '';
+    if (text.length < 5 || text.length > 500 || /[\x00-\x1f\x7f]/.test(text)) throw new Error('LEDGER_INPUT_INVALID: A review note of 5 to 500 characters is required.');
+    entry.status = outcome;
+    entry.reviewerUid = reviewerUid;
+    entry.reviewNote = text;
     this.journalEntries.set(entry.id, entry);
     return entry;
+  }
+
+  /** A replacement for an entry returned for correction; one replacement per entry, reviewed before posting. */
+  prepareReplacementEntry(replacesEntryId: string, entry: Parameters<BookkeepingEngine['createJournalEntry']>[0], scope?: LedgerScope): JournalEntry {
+    const original = this.journalEntries.get(replacesEntryId);
+    if (!original || !inScope(original, scope) || original.tenantId !== entry.tenantId || original.clientId !== entry.clientId) throw new Error('ENTRY_NOT_FOUND');
+    if (original.status !== 'CORRECTION_REQUIRED') throw new Error('ENTRY_NOT_CORRECTABLE: Only entries returned for correction can be replaced.');
+    if ([...this.journalEntries.values()].some(e => e.replacesEntryId === replacesEntryId)) throw new Error('ENTRY_ALREADY_CORRECTED: This entry already has a replacement.');
+    return this.createJournalEntry({ ...entry, replacesEntryId });
+  }
+
+  setAccountActive(accountId: string, active: boolean, scope?: LedgerScope): ChartOfAccount {
+    const account = this.accounts.get(accountId);
+    if (!account || !inScope(account, scope)) throw new Error('ACCOUNT_NOT_FOUND');
+    account.isActive = active;
+    account.updatedAt = new Date().toISOString();
+    return account;
+  }
+
+  /**
+   * Corrections never edit a posted entry: a reversing entry with every line's debit and credit
+   * swapped is prepared for independent approval. One reversal per entry; reversals are not
+   * themselves reversible (post a new entry instead).
+   */
+  reverseJournalEntry(params: {
+    entryId: string; postingDate: string; reason: string; preparerUid: string; periodId?: string; scope?: LedgerScope;
+  }): JournalEntry {
+    const original = this.journalEntries.get(params.entryId);
+    if (!original || !inScope(original, params.scope)) throw new Error('ENTRY_NOT_FOUND');
+    if (original.status !== 'POSTED') throw new Error('ENTRY_NOT_POSTED: Only posted entries can be reversed.');
+    if (original.reversalOfEntryId) throw new Error('REVERSAL_NOT_REVERSIBLE: A reversing entry cannot itself be reversed.');
+    if (original.reversedByEntryId) throw new Error('ENTRY_ALREADY_REVERSED: This entry already has a reversing entry.');
+    const reason = typeof params.reason === 'string' ? params.reason.trim() : '';
+    if (reason.length < 5 || reason.length > 500 || /[\x00-\x1f\x7f]/.test(reason)) {
+      throw new Error('REVERSAL_REASON_REQUIRED: A reversal requires a justification of 5 to 500 characters.');
+    }
+    if (!isoDate(params.postingDate) || params.postingDate < original.postingDate) {
+      throw new Error('INVALID_POSTING_DATE: A reversal must be dated on or after the original entry.');
+    }
+    const reversal = this.createJournalEntry({
+      tenantId: original.tenantId, clientId: original.clientId, taxYear: Number(params.postingDate.slice(0, 4)),
+      periodId: params.periodId || original.periodId, postingDate: params.postingDate, transactionDate: params.postingDate,
+      description: `Reversal of ${original.entryNumber}: ${reason}`, reference: original.entryNumber, source: original.source,
+      lines: original.lines.map((line, index) => ({ ...line, id: `${line.id}_rev_${index}`, debit: line.credit, credit: line.debit })),
+      creatorUid: params.preparerUid, documentProvenanceIds: [...original.documentProvenanceIds], reversalOfEntryId: original.id,
+    });
+    original.reversedByEntryId = reversal.id;
+    this.journalEntries.set(original.id, original);
+    return reversal;
+  }
+
+  /** Hard-closed periods accept nothing; soft-closed periods accept only reviewed (adjusting or reversing) entries. */
+  private assertPostingAllowed(tenantId: string, clientId: string, postingDate: string, reviewedEntry: boolean) {
+    for (const period of this.periods.values()) {
+      if (period.tenantId !== tenantId || period.clientId !== clientId || postingDate < period.startDate || postingDate > period.endDate) continue;
+      if (period.status === 'HARD_CLOSED') {
+        throw new Error(`PERIOD_HARD_CLOSED: Period ${period.periodName} is locked. Modifications require authorized reopening.`);
+      }
+      if (period.status === 'SOFT_CLOSED' && !reviewedEntry) {
+        throw new Error(`PERIOD_SOFT_CLOSED: Period ${period.periodName} accepts only reviewed adjusting or reversing entries.`);
+      }
+    }
   }
 
   // ============================================================
@@ -903,9 +1022,42 @@ export class BookkeepingEngine {
     return period;
   }
 
-  closePeriod(periodId: string, status: 'SOFT_CLOSED' | 'HARD_CLOSED', actorUid: string): AccountingPeriod {
+  /** Validated period creation for API callers: dates inside the tax year, no overlap with another period of the client. */
+  openPeriod(scope: LedgerScope, taxYear: number, periodName: unknown, startDate: unknown, endDate: unknown): AccountingPeriod {
+    if (!Number.isInteger(taxYear) || taxYear < 2000 || taxYear > 2100) throw new Error('PERIOD_INVALID: Tax year is invalid.');
+    if (typeof periodName !== 'string' || !/^[A-Za-z0-9_-]{1,32}$/.test(periodName)) throw new Error('PERIOD_INVALID: Period name must be 1-32 letters, digits, hyphens or underscores.');
+    if (!isoDate(startDate) || !isoDate(endDate) || startDate > endDate || !startDate.startsWith(`${taxYear}-`) || !endDate.startsWith(`${taxYear}-`)) {
+      throw new Error('PERIOD_INVALID: Period dates must be valid and fall within the tax year.');
+    }
+    const id = `period_${scope.tenantId}_${scope.clientId}_${periodName}`;
+    const existing = this.periods.get(id);
+    if (existing) {
+      if (existing.taxYear === taxYear && existing.startDate === startDate && existing.endDate === endDate) return structuredClone(existing);
+      throw new Error('PERIOD_CONFLICT: A period with this name already exists with different dates.');
+    }
+    for (const p of this.periods.values()) {
+      if (p.tenantId === scope.tenantId && p.clientId === scope.clientId && startDate <= p.endDate && endDate >= p.startDate) {
+        throw new Error(`PERIOD_CONFLICT: Dates overlap existing period ${p.periodName}.`);
+      }
+    }
+    return structuredClone(this.ensurePeriod(scope.tenantId, scope.clientId, taxYear, periodName, startDate, endDate));
+  }
+
+  /**
+   * Closing requires every prepared (unapproved) entry dated in the period to be resolved first.
+   * Allowed transitions: OPEN -> SOFT_CLOSED | HARD_CLOSED, SOFT_CLOSED -> HARD_CLOSED.
+   */
+  closePeriod(periodId: string, status: 'SOFT_CLOSED' | 'HARD_CLOSED', actorUid: string, scope?: LedgerScope): AccountingPeriod {
     const period = this.periods.get(periodId);
-    if (!period) throw new Error('PERIOD_NOT_FOUND');
+    if (!period || !inScope(period, scope)) throw new Error('PERIOD_NOT_FOUND');
+    if (!['SOFT_CLOSED', 'HARD_CLOSED'].includes(status) || period.status === 'HARD_CLOSED' || period.status === status) {
+      throw new Error(`PERIOD_STATUS_TRANSITION_INVALID: Period ${period.periodName} cannot move from ${period.status} to ${status}.`);
+    }
+    const pending = [...this.journalEntries.values()].filter(je => je.tenantId === period.tenantId && je.clientId === period.clientId &&
+      je.status === 'PREPARED' && (je.periodId === period.id || (je.postingDate >= period.startDate && je.postingDate <= period.endDate)));
+    if (pending.length) {
+      throw new Error(`PERIOD_HAS_UNAPPROVED_ENTRIES: ${pending.length} prepared entr${pending.length === 1 ? 'y requires' : 'ies require'} review before closing ${period.periodName}.`);
+    }
 
     period.status = status;
     period.closedByUid = actorUid;
@@ -914,17 +1066,23 @@ export class BookkeepingEngine {
     return period;
   }
 
-  reopenPeriod(periodId: string, actorUid: string, reason: string): AccountingPeriod {
+  /** Reopening a hard-closed period needs an approver independent of the person who closed it. */
+  reopenPeriod(periodId: string, actorUid: string, reason: string, scope?: LedgerScope): AccountingPeriod {
     const period = this.periods.get(periodId);
-    if (!period) throw new Error('PERIOD_NOT_FOUND');
-    if (!reason || reason.trim().length < 5) {
+    if (!period || !inScope(period, scope)) throw new Error('PERIOD_NOT_FOUND');
+    if (period.status === 'OPEN') throw new Error('PERIOD_STATUS_TRANSITION_INVALID: Period is already open.');
+    const justification = typeof reason === 'string' ? reason.trim() : '';
+    if (justification.length < 5 || justification.length > 500 || /[\x00-\x1f\x7f]/.test(justification)) {
       throw new Error('REOPEN_REASON_REQUIRED: A valid audit justification is required to reopen a closed accounting period.');
+    }
+    if (period.status === 'HARD_CLOSED' && period.closedByUid === actorUid) {
+      throw new Error('MAKER_CHECKER_VIOLATION: The person who hard-closed a period cannot reopen it. Independent approver required.');
     }
 
     period.status = 'OPEN';
     period.reopenedByUid = actorUid;
     period.reopenedAt = new Date().toISOString();
-    period.reopenReason = reason;
+    period.reopenReason = justification;
     this.periods.set(period.id, period);
     return period;
   }
