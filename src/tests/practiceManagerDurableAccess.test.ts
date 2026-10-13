@@ -16,7 +16,9 @@ const OPEN: Array<[string, string]> = [['GET', '/api/practice/clients'], ['GET',
   ['POST', '/api/communications/clients/c1/threads'], ['POST', '/api/communications/clients/c1/threads/thr_1/messages'], ['POST', '/api/communications/clients/c1/threads/thr_1/status'],
   ['GET', '/api/scheduling/schedule?from=a&to=b'], ['GET', '/api/scheduling/clients/c1/appointments'], ['POST', '/api/scheduling/clients/c1/appointments'],
   ['POST', '/api/scheduling/clients/c1/appointments/apt_1/reschedule'], ['POST', '/api/scheduling/clients/c1/appointments/apt_1/status'],
-  ['GET', '/api/legal-matters/clients/c1/matters'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/status'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/documents']];
+  ['GET', '/api/legal-matters/clients/c1/matters'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/status'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/documents'],
+  ['GET', '/api/consultations/requests'], ['POST', '/api/consultations/requests/csr_1/decision'], ['POST', '/api/consultations/requests/csr_1/convert'],
+  ['GET', '/api/client-portal/clients/c1/engagements'], ['GET', '/api/reassignment/queue'], ['POST', '/api/reassignment/queue/rar_1/review']];
 
 describe('practice manager durable capability list', () => {
   it('keeps every durable endpoint closed when the durable store is not configured', () => {
@@ -42,7 +44,8 @@ describe('practice manager durable capability list', () => {
       ['GET', '/api/practice/clients/c1/engagements'], ['POST', '/api/practice/clients'], ['DELETE', '/api/practice/clients/c1'], ['POST', '/api/cases/report'],
       ['POST', '/api/vault/clients/c1/documents/d1/versions/x/review'], ['GET', '/api/operations/assignments'],
       ['POST', '/api/communications/inbox'], ['GET', '/api/communications/clients/c1/threads/thr_1/messages'], ['POST', '/api/communications/clients/c1/threads/thr_1/delete'],
-      ['GET', '/api/audit-center/events'], ['POST', '/api/scheduling/schedule'], ['POST', '/api/scheduling/clients/c1/appointments/apt_1/delete'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/sign']] as Array<[string, string]>)
+      ['GET', '/api/audit-center/events'], ['POST', '/api/scheduling/schedule'], ['POST', '/api/scheduling/clients/c1/appointments/apt_1/delete'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/sign'],
+      ['POST', '/api/reassignment/clients/c1/requests'], ['POST', '/api/consultations/requests'], ['POST', '/api/public/consultation-requests']] as Array<[string, string]>)
       expect(allowed(m, p), `${m} ${p}`).toBe(false);
     expect(practiceManagerRequestAllowed('accountant', 'POST', '/api/bookkeeping/journal-entries')).toBe(true);
   });

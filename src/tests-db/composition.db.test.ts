@@ -27,7 +27,7 @@ describe('composition on a real PostgreSQL server', () => {
   });
   it('no Claude-proposal function is executable by anon or authenticated', async () => {
     const r = await db.pool.query(`SELECT DISTINCT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public'
-      AND p.proname ~ '^taxguard_(ledger|practice|case|doc|docreq|client_notification|bill|b2t|comm|apt|audit_center|legal)_?' AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))`);
+      AND p.proname ~ '^taxguard_(ledger|practice|case|doc|docreq|client_notification|bill|b2t|comm|apt|audit_center|legal|consult|rar|portal)_?' AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))`);
     expect(r.rows.map(x => x.proname)).toEqual([]);
   });
 });

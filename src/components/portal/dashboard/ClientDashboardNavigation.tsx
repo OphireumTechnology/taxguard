@@ -1,12 +1,13 @@
 import React from 'react';
-import { Archive, Calendar, ChevronLeft, ChevronRight, CreditCard, FileQuestion, FileText, LayoutDashboard, MessageSquare, Settings, ShieldCheck } from 'lucide-react';
+import { Archive, Calendar, ChevronLeft, ChevronRight, CreditCard, FileQuestion, FileText, LayoutDashboard, MessageSquare, Scale, Settings, ShieldCheck, Users } from 'lucide-react';
 import './clientDashboard.css';
 const items = [
   { id: 'home', label: 'Dashboard', Icon: LayoutDashboard }, { id: 'tax_return', label: 'My Tax Returns', Icon: FileText },
   { id: 'documents', label: 'Documents', Icon: FileText }, { id: 'questionnaire', label: 'Questionnaire', Icon: FileQuestion },
   { id: 'requests', label: 'Requests', Icon: FileQuestion }, { id: 'messages', label: 'Messages', Icon: MessageSquare },
   { id: 'appointments', label: 'Appointments', Icon: Calendar }, { id: 'billing', label: 'Payments', Icon: CreditCard },
-  { id: 'records', label: 'My Records (2022+)', Icon: Archive }, { id: 'settings', label: 'Settings', Icon: Settings },
+  { id: 'records', label: 'My Records (2022+)', Icon: Archive }, { id: 'advisor', label: 'My Advisor', Icon: Users }, { id: 'legal', label: 'Legal Coordination', Icon: Scale },
+  { id: 'settings', label: 'Settings', Icon: Settings },
 ];
 export function ClientDashboardNavigation({ active, collapsed, onToggle, onNavigate, detailedWorkflow }: { active: string; collapsed: boolean; onToggle?: () => void; onNavigate: (id: string) => void; detailedWorkflow?: React.ReactNode }) {
   return <div className={`tg-client-navigation ${collapsed ? 'tg-client-nav-collapsed' : ''}`}>

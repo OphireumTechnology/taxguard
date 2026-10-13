@@ -23,7 +23,7 @@ const SENSITIVE = { clientId: 'auClient', appointmentId: 'apt_' + 'b'.repeat(32)
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261014410000_/);
+  await applyProposals(fixture.pg, /^2026101441|^2026101446/);
   await fixture.pg.exec(`INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${T}','au-admin','admin','active',NULL),('${T}','au-mgr','practice_manager','active',NULL),
       ('${T}','au-acct','accountant','active',NULL),('${T}','au-client','client','active','auClient'),('${T}','au-suspended','admin','suspended',NULL),('tenantB','au-foreign','admin','active',NULL);`);
   await fixture.pg.query(`INSERT INTO taxguard_audit_log(tenant_id,action,actor_uid,actor_role,metadata,ip_address) VALUES ($1,'APPOINTMENT_CONFIRMED','au-acct','accountant',$2,'203.0.113.7')`, [T, JSON.stringify(SENSITIVE)]);
@@ -79,6 +79,16 @@ describe('administrative audit center', () => {
     expect((await get('/events', { ...range, cursor: 'not-a-cursor' })).body.code).toBe('AUDIT_INPUT_INVALID');
     expect((await get('/events', { ...range, category: "x' OR 1=1" })).body.code).toBe('AUDIT_INPUT_INVALID');
     expect((await get('/categories', range)).body).toEqual([{ category: 'APPOINTMENT', count: 1 }, { category: 'COMM', count: 3 }, { category: 'PRACTICE', count: 4 }]);
+  });
+
+  it('filters to the recorded security categories (proposal 046) and validates them', async () => {
+    await fixture.pg.query("INSERT INTO taxguard_audit_log(tenant_id,action,actor_uid,actor_role,metadata) VALUES ('tenantA','STAFF_MEMBER_SUSPENDED','au-admin','admin','{\"targetUid\":\"au-acct\",\"reason\":\"Synthetic private reason\"}'),('tenantA','SESSION_REVOKED','au-admin','admin','{}')");
+    as('admin');
+    const sec = (await get('/events', { ...range, categories: 'SESSION,STAFF,AUTH,AI,KILL' })).body.items;
+    expect(sec.map((e: any) => e.action).sort()).toEqual(['SESSION_REVOKED', 'STAFF_MEMBER_SUSPENDED']);
+    expect(JSON.stringify(sec)).not.toContain('Synthetic private reason');
+    expect((await get('/events', { ...range, categories: 'staff' })).body.code).toBe('AUDIT_INPUT_INVALID');
+    expect((await get('/events', { ...range, categories: Array.from({ length: 11 }, (_, i) => 'CAT' + i).join(',') })).body.code).toBe('AUDIT_INPUT_INVALID');
   });
 
   it('is read-only and exposes only the service RPCs to service_role', async () => {

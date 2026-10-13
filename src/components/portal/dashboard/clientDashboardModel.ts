@@ -98,6 +98,32 @@ export function appointmentSummaries(rows: DurableAppointment[], scope: ClientSc
       meetingLink: a.meetingUrl ?? undefined, location: a.location ?? undefined, createdAt: a.createdAt, updatedAt: a.updatedAt };
   });
 }
+/** Durable vault documents (proposal 027) in the dashboard's document shape; uploader identities are not carried. */
+const DOC_STATUS: Record<string, DocumentItem['status']> = { SCAN_PENDING: 'scanning', PENDING_REVIEW: 'pending_review', VERIFIED: 'verified', REJECTED: 'needs_correction',
+  REJECTED_MALWARE: 'needs_correction', REPLACEMENT_REQUESTED: 'client_action_required', SUPERSEDED: 'archived' };
+export function vaultDocumentSummaries(rows: Array<Record<string, any>>, scope: ClientScope): DocumentItem[] {
+  return rows.filter(d => d.clientId === scope.clientId && DOC_STATUS[d.status]).map(d => ({ id: d.documentId + ':' + d.version, clientId: d.clientId, clientName: '',
+    fileName: d.fileName ?? 'Document', fileSize: '', fileType: d.mimeType ?? '', category: d.category, taxYear: d.taxYear, status: DOC_STATUS[d.status], uploadedAt: d.createdAt,
+    uploadedBy: '', version: d.version, ...(d.reviewedAt ? { reviewedAt: d.reviewedAt } : {}) } as DocumentItem));
+}
+/**
+ * Durable invoices (proposal 028, client projection) in the dashboard's invoice shape. The amount is
+ * the authoritative balance due for open invoices and the total once paid; void invoices are omitted.
+ */
+export function billingInvoiceSummaries(rows: Array<Record<string, any>>, scope: ClientScope, now = Date.now()): Invoice[] {
+  return rows.filter(i => i.clientId === scope.clientId && ['ISSUED', 'PARTIALLY_PAID', 'PAID'].includes(i.status)).map(i => {
+    const open = i.status !== 'PAID';
+    const overdue = open && i.dueDate && Date.parse(i.dueDate + 'T23:59:59Z') < now;
+    return { id: i.invoiceId, invoiceNumber: i.invoiceNumber ?? 'Invoice', clientId: i.clientId, description: open ? `Balance due${i.dueDate ? ' by ' + i.dueDate : ''} (total ${i.total})` : 'Paid in full',
+      amount: Number(open ? i.balanceDue : i.total), currency: i.currency, status: open ? (overdue ? 'overdue' : 'unpaid') : 'paid' } as Invoice;
+  }).filter(i => Number.isFinite(i.amount));
+}
+/** Durable engagements per tax year (proposal 044) in the dashboard's engagement shape. */
+const ENG_STATUS: Record<string, Engagement['status']> = { active: 'in_progress', on_hold: 'on_hold', completed: 'completed' };
+export function portalEngagementSummaries(rows: Array<Record<string, any>>, scope: ClientScope): Engagement[] {
+  return rows.filter(e => ENG_STATUS[e.engagementStatus]).map(e => ({ id: e.engagementId + ':' + e.taxYear, clientId: scope.clientId, taxYear: e.taxYear,
+    serviceTitle: e.title ?? e.type, status: ENG_STATUS[e.engagementStatus], updatedAt: e.updatedAt } as Engagement));
+}
 export function scopeAppointments(rows: Appointment[], scope: ClientScope) {
   // Email-only matches are not strong enough for dashboard presentation.
   return rows.filter(row => Boolean(row.clientId && [scope.clientId, scope.userId].includes(row.clientId)) && tenantMatches(row, scope));

@@ -67,6 +67,7 @@ export type EngagementStatus =
   | 'assigned'
   | 'in_preparation'
   | 'in_progress'
+  | 'on_hold'
   | 'client_action_required'
   | 'review_needed'
   | 'under_review'

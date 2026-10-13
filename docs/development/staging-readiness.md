@@ -1,4 +1,4 @@
-# Staging readiness and implementation plan (updated 2026-10-14)
+# Staging readiness and implementation plan (updated 2026-10-14, Phase 9)
 
 **Status: NOT READY for staging.** Nothing has been deployed and no migration has been applied
 anywhere. Production remains NO-GO. The protected production project `cvrlhixxczerytiocxid` is never
@@ -11,7 +11,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 |---|---|---|
 | Isolated non-production Supabase project | none configured | owner provisions a separate project |
 | Synthetic-only data | all suites use generated synthetic records; durable deployments load no demonstration seed | staging seed script (synthetic tenant, staff, clients) |
-| Migration review and ordering | 13 core migrations + 32 proposals (000–011, 023–042); composition, idempotent re-apply and security invariants verified on PGlite and real PostgreSQL | human review / approval of each proposal; NOT VALID constraints validated after data review |
+| Migration review and ordering | 13 core migrations + 36 proposals (000–011, 023–046); composition, idempotent re-apply and security invariants verified on PGlite and real PostgreSQL | human review / approval of each proposal; NOT VALID constraints validated after data review |
 | Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery — verified against the loopback emulator | real-provider validation (`scripts/provider-validation/mfa-admin-validation.ts`); rate-limit policy decision |
 | Client authentication | local password + TOTP and provider paths | client provider configuration in staging |
 | Tenant and environment isolation | enforced in every proposal function; negative tests in unit, DB and E2E | one `TAXGUARD_TENANT_ID` per environment; separate keys per environment |
@@ -23,7 +23,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 | Backup / restore, rollback | rollback notes per proposal | tested runbook on the staging database |
 | Staging application hosting | GitHub Pages deploy is manual on `main`; the API server has no staging host | separate staging workflow, environment and API host |
 | Secret management | `.env` never committed; secret scan on every checkpoint | staging secrets in a managed store (GitHub environment secrets / host secret manager) |
-| Remaining in-memory workflows | public prospect booking, administrator users / security events, integrations, legacy `AppContext` loads | make durable or disable before staging |
+| Remaining in-memory workflows | stage two / three questionnaire and requests when the database is not configured; legacy routes still mounted for local mode (no reachable reader for most); integrations | retire legacy routes before staging |
 
 ## Implementation plan (each step needs the owner's go-ahead)
 
@@ -50,3 +50,26 @@ assumed to exist. Staging is deployed only with explicit owner approval.
     proposal using its rollback notes.
 12. **Hosting**: separate staging host for the API and a staging static deployment, never the
     production Pages environment; deploy only on explicit approval.
+
+## Phase 9 preparation artifacts (local, offline)
+
+| Artifact | Purpose | Verified |
+|---|---|---|
+| `docs/development/staging.env.template` | variable names only for the staging secret store | n/a |
+| `scripts/staging/check-staging-config.ts` | offline check using `assessStagingConfiguration`; refuses the protected project; prints field codes only | run locally (refusal of the protected project confirmed) |
+| `scripts/staging/build-synthetic-seed.mjs` | offline synthetic tenant / staff / client seed (example.test only) | applied after every migration and proposal on real PostgreSQL (`stagingSeed.db.test.ts`) |
+| `scripts/provider-validation/mfa-admin-validation.ts` | real-provider MFA validation (Phase 6) | blocked: no project |
+
+## Release checklist (staging; every step needs owner approval)
+
+1. Non-production project provisioned; URL and keys only in the staging secret store.
+2. `check-staging-config.ts` reports no issues for the staging values.
+3. Proposals reviewed and approved in name order; applied to a restored copy first; composition
+   tests run against it; then applied to staging.
+4. Synthetic seed generated, reviewed and applied; provider accounts created for the seeded staff IDs.
+5. MFA provider validation report recorded.
+6. E2E suites run against the staging API with synthetic users only.
+7. Malware scanner connected or uploads kept quarantined; billing in sandbox only.
+8. Backup taken and restored; rollback of the latest proposal rehearsed.
+9. Monitoring and alerting live; audit center security view reviewed.
+10. Separate staging host; production Pages workflow untouched; deployment only on explicit approval.

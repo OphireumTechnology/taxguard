@@ -88,11 +88,13 @@ describe('dashboard next action and truthful presentation', () => {
     expect(html).toContain('Not verified');
     for (const fabricated of ['John Doe', 'Texas', 'Elena Rostova', 'bank-level', '2025 tax-return workspace']) expect(html).not.toContain(fabricated);
   });
-  it('renders every masterplan area and all ten accessible navigation items', () => {
+  it('renders every masterplan area and all twelve accessible navigation items', () => {
     const html = render();
     for (const title of ['Your Current Status', 'Return Overview', 'Quick Actions', 'My Tax Years', 'Personalized Document Checklist', 'State-Specific Requirements', 'Important Updates', 'Upcoming Appointment', 'Complete Client Journey', 'Security &amp; Reliability']) expect(html).toContain(title);
     const nav = renderToStaticMarkup(<ClientDashboardNavigation active="home" collapsed onNavigate={() => {}} />);
-    expect(nav.match(/aria-label=/g)).toHaveLength(10);
+    // Phase 9 added My Advisor (reassignment requests) and Legal Coordination.
+    expect(nav.match(/aria-label=/g)).toHaveLength(12);
+    expect(nav).toContain('My Advisor'); expect(nav).toContain('Legal Coordination');
     expect(nav).toContain('aria-current="page"');
   });
   it('does not expose sensitive questionnaire fields in overview markup', () => {
