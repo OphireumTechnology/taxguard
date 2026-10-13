@@ -25,6 +25,12 @@ describe('tax engine foundation on the real server', () => {
       citation: 'Synthetic fixture example 1', inputs: [{ factPath: 'synthetic.income_a', value: '5000.00', evidenceIds: ['doc:e2e-case'] }],
       expected: { synthetic_base: '4000.00', synthetic_amount: '290.00' } })).status).toBe(201);
     expect((await api(mgr, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/run-tests`)).body).toMatchObject({ allPassed: true });
+    // Proposal 038: the filing-status variant with its own parameter needs its own case.
+    expect((await api(mgr, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/submit`)).body).toEqual({ code: 'TAX_RULE_SET_COVERAGE_INCOMPLETE', detail: 'filingStatuses=synthetic_joint' });
+    expect((await api(mgr, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/tests`, { name: 'Synthetic joint example', sourceId: SYNTHETIC_SOURCE_ID, filingStatus: 'synthetic_joint',
+      citation: 'Synthetic fixture example 2', inputs: [{ factPath: 'synthetic.income_a', value: '5000.00', evidenceIds: ['doc:e2e-case'] }],
+      expected: { synthetic_base: '3000.00', synthetic_amount: '217.50' } })).status).toBe(201);
+    expect((await api(mgr, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/run-tests`)).body).toMatchObject({ testCount: 2, allPassed: true });
     expect((await api(mgr, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/submit`)).body.status).toBe('PENDING_REVIEW');
     expect((await api(mgr, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/approve`)).status).toBe(403);
     expect((await api(rev, 'POST', `/api/tax-engine/rule-sets/${draft.body.ruleSetId}/approve`)).body.status).toBe('APPROVED');

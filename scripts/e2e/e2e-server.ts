@@ -33,15 +33,20 @@ export const E2E = { tenant: 'tenantE2E', other: 'tenantE2EOther', client: 'e2eC
 const database = await startDatabase();
 const q = (sql: string) => database.pool.query(sql);
 const members = users.map(u => `('${u.tenantId}','${u.id}','${u.role === 'super_admin' ? 'admin' : u.role}','active',${u.clientId ? `'${u.clientId}'` : 'NULL'})`).join(',');
+// Identity rows carry the synthetic name and email: the staff directory fails closed on incomplete identities.
+const identityNames = users.map(u => `('${u.id}','${u.email.replace(/'/g, "''")}','${u.name.replace(/'/g, "''")}')`).join(',');
 await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic E2E Practice'),('${E2E.other}','Synthetic Other Practice');
   INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${E2E.tenant}','${E2E.client}','e2e-client','Synthetic Client One'),
     ('${E2E.tenant}','${E2E.unassignedClient}','e2e-nobody','Synthetic Unassigned Client'),('${E2E.other}','${E2E.otherTenantClient}','e2e-foreign-owner','Synthetic Foreign Client');
   INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES ${members};
-  INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status) FROM taxguard_members WHERE uid LIKE 'e2e-%';
+  INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT m.tenant_id,m.uid,jsonb_build_object('id',m.uid,'tenantId',m.tenant_id,'role',m.role,'status',m.status,'email',n.email,'name',n.name)
+    FROM taxguard_members m JOIN (VALUES ${identityNames}) AS n(uid,email,name) ON n.uid = m.uid WHERE m.uid LIKE 'e2e-%';
   -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
   -- created by the tests through /e2e/provider-user; they have no local password.
   INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000a','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-00000000000b','admin','active'),
-    ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000c','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000001','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000002','accountant','active');
+    ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000c','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000001','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000002','accountant','active'),
+    -- An administrator of ANOTHER tenant (cross-tenant denial): no membership in this deployment's tenant.
+    ('${E2E.other}','d0000000-0000-4000-8000-0000000000f1','admin','active');
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,
     'email',uid||'@example.test','name','Synthetic '||uid,'mfaEnabled',true,'isVerified',true) FROM taxguard_members WHERE uid LIKE 'd0000000-%';`);
 
@@ -55,12 +60,21 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
 // Everything else is 404, so any unexpected provider call fails closed.
 const rpc = pgRpc(database.pool);
 const serviceKey = 'e2e-synthetic-service-key-' + Math.random().toString(36).slice(2);
+// Provider-mode profile: the browser gets its own (public, per-run) key that only opens the
+// browser-facing auth endpoints; database, storage, admin and control paths need the service key.
+const PROVIDER_PROFILE = process.env.E2E_PROFILE === 'provider';
+const anonKey = 'e2e-synthetic-anon-key-' + Math.random().toString(36).slice(2);
+const BROWSER_AUTH = /^\/auth\/v1\/(token|logout|user|factors(\/[0-9a-f-]{36}\/(challenge|verify))?)$/;
 const objects = new Map<string, Buffer>();
 const shim = http.createServer((req, res) => {
-  const send = (status: number, body: unknown) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
+  const cors: Record<string, string> = PROVIDER_PROFILE ? { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info, x-supabase-api-version',
+    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS' } : {};
+  const send = (status: number, body: unknown) => { res.writeHead(status, { 'content-type': 'application/json', ...cors }); res.end(status === 204 ? '' : JSON.stringify(body)); };
   const path = (req.url || '').split('?')[0];
+  if (PROVIDER_PROFILE && req.method === 'OPTIONS' && BROWSER_AUTH.test(path)) { res.writeHead(204, cors); return res.end(); }
   const key = req.headers.apikey || String(req.headers.authorization || '').replace(/^Bearer /, '');
-  if (key !== serviceKey) return send(401, { code: 'E2E_KEY', message: 'Unknown key', statusCode: '401', error: 'Unauthorized' });
+  const browserAllowed = PROVIDER_PROFILE && key === anonKey && BROWSER_AUTH.test(path);
+  if (key !== serviceKey && !browserAllowed) return send(401, { code: 'E2E_KEY', message: 'Unknown key', statusCode: '401', error: 'Unauthorized' });
   const chunks: Buffer[] = []; let size = 0;
   req.on('data', (c: Buffer) => { size += c.length; if (size > 30_000_000) req.destroy(); else chunks.push(c); });
   req.on('end', async () => {
@@ -111,6 +125,12 @@ process.env.TAXGUARD_LEDGER_STORE = 'durable';
 process.env.TAXGUARD_TENANT_ID = E2E.tenant;
 // Durable staff identity paths (provider sessions, staff access APIs, MFA reset via the adapter).
 process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED = 'true';
+if (PROVIDER_PROFILE) {
+  // The browser signs in through the provider emulation (loopback http is accepted by the browser config).
+  process.env.VITE_SUPABASE_URL = process.env.SUPABASE_URL;
+  process.env.VITE_SUPABASE_ANON_KEY = anonKey;
+  process.env.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED = 'true';
+}
 process.env.TAXGUARD_MFA_RESET_PROVIDER = 'supabase-admin';
 if (process.env.E2E_CONTROL_FILE) fs.writeFileSync(process.env.E2E_CONTROL_FILE, JSON.stringify({ origin: process.env.SUPABASE_URL, key: serviceKey }), { mode: 0o600 });
 

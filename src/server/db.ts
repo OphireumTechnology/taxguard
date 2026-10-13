@@ -243,6 +243,21 @@ class Database {
       return;
     }
 
+    // Public catalog content (service plans, job postings), not client or practice records.
+    INITIAL_SERVICE_PLANS.forEach(plan => {
+      this.servicePlans.set(plan.id, { ...plan });
+    });
+    INITIAL_JOBS.forEach(job => {
+      this.jobs.set(job.id, { ...job });
+    });
+
+    // A durable (database-backed) deployment serves recorded data only: the demonstration users,
+    // engagements, documents, invoices, messages, ledgers and audit entries below would otherwise
+    // appear in the legacy panels as if they were real operational records.
+    if (process.env.TAXGUARD_PRACTICE_STORE === 'durable') {
+      return;
+    }
+
     // Seed initial users
     INITIAL_USERS.forEach(user => {
       this.users.set(user.id, { ...user });
@@ -251,11 +266,6 @@ class Database {
     // Seed initial passwords (hashed during runtime auth init)
     // No default passwords: see initSeedPasswords (SEED_CLIENT_PASSWORD / SEED_STAFF_PASSWORD).
     // We will initialize hashes in auth.ts
-
-    // Seed service plans
-    INITIAL_SERVICE_PLANS.forEach(plan => {
-      this.servicePlans.set(plan.id, { ...plan });
-    });
 
     // Seed engagements
     INITIAL_ENGAGEMENTS.forEach(eng => {
@@ -287,11 +297,7 @@ class Database {
       this.messages.set(msg.id, { ...msg });
     });
 
-    // Seed jobs & applicants
-    INITIAL_JOBS.forEach(job => {
-      this.jobs.set(job.id, { ...job });
-    });
-
+    // Seed applicants
     INITIAL_APPLICANTS.forEach(app => {
       this.applicants.set(app.id, { ...app });
     });

@@ -2470,7 +2470,26 @@
       "tests": [
         "src/tests/mfaRecoveryCompletion.test.ts"
       ],
-      "remaining": "Proposal 034 unapplied; provider adapter disabled by default and unverified against a real provider; no administrator UI yet.",
+      "remaining": "Proposal 034 unapplied; provider adapter disabled by default and unverified against a real provider.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-MFA-RECOVERY-UI",
+      "requirement": "Administrator recovery panel (request, independent approval, reset status, retry, cancel, reactivation, audit history) and staff re-enrolment on the staff portal; provider-mode browser E2E",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql"
+      ],
+      "tests": [
+        "src/tests/mfaRecoveryHistory.test.ts"
+      ],
+      "remaining": "Proposal 037 unapplied; browser flows verified only against the loopback provider emulation, not a real non-production provider project.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -2490,6 +2509,25 @@
         "src/tests/taxRuleVerificationCases.test.ts"
       ],
       "remaining": "Proposal 036 unapplied; no real rule content or cases; stages 9-18 blocked.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-TAX-RULE-COVERAGE",
+      "requirement": "Verification-case coverage: every declared output and every filing-status variant (and the default path) must be exercised before submission or approval",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql"
+      ],
+      "tests": [
+        "src/tests/taxRuleCoverage.test.ts"
+      ],
+      "remaining": "Proposal 038 unapplied; structural coverage only, it does not validate rule content; no real rule content or cases; stages 9-18 blocked.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3971,6 +4009,19 @@
       ]
     },
     {
+      "file": "docs/development/durable-workflow-inventory.md",
+      "sha256": "2258732c1a4487a8935143b57597b74e3f031e6077cf0bd2c32f97633b682c6d",
+      "bytes": 4196,
+      "headings": [
+        "# Durable workflow inventory (Phase 6)",
+        "## Change in this phase: no demonstration records in a durable deployment",
+        "## Already durable (recorded data only)",
+        "## Still in-memory (lost on restart; empty in durable deployments)",
+        "## Client portal demonstration views",
+        "## Next steps (not done here)"
+      ]
+    },
+    {
       "file": "docs/development/federal-form-source-register.md",
       "sha256": "3d79673afb2a34390a85064923f7181bfd6155b194be0c4c6ad8365593c88feb",
       "bytes": 3595,
@@ -4063,8 +4114,8 @@
     },
     {
       "file": "docs/development/mfa-recovery-completion.md",
-      "sha256": "582951a71bc7a818183f167291c5c4e047962e2171d34840be1083416f0bcc0f",
-      "bytes": 5789,
+      "sha256": "42d339844b93ace5bf62576b6f0f01f346296ee8db18de12e42d48d78fbba3c9",
+      "bytes": 8129,
       "headings": [
         "# Staff MFA recovery completion and privileged reauthentication",
         "## Recovery lifecycle",
@@ -4073,6 +4124,7 @@
         "## Superseded functions (generated from 010/011)",
         "## API (`/api/staff-access`, development only)",
         "## Tests",
+        "## Administrator and staff UI (proposal 037)",
         "## Remaining (not done here)"
       ]
     },
@@ -4086,6 +4138,16 @@
         "## Synthetic development checks",
         "## Foundation implementation status",
         "## Completion status (2026-10-13, Claude branch)"
+      ]
+    },
+    {
+      "file": "docs/development/provider-mfa-validation.md",
+      "sha256": "1a70844e4fd5b5e3bb5153e5046d87f72f9741164bf076c3ca7e0cf0acc3f8dd",
+      "bytes": 3946,
+      "headings": [
+        "# Provider MFA admin validation (non-production)",
+        "## SDK compatibility review (installed `@supabase/supabase-js` / `@supabase/auth-js` 2.117.3)",
+        "## Reproducible validation procedure"
       ]
     },
     {
@@ -4163,15 +4225,16 @@
     },
     {
       "file": "docs/development/tax-engine-foundation.md",
-      "sha256": "bdc8e9b76f75e9579409822bf07a0152a63f9b58bc7b7407988be131c2ef75fb",
-      "bytes": 6214,
+      "sha256": "0ad7e2548f937bec69b5321fcc7ea44ff7c6c0306dc25a5710cf35bcc774bc9d",
+      "bytes": 7264,
       "headings": [
         "# Tax engine foundation (Phase 5)",
         "## Building blocks",
         "## API (`/api/tax-engine`, development only)",
         "## Tests",
         "## What is deliberately not here",
-        "## Source-cited verification cases (proposal 036, added 2026-10-13)"
+        "## Source-cited verification cases (proposal 036, added 2026-10-13)",
+        "## Verification-case coverage (proposal 038, added 2026-10-13)"
       ]
     },
     {
@@ -4409,6 +4472,18 @@
       "file": "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql",
       "sha256": "66d094bf951c57ba1ab22b15011660ebc3975038eac825a7234ae4d3587ce310",
       "bytes": 16889,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql",
+      "sha256": "192c371b3115f1d688ac648a621fac8f0273801ed77bc1888bd733d33f38f508",
+      "bytes": 6097,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql",
+      "sha256": "67fb1a439834f14e511ce0d5d6a770fe2e1a3a2c0e6395841a389d67e40d0104",
+      "bytes": 5288,
       "headings": []
     },
     {
@@ -5395,6 +5470,8 @@
     "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
     "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
     "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql": "66d094bf951c57ba1ab22b15011660ebc3975038eac825a7234ae4d3587ce310",
+    "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql": "192c371b3115f1d688ac648a621fac8f0273801ed77bc1888bd733d33f38f508",
+    "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql": "67fb1a439834f14e511ce0d5d6a770fe2e1a3a2c0e6395841a389d67e40d0104",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "3464961bae3dfa62347eed210f1a87a0ffbbc7fd292a116a2be1bfc52404a0e2",
@@ -5408,7 +5485,7 @@
     "qa/synthetic-shell/README.md": "9a697ca76ff1a3c60a337b4042914a075c5ec6fc03f3239e0ea0fb82af741544",
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
-    "scripts/e2e/e2e-server.ts": "16669dfa17e2694986e0c2ccbdb8b499a0dcf04ab420b680c1939cf0c6964237",
+    "scripts/e2e/e2e-server.ts": "918e0f7e6ee27ec7b5a1dd690d658f5b8b2a6d97f44a9d10df8a1db3caa6d387",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/record-local-browser-blockers.mjs": "5ebae5a42e083c3f98f832fa43033db24d4d03df0694fd74e440368518be5901",
     "scripts/run-local-browser.mjs": "b86f7c7307dec27e5315e3acac3e9d158802319593af11f8459b47575b684e9c",
@@ -5421,7 +5498,7 @@
     "src/ai/architectureMapping.ts": "6d7af6b6cb2860e0247af0243b42e2704f1d77ee020cec5e6625a386115c9377",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/PracticeAdminWorkspace.tsx": "a20f0c2b3c5ab841741838fe65a26ec46816b0bbcefd86336ea37261746d8220",
-    "src/components/auth/AuthPages.tsx": "01ead251370b872d4837f5c8afe56c7e38f2216cbdd716c2feb932a143fbd873",
+    "src/components/auth/AuthPages.tsx": "a8039c1195e11d2538eca2464249aee5cd9cdcc6013d751e67e917443beb3729",
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
@@ -5482,7 +5559,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "7acfe8eefd956723a36c1c2494723adef59f3a01b22d35c75f439926a2424998",
+    "src/services/api.ts": "087c4c304714da0cb6d3f95a143814892fb106a1527a9caaa7e7a58bbb673030",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests-db/concurrency.db.test.ts": "ad4aa01f0eea91d0626d77ec8e4015a2255be9ac21281a8e54a1f16ebc8db086",
@@ -5536,6 +5613,7 @@
     "src/tests/localBrowserPrerequisites.test.ts": "9620612d9b09bc093c346fcfc9a2585623e47dd610d065f8dbfc496fef7a620b",
     "src/tests/localBrowserSetup.test.ts": "567354a7640e12a95da0cdb5acc2550cce7e87117255ac3d97eff9a41362d799",
     "src/tests/mfaRecoveryCompletion.test.ts": "be74101a5b019d8dcefed8679aefc9d3811f5fae55033bd606a1199b224317ff",
+    "src/tests/mfaRecoveryHistory.test.ts": "61e7e30f2402f8d96ef0528146467fcbf38b64d2a2173a31aa73aad1b79dd836",
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
@@ -5545,7 +5623,7 @@
     "src/tests/productionApiHttp.test.ts": "f940c65ebb4c420e17592e2894bf8644047a9a07eacc3eb352649053fb8577f0",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "02063b3504bb23f581cc53b215ac99f44c86bd01f8e85ee8838d458053025d14",
+    "src/tests/proposalCompositionSecurity.test.ts": "ec7cbcfcfeb2b1327c01f2837a353407e9b5311aa1d7ba5dc07df6cc2adffa15",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
     "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
@@ -5571,6 +5649,7 @@
     "src/tests/taxCalculationCore.test.ts": "b018057026066e7cb382b6929dd14172bbad32195ab0944060078d5a07a289f9",
     "src/tests/taxEngineHttp.test.ts": "7d16366412359d88e793e2f6e78326bdfc6857e3e638fc3c9e942ed7c4f574d1",
     "src/tests/taxGuardBookkeepingEngine.test.ts": "f796feedbe701b400f55f5faf946d04b268cb53f2ed92fa1572707883703173b",
+    "src/tests/taxRuleCoverage.test.ts": "5706e9801a89385e5afae93f9194c99743b0a584c5bea65686e6f353e530a097",
     "src/tests/taxRuleVerificationCases.test.ts": "7ee1ee8bcdd3712b46f33f806fa0122cb12b7d6afac812b619a244c865d2e365",
     "src/tests/traceabilityEvidenceIntegrity.test.ts": "679deceba1ae27afe433e3a8240fb37c05db05b8ff5cf3837f3f3aab1dbdd6e3",
     "supabase/migrations/20260928000000_taxguard_core_schema.sql": "168f9766b3afa275bd05a30a64318c5b18c4f863083a247b2f121003a33329eb",

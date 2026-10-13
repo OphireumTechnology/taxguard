@@ -72,8 +72,35 @@ re-claim vs stale report), composition (034 included, idempotent re-apply), upda
 `staffAccessHttp` (privileged check runs first, refusal never reaches the membership RPC),
 `staffRecoveryDirectory`, `staffMfaRecoveryHook`.
 
+## Administrator and staff UI (proposal 037)
+
+Proposal `20261012370000_taxguard_mfa_recovery_history.sql` (service_role only, pinned search_path):
+`taxguard_mfa_recovery_history` returns a request's `STAFF_MFA_*` audit entries to an active AAL2
+administrator (reading needs no recency) with whitelisted detail keys only — never the recorded reason,
+factor IDs or provider material. `taxguard_mfa_recovery_step` returns a coarse step for the signed-in
+staff member (`none`, `awaiting_approval`, `awaiting_reset`, `reset_failed`, `ready_for_enrollment`,
+`awaiting_reactivation`). APIs: `GET /mfa-recoveries/:id/history`, `POST /mfa-recovery/status {providerAccessToken}`.
+
+- **Administrator panel** (Practice Staff & Roles → Staff MFA recovery): request, independent approval,
+  factor-reset status in the server's words, confirm forms for reactivation / reset retry / cancellation
+  (reason of at least 10 characters) offered only when the server's action hints allow, per-request audit
+  history, loading / empty / error states, and code-specific refusals (e.g. the 15-minute rule).
+- **Staff re-enrolment** (staff portal → Complete MFA Recovery, shown only where provider identity is
+  configured): provider password sign-in, recovery step, a new authenticator via `TotpEnrollmentPanel`,
+  then the provider token goes to the server for verification. The flow holds the provider-only identity
+  lease, so the app never bridges the recovery identity into a TaxGuard session or provisions anything;
+  leaving the flow signs the provider session out.
+- **Replays:** a repeated approval, enrolment proof or reactivation by the same actor returns the recorded
+  result (`resumed` / `replayed`) with no further effect; any other actor, or a later-state action, is refused.
+
+Browser E2E (provider profile, `src/tests-e2e/provider/09-mfa-recovery-ui.e2e.test.ts`, 8 tests): role
+restriction; other-tenant and non-member refusal; request in the UI; a 20-minute-old sign-in refused for
+approval with the 15-minute explanation; independent approval revoking the staff member's open session;
+reset through the real adapter; audit history; re-enrolment with a wrong code refused and no TaxGuard
+session created; reactivation; replays; a fresh staff sign-in with the new authenticator. The suite stays
+within the staff-access rate limit (20 requests a minute per client address) instead of relaxing it.
+
 ## Remaining (not done here)
 
-Administrator UI for complete / cancel / retry and a provider-side re-enrolment screen; real provider
-verification; browser E2E against a provider emulator; moving the recency check into the 003/004
-database functions (needs their session proof parameter).
+Real provider verification against an authorized non-production project; moving the recency check into
+the 003/004 database functions (needs their session proof parameter); proposal 037 is unapplied.

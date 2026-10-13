@@ -59,3 +59,18 @@ current content and case set**; adding a case after a run invalidates it. TaxGua
 
 Tests: `taxRuleVerificationCases.test.ts` (4; removing the submission gate fails 3), browser-suite
 `07-tax-engine` updated (a case is required and must pass before submission on the real server).
+
+## Verification-case coverage (proposal 038, added 2026-10-13)
+
+One passing case can leave most of a rule set unchecked. Proposal 038
+(`20261012380000_taxguard_tax_rule_coverage.sql`, **not applied**) supersedes the 036 gate with a
+structural coverage requirement computed from the stored definition: every declared output must be
+asserted by at least one case, every filing status that has its own parameter value must be
+exercised by a case with that filing status, and the default path (parameters without a filing
+status) by a case without one. Otherwise submission and approval refuse with
+`TAX_RULE_SET_COVERAGE_INCOMPLETE` (detail lists the missing output keys and filing-status codes).
+`GET /rule-sets/:id/coverage` reports what is missing. Coverage is structural only: it does not make
+a rule correct, add any tax content or replace the reviewer; TaxGuard still ships no rules or cases.
+
+Tests: `taxRuleCoverage.test.ts` (4), browser-suite `07-tax-engine` updated (the synthetic
+filing-status variant needs its own case before submission).

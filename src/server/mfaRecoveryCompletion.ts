@@ -119,3 +119,20 @@ export function startMfaResetWorker(options: { client: () => SupabaseClient; ten
   timer.unref();
   return { stop: () => clearInterval(timer), tick };
 }
+
+/** Audit trail of one recovery for administrators of the tenant (proposal 037; read, so no recency window). */
+export async function recoveryHistory(client: SupabaseClient, tenant: string, actor: User, verifiedApplicationToken: string, requestId: unknown) {
+  requireStaffAdministrator(actor, tenant);
+  if (!uuid(requestId)) throw new AuthorityError('MFA_RECOVERY_INPUT_INVALID', 400);
+  return rpc<{ requestId: string; targetUid: string; items: Array<{ action: string; actorUid: string; actorRole: string | null; at: string; details: Record<string, unknown> }> }>(
+    client, 'taxguard_mfa_recovery_history', { p_tenant: tenant, p_actor: actor.id, p_session_hash: bearerHash(verifiedApplicationToken), p_request_id: requestId });
+}
+export type RecoveryStep = 'none' | 'awaiting_approval' | 'awaiting_reset' | 'reset_failed' | 'ready_for_enrollment' | 'awaiting_reactivation';
+/** The staff member's own coarse recovery step, from a provider token verified by the server. */
+export async function recoveryStep(client: SupabaseClient, tenant: string, identity: VerifiedSupabaseUser): Promise<{ step: RecoveryStep }> {
+  safeId(tenant); safeId(identity.uid);
+  const data = await rpc<{ step: RecoveryStep }>(client, 'taxguard_mfa_recovery_step', { p_tenant: tenant, p_uid: identity.uid });
+  const steps: RecoveryStep[] = ['none', 'awaiting_approval', 'awaiting_reset', 'reset_failed', 'ready_for_enrollment', 'awaiting_reactivation'];
+  if (!data || !steps.includes(data.step)) throw new AuthorityError('MFA_RECOVERY_STORE_UNAVAILABLE', 503);
+  return { step: data.step };
+}

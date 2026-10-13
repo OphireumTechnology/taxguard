@@ -1,4 +1,6 @@
 import { StaffInvitationFlow } from './StaffInvitationFlow';
+import { StaffMfaRecoveryEnrollmentFlow } from './StaffMfaRecoveryEnrollmentFlow';
+import { isStaffIdentityDevelopmentConfigured } from '../../supabase/config';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { isLocalServerLoginBuild } from '../../context/localServerLogin';
@@ -835,7 +837,9 @@ export const ClientRegisterPage: React.FC = () => {
 export const StaffLoginPage: React.FC = () => {
   const fieldPrefix = React.useId();
   const { login, setCurrentPage } = useApp();
-  const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation'>('signin');
+  const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation' | 'mfa_recovery'>('signin');
+  // Recovery re-enrolment is provider-only; the tab exists only where provider identity is configured.
+  const recoveryAvailable = isStaffIdentityDevelopmentConfigured();
 
   // Sign in state
   const [email, setEmail] = useState('');
@@ -947,7 +951,7 @@ export const StaffLoginPage: React.FC = () => {
 
       <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
         {/* Mode switcher */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
+        <div className={`grid ${recoveryAvailable ? 'grid-cols-3' : 'grid-cols-2'} gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]`}>
           <button
             type="button"
             disabled={loginMode === 'accept_invitation'}
@@ -974,6 +978,14 @@ export const StaffLoginPage: React.FC = () => {
           >
             Accept Staff Invite
           </button>
+          {recoveryAvailable && <button
+            type="button"
+            disabled={loading || mfaEnrollmentRequired}
+            onClick={() => { setLoginMode('mfa_recovery'); clearStaleError(); }}
+            className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'mfa_recovery' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'}`}
+          >
+            Complete MFA Recovery
+          </button>}
         </div>
 
         {error && (
@@ -1110,6 +1122,8 @@ export const StaffLoginPage: React.FC = () => {
               </p>
             </div>
           </>
+        ) : loginMode === 'mfa_recovery' ? (
+          <StaffMfaRecoveryEnrollmentFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
         ) : (
           <StaffInvitationFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
         )}

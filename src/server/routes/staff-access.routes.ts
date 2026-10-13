@@ -11,7 +11,7 @@ import { AuthorityError } from '../taxguard/authority.repository';
 import { createStaffInvitation, lookupStaffInvitation, revokeStaffInvitation } from '../staffInvitationManagement';
 import { acceptStaffInvitation } from '../staffInvitationAcceptance';
 import { approveStaffActivation } from '../staffActivation';
-import { cancelMfaRecovery, completeMfaRecovery, requirePrivilegedSession, retryMfaResetJob, submitRecoveryEnrollment } from '../mfaRecoveryCompletion';
+import { cancelMfaRecovery, completeMfaRecovery, recoveryHistory, recoveryStep, requirePrivilegedSession, retryMfaResetJob, submitRecoveryEnrollment } from '../mfaRecoveryCompletion';
 import { configuredMfaResetProvider, type MfaFactorProvider } from '../mfaResetProvider';
 import { StaffAccessRateLimit } from '../staffAccessRateLimit';
 
@@ -63,6 +63,7 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   // with a provider access token (fresh primary sign-in, AAL2, newly enrolled factor).
   const mfaProvider = () => deps.mfaProvider ? deps.mfaProvider() : configuredMfaResetProvider();
   router.post('/mfa-recovery/enrollment', run(async req => submitRecoveryEnrollment(client(), tenant(), mfaProvider(), await identity(req))));
+  router.post('/mfa-recovery/status', run(async req => recoveryStep(client(), tenant(), await identity(req))));
   router.use(deps.authenticate || authenticateToken);
   const recoveryToken = (req: AuthenticatedRequest) => {
     if (!req.token || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new AuthorityError('AUTH_REQUIRED', 401);
@@ -77,6 +78,7 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   const noBody = (req: AuthenticatedRequest) => {
     if (req.body && (typeof req.body !== 'object' || Array.isArray(req.body) || Object.keys(req.body).length)) throw new AuthorityError('MFA_RECOVERY_INPUT_INVALID', 400);
   };
+  router.get('/mfa-recoveries/:id/history', run(async req => recoveryHistory(client(), tenant(), req.user!, recoveryToken(req), req.params.id)));
   router.post('/mfa-recoveries/:id/complete', run(async req => { noBody(req); return completeMfaRecovery(client(), tenant(), req.user!, recoveryToken(req), req.params.id); }));
   router.post('/mfa-recoveries/:id/retry', run(async req => { noBody(req); return retryMfaResetJob(client(), tenant(), req.user!, recoveryToken(req), req.params.id); }));
   router.post('/mfa-recoveries/:id/cancel', run(async req => cancelMfaRecovery(client(), tenant(), req.user!, recoveryToken(req), req.params.id, req.body?.reason)));

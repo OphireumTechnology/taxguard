@@ -9,10 +9,12 @@ class NameOrder extends BaseSequencer {
 
 // Opt-in browser E2E suite (npm run test:e2e). Started only by scripts/e2e/run-e2e.mjs, which boots
 // the real server on 127.0.0.1 with a local PostgreSQL and synthetic users. Never part of `vitest run`.
+// Profile 'provider' (browser signs in through the provider emulation) runs src/tests-e2e/provider.
+const provider = process.env.E2E_PROFILE === 'provider';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/tests-e2e/**/*.e2e.test.ts'],
+    include: provider ? ['src/tests-e2e/provider/**/*.e2e.test.ts'] : ['src/tests-e2e/*.e2e.test.ts'],
     fileParallelism: false,
     maxWorkers: 1,
     sequence: { shuffle: false, sequencer: NameOrder },

@@ -15,7 +15,8 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   PRACTICE_ACCESS_DENIED: 403, TAX_SOURCE_EXISTS: 409, TAX_SOURCE_NOT_PROPOSED: 409, TAX_RULE_SET_DUPLICATE: 409, TAX_RULE_SET_NOT_DRAFT: 409, TAX_RULE_SET_NOT_PENDING: 409,
   TAX_RULE_SET_NOT_APPROVED: 409, TAX_SOURCE_NOT_VERIFIED: 409, TAX_CALC_ALREADY_REVIEWED: 409, TAX_CALC_TAX_YEAR_MISMATCH: 409, TAX_ENGINE_NONDETERMINISM: 409,
   TAX_RULE_SET_INTEGRITY: 409, TAX_RULE_SET_IMMUTABLE: 409, TAX_CALC_RUN_IMMUTABLE: 409,
-  TAX_RULE_SET_TESTS_REQUIRED: 409, TAX_RULE_SET_TESTS_NOT_RUN: 409, TAX_RULE_SET_TESTS_FAILING: 409, TAX_RULE_TESTS_CHANGED: 409, TAX_RULE_TEST_IMMUTABLE: 409 };
+  TAX_RULE_SET_TESTS_REQUIRED: 409, TAX_RULE_SET_TESTS_NOT_RUN: 409, TAX_RULE_SET_TESTS_FAILING: 409, TAX_RULE_TESTS_CHANGED: 409, TAX_RULE_TEST_IMMUTABLE: 409,
+  TAX_RULE_SET_COVERAGE_INCOMPLETE: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -80,6 +81,10 @@ export class TaxEngineStore {
   }
   tests(tenant: string, actor: string, ruleSetId: string) {
     return this.call<{ testsSha256: string; tests: any[]; latestRun: any }>('taxguard_tax_rule_test_list', { p_tenant: tenant, p_actor: actor, p_rule_set: this.id(ruleSetId) });
+  }
+  /** Outputs and filing-status variants not yet exercised by a verification case (proposal 038). */
+  coverage(tenant: string, actor: string, ruleSetId: string) {
+    return this.call<{ ruleSetId: string; contentSha256: string; missingOutputs: string[]; missingFilingStatuses: string[] }>('taxguard_tax_rule_coverage_get', { p_tenant: tenant, p_actor: actor, p_rule_set: this.id(ruleSetId) });
   }
   /** Runs every case with the deterministic engine; a case passes only if every expected output matches exactly. */
   async runTests(tenant: string, actor: string, ruleSetId: string) {

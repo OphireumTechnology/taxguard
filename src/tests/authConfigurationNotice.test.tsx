@@ -9,7 +9,7 @@ vi.mock('react', async importOriginal => {
 });
 vi.mock('../context/AppContext', () => ({ useApp: () => ({ registrationState: 'IDLE', pendingVerificationEmail: '' }) }));
 vi.mock('../supabase/auth', () => ({ requestPasswordReset: vi.fn(), validateRegistrationInput: vi.fn() }));
-vi.mock('../supabase/config', () => ({ isSupabaseConfigured: () => fixture.configured }));
+vi.mock('../supabase/config', () => ({ isSupabaseConfigured: () => fixture.configured, isStaffIdentityDevelopmentConfigured: () => false }));
 // Build mode is explicit: by default these tests model a build without the local server login
 // (as in production); the local development build is covered separately below.
 vi.mock('../context/localServerLogin', () => ({ isLocalServerLoginBuild: () => fixture.localBuild }));
