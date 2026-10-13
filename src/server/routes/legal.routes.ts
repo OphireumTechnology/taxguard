@@ -11,6 +11,7 @@ import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, blockRecruiterFromTaxRecords } from '../auth';
 import { LegalCoordinationRecord } from '../../types';
+import { CLIENT_ROLES, canAccessStaffClient } from '../clientAccess';
 
 export const legalRouter = Router();
 
@@ -23,8 +24,12 @@ legalRouter.get('/', authenticateToken, blockRecruiterFromTaxRecords, (req: Auth
 
   let list = Array.from(db.legalRecords.values());
 
-  if (req.user.role === 'client' || req.user.role === 'prospective_client') {
+  // Clients see their own records; staff only clients they are authorized for (previously every staff
+  // member received every client's legal records).
+  if (CLIENT_ROLES.has(req.user.role)) {
     list = list.filter(r => r.clientId === req.user!.id);
+  } else {
+    list = list.filter(r => canAccessStaffClient(req.user!, r.clientId));
   }
 
   return res.json({

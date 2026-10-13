@@ -15,13 +15,14 @@ vi.mock('../server/auth', async original => ({
   },
 }));
 import { messagesRouter } from '../server/routes/messages.routes';
+import { legalRouter } from '../server/routes/legal.routes';
 import { appointmentsRouter } from '../server/routes/appointments.routes';
 import { practiceConsoleRouter } from '../server/routes/practice-console.routes';
 
 let server: Server, origin: string;
 beforeAll(async () => {
   const app = express(); app.use(express.json());
-  app.use('/api/messages', messagesRouter); app.use('/api/appointments', appointmentsRouter); app.use('/api/practice-console', practiceConsoleRouter);
+  app.use('/api/messages', messagesRouter); app.use('/api/legal', legalRouter); app.use('/api/appointments', appointmentsRouter); app.use('/api/practice-console', practiceConsoleRouter);
   server = createServer(app); await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
@@ -58,6 +59,16 @@ afterEach(() => {
   db.clientAccountantAssignments.delete('lr-asg');
   for (const id of ['lr-msg', 'lr-msg-internal']) db.messages.delete(id);
   db.appointments.delete('lr-apt'); db.documents.delete('lr-doc');
+});
+
+describe('GET /legal', () => {
+  it('lists legal records only for clients the caller may access', async () => {
+    db.legalRecords.set('lr-legal', { id: 'lr-legal', clientId: 'lr-client-a', clientName: 'a', title: 'Synthetic', category: 'estate_trust', status: 'intake', notes: '', disclaimerAcknowledged: true, documentIds: [], createdAt: '', updatedAt: '' } as any);
+    try {
+      for (const who of ['unassigned', 'adminB', 'clientA2'] as Who[]) expect((await call('GET', '/legal', who)).body.legalRecords.filter((r: any) => r.id === 'lr-legal'), who).toEqual([]);
+      for (const who of ['accountant', 'clientA'] as Who[]) expect((await call('GET', '/legal', who)).body.legalRecords.map((r: any) => r.id), who).toContain('lr-legal');
+    } finally { db.legalRecords.delete('lr-legal'); }
+  });
 });
 
 describe('GET /messages', () => {

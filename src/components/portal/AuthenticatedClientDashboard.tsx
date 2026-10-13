@@ -83,7 +83,7 @@ import { StageFifteenMonitorView } from './views/stages/StageFifteenMonitorView'
 import { StageSixteenArchiveView } from './views/stages/StageSixteenArchiveView';
 import { StageSeventeenRenewView } from './views/stages/StageSeventeenRenewView';
 import { StageEighteenRepeatView } from './views/stages/StageEighteenRepeatView';
-import { LiveCalendarModule } from '../calendar/LiveCalendarModule';
+import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import { ClientSearchModal } from './dashboard/ClientSearchModal';
 import { NotificationCenterDropdown } from './dashboard/NotificationCenterDropdown';
 import { getStoredToken } from '../../services/api';
@@ -609,13 +609,11 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               <span>Consultation Schedule &amp; Client Calendar</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Schedule live video consultations with your tax advisory team. External calendars fail-closed if unconfigured.
+              Request appointments with your advisory team and see confirmed meeting details. Times are shown in each appointment's time zone.
             </p>
           </div>
 
-          <LiveCalendarModule
-            embedded={true}
-          />
+          <AppointmentsPanel mode={{ kind: "client", clientId }} />
         </div>
       );
     }

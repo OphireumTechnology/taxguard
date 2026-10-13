@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ENGAGEMENT_TRANSITIONS, newPracticeKey, practiceMessage, practiceService, type PracticeClientDetail, type PracticeClientRow } from '../../services/practiceService';
 
 import { ConversationPanel } from '../communications/ConversationPanel';
+import { LegalMattersPanel } from '../legal/LegalMattersPanel';
 
 const ROLES = ['preparer', 'reviewer', 'bookkeeper', 'case_owner'];
 const TYPES = ['tax_preparation', 'bookkeeping', 'tax_planning', 'advisory', 'representation', 'payroll'];
@@ -115,6 +116,7 @@ export function PracticeClientsPanel() {
         </form>
         <ul>{d.notes.map(n => <li key={n.noteId}>{n.body}<small> — {n.authorUid} ({n.authorRole}), {new Date(n.createdAt).toLocaleString()}</small></li>)}</ul>
         <ConversationPanel key={d.client.clientId} clientId={d.client.clientId} mode="staff" canArchive />
+        <LegalMattersPanel key={'legal-' + d.client.clientId} clientId={d.client.clientId} />
         <h4>Client status</h4>
         <button type="button" disabled={busy || statusReason.trim().length < 5} onClick={() => run('client-status', () => practiceService.setClientStatus(d.client.clientId,
           d.client.status === 'archived' ? 'active' : 'archived', statusReason), d.client.status === 'archived' ? 'Client reactivated.' : 'Client archived.')}>
