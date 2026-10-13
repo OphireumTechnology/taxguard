@@ -21,7 +21,7 @@ describe('composition on a real PostgreSQL server', () => {
   });
   it('re-applies the Claude proposals idempotently', async () => {
     const fs = await import('node:fs');
-    for (const name of PROPOSALS.filter(n => /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014/.test(n)))
+    for (const name of PROPOSALS.filter(n => /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015/.test(n)))
       await db.pool.query(fs.readFileSync('docs/proposed-migrations/' + name, 'utf8'));
   });
   it('every SECURITY DEFINER taxguard function pins search_path', async () => {
@@ -31,7 +31,7 @@ describe('composition on a real PostgreSQL server', () => {
   });
   it('no Claude-proposal function is executable by anon or authenticated', async () => {
     const r = await db.pool.query(`SELECT DISTINCT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public'
-      AND p.proname ~ '^taxguard_(ledger|practice|case|doc|docreq|client_notification|bill|b2t|comm|apt|audit_center|legal|consult|rar|portal)_?' AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))`);
+      AND p.proname ~ '^taxguard_(ledger|practice|case|doc|docreq|client_notification|bill|b2t|comm|apt|audit_center|legal|consult|rar|portal|security)_?' AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))`);
     expect(r.rows.map(x => x.proname)).toEqual([]);
   });
 });

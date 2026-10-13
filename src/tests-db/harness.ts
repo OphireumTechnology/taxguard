@@ -28,10 +28,11 @@ export type TestDatabase = {
   /** A new independent connection (a separate backend session). */
   connect(): Promise<pg.Client>;
   pool: pg.Pool;
+  restart(): Promise<void>;
   stop(): Promise<void>;
 };
 
-export async function startDatabase(): Promise<TestDatabase> {
+export async function startDatabase(options: { durable?: boolean } = {}): Promise<TestDatabase> {
   fs.mkdirSync(ROOT, { recursive: true });
   // Remove directories left by earlier runs (older than an hour, so a parallel run is never touched).
   for (const name of fs.readdirSync(ROOT).filter(n => n.startsWith('pg-'))) {
@@ -40,21 +41,30 @@ export async function startDatabase(): Promise<TestDatabase> {
   }
   const databaseDir = path.join(ROOT, 'pg-' + process.pid + '-' + randomBytes(4).toString('hex'));
   const port = await freePort(), password = randomBytes(18).toString('hex');
-  const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: false, onLog: () => {},
-    postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=60', '-c', 'fsync=off'] });
+  const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: !!options.durable, onLog: () => {},
+    postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=60', '-c', `fsync=${options.durable ? 'on' : 'off'}`] });
   await server.initialise();
   await server.start();
   const config = { host: '127.0.0.1', port, user: 'postgres', password, database: 'taxguard_test' };
   await server.createDatabase('taxguard_test');
-  const pool = new pg.Pool({ ...config, max: 20 });
+  let pool = new pg.Pool({ ...config, max: 20 });
   try { await compose(pool); } catch (e) { await pool.end(); await server.stop(); throw e; }
   return {
-    pool,
+    get pool() { return pool; },
     async connect() { const c = new pg.Client(config); await c.connect(); return c; },
+    async restart() {
+      if (!options.durable) throw new Error('DISPOSABLE_DURABLE_TEST_REQUIRED');
+      await pool.end(); await server.stop(); await server.start();
+      pool = new pg.Pool({ ...config, max: 20 });
+    },
     async stop() {
       await pool.end(); await server.stop();
       // Windows may keep the data directory locked briefly after the server exits.
-      try { fs.rmSync(databaseDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }); }
+      try {
+        const resolved = path.resolve(databaseDir), parent = path.resolve(ROOT);
+        if (!resolved.startsWith(parent + path.sep) || !path.basename(resolved).startsWith('pg-')) throw new Error('DATABASE_CLEANUP_PATH_DENIED');
+        fs.rmSync(resolved, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      }
       catch { console.warn('[db-tests] data directory still locked; it is removed on the next run'); }
     },
   };

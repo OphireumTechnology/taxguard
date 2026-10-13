@@ -213,12 +213,14 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
 
 if (process.env.NODE_ENV !== 'production') {
   if (process.env.TAXGUARD_SECURITY_EVENTS === 'durable' && practiceStoreConfigured()) {
-    const recorder = new SecurityEventRecorder(getSupabaseAdmin() as any, process.env.TAXGUARD_TENANT_ID || '');
+    const recorder = new SecurityEventRecorder(getSupabaseAdmin() as any, process.env.TAXGUARD_TENANT_ID || '', 100, 'outbox');
     db.securityEventSink = event => recorder.record(event);
     app.use('/api', securityDenialObserver(recorder));
     // Report only counters, never event content. Health monitoring must alert on failures/drops.
     const timer = setInterval(() => { const status = recorder.status(); if (status.failed || status.dropped) console.warn('[security-ingest]', status); }, 60_000);
     timer.unref();
+    const dispatcher = setInterval(() => { void recorder.dispatch().catch(() => undefined); }, 1000);
+    dispatcher.unref();
   }
   initSeedPasswords();
   const superAdmin = bootstrapSuperAdministrator();

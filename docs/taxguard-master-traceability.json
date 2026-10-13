@@ -4443,6 +4443,14 @@
       ]
     },
     {
+      "file": "docs/development/phase11-progress.md",
+      "sha256": "74614c23a075deed4b6b257fbc15791f918cbe45a6eff47861b4848ee1daca81",
+      "bytes": 1419,
+      "headings": [
+        "# Phase 11 execution checkpoint"
+      ]
+    },
+    {
       "file": "docs/development/phase7-reviews.md",
       "sha256": "3b49870b60fc8ea72fa0a1190fe66880b6e8d0adde7ade42ea04c14456bff4e3",
       "bytes": 4291,
@@ -4882,6 +4890,12 @@
       "file": "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql",
       "sha256": "be568cc35a64315357a680810f841c8f6988ca6ff6a2b9790b97650801f1f6f0",
       "bytes": 8403,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+      "sha256": "3daff4b1f3e0b07a79523f1322cb031bf7240f21b2215d20e2adcfa9846cfa53",
+      "bytes": 8829,
       "headings": []
     },
     {
@@ -5938,7 +5952,7 @@
     "src/server/productionApp.ts": "812c6e32ac4d631e52b2f4b766e1f64bd13d45930915887c9beefa3a7cd83ada",
     "src/server/routes/ledgerDispatch.routes.ts": "8f31ed13030cb6057c5f72fe8f4158ddefafe7f76565d78b4ad91ee5750ac3f9",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
-    "src/server/securityEventRecorder.ts": "854c669295c479edbe89612810f764650f3af3da91e03a9d604a66dc112f6946",
+    "src/server/securityEventRecorder.ts": "4fc38214acc59ae099964fc0979605a59aea390b0be680d29707d0304d1c938c",
     "src/server/staffSessionManagement.ts": "689f4b705b9499814bf2852f277b170522b8d3baf2bd31e0aae404dee23590d0",
     "src/server/taxguard/SqlCaseReadPreparation.ts": "43ff77e88ee0c3a3ac6852487f3371c49c14397d3144f45a2e0d51fef51cc3dc",
     "src/server/taxguard/authority.repository.ts": "775ac57a1954ea44e0d58f79c039c52c1757099e3a06e6a91d076475c3bb3884",
@@ -5974,7 +5988,7 @@
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/tests-db/concurrency.db.test.ts": "ad4aa01f0eea91d0626d77ec8e4015a2255be9ac21281a8e54a1f16ebc8db086",
-    "src/tests-db/harness.ts": "dc1f2f28fb60b292f62154ff22da41b41c400c2b98b90a05102d6173c79f042f",
+    "src/tests-db/harness.ts": "56381bcfac104caf64fdded78efafb1620cd8b48418f7a25ff6ccb5443e0e9f0",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",

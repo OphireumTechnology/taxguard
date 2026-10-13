@@ -2451,6 +2451,50 @@
         "-- identities are optional for failed authentication and are verified in the declared tenant.",
         "-- Caller supplies no free-text metadata, IP, credential, token, address or document content."
       ]
+    },
+    {
+      "order": 50,
+      "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+      "kind": "proposal",
+      "version": "20261015000000",
+      "sha256": "3daff4b1f3e0b07a79523f1322cb031bf7240f21b2215d20e2adcfa9846cfa53",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_security_outbox",
+        "taxguard_security_enqueue",
+        "taxguard_security_dispatch",
+        "taxguard_security_outbox_metrics",
+        "taxguard_security_outbox_guard"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback: stop producers/dispatchers, preserve all envelopes and audit rows, disable ingestion.",
+        "-- Do not drop the outbox or revert confidentiality/immutability during rollback."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_security_outbox FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_security_outbox_guard() FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_security_enqueue(text,text,uuid,text,text),public.taxguard_security_dispatch(text,integer),public.taxguard_security_outbox_metrics(text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_security_enqueue(text,text,uuid,text,text),public.taxguard_security_dispatch(text,integer),public.taxguard_security_outbox_metrics(text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL 047 ONLY. NOT APPLIED. Depends on proposal 046 and the actual core schema.",
+        "-- Acknowledged enqueue commits a minimal immutable envelope. Delivery is at least once;",
+        "-- UUID audit identity plus the same transaction for audit insertion and completion prevents",
+        "-- duplicate audit rows. Pending/blocked rows are retained; no retention/deletion policy invented.",
+        "-- Rollback: stop producers/dispatchers, preserve all envelopes and audit rows, disable ingestion.",
+        "-- Do not drop the outbox or revert confidentiality/immutability during rollback."
+      ]
     }
   ]
 }
