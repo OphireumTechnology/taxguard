@@ -11,13 +11,13 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { 
-  requireMakerChecker, 
-  requirePractitionerAuthority, 
-  requireTenantIsolation, 
-  requireClientIsolation, 
+import {
+  requireMakerChecker,
+  requirePractitionerAuthority,
+  requireTenantIsolation,
+  requireClientIsolation,
   filterReviewerNotesForClients,
-  AuthenticatedRequest 
+  AuthenticatedRequest
 } from '../src/server/auth';
 import { db } from '../src/server/db';
 import { User } from '../src/types';

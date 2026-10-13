@@ -251,4 +251,3 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION taxguard_accept_staff_invitation(text,text,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION taxguard_accept_staff_invitation(text,text,text,text) TO service_role;
-

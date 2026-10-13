@@ -4363,14 +4363,14 @@
     },
     {
       "file": "docs/proposed-migrations/20261012050000_taxguard_staff_access_directory.sql",
-      "sha256": "669d835858308ee80115e1ba1298bc50acffd2b9afa6bb5715f50b5def7ed32b",
-      "bytes": 5974,
+      "sha256": "5c70a7997162086f2e2818e66308377f09e50f5dece09cc50a67c1ca613862f2",
+      "bytes": 5968,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
-      "sha256": "5cf5cc0344f124784668cfe9b52986a1742841c5ae55b78a3e64c79b15dd75c2",
-      "bytes": 18547,
+      "sha256": "6fc3f9f7f94faaf0edbcac38e1630499e1dbc2a323b9e536e6f3580a41847363",
+      "bytes": 18545,
       "headings": []
     },
     {

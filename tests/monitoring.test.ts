@@ -71,7 +71,7 @@ describe('Telemetry & Observability Monitoring Suite', () => {
   it('truthfully evaluates provider readiness without exposing secrets', () => {
     const allProviders = ProviderReadinessRegistry.getAllProviderStatuses();
     expect(allProviders.length).toBe(10);
-    
+
     // Check that each provider has valid status and never reveals secrets
     for (const p of allProviders) {
       expect(['CONFIGURED', 'NOT_CONFIGURED', 'UNAVAILABLE', 'DEGRADED', 'ERROR']).toContain(p.status);

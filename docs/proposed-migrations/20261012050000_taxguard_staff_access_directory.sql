@@ -88,7 +88,7 @@ BEGIN
     ) AS row_data
     FROM public.taxguard_staff_invitations v
     WHERE v.tenant_id = p_tenant
-      
+
       AND (p_status IS NULL OR v.status = p_status)
       AND (p_after_created IS NULL OR (v.created_at, v.id COLLATE "C") < (p_after_created, p_after_id COLLATE "C"))
     ORDER BY v.created_at DESC, v.id COLLATE "C" DESC LIMIT p_page_size
