@@ -6,7 +6,7 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/tests|cases/${ID}/runs)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID})?)|legal-matters/(disclaimer|clients/${ID}/matters))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/tests|cases/${ID}/runs)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID})?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
   `cases/?`, `cases/${ID}/(advance|return|hold|notes)`,
@@ -23,6 +23,10 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
   `scheduling/clients/${ID}/appointments`, `scheduling/clients/${ID}/appointments/${ID}/(update|reschedule|status)`,
   // Legal-coordination tracking (proposal 042): the database re-checks scope and the defined status order.
   `legal-matters/clients/${ID}/matters`, `legal-matters/clients/${ID}/matters/${ID}/(update|status|documents)`,
+  // Consultation-request review (proposal 043): managers decide and convert; the database re-checks.
+  `consultations/requests/${ID}/(decision|convert)`,
+  // Reassignment-request review (proposal 045): leadership decides; reassignment stays a separate action.
+  `reassignment/queue/${ID}/review`,
 ].join('|') + `)$`);
 
 export function practiceManagerRequestAllowed(role:string,method:string,url:string):boolean {

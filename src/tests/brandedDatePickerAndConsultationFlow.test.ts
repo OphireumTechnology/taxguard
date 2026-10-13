@@ -38,10 +38,11 @@ describe('A/R Tax Services — Branded Date Picker & Consultation Flow Suite', (
       expect(liveCalendarSource).toContain('id="consultation-date-input"');
     });
 
-    it('BookConsultationPage Express Intake uses BrandedDatePicker instead of raw <input type="date">', () => {
-      expect(bookConsultationSource).not.toMatch(/id="intake-date"[^>]*type="date"/);
-      expect(bookConsultationSource).toContain('<BrandedDatePicker');
-      expect(bookConsultationSource).toContain('id="intake-date"');
+    it('the consultation request form uses BrandedDatePicker instead of raw <input type="date">', () => {
+      const formSource = readSource('src/components/public/ConsultationRequestForm.tsx');
+      expect(bookConsultationSource).not.toContain('type="date"');
+      expect(formSource).not.toContain('type="date"');
+      expect(formSource).toContain('<BrandedDatePicker');
     });
 
     it('LiveCalendarModule Reschedule Modal uses BrandedDatePicker', () => {

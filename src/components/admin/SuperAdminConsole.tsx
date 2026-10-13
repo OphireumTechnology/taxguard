@@ -16,6 +16,7 @@ import { DASHBOARD_DIRECTORY, DashboardDirectoryEntry, SUPER_ADMIN_CONSOLE_PATH,
 import { DashboardInspectionProvider, canInspectDashboards } from '../layout/dashboardInspection';
 import { useAdminProviderReadiness } from '../../hooks/useAdminProviderReadiness';
 import { PageLoadingFallback } from '../common/PageLoadingFallback';
+import { AuditCenterPanel } from './AuditCenterPanel';
 
 const AccountantWorkspace = lazy(() => import('../workspace/AccountantWorkspace').then(m => ({ default: m.AccountantWorkspace })));
 const ReviewerWorkspace = lazy(() => import('../workspace/ReviewerWorkspace').then(m => ({ default: m.ReviewerWorkspace })));
@@ -190,21 +191,11 @@ function SuperAdminOverview({ onOpen }: { onOpen: (id: string) => void }) {
   const { currentUser, authLifecycleState } = useApp();
   const [refresh, setRefresh] = useState(0);
   const [aiPanel, setAiPanel] = useState<'none' | 'control' | 'stop'>('none');
+  const [auditOpen, setAuditOpen] = useState(false);
   const session = useLoad(() => api.superAdmin.getSession(), [refresh]);
   const health = useLoad(() => api.admin.getSystemHealth(), [refresh]);
-  const users = useLoad(() => api.admin.getUsers(), [refresh]);
-  const audit = useLoad(() => api.admin.getAuditLogs({ limit: 15 }), [refresh]);
-  const security = useLoad(() => api.admin.getSecurityEvents(), [refresh]);
   const readiness = useAdminProviderReadiness(currentUser, authLifecycleState, refresh);
 
-  const staff = useMemo(() => (users.data?.users || []).filter((u: User) => STAFF_ROLES.has(u.role)), [users.data]);
-  const roleCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const u of users.data?.users || []) counts[u.role] = (counts[u.role] || 0) + 1;
-    return Object.entries(counts).sort();
-  }, [users.data]);
-  const events = security.data?.securityEvents || [];
-  const warnings = events.filter((e: any) => e.severity === 'warning' || e.severity === 'critical');
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
@@ -221,10 +212,6 @@ function SuperAdminOverview({ onOpen }: { onOpen: (id: string) => void }) {
           {health.status === 'loading' ? <p role="status">Loading…</p> : health.status === 'error' ? <Unavailable what="System health" /> : (
             <dl className="grid grid-cols-2 gap-1">
               <dt>Server status</dt><dd>{health.data!.healthStatus}</dd>
-              <dt>Users (tenant)</dt><dd>{health.data!.metrics.totalUsers}</dd>
-              <dt>Clients</dt><dd>{health.data!.metrics.totalClients}</dd>
-              <dt>Active engagements</dt><dd>{health.data!.metrics.activeEngagements}</dd>
-              <dt>Documents (metadata)</dt><dd>{health.data!.metrics.totalDocumentsSecured}</dd>
               <dt>Server time</dt><dd>{health.data!.serverTimestamp}</dd>
             </dl>
           )}
@@ -239,20 +226,11 @@ function SuperAdminOverview({ onOpen }: { onOpen: (id: string) => void }) {
         </Card>
 
         <Card title="3. Staff and user management" testId="sa-staff">
-          {users.status === 'loading' ? <p role="status">Loading…</p> : users.status === 'error' ? <Unavailable what="Users" /> : (
-            <>
-              <table className="w-full text-left">
-                <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>MFA</th></tr></thead>
-                <tbody>{staff.map(u => <tr key={u.id}><td>{u.name}<br /><span className="text-slate-400">{u.email}</span></td><td>{u.role}</td><td>{u.status}</td><td>{u.mfaEnabled ? 'Yes' : 'No'}</td></tr>)}</tbody>
-              </table>
-              {!staff.length && <p>No staff accounts in this tenant.</p>}
-              <button type="button" className="underline text-[#D4A843]" onClick={() => onOpen('administrator')}>Manage staff in the Administrator dashboard</button>
-            </>
-          )}
+          <p>The authoritative staff directory — membership status, roles, invitations, MFA recovery, sessions, suspension and reactivation with recent sign-in and independent approval — is in the Administrator dashboard (Practice Staff &amp; Roles).</p>
+          <button type="button" className="underline text-[#D4A843]" onClick={() => onOpen('administrator')}>Manage staff in the Administrator dashboard</button>
         </Card>
 
         <Card title="4. Roles and permissions" testId="sa-roles">
-          {roleCounts.length > 0 && <p>Accounts by role: {roleCounts.map(([r, n]) => `${r} ${n}`).join(' · ')}</p>}
           <ul className="list-disc pl-4 space-y-1 text-slate-300">
             <li>Roles are assigned by the server; the browser cannot choose a role.</li>
             <li>Super administrator = administrator permissions plus this console. No universal override: preparer, reviewer, client and maker-checker controls still apply.</li>
@@ -273,14 +251,8 @@ function SuperAdminOverview({ onOpen }: { onOpen: (id: string) => void }) {
         </Card>
 
         <Card title="6. Security and audit" testId="sa-security">
-          {audit.status === 'error' ? <Unavailable what="Audit log" /> : audit.status === 'loading' ? <p role="status">Loading…</p> : (
-            <ul className="space-y-1 max-h-48 overflow-y-auto">
-              {(audit.data!.auditLogs || []).slice(0, 15).map((log: AuditLog) => (
-                <li key={log.id}><code>{log.action}</code> · {log.userRole} · {log.timestamp}</li>
-              ))}
-            </ul>
-          )}
-          <p className="text-slate-400">Security events (warning or critical): {security.status === 'ready' ? warnings.length : security.status === 'error' ? 'unavailable' : '…'}</p>
+          <p>Recorded security events (sessions, staff access and MFA, sign-in, AI governance) are shown below from the durable audit log. Events the server only held in memory are not authoritative and are not shown.</p>
+          <button type="button" className="underline text-[#D4A843]" onClick={() => setAuditOpen(o => !o)}>{auditOpen ? 'Close' : 'Open'} security events</button>
         </Card>
 
         <Card title="7. Workflow oversight" testId="sa-workflow">
@@ -304,14 +276,12 @@ function SuperAdminOverview({ onOpen }: { onOpen: (id: string) => void }) {
         </Card>
 
         <Card title="10. Operational health and errors" testId="sa-operations">
-          <p>Tracked failed-login keys: {health.data ? health.data.metrics.failedLoginAttemptsTracked : '…'}</p>
-          <ul className="space-y-1 max-h-40 overflow-y-auto">
-            {warnings.slice(0, 10).map((e: any) => <li key={e.id}><code>{e.eventType}</code> · {e.severity} · {e.timestamp}</li>)}
-          </ul>
-          {security.status === 'ready' && !warnings.length && <p>No warning or critical security events recorded for this tenant.</p>}
+          <p>Failed-login keys tracked by this server process (not persisted): {health.data ? health.data.metrics.failedLoginAttemptsTracked : '…'}</p>
+          <p className="text-slate-400">Durable security events are in the security events view (section 6).</p>
         </Card>
       </div>
 
+      {auditOpen && <section className="p-4 rounded-2xl bg-[#0D2745] border border-slate-700"><AuditCenterPanel securityOnly /></section>}
       {aiPanel !== 'none' && (
         <section className="p-4 rounded-2xl bg-[#0D2745] border border-slate-700">
           <Suspense fallback={<PageLoadingFallback />}>{aiPanel === 'control' ? <AiControlCenterPanel /> : <AiEmergencyStopPanel />}</Suspense>

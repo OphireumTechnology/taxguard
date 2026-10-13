@@ -134,13 +134,7 @@ interface AppContextType {
   } | null;
   dataError: string | null;
   users: User[];
-  engagements: Engagement[];
-  documents: DocumentItem[];
-  appointments: Appointment[];
   servicePlans: ServicePlan[];
-  invoices: Invoice[];
-  accountingConnections: AccountingConnection[];
-  messages: Message[];
   jobPostings: JobPosting[];
   jobs: JobPosting[];
   selectedJob: JobPosting | null;
@@ -151,7 +145,6 @@ interface AppContextType {
   notifications: AppNotification[];
   onboardingState: OnboardingState | null;
   onboardingProgress: { percentComplete: number; missingRequirements: string[]; nextAction: string } | null;
-  legalRecords: LegalCoordinationRecord[];
   securityTestResults: SecurityTestResult[];
   login: (email: string, password: string, mfaCode?: string) => Promise<{
     success: boolean;
@@ -187,25 +180,11 @@ interface AppContextType {
   }>;
   logout: () => Promise<void>;
   switchTestAccount: (userId: string) => Promise<void>;
-  uploadDocument: (fileData: Partial<DocumentItem>, sampleText?: string) => Promise<DocumentItem | null>;
-  updateDocumentStatus: (docId: string, status: DocumentStatus, notes?: string, correctedFields?: any[]) => Promise<void>;
-  verifyExtractedField: (docId: string, fieldKey: string, newValue?: string | number) => void;
-  updateEngagementStatus: (engId: string, status: EngagementStatus, notes?: string) => Promise<{ success: boolean; error?: string }>;
-  dispatch8879: (engId: string) => Promise<{ success: boolean; error?: string }>;
-  toggleEngagementTask: (engId: string, taskId: string) => void;
-  bookAppointment: (apt: Omit<Appointment, 'id' | 'createdAt' | 'status'>) => Promise<{ success: boolean; error?: string; appointment?: Appointment }>;
-  cancelAppointment: (aptId: string) => Promise<void>;
-  payInvoice: (invId: string, paymentMethod?: string, idempotencyKey?: string) => Promise<{ success: boolean; error?: string; receipt?: any }>;
   updateServicePlan: (planId: string, updatedPlan: Partial<ServicePlan>) => Promise<void>;
-  triggerAccountingSync: (connectionId: string) => Promise<void>;
-  connectAccountingProvider: (provider: string, companyName?: string) => Promise<void>;
-  disconnectAccountingProvider: (connectionId: string) => Promise<void>;
-  sendMessage: (content: string, isInternalOnly: boolean, engagementId?: string) => Promise<void>;
   submitJobApplication: (application: Omit<Applicant, 'id' | 'appliedDate' | 'status'>) => Promise<boolean>;
   updateApplicantStatus: (appId: string, status: Applicant['status']) => Promise<void>;
   saveOnboardingStep: (stepData: Partial<OnboardingState>) => Promise<boolean>;
   submitOnboardingDossier: () => Promise<boolean>;
-  createLegalRecord: (record: Partial<LegalCoordinationRecord>) => Promise<boolean>;
   runSecuritySuite: () => Promise<any>;
   refreshBackendData: () => Promise<void>;
   addAuditLog: (actionOrLog: string | Partial<AuditLog>, userRoleOrResource?: string, detailsStr?: string) => void;
@@ -414,13 +393,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentRole, setCurrentRoleState] = useState<UserRole | 'guest'>('guest');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const [engagements, setEngagements] = useState<Engagement[]>([]);
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [servicePlans, setServicePlans] = useState<ServicePlan[]>(INITIAL_SERVICE_PLANS);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [accountingConnections, setAccountingConnections] = useState<AccountingConnection[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [jobPostings, setJobPostings] = useState<JobPosting[]>(INITIAL_JOBS);
   const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
@@ -443,7 +416,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [dataError, setDataError] = useState<string | null>(null);
   const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null);
   const [onboardingProgress, setOnboardingProgress] = useState<{ percentComplete: number; missingRequirements: string[]; nextAction: string } | null>(null);
-  const [legalRecords, setLegalRecords] = useState<LegalCoordinationRecord[]>([]);
   const [securityTestResults, setSecurityTestResults] = useState<SecurityTestResult[]>([]);
   const [cookieConsentAccepted, setCookieConsentAccepted] = useState(true);
   const [cookieModalOpen, setCookieModalOpen] = useState(false);
@@ -465,15 +437,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentRoleState('guest');
     setProvisionedOnboarding(null);
     setUsers([]);
-    setEngagements([]);
-    setDocuments([]);
-    setAppointments([]);
-    setInvoices([]);
-    setAccountingConnections([]);
-    setMessages([]);
     setApplicants([]);
     setAuditLogs([]);
-    setLegalRecords([]);
     setSecurityTestResults([]);
     setNotifications([]);
     setOnboardingState(null);
@@ -610,26 +575,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentRoleState(sessionUser.role);
 
       if (!import.meta.env.PROD) {
-        const [docsRes, engsRes, aptsRes, invRes, connRes, msgsRes, jobsRes, legalRes] = await Promise.all([
-          api.documents.list().catch(() => ({ documents: [] })),
-          api.engagements.list().catch(() => ({ engagements: [] })),
-          api.appointments.list().catch(() => ({ appointments: [] })),
-          api.payments.getInvoices().catch(() => ({ invoices: [] })),
-          api.integrations.list().catch(() => ({ connections: [] })),
-          api.messages.list().catch(() => ({ messages: [] })),
-          api.careers.getJobs().catch(() => ({ jobs: [] })),
-          api.legal.list().catch(() => ({ legalRecords: [] }))
-        ]);
+        // Operational records (legal
+        // matters) come from the durable, server-authorized APIs inside each screen; the former
+        // in-memory loads into shared state had no reachable reader and were removed in Phase 9.
+        const jobsRes = await api.careers.getJobs().catch(() => ({ jobs: [] }));
 
         if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
-        setDocuments(docsRes.documents || []);
-        setEngagements(engsRes.engagements || []);
-        setAppointments(aptsRes.appointments || []);
-        setInvoices(invRes.invoices || []);
-        setAccountingConnections(connRes.connections || []);
-        setMessages(msgsRes.messages || []);
         if (jobsRes.jobs?.length) setJobPostings(jobsRes.jobs as JobPosting[]);
-        setLegalRecords(legalRes.legalRecords || []);
 
         if (sessionUser.role === 'client' || sessionUser.role === 'prospective_client') {
           const onb = await api.onboarding.getState().catch(() => null);
@@ -1284,164 +1236,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const uploadDocument = async (docData: Partial<DocumentItem>, sampleText?: string): Promise<DocumentItem | null> => {
-    try {
-      if (!currentUser?.clientId) throw new Error('Permanent TaxGuard Client ID is required.');
 
-      const res = await api.documents.upload({
-        fileName: docData.fileName || 'Uploaded_Document.pdf',
-        fileSize: docData.fileSize || '1.2 MB',
-        fileType: docData.fileType || 'application/pdf',
-        category: docData.category || 'other',
-        taxYear: docData.taxYear || 2025,
-        description: docData.description || 'Uploaded to 256-bit encrypted vault',
-        rawContentSample: sampleText || `Sample OCR text for ${docData.fileName}`
-      });
 
-      const newDoc = res.document;
-      setDocuments(previous => [newDoc, ...previous.filter(item => item.id !== newDoc.id)]);
-      setNotifications(previous => [{
-        id: `notif_${Date.now()}`,
-        title: 'Document Intake Received',
-        message: `${newDoc.fileName} was received by TaxGuard and is pending the applicable security, processing, validation, and human-review controls.`,
-        timestamp: 'Just now',
-        isRead: false,
-        type: 'success',
-        linkTarget: 'client_portal'
-      }, ...previous]);
 
-      return newDoc;
-    } catch (err) {
-      console.error('Document upload error:', err);
-      return null;
-    }
-  };
 
-  const updateDocumentStatus = async (docId: string, status: DocumentStatus, notes?: string, correctedFields?: any[]) => {
-    try {
-      await api.documents.review(docId, { status, reviewerNotes: notes, correctedFields });
-      setDocuments(previous => previous.map(item => item.id === docId ? {
-        ...item,
-        status,
-        reviewerNotes: notes || item.reviewerNotes,
-        reviewedBy: currentUser?.name,
-        reviewedAt: new Date().toISOString(),
-        extractedData: correctedFields || item.extractedData
-      } : item));
-    } catch (err) {
-      console.error('Document review update error:', err);
-    }
-  };
 
-  const verifyExtractedField = (docId: string, fieldKey: string, newValue?: string | number) => {
-    setDocuments(previous => previous.map(item => {
-      if (item.id !== docId || !item.extractedData) return item;
-      const updatedFields = item.extractedData.map(field => field.key === fieldKey ? {
-        ...field,
-        value: newValue !== undefined ? newValue : field.value,
-        reviewed: true,
-        needsAttention: false
-      } : field);
-      api.documents.review(docId, { status: item.status, correctedFields: updatedFields }).catch(() => {});
-      return { ...item, extractedData: updatedFields };
-    }));
-  };
 
-  const updateEngagementStatus = async (engId: string, status: EngagementStatus, notes?: string) => {
-    try {
-      let progress = 50;
-      if (status === 'in_preparation') progress = 40;
-      if (status === 'under_review') progress = 75;
-      if (status === 'ready_for_signature') progress = 90;
-      if (status === 'completed' || status === 'delivered') progress = 100;
-      const res = await api.engagements.updateStatus(engId, { status, progressPercent: progress, notes });
-      setEngagements(previous => previous.map(item => item.id === engId ? res.engagement : item));
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  };
 
-  const dispatch8879 = async (engId: string) => {
-    try {
-      const res = await api.engagements.dispatch8879(engId);
-      setEngagements(previous => previous.map(item => item.id === engId ? res.engagement : item));
-      await refreshBackendData();
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  };
 
-  const toggleEngagementTask = (engId: string, taskId: string) => {
-    setEngagements(previous => previous.map(engagement => {
-      if (engagement.id !== engId) return engagement;
-      const updatedTasks = engagement.tasks.map(task => task.id === taskId ? { ...task, completed: !task.completed } : task);
-      const completedCount = updatedTasks.filter(task => task.completed).length;
-      return {
-        ...engagement,
-        tasks: updatedTasks,
-        progressPercent: Math.round((completedCount / updatedTasks.length) * 100),
-        updatedAt: new Date().toISOString()
-      };
-    }));
-  };
-
-  const bookAppointment = async (aptData: Omit<Appointment, 'id' | 'createdAt' | 'status'>) => {
-    try {
-      if (!currentUser?.clientId) throw new Error('Permanent TaxGuard Client ID is required.');
-
-      const res = await api.appointments.book(aptData);
-      setAppointments(previous => [res.appointment, ...previous]);
-      setNotifications(previous => [{
-        id: `notif_${Date.now()}`,
-        title: 'Consultation Confirmed',
-        message: `Your ${res.appointment.serviceType} with ${res.appointment.accountantName} has been booked for ${res.appointment.date} at ${res.appointment.timeSlot} EST.`,
-        timestamp: 'Just now',
-        isRead: false,
-        type: 'success',
-        linkTarget: 'client_portal'
-      }, ...previous]);
-      return { success: true, appointment: res.appointment };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  };
-
-  const cancelAppointment = async (aptId: string) => {
-    try {
-      await api.appointments.update(aptId, { status: 'cancelled' });
-      setAppointments(previous => previous.map(item => item.id === aptId ? { ...item, status: 'cancelled' } : item));
-    } catch (err) {
-      console.error('Cancel appointment error:', err);
-    }
-  };
-
-  const payInvoice = async (invId: string, paymentMethod = 'Credit Card (Stored Vault)', idempotencyKey?: string) => {
-    try {
-      const targetInvoice = invoices.find(item => item.id === invId);
-      const amount = targetInvoice ? targetInvoice.amount : 250;
-      const res = await api.payments.charge({
-        amount,
-        invoiceId: invId,
-        paymentMethod,
-        idempotencyKey: idempotencyKey || `idem_${Date.now()}`
-      });
-      setInvoices(previous => previous.map(item => item.id === invId ? res.invoice : item));
-      setNotifications(previous => [{
-        id: `notif_${Date.now()}`,
-        title: 'Payment Confirmed',
-        message: `Settlement of $${amount} USD completed. Receipt ${res.receipt?.receiptNumber || 'REC-PCI'} generated.`,
-        timestamp: 'Just now',
-        isRead: false,
-        type: 'success',
-        linkTarget: 'client_portal'
-      }, ...previous]);
-      return { success: true, receipt: res.receipt };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  };
 
   const updateServicePlan = async (planId: string, updatedPlan: Partial<ServicePlan>) => {
     try {
@@ -1452,46 +1254,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const triggerAccountingSync = async (connectionId: string) => {
-    setAccountingConnections(previous => previous.map(item => item.id === connectionId ? { ...item, status: 'syncing' } : item));
-    try {
-      const res = await api.integrations.sync(connectionId);
-      setAccountingConnections(previous => previous.map(item => item.id === connectionId ? res.connection : item));
-    } catch (err) {
-      console.error('Accounting sync error:', err);
-    }
-  };
 
-  const connectAccountingProvider = async (provider: string, companyName?: string) => {
-    try {
-      const res = await api.integrations.connect(provider, companyName);
-      setAccountingConnections(previous => [res.connection, ...previous]);
-    } catch (err) {
-      console.error('Connect provider error:', err);
-    }
-  };
 
-  const disconnectAccountingProvider = async (connectionId: string) => {
-    try {
-      const res = await api.integrations.disconnect(connectionId);
-      setAccountingConnections(previous => previous.map(item => item.id === connectionId ? res.connection : item));
-    } catch (err) {
-      console.error('Disconnect error:', err);
-    }
-  };
 
-  const sendMessage = async (content: string, isInternalOnly: boolean, engagementId?: string) => {
-    try {
-      const res = await api.messages.send({
-        content,
-        isInternalNote: isInternalOnly,
-        engagementId
-      });
-      setMessages(previous => [...previous, res.messageData]);
-    } catch (err) {
-      console.error('Send message error:', err);
-    }
-  };
 
   const submitJobApplication = async (appData: Omit<Applicant, 'id' | 'appliedDate' | 'status'>): Promise<boolean> => {
     try {
@@ -1589,16 +1354,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const createLegalRecord = async (record: Partial<LegalCoordinationRecord>): Promise<boolean> => {
-    try {
-      const res = await api.legal.create(record);
-      setLegalRecords(previous => [res.record, ...previous]);
-      return true;
-    } catch (err) {
-      console.error('Create legal record error:', err);
-      return false;
-    }
-  };
 
   const runSecuritySuite = async () => {
     try {
@@ -1725,13 +1480,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     provisionedOnboarding,
     dataError,
     users,
-    engagements,
-    documents,
-    appointments,
     servicePlans,
-    invoices,
-    accountingConnections,
-    messages,
     jobPostings,
     jobs: jobPostings,
     selectedJob,
@@ -1742,31 +1491,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     notifications,
     onboardingState,
     onboardingProgress,
-    legalRecords,
     securityTestResults,
     login,
     register,
     logout,
     switchTestAccount,
-    uploadDocument,
-    updateDocumentStatus,
-    verifyExtractedField,
-    updateEngagementStatus,
-    dispatch8879,
-    toggleEngagementTask,
-    bookAppointment,
-    cancelAppointment,
-    payInvoice,
     updateServicePlan,
-    triggerAccountingSync,
-    connectAccountingProvider,
-    disconnectAccountingProvider,
-    sendMessage,
     submitJobApplication,
     updateApplicantStatus,
     saveOnboardingStep,
     submitOnboardingDossier,
-    createLegalRecord,
     runSecuritySuite,
     refreshBackendData,
     addAuditLog,
@@ -1784,10 +1518,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }), [
     currentUser, currentRole, currentPage, pageParams, isSyncingWithBackend, isLoadingData,
     isInitialized, authLifecycleState, registrationState, pendingVerificationEmail,
-    resendVerificationEmail, provisionedOnboarding, dataError, users, engagements, documents,
-    appointments, servicePlans, invoices, accountingConnections, messages, jobPostings,
+    resendVerificationEmail, provisionedOnboarding, dataError, users, servicePlans, jobPostings,
     selectedJob, applyForJob, applicants, auditLogs, notifications, onboardingState,
-    onboardingProgress, legalRecords, securityTestResults, refreshBackendData, addAuditLog,
+    onboardingProgress, securityTestResults, refreshBackendData, addAuditLog,
     addNotification, updateServicePlanPrice, toggleUserStatus, impersonateUser, reassignClient,
     cookieConsentAccepted, cookieModalOpen
   ]);

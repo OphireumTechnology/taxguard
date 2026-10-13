@@ -8,6 +8,7 @@ import express, { Router, type RequestHandler, type Response } from 'express';
 import { authenticateToken, type AuthenticatedRequest } from '../auth';
 import { getSupabaseAdmin } from '../supabase';
 import { BillingError, BillingStore, SandboxPaymentProvider } from '../taxguard/billing/billingStore';
+import { clientBillingView } from '../taxguard/billing/clientBillingView';
 import { practiceStoreConfigured } from './practice.routes';
 
 export function createBillingRouter(deps: { store?: () => BillingStore; authenticate?: RequestHandler } = {}) {
@@ -27,7 +28,11 @@ export function createBillingRouter(deps: { store?: () => BillingStore; authenti
     next();
   });
   const run = (handler: (req: AuthenticatedRequest) => Promise<unknown>, status = 200): RequestHandler => async (req, res: Response) => {
-    try { return res.status(status).json(await handler(req as AuthenticatedRequest)); }
+    try {
+      const value = await handler(req as AuthenticatedRequest);
+      // Clients receive the allow-listed client projection only (no staff-only financial details).
+      return res.status(status).json(['client', 'prospective_client'].includes((req as AuthenticatedRequest).user!.role) ? clientBillingView(value) : value);
+    }
     catch (error) {
       if (error instanceof BillingError) return res.status(error.status).json({ code: error.code });
       return res.status(503).json({ code: 'BILLING_STORE_UNAVAILABLE' });

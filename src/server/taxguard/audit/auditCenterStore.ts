@@ -10,7 +10,7 @@ export class AuditCenterError extends Error {
 }
 const STATUS: Record<string, number> = { AUDIT_ADMIN_REQUIRED: 403, AUDIT_EVENT_NOT_FOUND: 404 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export interface AuditFilter { from: string; to: string; category?: string; action?: string; actorUid?: string; clientId?: string; cursor?: string; limit?: number }
+export interface AuditFilter { from: string; to: string; category?: string; categories?: string[]; action?: string; actorUid?: string; clientId?: string; cursor?: string; limit?: number }
 
 export class AuditCenterStore {
   constructor(private readonly client: PracticeRpcClient) {}
@@ -32,9 +32,11 @@ export class AuditCenterStore {
       try { after = JSON.parse(Buffer.from(filter.cursor, 'base64url').toString('utf8')); } catch { throw new AuditCenterError('AUDIT_INPUT_INVALID', 400); }
       if (!after || typeof after.at !== 'string' || typeof after.eventId !== 'string' || !UUID.test(after.eventId)) throw new AuditCenterError('AUDIT_INPUT_INVALID', 400);
     }
+    if (filter.categories !== undefined && (!Array.isArray(filter.categories) || filter.categories.length < 1 || filter.categories.length > 10 || filter.categories.some(c => !/^[A-Z0-9]{2,32}$/.test(c))))
+      throw new AuditCenterError('AUDIT_INPUT_INVALID', 400);
     if (filter.limit !== undefined && (!Number.isInteger(filter.limit) || filter.limit < 1 || filter.limit > 100)) throw new AuditCenterError('AUDIT_INPUT_INVALID', 400);
     const page = await this.call<{ items: any[]; next: { at: string; eventId: string } | null }>('taxguard_audit_center_list', { p_tenant: tenant, p_actor: actor, p_filter: {
-      from: this.when(filter.from), to: this.when(filter.to), category: filter.category ?? null, action: filter.action ?? null, actorUid: filter.actorUid ?? null,
+      from: this.when(filter.from), to: this.when(filter.to), category: filter.category ?? null, ...(filter.categories ? { categories: filter.categories } : {}), action: filter.action ?? null, actorUid: filter.actorUid ?? null,
       clientId: filter.clientId ?? null, limit: filter.limit ?? 50, ...(after ? { after } : {}) } });
     return { items: page.items, nextCursor: page.next ? Buffer.from(JSON.stringify(page.next)).toString('base64url') : null };
   }

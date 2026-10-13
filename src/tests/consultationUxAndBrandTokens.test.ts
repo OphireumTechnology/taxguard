@@ -28,6 +28,7 @@ function readSource(relative: string): string {
 
 describe('A/R Tax Services — Consultation UX & Canonical Brand Tokens Suite', () => {
   const consultationPageSource = readSource('src/components/public/BookConsultationPage.tsx');
+  const consultationFormSource = readSource('src/components/public/ConsultationRequestForm.tsx');
   const liveCalendarSource = readSource('src/components/calendar/LiveCalendarModule.tsx');
   const indexCssSource = readSource('src/index.css');
   const brandedSelectSource = readSource('src/components/ui/BrandedSelect.tsx');
@@ -107,19 +108,23 @@ describe('A/R Tax Services — Consultation UX & Canonical Brand Tokens Suite', 
 
   // 3. Consultation Page Simplification
   describe('3. Three-Area Page Simplification', () => {
-    it('contains clear Page Introduction with "Schedule a Consultation"', () => {
-      expect(consultationPageSource).toContain('Schedule a Consultation');
-      expect(consultationPageSource).toContain('Reserve a dedicated strategy session with our senior tax specialists.');
+    it('contains clear Page Introduction with "Request a Consultation"', () => {
+      expect(consultationPageSource).toContain('Request a Consultation');
+      expect(consultationPageSource).toContain('we review every request and contact you to confirm a time.');
     });
 
-    it('contains two-option compact segmented control for Booking Method', () => {
-      expect(consultationPageSource).toContain('Schedule Online');
-      expect(consultationPageSource).toContain('Express Intake');
+    // Phase 9: the in-memory live calendar and express booking (hard-coded staff) were replaced by a
+    // durable consultation REQUEST (proposal 043); the practice confirms a time afterwards.
+    it('submits a durable consultation request instead of booking a time', () => {
+      expect(consultationPageSource).toContain('<ConsultationRequestForm />');
+      for (const legacy of ['LiveCalendarModule', 'bookAppointment', 'setBookingMode', 'user_accountant_desmond', 'Marcus Vance'])
+        expect(consultationPageSource).not.toContain(legacy);
     });
 
-    it('supports switching between live_calendar and fast_form', () => {
-      expect(consultationPageSource).toContain("setBookingMode('live_calendar')");
-      expect(consultationPageSource).toContain("setBookingMode('fast_form')");
+    it('states that no account or booking is created and asks for consent', () => {
+      expect(consultationFormSource).toContain('It does not create an account or book a time.');
+      expect(consultationFormSource).toContain('consent.text');
+      expect(consultationFormSource).toContain('/api/public/consultation-requests');
     });
   });
 
@@ -287,9 +292,9 @@ describe('A/R Tax Services — Consultation UX & Canonical Brand Tokens Suite', 
       expect(liveCalendarSource).toContain('Select an available time to continue.');
     });
 
-    it('Express Intake preserves confidential intake badge and clear fields', () => {
-      expect(consultationPageSource).toContain('Confidential intake session.');
-      expect(consultationPageSource).toContain('Book Consultation');
+    it('request form keeps the brand surfaces and asks for no account numbers or tax IDs', () => {
+      expect(consultationFormSource).toContain('bg-[#0D2745]');
+      expect(consultationFormSource).toContain('no account numbers or tax IDs');
     });
   });
 });

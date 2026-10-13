@@ -30,7 +30,6 @@ const IndustriesPage = lazy(() => import('./components/public/IndustriesPage').t
 const NotFoundPage = lazy(() => import('./components/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 import { ClientLoginPage, ClientRegisterPage, StaffLoginPage } from './components/auth/AuthPages';
 const StaffOnboardingWizard = lazy(() => import('./components/workspace/StaffOnboardingWizard').then(m => ({ default: m.StaffOnboardingWizard })));
-const LiveCalendarModule = lazy(() => import('./components/calendar/LiveCalendarModule').then(m => ({ default: m.LiveCalendarModule })));
 const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
 
 // Resolve role authority before requesting the associated workspace module.
@@ -435,7 +434,8 @@ const AppContent: React.FC = () => {
       case 'accessibility': return <AccessibilityStatementPage />;
       case 'security': return <SecurityDataHandlingPage />;
       case 'disclaimers': return <ProfessionalDisclaimersPage />;
-      case 'live_calendar': return <LiveCalendarModule />;
+      // The former in-memory live calendar is replaced by durable consultation requests (proposal 043).
+      case 'live_calendar': return <BookConsultationPage />;
       case 'virtual_consultation_room':
         return (
           <VirtualConsultationRoom

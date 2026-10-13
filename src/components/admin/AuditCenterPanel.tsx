@@ -30,7 +30,10 @@ export function auditErrorText(error: unknown) {
  * and status fields only and counts what it withheld; no secret, factor, token, message body,
  * reason, amount or taxpayer payload ever reaches this view.
  */
-export function AuditCenterPanel() {
+/** Categories of authoritatively recorded security events (sessions, staff access and MFA, sign-in, AI governance, kill switches). */
+export const SECURITY_CATEGORIES = ['SESSION', 'STAFF', 'AUTH', 'AI', 'KILL'];
+export function AuditCenterPanel({ securityOnly: initialSecurity = false }: { securityOnly?: boolean } = {}) {
+  const [securityOnly, setSecurityOnly] = useState(initialSecurity);
   const [filter, setFilter] = useState({ from: isoDay(Date.now() - 7 * DAY), to: isoDay(Date.now()), category: '', action: '', actorUid: '', clientId: '' });
   const [applied, setApplied] = useState(filter);
   const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error'; items: AuditEvent[]; next: string | null; error?: string }>({ status: 'loading', items: [], next: null });
@@ -41,6 +44,7 @@ export function AuditCenterPanel() {
   const params = (f: typeof filter) => {
     const p: Record<string, string> = { from: new Date(f.from + 'T00:00:00Z').toISOString(), to: new Date(Date.parse(f.to + 'T00:00:00Z') + DAY).toISOString() };
     for (const k of ['category', 'action', 'actorUid', 'clientId'] as const) if (f[k].trim()) p[k] = f[k].trim();
+    if (securityOnly && !p.category) p.categories = SECURITY_CATEGORIES.join(',');
     return p;
   };
   const load = useCallback((f: typeof filter, cursor?: string, signal?: AbortSignal) => {
@@ -49,7 +53,7 @@ export function AuditCenterPanel() {
       .then(page => { if (mounted.current) setState(s => ({ status: 'ready', items: cursor ? [...s.items, ...page.items] : page.items, next: page.nextCursor })); })
       .catch(error => { if (mounted.current && !signal?.aborted) setState({ status: 'error', items: [], next: null, error: auditErrorText(error) }); });
     read<Array<{ category: string; count: number }>>('/categories', { from: params(f).from, to: params(f).to }, signal).then(c => mounted.current && setCategories(c)).catch(() => undefined);
-  }, []);
+  }, [securityOnly]);
   useEffect(() => { const controller = new AbortController(); load(applied, undefined, controller.signal); return () => controller.abort(); }, [applied, load]);
   const field = (k: keyof typeof filter, label: string, type = 'text') => <label className="block">{label}<input type={type} value={filter[k]} maxLength={128}
     onChange={e => setFilter({ ...filter, [k]: e.target.value })} className="w-full rounded border border-slate-500 bg-[#071A2E] px-2 py-1 text-white" /></label>;
@@ -61,6 +65,7 @@ export function AuditCenterPanel() {
       <label className="block">Category<select value={filter.category} onChange={e => setFilter({ ...filter, category: e.target.value })} className="w-full rounded border border-slate-500 bg-[#071A2E] px-2 py-1 text-white">
         <option value="">All categories</option>{categories.map(c => <option key={c.category} value={c.category}>{c.category.toLowerCase()} ({c.count})</option>)}</select></label>
       {field('action', 'Exact action code')}{field('actorUid', 'Actor UID')}{field('clientId', 'Client ID')}
+      <label className="flex items-center gap-2"><input type="checkbox" checked={securityOnly} onChange={e => setSecurityOnly(e.target.checked)} /> Security events only (sessions, staff access and MFA, sign-in, AI governance)</label>
       <button className="rounded border border-slate-500 px-3 py-2">Apply filters</button>
     </form>
     {state.status === 'loading' && state.items.length === 0 && <p role="status">Loading audit records…</p>}

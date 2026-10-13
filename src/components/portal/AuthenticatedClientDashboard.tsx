@@ -381,7 +381,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   // Main Workspace Content based on context isolation
   const renderMainWorkspace = () => {
     if (activeNavId.startsWith("stage_") && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
-    if (["tax_return", "messages", "requests", "exceptions", "billing", "records", "archive"].includes(activeNavId)) return <ClientDashboardModule key={clientId + ":" + selectedTaxYear + ":" + activeNavId} module={activeNavId === "exceptions" ? "requests" : activeNavId === "archive" ? "records" : activeNavId} user={currentUser!} data={dashboardData} taxYear={selectedTaxYear} onRefresh={() => setDashboardRefresh(value => value + 1)} onBack={() => handleSelectNav("home")} onSelectYear={year => { onTaxYearChange?.(year); handleSelectNav("documents"); }} />;
+    if (["tax_return", "messages", "legal", "advisor", "requests", "exceptions", "billing", "records", "archive"].includes(activeNavId)) return <ClientDashboardModule key={clientId + ":" + selectedTaxYear + ":" + activeNavId} module={activeNavId === "exceptions" ? "requests" : activeNavId === "archive" ? "records" : activeNavId} user={currentUser!} data={dashboardData} taxYear={selectedTaxYear} onRefresh={() => setDashboardRefresh(value => value + 1)} onBack={() => handleSelectNav("home")} onSelectYear={year => { onTaxYearChange?.(year); handleSelectNav("documents"); }} />;
 
     // 1. STAGE LOCKED BY TAXGUARD HARD GATE
     if (selectedLockedStage) {

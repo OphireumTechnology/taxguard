@@ -37,7 +37,7 @@ export function createAuditCenterRouter(deps: AuditCenterRouterDeps = {}) {
   };
   const str = (v: unknown) => typeof v === 'string' && v !== '' ? v : undefined;
   router.get('/events', run(req => store().list(req.user!.tenantId!, req.user!.id, { from: String(req.query.from ?? ''), to: String(req.query.to ?? ''),
-    category: str(req.query.category), action: str(req.query.action), actorUid: str(req.query.actorUid), clientId: str(req.query.clientId), cursor: str(req.query.cursor),
+    category: str(req.query.category), categories: str(req.query.categories)?.split(','), action: str(req.query.action), actorUid: str(req.query.actorUid), clientId: str(req.query.clientId), cursor: str(req.query.cursor),
     limit: req.query.limit === undefined ? undefined : Number(req.query.limit) })));
   router.get('/events/:eventId', run(req => store().event(req.user!.tenantId!, req.user!.id, req.params.eventId)));
   router.get('/categories', run(req => store().categories(req.user!.tenantId!, req.user!.id, req.query.from, req.query.to)));

@@ -95,12 +95,19 @@ describe('billing', () => {
 
   it('records payments idempotently, refuses duplicates and overpayment, and settles in exact decimals', async () => {
     as('client');
-    expect((await call('GET', `/clients/${C}/invoices`)).body.items.map((i: any) => i.status)).toEqual(['VOID', 'ISSUED']);
+    const mine = (await call('GET', `/clients/${C}/invoices`)).body.items;
+    expect(mine.map((i: any) => i.status)).toEqual(['VOID', 'ISSUED']);
+    // Phase 9: staff-only financial details never reach clients (allow-listed client projection).
+    const text = JSON.stringify(mine);
+    for (const internal of ['preparedBy', 'approvedBy', 'reviewNote', 'voidReason', 'rateOverrideReason', 'Agreed synthetic discount', 'Add the engagement reference', 'bl-mgr', 'bl-acct', 'provider'])
+      expect(text, internal).not.toContain(internal);
+    expect(mine[1].lines.map((l: any) => l.serviceCode)).toEqual(['IND-1040', 'BK-HOUR']);
     expect((await call('POST', `/clients/${C}/invoices/${inv}/payments`, { amount: '10.00', method: 'CHECK' })).body.code).toBe('PAYMENT_NOT_AUTHORIZED');
     expect((await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '100.00', testCard: '5555555555554444' })).body.code).toBe('SANDBOX_TEST_CARD_REQUIRED');
     expect((await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '100.00', testCard: SANDBOX_DECLINE_CARD })).status).toBe(402);
     const paid = await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '100.10', testCard: SANDBOX_SUCCESS_CARD }, 'bl-pay-key-1');
     expect(paid.status).toBe(201); expect(paid.body.invoice).toMatchObject({ amountPaid: '100.10', balanceDue: '524.90', status: 'PARTIALLY_PAID' });
+    expect(JSON.stringify(paid.body)).not.toMatch(/preparedBy|approvedBy|reviewNote|bl-mgr|provider/);
     const replay = await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '100.10', testCard: SANDBOX_SUCCESS_CARD }, 'bl-pay-key-1');
     expect(replay.body).toMatchObject({ paymentId: paid.body.paymentId, replayed: true });
     expect((await call('POST', `/clients/${C}/invoices/${inv}/pay-sandbox`, { amount: '999.99', testCard: SANDBOX_SUCCESS_CARD })).body.code).toBe('PAYMENT_EXCEEDS_BALANCE');

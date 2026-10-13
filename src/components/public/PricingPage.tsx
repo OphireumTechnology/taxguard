@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const PricingPage: React.FC = () => {
-  const { servicePlans, setCurrentPage, currentUser, payInvoice } = useApp();
+  const { servicePlans, setCurrentPage, currentUser } = useApp();
   const [billingCycle, setBillingCycle] = useState<'standard' | 'annual'>('standard');
   const [selectedPlan, setSelectedPlan] = useState<ServicePlan | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);

@@ -22,6 +22,13 @@ vi.mock('../services/api', () => ({
   api: { clientDashboard: { read: harness.reads } },
 }));
 // Durable conversations (proposal 039) are one more read of the same session: counted with the others.
+vi.mock('../services/clientPortalReads', () => ({
+  portalRead: async (path: string, signal?: AbortSignal) => {
+    const resource = path.endsWith('/documents') ? 'documents' : path.endsWith('/engagements') ? 'engagements' : 'invoices';
+    const value = await harness.reads(resource, 'client-a', undefined, signal);
+    return { items: (value[resource] ?? []).map((d: any) => resource === 'documents' ? { documentId: d.id, version: 1, clientId: d.clientId, taxYear: d.taxYear, status: 'VERIFIED', fileName: 'synthetic.pdf', createdAt: '2026-01-01T00:00:00Z' } : d) };
+  },
+}));
 vi.mock('../services/appointmentsService', () => ({
   appointmentsService: { listForClient: async (clientId: string, signal?: AbortSignal) => (await harness.reads('appointments', clientId, undefined, signal)).appointments },
 }));
@@ -43,7 +50,7 @@ beforeEach(() => {
 });
 describe('client dashboard authenticated session isolation', () => {
   it('hides cached records immediately on token replacement and reloads the session', async () => {
-    render(); await settle(); expect(render().documents.data?.[0].id).toBe('authorized-document');
+    render(); await settle(); expect(render().documents.data?.[0].id).toBe('authorized-document:1');
     const signal = harness.reads.mock.calls[0][3] as AbortSignal;
     harness.token = 'session-b';
     expect(render().documents).toEqual({ status: 'loading', data: null });

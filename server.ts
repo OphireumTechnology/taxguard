@@ -9,6 +9,9 @@ import { createCommunicationsRouter } from './src/server/routes/communications.r
 import { createSchedulingRouter } from './src/server/routes/appointments-durable.routes';
 import { createAuditCenterRouter } from './src/server/routes/audit-center.routes';
 import { createLegalMattersRouter } from './src/server/routes/legal-durable.routes';
+import { createConsultationReviewRouter, createPublicConsultationRouter } from './src/server/routes/consultations.routes';
+import { createClientPortalRouter } from './src/server/routes/client-portal.routes';
+import { createReassignmentRouter } from './src/server/routes/reassignment.routes';
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
@@ -225,6 +228,10 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 }
+
+// Public consultation requests (proposal 043) are mounted BEFORE the global body parsers so their
+// own 8 KB JSON limit applies; development-only, 503 unless the durable store is configured.
+app.use('/api/public/consultation-requests', createPublicConsultationRouter());
 
 /**
  * ============================================================
@@ -460,6 +467,12 @@ app.use('/api/scheduling', createSchedulingRouter());
 app.use('/api/audit-center', createAuditCenterRouter());
 // Durable legal-coordination tracking (proposal 042): development-only, 503 unless configured.
 app.use('/api/legal-matters', createLegalMattersRouter());
+// Staff review of consultation requests (proposal 043): development-only, 503 unless configured.
+app.use('/api/consultations', createConsultationReviewRouter());
+// Client-portal engagement reads (proposal 044): development-only, 503 unless configured.
+app.use('/api/client-portal', createClientPortalRouter());
+// Durable reassignment requests (proposal 045): development-only, 503 unless configured.
+app.use('/api/reassignment', createReassignmentRouter());
 
 app.use(
   '/api/onboarding',
