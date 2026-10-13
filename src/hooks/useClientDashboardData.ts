@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api, getStoredToken } from '../services/api';
 import { communicationsService } from '../services/communicationsService';
+import { appointmentsService } from '../services/appointmentsService';
 import type { Appointment, DocumentItem, Engagement, Invoice, Message, User } from '../types';
 import type { GeneratedDocumentRequirement, StoredQuestionnaireRecord } from '../server/taxguard/taxQuestionnaire';
-import { ClientDashboardData, ClientScope, DashboardRequest, Resource, emptyDashboardData, scopeAppointments, scopeDocuments, scopeEngagements, scopeInvoices, scopeMessages, scopeRequests, scopeRequirements, threadSummaries, validClientScope } from '../components/portal/dashboard/clientDashboardModel';
+import { ClientDashboardData, ClientScope, DashboardRequest, Resource, emptyDashboardData, scopeAppointments, scopeDocuments, scopeEngagements, scopeInvoices, scopeMessages, scopeRequests, scopeRequirements, threadSummaries, appointmentSummaries, validClientScope } from '../components/portal/dashboard/clientDashboardModel';
 
 export function useClientDashboardData(user: User | null, authState: string, clientId: string, taxYear: number, refreshVersion = 0) {
   // Cached reads belong to the exact authenticated session, not just the client identity.
@@ -26,7 +27,7 @@ export function useClientDashboardData(user: User | null, authState: string, cli
     void (async () => {
       const [docs, engagements, messages, appointments, invoices, questionnaire, requests] = await Promise.all([
         resource(read<{ documents: DocumentItem[] }>('documents')), resource(read<{ engagements: Engagement[] }>('engagements')),
-        resource(communicationsService.threads(clientId, controller.signal).then(threads => ({ messages: threadSummaries(threads, scope) }))), resource(read<{ appointments: Appointment[] }>('appointments')),
+        resource(communicationsService.threads(clientId, controller.signal).then(threads => ({ messages: threadSummaries(threads, scope) }))), resource(appointmentsService.listForClient(clientId, controller.signal).then(rows => ({ appointments: appointmentSummaries(rows, scope) }))),
         resource(read<{ invoices: Invoice[] }>('invoices')),
         resource(read<{ clientId: string; tenantId: string; taxYear: number; questionnaire: StoredQuestionnaireRecord | null }>('questionnaire')),
         resource(read<{ requests: DashboardRequest[] }>('requests')),

@@ -22,6 +22,9 @@ vi.mock('../services/api', () => ({
   api: { clientDashboard: { read: harness.reads } },
 }));
 // Durable conversations (proposal 039) are one more read of the same session: counted with the others.
+vi.mock('../services/appointmentsService', () => ({
+  appointmentsService: { listForClient: async (clientId: string, signal?: AbortSignal) => (await harness.reads('appointments', clientId, undefined, signal)).appointments },
+}));
 vi.mock('../services/communicationsService', () => ({
   communicationsService: { threads: async (clientId: string, signal?: AbortSignal) => (await harness.reads('messages', clientId, undefined, signal)).messages },
 }));

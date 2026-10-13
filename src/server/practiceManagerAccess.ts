@@ -6,7 +6,7 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/tests|cases/${ID}/runs)|communications/(inbox|clients/${ID}/threads(/${ID})?))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/tests|cases/${ID}/runs)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID})?)|legal-matters/(disclaimer|clients/${ID}/matters))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
   `cases/?`, `cases/${ID}/(advance|return|hold|notes)`,
@@ -19,6 +19,10 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
   `tax-engine/rule-sets/${ID}/(tests|run-tests)`, `tax-engine/rule-sets/${ID}/tests/${ID}/remove`,
   // Client conversations (proposal 039): the database re-checks client scope and visibility.
   `communications/clients/${ID}/threads`, `communications/clients/${ID}/threads/${ID}/(messages|read|status)`,
+  // Appointments (proposal 040): the database re-checks scope, staff eligibility and conflicts.
+  `scheduling/clients/${ID}/appointments`, `scheduling/clients/${ID}/appointments/${ID}/(update|reschedule|status)`,
+  // Legal-coordination tracking (proposal 042): the database re-checks scope and the defined status order.
+  `legal-matters/clients/${ID}/matters`, `legal-matters/clients/${ID}/matters/${ID}/(update|status|documents)`,
 ].join('|') + `)$`);
 
 export function practiceManagerRequestAllowed(role:string,method:string,url:string):boolean {

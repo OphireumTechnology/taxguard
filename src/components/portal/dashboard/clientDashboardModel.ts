@@ -1,5 +1,6 @@
 import type { Appointment, DocumentItem, Engagement, Invoice, Message, User } from '../../../types';
 import type { CommThread } from '../../../services/communicationsService';
+import type { Appointment as DurableAppointment } from '../../../services/appointmentsService';
 import type { GeneratedDocumentRequirement, StoredQuestionnaireRecord } from '../../../server/taxguard/taxQuestionnaire';
 
 export interface ClientScope { userId: string; clientId: string; tenantId: string; taxYear: number }
@@ -78,6 +79,24 @@ export function scopeRequests(rows: DashboardRequest[], scope: ClientScope) {
 }
 export function scopeInvoices(rows: Invoice[], scope: ClientScope) {
   return rows.filter(row => [scope.clientId, scope.userId].includes(row.clientId) && tenantMatches(row, scope));
+}
+const LEGACY_STATUS: Record<string, Appointment['status']> = { REQUESTED: 'pending', CONFIRMED: 'confirmed', COMPLETED: 'completed', CANCELLED: 'cancelled', NO_SHOW: 'no_show' };
+/**
+ * Durable appointments (proposal 040) in the overview's appointment shape: the date and start time
+ * in the appointment's own time zone. No advisor name is shown; only whether one is assigned.
+ */
+export function appointmentSummaries(rows: DurableAppointment[], scope: ClientScope): Appointment[] {
+  return rows.filter(a => a.clientId === scope.clientId).map(a => {
+    let date = a.startsAt.slice(0, 10), timeSlot = a.startsAt.slice(11, 16);
+    try {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: a.timezone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+        .formatToParts(new Date(a.startsAt)).map(x => [x.type, x.value]));
+      date = p.year + '-' + p.month + '-' + p.day; timeSlot = p.hour + ':' + p.minute;
+    } catch { /* keep UTC */ }
+    return { id: a.appointmentId, clientId: a.clientId, clientName: '', clientEmail: '', clientPhone: '', serviceType: a.category, accountantId: '', accountantName: a.hasStaff ? 'Your advisor team' : 'Not yet assigned',
+      requestedFounder: false, date, timeSlot, type: a.mode === 'REMOTE' ? 'virtual' : a.mode === 'PHONE' ? 'phone' : 'in_office', status: LEGACY_STATUS[a.status] ?? 'pending',
+      meetingLink: a.meetingUrl ?? undefined, location: a.location ?? undefined, createdAt: a.createdAt, updatedAt: a.updatedAt };
+  });
 }
 export function scopeAppointments(rows: Appointment[], scope: ClientScope) {
   // Email-only matches are not strong enough for dashboard presentation.

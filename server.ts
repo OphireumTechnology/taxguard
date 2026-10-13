@@ -6,6 +6,9 @@ import { createBillingRouter } from './src/server/routes/billing.routes';
 import { createBookToTaxRouter } from './src/server/routes/bookToTax.routes';
 import { createTaxEngineRouter } from './src/server/routes/taxEngine.routes';
 import { createCommunicationsRouter } from './src/server/routes/communications.routes';
+import { createSchedulingRouter } from './src/server/routes/appointments-durable.routes';
+import { createAuditCenterRouter } from './src/server/routes/audit-center.routes';
+import { createLegalMattersRouter } from './src/server/routes/legal-durable.routes';
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
@@ -451,6 +454,12 @@ app.use('/api/book-to-tax', createBookToTaxRouter());
 app.use('/api/tax-engine', createTaxEngineRouter());
 // Durable client / staff messaging (proposal 039): development-only, 503 unless configured.
 app.use('/api/communications', createCommunicationsRouter());
+// Durable appointments and scheduling (proposal 040): development-only, 503 unless configured.
+app.use('/api/scheduling', createSchedulingRouter());
+// Read-only administrative audit center (proposal 041): development-only, 503 unless configured.
+app.use('/api/audit-center', createAuditCenterRouter());
+// Durable legal-coordination tracking (proposal 042): development-only, 503 unless configured.
+app.use('/api/legal-matters', createLegalMattersRouter());
 
 app.use(
   '/api/onboarding',

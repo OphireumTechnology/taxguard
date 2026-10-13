@@ -17,6 +17,7 @@ import {
 import './accountantDashboard.css';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
 import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
+import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import type { TaxWorkpaperEntity, StageStateEntity } from '../../server/taxguard/persistence.types';
 
 const tabs = ['Overview','Client Info','Documents','AI Preparation','Tax Forms','Review & Edit','Workpapers','State Forms','Client Approval','E-File','History'];
@@ -149,6 +150,7 @@ export function AccountantDashboard() {
 
       {!inspecting && <DurableMyWorkPanel />}
       {!inspecting && <StaffMessageInboxPanel />}
+      {!inspecting && <AppointmentsPanel mode={{ kind: 'staff' }} actorId={currentUser?.id} />}
       <section className="tg-acct-kpis" aria-label="Key metrics">
         {DASHBOARD_KPIS.map(kpi => {
           const value = kpiValue(kpi.label, rows, today, dataState, unavailableFields);
