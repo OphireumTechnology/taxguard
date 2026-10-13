@@ -43,13 +43,13 @@ Loaded by `refreshBackendData` after sign-in or by individual panels:
 | `/api/admin/*` (users, audit logs, security events, health), super admin | users, auditLogs, securityEvents, sessions | durable staff directory and audit log exist for staff access only |
 | `/api/careers` | jobs, applicants | none (public content) |
 
-## Client portal demonstration views
+## Client portal demonstration views (removed 2026-10-13)
 
-`AmendmentView`, `AuditActivityView`, `ExpensesView`, `FinancialConnectionsView`, `OverviewView`
-and `TaxWorkspaceView` default to `MOCK_*` collections (`clientPortalService.ts`), and
-`ApprovalsView` / `DeliverablesView` are imported but not rendered: none of them is reachable from
-the authenticated client dashboard, which uses the durable stage views and shows unavailable
-states. They are dead code and should be removed or rebuilt on durable services rather than wired in.
+`AmendmentView`, `AuditActivityView`, `ExpensesView`, `FinancialConnectionsView`, `OverviewView`,
+`TaxWorkspaceView`, `ApprovalsView`, `DeliverablesView` and their only data source
+`clientPortalService.ts` (`MOCK_*` / `INITIAL_*` demonstration records) were unreachable and were
+removed during the main reconciliation; see `docs/development/main-reconciliation-20261013.md`.
+The authenticated client dashboard uses the durable stage views and document vault instead.
 
 ## Next steps (not done here)
 

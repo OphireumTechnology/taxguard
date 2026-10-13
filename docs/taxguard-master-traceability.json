@@ -4010,14 +4010,14 @@
     },
     {
       "file": "docs/development/durable-workflow-inventory.md",
-      "sha256": "2258732c1a4487a8935143b57597b74e3f031e6077cf0bd2c32f97633b682c6d",
-      "bytes": 4196,
+      "sha256": "f9fc0accaab15af137a87dde438ee906b40597c4798f182ada83d0eac9fde596",
+      "bytes": 4206,
       "headings": [
         "# Durable workflow inventory (Phase 6)",
         "## Change in this phase: no demonstration records in a durable deployment",
         "## Already durable (recorded data only)",
         "## Still in-memory (lost on restart; empty in durable deployments)",
-        "## Client portal demonstration views",
+        "## Client portal demonstration views (removed 2026-10-13)",
         "## Next steps (not done here)"
       ]
     },
@@ -4056,6 +4056,19 @@
         "## New capabilities",
         "## Tests",
         "## Limitations"
+      ]
+    },
+    {
+      "file": "docs/development/main-reconciliation-20261013.md",
+      "sha256": "f6e5d98cb5fd7e344c914e5f734b0fe0fa50d0463456126be383a1a09dace1e0",
+      "bytes": 5704,
+      "headings": [
+        "# Main reconciliation and cleanup (2026-10-13)",
+        "## Branch audit (remote, relative to `origin/main` = `fc36cac`)",
+        "## Conflict resolution: main's `fc36cac` \"migrate to Firebase and Google GenAI\"",
+        "## Obsolete code removed (cleanup commit)",
+        "## Outstanding migration proposals (none applied anywhere)",
+        "## Recommended remote branch deletions (awaiting approval; nothing deleted)"
       ]
     },
     {
@@ -4393,7 +4406,7 @@
     {
       "file": "docs/proposed-migrations/20261012230000_taxguard_session_management.sql",
       "sha256": "5669368336e07a8b0aed420a69429d2aff1f084fdceb3ff46917aa58d5d84f29",
-      "bytes": 12142,
+      "bytes": 12309,
       "headings": []
     },
     {
@@ -4405,85 +4418,85 @@
     {
       "file": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
       "sha256": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
-      "bytes": 43402,
+      "bytes": 43908,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
       "sha256": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
-      "bytes": 32355,
+      "bytes": 32717,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
       "sha256": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
-      "bytes": 28770,
+      "bytes": 29098,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
       "sha256": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
-      "bytes": 34598,
+      "bytes": 34999,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
       "sha256": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
-      "bytes": 33340,
+      "bytes": 33702,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql",
       "sha256": "616596e3f0f3a31727a92c20f36e48cc9cac2748699a86148a648eae3943371e",
-      "bytes": 4431,
+      "bytes": 4470,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
       "sha256": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
-      "bytes": 39806,
+      "bytes": 40293,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
       "sha256": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
-      "bytes": 11833,
+      "bytes": 11945,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
       "sha256": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
-      "bytes": 28923,
+      "bytes": 29294,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
       "sha256": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
-      "bytes": 47653,
+      "bytes": 48165,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql",
       "sha256": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
-      "bytes": 17749,
+      "bytes": 17981,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql",
       "sha256": "66d094bf951c57ba1ab22b15011660ebc3975038eac825a7234ae4d3587ce310",
-      "bytes": 16889,
+      "bytes": 17096,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql",
       "sha256": "192c371b3115f1d688ac648a621fac8f0273801ed77bc1888bd733d33f38f508",
-      "bytes": 6097,
+      "bytes": 6165,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql",
       "sha256": "67fb1a439834f14e511ce0d5d6a770fe2e1a3a2c0e6395841a389d67e40d0104",
-      "bytes": 5288,
+      "bytes": 5354,
       "headings": []
     },
     {
@@ -5502,7 +5515,7 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "b4efe0966e7c4fdbaa466cdb997cc53ca84ad6d8133f53bfd7b6700860cd28ab",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "860845094985abc9e29433cea88ba7d78d92cc85ea399fdacc00dedcdf7eb675",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "5b3225c9e91e3c08975629640a42cf287e10b9e416132a8e5b8d7c3aa12ecdb6",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "78c42ab05796f6374e6de5c9368105d2a7c536f9b1dfb8062c2e9fb0b458925a",

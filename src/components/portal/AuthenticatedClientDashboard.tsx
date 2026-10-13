@@ -56,8 +56,6 @@ import { useApp } from '../../context/AppContext';
 import { CANONICAL_STAGE_LABELS, StageNumber } from '../../server/taxguard/persistence.types';
 import { StageTwoCollectionWorkspace } from '../collection/StageTwoCollectionWorkspace';
 import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
-import { ApprovalsView } from './views/ApprovalsView';
-import { DeliverablesView } from './views/DeliverablesView';
 import { StageOneIdentityWizard } from './StageOneIdentityWizard';
 import { TaxGuardDiscrepanciesView } from '../../taxguard/views/TaxGuardDiscrepanciesView';
 import { ClientAuditUnavailable, recordedMfaSetting } from './views/ClientSecurityPanel';
