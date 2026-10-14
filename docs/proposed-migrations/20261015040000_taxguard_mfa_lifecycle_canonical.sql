@@ -1,10 +1,9 @@
--- PROPOSAL 051 ONLY. NOT APPLIED. Depends on proposals 034 and 036.
+-- PROPOSAL 055 ONLY. NOT APPLIED. Depends on proposals 034/036/049.
 -- Canonical final constraint after historical ALTER COLUMN status TYPE varchar(32).
 -- Reapplication of 034 changes implicit cast representation; recreate the same invariant
 -- at the final type in one transaction. Existing invalid rows abort the entire proposal.
 -- No data edits, weaker invariants, extra privileges or provider actions.
 -- Rollback: retain this equivalent constraint; do not remove MFA lifecycle enforcement.
-BEGIN;
 ALTER TABLE public.taxguard_mfa_reset_jobs DROP CONSTRAINT IF EXISTS chk_taxguard_mfa_reset_job_lifecycle;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD CONSTRAINT chk_taxguard_mfa_reset_job_lifecycle CHECK (
  status IN ('pending','leased','reset_verified','enrollment_verified','completed','failed') AND attempts>=0 AND fence>=0
@@ -21,4 +20,3 @@ CREATE INDEX idx_taxguard_mfa_reset_jobs_runnable ON public.taxguard_mfa_reset_j
 -- private ACL on first application as well as reapplication; no direct callers.
 REVOKE ALL ON FUNCTION public.taxguard_tax_rule_test_runs_guard() FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.taxguard_tax_rule_tests_guard() FROM PUBLIC,anon,authenticated,service_role;
-COMMIT;

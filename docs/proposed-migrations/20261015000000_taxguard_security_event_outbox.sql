@@ -1,4 +1,5 @@
--- PROPOSAL 047 ONLY. NOT APPLIED. Depends on proposal 046 and the actual core schema.
+-- PROPOSAL 051 ONLY. NOT APPLIED. Depends on proposal 046 and merged Phase 10 grants.
+-- Explicitly renumbered after PR #16 allocated 047–050; original checkpoint remains in Git.
 -- Acknowledged enqueue commits a minimal immutable envelope. Delivery is at least once;
 -- UUID audit identity plus the same transaction for audit insertion and completion prevents
 -- duplicate audit rows. Pending/blocked rows are retained; no retention/deletion policy invented.

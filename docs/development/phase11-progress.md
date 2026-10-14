@@ -1,5 +1,9 @@
 # Phase 11 execution checkpoint
 
+Current reconciliation: `origin/main` advanced to `5f1553c7d73445081d51635310173a53373694bf` through PR #16. The feature preserves both histories and targets main. PR #15 stays open/draft and is not merged or closed automatically. Historical slice identifiers below are explicitly superseded: 047→051 outbox, 048→052 pages, 049→053 drafts/claims, 050→054 requests, 051→055 canonical MFA grants, 052→056 scanner bindings. All 56 approved SQL artifacts match pinned main; inherited corrections are applied additively in 057/058. No external application occurred. Scanner binding extends the merged 050 request table. The derived catalog audit covers 62 files; executable composition covers 61 (13 core + 48 proposals), excluding the separate audit draft.
+
+Final unit/security checks: 322 files / 5,482 tests passed. Final real PostgreSQL checks: 14 files / 49 tests passed. Full browser validation: default 12 files / 58 tests and provider emulator 1 file / 8 tests passed. Reconciled focused browser checks: 3 files / 13 tests passed (authentication, billing, intake draft refresh, staff clarification/client reply/resolution). Logical recovery: two disposable fsync-on loopback PostgreSQL servers; 141 tables, 7,181 synthetic rows; export 334 ms / restore 1,474 ms; schema and tenant isolation passed. Physical utility rehearsal remains blocked by missing pg_dump/pg_restore. Security mutation checks: 21/21 killed against passing functional baselines; execution/setup failures are not counted as kills. Typecheck, repository lint and build passed. See the final report for delivery evidence.
+
 Baseline `origin/main`: `49369c393d6391c9de9e3ecd869bf79736c6990c`.
 Phase 10 PR #15 remains open/draft; commit `f0549efc4ac67d97258402f51af589772bd0a412`
 is preserved. Phase 11 branch `codex/taxguard-phase11-completion` depends on that commit;

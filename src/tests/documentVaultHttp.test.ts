@@ -38,7 +38,7 @@ const get = (path: string) => fetch(origin + '/vault' + path).then(async r => ({
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(250000|270000)_|^20261015050000_/);
+  await applyProposals(fixture.pg, /^20261012(250000|270000)_|^20261014500000_|^20261015050000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${T}','${C}','dv-client','Synthetic Vault Client'),('${T}','${OTHER}','dv-other-client','Other Synthetic');
     INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${T}','dv-client','client','active','${C}'),('${T}','dv-other-client','client','active','${OTHER}'),
       ('${T}','dv-acct','accountant','active',NULL),('${T}','dv-rev','senior_reviewer','active',NULL),('${T}','dv-outsider','accountant','active',NULL),('${T}','dv-mgr','practice_manager','active',NULL);`);
@@ -154,7 +154,7 @@ describe('document vault', () => {
     // Force a clock tie in this disposable fixture: UUID ordering must not reorder causal events.
     await fixture.pg.query("UPDATE taxguard_audit_log SET timestamp='2026-01-01T00:00:00Z' WHERE metadata->>'documentId'=$1", [docId]);
     const history = (await get(`/clients/${C}/documents/${docId}`)).body.history.map((h: any) => h.action);
-    expect(history).toEqual(['DOCUMENT_UPLOAD_REGISTERED', 'DOCUMENT_UPLOADED', 'DOCUMENT_SCANNED', 'DOCUMENT_EXTRACTION_PROPOSED', 'DOCUMENT_VERIFIED', 'DOCUMENT_DOWNLOAD_AUTHORIZED']);
+    expect(history).toEqual(['DOCUMENT_UPLOAD_REGISTERED', 'DOCUMENT_UPLOADED', 'DOCUMENT_SCAN_REQUESTED', 'DOCUMENT_SCANNED', 'DOCUMENT_SCAN_VERDICT', 'DOCUMENT_EXTRACTION_PROPOSED', 'DOCUMENT_VERIFIED', 'DOCUMENT_DOWNLOAD_AUTHORIZED']);
   });
 
   it('keeps OCR values as proposals until a staff member verifies each field; clients never see them', async () => {
@@ -172,6 +172,18 @@ describe('document vault', () => {
     const verified = (await get(`/clients/${C}/documents/${docId}`)).body.extractions;
     expect(verified.map((f: any) => [f.fieldKey, f.decision, f.verifiedValue, f.verifiedBy])).toEqual([['w2.box1_wages', 'CORRECTED', 1000.05, 'dv-rev'],
       ['w2.employer_name', 'ACCEPTED', 'Synthetic Employer', 'dv-rev']]);
+  });
+  it('refuses expired bound requests, preserves quarantine and consumes a fresh retry only once',async()=>{
+    as('client');useScanner=false;const uploaded=await upload(C,PDF('synthetic expiry fixture'));expect(uploaded.body.status).toBe('SCAN_PENDING');
+    const expired=(await fixture.pg.query<{scan_id:string}>(`INSERT INTO taxguard_doc_scan_requests(tenant_id,client_id,document_id,version,provider,attempt,requested_at,expires_at)
+      VALUES($1,$2,$3,1,'synthetic-expiry',1,now()-interval '2 hours',now()-interval '1 hour') RETURNING scan_id`,[T,C,uploaded.body.documentId])).rows[0].scan_id;
+    const rpc=pgliteRpc(()=>fixture.pg),binding={p_tenant:T,p_scan_id:expired,p_provider:'synthetic-expiry',p_verdict:'CLEAN'};
+    expect((await rpc.rpc('taxguard_doc_scan_complete',binding)).error?.message).toBe('SCAN_REQUEST_EXPIRED');
+    expect((await get(`/clients/${C}/documents/${uploaded.body.documentId}`)).body.versions[0].status).toBe('SCAN_PENDING');
+    const retry=await rpc.rpc('taxguard_doc_scan_request',{p_tenant:T,p_client:C,p_document_id:uploaded.body.documentId,p_version:1,p_provider:'synthetic-expiry',p_ttl_seconds:60});expect(retry.data.attempt).toBe(2);
+    expect((await rpc.rpc('taxguard_doc_scan_complete',{...binding,p_scan_id:retry.data.scanId})).error).toBeNull();
+    expect((await rpc.rpc('taxguard_doc_scan_complete',{...binding,p_scan_id:retry.data.scanId})).error?.message).toBe('SCAN_VERDICT_REPLAYED');
+    await expect(fixture.pg.exec('DELETE FROM taxguard_doc_scan_requests')).rejects.toThrow('SCAN_HISTORY_IMMUTABLE');
   });
 
   it('versions a document and supersedes the earlier verified version on approval', async () => {

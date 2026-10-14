@@ -1,4 +1,4 @@
--- PROPOSAL 049 ONLY. NOT APPLIED. Depends on 025/027 and the core engagement/year schema.
+-- PROPOSAL 053 ONLY. NOT APPLIED. Depends on 025/027/049 and the core engagement/year schema.
 -- Client-reported collection drafts and waiver CLAIMS only; no facts verified, no stage completed.
 -- Rollback: disable collection writes, preserve records/history; never fall back to memory authority.
 CREATE TABLE IF NOT EXISTS public.taxguard_collection_questionnaires (

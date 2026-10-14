@@ -1,50 +1,55 @@
--- PROPOSAL 052 ONLY. NOT APPLIED. Depends on 027. Provider commissioning remains blocked.
--- Durable one-use correlation, exact bytes/version/path binding and a 60-second deadline.
--- Transport authentication/signature verification remains the trusted adapter's responsibility.
--- Timeout or conflicting verdict leaves quarantine closed. Rescan needs a new upload version.
--- Rollback: disable scanning, preserve jobs, do not restore the unbound service grant.
-CREATE TABLE IF NOT EXISTS public.taxguard_document_scan_jobs(
- document_row uuid PRIMARY KEY REFERENCES public.taxguard_documents(id),request_id uuid UNIQUE NOT NULL,
- tenant_id varchar(128) NOT NULL,client_id varchar(64) NOT NULL,document_id text NOT NULL,version integer NOT NULL,
- digest char(64) NOT NULL,storage_path text NOT NULL,scanner varchar(64) NOT NULL,
- issued_at bigint NOT NULL,expires_at timestamptz NOT NULL DEFAULT clock_timestamp()+interval '60 seconds',
- consumed_at timestamptz,result varchar(16),CHECK ((consumed_at IS NULL)=(result IS NULL)),CHECK(result IS NULL OR result IN('CLEAN','INFECTED'))
-);
-ALTER TABLE public.taxguard_document_scan_jobs ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.taxguard_document_scan_jobs FROM PUBLIC,anon,authenticated,service_role;
-CREATE OR REPLACE FUNCTION public.taxguard_doc_scan_job(p_tenant text,p_client text,p_document text,p_version integer,p_request uuid,p_digest text,p_scanner text,p_issued bigint) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp AS $$
-DECLARE d public.taxguard_documents;j public.taxguard_document_scan_jobs;
+-- PROPOSAL 056 ONLY. NOT APPLIED. Depends on merged 050/027; no parallel job table.
+-- Persist exact document UUID/version/hash/path binding in the existing scan requests.
+-- Legacy unbound requests cannot release documents; existing expiry/five-attempt retry remains.
+-- Rollback: disable scanner integrations, preserve history, never restore unbound service grants.
+ALTER TABLE public.taxguard_doc_scan_requests ADD COLUMN IF NOT EXISTS document_row uuid REFERENCES public.taxguard_documents(id);
+ALTER TABLE public.taxguard_doc_scan_requests ADD COLUMN IF NOT EXISTS digest char(64);
+ALTER TABLE public.taxguard_doc_scan_requests ADD COLUMN IF NOT EXISTS storage_path text;
+REVOKE ALL ON public.taxguard_doc_scan_requests FROM PUBLIC,anon,authenticated,service_role;
+CREATE OR REPLACE FUNCTION public.taxguard_doc_scan_envelope_guard() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog,public,pg_temp AS $$
+DECLARE d public.taxguard_documents;
 BEGIN
- IF p_request IS NULL OR p_digest IS NULL OR p_digest !~ '^[a-f0-9]{64}$' OR p_scanner IS NULL OR p_scanner !~ '^[A-Za-z0-9_.:-]{1,64}$'
-  OR p_issued IS NULL OR abs(extract(epoch FROM clock_timestamp())*1000-p_issued)>30000 THEN RAISE EXCEPTION 'DOCUMENT_SCAN_JOB_INVALID' USING ERRCODE='P0001';END IF;
- SELECT * INTO d FROM public.taxguard_documents WHERE tenant_id=p_tenant AND client_id=p_client AND document_id=p_document AND version=p_version FOR UPDATE;
- IF NOT FOUND OR d.status<>'SCAN_PENDING' OR d.hash<>p_digest THEN RAISE EXCEPTION 'DOCUMENT_SCAN_JOB_INVALID' USING ERRCODE='P0001';END IF;
- SELECT * INTO j FROM public.taxguard_document_scan_jobs WHERE document_row=d.id;
- IF FOUND THEN
-  IF j.request_id<>p_request OR j.digest<>p_digest OR j.scanner<>p_scanner OR j.issued_at<>p_issued OR j.consumed_at IS NOT NULL OR j.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'DOCUMENT_SCAN_JOB_CONFLICT' USING ERRCODE='P0001';END IF;
- ELSE INSERT INTO public.taxguard_document_scan_jobs(document_row,request_id,tenant_id,client_id,document_id,version,digest,storage_path,scanner,issued_at)
-  VALUES(d.id,p_request,p_tenant,p_client,p_document,p_version,p_digest,d.storage_path,p_scanner,p_issued) RETURNING * INTO j;
+ IF TG_OP='INSERT' THEN
+  SELECT * INTO d FROM public.taxguard_documents WHERE tenant_id=NEW.tenant_id AND client_id=NEW.client_id AND document_id=NEW.document_id AND version=NEW.version FOR UPDATE;
+  IF NOT FOUND OR d.status IS DISTINCT FROM 'SCAN_PENDING' OR d.hash IS NULL OR d.hash !~ '^[a-f0-9]{64}$' OR d.storage_path IS NULL THEN RAISE EXCEPTION 'SCAN_DOCUMENT_BINDING_INVALID' USING ERRCODE='P0001';END IF;
+  NEW.document_row:=d.id;NEW.digest:=d.hash;NEW.storage_path:=d.storage_path;RETURN NEW;
  END IF;
- RETURN jsonb_build_object('requestId',j.request_id,'expiresAt',j.expires_at);
+ IF TG_OP IN('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'SCAN_HISTORY_IMMUTABLE' USING ERRCODE='P0001';END IF;
+ IF ROW(NEW.scan_id,NEW.tenant_id,NEW.client_id,NEW.document_id,NEW.version,NEW.provider,NEW.attempt,NEW.requested_at,NEW.expires_at,NEW.document_row,NEW.digest,NEW.storage_path)
+  IS DISTINCT FROM ROW(OLD.scan_id,OLD.tenant_id,OLD.client_id,OLD.document_id,OLD.version,OLD.provider,OLD.attempt,OLD.requested_at,OLD.expires_at,OLD.document_row,OLD.digest,OLD.storage_path)
+  OR OLD.status IN('COMPLETED','FAILED','EXPIRED') THEN RAISE EXCEPTION 'SCAN_HISTORY_IMMUTABLE' USING ERRCODE='P0001';END IF;
+ RETURN NEW;
 END $$;
-CREATE OR REPLACE FUNCTION public.taxguard_doc_scan_verdict(p_tenant text,p_client text,p_document text,p_version integer,p_request uuid,p_digest text,p_scanner text,p_issued bigint,p_result text) RETURNS jsonb
+DROP TRIGGER IF EXISTS scan_envelope_immutable ON public.taxguard_doc_scan_requests;
+CREATE TRIGGER scan_envelope_immutable BEFORE INSERT OR UPDATE OR DELETE ON public.taxguard_doc_scan_requests FOR EACH ROW EXECUTE FUNCTION public.taxguard_doc_scan_envelope_guard();
+DROP TRIGGER IF EXISTS scan_history_no_truncate ON public.taxguard_doc_scan_requests;
+CREATE TRIGGER scan_history_no_truncate BEFORE TRUNCATE ON public.taxguard_doc_scan_requests FOR EACH STATEMENT EXECUTE FUNCTION public.taxguard_doc_scan_envelope_guard();
+CREATE OR REPLACE FUNCTION public.taxguard_doc_scan_complete(p_tenant text,p_scan_id uuid,p_verdict text,p_provider text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp AS $$
-DECLARE d public.taxguard_documents;j public.taxguard_document_scan_jobs;answer jsonb;
+DECLARE r public.taxguard_doc_scan_requests;d public.taxguard_documents;answer jsonb;
 BEGIN
- SELECT * INTO d FROM public.taxguard_documents WHERE tenant_id=p_tenant AND client_id=p_client AND document_id=p_document AND version=p_version FOR UPDATE;
- IF NOT FOUND THEN RAISE EXCEPTION 'DOCUMENT_SCAN_JOB_INVALID' USING ERRCODE='P0001';END IF;
- SELECT * INTO j FROM public.taxguard_document_scan_jobs WHERE document_row=d.id FOR UPDATE;
- IF NOT FOUND OR p_request IS NULL OR j.request_id<>p_request OR p_digest IS DISTINCT FROM j.digest OR p_scanner IS DISTINCT FROM j.scanner
-  OR p_issued IS DISTINCT FROM j.issued_at OR d.hash<>j.digest OR d.storage_path<>j.storage_path OR p_result IS NULL OR p_result NOT IN('CLEAN','INFECTED')
-  THEN RAISE EXCEPTION 'DOCUMENT_SCAN_JOB_INVALID' USING ERRCODE='P0001';END IF;
- IF j.consumed_at IS NOT NULL THEN RAISE EXCEPTION 'DOCUMENT_SCAN_REPLAY_DENIED' USING ERRCODE='P0001';END IF;
- IF j.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'DOCUMENT_SCAN_EXPIRED' USING ERRCODE='P0001';END IF;
- answer:=public.taxguard_doc_record_scan(p_tenant,p_client,p_document,p_version,p_result,p_scanner);
- UPDATE public.taxguard_document_scan_jobs SET consumed_at=clock_timestamp(),result=p_result WHERE document_row=d.id;
+ IF p_verdict IS NULL OR p_verdict NOT IN('CLEAN','INFECTED','ERROR') OR p_provider IS NULL OR p_provider !~ '^[A-Za-z0-9_.:-]{1,64}$' THEN RAISE EXCEPTION 'SCAN_INPUT_INVALID' USING ERRCODE='P0001';END IF;
+ SELECT * INTO r FROM public.taxguard_doc_scan_requests WHERE scan_id=p_scan_id AND tenant_id=p_tenant;
+ IF NOT FOUND THEN RAISE EXCEPTION 'SCAN_REQUEST_NOT_FOUND' USING ERRCODE='P0001';END IF;
+ -- Consistent request/callback lock order: document before request.
+ SELECT * INTO d FROM public.taxguard_documents WHERE id=r.document_row AND tenant_id=p_tenant AND client_id=r.client_id AND document_id=r.document_id AND version=r.version FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'SCAN_DOCUMENT_BINDING_INVALID' USING ERRCODE='P0001';END IF;
+ SELECT * INTO r FROM public.taxguard_doc_scan_requests WHERE scan_id=p_scan_id AND tenant_id=p_tenant FOR UPDATE;
+ IF r.status IN('COMPLETED','FAILED') THEN RAISE EXCEPTION 'SCAN_VERDICT_REPLAYED' USING ERRCODE='P0001';END IF;
+ IF r.provider<>p_provider THEN RAISE EXCEPTION 'SCAN_PROVIDER_MISMATCH' USING ERRCODE='P0001';END IF;
+ IF r.status='EXPIRED' OR r.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'SCAN_REQUEST_EXPIRED' USING ERRCODE='P0001';END IF;
+ IF d.hash IS DISTINCT FROM r.digest OR d.storage_path IS DISTINCT FROM r.storage_path OR d.status IS DISTINCT FROM 'SCAN_PENDING' THEN RAISE EXCEPTION 'SCAN_DOCUMENT_BINDING_INVALID' USING ERRCODE='P0001';END IF;
+ IF p_verdict='ERROR' THEN
+  UPDATE public.taxguard_doc_scan_requests SET status='FAILED',verdict='ERROR',completed_at=clock_timestamp() WHERE scan_id=r.scan_id;
+  answer:=jsonb_build_object('documentId',r.document_id,'version',r.version,'status','SCAN_PENDING');
+ ELSE
+  answer:=public.taxguard_doc_record_scan(r.tenant_id,r.client_id,r.document_id,r.version,p_verdict,p_provider);
+  UPDATE public.taxguard_doc_scan_requests SET status='COMPLETED',verdict=p_verdict,completed_at=clock_timestamp() WHERE scan_id=r.scan_id;
+ END IF;
+ PERFORM public.taxguard_doc_audit(r.tenant_id,r.client_id,'system:'||p_provider,'system','DOCUMENT_SCAN_VERDICT',jsonb_build_object('documentId',r.document_id,'version',r.version,'requestId',r.scan_id::text,'result',p_verdict));
  RETURN answer;
 END $$;
-REVOKE ALL ON FUNCTION public.taxguard_doc_record_scan(text,text,text,integer,text,text) FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.taxguard_doc_scan_job(text,text,text,integer,uuid,text,text,bigint) FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.taxguard_doc_scan_verdict(text,text,text,integer,uuid,text,text,bigint,text) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.taxguard_doc_scan_job(text,text,text,integer,uuid,text,text,bigint),public.taxguard_doc_scan_verdict(text,text,text,integer,uuid,text,text,bigint,text) TO service_role;
+REVOKE ALL ON FUNCTION public.taxguard_doc_record_scan(text,text,text,integer,text,text),public.taxguard_doc_scan_envelope_guard() FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.taxguard_doc_scan_complete(text,uuid,text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.taxguard_doc_scan_complete(text,uuid,text,text) TO service_role;

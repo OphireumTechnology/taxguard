@@ -5,9 +5,10 @@
  * propose OCR fields (if a provider is configured). Without a scanner documents remain
  * SCAN_PENDING and can never be downloaded.
  */
-import { createHash,randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import type { PracticeRpcClient } from '../practice/practiceStore';
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, contentMatchesType, VaultIntegrationError, type MalwareScanner, type OcrProvider, type VaultStorage } from './vaultIntegrations';
+import type { ScanCoordinator } from './malwareScanning';
 
 export class DocumentVaultError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
@@ -21,7 +22,9 @@ export const DOWNLOAD_URL_TTL_SECONDS = 60;
 export interface UploadInput { engagementId: string; taxYear: number; caseId?: string; category: string; fileName: string; mimeType: string; documentId?: string; idempotencyKey: string }
 
 export class DocumentVaultStore {
-  constructor(private readonly client: PracticeRpcClient, private readonly storage: VaultStorage, private readonly scanner?: MalwareScanner, private readonly ocr?: OcrProvider) {}
+  /** `scanRequests`: asynchronous scanning (proposal 050), used when no in-process scanner is configured. */
+  constructor(private readonly client: PracticeRpcClient, private readonly storage: VaultStorage, private readonly scanner?: MalwareScanner, private readonly ocr?: OcrProvider,
+    private readonly scanRequests?: ScanCoordinator) {}
 
   private async call<T = any>(name: string, args: Record<string, unknown>): Promise<T> {
     let response;
@@ -58,19 +61,24 @@ export class DocumentVaultStore {
     // No approved production scanner factory exists. Test-injected/fake scanners cannot release
     // production uploads, regardless of their claimed verdict or adapter name.
     if (this.scanner && process.env.NODE_ENV!=='production') {
-      const correlation={requestId:randomUUID(),issuedAt:Date.now()};
-      const binding={p_tenant:tenantId,p_client:clientId,p_document:registered.documentId,p_version:registered.version,p_request:correlation.requestId,p_digest:sha256,p_scanner:this.scanner.name,p_issued:correlation.issuedAt};
-      await this.call('taxguard_doc_scan_job',binding);
+      const job=await this.call('taxguard_doc_scan_request',{p_tenant:tenantId,p_client:clientId,p_document_id:registered.documentId,p_version:registered.version,p_provider:this.scanner.name,p_ttl_seconds:60});
+      const correlation={requestId:job.scanId,issuedAt:Date.now()};
       const verdict = await this.scanner.scan(Buffer.from(bytes),correlation).catch(() => null);
       // A scanner failure leaves the document SCAN_PENDING (never downloadable).
       if (verdict === 'CLEAN' || verdict === 'INFECTED') {
-        state = await this.call('taxguard_doc_scan_verdict', { ...binding,p_result:verdict });
+        state = await this.call('taxguard_doc_scan_complete', {p_tenant:tenantId,p_scan_id:job.scanId,p_provider:this.scanner.name,p_verdict:verdict});
         if (verdict === 'CLEAN' && this.ocr) {
           const fields = await this.ocr.extract(Buffer.from(bytes), input.mimeType).catch(() => []);
           if (fields.length) await this.call('taxguard_doc_propose_extraction', { p_tenant: tenantId, p_client: clientId, p_document_id: registered.documentId,
             p_version: registered.version, p_provider: this.ocr.name, p_fields: fields.slice(0, 200) }).catch(() => undefined);
         }
       }
+    }
+    if (!this.scanner && this.scanRequests && process.env.NODE_ENV!=='production' && state.status === 'SCAN_PENDING') {
+      // The verdict arrives later through the authenticated callback; the document stays quarantined.
+      const scan = await this.scanRequests.request({ tenantId, clientId, documentId: registered.documentId, version: registered.version, storagePath: registered.storagePath,
+        sha256, sizeBytes: bytes.length, mimeType: input.mimeType });
+      return { documentId: registered.documentId, version: registered.version, status: state.status, replayed: false, scan };
     }
     return { documentId: registered.documentId, version: registered.version, status: state.status, replayed: false };
   }

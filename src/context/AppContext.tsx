@@ -224,6 +224,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (
       clean === 'portal/dashboard' ||
       clean === 'portal/documents' ||
+      clean === 'portal/collection' ||
       clean === 'portal/requests' ||
       clean === 'portal/appointments' ||
       clean === 'portal/profile'
@@ -471,6 +472,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isPortalSubroute = [
         '/portal/dashboard',
         '/portal/documents',
+        '/portal/collection',
         '/portal/requests',
         '/portal/appointments',
         '/portal/profile',

@@ -32,7 +32,7 @@ const audits = async (action: string) => (await fixture.pg.query<{ metadata: any
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(240000|250000|260000|270000|310000)_|^20261015050000_/);
+  await applyProposals(fixture.pg, /^20261012(240000|250000|260000|270000|310000)_|^20261014500000_|^20261015050000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${T}','${C}','dr-client','Synthetic Request Client'),('${T}','${OTHER}','dr-other','Other Synthetic');
     INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) SELECT '${T}', v->>'id', v->>'role', 'active', v->>'clientId' FROM jsonb_array_elements('${JSON.stringify(Object.values(people).filter(p => p.id !== 'dr-foreign'))}'::jsonb) v;
     INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('tenantB','dr-foreign','practice_manager','active');`);

@@ -26,8 +26,8 @@ describe('composition on a real PostgreSQL server', () => {
   it('re-applies the Claude proposals idempotently', async () => {
     const fs = await import('node:fs');
     const before=await schemaFingerprint(db.pool);
-    for (const name of PROPOSALS.filter(n => /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015/.test(n)))
-      await db.pool.query(fs.readFileSync('docs/proposed-migrations/' + name, 'utf8'));
+    for (const entry of buildMigrationManifest().entries.filter(e=>e.kind==='proposal'&&/^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015/.test(e.file.split('/').at(-1)!)))
+      await db.pool.query(fs.readFileSync(entry.file, 'utf8'));
     const after=await schemaFingerprint(db.pool);
     for(const name of Object.keys(before.groups))expect(after.groups[name],`schema group ${name}`).toEqual(before.groups[name]);
     expect(after.sha256).toBe(before.sha256);

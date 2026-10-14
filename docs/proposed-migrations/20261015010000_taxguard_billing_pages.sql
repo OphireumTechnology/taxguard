@@ -1,4 +1,4 @@
--- PROPOSAL 048 ONLY. NOT APPLIED. Depends on 028. No billing arithmetic changed.
+-- PROPOSAL 052 ONLY. NOT APPLIED. Depends on 028/047. No billing arithmetic changed.
 -- Bounded, scoped keyset pagination with the existing database client allow-list.
 -- Compatibility list refuses oversized results rather than silently truncating balances.
 -- Rollback: disable billing reads; preserve database confidentiality; do not restore leaking functions.

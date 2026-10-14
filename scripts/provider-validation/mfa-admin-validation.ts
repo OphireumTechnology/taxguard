@@ -3,11 +3,15 @@
  * adapter (src/server/mfaResetProvider.ts), against a SEPARATE, AUTHORIZED NON-PRODUCTION project.
  *
  *   TAXGUARD_VALIDATION_CONFIRM=non-production \
- *   TAXGUARD_VALIDATION_SUPABASE_URL=... TAXGUARD_VALIDATION_SERVICE_ROLE_KEY=... TAXGUARD_VALIDATION_ANON_KEY=... \
+ *   TAXGUARD_VALIDATION_SUPABASE_URL=https://<ref>.supabase.co TAXGUARD_VALIDATION_PROJECT_REF=<ref> \
+ *   TAXGUARD_VALIDATION_PRODUCTION_PROJECT_REF=<production ref> \
+ *   TAXGUARD_VALIDATION_SERVICE_ROLE_KEY=... TAXGUARD_VALIDATION_ANON_KEY=... \
  *   node node_modules/tsx/dist/cli.mjs scripts/provider-validation/mfa-admin-validation.ts
  *
  * Refuses (exit 2, nothing sent) for the protected production project, production runtimes, the
- * application's own SUPABASE_URL, insecure URLs or a missing confirmation. It never reads .env.
+ * application's own SUPABASE_URL, insecure URLs, a missing confirmation, a project ref that does not
+ * match the URL, or a missing / equal production ref. It never reads .env. With --readiness it only
+ * reports BLOCKED (with a reason code) or READY_TO_RUN and contacts nothing.
  * One synthetic user (random address on example.com, random password) is created, enrolled with one
  * TOTP factor through the public MFA API, reset through the adapter, and always deleted at the end.
  * The report contains check names and outcomes only — no keys, secrets, codes, user or factor IDs.
@@ -15,9 +19,11 @@
  */
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { validationTarget } from '../../src/server/providerValidationTarget';
+import { mfaValidationReadiness, validationTarget } from '../../src/server/providerValidationTarget';
 import { MfaProviderError, SupabaseAdminMfaProvider } from '../../src/server/mfaResetProvider';
 
+// --readiness: report BLOCKED / READY_TO_RUN with a reason code and exit, contacting nothing.
+if (process.argv.includes('--readiness')) { console.log(JSON.stringify(mfaValidationReadiness(process.env))); process.exit(0); }
 const checked = validationTarget(process.env);
 if ('reason' in checked) { console.error(JSON.stringify({ status: 'refused', reason: checked.reason })); process.exit(2); }
 const target = checked as Extract<typeof checked, { ok: true }>;

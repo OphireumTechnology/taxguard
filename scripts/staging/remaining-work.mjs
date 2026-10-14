@@ -24,7 +24,7 @@ const rows = [
  ['Staging infrastructure',decision,'src/server/config/stagingConfiguration.ts','src/tests/stagingConfiguration.test.ts','Offline configuration/seeding/recovery preparation only; project, API host/domain, managed secrets and runtime integration require owner approval.'],
  ['Production operational readiness',disabled,'src/server/productionApp.ts','src/tests/productionApiHttp.test.ts','NO-GO: no deployment, external migrations, independent acceptance, recovery evidence or commissioning.'],
 ];
-const matrix = { baselineMain:'49369c393d6391c9de9e3ecd869bf79736c6990c', dependency:'f0549efc4ac67d97258402f51af589772bd0a412', phase10Pr:15,
+const matrix = { baselineMain:'5f1553c7d73445081d51635310173a53373694bf',initialBaselineMain:'49369c393d6391c9de9e3ecd869bf79736c6990c',preservedCodexPhase10:'f0549efc4ac67d97258402f51af589772bd0a412', phase10Pr:15,mergedPhase10Pr:16,
   classifications:['Fully implemented and locally validated',partial,external,'Missing',disabled,decision,professional],
   limitations:'Source references and local tests identify narrow evidence; no product-wide, staging or production completion inference.',
   areas:rows.map(([area,status,source,test,remaining])=>({area,status,source,test,remaining,stagingValidated:false,productionCommissioned:false})) };

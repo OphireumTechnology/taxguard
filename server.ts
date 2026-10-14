@@ -8,6 +8,14 @@ import { createTaxEngineRouter } from './src/server/routes/taxEngine.routes';
 import { createCommunicationsRouter } from './src/server/routes/communications.routes';
 import { createSchedulingRouter } from './src/server/routes/appointments-durable.routes';
 import { createAuditCenterRouter } from './src/server/routes/audit-center.routes';
+import { mountRetiredLegacyRoutes } from './src/server/routes/retiredLegacyRoutes';
+import { createHealthRouter } from './src/server/observability/health';
+import { authenticateToken } from './src/server/auth';
+import { runtimeProbes } from './src/server/observability/defaultProbes';
+import { createScanCallbackRouter } from './src/server/routes/vault-scan.routes';
+import { FakeScanProvider, ScanCoordinator, scannerConfiguration } from './src/server/taxguard/documents/malwareScanning';
+import { configureDurableSecurityEvents } from './src/server/taxguard/audit/securityEventSink';
+import { practiceStoreConfigured } from './src/server/taxguard/practice/practiceStoreConfig';
 import { createLegalMattersRouter } from './src/server/routes/legal-durable.routes';
 import { createConsultationReviewRouter, createPublicConsultationRouter } from './src/server/routes/consultations.routes';
 import { createClientPortalRouter } from './src/server/routes/client-portal.routes';
@@ -16,11 +24,9 @@ import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
 import { SecurityEventRecorder, securityDenialObserver } from './src/server/securityEventRecorder';
-import { practiceStoreConfigured } from './src/server/taxguard/practice/practiceStoreConfig';
 import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
-import { authenticateToken } from './src/server/auth';
 import { requireOperationalAdministrator } from './src/server/operationalDiagnostics';
 import { createOperationalMetrics } from './src/server/operationalMetrics';
 import { proxyTrustHops } from './src/server/config/proxyTrust';
@@ -64,32 +70,12 @@ import {
 } from './src/server/routes/documents.routes';
 
 import {
-  engagementsRouter
-} from './src/server/routes/engagements.routes';
-
-import {
-  appointmentsRouter
-} from './src/server/routes/appointments.routes';
-
-import {
-  paymentsRouter
-} from './src/server/routes/payments.routes';
-
-import {
   integrationsRouter
 } from './src/server/routes/integrations.routes';
 
 import {
-  messagesRouter
-} from './src/server/routes/messages.routes';
-
-import {
   careersRouter
 } from './src/server/routes/careers.routes';
-
-import {
-  legalRouter
-} from './src/server/routes/legal.routes';
 
 import {
   adminRouter
@@ -98,10 +84,6 @@ import {
 import {
   securityRouter
 } from './src/server/routes/security.routes';
-
-import {
-  assignmentsRouter
-} from './src/server/routes/assignments.routes';
 
 import {
   accountantRouter
@@ -220,7 +202,7 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
  */
 
 if (process.env.NODE_ENV !== 'production') {
-  if (process.env.TAXGUARD_SECURITY_EVENTS === 'durable' && practiceStoreConfigured()) {
+  if (practiceStoreConfigured()) {
     const recorder = new SecurityEventRecorder(getSupabaseAdmin() as any, process.env.TAXGUARD_TENANT_ID || '', 100, 'outbox');
     securityRecorder=recorder;
     db.securityEventSink = event => recorder.record(event);
@@ -254,6 +236,14 @@ if (process.env.NODE_ENV === 'production') {
 // Public consultation requests (proposal 043) are mounted BEFORE the global body parsers so their
 // own 8 KB JSON limit applies; development-only, 503 unless the durable store is configured.
 app.use('/api/public/consultation-requests', createPublicConsultationRouter());
+// Malware scanning (proposal 050): no real provider is commissioned. Only the local fake scanner can
+// be configured (never in production); otherwise uploads stay quarantined. Status codes only.
+const scanner = scannerConfiguration(process.env);
+console.log('[malware-scanner] ' + (scanner.state === 'REFUSED' ? scanner.code : scanner.state));
+const scanCoordinator = scanner.state === 'CONFIGURED' && practiceStoreConfigured() ? new ScanCoordinator(getSupabaseAdmin() as any, new FakeScanProvider()) : null;
+// Provider callback, before the general JSON parser (own 2 KB limit, HMAC-authenticated).
+app.use('/api/vault-scan', createScanCallbackRouter({ coordinator: () => scanCoordinator, secret: () => scanner.state === 'CONFIGURED' ? scanner.callbackSecret : null,
+  tenant: () => process.env.TAXGUARD_TENANT_ID || '' }));
 
 /**
  * ============================================================
@@ -402,6 +392,9 @@ app.get(
   }
 );
 
+// Liveness / readiness (public, no dependency details) and administrator diagnostics.
+app.use('/api/health', createHealthRouter({ probes: () => runtimeProbes({ scanCoordinator: () => scanCoordinator,securityEvents:()=>securityRecorder?{mode:'DURABLE_OUTBOX',...securityRecorder.status()}:{mode:'MEMORY_ONLY'} }), authenticate: authenticateToken as any }));
+
 app.get(
   '/api/provider-readiness',
   authenticateToken,requireOperationalAdministrator,
@@ -474,10 +467,14 @@ if (staffAccessDevelopmentConfigured()) {
   const mfaProvider = configuredMfaResetProvider();
   if (mfaProvider) startMfaResetWorker({ client: getSupabaseAdmin, tenant: process.env.TAXGUARD_TENANT_ID || '', provider: mfaProvider, workerId: 'server-' + process.pid });
 }
+// Durable security events (proposal 048): only with a durable store and a fingerprint secret; status code only.
+// The legacy queue is retained for isolated compatibility tests, never installed alongside
+// the authoritative outbox. No network-address fingerprint is required by the minimal outbox.
+console.log('[security-events] ' + (securityRecorder?'DURABLE_OUTBOX':configureDurableSecurityEvents(process.env,false,()=>getSupabaseAdmin() as any)));
 // Client and engagement management (proposal 025): development-only, 503 unless configured.
 app.use('/api/practice', createPracticeRouter());
 app.use('/api/cases', createCasesRouter());
-app.use('/api/vault', createVaultRouter());
+app.use('/api/vault', createVaultRouter({ scanRequests: () => scanCoordinator }));
 app.use('/api/billing', createBillingRouter());
 app.use('/api/book-to-tax', createBookToTaxRouter());
 app.use('/api/tax-engine', createTaxEngineRouter());
@@ -507,20 +504,9 @@ app.use(
   documentsRouter
 );
 
-app.use(
-  '/api/engagements',
-  engagementsRouter
-);
-
-app.use(
-  '/api/appointments',
-  appointmentsRouter
-);
-
-app.use(
-  '/api/payments',
-  paymentsRouter
-);
+// Retired in Phase 10 (durable replacements, no remaining consumers): /api/engagements,
+// /api/appointments, /api/payments, /api/messages, /api/legal and /api/assignments answer 410.
+mountRetiredLegacyRoutes(app);
 
 app.use(
   '/api/integrations',
@@ -528,18 +514,8 @@ app.use(
 );
 
 app.use(
-  '/api/messages',
-  messagesRouter
-);
-
-app.use(
   '/api/careers',
   careersRouter
-);
-
-app.use(
-  '/api/legal',
-  legalRouter
 );
 
 app.use(
@@ -560,11 +536,6 @@ app.use(
 app.use(
   '/api/security',
   securityRouter
-);
-
-app.use(
-  '/api/assignments',
-  assignmentsRouter
 );
 
 app.use(

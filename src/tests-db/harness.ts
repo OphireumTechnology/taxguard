@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto';
 import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { buildMigrationManifest } from '../../scripts/staging/migration-manifest.mjs';
+import {buildReviewBundle} from '../../scripts/staging/migration-review-bundle.mjs';
 
 // Non-production database harness: a throw-away local PostgreSQL server (embedded-postgres
 // binaries) listening on 127.0.0.1 only, on a random free port, with a random password and a data
@@ -32,7 +33,7 @@ export type TestDatabase = {
   stop(): Promise<void>;
 };
 
-export async function startDatabase(options: { durable?: boolean } = {}): Promise<TestDatabase> {
+export async function startDatabase(options: { durable?: boolean;reviewBundle?:boolean } = {}): Promise<TestDatabase> {
   fs.mkdirSync(ROOT, { recursive: true });
   // Remove directories left by earlier runs (older than an hour, so a parallel run is never touched).
   for (const name of fs.readdirSync(ROOT).filter(n => n.startsWith('pg-'))) {
@@ -51,7 +52,7 @@ export async function startDatabase(options: { durable?: boolean } = {}): Promis
   const config = { host: '127.0.0.1', port, user: 'postgres', password, database: 'taxguard_test' };
   await server.createDatabase('taxguard_test');
   let pool = new pg.Pool({ ...config, max: 20 });
-  try { await compose(pool); } catch (e) { await pool.end(); await server.stop(); throw e; }
+  try { await compose(pool,options.reviewBundle); } catch (e) { await pool.end(); await server.stop(); throw e; }
   return {
     get pool() { return pool; },
     async connect() { const c = new pg.Client(config); await c.connect(); return c; },
@@ -76,13 +77,14 @@ export async function startDatabase(options: { durable?: boolean } = {}): Promis
 /** Supabase shims, then supabase/migrations, then every proposal in name order (as PGlite composition does). */
 export const MIGRATIONS = fs.readdirSync('supabase/migrations').filter(n => n.endsWith('.sql')).sort();
 export const PROPOSALS = fs.readdirSync('docs/proposed-migrations').filter(n => /^\d{14}_.+\.sql$/.test(n)).sort();
-async function compose(pool: pg.Pool) {
+async function compose(pool: pg.Pool,reviewBundle=false) {
   const manifest = buildMigrationManifest();
   if (fs.readFileSync('docs/development/staging-migration-manifest.json', 'utf8').replace(/\r\n/g, '\n') !== JSON.stringify(manifest, null, 2) + '\n') throw new Error('STAGING_MIGRATION_MANIFEST_STALE');
   await pool.query(`CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
     CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$; CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS 'SELECT current_user::text';
     CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;`);
-  for (const entry of manifest.entries) await apply(pool, path.dirname(entry.file), path.basename(entry.file));
+  if(reviewBundle){for(const entry of buildReviewBundle().entries){const sql=entry.sql.replace(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"[^"]+";/gi,'');try{await pool.query(sql);}catch(error:any){throw new Error(`${entry.file} (${entry.source}): ${error.message}`);}}}
+  else for (const entry of manifest.entries) await apply(pool, path.dirname(entry.file), path.basename(entry.file));
 }
 async function apply(pool: pg.Pool, dir: string, name: string) {
   const sql = fs.readFileSync(path.join(dir, name), 'utf8').replace(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"[^"]+";/gi, '');

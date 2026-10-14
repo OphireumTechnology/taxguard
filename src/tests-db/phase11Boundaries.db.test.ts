@@ -24,21 +24,21 @@ it('binds one-use scanner jobs to immutable document versions under competing ve
  const rpc=pgRpc(db.pool),id='doc_'+createHash('sha256').update('p11document').digest('hex').slice(0,32),digest=createHash('sha256').update('synthetic bytes').digest('hex');
  const registered=await rpc.rpc('taxguard_doc_begin_upload',{p_tenant:'p11',p_client:'client',p_actor:'owner',p_document_id:null,p_new_id:id,p_meta:{engagementId:engagement,taxYear:2025,caseId:null,category:'income',fileName:'synthetic.pdf',mimeType:'application/pdf',sizeBytes:15,sha256:digest}});expect(registered.error).toBeNull();
  expect((await rpc.rpc('taxguard_doc_complete_upload',{p_tenant:'p11',p_client:'client',p_actor:'owner',p_document_id:id,p_version:1,p_sha256:digest,p_size:15})).error).toBeNull();
- const binding={p_tenant:'p11',p_client:'client',p_document:id,p_version:1,p_request:randomUUID(),p_digest:digest,p_scanner:'synthetic-only',p_issued:Date.now()};
- expect((await rpc.rpc('taxguard_doc_scan_job',binding)).error).toBeNull();
- expect((await rpc.rpc('taxguard_doc_scan_verdict',{...binding,p_request:randomUUID(),p_result:'CLEAN'})).error?.message).toBe('DOCUMENT_SCAN_JOB_INVALID');
- expect((await rpc.rpc('taxguard_doc_scan_verdict',{...binding,p_digest:'0'.repeat(64),p_result:'CLEAN'})).error?.message).toBe('DOCUMENT_SCAN_JOB_INVALID');
- expect((await rpc.rpc('taxguard_doc_scan_verdict',{...binding,p_client:'other',p_result:'CLEAN'})).error?.message).toBe('DOCUMENT_SCAN_JOB_INVALID');
- await db.pool.query("UPDATE taxguard_document_scan_jobs SET expires_at=clock_timestamp()-interval '1 second' WHERE request_id=$1",[binding.p_request]);
- expect((await rpc.rpc('taxguard_doc_scan_verdict',{...binding,p_result:'CLEAN'})).error?.message).toBe('DOCUMENT_SCAN_EXPIRED');
- expect((await db.pool.query('SELECT status FROM taxguard_documents WHERE document_id=$1',[id])).rows[0].status).toBe('SCAN_PENDING');
- await db.pool.query("UPDATE taxguard_document_scan_jobs SET expires_at=clock_timestamp()+interval '60 seconds',storage_path=storage_path||'-tampered' WHERE request_id=$1",[binding.p_request]);
- expect((await rpc.rpc('taxguard_doc_scan_verdict',{...binding,p_result:'CLEAN'})).error?.message).toBe('DOCUMENT_SCAN_JOB_INVALID');
- await db.pool.query("UPDATE taxguard_document_scan_jobs j SET storage_path=d.storage_path FROM taxguard_documents d WHERE j.document_row=d.id AND j.request_id=$1",[binding.p_request]);
+ const job=await rpc.rpc('taxguard_doc_scan_request',{p_tenant:'p11',p_client:'client',p_document_id:id,p_version:1,p_provider:'synthetic-only',p_ttl_seconds:60});expect(job.error).toBeNull();
+ const binding={p_tenant:'p11',p_scan_id:job.data.scanId,p_provider:'synthetic-only',p_verdict:'CLEAN'};
+ expect((await rpc.rpc('taxguard_doc_scan_complete',{...binding,p_scan_id:randomUUID()})).error?.message).toBe('SCAN_REQUEST_NOT_FOUND');
+ expect((await rpc.rpc('taxguard_doc_scan_complete',{...binding,p_tenant:'other'})).error?.message).toBe('SCAN_REQUEST_NOT_FOUND');
+ expect((await rpc.rpc('taxguard_doc_scan_complete',{...binding,p_provider:'wrong-provider'})).error?.message).toBe('SCAN_PROVIDER_MISMATCH');
+ await expect(db.pool.query('UPDATE taxguard_doc_scan_requests SET digest=$1 WHERE scan_id=$2',['0'.repeat(64),binding.p_scan_id])).rejects.toThrow('SCAN_HISTORY_IMMUTABLE');
+ await db.pool.query("UPDATE taxguard_documents SET hash=$1 WHERE document_id=$2",['0'.repeat(64),id]);
+ expect((await rpc.rpc('taxguard_doc_scan_complete',binding)).error?.message).toBe('SCAN_DOCUMENT_BINDING_INVALID');
+ await db.pool.query("UPDATE taxguard_documents SET hash=$1,storage_path=storage_path||'-tampered' WHERE document_id=$2",[digest,id]);
+ expect((await rpc.rpc('taxguard_doc_scan_complete',binding)).error?.message).toBe('SCAN_DOCUMENT_BINDING_INVALID');
+ await db.pool.query('UPDATE taxguard_documents d SET storage_path=r.storage_path FROM taxguard_doc_scan_requests r WHERE r.document_row=d.id AND r.scan_id=$1',[binding.p_scan_id]);
  const sessions=await Promise.all([db.connect(),db.connect()]);
  try{for(const session of sessions)await session.query('SET ROLE service_role');
-  const results=await Promise.all(sessions.map(session=>pgRpc(session).rpc('taxguard_doc_scan_verdict',{...binding,p_result:'INFECTED'})));
-  expect(results.filter(r=>!r.error)).toHaveLength(1);expect(results.find(r=>r.error)?.error?.message).toBe('DOCUMENT_SCAN_REPLAY_DENIED');
+  const results=await Promise.all(sessions.map(session=>pgRpc(session).rpc('taxguard_doc_scan_complete',{...binding,p_verdict:'INFECTED'})));
+  expect(results.filter(r=>!r.error)).toHaveLength(1);expect(results.find(r=>r.error)?.error?.message).toBe('SCAN_VERDICT_REPLAYED');
  }finally{await Promise.all(sessions.map(s=>s.end()));}
  expect((await db.pool.query('SELECT status FROM taxguard_documents WHERE document_id=$1',[id])).rows[0].status).toBe('REJECTED_MALWARE');
  expect((await rpc.rpc('taxguard_doc_authorize_download',{p_tenant:'p11',p_client:'client',p_actor:'owner',p_document_id:id,p_version:1})).error?.message).toBe('DOCUMENT_NOT_AVAILABLE');
@@ -46,7 +46,7 @@ it('binds one-use scanner jobs to immutable document versions under competing ve
 it('denies direct table and unbound scanner bypass for browser and service roles',async()=>{
  for(const role of ['anon','authenticated','service_role']){
   const session=await db.connect();try{await session.query('SET ROLE '+role);
-   for(const table of ['taxguard_collection_questionnaires','taxguard_collection_replies','taxguard_document_scan_jobs','taxguard_invoices','taxguard_invoice_lines'])await expect(session.query('SELECT * FROM '+table)).rejects.toThrow('permission denied');
+   for(const table of ['taxguard_collection_questionnaires','taxguard_collection_replies','taxguard_doc_scan_requests','taxguard_invoices','taxguard_invoice_lines'])await expect(session.query('SELECT * FROM '+table)).rejects.toThrow('permission denied');
    await expect(session.query("SELECT taxguard_doc_record_scan('p11','client','unknown',1,'CLEAN','fake')")).rejects.toThrow('permission denied');
   }finally{await session.end();}
  }

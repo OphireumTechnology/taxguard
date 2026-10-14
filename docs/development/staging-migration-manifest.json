@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "938e17a1fe235de74027ebb3f92d41f7c61400f25be9926968ea2ccebf0de5c3",
+  "executionPlanSha256": "464d1478ca59b6626a0647c17202ef08a4d84d49b83767552a0482585c6047f0",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -1276,7 +1276,7 @@
       "file": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
       "kind": "proposal",
       "version": "20261012270000",
-      "sha256": "e031732267059275ad133b6c227be1505d3624f384e6151168e3fca0e5cc6027",
+      "sha256": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
       "validTimestamp": false,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -1333,7 +1333,7 @@
       "file": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
       "kind": "proposal",
       "version": "20261012280000",
-      "sha256": "f0bc98e80278f4bd97b49ca26b6c1bcc79d8571b5464862b5a71f3a22648e43e",
+      "sha256": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
       "validTimestamp": false,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -1357,7 +1357,6 @@
         "taxguard_bill_audit",
         "taxguard_bill_recompute",
         "taxguard_bill_invoice_json",
-        "taxguard_bill_client_invoice_json",
         "taxguard_bill_load",
         "taxguard_bill_upsert_service",
         "taxguard_bill_create_invoice",
@@ -1377,11 +1376,11 @@
         "-- Rollback (development): drop taxguard_bill_* functions, the three new tables, added columns."
       ],
       "grantsAndRevocations": [
-        "EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated, service_role', t);",
+        "EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);",
         "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
         "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
       ],
-      "securityDefinerDeclarations": 18,
+      "securityDefinerDeclarations": 17,
       "notValidConstraints": 3,
       "header": [
         "-- PROPOSAL 028 ONLY. NOT APPLIED. Requires the actual core schema and proposals 025 and 027 (actor helper).",
@@ -2403,7 +2402,7 @@
       "file": "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql",
       "kind": "proposal",
       "version": "20261014460000",
-      "sha256": "be568cc35a64315357a680810f841c8f6988ca6ff6a2b9790b97650801f1f6f0",
+      "sha256": "03764d6e417a9da28b4218a6b94a8fd64afbb6b6138e95e68d7715d60c713b93",
       "validTimestamp": false,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -2415,9 +2414,7 @@
         "supabase/migrations/20260928000000_taxguard_core_schema.sql"
       ],
       "declaredObjects": [
-        "taxguard_audit_center_list",
-        "taxguard_security_record",
-        "taxguard_security_immutable"
+        "taxguard_audit_center_list"
       ],
       "supersededFunctions": [
         {
@@ -2430,13 +2427,10 @@
         "-- Rollback (development): re-run proposal 041's taxguard_audit_center_list."
       ],
       "grantsAndRevocations": [
-        "REVOKE ALL ON FUNCTION public.taxguard_security_record(text,text,uuid,text,text) FROM PUBLIC, anon, authenticated;",
-        "GRANT EXECUTE ON FUNCTION public.taxguard_security_record(text,text,uuid,text,text) TO service_role;",
-        "REVOKE ALL ON FUNCTION public.taxguard_security_immutable() FROM PUBLIC, anon, authenticated, service_role;",
         "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
         "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
       ],
-      "securityDefinerDeclarations": 2,
+      "securityDefinerDeclarations": 1,
       "notValidConstraints": 0,
       "header": [
         "-- PROPOSAL 046 ONLY. NOT APPLIED. Requires proposal 041.",
@@ -2447,23 +2441,280 @@
         "-- not displayed by the durable administrator views. Redaction, range, page and timeout limits and",
         "-- the administrator-only rule are unchanged.",
         "-- Rollback (development): re-run proposal 041's taxguard_audit_center_list.",
-        "-- Filter: {from, to, category?, categories?: [up to 10], action?, actorUid?, clientId?, after?: {at, eventId}, limit?}",
+        "-- Filter: {from, to, category?, categories?: [up to 10], action?, actorUid?, clientId?, after?: {at, eventId}, limit?}"
+      ]
+    },
+    {
+      "order": 50,
+      "file": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+      "kind": "proposal",
+      "version": "20261014470000",
+      "sha256": "fd9dc9e6372c5bbfb6cee648f84881993af987f6b4b99bcf1b96a495856ff5e9",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_client_invoice_json",
+        "taxguard_bill_view",
+        "taxguard_bill_list",
+        "taxguard_bill_record_payment"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_list",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_bill_record_payment",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: re-apply the two functions from 028 and drop taxguard_bill_client_invoice_json and",
+        "-- taxguard_bill_view (the HTTP allow-list still protects clients after a rollback)."
+      ],
+      "grantsAndRevocations": [
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "IF f.proname IN ('taxguard_bill_list','taxguard_bill_record_payment') THEN EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig); END IF;"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- TaxGuard proposal 047: database-enforced client billing projection (Phase 10). REVIEW ONLY; not applied.",
+        "--",
+        "-- Problem: taxguard_bill_invoice_json (028) returns staff-only details — preparer and approver,",
+        "-- the maker-checker review note, the void reason, rate-override reasons, credit reasons and their",
+        "-- requester / decider, and the payment provider. The two billing functions a client may call",
+        "-- (taxguard_bill_list and the sandbox path of taxguard_bill_record_payment) returned that JSON",
+        "-- to clients; only the HTTP router's allow-list (clientBillingView.ts) removed the fields.",
+        "--",
+        "-- Change: a client-safe projection with an explicit allow-list (the same keys as",
+        "-- clientBillingView.ts), and taxguard_bill_view choosing it for client actors. taxguard_bill_list",
+        "-- and taxguard_bill_record_payment are superseded so a client never receives staff-only fields",
+        "-- from the database, whatever the caller. Every other billing function already refuses clients"
+      ]
+    },
+    {
+      "order": 51,
+      "file": "docs/proposed-migrations/20261014480000_taxguard_security_events.sql",
+      "kind": "proposal",
+      "version": "20261014480000",
+      "sha256": "a712964ecd311b10b8f43569bad65289a8ae7a841e611682171f394a38825209",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261014410000_taxguard_audit_center.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_security_event_windows",
+        "taxguard_security_event_detail",
+        "taxguard_security_event_record",
+        "taxguard_security_event_summary",
+        "taxguard_audit_center_redact"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_audit_center_redact",
+          "previousFile": "docs/proposed-migrations/20261014410000_taxguard_audit_center.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): drop the three new functions and taxguard_security_event_windows, and"
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON TABLE public.taxguard_security_event_windows FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "IF f.proname IN ('taxguard_security_event_record','taxguard_security_event_summary') THEN EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig); END IF;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- TaxGuard proposal 048: durable, bounded security-event recording (Phase 10). REVIEW ONLY; not applied.",
+        "--",
+        "-- Problem: authentication failures, lockouts, access and isolation denials, MFA requirement",
+        "-- failures and similar events from the legacy routes are only kept in the server's memory",
+        "-- (db.logSecurityEvent) and are lost on restart; they cannot be reviewed in the audit center.",
+        "--",
+        "-- Change: one service_role-only ingestion function that writes a redacted row into the existing",
+        "-- append-only taxguard_audit_log (action SECURITY_<EVENT>, audit-center category SECURITY). It:",
+        "--   * accepts a fixed set of categories and an event code, never free text;",
+        "--   * keeps only allow-listed detail keys with short identifier-like values (no messages, no",
+        "--     e-mail addresses, no tokens, no passwords, no factor secrets, no taxpayer data);",
+        "--   * never stores a network address: the caller passes an HMAC fingerprint (hex) instead;"
+      ]
+    },
+    {
+      "order": 52,
+      "file": "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql",
+      "kind": "proposal",
+      "version": "20261014490000",
+      "sha256": "10e2144dfb7a56e1b4bae28a5d755a5f9f9472ad0da91b78a9b304b4bc932290",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014480000_taxguard_security_events.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql"
+      ],
+      "declaredObjects": [],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): re-run 20260930 policy statements and the GRANTs of 20261002; Supabase"
+      ],
+      "grantsAndRevocations": [
+        "EXECUTE format('REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON %s FROM PUBLIC, anon, authenticated', r.rel);",
+        "EXECUTE format('REVOKE ALL ON %s FROM anon', r.rel);",
+        "EXECUTE format('REVOKE ALL ON %s FROM PUBLIC, anon, authenticated', r.rel);",
+        "EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM PUBLIC, anon, authenticated', r.rel);",
+        "EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);",
+        "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;",
+        "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;",
+        "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated;"
+      ],
+      "securityDefinerDeclarations": 0,
+      "notValidConstraints": 0,
+      "header": [
+        "-- TaxGuard proposal 049: Data API surface lockdown and grant hygiene (Phase 10). REVIEW ONLY; not applied.",
+        "--",
+        "-- Found by the Phase 10 migration readiness audit (scripts/migrations/migration-audit.mjs), which",
+        "-- composes every migration with Supabase's default privileges reproduced:",
+        "--  1. Supabase grants ALL on new public tables and functions to anon and authenticated. The core",
+        "--     migrations rely on row-level security alone for those tables.",
+        "--  2. Seven core bookkeeping tables (20260930) have a permissive `FOR ALL TO public` policy keyed on",
+        "--     a top-level `tenant_id` JWT claim. If an access-token hook ever adds that claim, any signed-in",
+        "--     user of the tenant — including a client — could read and write the tenant's journal entries,",
+        "--     bank transactions, reconciliations, chart of accounts, periods, book-to-tax adjustments and",
+        "--     sync state directly through the Data API with the public anon key.",
+        "--  3. Fifteen trigger functions and taxguard_privileged_max_age_seconds() are executable by PUBLIC"
+      ]
+    },
+    {
+      "order": 53,
+      "file": "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
+      "kind": "proposal",
+      "version": "20261014500000",
+      "sha256": "ccf679c42fefbfdb3d91a6b3275e689227cc4a7121d1ebd768c6054fccb0cfa3",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_doc_scan_requests",
+        "taxguard_doc_scan_request",
+        "taxguard_doc_scan_complete",
+        "taxguard_doc_scan_backlog"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the three functions and taxguard_doc_scan_requests; documents keep"
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON TABLE public.taxguard_doc_scan_requests FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- TaxGuard proposal 050: asynchronous malware-scan requests and single-use verdicts (Phase 10).",
+        "-- REVIEW ONLY; not applied. No scanning provider is connected by this proposal.",
+        "--",
+        "-- 027 records a verdict for a SCAN_PENDING document version through taxguard_doc_record_scan,",
+        "-- which suits an in-process scanner. A hosted scanner answers later through a callback, so the",
+        "-- verdict must be bound to a request the server issued:",
+        "--   * taxguard_doc_scan_request issues (or returns the open) request for a SCAN_PENDING version,",
+        "--     with an expiry and at most 5 attempts per version; an expired request is closed and a new",
+        "--     one issued. The document stays quarantined throughout.",
+        "--   * taxguard_doc_scan_complete accepts one verdict per request: unknown, expired, already",
+        "--     answered (replay) or wrong-provider verdicts are refused; ERROR closes the request as FAILED",
+        "--     and the document stays SCAN_PENDING (never downloadable); CLEAN / INFECTED are recorded through"
+      ]
+    },
+    {
+      "order": 54,
+      "file": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+      "kind": "proposal",
+      "version": "20261015060000",
+      "sha256": "97a9caa9ad45f816352d77963cac8ffde1fbf8dbfa05759a313289734fdd96cb",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_doc_detail",
+        "taxguard_security_record",
+        "taxguard_security_immutable"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_doc_detail",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: disable affected readers/ingestion; preserve sequence and immutable custody."
+      ],
+      "grantsAndRevocations": [
+        "EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM PUBLIC,anon,authenticated,service_role',seq);",
+        "REVOKE ALL ON FUNCTION public.taxguard_security_record(text,text,uuid,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_security_record(text,text,uuid,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_security_immutable() FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL 057 ONLY. NOT APPLIED. Depends on 027/046/049/050.",
+        "-- Preserves approved main history; ports the reviewed unmerged Codex Phase 10 corrections.",
+        "-- Source commit f0549efc4ac67d97258402f51af589772bd0a412; existing audit rows receive backfill order only, not inferred causal order.",
+        "-- Rollback: disable affected readers/ingestion; preserve sequence and immutable custody.",
+        "-- Pin the sequence ACL on first application; later lockdown reapplication must not change it.",
         "-- Phase 10 bounded server-only ingestion. No browser role can invoke this function. Actor",
         "-- identities are optional for failed authentication and are verified in the declared tenant.",
         "-- Caller supplies no free-text metadata, IP, credential, token, address or document content."
       ]
     },
     {
-      "order": 50,
+      "order": 55,
       "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
       "kind": "proposal",
       "version": "20261015000000",
-      "sha256": "3daff4b1f3e0b07a79523f1322cb031bf7240f21b2215d20e2adcfa9846cfa53",
+      "sha256": "5dae223342815e934bf6c1a3fd1947e2f297518e0bfec867fc8d763ee8b63394",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
       "dependsOn": [
-        "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql"
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
       ],
       "referencedDependencies": [
         "supabase/migrations/20260928000000_taxguard_core_schema.sql"
@@ -2489,7 +2740,8 @@
       "securityDefinerDeclarations": 3,
       "notValidConstraints": 0,
       "header": [
-        "-- PROPOSAL 047 ONLY. NOT APPLIED. Depends on proposal 046 and the actual core schema.",
+        "-- PROPOSAL 051 ONLY. NOT APPLIED. Depends on proposal 046 and merged Phase 10 grants.",
+        "-- Explicitly renumbered after PR #16 allocated 047–050; original checkpoint remains in Git.",
         "-- Acknowledged enqueue commits a minimal immutable envelope. Delivery is at least once;",
         "-- UUID audit identity plus the same transaction for audit insertion and completion prevents",
         "-- duplicate audit rows. Pending/blocked rows are retained; no retention/deletion policy invented.",
@@ -2498,20 +2750,76 @@
       ]
     },
     {
-      "order": 51,
-      "file": "docs/proposed-migrations/20261015010000_taxguard_billing_pages.sql",
+      "order": 56,
+      "file": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
       "kind": "proposal",
-      "version": "20261015010000",
-      "sha256": "7f962173a45187ba0e341fd6f3af853dd2ac90a6ea139e229d5510d9346a7bf2",
+      "version": "20261015070000",
+      "sha256": "b01be3c7a49f6e55f7a98c0d5ea9ea10a592487caf3d3ee8d1cb2888aed1e8a8",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
       "dependsOn": [
-        "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql"
+        "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
       ],
       "referencedDependencies": [
         "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
-        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_record_payment",
+        "taxguard_bill_list"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_record_payment",
+          "previousFile": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_bill_list",
+          "previousFile": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: disable billing mutations; never restore confidential raw grants."
+      ],
+      "grantsAndRevocations": [
+        "DO $$ DECLARE t text; BEGIN FOREACH t IN ARRAY ARRAY['taxguard_service_catalog','taxguard_invoices','taxguard_invoice_lines','taxguard_invoice_payments','taxguard_invoice_counters','taxguard_service_price_history','taxguard_invoice_credits'] LOOP EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC,anon,authenticated,service_role',t); END LOOP; END $$;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_record_payment(text,text,text,text,numeric,text,text,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_record_payment(text,text,text,text,numeric,text,text,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_list(text,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_list(text,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL 058 ONLY. NOT APPLIED. Depends on 028/047/049.",
+        "-- Additive correction: raw billing table denial and fully bound scoped retries.",
+        "-- Preserves main 047 client allowlist, balances and sandbox restrictions. No live payments.",
+        "-- Rollback: disable billing mutations; never restore confidential raw grants.",
+        "-- No unissued void draft is client-visible; proposal 052 later adds bounded page reads."
+      ]
+    },
+    {
+      "order": 57,
+      "file": "docs/proposed-migrations/20261015010000_taxguard_billing_pages.sql",
+      "kind": "proposal",
+      "version": "20261015010000",
+      "sha256": "476ac22518ac6ba8b537ca926cbccec9b3a5e0090b244b98a42e9381b0cde978",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"
       ],
       "declaredObjects": [
         "taxguard_bill_page",
@@ -2520,7 +2828,7 @@
       "supersededFunctions": [
         {
           "name": "taxguard_bill_list",
-          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "previousFile": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
           "review": "Check overload signatures and final grants in composed PostgreSQL."
         }
       ],
@@ -2534,24 +2842,25 @@
       "securityDefinerDeclarations": 2,
       "notValidConstraints": 0,
       "header": [
-        "-- PROPOSAL 048 ONLY. NOT APPLIED. Depends on 028. No billing arithmetic changed.",
+        "-- PROPOSAL 052 ONLY. NOT APPLIED. Depends on 028/047. No billing arithmetic changed.",
         "-- Bounded, scoped keyset pagination with the existing database client allow-list.",
         "-- Compatibility list refuses oversized results rather than silently truncating balances.",
         "-- Rollback: disable billing reads; preserve database confidentiality; do not restore leaking functions."
       ]
     },
     {
-      "order": 52,
+      "order": 58,
       "file": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
       "kind": "proposal",
       "version": "20261015020000",
-      "sha256": "18fca24aa59c18e3d66912c00c5a366cf7837511f54cef416ba44446cb954a26",
+      "sha256": "18f22efe61db9dc99150ece54f9c066b9d175bd13a6c2fbbf4cd78ce17a476e2",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
       "dependsOn": [
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
-        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
       ],
       "referencedDependencies": [
         "supabase/migrations/20260928000000_taxguard_core_schema.sql",
@@ -2580,17 +2889,17 @@
       "securityDefinerDeclarations": 4,
       "notValidConstraints": 0,
       "header": [
-        "-- PROPOSAL 049 ONLY. NOT APPLIED. Depends on 025/027 and the core engagement/year schema.",
+        "-- PROPOSAL 053 ONLY. NOT APPLIED. Depends on 025/027/049 and the core engagement/year schema.",
         "-- Client-reported collection drafts and waiver CLAIMS only; no facts verified, no stage completed.",
         "-- Rollback: disable collection writes, preserve records/history; never fall back to memory authority."
       ]
     },
     {
-      "order": 53,
+      "order": 59,
       "file": "docs/proposed-migrations/20261015030000_taxguard_collection_requests.sql",
       "kind": "proposal",
       "version": "20261015030000",
-      "sha256": "495a3a88018a8f9214e475bc1e9d9d8bee6e1513256ce9b056a1bbbf877923da",
+      "sha256": "d62bda3e7b8ca5e9eb6f0189453eccb0dca42c9fd0a94cf6e76f8911b36d2984",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -2622,18 +2931,18 @@
       "securityDefinerDeclarations": 1,
       "notValidConstraints": 1,
       "header": [
-        "-- PROPOSAL 050 ONLY. NOT APPLIED. Depends on 049 and existing taxguard_client_requests.",
+        "-- PROPOSAL 054 ONLY. NOT APPLIED. Depends on 053 and existing taxguard_client_requests.",
         "-- Human portal clarification/amendment requests only; document requests remain in proposal 031.",
         "-- No signing, payment, external transmission or stage advancement. Historical unscoped rows stay unavailable.",
         "-- Rollback: disable collection request APIs, preserve rows/replies/audit, never restore memory success."
       ]
     },
     {
-      "order": 54,
+      "order": 60,
       "file": "docs/proposed-migrations/20261015040000_taxguard_mfa_lifecycle_canonical.sql",
       "kind": "proposal",
       "version": "20261015040000",
-      "sha256": "1be3b94a0260cd87da32975c53243452f92f466b41088174e772d6607d137cae",
+      "sha256": "f049d6fa3f04dc4d00a484fe6ce193e036fddedcbd5e66017bbf30a7ba9cf4b8",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -2657,7 +2966,7 @@
       "securityDefinerDeclarations": 0,
       "notValidConstraints": 0,
       "header": [
-        "-- PROPOSAL 051 ONLY. NOT APPLIED. Depends on proposals 034 and 036.",
+        "-- PROPOSAL 055 ONLY. NOT APPLIED. Depends on proposals 034/036/049.",
         "-- Canonical final constraint after historical ALTER COLUMN status TYPE varchar(32).",
         "-- Reapplication of 034 changes implicit cast representation; recreate the same invariant",
         "-- at the final type in one transaction. Existing invalid rows abort the entire proposal.",
@@ -2670,45 +2979,49 @@
       ]
     },
     {
-      "order": 55,
+      "order": 61,
       "file": "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql",
       "kind": "proposal",
       "version": "20261015050000",
-      "sha256": "9b6e4009f0b62dd477f522d604d97edc9128694897edd89b0d91163bf1b2d169",
+      "sha256": "3adc1a2b663c26c15ac8eac96685bb82c6ca721895f3d91b794321025fb20eb7",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
       "dependsOn": [
-        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"
       ],
       "referencedDependencies": [
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
         "supabase/migrations/20260928000000_taxguard_core_schema.sql",
         "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
       ],
       "declaredObjects": [
-        "taxguard_document_scan_jobs",
-        "taxguard_doc_scan_job",
-        "taxguard_doc_scan_verdict"
+        "taxguard_doc_scan_envelope_guard",
+        "taxguard_doc_scan_complete"
       ],
-      "supersededFunctions": [],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_doc_scan_complete",
+          "previousFile": "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
       "rollback": [
-        "-- Rollback: disable scanning, preserve jobs, do not restore the unbound service grant."
+        "-- Rollback: disable scanner integrations, preserve history, never restore unbound service grants."
       ],
       "grantsAndRevocations": [
-        "REVOKE ALL ON public.taxguard_document_scan_jobs FROM PUBLIC,anon,authenticated,service_role;",
-        "REVOKE ALL ON FUNCTION public.taxguard_doc_record_scan(text,text,text,integer,text,text) FROM PUBLIC,anon,authenticated,service_role;",
-        "REVOKE ALL ON FUNCTION public.taxguard_doc_scan_job(text,text,text,integer,uuid,text,text,bigint) FROM PUBLIC,anon,authenticated;",
-        "REVOKE ALL ON FUNCTION public.taxguard_doc_scan_verdict(text,text,text,integer,uuid,text,text,bigint,text) FROM PUBLIC,anon,authenticated;",
-        "GRANT EXECUTE ON FUNCTION public.taxguard_doc_scan_job(text,text,text,integer,uuid,text,text,bigint),public.taxguard_doc_scan_verdict(text,text,text,integer,uuid,text,text,bigint,text) TO service_role;"
+        "REVOKE ALL ON public.taxguard_doc_scan_requests FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_doc_record_scan(text,text,text,integer,text,text),public.taxguard_doc_scan_envelope_guard() FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_doc_scan_complete(text,uuid,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_doc_scan_complete(text,uuid,text,text) TO service_role;"
       ],
-      "securityDefinerDeclarations": 2,
+      "securityDefinerDeclarations": 1,
       "notValidConstraints": 0,
       "header": [
-        "-- PROPOSAL 052 ONLY. NOT APPLIED. Depends on 027. Provider commissioning remains blocked.",
-        "-- Durable one-use correlation, exact bytes/version/path binding and a 60-second deadline.",
-        "-- Transport authentication/signature verification remains the trusted adapter's responsibility.",
-        "-- Timeout or conflicting verdict leaves quarantine closed. Rescan needs a new upload version.",
-        "-- Rollback: disable scanning, preserve jobs, do not restore the unbound service grant."
+        "-- PROPOSAL 056 ONLY. NOT APPLIED. Depends on merged 050/027; no parallel job table.",
+        "-- Persist exact document UUID/version/hash/path binding in the existing scan requests.",
+        "-- Legacy unbound requests cannot release documents; existing expiry/five-attempt retry remains.",
+        "-- Rollback: disable scanner integrations, preserve history, never restore unbound service grants."
       ]
     }
   ]

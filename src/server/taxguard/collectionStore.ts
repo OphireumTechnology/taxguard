@@ -16,7 +16,7 @@ export class CollectionStore {
  claim(tenant:string,client:string,actor:string,year:number,input:{engagementId?:string;revision:number;code:string;reason:string}){
   return this.call('taxguard_collection_claim',{p_tenant:tenant,p_client:client,p_actor:actor,p_year:year,p_engagement:input.engagementId??null,p_revision:input.revision,p_code:input.code,p_reason:input.reason});
  }
- requests(tenant:string,client:string,actor:string,year:number,action:'LIST'|'CREATE'|'RESPOND'|'RESOLVE',input:Record<string,unknown>={},engagement?:string){
+ requests(tenant:string,client:string,actor:string,year:number,action:'LIST'|'DETAIL'|'CREATE'|'RESPOND'|'RESOLVE',input:Record<string,unknown>={},engagement?:string){
   return this.call('taxguard_collection_request_operation',{p_tenant:tenant,p_client:client,p_actor:actor,p_year:year,p_engagement:engagement??null,p_action:action,p_input:input});
  }
 }

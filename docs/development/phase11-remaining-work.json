@@ -1,7 +1,9 @@
 {
-  "baselineMain": "49369c393d6391c9de9e3ecd869bf79736c6990c",
-  "dependency": "f0549efc4ac67d97258402f51af589772bd0a412",
+  "baselineMain": "5f1553c7d73445081d51635310173a53373694bf",
+  "initialBaselineMain": "49369c393d6391c9de9e3ecd869bf79736c6990c",
+  "preservedCodexPhase10": "f0549efc4ac67d97258402f51af589772bd0a412",
   "phase10Pr": 15,
+  "mergedPhase10Pr": 16,
   "classifications": [
     "Fully implemented and locally validated",
     "Partially implemented",

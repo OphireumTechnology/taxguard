@@ -296,22 +296,32 @@
       ]
     },
     {
+      "file": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+      "dependsOn": ["docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql"]
+    },
+    {"file":"docs/proposed-migrations/20261014480000_taxguard_security_events.sql","dependsOn":["docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"]},
+    {"file":"docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql","dependsOn":["docs/proposed-migrations/20261014480000_taxguard_security_events.sql"]},
+    {"file":"docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql","dependsOn":["docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"]},
+    {
       "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
       "dependsOn": [
-        "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql"
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
       ]
     },
     {
       "file": "docs/proposed-migrations/20261015010000_taxguard_billing_pages.sql",
       "dependsOn": [
-        "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql"
+        "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
       ]
     },
     {
       "file": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
       "dependsOn": [
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
-        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
       ]
     },
     {
@@ -324,6 +334,8 @@
       "file": "docs/proposed-migrations/20261015040000_taxguard_mfa_lifecycle_canonical.sql",
       "dependsOn": ["docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql","docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql"]
     },
-    {"file":"docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql","dependsOn":["docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"]}
+    {"file":"docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql","dependsOn":["docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"]},
+    {"file":"docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql","dependsOn":["docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"]},
+    {"file":"docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql","dependsOn":["docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql","docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"]}
   ]
 }

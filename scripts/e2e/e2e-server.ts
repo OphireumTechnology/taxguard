@@ -113,9 +113,8 @@ const shim = http.createServer((req, res) => {
       const b = json() || {};
       const document=(await database.pool.query('SELECT hash FROM taxguard_documents WHERE tenant_id=$1 AND client_id=$2 AND document_id=$3 AND version=$4',[b.tenant,b.client,b.documentId,b.version])).rows[0];
       if(!document)return send(400,{code:'DOCUMENT_NOT_FOUND'});
-      const binding={p_tenant:b.tenant,p_client:b.client,p_document:b.documentId,p_version:b.version,p_request:randomUUID(),p_digest:document.hash,p_scanner:'e2e-synthetic-scanner',p_issued:Date.now()};
-      const job=await rpc.rpc('taxguard_doc_scan_job',binding);if(job.error)return send(400,{code:job.error.message});
-      const r = await rpc.rpc('taxguard_doc_scan_verdict', {...binding,p_result:b.result});
+      const job=await rpc.rpc('taxguard_doc_scan_request',{p_tenant:b.tenant,p_client:b.client,p_document_id:b.documentId,p_version:b.version,p_provider:'e2e-synthetic-scanner',p_ttl_seconds:60});if(job.error)return send(400,{code:job.error.message});
+      const r = await rpc.rpc('taxguard_doc_scan_complete', {p_tenant:b.tenant,p_scan_id:job.data.scanId,p_provider:'e2e-synthetic-scanner',p_verdict:b.result});
       return r.error ? send(400, { code: r.error.message }) : send(200, r.data);
     }
     send(404, { code: 'E2E_NOT_AVAILABLE', message: 'Not served in E2E.' });

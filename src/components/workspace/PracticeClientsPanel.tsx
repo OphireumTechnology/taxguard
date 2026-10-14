@@ -3,6 +3,7 @@ import { ENGAGEMENT_TRANSITIONS, newPracticeKey, practiceMessage, practiceServic
 
 import { ConversationPanel } from '../communications/ConversationPanel';
 import { LegalMattersPanel } from '../legal/LegalMattersPanel';
+import {StaffCollectionRequestsPanel} from '../collection/StaffCollectionRequestsPanel';
 
 const ROLES = ['preparer', 'reviewer', 'bookkeeper', 'case_owner'];
 const TYPES = ['tax_preparation', 'bookkeeping', 'tax_planning', 'advisory', 'representation', 'payroll'];
@@ -72,6 +73,7 @@ export function PracticeClientsPanel() {
       {d && detail.status === 'ready' && <>
         <h3>{d.client.name || d.client.clientId} <small>({label(d.client.clientType)}, {d.client.status})</small></h3>
         <h4>Engagements</h4>
+        <StaffCollectionRequestsPanel key={selected} clientId={selected} engagements={d.engagements}/>
         {d.engagements.length === 0 && <p>No engagements yet.</p>}
         <ul>{d.engagements.map(e => <li key={e.engagementId}><strong>{e.title}</strong> · {label(e.type)} · {e.status} · tax years {e.taxYears.map(y => y.taxYear).join(', ')}
           {(ENGAGEMENT_TRANSITIONS[e.status] || []).map(next => <button key={next} type="button" disabled={busy}

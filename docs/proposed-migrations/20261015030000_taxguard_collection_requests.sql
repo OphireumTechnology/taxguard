@@ -1,4 +1,4 @@
--- PROPOSAL 050 ONLY. NOT APPLIED. Depends on 049 and existing taxguard_client_requests.
+-- PROPOSAL 054 ONLY. NOT APPLIED. Depends on 053 and existing taxguard_client_requests.
 -- Human portal clarification/amendment requests only; document requests remain in proposal 031.
 -- No signing, payment, external transmission or stage advancement. Historical unscoped rows stay unavailable.
 -- Rollback: disable collection request APIs, preserve rows/replies/audit, never restore memory success.
@@ -17,7 +17,7 @@ CREATE TRIGGER collection_replies_immutable BEFORE UPDATE OR DELETE OR TRUNCATE 
 CREATE INDEX IF NOT EXISTS collection_requests_scope_page ON public.taxguard_client_requests(tenant_id,client_id,engagement_id,tax_year,id);
 CREATE OR REPLACE FUNCTION public.taxguard_collection_request_json(r public.taxguard_client_requests) RETURNS jsonb
 LANGUAGE sql STABLE SET search_path=pg_catalog,public,pg_temp AS $$
- SELECT jsonb_build_object('requestId',r.id,'tenantId',r.tenant_id,'clientId',r.client_id,'engagementId',r.engagement_id,'taxYear',r.tax_year,'requestType',r.request_type,
+ SELECT jsonb_build_object('id',r.id,'requestId',r.id,'tenantId',r.tenant_id,'clientId',r.client_id,'engagementId',r.engagement_id,'taxYear',r.tax_year,'requestType',r.request_type,
   'title',r.title,'message',r.description,'status',CASE WHEN r.status='RESPONDED' THEN 'CLIENT_RESPONDED' ELSE r.status END,'createdByName','Practice team',
   'createdAt',r.created_at,'dueDate',r.due_date,'clientResponse',r.response_text,'rowVersion',r.row_version) $$;
 CREATE OR REPLACE FUNCTION public.taxguard_collection_request_operation(p_tenant text,p_client text,p_actor text,p_year integer,p_engagement text,p_action text,p_input jsonb) RETURNS jsonb
@@ -25,7 +25,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp SET 
 DECLARE eng text;k text;request_key text;r public.taxguard_client_requests;prior public.taxguard_collection_replies;rows jsonb;rev integer;
 BEGIN
  eng:=public.taxguard_collection_scope(p_tenant,p_client,p_actor,p_year,p_engagement);k:=public.taxguard_doc_actor(p_tenant,p_client,p_actor);
- IF p_input IS NULL OR jsonb_typeof(p_input)<>'object' OR octet_length(p_input::text)>8192 OR p_action IS NULL OR p_action NOT IN('LIST','CREATE','RESPOND','RESOLVE') THEN RAISE EXCEPTION 'COLLECTION_INPUT_INVALID' USING ERRCODE='P0001';END IF;
+ IF p_input IS NULL OR jsonb_typeof(p_input)<>'object' OR octet_length(p_input::text)>8192 OR p_action IS NULL OR p_action NOT IN('LIST','DETAIL','CREATE','RESPOND','RESOLVE') THEN RAISE EXCEPTION 'COLLECTION_INPUT_INVALID' USING ERRCODE='P0001';END IF;
  IF p_action='LIST' THEN
   SELECT COALESCE(jsonb_agg(public.taxguard_collection_request_json(q) ORDER BY q.id),'[]'::jsonb) INTO rows FROM(SELECT * FROM public.taxguard_client_requests
    WHERE tenant_id=p_tenant AND client_id=p_client AND engagement_id=eng AND tax_year=p_year AND (p_input->>'after' IS NULL OR id>p_input->>'after') ORDER BY id LIMIT 101)q;
@@ -47,6 +47,7 @@ BEGIN
  END IF;
  SELECT * INTO r FROM public.taxguard_client_requests WHERE tenant_id=p_tenant AND client_id=p_client AND engagement_id=eng AND tax_year=p_year AND taxguard_client_requests.id=p_input->>'requestId' FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'COLLECTION_REQUEST_NOT_FOUND' USING ERRCODE='P0001';END IF;
+ IF p_action='DETAIL' THEN RETURN public.taxguard_collection_request_json(r);END IF;
  IF p_action='RESPOND' THEN
   IF k<>'client' OR COALESCE(p_input->>'replyId','') !~ '^[A-Za-z0-9_-]{8,128}$' OR length(btrim(COALESCE(p_input->>'message',''))) NOT BETWEEN 2 AND 4000 THEN RAISE EXCEPTION 'COLLECTION_INPUT_INVALID' USING ERRCODE='P0001';END IF;
   SELECT * INTO prior FROM public.taxguard_collection_replies WHERE request_id=r.id AND reply_id=p_input->>'replyId';

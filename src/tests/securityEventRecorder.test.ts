@@ -19,9 +19,10 @@ describe('durable security event recording', () => {
   it('persists sanitized events through the existing audit architecture across recorder instances', async () => {
     const rpc = pgliteRpc(() => fixture.pg), recorder = new SecurityEventRecorder(rpc, 'tenantA');
     recorder.record({ ...event, details: 'password=secret taxpayer content', ipAddress: 'private address' } as any);
-    recorder.record({ eventType: 'AUTH_FAILURE_TELEMETRY', severity: 'critical' }); // untrusted telemetry ignored
+    recorder.record({ eventType: 'AUTH_FAILURE_TELEMETRY', severity: 'critical',details:'password=secret taxpayer content',ipAddress:'private address' } as any); // recognized server-generated category, redacted
+    recorder.record({eventType:'UNREGISTERED_BROWSER_TELEMETRY',severity:'critical'}); // unregistered codes remain ignored
     await recorder.drain();
-    expect(recorder.status()).toEqual({ pending: 0, persisted: 1, failed: 0, dropped: 0 });
+    expect(recorder.status()).toEqual({ pending: 0, persisted: 2, failed: 0, dropped: 0 });
     const restarted = new SecurityEventRecorder(rpc, 'tenantA');
     expect(restarted.status().persisted).toBe(0);
     const rows = (await fixture.pg.query<any>("SELECT * FROM taxguard_audit_log WHERE action='SECURITY_AUTHORIZATION_DENIAL'")).rows;
@@ -29,6 +30,8 @@ describe('durable security event recording', () => {
     expect(rows[0].metadata).toEqual({ category: 'SECURITY', severity: 'warning' });
     expect(rows[0].ip_address).toBeNull();
     expect(JSON.stringify(rows)).not.toMatch(/password|taxpayer|private address/);
+    const authRows=(await fixture.pg.query<any>("SELECT * FROM taxguard_audit_log WHERE action='SECURITY_AUTH_FAILURE'")).rows;
+    expect(authRows).toHaveLength(1);expect(authRows[0].metadata).toEqual({category:'SECURITY',severity:'critical'});expect(authRows[0].ip_address).toBeNull();expect(JSON.stringify(authRows)).not.toMatch(/password|taxpayer|private address/);
     await expect(fixture.pg.query('DELETE FROM taxguard_audit_log WHERE id=$1', [rows[0].id])).rejects.toThrow('SECURITY_EVENT_IMMUTABLE');
     await expect(fixture.pg.query("UPDATE taxguard_audit_log SET action='OTHER' WHERE id=$1", [rows[0].id])).rejects.toThrow('SECURITY_EVENT_IMMUTABLE');
     await expect(fixture.pg.exec('TRUNCATE taxguard_audit_log CASCADE')).rejects.toThrow('SECURITY_EVENT_IMMUTABLE');

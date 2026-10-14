@@ -63,6 +63,7 @@ import { ProfileSecurityView } from './views/ProfileSecurityView';
 import { ClientProfileView } from './views/ClientProfileView';
 import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
 import { ClientDocumentVaultPanel } from '../documents/ClientDocumentVaultPanel';
+import {DurableClientCollectionWorkspace} from '../collection/DurableClientCollectionWorkspace';
 import { ClientInvoicesPanel } from '../billing/ClientInvoicesPanel';
 import { ClientDocumentRequestsPanel } from '../documents/ClientDocumentRequestsPanel';
 import { ClientStatusSummary } from './ClientStatusSummary';
@@ -221,6 +222,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       const hash = window.location.hash.toLowerCase();
       const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
       if (pathname === '/portal/documents') return 'documents';
+      if (pathname === '/portal/collection') return 'questionnaire';
       if (pathname === '/portal/requests') return 'requests';
       if (pathname === '/portal/appointments') return 'appointments';
       if (pathname === '/portal/profile') return 'profile';
@@ -256,6 +258,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     const handlePopState = () => {
       const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
       if (pathname === '/portal/documents') setActiveNavId('documents');
+      else if (pathname === '/portal/collection') setActiveNavId('questionnaire');
       else if (pathname === '/portal/requests') setActiveNavId('requests');
       else if (pathname === '/portal/appointments') setActiveNavId('appointments');
       else if (pathname === '/portal/profile') setActiveNavId('profile');
@@ -595,6 +598,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+          <DurableClientCollectionWorkspace clientId={clientId} taxYear={selectedTaxYear}/>
         </div>
       );
     }

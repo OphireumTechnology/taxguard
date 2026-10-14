@@ -10,6 +10,7 @@ export async function schemaFingerprint(db:SchemaQuery){
   tables:`SELECT relname,relkind,relrowsecurity,relforcerowsecurity,relacl IS NULL acl_default,ARRAY(SELECT unnest(relacl)::text ORDER BY 1) acl FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind IN ('r','p','S','v') ORDER BY relname`,
   indexes:`SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY indexname`,
   policies:`SELECT tablename,policyname,permissive,roles,cmd,qual,with_check FROM pg_policies WHERE schemaname='public' ORDER BY tablename,policyname`,
+  defaultPrivileges:`SELECT defaclrole::regrole::text owner,defaclobjtype,ARRAY(SELECT unnest(defaclacl)::text ORDER BY 1) acl FROM pg_default_acl WHERE defaclnamespace='public'::regnamespace ORDER BY owner,defaclobjtype`,
   triggers:`SELECT c.relname,t.tgname,pg_get_triggerdef(t.oid,true) definition,t.tgenabled FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE c.relnamespace='public'::regnamespace AND NOT t.tgisinternal ORDER BY c.relname,t.tgname`,
  };
  for(const [name,sql] of Object.entries(queries))groups[name]=(await db.query(sql)).rows;
