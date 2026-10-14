@@ -76,6 +76,7 @@ jobs:
           node scripts/staging/migration-manifest.mjs
           node scripts/staging/migration-review-bundle.mjs
           npm run staging:migration:release-candidate
+          npm run staging:recovery:local
           node scripts/staging/remaining-work.mjs
           npx --no-install tsx scripts/staging/phase11-ai-readiness.ts
           node scripts/verify-local-traceability.mjs

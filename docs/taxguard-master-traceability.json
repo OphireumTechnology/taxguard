@@ -4357,11 +4357,12 @@
     },
     {
       "file": "docs/development/backup-restore-runbook.md",
-      "sha256": "74ef843e82e4672ac6fccb675b09b34961b6f42617b4b12db6df7eac821711af",
-      "bytes": 5068,
+      "sha256": "c0ad721e50915f5bf9d9e2add9d5f7fe99958f091d4a4192a2b8ae01ff304e6f",
+      "bytes": 6449,
       "headings": [
         "# Backup, restore, rollback and recovery runbook (Phase 10)",
         "## What is rehearsed locally (and how)",
+        "## Phase 12 offline recovery acceptance",
         "## Hosted backups (staging; owner actions)",
         "## Proposed recovery objectives (owner to approve)",
         "## Restore procedure (staging)",
@@ -4786,14 +4787,15 @@
     },
     {
       "file": "docs/development/phase12-report.md",
-      "sha256": "58727255addadfa7cd4b1821cd5ca93e1a6243e7825bc3e28807c1138f64a5c6",
-      "bytes": 4107,
+      "sha256": "75eb654c6ea2a49259e3b7887641c8077606fe2ed8f88e0c9a859747a3f6e3f6",
+      "bytes": 7639,
       "headings": [
         "# Phase 12 local development report",
         "## Baseline and scope",
         "## Implemented in code",
         "## Locally validated",
         "## Not validated or commissioned",
+        "## Resume checkpoint — 2026-10-15",
         "## Delivery checkpoint"
       ]
     },
@@ -6329,7 +6331,7 @@
     "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql": "10e2144dfb7a56e1b4bae28a5d755a5f9f9472ad0da91b78a9b304b4bc932290",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "d05cc4b34cf003e783764bca58ba22a32a956f39cbc082a149b747d2c541ec6e",
+    "package.json": "a36993f3e0ffc8135cf80d2a4808fca1928687b8282609e542bd3ad6da53e568",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",

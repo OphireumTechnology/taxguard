@@ -18,6 +18,7 @@
     "staging:migration:release-candidate": "tsx scripts/staging/migration-release-candidate.ts",
     "staging:ai-readiness": "tsx scripts/staging/ai-readiness.ts",
     "staging:backup:local": "tsx scripts/staging/backup-rehearsal.ts",
+    "staging:recovery:local": "tsx scripts/staging/logical-recovery-rehearsal.ts",
     "security:secrets": "node scripts/staging/scan-secrets.mjs",
     "taxguard:complete": "node scripts/taxguard-complete-system.mjs",
     "qa:fixture:build": "vite build --config qa/synthetic-shell/vite.config.ts",

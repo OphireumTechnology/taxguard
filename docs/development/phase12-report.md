@@ -58,6 +58,55 @@ signatures, live payments and AI-16 material actions remain disabled pending the
 owner and professional prerequisites. Current local emulator/browser results are not staging
 validation and do not imply production commissioning.
 
+## Resume checkpoint — 2026-10-15
+
+The repository was clean on `codex/taxguard-phase12-staging-acceptance` at `ae9eaa5`.
+After fetching origin, `origin/main` remained the Phase 11 merge `dc9c96c`; the existing
+Phase 12 branch was three commits ahead with no missing main commits. Existing PR #18 is
+being resumed. No history was rewritten and all existing development was preserved.
+
+Implemented this increment:
+
+- Both recovery commands now reject caller arguments, ambient Supabase/database/libpq settings
+  (including service and password files, even empty values) and custom database directories
+  before importing the disposable database harness. Errors expose no configured values.
+- Added 20 safety regressions, including execution of both real command entry points with
+  a forbidden service-file environment. Explicit backup utility paths remain supported.
+- Added `npm run staging:recovery:local` and included it in Linux PR CI and Windows offline
+  readiness. The rehearsal uses durable local servers, an independently approved synthetic
+  invoice, security audit, restore, and actual PostgreSQL restart. It verifies all restored
+  rows/schema, the exact issued invoice client projection, explicit tenant denial, and
+  audit immutability after restart. Cleanup attempts both owned servers even on failure.
+- Physical backup cleanup now attempts server and owned archive cleanup even when connection
+  shutdown fails. Updated the recovery runbook and traceability evidence.
+
+Current local verification (exit 0 unless explicitly stated):
+
+| Gate | Result |
+|---|---|
+| Full unit/security suite | PASS; 325 files / 5,516 tests |
+| Added recovery command regressions | PASS; 1 file / 20 tests |
+| Disposable PostgreSQL suite | PASS; 15 files / 51 tests |
+| Browser default profile | PASS; 12 files / 58 tests |
+| Browser provider profile | PASS; 1 file / 8 tests; loopback emulator, not real MFA commissioning |
+| TypeScript and lint | PASS |
+| Frontend/server build | PASS; build only |
+| Migration release candidate | PASS; 61 entries, 36 replay-safe proposals, unchanged matching fingerprint; 13 NOT VALID constraints still reported |
+| Strengthened logical recovery | PASS; 141 tables / 7,193 synthetic rows; export 613 ms, restore 2,719 ms; restart persistence, billing projection, tenant isolation and security audit immutability PASS |
+| Physical utility recovery | BLOCKED; command refused with BACKUP_TOOLS_REQUIRED, exit 1; neither pg_dump nor pg_restore discovered |
+| AI readiness inventory | PASS; 61 identities, 3 bounded handlers, 0 commissioned; material actions disabled |
+| Manifest/review bundle and remaining-work inventory | PASS; review-only; 0 staging-validated and 0 production-commissioned areas |
+| Final traceability, secrets and whitespace | PASS; 208 requirements / 61 agents / 18 stages; 1,387 files scanned, 108 binaries skipped, no findings |
+
+Windows sandbox attempts initially failed with `spawn EPERM`; the safety test and validation
+commands were rerun through the escalation mechanism. No assertion was weakened or skipped.
+
+This increment is recovery and acceptance tooling, not completion of missing professional
+workflows. Full client intake-to-filing acceptance, real-provider MFA, scanner detection,
+approved tax content, specialist AI handlers, hosted storage/restore and staging infrastructure
+remain unvalidated or uncommissioned as recorded in the feature matrix. No external migration,
+production access, live provider call, deployment, merge or material AI action occurred.
+
 ## Delivery checkpoint
 
 This report is updated before the feature-branch commit. The final commit SHA, PR URL and

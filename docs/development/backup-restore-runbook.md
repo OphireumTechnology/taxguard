@@ -21,6 +21,26 @@ nothing about a hosted project; they only show the procedure works end to end.
 The library refuses non-loopback connections (`BACKUP_REHEARSAL_LOOPBACK_ONLY`) and refuses to restore
 unless the caller declares the target disposable. It never prints row contents.
 
+## Phase 12 offline recovery acceptance
+
+Run `npm run staging:recovery:local` without arguments. The command creates two disposable
+loopback PostgreSQL servers with durability enabled, seeds an independently approved synthetic
+invoice and security audit, restores all rows into the second server, then stops and restarts
+that server. It checks table counts/checksums and schema parity after restart, the exact
+`251.00` issued invoice client projection, cross-tenant denial and security audit immutability.
+The command runs in both development PR CI and the manual Windows offline-readiness workflow.
+It retains no archive and reports only aggregate measurements.
+
+Both this command and `npm run staging:backup:local` reject target arguments, ambient Supabase,
+database URL and libpq variables (including service/pass files), and custom test database
+directories before importing the database harness. Existing `.env` files are also refused.
+Explicit `TAXGUARD_PG_DUMP_BIN` / `TAXGUARD_PG_RESTORE_BIN` utility paths remain supported by
+the physical utility rehearsal. Neither command loads a hosted project or grants restore authority.
+
+Logical recovery does not test physical `pg_dump`/`pg_restore`, hosted point-in-time recovery,
+document bucket recovery, disaster recovery objectives or real identity/provider continuity.
+Those remain separate, unvalidated commissioning gates.
+
 ## Hosted backups (staging; owner actions)
 
 1. **Provider backups.** Enable daily backups and, if the plan allows, point-in-time recovery (PITR) on
