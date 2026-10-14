@@ -31,7 +31,7 @@ export function auditErrorText(error: unknown) {
  * reason, amount or taxpayer payload ever reaches this view.
  */
 /** Categories of authoritatively recorded security events (sessions, staff access and MFA, sign-in, AI governance, kill switches). */
-export const SECURITY_CATEGORIES = ['SESSION', 'STAFF', 'AUTH', 'AI', 'KILL'];
+export const SECURITY_CATEGORIES = ['SESSION', 'STAFF', 'AUTH', 'AI', 'KILL', 'SECURITY'];
 export function AuditCenterPanel({ securityOnly: initialSecurity = false }: { securityOnly?: boolean } = {}) {
   const [securityOnly, setSecurityOnly] = useState(initialSecurity);
   const [filter, setFilter] = useState({ from: isoDay(Date.now() - 7 * DAY), to: isoDay(Date.now()), category: '', action: '', actorUid: '', clientId: '' });

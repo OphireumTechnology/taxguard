@@ -29,13 +29,19 @@ Prerequisites (decided by the project owner, not by this repository):
    duration of the run — never in `.env`, never committed, never the application's `SUPABASE_*`.
 
 ```bash
-TAXGUARD_VALIDATION_CONFIRM=non-production TAXGUARD_VALIDATION_SUPABASE_URL=<url> TAXGUARD_VALIDATION_SERVICE_ROLE_KEY=<key> TAXGUARD_VALIDATION_ANON_KEY=<key> node node_modules/tsx/dist/cli.mjs scripts/provider-validation/mfa-admin-validation.ts
+TAXGUARD_VALIDATION_CONFIRM=non-production TAXGUARD_VALIDATION_SUPABASE_URL=https://<ref>.supabase.co TAXGUARD_VALIDATION_PROJECT_REF=<ref> TAXGUARD_VALIDATION_PRODUCTION_PROJECT_REF=<production-ref> TAXGUARD_VALIDATION_SERVICE_ROLE_KEY=<key> TAXGUARD_VALIDATION_ANON_KEY=<key> node node_modules/tsx/dist/cli.mjs scripts/provider-validation/mfa-admin-validation.ts
 ```
 
 The guard (`src/server/providerValidationTarget.ts`, tested in `providerValidationTarget.test.ts`)
 refuses with exit code 2 and sends nothing when: the confirmation is missing; `NODE_ENV=production`;
 the URL is the protected project (any spelling), insecure (non-loopback http), carries credentials,
-equals the application's `SUPABASE_URL`; or keys are missing or identical.
+equals the application's `SUPABASE_URL`; keys are missing or identical; or (Phase 10) a hosted URL is
+not exactly `https://<ref>.supabase.co`, `TAXGUARD_VALIDATION_PROJECT_REF` does not repeat that ref,
+or `TAXGUARD_VALIDATION_PRODUCTION_PROJECT_REF` is missing or equal to it.
+
+Readiness without contacting anything: add `--readiness` to print `{"status":"BLOCKED","reason":...}`
+or `{"status":"READY_TO_RUN",...}`. **Current status (2026-10-14): BLOCKED** — no separate
+non-production project exists (`CONFIRMATION_MISSING` / `NON_PRODUCTION_PROJECT_NOT_CONFIGURED`).
 
 The run creates one synthetic user (random `example.com` address and password), enrols one TOTP
 factor through the public MFA API, checks the adapter's inventory (unverified and verified),

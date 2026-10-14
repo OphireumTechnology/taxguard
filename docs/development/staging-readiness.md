@@ -1,6 +1,6 @@
-# Staging readiness and implementation plan (updated 2026-10-14, Phase 9)
+# Staging readiness and implementation plan (updated 2026-10-14, Phase 10)
 
-**Status: NOT READY for staging.** Nothing has been deployed and no migration has been applied
+**Status: NOT READY for staging — staging GO / NO-GO: NO-GO.** Nothing has been deployed and no migration has been applied
 anywhere. Production remains NO-GO. The protected production project `cvrlhixxczerytiocxid` is never
 accessed, inspected, deployed to or migrated; tooling refuses it. No non-production project is
 assumed to exist. Staging is deployed only with explicit owner approval.
@@ -11,19 +11,19 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 |---|---|---|
 | Isolated non-production Supabase project | none configured | owner provisions a separate project |
 | Synthetic-only data | all suites use generated synthetic records; durable deployments load no demonstration seed | staging seed script (synthetic tenant, staff, clients) |
-| Migration review and ordering | 13 core migrations + 36 proposals (000–011, 023–046); composition, idempotent re-apply and security invariants verified on PGlite and real PostgreSQL | human review / approval of each proposal; NOT VALID constraints validated after data review |
-| Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery — verified against the loopback emulator | real-provider validation (`scripts/provider-validation/mfa-admin-validation.ts`); rate-limit policy decision |
+| Migration review and ordering | 13 core migrations + 40 proposals (000–011, 023–050) + the separate audit proposal; canonical manifest and readiness report (Phase 10); Supabase default privileges reproduced; Data API exposure found and closed by proposal 049 | human review / approval of each proposal in manifest order; 049 approved separately; NOT VALID constraints validated after data review |
+| Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery — verified against the loopback emulator; real-provider runner requires a confirmed project ref and a different production ref (`--readiness`: BLOCKED) | real-provider validation once a project exists; rate-limit policy decision |
 | Client authentication | local password + TOTP and provider paths | client provider configuration in staging |
 | Tenant and environment isolation | enforced in every proposal function; negative tests in unit, DB and E2E | one `TAXGUARD_TENANT_ID` per environment; separate keys per environment |
 | Private document storage | private bucket, write-once objects, signed URLs, scan-required release | staging bucket |
-| Malware scanner | none installed; documents stay quarantined | choose and wire a scanner transport |
+| Malware scanner | asynchronous boundary (proposal 050): durable requests, HMAC-authenticated single-use verdict callback, outage-safe quarantine; local fake scanner only | choose a provider; implement its adapter; approve the callback secret handling |
 | Billing sandbox | sandbox-only payments, maker-checker approvals | none for staging (no live payments by design) |
 | AI provider commissioning | gateway, kill switches, budgets; no provider | provider decision, keys, budget approval, AI-16 decision |
-| Audit monitoring | audit rows for every material change; administrator audit center (041) | log shipping / alerting; apply the append-only audit proposal |
-| Backup / restore, rollback | rollback notes per proposal | tested runbook on the staging database |
+| Audit monitoring | audit rows for every material change; administrator audit center (041) with durable, bounded security events (048); liveness / readiness / administrator diagnostics; alert conditions documented (`observability-and-alerts.md`) | log shipping / alerting; apply the append-only audit proposal |
+| Backup / restore, rollback | runbook (`backup-restore-runbook.md`); logical backup / restore / verification and rollback of 047, 048, 050 rehearsed on disposable local PostgreSQL | provider backups / PITR, bucket copy, RPO / RTO approval, rehearsal on staging |
 | Staging application hosting | GitHub Pages deploy is manual on `main`; the API server has no staging host | separate staging workflow, environment and API host |
 | Secret management | `.env` never committed; secret scan on every checkpoint | staging secrets in a managed store (GitHub environment secrets / host secret manager) |
-| Remaining in-memory workflows | stage two / three questionnaire and requests when the database is not configured; legacy routes still mounted for local mode (no reachable reader for most); integrations | retire legacy routes before staging |
+| Remaining in-memory workflows | six superseded legacy routes retired (410); retained routes listed with reasons in `phase10-reviews.md`; stage two / three questionnaire and requests when the database is not configured | migrate the legacy documents consumers to the vault; owner decision on unreachable components |
 
 ## Implementation plan (each step needs the owner's go-ahead)
 
@@ -60,10 +60,20 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 | `scripts/staging/build-synthetic-seed.mjs` | offline synthetic tenant / staff / client seed (example.test only) | applied after every migration and proposal on real PostgreSQL (`stagingSeed.db.test.ts`) |
 | `scripts/provider-validation/mfa-admin-validation.ts` | real-provider MFA validation (Phase 6) | blocked: no project |
 
+## Phase 10 artifacts (local, offline)
+
+| Artifact | Purpose | Verified |
+|---|---|---|
+| `scripts/migrations/migration-audit.mjs`, `build-migration-manifest.mjs` | canonical manifest, catalog diff per file, idempotency, hazards, client-role exposure | `migrationReadinessAudit.test.ts` (manifest must be current) |
+| `src/server/config/stagingEnvironmentValidator.ts`, `check-staging-config.ts --config-file` | 15-area staging validation; protected-project and overlap refusal; codes only | `stagingEnvironmentValidator.test.ts` (43, including the CLI) |
+| `scripts/backup/logical-backup.mjs`, `docs/proposed-migrations/rollback/` | restore and rollback rehearsal (loopback, disposable only) | `backupRestore.db.test.ts` (real PostgreSQL) |
+| `/api/health/live`, `/ready`, `/diagnostics` | liveness, readiness, administrator diagnostics without disclosure | `healthEndpoints.test.ts` |
+| `scripts/mutation/phase10-mutations.mjs` | proves the new protections are tested | 19 / 19 mutants killed |
+
 ## Release checklist (staging; every step needs owner approval)
 
 1. Non-production project provisioned; URL and keys only in the staging secret store.
-2. `check-staging-config.ts` reports no issues for the staging values.
+2. `check-staging-config.ts` reports `READY_FOR_OWNER_REVIEW` for the staging values, and the three MANUAL areas (storage, monitoring, backup) are confirmed by the owner.
 3. Proposals reviewed and approved in name order; applied to a restored copy first; composition
    tests run against it; then applied to staging.
 4. Synthetic seed generated, reviewed and applied; provider accounts created for the seeded staff IDs.
