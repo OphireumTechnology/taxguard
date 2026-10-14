@@ -13,7 +13,7 @@ export interface VaultStorage {
   put(path: string, bytes: Buffer, mimeType: string): Promise<void>;
   signedUrl(path: string, ttlSeconds: number): Promise<string>;
 }
-export interface MalwareScanner { readonly name: string; scan(bytes: Buffer): Promise<'CLEAN' | 'INFECTED'> }
+export interface MalwareScanner { readonly name: string; scan(bytes: Buffer,context?:{requestId:string;issuedAt:number}): Promise<'CLEAN' | 'INFECTED'> }
 export interface OcrField { fieldKey: string; value: unknown; confidence: number; page?: number }
 export interface OcrProvider { readonly name: string; extract(bytes: Buffer, mimeType: string): Promise<OcrField[]> }
 

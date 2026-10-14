@@ -52,6 +52,18 @@ export function createBillingRouter(deps: { store?: () => BillingStore; authenti
   router.post('/catalog', run(async req => store().upsertService(t(req), u(req), req.body ?? {})));
   router.get('/ar-aging', run(async req => { staffOnly(req); return store().arAging(t(req), u(req), typeof req.query.asOf === 'string' ? req.query.asOf : undefined); }));
   router.get('/clients/:clientId/invoices', run(async req => ({ items: await store().list(t(req), client(req), u(req)) })));
+  router.get('/clients/:clientId/invoice-pages', run(async req => {
+    let after: {at:string;id:string}|undefined;
+    if (req.query.cursor !== undefined) {
+      if (typeof req.query.cursor !== 'string' || req.query.cursor.length > 512 || !/^[A-Za-z0-9_-]+$/.test(req.query.cursor)) throw new BillingError('BILLING_PAGE_INVALID',400);
+      try { const value=JSON.parse(Buffer.from(req.query.cursor,'base64url').toString('utf8'));
+        if (!value || Object.keys(value).sort().join(',')!=='at,id' || typeof value.at!=='string' || !Number.isFinite(Date.parse(value.at)) || typeof value.id!=='string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value.id)) throw new Error();
+        after=value;
+      } catch { throw new BillingError('BILLING_PAGE_INVALID',400); }
+    }
+    const page=await store().page(t(req),client(req),u(req),after,req.query.limit===undefined?50:int(req.query.limit));
+    return {items:page.items,summary:page.summary,nextCursor:page.next?Buffer.from(JSON.stringify(page.next)).toString('base64url'):null};
+  }));
   router.post('/clients/:clientId/invoices', run(async req => store().createInvoice(t(req), client(req), u(req), idem(req), req.body ?? {}), 201));
   router.post('/clients/:clientId/invoices/:invoiceId/lines', run(async req => store().addLine(t(req), client(req), u(req), req.params.invoiceId, req.body ?? {})));
   router.post('/clients/:clientId/invoices/:invoiceId/lines/:lineNo/remove', run(async req => store().removeLine(t(req), client(req), u(req), req.params.invoiceId, int(req.params.lineNo))));

@@ -238,6 +238,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
 
   // Super administrators always require a second factor, whatever the stored flag says.
+  let verifiedMfa=false;
   if (user.mfaEnabled || isSuperAdministratorRole(user.role)) {
     if (!mfaCode) {
       diagnose({ outcome: 'password_accepted', next: 'authenticator_code_required' });
@@ -264,6 +265,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
           code: result === 'replayed' ? 'MFA_CODE_REPLAYED' : 'MFA_CODE_INVALID'
         });
       }
+      verifiedMfa=true;
     } else {
       // Previously any non-empty mfaCode was accepted without verification (MFA bypass).
       // Accounts without an enrolled TOTP secret cannot be verified, so no session is issued.
@@ -283,7 +285,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   clearLoginFailures(accountLockoutKey);
   user.lastLoginAt = new Date().toISOString();
   db.users.set(user.id, user);
-  const token = createSession(user.id, user.role);
+  const token = createSession(user.id, user.role,verifiedMfa);
 
   db.logAudit({
     userId: user.id,

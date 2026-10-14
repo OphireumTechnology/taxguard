@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import {buildMigrationManifest} from '../../../scripts/staging/migration-manifest.mjs';
 import type { PGlite } from '@electric-sql/pglite';
 
 /** Supabase-style rpc() over PGlite: named arguments, Postgres error code and message passed through. */
@@ -20,8 +21,8 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
     },
   };
 }
-/** Applies the named proposals (by numeric prefix) in order. */
+/** Applies explicitly selected proposal files in the reviewed dependency order. */
 export async function applyProposals(pg: PGlite, pattern: RegExp) {
-  for (const name of readdirSync('docs/proposed-migrations').filter(n => pattern.test(n)).sort())
-    await pg.exec(readFileSync('docs/proposed-migrations/' + name, 'utf8'));
+  for (const entry of buildMigrationManifest().entries.filter(e=>e.kind==='proposal'&&pattern.test(e.file.split('/').at(-1)!)))
+    await pg.exec(readFileSync(entry.file, 'utf8'));
 }

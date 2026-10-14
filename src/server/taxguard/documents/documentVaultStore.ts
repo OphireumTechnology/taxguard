@@ -5,7 +5,7 @@
  * propose OCR fields (if a provider is configured). Without a scanner documents remain
  * SCAN_PENDING and can never be downloaded.
  */
-import { createHash } from 'node:crypto';
+import { createHash,randomUUID } from 'node:crypto';
 import type { PracticeRpcClient } from '../practice/practiceStore';
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, contentMatchesType, VaultIntegrationError, type MalwareScanner, type OcrProvider, type VaultStorage } from './vaultIntegrations';
 
@@ -36,6 +36,8 @@ export class DocumentVaultStore {
 
   async upload(tenantId: string, clientId: string, actor: string, input: UploadInput, bytes: Buffer) {
     if (!Buffer.isBuffer(bytes) || bytes.length < 1) throw new DocumentVaultError('DOCUMENT_INPUT_INVALID', 400);
+    // Hold one immutable upload identity across asynchronous metadata/storage/scanner calls.
+    bytes=Buffer.from(bytes);input={...input};
     if (bytes.length > MAX_DOCUMENT_BYTES) throw new DocumentVaultError('DOCUMENT_TOO_LARGE', 413);
     if (!(ALLOWED_DOCUMENT_TYPES as readonly string[]).includes(input.mimeType)) throw new DocumentVaultError('DOCUMENT_TYPE_NOT_ALLOWED', 415);
     if (!contentMatchesType(input.mimeType, bytes)) throw new DocumentVaultError('DOCUMENT_CONTENT_MISMATCH', 415);
@@ -49,18 +51,22 @@ export class DocumentVaultStore {
     if (registered.status !== 'UPLOAD_PENDING') return { documentId: registered.documentId, version: registered.version, status: registered.status, replayed: true };
     if (!/^tenants\/[A-Za-z0-9_-]+\/clients\/[A-Za-z0-9_-]+\/engagements\/[A-Za-z0-9_-]+\/\d{4}\/docs\/doc_[a-f0-9]{32}_v\d+$/.test(registered.storagePath)
       || !registered.storagePath.startsWith(`tenants/${tenantId}/clients/${clientId}/`)) throw new DocumentVaultError('DOCUMENT_STORAGE_SCOPE_INVALID', 500);
-    try { await this.storage.put(registered.storagePath, bytes, input.mimeType); }
+    try { await this.storage.put(registered.storagePath, Buffer.from(bytes), input.mimeType); }
     catch (e) { throw new DocumentVaultError(e instanceof VaultIntegrationError ? e.code : 'VAULT_STORAGE_UNAVAILABLE', 503); }
     let state = await this.call<{ status: string }>('taxguard_doc_complete_upload', { p_tenant: tenantId, p_client: clientId, p_actor: actor,
       p_document_id: registered.documentId, p_version: registered.version, p_sha256: sha256, p_size: bytes.length });
-    if (this.scanner) {
-      const verdict = await this.scanner.scan(bytes).catch(() => null);
+    // No approved production scanner factory exists. Test-injected/fake scanners cannot release
+    // production uploads, regardless of their claimed verdict or adapter name.
+    if (this.scanner && process.env.NODE_ENV!=='production') {
+      const correlation={requestId:randomUUID(),issuedAt:Date.now()};
+      const binding={p_tenant:tenantId,p_client:clientId,p_document:registered.documentId,p_version:registered.version,p_request:correlation.requestId,p_digest:sha256,p_scanner:this.scanner.name,p_issued:correlation.issuedAt};
+      await this.call('taxguard_doc_scan_job',binding);
+      const verdict = await this.scanner.scan(Buffer.from(bytes),correlation).catch(() => null);
       // A scanner failure leaves the document SCAN_PENDING (never downloadable).
       if (verdict === 'CLEAN' || verdict === 'INFECTED') {
-        state = await this.call('taxguard_doc_record_scan', { p_tenant: tenantId, p_client: clientId, p_document_id: registered.documentId, p_version: registered.version,
-          p_result: verdict, p_scanner: this.scanner.name });
+        state = await this.call('taxguard_doc_scan_verdict', { ...binding,p_result:verdict });
         if (verdict === 'CLEAN' && this.ocr) {
-          const fields = await this.ocr.extract(bytes, input.mimeType).catch(() => []);
+          const fields = await this.ocr.extract(Buffer.from(bytes), input.mimeType).catch(() => []);
           if (fields.length) await this.call('taxguard_doc_propose_extraction', { p_tenant: tenantId, p_client: clientId, p_document_id: registered.documentId,
             p_version: registered.version, p_provider: this.ocr.name, p_fields: fields.slice(0, 200) }).catch(() => undefined);
         }

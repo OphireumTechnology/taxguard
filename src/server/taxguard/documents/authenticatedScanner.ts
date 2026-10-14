@@ -21,10 +21,12 @@ export class AuthenticatedMalwareScanner implements MalwareScanner {
     if (!Buffer.isBuffer(key) || key.length < 32 || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000) throw new VaultIntegrationError('SCANNER_CONFIGURATION_INVALID');
     this.key = Buffer.from(key);
   }
-  async scan(bytes: Buffer): Promise<'CLEAN' | 'INFECTED'> {
+  async scan(bytes: Buffer,context?:{requestId:string;issuedAt:number}): Promise<'CLEAN' | 'INFECTED'> {
     if (!Buffer.isBuffer(bytes) || !bytes.length || bytes.length > MAX_DOCUMENT_BYTES) throw new VaultIntegrationError('SCANNER_INPUT_INVALID');
     const copy = Buffer.from(bytes);
-    const request = { requestId: randomUUID(), digest: createHash('sha256').update(copy).digest('hex'), issuedAt: Date.now(), bytes: copy };
+    if(context&&(!/^[a-f0-9-]{36}$/.test(context.requestId)||!Number.isSafeInteger(context.issuedAt)||Math.abs(Date.now()-context.issuedAt)>30000))throw new VaultIntegrationError('SCANNER_INPUT_INVALID');
+    const request = { requestId: context?.requestId??randomUUID(), digest: createHash('sha256').update(copy).digest('hex'), issuedAt: context?.issuedAt??Date.now(), bytes: copy };
+    const started=performance.now();
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -32,6 +34,7 @@ export class AuthenticatedMalwareScanner implements MalwareScanner {
         this.transport.scan({ ...request, signature: scanRequestSignature(this.key, request) }, controller.signal),
         new Promise<never>((_resolve, reject) => { timer = setTimeout(() => { controller.abort(); reject(new VaultIntegrationError('SCANNER_TIMEOUT')); }, this.timeoutMs); }),
       ]);
+      if(controller.signal.aborted || performance.now()-started>=this.timeoutMs)throw new VaultIntegrationError('SCANNER_TIMEOUT');
       if (!result || result.requestId !== request.requestId || result.digest !== request.digest || result.issuedAt !== request.issuedAt ||
         !['CLEAN', 'INFECTED'].includes(result.verdict) || typeof result.signature !== 'string' || !/^[a-f0-9]{64}$/.test(result.signature) ||
         !timingSafeEqual(Buffer.from(result.signature, 'hex'), Buffer.from(scanVerdictSignature(this.key, result), 'hex'))) {

@@ -37,11 +37,14 @@ export async function startDatabase(options: { durable?: boolean } = {}): Promis
   // Remove directories left by earlier runs (older than an hour, so a parallel run is never touched).
   for (const name of fs.readdirSync(ROOT).filter(n => n.startsWith('pg-'))) {
     const dir = path.join(ROOT, name);
-    try { if (Date.now() - fs.statSync(dir).mtimeMs > 3_600_000) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* still in use */ }
+    try {const target=path.resolve(dir),parent=path.resolve(ROOT);if(!target.startsWith(parent+path.sep)||!path.basename(target).startsWith('pg-'))throw new Error('DATABASE_CLEANUP_PATH_DENIED');
+      if (Date.now() - fs.statSync(target).mtimeMs > 3_600_000) fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* still in use */ }
   }
   const databaseDir = path.join(ROOT, 'pg-' + process.pid + '-' + randomBytes(4).toString('hex'));
   const port = await freePort(), password = randomBytes(18).toString('hex');
-  const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: !!options.durable, onLog: () => {},
+  // Own cleanup with bounded Windows lock retries. The package's nonpersistent stop performs
+  // an immediate recursive removal and can fail EBUSY before our guarded cleanup is reached.
+  const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: true, onLog: () => {},
     postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=60', '-c', `fsync=${options.durable ? 'on' : 'off'}`] });
   await server.initialise();
   await server.start();

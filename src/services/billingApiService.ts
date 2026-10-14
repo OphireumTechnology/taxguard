@@ -12,10 +12,11 @@ export interface Invoice { invoiceId: string; invoiceNumber: string | null; clie
 export interface AgingRow { clientId: string; clientName: string | null; totalDue: string; current: string; days1to30: string; days31to60: string; days61to90: string; over90: string; openInvoices: number }
 export const newBillingKey = () => 'bill-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, key?: string): Promise<T> {
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, key?: string, expectedToken?:string,signal?:AbortSignal): Promise<T> {
   const token = getStoredToken();
   if (!token) throw new BillingRequestError(401, 'AUTH_REQUIRED');
-  const response = await fetch(apiEndpoint('/api/billing' + path), { method, cache: 'no-store', credentials: 'omit',
+  if (expectedToken!==undefined && token!==expectedToken) throw new BillingRequestError(409,'SESSION_CHANGED');
+  const response = await fetch(apiEndpoint('/api/billing' + path), { method, cache: 'no-store', credentials: 'omit',signal,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const data = await response.json().catch(() => null);
   if (getStoredToken() !== token) throw new BillingRequestError(409, 'SESSION_CHANGED');
@@ -27,7 +28,16 @@ const i = (clientId: string, invoiceId: string) => `${c(clientId)}/invoices/${en
 export const billingApi = {
   catalog: () => request<{ items: Array<{ serviceCode: string; name: string; baseFee: string; isActive: boolean }> }>('GET', '/catalog'),
   aging: (asOf?: string) => request<{ asOf: string; pendingApproval: number; clients: AgingRow[] }>('GET', '/ar-aging' + (asOf ? `?asOf=${asOf}` : '')),
-  invoices: (clientId: string) => request<{ items: Invoice[] }>('GET', c(clientId) + '/invoices'),
+  invoices: async (clientId: string,signal?:AbortSignal) => {
+    const token=getStoredToken(), items:Invoice[]=[], seen=new Set<string>(); let cursor:string|null=null;
+    for (let page=0;page<20;page++) {
+      const result=await request<{items:Invoice[];nextCursor:string|null}>('GET',c(clientId)+'/invoice-pages?limit=100'+(cursor?'&cursor='+encodeURIComponent(cursor):''),undefined,undefined,token,signal);
+      if (!result || !Array.isArray(result.items) || result.items.length>100 || (result.nextCursor!==null && typeof result.nextCursor!=='string')) throw new BillingRequestError(503,'BILLING_RESPONSE_INVALID');
+      for (const invoice of result.items) { if (!invoice || typeof invoice.invoiceId!=='string' || seen.has(invoice.invoiceId)) throw new BillingRequestError(503,'BILLING_RESPONSE_INVALID'); seen.add(invoice.invoiceId); items.push(invoice); }
+      cursor=result.nextCursor; if (!cursor) return {items};
+    }
+    throw new BillingRequestError(503,'BILLING_PAGE_LIMIT');
+  },
   create: (clientId: string, dueDate: string, key: string) => request<{ invoiceId: string }>('POST', c(clientId) + '/invoices', { dueDate }, key),
   addLine: (clientId: string, invoiceId: string, line: { serviceCode: string; quantity: string; unitRate?: string; overrideReason?: string }) => request<Invoice>('POST', i(clientId, invoiceId) + '/lines', line),
   transition: (clientId: string, invoiceId: string, action: 'submit' | 'approve' | 'return' | 'void', rowVersion: number, note?: string) =>

@@ -5,6 +5,8 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import pg from 'pg';
 import { startDatabase } from '../../src/tests-db/harness';
+import { discoverBackupTools, backupToolMajor } from './backup-tools.mjs';
+import { schemaFingerprint } from './schema-fingerprint';
 
 // This rehearsal creates its own disposable loopback server. There is no target URL option,
 // no .env loading and no ability to operate on a Supabase database. Password is passed in the
@@ -12,12 +14,13 @@ import { startDatabase } from '../../src/tests-db/harness';
 for (const file of ['.env', '.env.local', '.env.development', '.env.development.local']) {
   if (fs.existsSync(file)) throw new Error('BACKUP_REHEARSAL_ENV_FILE_REFUSED');
 }
-const dump = process.env.TAXGUARD_PG_DUMP_BIN, restore = process.env.TAXGUARD_PG_RESTORE_BIN;
+const { dump, restore } = discoverBackupTools();
 if (!dump || !restore || !path.isAbsolute(dump) || !path.isAbsolute(restore) || !fs.existsSync(dump) || !fs.existsSync(restore)) {
   console.error('BACKUP_TOOLS_REQUIRED: set absolute paths for TAXGUARD_PG_DUMP_BIN and TAXGUARD_PG_RESTORE_BIN (PostgreSQL 17+).');
   process.exit(2);
 }
 const db = await startDatabase();
+const startedAt = Date.now();
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'taxguard-backup-rehearsal-'));
 const archive = path.join(directory, 'synthetic.dump');
 const config = db.pool.options;
@@ -26,8 +29,12 @@ const child = (executable: string, args: string[]) => new Promise<void>((resolve
     if (error) reject(new Error(`BACKUP_TOOL_FAILED: ${path.basename(executable)} exit=${error.code ?? 'unknown'}`)); else resolve();
   });
 });
+const version = (executable: string) => new Promise<number|null>((resolve,reject) => {
+  execFile(executable,['--version'],{windowsHide:true,timeout:10000},(error,stdout)=>error?reject(new Error('BACKUP_TOOL_VERSION_FAILED')):resolve(backupToolMajor(stdout)));
+});
 let restored: pg.Client | undefined;
 try {
+  if (await version(dump)!==17 || await version(restore)!==17) throw new Error('BACKUP_TOOL_VERSION_INCOMPATIBLE');
   await db.pool.query("INSERT INTO taxguard_tenants(id,name) VALUES('backupSynthetic','Synthetic backup practice')");
   await db.pool.query("SELECT taxguard_security_record('backupSynthetic',NULL,gen_random_uuid(),'AUTH_FAILURE','warning')");
   const snapshot = async (client: pg.Pool | pg.Client) => {
@@ -41,7 +48,7 @@ try {
       tablesSnapshot[tablename] = { sha256: createHash('sha256').update(data).digest('hex'), policy };
     }
     const functions = (await client.query("SELECT oid::regprocedure::text sig, pg_get_functiondef(oid) definition, proacl::text FROM pg_proc WHERE pronamespace='public'::regnamespace ORDER BY sig")).rows;
-    return JSON.stringify({ tablesSnapshot, functions });
+    return JSON.stringify({ tablesSnapshot, functions,schema:(await schemaFingerprint(client)).sha256 });
   };
   const before = await snapshot(db.pool);
   const connection = ['--host=127.0.0.1', `--port=${config.port}`, '--username=postgres'];
@@ -55,7 +62,7 @@ try {
   if (row.metadata.category !== 'SECURITY') throw new Error('BACKUP_AUDIT_MISSING');
   try { await restored.query("DELETE FROM taxguard_audit_log WHERE tenant_id='backupSynthetic'"); throw new Error('BACKUP_IMMUTABILITY_FAILED'); }
   catch (error: any) { if (error.message !== 'SECURITY_EVENT_IMMUTABLE') throw error; }
-  console.log(JSON.stringify({ status: 'PASS', syntheticOnly: true, destination: 'disposable-loopback', archiveRetained: false }));
+  console.log(JSON.stringify({ status: 'PASS', syntheticOnly: true, destination: 'disposable-loopback', archiveRetained: false, durationMs:Date.now()-startedAt }));
 } finally {
   await restored?.end();
   await db.stop();

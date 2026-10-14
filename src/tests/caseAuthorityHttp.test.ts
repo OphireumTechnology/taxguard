@@ -21,7 +21,7 @@ vi.mock('../server/auth', async importOriginal => {
     ...actual,
     authenticateToken: (req: any, res: any, next: any) => {
       if (!req.headers['x-test-user']) return res.status(401).json({ error: 'AUTH_REQUIRED' });
-      req.user = { id: req.headers['x-test-user'], role: 'admin', tenantId: 'tenantA' };
+      req.user = { id: req.headers['x-test-user'], role: 'admin', tenantId: 'tenantA',status:'active',sessionAssuranceLevel:'aal2' };
       next();
     }
   };
@@ -92,7 +92,8 @@ it('returns 18 persistent stage states via the API', async () => {
 
 it('returns truthful provider readiness without secret keys', async () => {
   const readinessUrl = origin.split('/tenantA')[0] + '/provider-readiness';
-  const response = await fetch(readinessUrl);
+  expect((await fetch(readinessUrl)).status).toBe(401);
+  const response = await fetch(readinessUrl,{headers:{'x-test-user':'administrator'}});
   expect(response.status).toBe(200);
   const data = await response.json();
   expect(Array.isArray(data.providers)).toBe(true);

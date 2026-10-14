@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/taxguard-phase10-staging-readiness
     paths:
       - 'src/**'
       - 'tests/**'
@@ -11,6 +12,8 @@ on:
       - 'scripts/**'
       - 'qa/**'
       - 'supabase/**'
+      - 'docs/proposed-migrations/**'
+      - 'docs/development/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/deploy-pages.yml'
@@ -20,6 +23,7 @@ on:
       # Validate every development sync branch exactly as pushed. Pull-request runs
       # test the merge with main, which can fail because of main alone.
       - 'sync/**'
+      - 'codex/taxguard-phase11-completion'
   workflow_dispatch:
 
 permissions:
@@ -67,3 +71,12 @@ jobs:
 
       - name: Automated tests
         run: npm run test -- --run
+      - name: Offline migration and readiness integrity
+        run: |
+          node scripts/staging/migration-manifest.mjs
+          node scripts/staging/remaining-work.mjs
+          npx --no-install tsx scripts/staging/phase11-ai-readiness.ts
+          node scripts/verify-local-traceability.mjs
+          node scripts/staging/scan-secrets.mjs
+      - name: Disposable loopback PostgreSQL integration
+        run: npm run test:db

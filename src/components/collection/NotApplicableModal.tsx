@@ -10,8 +10,8 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, X, Send, ShieldAlert } from 'lucide-react';
-import { ChecklistRequirement, StageTwoCollectionService } from '../../services/stageTwoCollectionService';
-import { TaxDocumentRequirementEngine } from '../../services/taxDocumentRequirementEngine';
+import { ChecklistRequirement } from '../../services/stageTwoCollectionService';
+import { submitWaiverClaim } from '../../services/collectionClient';
 
 interface NotApplicableModalProps {
   isOpen: boolean;
@@ -49,31 +49,9 @@ export const NotApplicableModal: React.FC<NotApplicableModalProps> = ({
     setWarningMessage(null);
 
     try {
-      TaxDocumentRequirementEngine.markNotApplicable(clientId, taxYear, requirement.requirementId, reason);
-      StageTwoCollectionService.updateRequirementStatus(clientId, taxYear, requirement.requirementId, 'Not Applicable', 'client', reason);
-
-      const code = requirement.requirementId.split('-').slice(-2).join('-');
-      try {
-        const res = await fetch(`/api/stage-two-three/requirements/${taxYear}/${encodeURIComponent(code)}/not-applicable`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId, reason })
-        });
-        const data = await res.json();
-        if (data?.requiresProfessionalReview) {
-          setWarningMessage(`Noted. Because your questionnaire indicated activity in this category, this exemption requires professional CPA verification: "${data.conflictReason || 'Flagged for CPA review'}".`);
-          setTimeout(() => {
-            onSuccess();
-            onClose();
-          }, 3000);
-          return;
-        }
-      } catch {
-        // Local persistence succeeded
-      }
-
+      await submitWaiverClaim(clientId,taxYear,requirement.requirementId,reason);
+      setWarningMessage('Your claim was recorded for professional review. The requirement remains open until an authorized reviewer decides it.');
       onSuccess();
-      onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to submit.');
     } finally {

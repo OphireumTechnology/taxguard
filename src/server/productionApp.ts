@@ -1,5 +1,9 @@
 import { createAiGovernanceRouter } from './routes/ai-governance.routes';
 import express from 'express';
+import { authenticateToken } from './auth';
+import { requireOperationalAdministrator } from './operationalDiagnostics';
+import { createOperationalMetrics } from './operationalMetrics';
+import { proxyTrustHops } from './config/proxyTrust';
 import { authRouter } from './routes/auth.routes';
 import { caseAuthorityRouter } from './routes/case-authority.routes';
 import { profileAmendmentRouter } from './routes/profile-amendment.routes';
@@ -20,7 +24,8 @@ import {
 export function createProductionApp(options?: { distPath?: string; publicPath?: string; accountantDashboard?: AccountantDashboardDeps }) {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
+  const operationalMetrics=createOperationalMetrics();app.use('/api',operationalMetrics.middleware);
+  app.set('trust proxy', proxyTrustHops());
 
   // 1. Global / Security Middleware
   app.use((req, _res, next) => {
@@ -62,15 +67,16 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.use(express.json({ limit: '256kb' }));
 
   app.get('/api/health', (_req, res) =>
-    res.json({ status: 'available', provider: 'supabase', documentIntakeEnabled: false })
+    res.json({ status: 'available' })
   );
 
-  app.get('/api/provider-readiness', (_req, res) => {
+  app.get('/api/provider-readiness', authenticateToken,requireOperationalAdministrator, (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ providers: ProviderReadinessRegistry.getAllProviderStatuses() });
   });
+  app.get('/api/operational-metrics',authenticateToken,requireOperationalAdministrator,(_req,res)=>res.json(operationalMetrics.snapshot()));
 
-  app.get('/api/readiness', async (_req, res) => {
+  app.get('/api/readiness', authenticateToken,requireOperationalAdministrator, async (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     const dbStatus = ProviderReadinessRegistry.getProviderStatus('DATABASE');
     const authStatus = ProviderReadinessRegistry.getProviderStatus('AUTHENTICATION');

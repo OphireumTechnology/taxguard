@@ -36,6 +36,7 @@ interface TaxQuestionnaireModalProps {
   onClose: () => void;
   clientId: string;
   taxYear: number;
+  engagementId?:string;
   onSaved?: () => void;
 }
 
@@ -44,6 +45,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
   onClose,
   clientId,
   taxYear,
+  engagementId,
   onSaved
 }) => {
   const { currentUser } = useApp();
@@ -51,6 +53,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
   useEffect(() => { if (isOpen && !dialogRef.current?.open) dialogRef.current?.showModal(); }, [isOpen]);
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [revision,setRevision]=useState(0);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -98,10 +101,11 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
     setLoading(true);
     setLoadFailed(false);
     setErrorMessage(null);
-    api.clientDashboard.read<{ clientId: string; taxYear: number; tenantId: string; questionnaire: { answers: TaxQuestionnaireAnswers } | null }>('questionnaire', clientId, taxYear, controller.signal)
+    api.clientDashboard.read<{ clientId: string; taxYear: number; tenantId: string; questionnaire: { answers: TaxQuestionnaireAnswers;version:number } | null }>('questionnaire', clientId, taxYear, controller.signal,engagementId)
       .then(data => {
         if (!active) return;
         if (data.clientId !== clientId || data.taxYear !== taxYear || data.tenantId !== currentUser?.tenantId) throw new Error('Questionnaire scope unavailable.');
+        setRevision(data.questionnaire?.version??0);
         if (data.questionnaire?.answers) {
           setAnswers(data.questionnaire.answers);
         }
@@ -111,7 +115,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; controller.abort(); };
-  }, [isOpen, taxYear, clientId]);
+  }, [isOpen, taxYear, clientId,engagementId,currentUser?.id,currentUser?.tenantId,currentUser?.role,currentUser?.status]);
 
   if (!isOpen) return null;
 
@@ -130,7 +134,7 @@ export const TaxQuestionnaireModal: React.FC<TaxQuestionnaireModalProps> = ({
     setSuccessMessage(null);
 
     try {
-      await api.clientDashboard.saveQuestionnaire(clientId, taxYear, answers);
+      await api.clientDashboard.saveQuestionnaire(clientId, taxYear, answers,revision,engagementId);
       setSuccessMessage('Tax questionnaire saved! Your required document checklist has been updated.');
       onSaved?.();
       setTimeout(() => {

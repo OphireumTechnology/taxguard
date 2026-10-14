@@ -20,6 +20,10 @@ import { practiceStoreConfigured } from './src/server/taxguard/practice/practice
 import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
+import { authenticateToken } from './src/server/auth';
+import { requireOperationalAdministrator } from './src/server/operationalDiagnostics';
+import { createOperationalMetrics } from './src/server/operationalMetrics';
+import { proxyTrustHops } from './src/server/config/proxyTrust';
 /**
  * A/R Tax Services, LLC - Production Server Entry Point
  * Full-stack Express + Vite application with enterprise security headers,
@@ -200,6 +204,10 @@ if (
 
 const app =
   express();
+const operationalMetrics=createOperationalMetrics();
+app.set('trust proxy',proxyTrustHops());
+app.use('/api',operationalMetrics.middleware);
+let securityRecorder:SecurityEventRecorder|undefined;
 
 const productionApi = createProductionApp();
 
@@ -214,6 +222,7 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
 if (process.env.NODE_ENV !== 'production') {
   if (process.env.TAXGUARD_SECURITY_EVENTS === 'durable' && practiceStoreConfigured()) {
     const recorder = new SecurityEventRecorder(getSupabaseAdmin() as any, process.env.TAXGUARD_TENANT_ID || '', 100, 'outbox');
+    securityRecorder=recorder;
     db.securityEventSink = event => recorder.record(event);
     app.use('/api', securityDenialObserver(recorder));
     // Report only counters, never event content. Health monitoring must alert on failures/drops.
@@ -388,19 +397,14 @@ app.get(
 
       serverTime:
         new Date()
-          .toISOString(),
-
-      aiConfigured:
-        Boolean(
-          process.env
-            .OPENAI_API_KEY
-        )
+          .toISOString()
     });
   }
 );
 
 app.get(
   '/api/provider-readiness',
+  authenticateToken,requireOperationalAdministrator,
   (
     _req,
     res
@@ -411,9 +415,14 @@ app.get(
     });
   }
 );
+app.get('/api/operational-metrics',authenticateToken,requireOperationalAdministrator,async(_req,res)=>{
+ try{res.json({http:operationalMetrics.snapshot(),security:securityRecorder?{producer:securityRecorder.status(),outbox:await securityRecorder.durableStatus()}:{configured:false}});}
+ catch{res.status(503).json({code:'OPERATIONAL_METRICS_UNAVAILABLE'});}
+});
 
 app.get(
   '/api/readiness',
+  authenticateToken,requireOperationalAdministrator,
   async (
     _req,
     res

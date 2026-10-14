@@ -152,7 +152,7 @@ class Database {
   userPasswords: Map<string, string> = new Map(); // email -> salt:hashedPassword
   emailVerificationTokens: Map<string, string> = new Map(); // token -> email
   passwordResetTokens: Map<string, { email: string; expiresAt: number }> = new Map();
-  sessions: Map<string, { userId: string; role: string; createdAt: number; expiresAt: number }> = new Map();
+  sessions: Map<string, { userId: string; role: string; createdAt: number; expiresAt: number; verifiedMfa?:boolean }> = new Map();
   
   engagements: Map<string, Engagement> = new Map();
   documents: Map<string, DocumentItem> = new Map();

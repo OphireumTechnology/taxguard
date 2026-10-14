@@ -1,4 +1,6 @@
-# Staging readiness and implementation plan (updated 2026-10-14, Phase 10 preparation)
+# Staging readiness and implementation plan (updated 2026-10-14, Phase 11 preparation)
+
+Phase 11 supersedes the Phase 10 inventory below: 13 core migrations + 42 proposals (000–011, 023–052), an explicit dependency DAG and canonical checksums, exact schema drift/reapplication checks, durable acknowledged security handoff, bounded billing pages, durable questionnaire/claim/reply records and persisted scanner job correlation are implemented. Operational diagnostics require verified active administrator AAL2; proxy trust defaults to zero. No staging validation or commissioning has occurred. See `phase11-release-operations.md`, `phase11-owner-decisions.md`, `phase11-remaining-work.json` and `phase11-ai-readiness.json` for current evidence and blockers. The workflow definitions perform offline/local validation only, with no deployment jobs.
 
 **Status: NOT READY for staging.** Nothing has been deployed and no migration has been applied
 anywhere. Production remains NO-GO. The protected production project `cvrlhixxczerytiocxid` is never
@@ -31,7 +33,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
    project), MFA (TOTP) enabled, no real users. Record its URL in a staging environment only.
 2. **Secrets**: create a GitHub `staging` environment (required reviewer) holding the staging URL,
    anon key and service-role key; never reuse production values; rotate on any exposure.
-3. **Migrations**: review proposals in name order; apply core migrations then approved proposals to
+3. **Migrations**: review the explicit dependency execution manifest; apply approved files to
    staging only, inside a transaction per file; run `src/tests-db` composition checks against a
    restored copy first; validate NOT VALID constraints after inspection.
 4. **Synthetic data**: seed one synthetic tenant, staff (UUID IDs), clients and engagements with a
@@ -64,7 +66,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 
 1. Non-production project provisioned; URL and keys only in the staging secret store.
 2. `check-staging-config.ts` reports no issues for the staging values.
-3. Proposals reviewed and approved in name order; applied to a restored copy first; composition
+3. Proposals reviewed and approved in explicit dependency order; applied to a restored copy first; composition
    tests run against it; then applied to staging.
 4. Synthetic seed generated, reviewed and applied; provider accounts created for the seeded staff IDs.
 5. MFA provider validation report recorded.

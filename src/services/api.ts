@@ -104,11 +104,11 @@ const response = await fetch(apiEndpoint(endpoint), {
     const errorData = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
     let errorMsg = errorData.error || errorData.message;
     if (response.status === 405) {
-      console.error(`[TaxGuard API] HTTP 405 Method Not Allowed on endpoint: ${endpoint}`);
+      console.error('[TaxGuard API] HTTP 405 Method Not Allowed.');
       errorMsg = 'We could not securely connect to the TaxGuard authentication service. Please try again or contact support.';
     } else if (!errorMsg) {
       if (response.status === 502 || response.status === 503 || response.status === 504) {
-        console.error(`[TaxGuard API] Service unavailable (${response.status}) on endpoint: ${endpoint}`);
+        console.error(`[TaxGuard API] Service unavailable (${response.status}).`);
         errorMsg = 'The TaxGuard service is temporarily unavailable. Please try again shortly or contact support.';
       } else {
         errorMsg = `We could not securely connect to the TaxGuard service (${response.status}). Please try again or contact support.`;
@@ -175,11 +175,15 @@ export const api = {
   },
   // Read-only Gate 3 adapter. Existing server authorization is unchanged.
   clientDashboard: {
-    saveQuestionnaire: (clientId: string, taxYear: number, answers: unknown) => request<{ success: boolean }>(`/api/stage-two-three/questionnaire/${taxYear}`, { method: 'POST', body: JSON.stringify({ clientId, answers }) }),
-    respond: (taxYear: number, requestId: string, message: string) => request<{ success: boolean }>(`/api/stage-two-three/requests/${taxYear}/${encodeURIComponent(requestId)}/respond`, { method: 'POST', body: JSON.stringify({ message }) }),
-    read: <T>(resource: 'documents' | 'engagements' | 'messages' | 'appointments' | 'invoices' | 'questionnaire' | 'requirements' | 'requests', clientId: string, taxYear: number, signal?: AbortSignal) => {
+    saveQuestionnaire: (clientId: string, taxYear: number, answers: unknown,revision=0,engagementId?:string) => request<{ success: boolean }>(`/api/stage-two-three/questionnaire/${taxYear}`, { method: 'POST',headers:{'Idempotency-Key':'collection-'+globalThis.crypto.randomUUID()}, body: JSON.stringify({ clientId, answers,revision,engagementId }) }),
+    respond: async (taxYear: number, requestId: string, message: string,engagementId?:string) => {
+      const token=getStoredToken();const page=await request<any>(`/api/stage-two-three/requests/${taxYear}`+(engagementId?'?engagementId='+encodeURIComponent(engagementId):''));const record=page.requests?.find((r:any)=>r.requestId===requestId);
+      if(getStoredToken()!==token)throw new Error('SESSION_CHANGED');if(!record||!Number.isInteger(record.rowVersion))throw new Error('COLLECTION_REQUEST_NOT_FOUND');
+      return request<{success:boolean}>(`/api/stage-two-three/requests/${taxYear}/${encodeURIComponent(requestId)}/respond`,{method:'POST',headers:{'Idempotency-Key':'collection-reply-'+globalThis.crypto.randomUUID()},body:JSON.stringify({message,rowVersion:record.rowVersion,engagementId:record.engagementId})});
+    },
+    read: <T>(resource: 'documents' | 'engagements' | 'messages' | 'appointments' | 'invoices' | 'questionnaire' | 'requirements' | 'requests', clientId: string, taxYear: number, signal?: AbortSignal,engagementId?:string) => {
       if (!getStoredToken()) return Promise.reject(new Error('Authenticated session required.'));
-      const scope = `?clientId=${encodeURIComponent(clientId)}`;
+      const scope = `?clientId=${encodeURIComponent(clientId)}`+(engagementId?'&engagementId='+encodeURIComponent(engagementId):'');
       const endpoints = {
         documents: `/api/documents${scope}`,
         engagements: `/api/engagements${scope}`,

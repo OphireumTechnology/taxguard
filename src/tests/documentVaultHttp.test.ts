@@ -38,7 +38,7 @@ const get = (path: string) => fetch(origin + '/vault' + path).then(async r => ({
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(250000|270000)_/);
+  await applyProposals(fixture.pg, /^20261012(250000|270000)_|^20261015050000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${T}','${C}','dv-client','Synthetic Vault Client'),('${T}','${OTHER}','dv-other-client','Other Synthetic');
     INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${T}','dv-client','client','active','${C}'),('${T}','dv-other-client','client','active','${OTHER}'),
       ('${T}','dv-acct','accountant','active',NULL),('${T}','dv-rev','senior_reviewer','active',NULL),('${T}','dv-outsider','accountant','active',NULL),('${T}','dv-mgr','practice_manager','active',NULL);`);
@@ -61,6 +61,14 @@ beforeEach(() => { useScanner = true; as('client'); });
 
 describe('document vault', () => {
   let docId = '';
+  it('keeps production uploads quarantined even when a fake CLEAN scanner is injected',async()=>{
+    const env=process.env.NODE_ENV;let called=false;
+    const isolated=new MemoryStorage(),store=new DocumentVaultStore(pgliteRpc(()=>fixture.pg),isolated,{name:'fake',async scan(){called=true;return 'CLEAN';}});
+    process.env.NODE_ENV='production';
+    try{const result=await store.upload(T,C,'dv-client',{engagementId,taxYear:2025,category:'income',fileName:'production-fake.pdf',mimeType:'application/pdf',idempotencyKey:'production-fake-key'},PDF('synthetic'));
+      expect(result.status).toBe('SCAN_PENDING');expect(called).toBe(false);await expect(store.downloadUrl(T,C,'dv-client',result.documentId,result.version)).rejects.toThrow('DOCUMENT_NOT_AVAILABLE');
+    }finally{process.env.NODE_ENV=env;}
+  });
   it('keeps forged authenticated scanner verdicts quarantined and blocks infected downloads', async () => {
     const key = randomBytes(32);
     const scannerStorage = new MemoryStorage();

@@ -1,0 +1,206 @@
+{
+  "baselineMain": "49369c393d6391c9de9e3ecd869bf79736c6990c",
+  "dependency": "f0549efc4ac67d97258402f51af589772bd0a412",
+  "phase10Pr": 15,
+  "classifications": [
+    "Fully implemented and locally validated",
+    "Partially implemented",
+    "Implemented but blocked by external commissioning",
+    "Missing",
+    "Intentionally disabled",
+    "Requires owner decision",
+    "Requires regulatory or professional approval"
+  ],
+  "limitations": "Source references and local tests identify narrow evidence; no product-wide, staging or production completion inference.",
+  "areas": [
+    {
+      "area": "Web application",
+      "status": "Partially implemented",
+      "source": "src/App.tsx",
+      "test": "src/tests/canonicalProductionRouting.test.ts",
+      "remaining": "Role routing, shell/session isolation and controlled unavailable screens exist; complete professional journeys and independently verified accessibility remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Client portal",
+      "status": "Partially implemented",
+      "source": "src/server/routes/client-portal.routes.ts",
+      "test": "src/tests/clientPortalReadsAndReassignment.test.ts",
+      "remaining": "Scoped engagement/legal reads exist; full intake-to-filing journey is not implemented.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Staff administration",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/routes/staff-access.routes.ts",
+      "test": "src/tests/staffAccessHardening.test.ts",
+      "remaining": "Directory, invitations, membership, recovery and session controls are local; real provider enrollment/recovery acceptance remains.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Accounting",
+      "status": "Partially implemented",
+      "source": "src/server/routes/bookToTax.routes.ts",
+      "test": "src/tests/bookToTaxHttp.test.ts",
+      "remaining": "Durable workpaper preparation exists; approved fact/authority integration and specialist completion remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Bookkeeping",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/taxguard/bookkeeping/sqlLedgerStore.ts",
+      "test": "src/tests/durableLedgerHttp.test.ts",
+      "remaining": "Exact journals, approval/reversal/period controls are local; no bank or accounting platform commissioned.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Billing",
+      "status": "Partially implemented",
+      "source": "src/server/taxguard/billing/billingStore.ts",
+      "test": "src/tests/billingHttp.test.ts",
+      "remaining": "SQL client allowlists, bounded keyset pages and exact sandbox balances exist; commissioned PDFs/email and approved sales-tax policy remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Documents and vault",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/taxguard/documents/documentVaultStore.ts",
+      "test": "src/tests/documentVaultHttp.test.ts",
+      "remaining": "Quarantine, private storage and authenticated fake transport are local; real scanning and storage acceptance remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Client communications",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/routes/communications.routes.ts",
+      "test": "src/tests/clientMessaging.test.ts",
+      "remaining": "Scoped durable portal messaging exists; email/SMS delivery is not commissioned.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Appointments",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/routes/appointments-durable.routes.ts",
+      "test": "src/tests/appointments.test.ts",
+      "remaining": "Conflict/version/idempotency controls exist locally; external calendar synchronization remains.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Consultation intake",
+      "status": "Requires owner decision",
+      "source": "src/server/routes/consultations.routes.ts",
+      "test": "src/tests/consultationRequests.test.ts",
+      "remaining": "Consented bounded requests and conversion exist; retention and proxy/rate policy decisions remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Engagements",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/routes/practice.routes.ts",
+      "test": "src/tests/practiceManagementHttp.test.ts",
+      "remaining": "Scoped durable practice workflow exists; deployment and independent acceptance remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Case management",
+      "status": "Partially implemented",
+      "source": "src/server/routes/cases.routes.ts",
+      "test": "src/tests/caseWorkflowHttp.test.ts",
+      "remaining": "Stages 1-8 use evidence gates; later regulated stages and canonical authority adapters remain blocked.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Legal coordination",
+      "status": "Requires owner decision",
+      "source": "src/server/routes/legal-durable.routes.ts",
+      "test": "src/tests/legalMatters.test.ts",
+      "remaining": "Tracking only; counsel referral authority, engagement letters and retention remain owner decisions.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Tax engine",
+      "status": "Requires regulatory or professional approval",
+      "source": "src/server/taxguard/taxEngine/taxEngineStore.ts",
+      "test": "src/tests/taxEngineHttp.test.ts",
+      "remaining": "Exact deterministic infrastructure and source/version/coverage gates exist; no approved real federal/state rule content.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Filing readiness",
+      "status": "Intentionally disabled",
+      "source": "src/server/taxguard/stageGateBridge.ts",
+      "test": "src/tests/taxAIKnowledgeBoundary.test.ts",
+      "remaining": "Stages 9-18, signatures and filing remain denied; provider, forms, rules and practitioner authority required.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "AI workforce A00-A60",
+      "status": "Partially implemented",
+      "source": "src/ai/registry.ts",
+      "test": "src/tests/aiArchitectureMapping.test.ts",
+      "remaining": "61 identities remain DRAFT; only bounded A00/A10/A34 infrastructure exists; per-ID handlers/authority cannot be inferred.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Authentication and MFA",
+      "status": "Implemented but blocked by external commissioning",
+      "source": "src/server/auth.ts",
+      "test": "src/tests/providerOnlyIdentityFlow.test.ts",
+      "remaining": "Provider-bound sessions, AAL2 and recovery controls are local; dedicated real-provider commissioning absent.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Audit and security",
+      "status": "Partially implemented",
+      "source": "src/server/securityEventRecorder.ts",
+      "test": "src/tests/securityEventOutbox.test.ts",
+      "remaining": "Committed outbox handoff now exists; delivery/custody monitoring, owner retention and independent acceptance remain.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "External integrations",
+      "status": "Intentionally disabled",
+      "source": "src/server/taxguard/providerReadiness.service.ts",
+      "test": "src/tests/readinessProbeBoundaries.test.ts",
+      "remaining": "No model, scanner, filing, signature, live-payment, bank, email or SMS integration commissioned.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Staging infrastructure",
+      "status": "Requires owner decision",
+      "source": "src/server/config/stagingConfiguration.ts",
+      "test": "src/tests/stagingConfiguration.test.ts",
+      "remaining": "Offline configuration/seeding/recovery preparation only; project, API host/domain, managed secrets and runtime integration require owner approval.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    },
+    {
+      "area": "Production operational readiness",
+      "status": "Intentionally disabled",
+      "source": "src/server/productionApp.ts",
+      "test": "src/tests/productionApiHttp.test.ts",
+      "remaining": "NO-GO: no deployment, external migrations, independent acceptance, recovery evidence or commissioning.",
+      "stagingValidated": false,
+      "productionCommissioned": false
+    }
+  ]
+}

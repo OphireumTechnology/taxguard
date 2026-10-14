@@ -8,6 +8,11 @@ export interface StagingConfigurationAssessment {
 export function assessStagingConfiguration(values: Readonly<Record<string, string | undefined>>): StagingConfigurationAssessment {
   const issues: Array<{ field: string; code: string }> = [];
   const add = (field: string, code: string) => issues.push({ field, code });
+  if(values.TAXGUARD_TRUST_PROXY_HOPS!==undefined&&!/^[0-2]$/.test(values.TAXGUARD_TRUST_PROXY_HOPS))add('TAXGUARD_TRUST_PROXY_HOPS','INVALID_PROXY_TRUST');
+  for(const field of ['VITE_API_BASE_URL','VITE_PASSWORD_RESET_CONTINUE_URL'])if(values[field]){
+    try{const url=new URL(values[field]);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||isProtectedIdentityDestination(values[field]!))add(field,'INVALID_STAGING_ORIGIN');}
+    catch{add(field,'INVALID_STAGING_ORIGIN');}
+  }
   if (values.TAXGUARD_TENANT_ID && !/^[A-Za-z0-9_-]{1,128}$/.test(values.TAXGUARD_TENANT_ID)) add('TAXGUARD_TENANT_ID', 'TENANT_INVALID');
   if (values.SUPABASE_SERVICE_ROLE_KEY && values.SUPABASE_SERVICE_ROLE_KEY === values.SUPABASE_ANON_KEY) add('SUPABASE_SERVICE_ROLE_KEY', 'KEY_SEPARATION_REQUIRED');
   for (const field of ['SUPABASE_URL', 'VITE_SUPABASE_URL']) {

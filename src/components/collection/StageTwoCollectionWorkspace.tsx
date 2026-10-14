@@ -1,3 +1,4 @@
+import {DurableClientCollectionWorkspace} from './DurableClientCollectionWorkspace';
 /**
  * A/R Tax Services, LLC - Stage 02 Collection Workspace
  * Unified 18-Stage Tax Operating Workflow —  Milestone M2 / Stage 02: Collect
@@ -103,7 +104,9 @@ export interface StageTwoCollectionWorkspaceProps {
   onServerWorkflowRefresh?: () => void;
 }
 
-export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspaceProps> = ({
+export const StageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspaceProps> = props => <DurableClientCollectionWorkspace clientId={props.clientId||''} taxYear={props.selectedTaxYear}/>;
+// Retained for review of unfinished features, never mounted by the exported live workspace.
+const LegacyStageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspaceProps> = ({
   clientId: propClientId,
   selectedTaxYear,
   onTaxYearChange,

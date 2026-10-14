@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it,vi } from 'vitest';
 import { AuthenticatedMalwareScanner, scanRequestSignature, scanVerdictSignature, type ScanVerdict } from '../server/taxguard/documents/authenticatedScanner';
 
 describe('authenticated scanner adapter (fake transport only)', () => {
@@ -23,6 +23,11 @@ describe('authenticated scanner adapter (fake transport only)', () => {
     const scanner = new AuthenticatedMalwareScanner({ async scan(r) { return previous ??= respond(r); } }, key);
     expect(await scanner.scan(bytes)).toBe('CLEAN');
     await expect(scanner.scan(bytes)).rejects.toThrow('SCANNER_VERDICT_INVALID');
+  });
+  it('rejects an otherwise signed verdict after the elapsed deadline even when the timer callback was delayed',async()=>{
+    const clock=vi.spyOn(performance,'now').mockReturnValueOnce(0).mockReturnValue(1000);
+    try{await expect(new AuthenticatedMalwareScanner({async scan(r){return respond(r);}},key,10).scan(bytes)).rejects.toThrow('SCANNER_TIMEOUT');}
+    finally{clock.mockRestore();}
   });
   it('bounds a hung scanner and aborts its transport', async () => {
     let signal: AbortSignal | undefined;

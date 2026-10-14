@@ -79,6 +79,13 @@ export class SecurityEventRecorder {
   }
   status() { return Object.freeze({ pending: this.pending, persisted: this.persisted, failed: this.failed, dropped: this.dropped,
     ...(this.mode === 'outbox' ? { acknowledged: this.acknowledged, dispatchFailures: this.dispatchFailures } : {}) }); }
+  async durableStatus(){
+    if(this.mode!=='outbox')throw new Error('SECURITY_DURABLE_HANDOFF_REQUIRED');
+    try{const response=await this.client.rpc('taxguard_security_outbox_metrics',{p_tenant:this.tenant});
+      if(response.error||!response.data||['pending','blocked','delivered'].some(key=>!Number.isSafeInteger(response.data[key])||response.data[key]<0))throw new Error();
+      return {pending:response.data.pending,blocked:response.data.blocked,delivered:response.data.delivered,oldestPendingAt:response.data.oldestPendingAt??null};
+    }catch{throw new Error('SECURITY_METRICS_UNAVAILABLE');}
+  }
 }
 
 /** Captures transport-level refusals (including provider and invalid-session failures) without

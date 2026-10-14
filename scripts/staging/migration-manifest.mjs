@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import { dependencyOrder } from './migration-order.mjs';
 
 // Offline inventory only. This command never connects to a database or applies SQL.
 export const canonicalTextHash = content => crypto.createHash('sha256').update(content.toString('utf8').replace(/\r\n/g, '\n')).digest('hex');
@@ -7,9 +8,12 @@ export function buildMigrationManifest() {
   const entries = [];
   const objects = new Map();
   const functions = new Map();
-  for (const [directory, kind] of [['supabase/migrations', 'core'], ['docs/proposed-migrations', 'proposal']]) {
-    for (const name of fs.readdirSync(directory).filter(n => n.endsWith('.sql')).sort()) {
-      const file = `${directory}/${name}`;
+  const planText=fs.readFileSync('docs/development/migration-execution-order.json','utf8');
+  const plan=JSON.parse(planText), order=dependencyOrder(plan.entries);
+  const known=['supabase/migrations','docs/proposed-migrations'].flatMap(directory=>fs.readdirSync(directory).filter(n=>n.endsWith('.sql')).map(n=>`${directory}/${n}`));
+  if(order.length!==known.length || order.some(e=>!known.includes(e.file)))throw new Error('MIGRATION_PLAN_COVERAGE_FAILED');
+  for (const planned of order) {
+      const file=planned.file,name=file.split('/').at(-1),kind=file.startsWith('supabase/')?'core':'proposal';
       const sql = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
       const source = sql.replace(/^\s*--.*$/gm, '');
       const declared = [...source.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|FUNCTION|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?([a-z][a-z0-9_]*)/gi)].map(m => m[1]);
@@ -22,7 +26,7 @@ export function buildMigrationManifest() {
       const validTimestamp = !!date && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().replace(/[-:TZ.]/g, '').slice(0, 14) === version;
       entries.push({ order: entries.length + 1, file, kind, version, sha256: canonicalTextHash(sql),
         validTimestamp, requiresOwnerReview: true, externalApplicationStatus: 'NOT_VERIFIED',
-        dependsOn: entries.length ? [entries[entries.length - 1].file] : [],
+        dependsOn: planned.dependsOn,
         referencedDependencies, declaredObjects: [...new Set(declared)], supersededFunctions,
         rollback: sql.split(/\r?\n/).filter(line => /^--.*rollback/i.test(line)),
         grantsAndRevocations: source.split(/\r?\n/).filter(line => /\b(GRANT|REVOKE)\b/i.test(line)).map(line => line.trim()),
@@ -31,10 +35,9 @@ export function buildMigrationManifest() {
         header: sql.split(/\r?\n/).filter(line => line.startsWith('--')).slice(0, 12) });
       for (const name of declared) objects.set(name, file);
       for (const name of declaredFunctions) functions.set(name, file);
-    }
   }
-  return { schemaVersion: 1, executionAllowed: false, ordering: 'core filename order, then proposal filename order',
-    notes: ['dependsOn encodes the conservative, tested complete execution chain. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.',
+  return { schemaVersion: 2, executionAllowed: false, executionPlanSha256:canonicalTextHash(planText), ordering: 'explicit dependency DAG in migration-execution-order.json',
+    notes: ['dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.',
       'SHA-256 hashes use canonical LF text so Windows CRLF and GitHub/Linux checkouts share the same reviewed content identity.',
       'Historical proposal prefixes include invalid timestamp hours. Preserve tested composition order; do not treat them as CLI migration versions.',
       'docs/sql/taxguard-audit-append-only.proposal.sql is a separate draft, excluded from composition and requires explicit review.',

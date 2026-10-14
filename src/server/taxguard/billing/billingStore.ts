@@ -95,5 +95,9 @@ export class BillingStore {
     return this.call('taxguard_bill_decide_credit', { ...this.b(tenant, client, actor), p_credit: creditId, p_apply: apply });
   }
   list(tenant: string, client: string, actor: string) { return this.call<any[]>('taxguard_bill_list', this.b(tenant, client, actor)); }
+  page(tenant: string, client: string, actor: string, after?: { at: string; id: string }, limit = 50) {
+    return this.call<{ items: any[]; next: { at: string; id: string } | null; summary: { balanceDue: string; invoiceCount: number } }>('taxguard_bill_page',
+      { ...this.b(tenant,client,actor), p_after_at:after?.at??null, p_after_id:after?.id??null, p_limit:limit });
+  }
   arAging(tenant: string, actor: string, asOf?: string) { return this.call('taxguard_bill_ar_aging', { p_tenant: tenant, p_actor: actor, p_as_of: asOf ?? null }); }
 }

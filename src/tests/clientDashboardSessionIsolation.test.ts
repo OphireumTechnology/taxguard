@@ -32,6 +32,7 @@ vi.mock('../services/clientPortalReads', () => ({
 vi.mock('../services/appointmentsService', () => ({
   appointmentsService: { listForClient: async (clientId: string, signal?: AbortSignal) => (await harness.reads('appointments', clientId, undefined, signal)).appointments },
 }));
+vi.mock('../services/billingApiService',()=>({billingApi:{invoices:async(client:string,signal?:AbortSignal)=>({items:(await harness.reads('invoices',client,undefined,signal)).invoices})}}));
 vi.mock('../services/communicationsService', () => ({
   communicationsService: { threads: async (clientId: string, signal?: AbortSignal) => (await harness.reads('messages', clientId, undefined, signal)).messages },
 }));

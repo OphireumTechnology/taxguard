@@ -1,5 +1,7 @@
 # Durable workflow inventory and implementation matrix (Phase 9, 2026-10-14)
 
+Phase 11 update: the current 21-area source-backed matrix is `phase11-remaining-work.json`. Billing reads use bounded database pages (048). Committed security handoff is 047; finish-hook observations remain best-effort before commit. Questionnaire drafts, immutable waiver claims and human clarification/amendment replies use 049/050; they never certify facts or advance stages. The exported Stage 02 workspace mounts the durable client component; its legacy browser-only implementation is retained for review but unmounted. Scan jobs use 052; real scanning and production releases remain blocked. Historical Phase 9 observations below are preserved, not current commissioning claims.
+
 Baseline `main` `b35761b`. "Durable" means PostgreSQL through service-role-only SECURITY DEFINER
 proposal functions, enforced per (tenant, client) by the database, surviving a server restart. A
 screen or legacy route over the in-memory store (`src/server/db.ts`) is **not** durable. All
