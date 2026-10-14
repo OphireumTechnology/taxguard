@@ -2,6 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ACCEPTED_TYPES, DOCUMENT_CATEGORIES, documentStatusText, newVaultKey, VaultRequestError, vaultMessage, vaultService, type VaultDocument } from '../../services/vaultService';
 
 const label = (v: string) => v.replace(/_/g, ' ');
+/** Statuses whose review note is addressed to the client (the reason a document must be replaced). */
+export const CLIENT_ACTIONABLE_STATUSES = ['REJECTED', 'REPLACEMENT_REQUESTED'];
+const GUIDANCE: Record<string, string> = {
+  SCAN_PENDING: 'The file is quarantined until its security scan finishes.',
+  REJECTED_MALWARE: 'The security scan blocked this file. Upload a clean copy.',
+  PENDING_REVIEW: 'Your practice will review it.',
+};
 
 /** Client upload and status view for the secure vault. Bytes go to private storage via the server only. */
 export function ClientDocumentVaultPanel({ clientId }: { clientId: string }) {
@@ -12,6 +19,7 @@ export function ClientDocumentVaultPanel({ clientId }: { clientId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [replacing, setReplacing] = useState<VaultDocument | null>(null);
   const key = useRef(newVaultKey());
   const load = useCallback(() => {
     setDocs(d => ({ ...d, status: 'loading' }));
@@ -25,9 +33,10 @@ export function ClientDocumentVaultPanel({ clientId }: { clientId: string }) {
     const [engagementId, year] = target.split('|');
     setBusy(true); setNotice(null);
     try {
-      const r = await vaultService.upload(clientId, file, { engagementId, taxYear: Number(year), category }, key.current);
+      // A replacement is a new version of the same document; the server decides whether it is allowed.
+      const r = await vaultService.upload(clientId, file, { engagementId, taxYear: Number(year), category, ...(replacing ? { documentId: replacing.documentId } : {}) }, key.current);
       key.current = newVaultKey(); setFile(null);
-      setNotice({ error: false, text: `${file.name} uploaded: ${documentStatusText(r.status)}.` }); load();
+      setNotice({ error: false, text: `${file.name} uploaded${replacing ? ' as a replacement' : ''}: ${documentStatusText(r.status)}.` }); setReplacing(null); load();
     } catch (err) { setNotice({ error: true, text: vaultMessage(err) }); }
     finally { setBusy(false); }
   };
@@ -41,6 +50,7 @@ export function ClientDocumentVaultPanel({ clientId }: { clientId: string }) {
     <header><h3 id="client-vault-heading" className="font-bold text-white">Secure document upload</h3>
       <p className="text-slate-400">Files are stored privately, scanned for malware and reviewed by your tax team before use.</p></header>
     {notice && <p role={notice.error ? 'alert' : 'status'} className={notice.error ? 'text-red-300' : 'text-emerald-300'}>{notice.text}</p>}
+    {replacing && <p role="status" className="text-amber-200">Uploading a replacement for <strong>{replacing.fileName}</strong>. <button type="button" className="underline" onClick={() => { setReplacing(null); key.current = newVaultKey(); }}>Cancel replacement</button></p>}
     {targets.length === 0 ? <p role="status">No open engagement is available for uploads yet.</p> : <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
       <label className="flex flex-col">Engagement and tax year<select value={target} onChange={e => setTarget(e.target.value)} className="rounded border border-slate-600 bg-[#06182B] px-2 py-1">
         {targets.map(t => <option key={t.engagementId + t.taxYear} value={`${t.engagementId}|${t.taxYear}`}>{t.title} ({t.taxYear})</option>)}</select></label>
@@ -55,7 +65,12 @@ export function ClientDocumentVaultPanel({ clientId }: { clientId: string }) {
     {docs.items.length > 0 && <table className="w-full text-left"><caption className="sr-only">Your uploaded documents</caption>
       <thead><tr>{['File', 'Year', 'Category', 'Version', 'Status', ''].map(h => <th key={h} scope="col" className="p-1">{h}</th>)}</tr></thead>
       <tbody>{docs.items.map(d => <tr key={d.documentId + d.version} className="border-t border-slate-800"><td className="p-1">{d.fileName}</td><td className="p-1">{d.taxYear}</td>
-        <td className="p-1">{label(d.category)}</td><td className="p-1">v{d.version}</td><td className="p-1">{documentStatusText(d.status)}{d.reviewNote ? ` — ${d.reviewNote}` : ''}</td>
-        <td className="p-1">{d.quarantineStatus === 'CLEAN' && <button type="button" className="underline" onClick={() => download(d)} aria-label={`Download ${d.fileName}`}>Download</button>}</td></tr>)}</tbody></table>}
+        <td className="p-1">{label(d.category)}</td><td className="p-1">v{d.version}</td><td className="p-1">{documentStatusText(d.status)}
+          {CLIENT_ACTIONABLE_STATUSES.includes(d.status) && d.reviewNote && <span className="block text-amber-200">Reason from your practice: {d.reviewNote}</span>}
+          {GUIDANCE[d.status] && <span className="block text-xs text-slate-400">{GUIDANCE[d.status]}</span>}</td>
+        <td className="p-1 space-x-2">{d.quarantineStatus === 'CLEAN' && <button type="button" className="underline" onClick={() => download(d)} aria-label={`Download ${d.fileName}`}>Download</button>}
+          {(CLIENT_ACTIONABLE_STATUSES.includes(d.status) || d.status === 'REJECTED_MALWARE') && <button type="button" className="underline" disabled={busy}
+            onClick={() => { setReplacing(d); setCategory(d.category); setTarget(`${d.engagementId}|${d.taxYear}`); setNotice(null); key.current = newVaultKey(); }}
+            aria-label={`Upload a replacement for ${d.fileName}`}>Upload replacement</button>}</td></tr>)}</tbody></table>}
   </section>;
 }

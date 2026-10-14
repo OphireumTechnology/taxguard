@@ -1,3 +1,4 @@
+import { useHashView } from '../../hooks/useHashView';
 import { StaffAccessManagementPanel } from './StaffAccessManagementPanel';
 import { DashboardApplicationShell } from '../layout/DashboardApplicationShell';
 import { useAdminProviderReadiness } from '../../hooks/useAdminProviderReadiness';
@@ -25,9 +26,12 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
+export const ADMIN_TABS = ['providers', 'users', 'workload', 'billing', 'jobs', 'search', 'retention', 'audit', 'ai_stop', 'ai_control'] as const;
+type AdminTab = typeof ADMIN_TABS[number];
+
 export const PracticeAdminWorkspace: React.FC = () => {
   const { currentUser, authLifecycleState } = useApp();
-  const [activeTab, setActiveTab] = useState<'providers' | 'users' | 'workload' | 'billing' | 'jobs' | 'search' | 'retention' | 'audit' | 'ai_stop' | 'ai_control'>('providers');
+  const [activeTab, setActiveTab] = useHashView<AdminTab>('view', ADMIN_TABS, 'providers');
   const [refresh, setRefresh] = useState(0);
   const readiness = useAdminProviderReadiness(currentUser, authLifecycleState, refresh);
   if (!readiness.allowed) return <p role="alert">An active administrator session with tenant context is required.</p>;
