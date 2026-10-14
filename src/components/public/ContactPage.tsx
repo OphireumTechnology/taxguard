@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PRACTICE_CONTACT } from './PlanRequestDialog';
 import { 
   Phone, 
   Mail, 
   MapPin, 
   Clock, 
   Send, 
-  CheckCircle2, 
-  UploadCloud, 
   ShieldCheck,
   Building2,
   Calendar,
@@ -17,14 +16,13 @@ import {
 } from 'lucide-react';
 
 export const ContactPage: React.FC = () => {
-  const { addAuditLog, addNotification, setCurrentPage } = useApp();
+  const { setCurrentPage } = useApp();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('General Tax Inquiry');
   const [message, setMessage] = useState('');
-  const [attachedFile, setAttachedFile] = useState<string | null>(null);
   const [consentAcknowledged, setConsentAcknowledged] = useState(false);
   const [honeypot, setHoneypot] = useState(''); // Spam mitigation
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,17 +50,12 @@ export const ContactPage: React.FC = () => {
     if (honeypot) return; // Silent spam rejection
     if (!validate()) return;
 
+    // This website does not deliver messages itself: the inquiry opens in the visitor's own e-mail
+    // application, addressed to the practice, and is sent only if the visitor sends it there.
     setIsSubmitting(true);
-    await new Promise((res) => setTimeout(res, 800));
-
-    addAuditLog('CONTACT_FORM_SUBMITTED', 'Public Visitor', `Inquiry from ${name} (${email}): ${subject}`);
-    addNotification({
-      title: 'New Client Inquiry Received',
-      message: `${name} submitted an inquiry regarding "${subject}".`,
-      type: 'info',
-      read: false,
-    });
-
+    const body = [`Name: ${name}`, `E-mail: ${email}`, phone ? `Phone: ${phone}` : '', '', message].filter((line, i) => line !== '' || i === 3).join('\n');
+    const href = `mailto:${PRACTICE_CONTACT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.slice(0, 1800))}`;
+    if (typeof window !== 'undefined') window.location.href = href;
     setIsSubmitting(false);
     setIsSent(true);
   };
@@ -322,32 +315,9 @@ export const ContactPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Attachment input (Drag-and-drop & Click supported) */}
-                  <div className="text-xs">
-                    <div className="flex items-center justify-between mb-1">
-                      <label htmlFor="contact-attachment" className="block text-slate-300 font-semibold">
-                        Attach Public Inquiry File (Optional)
-                      </label>
-                      <span className="text-[11px] text-slate-400">Non-sensitive materials only</span>
-                    </div>
-                    <div className="p-4 border-2 border-dashed border-[#1E3A5F] rounded-xl bg-[#07172B] text-center hover:border-[#C6A15B] transition-colors relative cursor-pointer">
-                      <input
-                        id="contact-attachment"
-                        type="file"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setAttachedFile(e.target.files[0].name);
-                          }
-                        }}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full focus:outline-none focus:ring-2 focus:ring-[#C6A15B]"
-                      />
-                      <UploadCloud className="w-5 h-5 text-[#C6A15B] mx-auto mb-1" />
-                      <span className="text-slate-300 font-medium block">
-                        {attachedFile ? attachedFile : 'Drag and drop or click to attach document'}
-                      </span>
-                      <span className="text-[10px] text-slate-500">PDF, JPG, PNG up to 25MB (Do not upload SSNs or tax returns here)</span>
-                    </div>
-                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Please do not send tax documents or identification numbers by e-mail. Documents are shared through the secure client portal once your engagement starts.
+                  </p>
 
                   {/* Consent and Disclaimers */}
                   <div className="space-y-2 pt-1">
@@ -381,7 +351,7 @@ export const ContactPage: React.FC = () => {
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          Send Inquiry to Advisory Team
+                          Open in my e-mail app
                         </>
                       )}
                     </button>
@@ -409,21 +379,21 @@ export const ContactPage: React.FC = () => {
               ) : (
                 <div className="text-center py-10 space-y-4">
                   <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8" />
+                    <Send aria-hidden="true" className="w-8 h-8" />
                   </div>
-                  <h3 className="font-serif text-2xl font-bold text-white">Message Transmitted</h3>
-                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                    Thank you, <strong className="text-white">{name}</strong>. Your inquiry has been securely routed to Desmond Hinds and the client advisory team. You will receive a response at <strong className="text-white">{email}</strong> shortly.
+                  <h3 className="font-serif text-2xl font-bold text-white">Finish sending in your e-mail app</h3>
+                  <p role="status" className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    Your e-mail application should have opened with your message to <strong className="text-white">{PRACTICE_CONTACT.email}</strong>. The practice receives it only after you send it there.
+                    If nothing opened, e-mail <a className="underline" href={`mailto:${PRACTICE_CONTACT.email}`}>{PRACTICE_CONTACT.email}</a> or call <a className="underline" href={`tel:${PRACTICE_CONTACT.phone}`}>{PRACTICE_CONTACT.phone}</a>.
                   </p>
                   <button
                     onClick={() => {
                       setIsSent(false);
                       setMessage('');
-                      setAttachedFile(null);
                     }}
                     className="px-6 py-2.5 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B]"
                   >
-                    Send Another Message
+                    Write another message
                   </button>
                 </div>
               )}

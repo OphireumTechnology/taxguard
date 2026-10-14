@@ -16,6 +16,8 @@ import {
 } from './accountantDashboardModel';
 import './accountantDashboard.css';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
+import { CaseWorkflowPanel } from './CaseWorkflowPanel';
+import { StaffDocumentReviewPanel } from '../documents/StaffDocumentReviewPanel';
 import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import type { TaxWorkpaperEntity, StageStateEntity } from '../../server/taxguard/persistence.types';
@@ -149,6 +151,9 @@ export function AccountantDashboard() {
       {loading && !inspecting && <p className="tg-acct-sr-status" role="status">Loading authorized cases and workflow…</p>}
 
       {!inspecting && <DurableMyWorkPanel />}
+      {/* Durable case workflow and document review, limited by the server to this preparer's assignments. */}
+      {!inspecting && <CaseWorkflowPanel />}
+      {!inspecting && <StaffDocumentReviewPanel />}
       {!inspecting && <StaffMessageInboxPanel />}
       {!inspecting && <AppointmentsPanel mode={{ kind: 'staff' }} actorId={currentUser?.id} />}
       <section className="tg-acct-kpis" aria-label="Key metrics">

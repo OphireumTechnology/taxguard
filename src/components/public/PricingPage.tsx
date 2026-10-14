@@ -1,26 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ServicePlan } from '../../types';
-import { 
-  Check, 
-  Sparkles, 
-  HelpCircle, 
-  CreditCard, 
-  ShieldCheck, 
-  ArrowRight, 
-  Lock, 
-  Clock, 
-  CheckCircle2, 
-  X,
-  Plus
-} from 'lucide-react';
+import { PlanRequestDialog } from './PlanRequestDialog';
+import { Check, Plus } from 'lucide-react';
 
 export const PricingPage: React.FC = () => {
-  const { servicePlans, setCurrentPage, currentUser } = useApp();
+  const { servicePlans, setCurrentPage } = useApp();
   const [billingCycle, setBillingCycle] = useState<'standard' | 'annual'>('standard');
   const [selectedPlan, setSelectedPlan] = useState<ServicePlan | null>(null);
-  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
   const addonsList = [
@@ -33,17 +20,6 @@ export const PricingPage: React.FC = () => {
     setSelectedAddons(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
-  };
-
-  const handleCheckoutSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlan) return;
-
-    setIsProcessing(true);
-    // Simulate PCI compliant Stripe tokenization
-    await new Promise(res => setTimeout(res, 1200));
-    setIsProcessing(false);
-    setCheckoutSuccess(true);
   };
 
   return (
@@ -130,7 +106,6 @@ export const PricingPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedPlan(plan);
-                    setCheckoutSuccess(false);
                   }}
                   className={`w-full py-3.5 rounded-xl text-xs font-bold transition-all shadow-md ${
                     plan.isPopular
@@ -138,10 +113,10 @@ export const PricingPage: React.FC = () => {
                       : 'bg-[#07172B] text-slate-100 hover:text-white border border-[#1E3A5F] hover:border-[#C6A15B]'
                   }`}
                 >
-                  Select {plan.name}
+                  Request {plan.name}
                 </button>
                 <div className="text-center text-[10px] text-slate-400">
-                  Secure checkout • Year-round portal included
+                  No online payment · arranged after a consultation
                 </div>
               </div>
             </div>
@@ -206,115 +181,9 @@ export const PricingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Interactive Checkout Modal (Stripe Simulation) */}
+      {/* Plan request: no payment is taken on this website. */}
       {selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#0D2340] border border-[#C6A15B]/50 rounded-2xl max-w-lg w-full p-6 sm:p-8 text-slate-100 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
-            
-            <button
-              onClick={() => setSelectedPlan(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#132E52]"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {!checkoutSuccess ? (
-              <form onSubmit={handleCheckoutSubmit} className="space-y-5">
-                <div className="border-b border-[#1E3A5F] pb-3">
-                  <div className="text-xs font-bold text-[#C6A15B] uppercase tracking-wider">
-                    PCI-DSS Encrypted Checkout
-                  </div>
-                  <h3 className="font-serif text-2xl font-bold text-white mt-1">
-                    {selectedPlan.name}
-                  </h3>
-                  <div className="text-xs text-slate-300 mt-1">
-                    Total: <strong className="text-white text-base font-serif">${selectedPlan.price}</strong> 
-                    {selectedPlan.billingPeriod === 'monthly' ? '/month' : ' one-time'}
-                  </div>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-slate-300 font-semibold mb-1">Full Name</label>
-                    <input 
-                      type="text" 
-                      defaultValue={currentUser?.name || 'Michael Perotti'}
-                      required
-                      className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-300 font-semibold mb-1">Email for Receipt & Portal Access</label>
-                    <input 
-                      type="email" 
-                      defaultValue={currentUser?.email || 'm.perotti@example.com'}
-                      required
-                      className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
-                    />
-                  </div>
-
-                  <div className="pt-1">
-                    <label className="block text-slate-300 font-semibold mb-1">Card Information (Stripe Sandbox Active)</label>
-                    <div className="p-3 rounded-lg bg-[#07172B] border border-[#1E3A5F] flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-mono text-slate-300">
-                        <CreditCard className="w-4 h-4 text-[#C6A15B]" />
-                        <span>•••• •••• •••• 4242</span>
-                      </div>
-                      <span className="text-[11px] text-slate-400 font-mono">12/28 • 888</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-[#07172B] border border-[#1E3A5F] flex items-center gap-2 text-[11px] text-slate-400">
-                  <ShieldCheck className="w-4 h-4 text-[#C6A15B] flex-shrink-0" />
-                  <span>256-bit TLS encrypted transaction. Card numbers never touch client browser memory.</span>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full py-3.5 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                >
-                  {isProcessing ? (
-                    <span>Processing Payment...</span>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      Complete Payment (${selectedPlan.price})
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <div className="text-center py-6 space-y-4">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h3 className="font-serif text-2xl font-bold text-white">Payment Confirmed!</h3>
-                <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-                  Thank you. Your transaction for <strong className="text-white">{selectedPlan.name}</strong> has been confirmed. 
-                  An encrypted receipt and client portal activation instructions were sent to your email.
-                </p>
-                <div className="pt-2 flex flex-col gap-2">
-                  <a
-                    href="/portal"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setSelectedPlan(null);
-                      setCurrentPage('portal');
-                    }}
-                    className="w-full py-3 rounded-xl font-bold text-xs text-[#07172B] bg-[#C6A15B] hover:bg-[#D9BF7A] text-center block"
-                    role="link"
-                  >
-                    Open Client Portal
-                  </a>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
+        <PlanRequestDialog plan={selectedPlan} onClose={() => setSelectedPlan(null)} onRequestConsultation={() => { setSelectedPlan(null); setCurrentPage('book_consultation'); }} />
       )}
 
     </div>

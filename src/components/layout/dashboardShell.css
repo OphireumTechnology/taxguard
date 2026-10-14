@@ -48,3 +48,5 @@
 @media(max-width:1100px) { .tg-shell-heading,.tg-profile-name { display:none; } }
 @media(max-width:767px) { .tg-shell-header { padding:8px; gap:8px; min-height:64px; flex-wrap:wrap; } .tg-mobile-menu { display:inline-flex; } .tg-shell-navigation { display:none; } .tg-shell-brand strong { font-size:17px; } .tg-shell-brand small { font-size:8px; } .tg-shell-brand > svg { width:26px; } .tg-shell-tools { margin-left:auto; gap:0; } .tg-shell-search { order:3; width:100%; margin:0; } .tg-shell-body { min-height:calc(100dvh - 112px); } }
 @media(prefers-reduced-motion:reduce) { .tg-dashboard-shell *, .tg-dashboard-shell *::before, .tg-dashboard-shell *::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
+/* Phase 12B: wide data tables scroll inside their panel on narrow screens instead of widening the page. */
+@media(max-width:767px) { .tg-dashboard-shell table:not(.tg-keep-table) { display:block; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; } .tg-dashboard-shell :is(img,video,iframe) { max-width:100%; height:auto; } }

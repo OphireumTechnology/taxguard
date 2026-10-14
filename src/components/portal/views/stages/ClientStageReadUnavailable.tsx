@@ -6,16 +6,12 @@ const unavailableStages: Readonly<Record<string, { number: number; name: string;
   stage_06: { number: 6, name: 'Review', reason: 'Recorded review evidence and professional decisions are required.' },
   stage_07: { number: 7, name: 'Report', reason: 'A scoped reporting provider is required.' },
   stage_08: { number: 8, name: 'Plan', reason: 'Reviewed facts and authorized professional planning evidence are required.' },
-  stage_09: { number: 9, name: 'Prepare Taxes', reason: 'An authorized engagement scope and recorded calculation package are required.' },
-  stage_14: { number: 14, name: 'Resolve', reason: 'A scoped agency-notice provider is required; exception counts are unknown.' },
-  stage_15: { number: 15, name: 'Monitor', reason: 'Recorded monitoring events and verified applicable deadlines are required.' },
-  stage_16: { number: 16, name: 'Archive', reason: 'A scoped archive provider and approved retention policy are required.' },
-  stage_18: { number: 18, name: 'Repeat', reason: 'Authorized engagement and annual carryforward records are required.' },
 };
 
 /** Do not infer tenant/engagement scope or use sample authority in live routes. */
 export function unavailableClientStage(nav: string) {
-  const canonical = nav === 'review' ? 'stage_06' : nav === 'tax_prep' ? 'stage_09' : nav === 'completed' ? 'stage_15' : nav;
+  // Stages 09-18 use TaxStageStatusView (canonical stage capabilities).
+  const canonical = nav === 'review' ? 'stage_06' : nav;
   return unavailableStages[canonical];
 }
 
