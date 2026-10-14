@@ -19,6 +19,9 @@ directory are inherited. It does not grant proposal approval, run Supabase CLI v
 access an external database. The 13 `NOT VALID` constraints are surfaced for human/data review;
 they are not counted as validated.
 
+The verifier is also included in the Linux pull-request CI workflow and the Windows offline
+release-readiness workflow. The final GitHub run for the workflow change is tracked in the PR.
+
 `phase12-feature-gap-matrix.md` records implementation classifications, code/test evidence and
 remaining policy, professional or commissioning boundaries for 22 requested domains. It
 distinguishes local workflow foundations from full business acceptance and production release.
