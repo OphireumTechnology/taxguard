@@ -11,11 +11,12 @@ import { DocumentVaultError, DocumentVaultStore } from '../taxguard/documents/do
 import { DocumentRequestStore } from '../taxguard/documents/documentRequestStore';
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, SupabaseVaultStorage } from '../taxguard/documents/vaultIntegrations';
 import { practiceStoreConfigured } from './practice.routes';
+import type { ScanCoordinator } from '../taxguard/documents/malwareScanning';
 
-export function createVaultRouter(deps: { store?: () => DocumentVaultStore; requests?: () => DocumentRequestStore; authenticate?: RequestHandler } = {}) {
+export function createVaultRouter(deps: { store?: () => DocumentVaultStore; requests?: () => DocumentRequestStore; authenticate?: RequestHandler; scanRequests?: () => ScanCoordinator | null } = {}) {
   const router = Router();
   let cached: DocumentVaultStore | null = null; let cachedRequests: DocumentRequestStore | null = null;
-  const store = () => deps.store?.() ?? (cached ??= new DocumentVaultStore(getSupabaseAdmin() as any, new SupabaseVaultStorage(getSupabaseAdmin())));
+  const store = () => deps.store?.() ?? (cached ??= new DocumentVaultStore(getSupabaseAdmin() as any, new SupabaseVaultStorage(getSupabaseAdmin()), undefined, undefined, deps.scanRequests?.() ?? undefined));
   const requests = () => deps.requests?.() ?? (cachedRequests ??= new DocumentRequestStore(getSupabaseAdmin() as any));
   router.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');

@@ -47,4 +47,8 @@ export class AuditCenterStore {
   categories(tenant: string, actor: string, from: unknown, to: unknown) {
     return this.call<Array<{ category: string; count: number }>>('taxguard_audit_center_categories', { p_tenant: tenant, p_actor: actor, p_from: this.when(from), p_to: this.when(to) });
   }
+  /** Proposal 048: recorded and suppressed security-event counts per category (at most 31 days). */
+  securitySummary(tenant: string, actor: string, from: unknown, to: unknown) {
+    return this.call<{ categories: Array<{ category: string; recorded: number; suppressed: number }> }>('taxguard_security_event_summary', { p_tenant: tenant, p_actor: actor, p_from: this.when(from), p_to: this.when(to) });
+  }
 }

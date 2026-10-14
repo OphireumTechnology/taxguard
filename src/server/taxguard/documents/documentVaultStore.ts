@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 import type { PracticeRpcClient } from '../practice/practiceStore';
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, contentMatchesType, VaultIntegrationError, type MalwareScanner, type OcrProvider, type VaultStorage } from './vaultIntegrations';
+import type { ScanCoordinator } from './malwareScanning';
 
 export class DocumentVaultError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
@@ -21,7 +22,9 @@ export const DOWNLOAD_URL_TTL_SECONDS = 60;
 export interface UploadInput { engagementId: string; taxYear: number; caseId?: string; category: string; fileName: string; mimeType: string; documentId?: string; idempotencyKey: string }
 
 export class DocumentVaultStore {
-  constructor(private readonly client: PracticeRpcClient, private readonly storage: VaultStorage, private readonly scanner?: MalwareScanner, private readonly ocr?: OcrProvider) {}
+  /** `scanRequests`: asynchronous scanning (proposal 050), used when no in-process scanner is configured. */
+  constructor(private readonly client: PracticeRpcClient, private readonly storage: VaultStorage, private readonly scanner?: MalwareScanner, private readonly ocr?: OcrProvider,
+    private readonly scanRequests?: ScanCoordinator) {}
 
   private async call<T = any>(name: string, args: Record<string, unknown>): Promise<T> {
     let response;
@@ -65,6 +68,12 @@ export class DocumentVaultStore {
             p_version: registered.version, p_provider: this.ocr.name, p_fields: fields.slice(0, 200) }).catch(() => undefined);
         }
       }
+    }
+    if (!this.scanner && this.scanRequests && state.status === 'SCAN_PENDING') {
+      // The verdict arrives later through the authenticated callback; the document stays quarantined.
+      const scan = await this.scanRequests.request({ tenantId, clientId, documentId: registered.documentId, version: registered.version, storagePath: registered.storagePath,
+        sha256, sizeBytes: bytes.length, mimeType: input.mimeType });
+      return { documentId: registered.documentId, version: registered.version, status: state.status, replayed: false, scan };
     }
     return { documentId: registered.documentId, version: registered.version, status: state.status, replayed: false };
   }

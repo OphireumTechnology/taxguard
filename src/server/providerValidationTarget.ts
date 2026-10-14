@@ -24,5 +24,25 @@ export function validationTarget(env: NodeJS.ProcessEnv): ValidationTarget {
   // The application's own project must not double as the validation target.
   if (env.SUPABASE_URL && env.SUPABASE_URL.trim().replace(/\/+$/, '') === raw) return { ok: false, reason: 'REFUSED_APPLICATION_PROJECT' };
   if (serviceKey === anonKey) return { ok: false, reason: 'KEYS_INVALID' };
+  // A hosted project must be named twice: by URL and by an explicit project-ref confirmation, and a
+  // production ref must be given so the two can be proven different (loopback emulators excepted).
+  if (!LOOPBACK.has(url.hostname)) {
+    const ref = /^([a-z]{20})\.supabase\.co$/.exec(url.hostname)?.[1];
+    if (!ref || url.pathname !== '/') return { ok: false, reason: 'HOSTED_PROJECT_URL_REQUIRED' };
+    if ((env.TAXGUARD_VALIDATION_PROJECT_REF || '').trim() !== ref) return { ok: false, reason: 'PROJECT_CONFIRMATION_MISMATCH' };
+    const production = (env.TAXGUARD_VALIDATION_PRODUCTION_PROJECT_REF || '').trim();
+    if (!/^[a-z]{20}$/.test(production)) return { ok: false, reason: 'PRODUCTION_REFERENCE_REQUIRED' };
+    if (production === ref) return { ok: false, reason: 'REFUSED_PRODUCTION_OVERLAP' };
+  }
   return { ok: true, url: raw, serviceKey, anonKey };
+}
+
+/**
+ * Readiness of the real-provider MFA validation without contacting anything: BLOCKED with the
+ * guard's reason code, or READY_TO_RUN (the owner still decides whether to run it). Never returns values.
+ */
+export function mfaValidationReadiness(env: NodeJS.ProcessEnv): { status: 'BLOCKED'; reason: string } | { status: 'READY_TO_RUN'; target: 'LOOPBACK_EMULATOR' | 'HOSTED_NON_PRODUCTION_PROJECT' } {
+  const t = validationTarget(env);
+  if ('reason' in t) return { status: 'BLOCKED', reason: t.reason };
+  return { status: 'READY_TO_RUN', target: LOOPBACK.has(new URL(t.url).hostname) ? 'LOOPBACK_EMULATOR' : 'HOSTED_NON_PRODUCTION_PROJECT' };
 }

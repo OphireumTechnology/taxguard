@@ -9,6 +9,9 @@ import { practiceOperationsRouter } from './routes/practice-operations.routes';
 import { createAccountantDashboardRouter, type AccountantDashboardDeps } from './routes/accountantDashboard.routes';
 import { taxFormsRouter } from './routes/taxForms.routes';
 import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service';
+import { createHealthRouter } from './observability/health';
+import { runtimeProbes } from './observability/defaultProbes';
+import { authenticateToken } from './auth';
 import {
   protectServerBuildArtifacts,
   resolveProductionDistPath,
@@ -64,6 +67,9 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.get('/api/health', (_req, res) =>
     res.json({ status: 'available', provider: 'supabase', documentIntakeEnabled: false })
   );
+
+  // Liveness / readiness (public, no dependency details) and administrator diagnostics.
+  app.use('/api/health', createHealthRouter({ probes: () => runtimeProbes(), authenticate: authenticateToken as any }));
 
   app.get('/api/provider-readiness', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');

@@ -177,15 +177,12 @@ export const api = {
   clientDashboard: {
     saveQuestionnaire: (clientId: string, taxYear: number, answers: unknown) => request<{ success: boolean }>(`/api/stage-two-three/questionnaire/${taxYear}`, { method: 'POST', body: JSON.stringify({ clientId, answers }) }),
     respond: (taxYear: number, requestId: string, message: string) => request<{ success: boolean }>(`/api/stage-two-three/requests/${taxYear}/${encodeURIComponent(requestId)}/respond`, { method: 'POST', body: JSON.stringify({ message }) }),
-    read: <T>(resource: 'documents' | 'engagements' | 'messages' | 'appointments' | 'invoices' | 'questionnaire' | 'requirements' | 'requests', clientId: string, taxYear: number, signal?: AbortSignal) => {
+    // Documents, engagements, messages, appointments and invoices come from the durable vault,
+    // client-portal, communications, scheduling and billing APIs (useClientDashboardData).
+    read: <T>(resource: 'questionnaire' | 'requirements' | 'requests', clientId: string, taxYear: number, signal?: AbortSignal) => {
       if (!getStoredToken()) return Promise.reject(new Error('Authenticated session required.'));
       const scope = `?clientId=${encodeURIComponent(clientId)}`;
       const endpoints = {
-        documents: `/api/documents${scope}`,
-        engagements: `/api/engagements${scope}`,
-        messages: '/api/messages',
-        appointments: '/api/appointments',
-        invoices: `/api/payments/invoices${scope}`,
         questionnaire: `/api/stage-two-three/questionnaire/${taxYear}${scope}`,
         requirements: `/api/stage-two-three/requirements/${taxYear}${scope}`,
         requests: `/api/stage-two-three/requests/${taxYear}${scope}`,
@@ -419,100 +416,10 @@ export const api = {
   },
 
   // Engagements & Maker-Checker Workflows
-  engagements: {
-    list: async () => {
-      return request<{ engagements: Engagement[] }>('/api/engagements');
-    },
-
-    get: async (id: string) => {
-      return request<{ engagement: Engagement }>(`/api/engagements/${id}`);
-    },
-
-    updateStatus: async (id: string, payload: { status: string; progressPercent?: number; notes?: string }) => {
-      return request<{ message: string; engagement: Engagement }>(`/api/engagements/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    dispatch8879: async (id: string) => {
-      return request<{ message: string; engagement: Engagement; deliverableDocumentId: string }>(`/api/engagements/${id}/dispatch-8879`, {
-        method: 'POST'
-      });
-    },
-
-    getJournalEntries: async (clientId: string) => {
-      return request<{ journalEntries: JournalEntryDraft[] }>(`/api/engagements/journal-entries/${clientId}`);
-    },
-
-    createJournalEntry: async (payload: Partial<JournalEntryDraft>) => {
-      return request<{ journalEntry: JournalEntryDraft }>('/api/engagements/journal-entries', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    approveJournalEntry: async (id: string) => {
-      return request<{ message: string; journalEntry: JournalEntryDraft }>(`/api/engagements/journal-entries/${id}/approve`, {
-        method: 'PATCH'
-      });
-    }
-  },
 
   // Appointments & Calendar Conflict Prevention
-  appointments: {
-    list: async () => {
-      return request<{ appointments: Appointment[] }>('/api/appointments');
-    },
-
-    book: async (payload: {
-      clientName: string;
-      clientEmail: string;
-      clientPhone?: string;
-      serviceType?: string;
-      accountantId?: string;
-      requestedFounder?: boolean;
-      date: string;
-      timeSlot: string;
-      type: 'virtual' | 'phone' | 'in_office';
-      notes?: string;
-    }) => {
-      return request<{ message: string; appointment: Appointment; confirmationDetails: any }>('/api/appointments/book', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    update: async (id: string, payload: Partial<Appointment>) => {
-      return request<{ message: string; appointment: Appointment }>(`/api/appointments/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload)
-      });
-    }
-  },
 
   // Payments, Subscriptions & Invoices
-  payments: {
-    charge: async (payload: {
-      amount: number;
-      currency?: string;
-      invoiceId?: string;
-      servicePlanId?: string;
-      description?: string;
-      paymentMethod?: string;
-      idempotencyKey?: string;
-      discountCode?: string;
-    }) => {
-      return request<{ success: boolean; message: string; invoice: Invoice; receipt: any }>('/api/payments/charge', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    getInvoices: async () => {
-      return request<{ invoices: Invoice[] }>('/api/payments/invoices');
-    }
-  },
 
   // Accounting Integrations & 5-Stage Write Operations
   integrations: {
@@ -566,32 +473,6 @@ export const api = {
   },
 
   // Messaging & Staff Notes
-  messages: {
-    list: async (params: { engagementId?: string } = {}) => {
-      const q = params.engagementId ? `?engagementId=${params.engagementId}` : '';
-      return request<{ messages: Message[] }>(`/api/messages${q}`);
-    },
-
-    send: async (payload: {
-      recipientId?: string;
-      recipientName?: string;
-      engagementId?: string;
-      content: string;
-      isInternalNote?: boolean;
-      attachments?: string[];
-    }) => {
-      return request<{ message: string; messageData: Message }>('/api/messages', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    markRead: async (id: string) => {
-      return request<{ success: boolean; message: Message }>(`/api/messages/${id}/read`, {
-        method: 'PATCH'
-      });
-    }
-  },
 
   // Careers & Recruiting Workspace
   careers: {
@@ -635,18 +516,6 @@ export const api = {
   },
 
   // Legal & Professional Coordination
-  legal: {
-    list: async () => {
-      return request<{ legalRecords: LegalCoordinationRecord[]; statutoryDisclaimer: string }>('/api/legal');
-    },
-
-    create: async (payload: Partial<LegalCoordinationRecord>) => {
-      return request<{ message: string; record: LegalCoordinationRecord; statutoryDisclaimer: string }>('/api/legal', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    }
-  },
 
   // Admin & Compliance Management
   // Tax Forms Library: read-only reference catalog (server restricts to practice staff roles).
@@ -745,81 +614,6 @@ export const api = {
   },
 
   // Client-Accountant Binding & Governance
-  assignments: {
-    list: async () => {
-      return request<{ bindings: ClientAccountantBinding[] }>('/api/assignments');
-    },
-
-    listForClient: async (clientId: string) => {
-      return request<{ bindings: ClientAccountantBinding[] }>(`/api/assignments/client/${clientId}`);
-    },
-
-    getWorkload: async () => {
-      return request<{ profiles: AccountantProfile[] }>('/api/assignments/accountants-workload');
-    },
-
-    bind: async (payload: {
-      clientId: string;
-      accountantId: string;
-      assignmentType?: string;
-      accessScope?: string[];
-      effectiveDate?: string;
-      expirationDate?: string;
-      reason?: string;
-      internalNotes?: string;
-    }) => {
-      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/bind', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    unbind: async (bindingId: string, reason: string, replacementAccountantId?: string) => {
-      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/unbind', {
-        method: 'POST',
-        body: JSON.stringify({ bindingId, reason, replacementAccountantId })
-      });
-    },
-
-    suspend: async (bindingId: string, reason?: string) => {
-      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/suspend', {
-        method: 'POST',
-        body: JSON.stringify({ bindingId, reason })
-      });
-    },
-
-    restore: async (bindingId: string) => {
-      return request<{ message: string; binding: ClientAccountantBinding }>('/api/assignments/restore', {
-        method: 'POST',
-        body: JSON.stringify({ bindingId })
-      });
-    },
-
-    reassign: async (currentBindingId: string, newAccountantId: string, reason?: string) => {
-      return request<{ message: string; oldBinding: ClientAccountantBinding; newBinding: ClientAccountantBinding }>('/api/assignments/reassign', {
-        method: 'POST',
-        body: JSON.stringify({ currentBindingId, newAccountantId, reason })
-      });
-    },
-
-    requestReassignment: async (reason: string, preferredSpecialization?: string) => {
-      return request<{ message: string; request: ReassignmentRequest }>('/api/assignments/request-reassignment', {
-        method: 'POST',
-        body: JSON.stringify({ reason, preferredSpecialization })
-      });
-    },
-
-    listReassignmentRequests: async () => {
-      return request<{ requests: ReassignmentRequest[] }>('/api/assignments/reassignment-requests');
-    },
-
-    reviewReassignmentRequest: async (id: string, action: 'approved' | 'rejected', notes?: string) => {
-      return request<{ message: string; request: ReassignmentRequest }>(`/api/assignments/reassignment-requests/${id}/review`, {
-        method: 'POST',
-        body: JSON.stringify({ action, notes })
-      });
-    }
-  },
 
   // Dedicated Accountant Workspace & Tasks
   clientService: {

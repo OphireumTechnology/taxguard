@@ -41,5 +41,6 @@ export function createAuditCenterRouter(deps: AuditCenterRouterDeps = {}) {
     limit: req.query.limit === undefined ? undefined : Number(req.query.limit) })));
   router.get('/events/:eventId', run(req => store().event(req.user!.tenantId!, req.user!.id, req.params.eventId)));
   router.get('/categories', run(req => store().categories(req.user!.tenantId!, req.user!.id, req.query.from, req.query.to)));
+  router.get('/security-summary', run(req => store().securitySummary(req.user!.tenantId!, req.user!.id, req.query.from, req.query.to)));
   return router;
 }

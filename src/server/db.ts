@@ -5,6 +5,9 @@
  */
 
 import { randomUUID } from 'crypto';
+import { securityEventSink } from './taxguard/audit/securityEventSink';
+/** Most recent security events kept in memory for the local console. */
+export const MAX_MEMORY_SECURITY_EVENTS = 1000;
 import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 import { 
   User, 
@@ -1284,6 +1287,10 @@ class Database {
       ...event
     };
     this.securityEvents.unshift(secEvent);
+    // Bounded: a flood of events (e.g. repeated failed sign-ins) cannot exhaust memory.
+    if (this.securityEvents.length > MAX_MEMORY_SECURITY_EVENTS) this.securityEvents.length = MAX_MEMORY_SECURITY_EVENTS;
+    // Durable copy (proposal 048) when configured; enqueue only, never blocks or throws.
+    securityEventSink()?.record(secEvent);
     return secEvent;
   }
 

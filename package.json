@@ -19,7 +19,10 @@
     "qa:browser:setup": "node scripts/setup-local-browser.mjs",
     "qa:browser": "node scripts/run-local-browser.mjs",
     "qa:browser:product:anonymous": "node scripts/run-local-product-browser.mjs",
-    "test:identity": "vitest run staffInvitation staffActivation staffMembership durableMembership staffSessionEpoch staffAccess mfaEnrollment providerOnlyIdentityFlow supabaseStaffMfaClient supabaseProductionInfrastructure productionApiHttp clientDataIsolationSecurity clientOneTimeOnboardingAndProfile finalReleaseGateVerification clientRegistrationAndOnboardingFlow stageTwoReconciliationAuthorization"
+    "test:identity": "vitest run staffInvitation staffActivation staffMembership durableMembership staffSessionEpoch staffAccess mfaEnrollment providerOnlyIdentityFlow supabaseStaffMfaClient supabaseProductionInfrastructure productionApiHttp clientDataIsolationSecurity clientOneTimeOnboardingAndProfile finalReleaseGateVerification clientRegistrationAndOnboardingFlow stageTwoReconciliationAuthorization",
+    "test:phase10-negative": "vitest run stagingEnvironmentValidator providerValidationTarget billingClientProjection securityEvents malwareScanning healthEndpoints migrationReadinessAudit proposalCompositionSecurity legacyRouteRetirement aiCommissioningMatrix aiGovernedGateway",
+    "test:mutation:phase10": "node scripts/mutation/phase10-mutations.mjs",
+    "migrations:manifest": "node scripts/migrations/build-migration-manifest.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
