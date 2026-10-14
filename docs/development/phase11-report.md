@@ -84,4 +84,6 @@ Recommended next milestones:
 
 ## Delivery checkpoint
 
-Validated reconciliation commit: `ac8451deb7b54665ab69fe56c9deacb0041bb14c`. Both pinned main and Codex Phase 10 are verified ancestors. A subsequent documentation/checksum checkpoint removes a trailing SQL blank line; no SQL behavior changes. Final feature head, PR URL and observed GitHub CI status are reported in the delivery response. No automatic PR merge or deployment.
+Validated reconciliation commit: `ac8451deb7b54665ab69fe56c9deacb0041bb14c`. Both pinned main and Codex Phase 10 are verified ancestors. Validation/checksum checkpoint `24e4dd2ce97db9e4337c4eb67b830d700b679dfa` removes a trailing SQL blank line; no SQL behavior changes. Focused final integrity checks passed 5 files / 21 tests. The feature branch was pushed and [PR #17](https://github.com/OphireumTechnology/taxguard/pull/17) opened ready for human review against main. PR #15 remains open/draft.
+
+At the first observation, GitHub Development CI run 38527414201 was in progress with no conclusion. Final feature head and latest observed CI status are reported in the delivery response; this documentation checkpoint necessarily creates a later head. The working tree was clean after the validated checkpoint. No automatic PR merge or deployment.
