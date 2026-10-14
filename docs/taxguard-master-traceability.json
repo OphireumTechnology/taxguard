@@ -4762,8 +4762,8 @@
     },
     {
       "file": "docs/development/phase11-report.md",
-      "sha256": "c105c52bb059cd4d58eaa17787fd74688cc393511de5a5fabc97a1afcdd9173f",
-      "bytes": 13880,
+      "sha256": "446e7969c3a1e070f757968f310734b90a2138c4e2250a56605038c91334433a",
+      "bytes": 14091,
       "headings": [
         "# Phase 11 engineering delivery",
         "## Git reconciliation",
@@ -5279,8 +5279,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
-      "sha256": "97a9caa9ad45f816352d77963cac8ffde1fbf8dbfa05759a313289734fdd96cb",
-      "bytes": 6581,
+      "sha256": "861fb4254bbb0f30b9bd00044ea6023c30a00279caf8d1377b507d2362fac46c",
+      "bytes": 6580,
       "headings": []
     },
     {

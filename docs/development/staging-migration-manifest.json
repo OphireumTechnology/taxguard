@@ -2658,7 +2658,7 @@
       "file": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
       "kind": "proposal",
       "version": "20261015060000",
-      "sha256": "97a9caa9ad45f816352d77963cac8ffde1fbf8dbfa05759a313289734fdd96cb",
+      "sha256": "861fb4254bbb0f30b9bd00044ea6023c30a00279caf8d1377b507d2362fac46c",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",

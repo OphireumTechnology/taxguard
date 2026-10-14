@@ -84,4 +84,4 @@ Recommended next milestones:
 
 ## Delivery checkpoint
 
-Final reconciliation commit, feature head, PR URL and observed GitHub CI status will be recorded after the local gates complete. No automatic PR merge or deployment.
+Validated reconciliation commit: `ac8451deb7b54665ab69fe56c9deacb0041bb14c`. Both pinned main and Codex Phase 10 are verified ancestors. A subsequent documentation/checksum checkpoint removes a trailing SQL blank line; no SQL behavior changes. Final feature head, PR URL and observed GitHub CI status are reported in the delivery response. No automatic PR merge or deployment.

@@ -79,4 +79,3 @@ CREATE TRIGGER taxguard_security_append_only BEFORE UPDATE OR DELETE ON public.t
 DROP TRIGGER IF EXISTS taxguard_security_no_truncate ON public.taxguard_audit_log;
 CREATE TRIGGER taxguard_security_no_truncate BEFORE TRUNCATE ON public.taxguard_audit_log
   FOR EACH STATEMENT EXECUTE FUNCTION public.taxguard_security_immutable();
-
