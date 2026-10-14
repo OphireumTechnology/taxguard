@@ -7,6 +7,7 @@ import { BillingStore } from '../server/taxguard/billing/billingStore';
 import { PracticeStore } from '../server/taxguard/practice/practiceStore';
 import { DocumentVaultStore } from '../server/taxguard/documents/documentVaultStore';
 import type { MalwareScanner, VaultStorage } from '../server/taxguard/documents/vaultIntegrations';
+import { withBoundedSessionRevocationRetry } from '../server/sessionRevocationRetry';
 
 // Multiple simultaneous backend sessions against a real PostgreSQL server: every concurrent call
 // below runs on its own dedicated connection, so row locks, unique indexes, counters and
@@ -190,23 +191,81 @@ describe('session revocation under concurrency', () => {
       INSERT INTO taxguard_sessions(tenant_id,uid,session_token_hash,auth_time,expires_at,aal) VALUES('tenantA','db-sess-admin',repeat('d',64),${fresh},${live},'aal2');`);
     const ids = (await db.pool.query(`SELECT id, session_token_hash h FROM taxguard_sessions WHERE uid='db-sess-staff' ORDER BY h`)).rows;
     const current = ids[0].h;
+    const retries: string[] = [];
+    const retry = <T,>(operation: () => Promise<T>) => withBoundedSessionRevocationRetry(operation,
+      { onRetry: code => retries.push(code) });
     const r = await Promise.allSettled([
-      ...ids.slice(1, 6).map((s, i) => conns[i].query('SELECT taxguard_revoke_own_session($1,$2,$3,$4) AS r', ['tenantA', 'db-sess-staff', current, s.id])),
-      conns[6].query('SELECT taxguard_revoke_other_own_sessions($1,$2,$3) AS r', ['tenantA', 'db-sess-staff', current]),
-      conns[7].query('SELECT taxguard_admin_revoke_member_sessions($1,$2,$3,$4,$5) AS r', ['tenantA', 'db-sess-admin', 'd'.repeat(64), 'db-sess-staff', 'lost_or_stolen_device'])]);
-    for (const x of r) if (x.status === 'rejected') expect(['55P03', '40001', '40P01', 'P0001']).toContain((x.reason as any).code);
+      ...ids.slice(1, 6).map((s, i) => retry(() => conns[i].query('SELECT taxguard_revoke_own_session($1,$2,$3,$4) AS r', ['tenantA', 'db-sess-staff', current, s.id]))),
+      retry(() => conns[6].query('SELECT taxguard_revoke_other_own_sessions($1,$2,$3) AS r', ['tenantA', 'db-sess-staff', current])),
+      retry(() => conns[7].query('SELECT taxguard_admin_revoke_member_sessions($1,$2,$3,$4,$5) AS r', ['tenantA', 'db-sess-admin', 'd'.repeat(64), 'db-sess-staff', 'lost_or_stolen_device']))]);
+    // Verify every attempt: NOWAIT conflicts abort the whole SQL transaction and its audit;
+    // the shared bounded retry policy retries only those explicit transient SQLSTATEs.
+    expect(retries.every(code => ['55P03', '40001', '40P01'].includes(code))).toBe(true);
+    const administratorOutcome = r[r.length - 1];
+    expect(administratorOutcome.status).toBe('fulfilled'); // administrator action must converge
+    if (administratorOutcome.status === 'fulfilled') {
+      expect(administratorOutcome.value.rows[0].r.revokedSessions).toBeGreaterThanOrEqual(0);
+      expect(administratorOutcome.value.rows[0].r.revokedSessions).toBeLessThanOrEqual(ids.length);
+    }
+    for (const outcome of r.slice(0, -1)) if (outcome.status === 'rejected')
+      expect(['P0001', 'SESSION_STORE_BUSY']).toContain((outcome.reason as any).code ?? (outcome.reason as any).message);
     const flags = (await db.pool.query(`SELECT revoked FROM taxguard_sessions WHERE uid='db-sess-staff'`)).rows.map(x => x.revoked);
-    const adminWon = r[r.length - 1].status === 'fulfilled';
-    if (adminWon) expect(flags.every(Boolean)).toBe(true);
-    else expect(flags.filter(f => !f)).toHaveLength(1); // only the current session survives
-    // Each session is revoked once: revocation audit rows never exceed the sessions revoked.
+    expect(flags.every(Boolean)).toBe(true);
+    // Every state transition has one committed audit representation; failed NOWAIT attempts
+    // roll back both the update and audit, and retries cannot double count already-revoked rows.
     const revokedCount = flags.filter(Boolean).length;
-    const auditSessions = await one<{ n: number }>(`SELECT coalesce(sum(CASE WHEN action='SESSION_REVOKED' THEN 1 ELSE coalesce((metadata->>'revokedSessions')::int,0) END),0)::int n
-      FROM taxguard_audit_log WHERE metadata::text LIKE '%db-sess-staff%' OR actor_uid='db-sess-staff'`);
-    expect(auditSessions.n).toBeLessThanOrEqual(revokedCount);
-    // A revoked session can no longer act.
-    const revokedHash = ids[1].h;
-    await expect(db.pool.query('SELECT taxguard_list_own_sessions($1,$2,$3) AS r', ['tenantA', 'db-sess-staff', revokedHash])).rejects.toThrow();
+    const auditSessions = await one<{ n: number }>(`SELECT coalesce(sum(CASE
+        WHEN action='SESSION_REVOKED_BY_OWNER' THEN 1
+        ELSE coalesce((metadata->>'revokedSessions')::int,0) END),0)::int n
+      FROM taxguard_audit_log WHERE action IN ('SESSION_REVOKED_BY_OWNER','SESSIONS_OTHER_REVOKED_BY_OWNER','STAFF_SESSIONS_REVOKED_BY_ADMIN')
+        AND (actor_uid='db-sess-staff' OR metadata->>'targetUid'='db-sess-staff')`);
+    expect(auditSessions.n).toBe(revokedCount);
+    const committedAdminSuccesses = await one<{ n: number }>(`SELECT count(*)::int n FROM taxguard_audit_log
+      WHERE action='STAFF_SESSIONS_REVOKED_BY_ADMIN' AND metadata->>'targetUid'='db-sess-staff'
+        AND coalesce((metadata->>'revokedSessions')::int,0)>0`);
+    expect(committedAdminSuccesses.n).toBe(1);
+    // Every revoked token fails the authoritative session check, including after retry convergence.
+    for (const session of ids)
+      await expect(db.pool.query('SELECT taxguard_list_own_sessions($1,$2,$3) AS r', ['tenantA', 'db-sess-staff', session.h])).rejects.toThrow();
+  });
+
+  it('fails closed on exhausted lock retries, then revokes after a fresh transaction can acquire the lock', async () => {
+    const live = '(floor(extract(epoch FROM now())*1000)::bigint+3600000)', fresh = 'floor(extract(epoch FROM now()))::bigint';
+    await db.pool.query(`INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('tenantA','db-sess-blocked','accountant','active');
+      INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('tenantA','db-sess-blocked','{"id":"db-sess-blocked","tenantId":"tenantA","role":"accountant","status":"active"}'::jsonb);
+      INSERT INTO taxguard_sessions(tenant_id,uid,session_token_hash,auth_time,expires_at,aal)
+      VALUES('tenantA','db-sess-blocked',repeat('e',64),${fresh},${live},'aal2');`);
+    const lockHolder = conns[8];
+    await lockHolder.query('BEGIN');
+    try {
+      await lockHolder.query("SELECT id FROM taxguard_sessions WHERE tenant_id='tenantA' AND uid='db-sess-blocked' FOR UPDATE");
+      const retryCodes: string[] = [];
+      let attempts = 0;
+      const revoke = () => {
+        attempts++;
+        return conns[9].query('SELECT taxguard_admin_revoke_member_sessions($1,$2,$3,$4,$5) AS r',
+          ['tenantA', 'db-sess-admin', 'd'.repeat(64), 'db-sess-blocked', 'administrative_review']);
+      };
+      await expect(withBoundedSessionRevocationRetry(revoke, { maxAttempts: 3, onRetry: code => retryCodes.push(code) }))
+        .rejects.toMatchObject({ code: '55P03' });
+      expect(attempts).toBe(3);
+      expect(retryCodes).toEqual(['55P03', '55P03']);
+      expect((await db.pool.query("SELECT revoked FROM taxguard_sessions WHERE uid='db-sess-blocked'")).rows[0].revoked).toBe(false);
+      expect((await db.pool.query(`SELECT count(*)::int n FROM taxguard_audit_log
+        WHERE action='STAFF_SESSIONS_REVOKED_BY_ADMIN' AND metadata->>'targetUid'='db-sess-blocked'`)).rows[0].n).toBe(0);
+    } finally {
+      await lockHolder.query('ROLLBACK');
+    }
+
+    const committed = await withBoundedSessionRevocationRetry(() => conns[9].query(
+      'SELECT taxguard_admin_revoke_member_sessions($1,$2,$3,$4,$5) AS r',
+      ['tenantA', 'db-sess-admin', 'd'.repeat(64), 'db-sess-blocked', 'administrative_review']));
+    expect(committed.rows[0].r.revokedSessions).toBe(1);
+    expect((await db.pool.query("SELECT revoked FROM taxguard_sessions WHERE uid='db-sess-blocked'")).rows[0].revoked).toBe(true);
+    expect((await db.pool.query(`SELECT count(*)::int n FROM taxguard_audit_log
+      WHERE action='STAFF_SESSIONS_REVOKED_BY_ADMIN' AND metadata->>'targetUid'='db-sess-blocked'
+        AND (metadata->>'revokedSessions')::int=1`)).rows[0].n).toBe(1);
+    await expect(db.pool.query('SELECT taxguard_list_own_sessions($1,$2,$3) AS r', ['tenantA', 'db-sess-blocked', 'e'.repeat(64)])).rejects.toThrow();
   });
 });
 

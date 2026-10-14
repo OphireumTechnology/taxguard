@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
+import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { promisify } from 'node:util';
 import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { buildMigrationManifest } from '../../scripts/staging/migration-manifest.mjs';
@@ -13,6 +15,7 @@ import {buildReviewBundle} from '../../scripts/staging/migration-review-bundle.m
 // directory that is deleted on stop. It never reads Supabase credentials or environment and never
 // connects anywhere but loopback. Synthetic data only.
 const ROOT = process.env.TAXGUARD_DB_TEST_DIR || path.join(os.tmpdir(), 'taxguard-db-tests');
+const execFileAsync = promisify(execFile);
 if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) {
   // Defence in depth: the harness never uses these, but refuse to run beside a configured project.
   throw new Error('Refusing to run database tests with a Supabase project configured in the environment.');
@@ -35,41 +38,131 @@ export type TestDatabase = {
 
 export async function startDatabase(options: { durable?: boolean;reviewBundle?:boolean } = {}): Promise<TestDatabase> {
   fs.mkdirSync(ROOT, { recursive: true });
-  // Remove directories left by earlier runs (older than an hour, so a parallel run is never touched).
-  for (const name of fs.readdirSync(ROOT).filter(n => n.startsWith('pg-'))) {
-    const dir = path.join(ROOT, name);
-    try {const target=path.resolve(dir),parent=path.resolve(ROOT);if(!target.startsWith(parent+path.sep)||!path.basename(target).startsWith('pg-'))throw new Error('DATABASE_CLEANUP_PATH_DENIED');
-      if (Date.now() - fs.statSync(target).mtimeMs > 3_600_000) fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* still in use */ }
-  }
+  // Never sweep a shared temp root by age: another live test process may own an old database.
+  // Each handle below owns and removes only the unique directory it created.
   const databaseDir = path.join(ROOT, 'pg-' + process.pid + '-' + randomBytes(4).toString('hex'));
   const port = await freePort(), password = randomBytes(18).toString('hex');
   // Own cleanup with bounded Windows lock retries. The package's nonpersistent stop performs
   // an immediate recursive removal and can fail EBUSY before our guarded cleanup is reached.
   const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: true, onLog: () => {},
     postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=60', '-c', `fsync=${options.durable ? 'on' : 'off'}`] });
-  await server.initialise();
-  await server.start();
+  const stopOwnedServer = async () => {
+    // embedded-postgres currently fire-and-forgets Windows taskkill. Its root process can exit
+    // before taskkill has reaped PostgreSQL's forked workers, leaving postgres.exe locked. Use
+    // pg_ctl's synchronous fast shutdown, which waits for the complete postmaster shutdown, then
+    // clear the package's private child handle so its exit hook cannot wait on an already-exited
+    // process. On POSIX the same pg_ctl contract avoids signal/process-tree timing differences.
+    const processHandle = (server as unknown as { process?: { spawnfile?: string; exitCode?: number | null; signalCode?: string | null; once?: (event: string, callback: () => void) => void } }).process;
+    if (processHandle && processHandle.exitCode === null && processHandle.spawnfile) {
+      const pgCtl = path.join(path.dirname(processHandle.spawnfile), process.platform === 'win32' ? 'pg_ctl.exe' : 'pg_ctl');
+      await execFileAsync(pgCtl, ['-D', databaseDir, '-m', 'fast', '-w', 'stop'], { timeout: 30000 });
+      if (processHandle.exitCode === null && !processHandle.signalCode) {
+        await new Promise<void>((resolve, reject) => {
+          const child = (server as unknown as { process?: NodeJS.EventEmitter & { exitCode?: number | null; signalCode?: string | null } }).process;
+          if (!child || child.exitCode !== null || child.signalCode) return resolve();
+          child.once('exit', resolve);
+          child.once('error', reject);
+        });
+      }
+      (server as unknown as { process?: unknown }).process = undefined;
+    }
+    await server.stop();
+  };
   const config = { host: '127.0.0.1', port, user: 'postgres', password, database: 'taxguard_test' };
-  await server.createDatabase('taxguard_test');
-  let pool = new pg.Pool({ ...config, max: 20 });
-  try { await compose(pool,options.reviewBundle); } catch (e) { await pool.end(); await server.stop(); throw e; }
+  let pool: pg.Pool | undefined;
+  const ownedClients = new Set<pg.Client>();
+  const pendingQueries = new Map<pg.Client, Set<Promise<void>>>();
+  const clientErrors: Error[] = [];
+  const poolErrors: Error[] = [];
+  const endingClients = new Map<pg.Client, Promise<void>>();
+  const attachPoolErrorHandler = (value: pg.Pool) => { value.on('error', error => { poolErrors.push(error); }); };
+  const trackClient = (client: pg.Client) => {
+    ownedClients.add(client);
+    pendingQueries.set(client, new Set());
+    client.on('error', error => { clientErrors.push(error); });
+    client.once('end', () => { ownedClients.delete(client); });
+    const query = client.query.bind(client) as (...args: any[]) => any;
+    (client as any).query = (...args: any[]) => {
+      const result = query(...args);
+      if (result && typeof result.then === 'function') {
+        const pending = pendingQueries.get(client)!;
+        let settled!: Promise<void>;
+        settled = Promise.resolve(result).then(() => undefined, () => undefined).then(() => { pending.delete(settled); });
+        pending.add(settled);
+      }
+      return result;
+    };
+    const end = client.end.bind(client);
+    (client as any).end = (...args: any[]) => {
+      const alreadyEnding = endingClients.get(client);
+      if (alreadyEnding) return alreadyEnding;
+      const close = Promise.all([...pendingQueries.get(client)!]).then(() => end(...args));
+      endingClients.set(client, close);
+      return close;
+    };
+    return client;
+  };
+  const createPool = () => {
+    const value = new pg.Pool({ ...config, max: 20 });
+    attachPoolErrorHandler(value);
+    pool = value;
+    return value;
+  };
+  const closeDatabaseClients = async () => {
+    // Dedicated clients finish every submitted query before terminating. Pool.end waits for
+    // checked-out pooled work and closes idle pool clients; event handlers retain any failures.
+    const closeResults = await Promise.allSettled([...ownedClients].map(client => client.end()));
+    let closeFailure = closeResults.find(result => result.status === 'rejected');
+    try { await pool?.end(); } catch (error) { closeFailure ??= { status: 'rejected', reason: error }; }
+    const probe = new pg.Client(config);
+    probe.on('error', error => { clientErrors.push(error); });
+    await probe.connect();
+    let liveConnections = 0;
+    try {
+      const live = await probe.query<{ n: number }>(`SELECT count(*)::int AS n FROM pg_stat_activity
+        WHERE datname=current_database() AND pid<>pg_backend_pid()`);
+      liveConnections = live.rows[0].n;
+    } finally { await probe.end(); }
+    if (closeFailure) throw new Error('TEST_DATABASE_CLIENT_CLOSE_FAILED', { cause: closeFailure.reason });
+    if (liveConnections !== 0) throw new Error(`TEST_DATABASE_CONNECTIONS_STILL_OPEN:${liveConnections}`);
+    if (clientErrors.length || poolErrors.length) throw new Error(`TEST_DATABASE_CLIENT_ERROR:${clientErrors.length + poolErrors.length}`);
+  };
+  let started = false;
+  try {
+    await server.initialise();
+    await server.start(); started = true;
+    await server.createDatabase('taxguard_test');
+    await compose(createPool(), options.reviewBundle);
+  } catch (error) {
+    await pool?.end().catch(() => undefined);
+    if (started) await stopOwnedServer().catch(() => undefined);
+    fs.rmSync(databaseDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+    throw error;
+  }
+  let stopPromise: Promise<void> | undefined;
   return {
-    get pool() { return pool; },
-    async connect() { const c = new pg.Client(config); await c.connect(); return c; },
+    get pool() { if (!pool) throw new Error('TEST_DATABASE_POOL_STOPPED'); return pool; },
+    async connect() { const c = trackClient(new pg.Client(config)); try { await c.connect(); return c; } catch (error) { ownedClients.delete(c); throw error; } },
     async restart() {
       if (!options.durable) throw new Error('DISPOSABLE_DURABLE_TEST_REQUIRED');
-      await pool.end(); await server.stop(); await server.start();
-      pool = new pg.Pool({ ...config, max: 20 });
+      await closeDatabaseClients();
+      await stopOwnedServer(); await server.start();
+      clientErrors.length = 0; poolErrors.length = 0;
+      createPool();
     },
     async stop() {
-      await pool.end(); await server.stop();
-      // Windows may keep the data directory locked briefly after the server exits.
-      try {
+      if (stopPromise) return stopPromise;
+      stopPromise = (async () => {
+        let failure: unknown;
+        try { await closeDatabaseClients(); } catch (error) { failure = error; }
+        try { await stopOwnedServer(); } catch (error) { failure ??= error; }
         const resolved = path.resolve(databaseDir), parent = path.resolve(ROOT);
-        if (!resolved.startsWith(parent + path.sep) || !path.basename(resolved).startsWith('pg-')) throw new Error('DATABASE_CLEANUP_PATH_DENIED');
-        fs.rmSync(resolved, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
-      }
-      catch { console.warn('[db-tests] data directory still locked; it is removed on the next run'); }
+        if (!resolved.startsWith(parent + path.sep) || !path.basename(resolved).startsWith('pg-')) failure ??= new Error('DATABASE_CLEANUP_PATH_DENIED');
+        else try { fs.rmSync(resolved, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }); }
+        catch (error) { failure ??= error; }
+        if (failure) throw failure;
+      })();
+      return stopPromise;
     },
   };
 }
