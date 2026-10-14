@@ -4786,8 +4786,8 @@
     },
     {
       "file": "docs/development/phase12-report.md",
-      "sha256": "1d8c9b3f3344c9e208f492559f9e7fcece6a804cb060e92e4ec585de93d3717d",
-      "bytes": 3919,
+      "sha256": "58727255addadfa7cd4b1821cd5ca93e1a6243e7825bc3e28807c1138f64a5c6",
+      "bytes": 4107,
       "headings": [
         "# Phase 12 local development report",
         "## Baseline and scope",
