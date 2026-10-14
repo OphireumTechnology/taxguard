@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
+import { AiCommissioningView } from './AiCommissioningView';
 
 /**
  * AI Control Center — read-only registry, execution history, governance decisions and
@@ -52,13 +53,16 @@ export function formatCell(key: string, value: unknown): string {
 
 type State = { status: 'loading' | 'ready' | 'error'; rows: Record<string, unknown>[]; next: string | null; globalStop?: boolean; scopedStops?: { scope: string; target: string }[]; totals?: Record<string, number>; message?: string; appending?: boolean };
 
-export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }> = ({ initialView = 'registry' }) => {
-  const [view, setView] = useState<ControlCenterView>(initialView);
+type PanelView = ControlCenterView | 'commissioning';
+
+export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ initialView = 'registry' }) => {
+  const [view, setView] = useState<PanelView>(initialView);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [refresh, setRefresh] = useState(0);
   const [state, setState] = useState<State>({ status: 'loading', rows: [], next: null });
 
   const load = (cursor: string | null, signal?: AbortSignal) => {
+    if (view === 'commissioning') return Promise.resolve({ rows: [], next: null as string | null });
     const query = { ...filters, ...(cursor ? { cursor } : {}) };
     return api.caseAuthority.getAiControlCenter(view, view === 'registry' ? {} : view === 'usage' ? filters : query, signal).then((result: any) => {
       const rows = view === 'registry' ? result.agents : view === 'usage' ? result.by_agent : result.items;
@@ -68,6 +72,8 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
   };
 
   useEffect(() => {
+    // The commissioning view is build evidence rendered locally; it calls no governance endpoint.
+    if (view === 'commissioning') { setState({ status: 'ready', rows: [], next: null }); return; }
     const controller = new AbortController();
     setState({ status: 'loading', rows: [], next: null });
     load(null, controller.signal)
@@ -85,20 +91,31 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
       .catch(error => setState(current => ({ ...current, appending: false, message: controlCenterErrorMessage(error) })));
   };
 
-  const tabs: [ControlCenterView, string][] = [['registry', 'Agent registry'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue']];
+  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue']];
+  const select = (id: PanelView) => { setView(id); setFilters({}); };
+  const onTabKey = (e: React.KeyboardEvent, index: number) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = tabs[(index + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length][0];
+    select(next);
+    document.getElementById('ai-cc-tab-' + next)?.focus();
+  };
   return (
     <section aria-labelledby="ai-control-center-heading" className="space-y-4 text-xs text-slate-200">
       <header className="flex items-center justify-between">
         <h2 id="ai-control-center-heading" className="text-base font-bold text-white">AI Control Center</h2>
-        <button type="button" onClick={() => setRefresh(value => value + 1)} className="flex items-center gap-1 text-slate-300"><RefreshCw className="w-3.5 h-3.5" />Refresh</button>
+        <button type="button" onClick={() => setRefresh(value => value + 1)} className="flex items-center gap-1 text-slate-300"><RefreshCw aria-hidden="true" className="w-3.5 h-3.5" />Refresh</button>
       </header>
       <div role="tablist" aria-label="Control center views" className="flex flex-wrap gap-2">
-        {tabs.map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => { setView(id); setFilters({}); }}
+        {tabs.map(([id, label], index) => (
+          <button key={id} id={'ai-cc-tab-' + id} type="button" role="tab" aria-selected={view === id} aria-controls="ai-cc-panel" tabIndex={view === id ? 0 : -1}
+            onKeyDown={e => onTabKey(e, index)} onClick={() => select(id)}
             className={`px-3 py-1.5 rounded-lg ${view === id ? 'bg-[#D4A843] text-[#06182B] font-bold' : 'bg-[#0D2745] text-slate-300'}`}>{label}</button>
         ))}
       </div>
-      {FILTERS[view].length > 0 && (
+      <div id="ai-cc-panel" role="tabpanel" aria-labelledby={'ai-cc-tab-' + view} className="space-y-4">
+      {view === 'commissioning' && <AiCommissioningView />}
+      {view !== 'commissioning' && FILTERS[view].length > 0 && (
         <div className="flex flex-wrap gap-3">
           {FILTERS[view].map(filter => (
             <label key={filter.key} className="flex items-center gap-1.5">{filter.label}
@@ -119,15 +136,15 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
       {view === 'registry' && state.status === 'ready' && state.globalStop &&<p role="alert" className="text-red-300 font-semibold">A GLOBAL emergency stop is engaged for this tenant. All governed AI work is refused.</p>}
       {state.status === 'loading' && <p role="status">Loading…</p>}
       {state.status === 'error' && <p role="alert" className="text-amber-300">{state.message}</p>}
-      {state.status === 'ready' && state.rows.length === 0 && <p>No records match this view for your tenant.</p>}
-      {state.status === 'ready' && state.rows.length > 0 && (
+      {view !== 'commissioning' && state.status === 'ready' && state.rows.length === 0 && <p>No records match this view for your tenant.</p>}
+      {view !== 'commissioning' && state.status === 'ready' && state.rows.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <caption className="sr-only">{tabs.find(([id]) => id === view)![1]}</caption>
-            <thead><tr className="text-slate-400">{COLUMNS[view].map(([, label]) => <th key={label} scope="col" className="pr-3">{label}</th>)}</tr></thead>
+            <thead><tr className="text-slate-400">{COLUMNS[view as ControlCenterView].map(([, label]) => <th key={label} scope="col" className="pr-3">{label}</th>)}</tr></thead>
             <tbody>{state.rows.map((row, index) => (
               <tr key={String(row.agent_id ?? row.run_id ?? row.decision_id ?? row.event_id ?? index)} className="border-t border-slate-800">
-                {COLUMNS[view].map(([key]) => <td key={key} className="pr-3 py-1">{formatCell(key, row[key])}</td>)}
+                {COLUMNS[view as ControlCenterView].map(([key]) => <td key={key} className="pr-3 py-1">{formatCell(key, row[key])}</td>)}
               </tr>
             ))}</tbody>
           </table>
@@ -136,6 +153,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: ControlCenterView }>
           {state.message && state.status === 'ready' && <p role="alert" className="text-amber-300">{state.message}</p>}
         </div>
       )}
+      </div>
     </section>
   );
 };

@@ -92,8 +92,10 @@ describe('dashboard next action and truthful presentation', () => {
     const html = render();
     for (const title of ['Your Current Status', 'Return Overview', 'Quick Actions', 'My Tax Years', 'Personalized Document Checklist', 'State-Specific Requirements', 'Important Updates', 'Upcoming Appointment', 'Complete Client Journey', 'Security &amp; Reliability']) expect(html).toContain(title);
     const nav = renderToStaticMarkup(<ClientDashboardNavigation active="home" collapsed onNavigate={() => {}} />);
-    // Phase 9 added My Advisor (reassignment requests) and Legal Coordination.
-    expect(nav.match(/aria-label=/g)).toHaveLength(12);
+    // Phase 9 added My Advisor and Legal Coordination; Phase 12B added Notifications and the nav landmark label.
+    expect(nav.match(/<button[^>]*aria-label=/g)).toHaveLength(13);
+    expect(nav).toContain('<nav aria-label="Client portal"');
+    expect(nav).toContain('Notifications'); expect(nav).not.toContain('Payments'); expect(nav).not.toContain('(2022+)');
     expect(nav).toContain('My Advisor'); expect(nav).toContain('Legal Coordination');
     expect(nav).toContain('aria-current="page"');
   });

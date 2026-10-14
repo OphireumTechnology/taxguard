@@ -434,8 +434,8 @@ export const VirtualConsultationRoom: React.FC<VirtualConsultationRoomProps> = (
       <div className="min-h-screen bg-[#06172C] py-8">
         <PreCallWaitingRoom
           roomTitle={room?.title || 'Confidential Tax Consultation'}
-          referenceCode={room?.referenceCode || 'ART-2026-CONSULT'}
-          hostName="Desmond Hinds"
+          referenceCode={room?.referenceCode || 'Not assigned'}
+          hostName={room?.hostName || 'Your advisor'}
           clientName={currentUser?.name || 'Authorized Client'}
           isHost={!!isHost}
           scheduledTime="Today • Live Session"
@@ -470,7 +470,7 @@ export const VirtualConsultationRoom: React.FC<VirtualConsultationRoomProps> = (
             <div className="text-[#52657B] font-mono text-[10px]">CONSULTATION DOSSIER</div>
             <div className="text-white font-semibold">{room?.title}</div>
             <div className="text-slate-400">Ref Code: <strong className="font-mono text-[#E2B957]">{room?.referenceCode}</strong></div>
-            <div className="text-slate-400">Advisor: <strong>Desmond Hinds</strong></div>
+            <div className="text-slate-400">Advisor: <strong>{room?.hostName || 'Not recorded'}</strong></div>
           </div>
 
           <button
@@ -627,7 +627,7 @@ export const VirtualConsultationRoom: React.FC<VirtualConsultationRoomProps> = (
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-base text-[#F7F1E5]">
-                    {isHost ? (room?.clientName || 'Michael Perotti') : 'Desmond Hinds'}
+                    {isHost ? (room?.clientName || 'Client') : (room?.hostName || 'Your advisor')}
                   </h3>
                   <p className="text-xs text-[#EAD7A3]">
                     {isHost ? 'Client &bull; Authorized Reviewer' : 'Founder & Senior Managing Accountant'}

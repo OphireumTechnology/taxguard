@@ -45,18 +45,22 @@ describe('TaxGuard Restored Client Dashboard Architecture', () => {
     expect(dashboardSource).toContain('getStageStatus');
     expect(dashboardSource).toContain('authority?.workflow?.activeStage');
     expect(dashboardSource).toContain('CheckCircle2');
-    expect(dashboardSource).toContain('STAGE LOCKED BY TAXGUARD HARD GATE');
+    // Phase 12B: the locked view reports the server's active stage; no hardcoded gate claims.
+    expect(dashboardSource).toContain('is not available yet');
+    expect(dashboardSource).not.toContain('Cleared &amp; Certified');
+    expect(dashboardSource).not.toContain('HARD EXIT GATE PASSED');
   });
 
   it('enforces hard gate locking on stages 03 through 18', () => {
     expect(dashboardSource).toContain('selectedLockedStage');
-    expect(dashboardSource).toContain('Complete <strong>Stage 02 Collect</strong> before Stage');
-    expect(dashboardSource).toContain('Go to Active Stage 02 (Collect) Workspace');
+    expect(dashboardSource).toContain('Your workflow is at Stage {active.shortLabel}');
+    expect(dashboardSource).toContain('BLOCKED_STAGES.includes(selectedLockedStage.number)');
+    expect(dashboardSource).toContain('<TaxStageStatusView');
   });
 
-  it('loads the existing production StageTwoCollectionWorkspace in Stage 02 context', () => {
-    expect(dashboardSource).toContain('<StageTwoCollectionWorkspace');
-    expect(dashboardSource).toContain('serverStageThreeEligible');
+  it('loads the durable collection workspace in Stage 02 context (not the browser-local workspace)', () => {
+    expect(dashboardSource).toContain('<DurableClientCollectionWorkspace clientId={clientId} taxYear={selectedTaxYear} />');
+    expect(dashboardSource).not.toContain('<StageTwoCollectionWorkspace');
     expect(dashboardSource).toContain('onServerWorkflowRefresh');
   });
 
@@ -67,7 +71,7 @@ describe('TaxGuard Restored Client Dashboard Architecture', () => {
   });
 
   it('renders correct IRC § 7216 statutory disclosure and no mojibake', () => {
-    expect(dashboardSource).toContain('IRC § 7216 Consent');
+    expect(dashboardSource).toContain('consent status are recorded');
     expect(dashboardSource).not.toContain('\uFFFD');
     expect(dashboardSource).not.toContain('localhost');
   });
