@@ -15,6 +15,7 @@
     "test:db": "vitest run -c vitest.db.config.ts",
     "test:e2e": "node scripts/e2e/run-e2e.mjs",
     "staging:manifest": "node scripts/staging/migration-manifest.mjs",
+    "staging:migration:release-candidate": "tsx scripts/staging/migration-release-candidate.ts",
     "staging:ai-readiness": "tsx scripts/staging/ai-readiness.ts",
     "staging:backup:local": "tsx scripts/staging/backup-rehearsal.ts",
     "security:secrets": "node scripts/staging/scan-secrets.mjs",

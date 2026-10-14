@@ -4775,6 +4775,29 @@
       ]
     },
     {
+      "file": "docs/development/phase12-feature-gap-matrix.md",
+      "sha256": "f3c83b2bf02edd276f1549439c94d426f678012c9767e1979f1e73b048a0e639",
+      "bytes": 8424,
+      "headings": [
+        "# Phase 12 feature gap matrix",
+        "## Phase 12 migration release-candidate check",
+        "## Commissioning state"
+      ]
+    },
+    {
+      "file": "docs/development/phase12-report.md",
+      "sha256": "1d8c9b3f3344c9e208f492559f9e7fcece6a804cb060e92e4ec585de93d3717d",
+      "bytes": 3919,
+      "headings": [
+        "# Phase 12 local development report",
+        "## Baseline and scope",
+        "## Implemented in code",
+        "## Locally validated",
+        "## Not validated or commissioned",
+        "## Delivery checkpoint"
+      ]
+    },
+    {
       "file": "docs/development/phase7-reviews.md",
       "sha256": "3b49870b60fc8ea72fa0a1190fe66880b6e8d0adde7ade42ea04c14456bff4e3",
       "bytes": 4291,
@@ -6306,7 +6329,7 @@
     "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql": "10e2144dfb7a56e1b4bae28a5d755a5f9f9472ad0da91b78a9b304b4bc932290",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "c230645d2a5ec57c4e817235af1d3b133bfe6a739ac67e07805e7b6cb27478cb",
+    "package.json": "d05cc4b34cf003e783764bca58ba22a32a956f39cbc082a149b747d2c541ec6e",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
