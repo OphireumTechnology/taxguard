@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
+import {dependencyOrder} from '../staging/migration-order.mjs';
 
 export const CORE_DIR = 'supabase/migrations';
 export const PROPOSAL_DIR = 'docs/proposed-migrations';
@@ -23,8 +24,9 @@ const SUPABASE_DEFAULTS = `ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL O
 
 /** The canonical execution order: core migrations by name, then proposals by name, then the separate audit proposal. */
 export function executionOrder(root = '.') {
-  const list = (dir, re) => fs.readdirSync(path.join(root, dir)).filter(n => re.test(n)).sort().map(n => ({ kind: dir === CORE_DIR ? 'core' : 'proposal', file: dir + '/' + n }));
-  return [...list(CORE_DIR, /\.sql$/), ...list(PROPOSAL_DIR, /^\d{14}_.+\.sql$/), { kind: 'separate-proposal', file: SEPARATE_PROPOSAL }];
+  const plan=JSON.parse(fs.readFileSync(path.join(root,'docs/development/migration-execution-order.json'),'utf8'));
+  // The separate draft is analyzed in this disposable audit only, never in the executable manifest.
+  return [...dependencyOrder(plan.entries).map(e=>({kind:e.file.startsWith('supabase/')?'core':'proposal',file:e.file})),{kind:'separate-proposal',file:SEPARATE_PROPOSAL}];
 }
 
 const read = (root, file) => fs.readFileSync(path.join(root, file), 'utf8');

@@ -4,6 +4,7 @@ import type { User } from '../types';
 import { SESSION_REVOCATION_REASONS, type DurableSessionList, type DurableSessionRecord, type SessionRevocationReason } from '../types/staffSessions';
 import { requireStaffAdministrator } from './staffAccessPolicy';
 import { requiresStaffMfa, sessionAssuranceLevel } from './staffMfa';
+import { withBoundedSessionRevocationRetry } from './sessionRevocationRetry';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
 
 const invalid = () => new AuthorityError('SESSION_INPUT_INVALID', 400);
@@ -30,7 +31,7 @@ async function rpc(client: SupabaseClient, name: string, parameters: Record<stri
   let response;
   try { response = await client.rpc(name, parameters); } catch { throw unavailable(); }
   if (response?.error) {
-    if (response.error.code === '55P03') throw new AuthorityError('SESSION_STORE_BUSY', 409);
+    if (['55P03', '40001', '40P01'].includes(response.error.code ?? '')) throw new AuthorityError('SESSION_STORE_BUSY', 409);
     if (response.error.code === 'P0001' && Object.hasOwn(DENIALS, response.error.message)) throw new AuthorityError(response.error.message, DENIALS[response.error.message]);
     throw unavailable();
   }
@@ -60,13 +61,13 @@ export async function listOwnSessions(client: SupabaseClient, tenant: string, ac
 export async function revokeOwnSession(client: SupabaseClient, tenant: string, actor: User, verifiedApplicationToken: string, sessionId: unknown): Promise<{ revoked: boolean }> {
   const hash = proof(actor, tenant, verifiedApplicationToken);
   if (!uuid(sessionId)) throw invalid();
-  const data = await rpc(client, 'taxguard_revoke_own_session', { p_tenant: tenant, p_uid: actor.id, p_hash: hash, p_session_id: sessionId });
+  const data = await withBoundedSessionRevocationRetry(() => rpc(client, 'taxguard_revoke_own_session', { p_tenant: tenant, p_uid: actor.id, p_hash: hash, p_session_id: sessionId }));
   if (!data || typeof data !== 'object' || Array.isArray(data) || typeof data.revoked !== 'boolean') throw unavailable();
   return { revoked: data.revoked };
 }
 export async function revokeOtherOwnSessions(client: SupabaseClient, tenant: string, actor: User, verifiedApplicationToken: string): Promise<{ revokedSessions: number }> {
   const hash = proof(actor, tenant, verifiedApplicationToken);
-  return { revokedSessions: count(await rpc(client, 'taxguard_revoke_other_own_sessions', { p_tenant: tenant, p_uid: actor.id, p_hash: hash })) };
+  return { revokedSessions: count(await withBoundedSessionRevocationRetry(() => rpc(client, 'taxguard_revoke_other_own_sessions', { p_tenant: tenant, p_uid: actor.id, p_hash: hash }))) };
 }
 /** Administrator step-up (fresh primary sign-in) and target rules are enforced inside the transaction. */
 export async function revokeMemberSessions(client: SupabaseClient, tenant: string, actor: User, verifiedApplicationToken: string, input: unknown): Promise<{ revokedSessions: number }> {
@@ -77,8 +78,8 @@ export async function revokeMemberSessions(client: SupabaseClient, tenant: strin
   if (Object.keys(rest).length || typeof targetUid !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(targetUid) ||
     !SESSION_REVOCATION_REASONS.includes(reasonCategory as SessionRevocationReason)) throw invalid();
   if (targetUid === actor.id) throw new AuthorityError('SESSION_TARGET_SELF', 400);
-  return { revokedSessions: count(await rpc(client, 'taxguard_admin_revoke_member_sessions',
-    { p_tenant: tenant, p_actor: actor.id, p_hash: hash, p_target: targetUid, p_reason_category: reasonCategory })) };
+  return { revokedSessions: count(await withBoundedSessionRevocationRetry(() => rpc(client, 'taxguard_admin_revoke_member_sessions',
+    { p_tenant: tenant, p_actor: actor.id, p_hash: hash, p_target: targetUid, p_reason_category: reasonCategory }))) };
 }
 
 export interface SecurityEventRecord { action: string; actorUid: string; actorRole: string | null; at: string; byAdministrator: boolean; details: Record<string, unknown> }

@@ -155,7 +155,7 @@ class Database {
   userPasswords: Map<string, string> = new Map(); // email -> salt:hashedPassword
   emailVerificationTokens: Map<string, string> = new Map(); // token -> email
   passwordResetTokens: Map<string, { email: string; expiresAt: number }> = new Map();
-  sessions: Map<string, { userId: string; role: string; createdAt: number; expiresAt: number }> = new Map();
+  sessions: Map<string, { userId: string; role: string; createdAt: number; expiresAt: number; verifiedMfa?:boolean }> = new Map();
   
   engagements: Map<string, Engagement> = new Map();
   documents: Map<string, DocumentItem> = new Map();
@@ -1280,6 +1280,7 @@ class Database {
   }
 
   // Security event recording
+  securityEventSink?: (event: SecurityEventRecord) => void;
   logSecurityEvent(event: Omit<SecurityEventRecord, 'id' | 'timestamp'>) {
     const secEvent: SecurityEventRecord = {
       id: `sec_${randomUUID()}`,
@@ -1289,8 +1290,8 @@ class Database {
     this.securityEvents.unshift(secEvent);
     // Bounded: a flood of events (e.g. repeated failed sign-ins) cannot exhaust memory.
     if (this.securityEvents.length > MAX_MEMORY_SECURITY_EVENTS) this.securityEvents.length = MAX_MEMORY_SECURITY_EVENTS;
-    // Durable copy (proposal 048) when configured; enqueue only, never blocks or throws.
-    securityEventSink()?.record(secEvent);
+    // One authoritative sink; avoid double recording when the outbox is installed.
+    if(this.securityEventSink)this.securityEventSink(secEvent);else securityEventSink()?.record(secEvent);
     return secEvent;
   }
 

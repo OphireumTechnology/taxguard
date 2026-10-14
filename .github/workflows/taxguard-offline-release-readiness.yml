@@ -1,0 +1,36 @@
+name: TaxGuard offline release readiness
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: taxguard-offline-readiness-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  local-acceptance:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test -- --maxWorkers=2
+      - run: npm run test:db
+      - run: npm run test:e2e
+      - run: node scripts/staging/migration-manifest.mjs
+      - run: node scripts/staging/migration-review-bundle.mjs
+      - run: node scripts/staging/remaining-work.mjs
+      - run: npx --no-install tsx scripts/staging/phase11-ai-readiness.ts
+      - run: node scripts/verify-local-traceability.mjs
+      - run: node scripts/staging/scan-secrets.mjs
+# No deployment, environment secrets, provider calls or external database jobs.

@@ -1,5 +1,7 @@
 # Durable workflow inventory and implementation matrix (Phase 9, 2026-10-14)
 
+Phase 11 update: the current 21-area source-backed matrix is `phase11-remaining-work.json`. Billing reads use bounded database pages (048). Committed security handoff is 047; finish-hook observations remain best-effort before commit. Questionnaire drafts, immutable waiver claims and human clarification/amendment replies use 049/050; they never certify facts or advance stages. The exported Stage 02 workspace mounts the durable client component; its legacy browser-only implementation is retained for review but unmounted. Scan jobs use 052; real scanning and production releases remain blocked. Historical Phase 9 observations below are preserved, not current commissioning claims.
+
 Baseline `main` `b35761b`. "Durable" means PostgreSQL through service-role-only SECURITY DEFINER
 proposal functions, enforced per (tenant, client) by the database, surviving a server restart. A
 screen or legacy route over the in-memory store (`src/server/db.ts`) is **not** durable. All
@@ -35,12 +37,12 @@ Classification: **D** durable and operational in local tests · **P** partial ·
 | Reassignment requests | **D** | 045; independence of the reviewer and request limits are owner decisions |
 | Messaging | **D** | 039 |
 | Documents and document requests | **D** | 027, 031; malware scanner **B** |
-| Billing and receivables | **D** | 028; client projection in the router (a database-level split is a follow-up); live payments **N** |
+| Billing and receivables | **D** | 028; Phase 10 database client projection, raw-table grants revoked, scoped replay, HTTP allow-list retained; live payments **N** |
 | Bookkeeping and general ledger | **D** | 024, 029, 030 |
 | Appointments | **D** | 040 |
 | Public consultation requests | **D** | 043 |
 | Administration (staff directory, MFA recovery, sessions) | **D** (emulated provider) | real-provider validation **B** |
-| Audit and security events | **D** | 041, 046; legacy in-memory events are not authoritative |
+| Audit and security events | **D** (persisted events) / **P** (producer custody) | 041, 046; Phase 10 bounded denial ingestion; pending queue volatile and monitored; legacy memory is not authoritative |
 | Legal coordination | **D** (tracking) | 042, 044; referral approval rule, retention, engagement letters **N** |
 | Tax engine | **D** (infrastructure) | no real rules; stages 9–18 blocked |
 | AI governance | **P** | no provider **B**; AI-16 blocked |

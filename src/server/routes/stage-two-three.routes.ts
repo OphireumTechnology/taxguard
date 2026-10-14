@@ -37,10 +37,12 @@ import { StageTwoReconciliationService } from '../../services/stageTwoReconcilia
 import { db } from '../db';
 import { getSupabaseAdmin, isSupabaseServerConfigured } from '../supabase';
 import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
+import { createDurableCollectionRouter } from './collection-durable.routes';
 
 export const stageTwoThreeRouter = Router();
 
 stageTwoThreeRouter.use(authenticateToken);
+stageTwoThreeRouter.use(createDurableCollectionRouter());
 
 function resolveTenantId(): string {
   const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();

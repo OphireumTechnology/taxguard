@@ -1,3 +1,4 @@
+import { isProtectedIdentityDestination } from '../../supabase/protectedDestination';
 /** Offline preparation only. Never loads secrets, connects providers or grants release authority. */
 export interface StagingConfigurationAssessment {
   state: 'INVALID' | 'CONFIGURATION_ONLY';
@@ -7,6 +8,22 @@ export interface StagingConfigurationAssessment {
 export function assessStagingConfiguration(values: Readonly<Record<string, string | undefined>>): StagingConfigurationAssessment {
   const issues: Array<{ field: string; code: string }> = [];
   const add = (field: string, code: string) => issues.push({ field, code });
+  if(values.TAXGUARD_TRUST_PROXY_HOPS!==undefined&&!/^[0-2]$/.test(values.TAXGUARD_TRUST_PROXY_HOPS))add('TAXGUARD_TRUST_PROXY_HOPS','INVALID_PROXY_TRUST');
+  for(const field of ['VITE_API_BASE_URL','VITE_PASSWORD_RESET_CONTINUE_URL'])if(values[field]){
+    try{const url=new URL(values[field]);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||isProtectedIdentityDestination(values[field]!))add(field,'INVALID_STAGING_ORIGIN');}
+    catch{add(field,'INVALID_STAGING_ORIGIN');}
+  }
+  if (values.TAXGUARD_TENANT_ID && !/^[A-Za-z0-9_-]{1,128}$/.test(values.TAXGUARD_TENANT_ID)) add('TAXGUARD_TENANT_ID', 'TENANT_INVALID');
+  if (values.SUPABASE_SERVICE_ROLE_KEY && values.SUPABASE_SERVICE_ROLE_KEY === values.SUPABASE_ANON_KEY) add('SUPABASE_SERVICE_ROLE_KEY', 'KEY_SEPARATION_REQUIRED');
+  for (const field of ['SUPABASE_URL', 'VITE_SUPABASE_URL']) {
+    const value = values[field];
+    if (value && (isProtectedIdentityDestination(value) || /cvrlhixxczerytiocxid/i.test(value))) add(field, 'PROTECTED_PRODUCTION_PROJECT_REFUSED');
+  }
+  if (values.SUPABASE_URL && values.VITE_SUPABASE_URL && values.SUPABASE_URL.replace(/\/+$/, '') !== values.VITE_SUPABASE_URL.replace(/\/+$/, '')) add('VITE_SUPABASE_URL', 'PROJECT_MISMATCH');
+  if (values.TAXGUARD_LEGACY_ROUTES !== undefined && values.TAXGUARD_LEGACY_ROUTES !== 'retired') add('TAXGUARD_LEGACY_ROUTES', 'LEGACY_RETIREMENT_REQUIRED');
+  for (const field of ['TAXGUARD_LIVE_PAYMENTS_ENABLED', 'TAXGUARD_EFILING_ENABLED', 'TAXGUARD_TAX_SIGNATURES_ENABLED']) {
+    if (values[field] !== undefined && values[field] !== 'false') add(field, 'UNAPPROVED_ACTION_DENIED');
+  }
   if (values.NODE_ENV !== 'production') add('NODE_ENV', 'PRODUCTION_BOUNDARY_REQUIRED');
   if (values.PORT !== undefined && (!/^\d{1,5}$/.test(values.PORT) || +values.PORT < 1 || +values.PORT > 65535)) add('PORT', 'INVALID_PORT');
   for (const field of ['TAXGUARD_AI_GOVERNANCE_ENABLED', 'TAXGUARD_OPENAI_CASES_ENABLED', 'TAXGUARD_OCR_ENABLED', 'TAXGUARD_MALWARE_SCANNER_ENABLED']) {
@@ -21,7 +38,7 @@ export function assessStagingConfiguration(values: Readonly<Record<string, strin
   if (values.SUPABASE_URL) {
     try {
       const url = new URL(values.SUPABASE_URL);
-      if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) add('SUPABASE_URL', 'INVALID_PROVIDER_URL');
+      if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || !['', '/'].includes(url.pathname)) add('SUPABASE_URL', 'INVALID_PROVIDER_URL');
     } catch { add('SUPABASE_URL', 'INVALID_PROVIDER_URL'); }
   }
   for (const field of ['TAXGUARD_TENANT_ID', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY']) {

@@ -13,7 +13,7 @@ export interface VaultStorage {
   put(path: string, bytes: Buffer, mimeType: string): Promise<void>;
   signedUrl(path: string, ttlSeconds: number): Promise<string>;
 }
-export interface MalwareScanner { readonly name: string; scan(bytes: Buffer): Promise<'CLEAN' | 'INFECTED'> }
+export interface MalwareScanner { readonly name: string; scan(bytes: Buffer,context?:{requestId:string;issuedAt:number}): Promise<'CLEAN' | 'INFECTED'> }
 export interface OcrField { fieldKey: string; value: unknown; confidence: number; page?: number }
 export interface OcrProvider { readonly name: string; extract(bytes: Buffer, mimeType: string): Promise<OcrField[]> }
 
@@ -30,11 +30,9 @@ export function contentMatchesType(mimeType: string, bytes: Buffer): boolean {
     case 'image/jpeg': return starts([0xff, 0xd8, 0xff]);
     case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': return starts([0x50, 0x4b, 0x03, 0x04]);
     case 'text/csv': {
-      const sample = bytes.subarray(0, 8192);
       // Printable UTF-8 text without NUL bytes; no spreadsheet formula injection at line starts.
-      if (sample.includes(0)) return false;
-      const text = sample.toString('utf8');
-      return !/(^|\n)\s*[=+\-@]/.test(text) && !/�/.test(text);
+      if (bytes.includes(0)) return false;
+      try{const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);return !/(^|\n)\s*[=+\-@]/.test(text);}catch{return false;}
     }
     default: return false;
   }
@@ -42,14 +40,11 @@ export function contentMatchesType(mimeType: string, bytes: Buffer): boolean {
 
 /** Private Supabase Storage bucket. Refuses to operate if the bucket is missing or public. */
 export class SupabaseVaultStorage implements VaultStorage {
-  private verified = false;
   constructor(private readonly client: SupabaseClient, private readonly bucket = VAULT_BUCKET) {}
   private async assertPrivate() {
-    if (this.verified) return;
     const { data, error } = await this.client.storage.getBucket(this.bucket);
     if (error || !data) throw new VaultIntegrationError('VAULT_STORAGE_UNAVAILABLE');
     if (data.public !== false) throw new VaultIntegrationError('VAULT_BUCKET_NOT_PRIVATE');
-    this.verified = true;
   }
   async put(path: string, bytes: Buffer, mimeType: string) {
     await this.assertPrivate();

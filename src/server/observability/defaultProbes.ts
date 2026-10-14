@@ -7,7 +7,7 @@ import type { HealthProbes, ProbeState } from './health';
 
 const configured = (type: 'AUTHENTICATION' | 'STORAGE'): ProbeState => ProviderReadinessRegistry.getProviderStatus(type).status === 'CONFIGURED' ? 'OK' : 'NOT_CONFIGURED';
 
-export function runtimeProbes(opts: { scanCoordinator?: () => ScanCoordinator | null } = {}): HealthProbes {
+export function runtimeProbes(opts: { scanCoordinator?: () => ScanCoordinator | null;securityEvents?:HealthProbes['securityEvents'] } = {}): HealthProbes {
   return {
     async database() {
       const r = await ProviderReadinessRegistry.checkDatabaseSchemaReadiness();
@@ -25,6 +25,7 @@ export function runtimeProbes(opts: { scanCoordinator?: () => ScanCoordinator | 
     },
     ai: () => ({ state: ProviderReadinessRegistry.getProviderStatus('AI').status, materialActions: 'BLOCKED', providerCommissioned: false }),
     securityEvents() {
+      if(opts.securityEvents)return opts.securityEvents();
       const sink = securityEventSink();
       return sink ? { mode: 'DURABLE', ...sink.stats() } : { mode: 'MEMORY_ONLY' };
     },

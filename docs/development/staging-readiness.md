@@ -1,6 +1,8 @@
-# Staging readiness and implementation plan (updated 2026-10-14, Phase 10)
+# Staging readiness and implementation plan (updated 2026-10-14, Phase 11)
 
-**Status: NOT READY for staging — staging GO / NO-GO: NO-GO.** Nothing has been deployed and no migration has been applied
+Phase 11 reconciles the independently merged Phase 10 PR #16 (`origin/main` 5f1553c) while preserving the unmerged Codex Phase 10 commit f0549ef and PR #15. The canonical execution DAG/checksum manifest is `staging-migration-manifest.json`; the catalog audit is a derived analysis artifact. New proposals 051–058 avoid the merged 047–050 identifiers; 057/058 preserve inherited corrections additively, and all 56 approved SQL artifacts match pinned main. The executable review packet covers 61 files. See `phase11-release-operations.md`, `phase11-owner-decisions.md`, `phase11-remaining-work.json`, `phase11-ai-readiness.json` and the final report. Current code remains locally validated only. No external action is authorized.
+
+**Status: NOT READY for staging â€” staging GO / NO-GO: NO-GO.** Nothing has been deployed and no migration has been applied
 anywhere. Production remains NO-GO. The protected production project `cvrlhixxczerytiocxid` is never
 accessed, inspected, deployed to or migrated; tooling refuses it. No non-production project is
 assumed to exist. Staging is deployed only with explicit owner approval.
@@ -11,8 +13,8 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 |---|---|---|
 | Isolated non-production Supabase project | none configured | owner provisions a separate project |
 | Synthetic-only data | all suites use generated synthetic records; durable deployments load no demonstration seed | staging seed script (synthetic tenant, staff, clients) |
-| Migration review and ordering | 13 core migrations + 40 proposals (000–011, 023–050) + the separate audit proposal; canonical manifest and readiness report (Phase 10); Supabase default privileges reproduced; Data API exposure found and closed by proposal 049 | human review / approval of each proposal in manifest order; 049 approved separately; NOT VALID constraints validated after data review |
-| Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery — verified against the loopback emulator; real-provider runner requires a confirmed project ref and a different production ref (`--readiness`: BLOCKED) | real-provider validation once a project exists; rate-limit policy decision |
+| Migration review and ordering | 13 core migrations + 40 proposals (000â€“011, 023â€“050) + the separate audit proposal; canonical manifest and readiness report (Phase 10); Supabase default privileges reproduced; Data API exposure found and closed by proposal 049 | human review / approval of each proposal in manifest order; 049 approved separately; NOT VALID constraints validated after data review |
+| Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery â€” verified against the loopback emulator; real-provider runner requires a confirmed project ref and a different production ref (`--readiness`: BLOCKED) | real-provider validation once a project exists; rate-limit policy decision |
 | Client authentication | local password + TOTP and provider paths | client provider configuration in staging |
 | Tenant and environment isolation | enforced in every proposal function; negative tests in unit, DB and E2E | one `TAXGUARD_TENANT_ID` per environment; separate keys per environment |
 | Private document storage | private bucket, write-once objects, signed URLs, scan-required release | staging bucket |
@@ -31,7 +33,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
    project), MFA (TOTP) enabled, no real users. Record its URL in a staging environment only.
 2. **Secrets**: create a GitHub `staging` environment (required reviewer) holding the staging URL,
    anon key and service-role key; never reuse production values; rotate on any exposure.
-3. **Migrations**: review proposals in name order; apply core migrations then approved proposals to
+3. **Migrations**: review the explicit dependency execution manifest; apply approved files to
    staging only, inside a transaction per file; run `src/tests-db` composition checks against a
    restored copy first; validate NOT VALID constraints after inspection.
 4. **Synthetic data**: seed one synthetic tenant, staff (UUID IDs), clients and engagements with a
@@ -43,7 +45,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 7. **Storage and scanning**: private staging bucket; integrate a malware scanner; confirm infected
    samples (EICAR) stay quarantined.
 8. **Billing**: sandbox keys only; confirm no live charge path exists.
-9. **AI**: only after a provider decision — commission through the gateway with budgets and kill
+9. **AI**: only after a provider decision â€” commission through the gateway with budgets and kill
    switches; AI-16 stays blocked.
 10. **Monitoring**: ship server logs, alert on 5xx / refused-access spikes; review the audit center.
 11. **Backup / restore and rollback**: take and restore a backup; rehearse rollback of the latest

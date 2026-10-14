@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { buildManifest, renderMarkdown, MANIFEST_JSON, MANIFEST_MD } from '../../scripts/migrations/build-migration-manifest.mjs';
 import { staticHazards } from '../../scripts/migrations/migration-audit.mjs';
+import {buildMigrationManifest} from '../../scripts/staging/migration-manifest.mjs';
 
 // Phase 10 migration readiness: composes every core migration and proposal in the canonical order
 // on PGlite (with and without Supabase's default privileges) and enforces database-wide invariants.
@@ -22,9 +23,9 @@ describe('migration readiness audit', () => {
     expect(m.summary.core).toBe(13);
     expect(m.files.map((f: any) => f.kind)).toEqual([...Array(13).fill('core'), ...Array(m.summary.proposals).fill('proposal'), 'separate-proposal']);
     expect(m.files.filter((f: any) => !f.appliesInOrder).map((f: any) => f.file)).toEqual([]);
-    // Names are strictly increasing, so the order is unambiguous.
+    // Explicit prerequisites govern order; newer corrective IDs can precede dependent IDs.
     const proposals = m.files.filter((f: any) => f.kind === 'proposal').map((f: any) => name(f.file));
-    expect([...proposals].sort()).toEqual(proposals);
+    expect(m.files.filter((f:any)=>f.kind!=='separate-proposal').map((f:any)=>f.file)).toEqual(buildMigrationManifest().entries.map(e=>e.file));
     expect(new Set(proposals.map((p: string) => p.slice(0, 14))).size).toBe(proposals.length);
   });
   it('leaves no TaxGuard or AI function executable by anon or authenticated', () => {
@@ -61,8 +62,8 @@ describe('migration readiness audit', () => {
     for (const [, , previous] of sup) expect(previous).toBeTruthy();
   });
   it('the committed manifest is current', () => {
-    expect(readFileSync(MANIFEST_JSON, 'utf8')).toBe(JSON.stringify(m, null, 2) + '\n');
-    expect(readFileSync(MANIFEST_MD, 'utf8')).toBe(renderMarkdown(m));
+    expect(readFileSync(MANIFEST_JSON, 'utf8').replace(/\r\n/g,'\n')).toBe(JSON.stringify(m, null, 2) + '\n');
+    expect(readFileSync(MANIFEST_MD, 'utf8').replace(/\r\n/g,'\n')).toBe(renderMarkdown(m));
   });
 });
 

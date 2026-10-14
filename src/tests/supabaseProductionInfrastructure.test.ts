@@ -418,13 +418,12 @@ describe('Supabase Production Infrastructure & Authority', () => {
       await new Promise<void>(resolve => server.close(() => resolve()));
     });
 
-    it('serves health check with supabase provider', async () => {
+    it('serves minimal public liveness without protected provider details', async () => {
       const res = await fetch(`${origin}/api/health`);
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.status).toBe('available');
-      expect(body.provider).toBe('supabase');
-      expect(body.documentIntakeEnabled).toBe(false);
+      expect(body).toEqual({status:'available'});
     });
 
     it('enforces canonical production API origin resolution', () => {

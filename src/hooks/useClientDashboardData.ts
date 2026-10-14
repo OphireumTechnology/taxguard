@@ -3,6 +3,7 @@ import { api, getStoredToken } from '../services/api';
 import { communicationsService } from '../services/communicationsService';
 import { appointmentsService } from '../services/appointmentsService';
 import { portalRead } from '../services/clientPortalReads';
+import { billingApi } from '../services/billingApiService';
 import type { Appointment, DocumentItem, Engagement, Invoice, Message, User } from '../types';
 import type { GeneratedDocumentRequirement, StoredQuestionnaireRecord } from '../server/taxguard/taxQuestionnaire';
 import { ClientDashboardData, ClientScope, DashboardRequest, Resource, emptyDashboardData, scopeAppointments, scopeDocuments, scopeEngagements, scopeInvoices, scopeMessages, scopeRequests, scopeRequirements, threadSummaries, appointmentSummaries, vaultDocumentSummaries, billingInvoiceSummaries, portalEngagementSummaries, validClientScope } from '../components/portal/dashboard/clientDashboardModel';
@@ -30,7 +31,7 @@ export function useClientDashboardData(user: User | null, authState: string, cli
         resource(portalRead<{ items: any[] }>('/api/vault/clients/' + encodeURIComponent(clientId) + '/documents', controller.signal).then(r => ({ documents: vaultDocumentSummaries(r.items, scope) }))),
         resource(portalRead<{ items: any[] }>('/api/client-portal/clients/' + encodeURIComponent(clientId) + '/engagements', controller.signal).then(r => ({ engagements: portalEngagementSummaries(r.items, scope) }))),
         resource(communicationsService.threads(clientId, controller.signal).then(threads => ({ messages: threadSummaries(threads, scope) }))), resource(appointmentsService.listForClient(clientId, controller.signal).then(rows => ({ appointments: appointmentSummaries(rows, scope) }))),
-        resource(portalRead<{ items: any[] }>('/api/billing/clients/' + encodeURIComponent(clientId) + '/invoices', controller.signal).then(r => ({ invoices: billingInvoiceSummaries(r.items, scope) }))),
+        resource(billingApi.invoices(clientId,controller.signal).then(r => ({ invoices: billingInvoiceSummaries(r.items, scope) }))),
         resource(read<{ clientId: string; tenantId: string; taxYear: number; questionnaire: StoredQuestionnaireRecord | null }>('questionnaire')),
         resource(read<{ requests: DashboardRequest[] }>('requests')),
       ]);

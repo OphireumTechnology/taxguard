@@ -20,7 +20,7 @@ let user: any = null;
 let server: Server; let origin = '';
 beforeAll(async () => {
   const app = express();
-  app.use('/api/health', createHealthRouter({ probes, authenticate: (req: any, res, next) => { if (!user) return res.status(401).json({ code: 'AUTH_REQUIRED' }); req.user = user; next(); } }));
+  app.use('/api/health', createHealthRouter({ probes, authenticate: (req: any, res, next) => { if (!user) return res.status(401).json({ code: 'AUTH_REQUIRED' }); req.user = {...user,sessionAssuranceLevel:user.sessionAssuranceLevel??'aal2'}; next(); } }));
   server = createServer(app); await new Promise<void>(r => server.listen(0, '127.0.0.1', r));
   origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
 });
@@ -52,12 +52,12 @@ describe('administrator diagnostics', () => {
   it('requires authentication and an active administrator of a tenant', async () => {
     user = null; expect((await get('/diagnostics')).status).toBe(401);
     for (const u of [{ role: 'client', status: 'active', tenantId: 't' }, { role: 'accountant', status: 'active', tenantId: 't' }, { role: 'practice_manager', status: 'active', tenantId: 't' },
-      { role: 'admin', status: 'suspended', tenantId: 't' }, { role: 'admin', status: 'active' }]) {
+      { role: 'admin', status: 'suspended', tenantId: 't' }, { role: 'admin', status: 'active',tenantId:'t',sessionAssuranceLevel:'aal1' }, { role: 'admin', status: 'active' }]) {
       user = u; expect((await get('/diagnostics')).status, JSON.stringify(u)).toBe(403);
     }
   });
   it('reports state codes per area — including a lost database connection — and no secrets', async () => {
-    user = { id: 'adm', role: 'admin', status: 'active', tenantId: 't' };
+    user = { id: 'adm', role: 'admin', status: 'active', tenantId: 't',sessionAssuranceLevel:'aal2' };
     db = 'throw';
     const r = await get('/diagnostics');
     expect(r.status).toBe(200);

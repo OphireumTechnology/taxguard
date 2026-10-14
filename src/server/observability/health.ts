@@ -10,6 +10,7 @@
  */
 import { Router, type RequestHandler } from 'express';
 import type { AuthenticatedRequest } from '../auth';
+import {requireOperationalAdministrator} from '../operationalDiagnostics';
 
 export type ProbeState = 'OK' | 'UNAVAILABLE' | 'NOT_CONFIGURED' | 'BLOCKED' | 'DEGRADED';
 export interface HealthProbes {
@@ -57,11 +58,7 @@ export function createHealthRouter(deps: { probes: () => HealthProbes; authentic
     try { ready = await isReady(deps.probes()); } catch { ready = false; }
     res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });
   });
-  router.get('/diagnostics', deps.authenticate, (req: AuthenticatedRequest, res, next) => {
-    const u = req.user;
-    if (!u?.tenantId || u.status !== 'active' || !ADMIN_ROLES.includes(u.role)) return res.status(403).json({ code: 'ADMIN_REQUIRED' });
-    next();
-  }, async (_req, res) => {
+  router.get('/diagnostics', deps.authenticate,requireOperationalAdministrator, async (_req, res) => {
     try { res.status(200).json(await diagnostics(deps.probes())); } catch { res.status(503).json({ code: 'DIAGNOSTICS_UNAVAILABLE' }); }
   });
   return router;

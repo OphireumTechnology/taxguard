@@ -26,14 +26,17 @@ const MUTANTS = [
   ['staging: production overlap accepted', 'src/server/config/stagingEnvironmentValidator.ts', "else if (v('TAXGUARD_PRODUCTION_PROJECT_REF') === ref) add('PROJECT', 'TAXGUARD_PRODUCTION_PROJECT_REF', 'STAGING_PRODUCTION_OVERLAP');", '', 'src/tests/stagingEnvironmentValidator.test.ts'],
   ['staging: live payment keys accepted', 'src/server/config/stagingEnvironmentValidator.ts', "if (v('STRIPE_SECRET_KEY') && !/^sk_test_[A-Za-z0-9]+$/.test(v('STRIPE_SECRET_KEY')!)) add('BILLING', 'STRIPE_SECRET_KEY', 'LIVE_PAYMENT_KEY_DENIED');", '', 'src/tests/stagingEnvironmentValidator.test.ts'],
   ['MFA guard: production overlap accepted', 'src/server/providerValidationTarget.ts', "if (production === ref) return { ok: false, reason: 'REFUSED_PRODUCTION_OVERLAP' };", '', 'src/tests/providerValidationTarget.test.ts'],
-  ['diagnostics: any signed-in user', 'src/server/observability/health.ts', "if (!u?.tenantId || u.status !== 'active' || !ADMIN_ROLES.includes(u.role))", "if (!u?.tenantId)", 'src/tests/healthEndpoints.test.ts'],
+  ['diagnostics: any verified active MFA user', 'src/server/operationalDiagnostics.ts', "||!['admin','administrator','super_admin','super_administrator'].includes(req.user.role)", '', 'src/tests/healthEndpoints.test.ts'],
   ['readiness: dependency details published', 'src/server/observability/health.ts', "res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });", "res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready', probes: await diagnostics(deps.probes()) });", 'src/tests/healthEndpoints.test.ts'],
   ['legacy routes served again', 'src/server/routes/retiredLegacyRoutes.ts', "res.status(410).json", "res.status(200).json", 'src/tests/legacyRouteRetirement.test.ts'],
   ['backup: non-disposable restore allowed', 'scripts/backup/logical-backup.mjs', "if (disposable !== true) throw new Error('RESTORE_TARGET_NOT_DECLARED_DISPOSABLE');", '', 'src/tests/migrationReadinessAudit.test.ts'],
+  ['056: expired bound requests accepted','docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql',"IF r.status='EXPIRED' OR r.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'SCAN_REQUEST_EXPIRED' USING ERRCODE='P0001';END IF;",'', 'src/tests/documentVaultHttp.test.ts'],
+  ['056: consumed bound verdicts accepted','docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql',"IF r.status IN('COMPLETED','FAILED') THEN RAISE EXCEPTION 'SCAN_VERDICT_REPLAYED' USING ERRCODE='P0001';END IF;",'', 'src/tests/documentVaultHttp.test.ts'],
 ];
 
 const results = [];
 const originals = new Map();
+const baselines=new Set();
 const restore = () => { for (const [f, s] of originals) fs.writeFileSync(f, s); };
 process.on('SIGINT', () => { restore(); process.exit(130); });
 try {
@@ -43,11 +46,16 @@ try {
     if (source.split(from).length !== 2) { results.push({ name, outcome: 'ANCHOR_NOT_FOUND' }); continue; }
     // The backup library is exercised by the real-PostgreSQL suite; its mutant is checked there.
     const runner = file.startsWith('scripts/backup/') ? ['vitest', 'run', '-c', 'vitest.db.config.ts', 'src/tests-db/backupRestore.db.test.ts'] : ['vitest', 'run', ...test.split(' ')];
+    const args=['node_modules/vitest/vitest.mjs',...runner.slice(1)],baselineKey=JSON.stringify(args);
+    if(!baselines.has(baselineKey)){
+      const baseline=spawnSync(process.execPath,args,{encoding:'utf8',windowsHide:true,timeout:600000});
+      if(baseline.error||baseline.signal||baseline.status!==0){results.push({name,outcome:'BASELINE_FAILED'});continue;}baselines.add(baselineKey);
+    }
     fs.writeFileSync(file, source.split(from).join(to));
-    const r = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', runner, { encoding: 'utf8', shell: process.platform === 'win32', timeout: 600000 });
+    const r = spawnSync(process.execPath,args,{encoding:'utf8',windowsHide:true,timeout:600000});
     fs.writeFileSync(file, source);
-    results.push({ name, outcome: r.status === 0 ? 'SURVIVED' : 'KILLED' });
-    console.log(`${r.status === 0 ? 'SURVIVED' : 'KILLED  '}  ${name}`);
+    const outcome=r.error||r.signal||r.status===null?'EXECUTION_FAILED':r.status===0?'SURVIVED':/Tests\s+.*\b[1-9]\d* failed/.test((r.stdout||'')+(r.stderr||''))?'KILLED':'EXECUTION_FAILED';
+    results.push({name,outcome});console.log(`${outcome}  ${name}`);
   }
 } finally { restore(); }
 const survived = results.filter(r => r.outcome !== 'KILLED');

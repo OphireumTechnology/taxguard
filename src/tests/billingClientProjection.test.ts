@@ -84,7 +84,8 @@ describe('database-enforced client billing projection (047)', () => {
     }
     // The client never pays an invoice of another client, and a replayed key of another client is refused.
     await expect(store.paySandbox(T, OTHER, 'bp-other', inv, { amount: '1.00', idempotencyKey: 'bp-pay-0002', testCard: SANDBOX_SUCCESS_CARD })).rejects.toMatchObject({ code: 'INVOICE_NOT_FOUND' });
-    await expect(store.paySandbox(T, OTHER, 'bp-other', inv, { amount: '50.00', idempotencyKey: 'bp-pay-0001', testCard: SANDBOX_SUCCESS_CARD })).rejects.toMatchObject({ code: 'BILLING_IDEMPOTENCY_CONFLICT' });
+    // Scope is checked before looking up a replay key, so another client's payment existence is not revealed.
+    await expect(store.paySandbox(T, OTHER, 'bp-other', inv, { amount: '50.00', idempotencyKey: 'bp-pay-0001', testCard: SANDBOX_SUCCESS_CARD })).rejects.toMatchObject({ code: 'INVOICE_NOT_FOUND' });
   });
 
   it('an unexpected actor kind gets the client projection, and the helpers are not callable', async () => {

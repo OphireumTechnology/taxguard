@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import {buildMigrationManifest} from '../../../scripts/staging/migration-manifest.mjs';
 import type { PGlite } from '@electric-sql/pglite';
 
 /** Supabase-style rpc() over PGlite: named arguments, Postgres error code and message passed through. */
@@ -20,8 +21,12 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
     },
   };
 }
-/** Applies the named proposals (by numeric prefix) in order. */
+/** Applies explicitly selected proposal files in the reviewed dependency order. */
 export async function applyProposals(pg: PGlite, pattern: RegExp) {
-  for (const name of readdirSync('docs/proposed-migrations').filter(n => pattern.test(n)).sort())
-    await pg.exec(readFileSync('docs/proposed-migrations/' + name, 'utf8'));
+  const plan=buildMigrationManifest().entries;const selected=new Set(plan.filter(e=>e.kind==='proposal'&&pattern.test(e.file.split('/').at(-1)!)).map(e=>e.file));
+  // Narrow historical fixtures exercise the current additive security overlays, never edited history.
+  if([...selected].some(file=>/20261012270000_|20261014460000_/.test(file)))selected.add('docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql');
+  if([...selected].some(file=>/20261012280000_/.test(file))){selected.add('docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql');selected.add('docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql');}
+  for (const entry of plan.filter(e=>selected.has(e.file)))
+    await pg.exec(readFileSync(entry.file, 'utf8'));
 }

@@ -13,6 +13,7 @@
  * environment. No production service, credential or data is ever touched.
  */
 import fs from 'node:fs';
+import {randomUUID} from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { pgRpc, startDatabase } from '../../src/tests-db/harness';
@@ -56,7 +57,7 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
 //   POST /storage/v1/object/<vault>/<p>   -> write-once object store held in memory
 //   POST /storage/v1/object/sign/<vault>/<p> -> a signed URL on an .invalid host (never fetched)
 //   POST /e2e/scan                        -> the external malware scanner's verdict, recorded
-//                                            through taxguard_doc_record_scan like a real scanner
+//                                            through one-use job/verdict RPCs (fake detection only)
 // Everything else is 404, so any unexpected provider call fails closed.
 const rpc = pgRpc(database.pool);
 const serviceKey = 'e2e-synthetic-service-key-' + Math.random().toString(36).slice(2);
@@ -110,7 +111,10 @@ const shim = http.createServer((req, res) => {
     }
     if (req.method === 'POST' && path === '/e2e/scan') {
       const b = json() || {};
-      const r = await rpc.rpc('taxguard_doc_record_scan', { p_tenant: b.tenant, p_client: b.client, p_document_id: b.documentId, p_version: b.version, p_result: b.result, p_scanner: 'e2e-synthetic-scanner' });
+      const document=(await database.pool.query('SELECT hash FROM taxguard_documents WHERE tenant_id=$1 AND client_id=$2 AND document_id=$3 AND version=$4',[b.tenant,b.client,b.documentId,b.version])).rows[0];
+      if(!document)return send(400,{code:'DOCUMENT_NOT_FOUND'});
+      const job=await rpc.rpc('taxguard_doc_scan_request',{p_tenant:b.tenant,p_client:b.client,p_document_id:b.documentId,p_version:b.version,p_provider:'e2e-synthetic-scanner',p_ttl_seconds:60});if(job.error)return send(400,{code:job.error.message});
+      const r = await rpc.rpc('taxguard_doc_scan_complete', {p_tenant:b.tenant,p_scan_id:job.data.scanId,p_provider:'e2e-synthetic-scanner',p_verdict:b.result});
       return r.error ? send(400, { code: r.error.message }) : send(200, r.data);
     }
     send(404, { code: 'E2E_NOT_AVAILABLE', message: 'Not served in E2E.' });

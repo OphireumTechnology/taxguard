@@ -32,6 +32,10 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
 export function practiceManagerRequestAllowed(role:string,method:string,url:string):boolean {
   if(role!=='practice_manager')return true;
   const path=url.split('?')[0];
+  // Same scoped, read-only billing authority as invoices; pagination does not grant mutations.
+  if(method==='GET'&&new RegExp(`^/api/billing/clients/${ID}/invoice-pages$`).test(path))return practiceStoreConfigured();
+  if(method==='GET'&&(/^\/api\/stage-two-three\/(questionnaire|requirements|requests)\/\d{4}$/.test(path)||new RegExp(`^/api/stage-two-three/requests/\\d{4}/${ID}$`).test(path)))return practiceStoreConfigured();
+  if(method==='POST'&&new RegExp(`^/api/stage-two-three/requests/\\d{4}(/${ID}/resolve)?$`).test(path))return practiceStoreConfigured();
   if ((method==='GET' && ['/api/operations/manager-dashboard','/api/auth/me','/api/auth/session'].includes(path)) || (method==='POST' && path==='/api/auth/logout')) return true;
   if (!practiceStoreConfigured()) return false;
   return (method === 'GET' && DURABLE_GET.test(path)) || (method === 'POST' && DURABLE_POST.test(path));

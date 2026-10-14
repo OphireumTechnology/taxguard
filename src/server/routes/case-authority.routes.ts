@@ -22,11 +22,12 @@ import { evaluateStageOneServerGate } from '../taxguard/stageOneServerGate';
 import { SupabaseDurableSessions } from '../supabase-db';
 import { db } from '../db';
 import { isSupabaseServerConfigured } from '../supabase';
+import { requireOperationalAdministrator } from '../operationalDiagnostics';
 
 export const caseAuthorityRouter = Router();
 
 // Provider readiness route (unscoped or global)
-caseAuthorityRouter.get('/provider-readiness', (_req, res) => {
+caseAuthorityRouter.get('/provider-readiness', authenticateToken,requireOperationalAdministrator, (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({
     providers: ProviderReadinessRegistry.getAllProviderStatuses(),

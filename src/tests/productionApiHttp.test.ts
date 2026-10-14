@@ -84,6 +84,12 @@ it('protects profile and case routes without a session', async () => {
   expect((await call('/api/auth/me')).status).toBe(401);
   expect((await call('/api/case-authority/t/c/e/2025')).status).toBe(401);
 });
+it('keeps public liveness minimal and denies diagnostic probes before authentication',async()=>{
+ expect(await(await call('/api/health')).json()).toEqual({status:'available'});
+ for(const path of ['/api/readiness','/api/provider-readiness','/api/case-authority/provider-readiness'])expect((await call(path)).status).toBe(401);
+ const {token}=await(await session()).json();
+ for(const path of ['/api/readiness','/api/provider-readiness']){const result=await call(path,token);expect(result.status).toBe(403);expect(await result.json()).toEqual({code:'DIAGNOSTICS_ACCESS_DENIED'});}
+});
 
 it('revokes the durable session on logout', async () => {
   const { token } = await (await session()).json();

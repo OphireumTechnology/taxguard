@@ -23,8 +23,13 @@ import { createReassignmentRouter } from './src/server/routes/reassignment.route
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
+import { SecurityEventRecorder, securityDenialObserver } from './src/server/securityEventRecorder';
+import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
+import { requireOperationalAdministrator } from './src/server/operationalDiagnostics';
+import { createOperationalMetrics } from './src/server/operationalMetrics';
+import { proxyTrustHops } from './src/server/config/proxyTrust';
 /**
  * A/R Tax Services, LLC - Production Server Entry Point
  * Full-stack Express + Vite application with enterprise security headers,
@@ -181,6 +186,10 @@ if (
 
 const app =
   express();
+const operationalMetrics=createOperationalMetrics();
+app.set('trust proxy',proxyTrustHops());
+app.use('/api',operationalMetrics.middleware);
+let securityRecorder:SecurityEventRecorder|undefined;
 
 const productionApi = createProductionApp();
 
@@ -193,6 +202,17 @@ const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
  */
 
 if (process.env.NODE_ENV !== 'production') {
+  if (practiceStoreConfigured()) {
+    const recorder = new SecurityEventRecorder(getSupabaseAdmin() as any, process.env.TAXGUARD_TENANT_ID || '', 100, 'outbox');
+    securityRecorder=recorder;
+    db.securityEventSink = event => recorder.record(event);
+    app.use('/api', securityDenialObserver(recorder));
+    // Report only counters, never event content. Health monitoring must alert on failures/drops.
+    const timer = setInterval(() => { const status = recorder.status(); if (status.failed || status.dropped) console.warn('[security-ingest]', status); }, 60_000);
+    timer.unref();
+    const dispatcher = setInterval(() => { void recorder.dispatch().catch(() => undefined); }, 1000);
+    dispatcher.unref();
+  }
   initSeedPasswords();
   const superAdmin = bootstrapSuperAdministrator();
   // Status only: no e-mail address, hash or secret is printed.
@@ -373,10 +393,11 @@ app.get(
 );
 
 // Liveness / readiness (public, no dependency details) and administrator diagnostics.
-app.use('/api/health', createHealthRouter({ probes: () => runtimeProbes({ scanCoordinator: () => scanCoordinator }), authenticate: authenticateToken as any }));
+app.use('/api/health', createHealthRouter({ probes: () => runtimeProbes({ scanCoordinator: () => scanCoordinator,securityEvents:()=>securityRecorder?{mode:'DURABLE_OUTBOX',...securityRecorder.status()}:{mode:'MEMORY_ONLY'} }), authenticate: authenticateToken as any }));
 
 app.get(
   '/api/provider-readiness',
+  authenticateToken,requireOperationalAdministrator,
   (
     _req,
     res
@@ -387,9 +408,14 @@ app.get(
     });
   }
 );
+app.get('/api/operational-metrics',authenticateToken,requireOperationalAdministrator,async(_req,res)=>{
+ try{res.json({http:operationalMetrics.snapshot(),security:securityRecorder?{producer:securityRecorder.status(),outbox:await securityRecorder.durableStatus()}:{configured:false}});}
+ catch{res.status(503).json({code:'OPERATIONAL_METRICS_UNAVAILABLE'});}
+});
 
 app.get(
   '/api/readiness',
+  authenticateToken,requireOperationalAdministrator,
   async (
     _req,
     res
@@ -442,7 +468,9 @@ if (staffAccessDevelopmentConfigured()) {
   if (mfaProvider) startMfaResetWorker({ client: getSupabaseAdmin, tenant: process.env.TAXGUARD_TENANT_ID || '', provider: mfaProvider, workerId: 'server-' + process.pid });
 }
 // Durable security events (proposal 048): only with a durable store and a fingerprint secret; status code only.
-console.log('[security-events] ' + configureDurableSecurityEvents(process.env, practiceStoreConfigured(), () => getSupabaseAdmin() as any));
+// The legacy queue is retained for isolated compatibility tests, never installed alongside
+// the authoritative outbox. No network-address fingerprint is required by the minimal outbox.
+console.log('[security-events] ' + (securityRecorder?'DURABLE_OUTBOX':configureDurableSecurityEvents(process.env,false,()=>getSupabaseAdmin() as any)));
 // Client and engagement management (proposal 025): development-only, 503 unless configured.
 app.use('/api/practice', createPracticeRouter());
 app.use('/api/cases', createCasesRouter());
@@ -465,6 +493,7 @@ app.use('/api/client-portal', createClientPortalRouter());
 // Durable reassignment requests (proposal 045): development-only, 503 unless configured.
 app.use('/api/reassignment', createReassignmentRouter());
 
+app.use('/api', legacyRouteBoundary());
 app.use(
   '/api/onboarding',
   onboardingRouter

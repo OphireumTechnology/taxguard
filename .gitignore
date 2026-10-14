@@ -92,3 +92,4 @@ _hardening_backup_*/
 
 # Local synthetic browser fixture build output
 qa/synthetic-shell/artifacts/
+qa/migration-review/

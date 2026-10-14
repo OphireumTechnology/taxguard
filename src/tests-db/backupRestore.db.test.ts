@@ -6,6 +6,7 @@ import { pgRpc, startDatabase, type TestDatabase } from './harness';
 import { compareWithManifest, exportDatabase, restoreDatabase, verifyBackupIntegrity } from '../../scripts/backup/logical-backup.mjs';
 import { BillingStore, SandboxPaymentProvider } from '../server/taxguard/billing/billingStore';
 import { PracticeStore } from '../server/taxguard/practice/practiceStore';
+import {schemaFingerprint} from '../../scripts/staging/schema-fingerprint';
 
 // Backup / restore / rollback rehearsal on two disposable local PostgreSQL servers (loopback only).
 // Source: every migration and proposal, plus synthetic records. Target: a second server whose schema
@@ -51,6 +52,10 @@ describe('backup and restore rehearsal', () => {
       await expect(restoreDatabase(c, backup)).rejects.toThrow('RESTORE_TARGET_NOT_DECLARED_DISPOSABLE');
       const t0 = Date.now(); await restoreDatabase(c, backup, { disposable: true }); timings.restoreMs = Date.now() - t0;
       expect(await compareWithManifest(c, backup.manifest)).toEqual([]);
+      expect((await schemaFingerprint(c)).sha256).toBe((await schemaFingerprint(source.pool)).sha256);
+      const high=(await c.query('SELECT max(event_sequence)::text n FROM taxguard_audit_log')).rows[0].n;
+      const sequence=(await c.query("SELECT pg_get_serial_sequence('taxguard_audit_log','event_sequence') name")).rows[0].name;
+      const next=(await c.query('SELECT nextval($1)::text n',[sequence])).rows[0].n;expect(BigInt(next)).toBeGreaterThan(BigInt(high));
     } finally { await c.end(); }
     // The restored system works: the client still sees only the client projection.
     const [inv] = await new BillingStore(pgRpc(target.pool)).list(T, C, 'db-bk-client');
@@ -77,6 +82,12 @@ describe('backup and restore rehearsal', () => {
 
   it('refuses non-loopback connections', async () => {
     await expect(exportDatabase({ connectionParameters: { host: 'db.example.test' } })).rejects.toThrow('BACKUP_REHEARSAL_LOOPBACK_ONLY');
+  });
+  it('rejects checksum-consistent orphan records before commit and preserves the target',async()=>{
+    const c=await target.connect();try{const orphan=structuredClone(backup);const name='taxguard_invoices';const row=JSON.parse(orphan.data[name][0]);row.tenant_id='missing_synthetic_tenant';orphan.data[name][0]=JSON.stringify(row);
+      orphan.manifest.tables[name].sha256=createHash('sha256').update([...orphan.data[name]].sort().join('\n')).digest('hex');orphan.manifest.sha256=createHash('sha256').update(JSON.stringify(orphan.manifest.tables)).digest('hex');
+      expect(verifyBackupIntegrity(orphan)).toEqual([]);await expect(restoreDatabase(c,orphan,{disposable:true})).rejects.toThrow('RESTORE_FOREIGN_KEY_VIOLATION');expect(await compareWithManifest(c,backup.manifest)).toEqual([]);
+    }finally{await c.end();}
   });
 });
 

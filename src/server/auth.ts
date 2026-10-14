@@ -13,7 +13,7 @@ import { db } from './db';
 import { User, UserRole } from '../types';
 import { isSupabaseServerConfigured } from './supabase';
 import { SupabaseDurableSessions, hasFallbackSupabaseSession } from './supabase-db';
-import { requiresStaffMfa, sessionAssuranceLevel } from './staffMfa';
+import { requiresStaffMfa, sessionAssuranceLevel,attachSessionAssuranceLevel } from './staffMfa';
 import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 
 export interface AuthenticatedRequest extends Request {
@@ -267,13 +267,14 @@ export function clearLoginFailures(key: string) {
 }
 
 // Generate secure session token
-export function createSession(userId: string, role: string): string {
+export function createSession(userId: string, role: string,verifiedMfa=false): string {
   const token = randomBytes(32).toString('hex');
   const now = Date.now();
   db.sessions.set(token, {
     userId,
     role,
     createdAt: now,
+    verifiedMfa,
     expiresAt: now + sessionIdleMs(role)
   });
   return token;
@@ -392,7 +393,8 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
   if(!bookkeeperRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'BOOKKEEPER_CAPABILITY_DENIED'});
   if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
   if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
-  req.user = user;
+  req.user = {...user};
+  attachSessionAssuranceLevel(req.user,session.verifiedMfa===true?'aal2':'aal1');
   req.token = token;
   next();
 }

@@ -1,13 +1,13 @@
 {
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
-  "order": "core migrations by name, then proposals by name, then docs/sql audit proposal",
+  "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 54,
+    "files": 62,
     "core": 13,
-    "proposals": 40,
-    "tables": 136,
-    "functions": 300,
-    "securityDefinerFunctions": 231,
+    "proposals": 48,
+    "tables": 141,
+    "functions": 315,
+    "securityDefinerFunctions": 241,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2401,6 +2401,260 @@
     },
     {
       "order": 54,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_security_immutable",
+        "taxguard_security_record"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_doc_detail",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 2,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        30
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 55,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_security_outbox"
+      ],
+      "functionsAdded": [
+        "taxguard_security_dispatch",
+        "taxguard_security_enqueue",
+        "taxguard_security_outbox_guard",
+        "taxguard_security_outbox_metrics"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 2,
+      "indexesAdded": 3,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 56,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_bill_list",
+          "previous": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"
+        },
+        {
+          "function": "taxguard_bill_record_payment",
+          "previous": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        4,
+        31,
+        50
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 57,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015010000_taxguard_billing_pages.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_bill_page"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_bill_list",
+          "previous": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 1,
+      "notValidConstraints": [],
+      "prerequisites": [
+        4,
+        31,
+        50
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 58,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_collection_history",
+        "taxguard_collection_questionnaires",
+        "taxguard_collection_waiver_claims"
+      ],
+      "functionsAdded": [
+        "taxguard_collection_claim",
+        "taxguard_collection_get",
+        "taxguard_collection_history_guard",
+        "taxguard_collection_save",
+        "taxguard_collection_scope"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 2,
+      "indexesAdded": 4,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        30
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 59,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015030000_taxguard_collection_requests.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_collection_replies"
+      ],
+      "functionsAdded": [
+        "taxguard_collection_request_json",
+        "taxguard_collection_request_operation"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 1,
+      "indexesAdded": 2,
+      "notValidConstraints": [
+        "taxguard_client_requests.collection_request_scope_fk"
+      ],
+      "prerequisites": [
+        1,
+        4,
+        30,
+        58
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 60,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015040000_taxguard_mfa_lifecycle_canonical.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        24,
+        39
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 61,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_doc_scan_envelope_guard"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_doc_scan_complete",
+          "previous": "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 2,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        30,
+        53
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_doc_record_scan"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 62,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

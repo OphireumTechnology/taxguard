@@ -25,6 +25,7 @@ export const CANONICAL_ROUTES = {
   PORTAL_REGISTER: '/portal/register',
   PORTAL_DASHBOARD: '/portal/dashboard',
   PORTAL_DOCUMENTS: '/portal/documents',
+  PORTAL_COLLECTION:'/portal/collection',
   PORTAL_REQUESTS: '/portal/requests',
   PORTAL_APPOINTMENTS: '/portal/appointments',
   PORTAL_PROFILE: '/portal/profile',
@@ -254,6 +255,7 @@ export function resolveCanonicalPageRoute(
   if (
     clean === 'portal/dashboard' ||
     clean === 'portal/documents' ||
+    clean === 'portal/collection' ||
     clean === 'portal/requests' ||
     clean === 'portal/appointments' ||
     clean === 'portal/profile'

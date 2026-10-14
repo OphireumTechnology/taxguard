@@ -13,6 +13,17 @@ beforeEach(() => { transport.mockReset().mockImplementation(async () => new Resp
 afterEach(() => { clearStoredToken(); vi.unstubAllGlobals(); });
 
 describe('billing browser client', () => {
+  it('walks bounded invoice pages without silently truncating balances',async()=>{
+    transport.mockResolvedValueOnce(new Response(JSON.stringify({items:[{invoiceId:'one'}],nextCursor:'cursor-one'}))).mockResolvedValueOnce(new Response(JSON.stringify({items:[{invoiceId:'two'}],nextCursor:null})));
+    expect((await billingApi.invoices('client')).items.map(i=>i.invoiceId)).toEqual(['one','two']);
+    expect(transport.mock.calls[1][0]).toContain('cursor=cursor-one');
+  });
+  it('refuses duplicate pages and session replacement during a paginated read',async()=>{
+    transport.mockResolvedValueOnce(new Response(JSON.stringify({items:[{invoiceId:'one'}],nextCursor:'again'}))).mockResolvedValueOnce(new Response(JSON.stringify({items:[{invoiceId:'one'}],nextCursor:null})));
+    await expect(billingApi.invoices('client')).rejects.toThrow('BILLING_RESPONSE_INVALID');
+    transport.mockImplementationOnce(async()=>{setStoredToken('replacement');return new Response(JSON.stringify({items:[],nextCursor:null}));});
+    await expect(billingApi.invoices('client')).rejects.toThrow('SESSION_CHANGED');
+  });
   it('sends money as entered text, encodes paths and attaches idempotency keys to payments', async () => {
     await billingApi.recordPayment('client/1', 'inv_1', '24.90', 'CHECK', 'bill-key-1');
     const [url, options] = transport.mock.calls[0];

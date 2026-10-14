@@ -39,6 +39,8 @@ export class DocumentVaultStore {
 
   async upload(tenantId: string, clientId: string, actor: string, input: UploadInput, bytes: Buffer) {
     if (!Buffer.isBuffer(bytes) || bytes.length < 1) throw new DocumentVaultError('DOCUMENT_INPUT_INVALID', 400);
+    // Hold one immutable upload identity across asynchronous metadata/storage/scanner calls.
+    bytes=Buffer.from(bytes);input={...input};
     if (bytes.length > MAX_DOCUMENT_BYTES) throw new DocumentVaultError('DOCUMENT_TOO_LARGE', 413);
     if (!(ALLOWED_DOCUMENT_TYPES as readonly string[]).includes(input.mimeType)) throw new DocumentVaultError('DOCUMENT_TYPE_NOT_ALLOWED', 415);
     if (!contentMatchesType(input.mimeType, bytes)) throw new DocumentVaultError('DOCUMENT_CONTENT_MISMATCH', 415);
@@ -52,24 +54,27 @@ export class DocumentVaultStore {
     if (registered.status !== 'UPLOAD_PENDING') return { documentId: registered.documentId, version: registered.version, status: registered.status, replayed: true };
     if (!/^tenants\/[A-Za-z0-9_-]+\/clients\/[A-Za-z0-9_-]+\/engagements\/[A-Za-z0-9_-]+\/\d{4}\/docs\/doc_[a-f0-9]{32}_v\d+$/.test(registered.storagePath)
       || !registered.storagePath.startsWith(`tenants/${tenantId}/clients/${clientId}/`)) throw new DocumentVaultError('DOCUMENT_STORAGE_SCOPE_INVALID', 500);
-    try { await this.storage.put(registered.storagePath, bytes, input.mimeType); }
+    try { await this.storage.put(registered.storagePath, Buffer.from(bytes), input.mimeType); }
     catch (e) { throw new DocumentVaultError(e instanceof VaultIntegrationError ? e.code : 'VAULT_STORAGE_UNAVAILABLE', 503); }
     let state = await this.call<{ status: string }>('taxguard_doc_complete_upload', { p_tenant: tenantId, p_client: clientId, p_actor: actor,
       p_document_id: registered.documentId, p_version: registered.version, p_sha256: sha256, p_size: bytes.length });
-    if (this.scanner) {
-      const verdict = await this.scanner.scan(bytes).catch(() => null);
+    // No approved production scanner factory exists. Test-injected/fake scanners cannot release
+    // production uploads, regardless of their claimed verdict or adapter name.
+    if (this.scanner && process.env.NODE_ENV!=='production') {
+      const job=await this.call('taxguard_doc_scan_request',{p_tenant:tenantId,p_client:clientId,p_document_id:registered.documentId,p_version:registered.version,p_provider:this.scanner.name,p_ttl_seconds:60});
+      const correlation={requestId:job.scanId,issuedAt:Date.now()};
+      const verdict = await this.scanner.scan(Buffer.from(bytes),correlation).catch(() => null);
       // A scanner failure leaves the document SCAN_PENDING (never downloadable).
       if (verdict === 'CLEAN' || verdict === 'INFECTED') {
-        state = await this.call('taxguard_doc_record_scan', { p_tenant: tenantId, p_client: clientId, p_document_id: registered.documentId, p_version: registered.version,
-          p_result: verdict, p_scanner: this.scanner.name });
+        state = await this.call('taxguard_doc_scan_complete', {p_tenant:tenantId,p_scan_id:job.scanId,p_provider:this.scanner.name,p_verdict:verdict});
         if (verdict === 'CLEAN' && this.ocr) {
-          const fields = await this.ocr.extract(bytes, input.mimeType).catch(() => []);
+          const fields = await this.ocr.extract(Buffer.from(bytes), input.mimeType).catch(() => []);
           if (fields.length) await this.call('taxguard_doc_propose_extraction', { p_tenant: tenantId, p_client: clientId, p_document_id: registered.documentId,
             p_version: registered.version, p_provider: this.ocr.name, p_fields: fields.slice(0, 200) }).catch(() => undefined);
         }
       }
     }
-    if (!this.scanner && this.scanRequests && state.status === 'SCAN_PENDING') {
+    if (!this.scanner && this.scanRequests && process.env.NODE_ENV!=='production' && state.status === 'SCAN_PENDING') {
       // The verdict arrives later through the authenticated callback; the document stays quarantined.
       const scan = await this.scanRequests.request({ tenantId, clientId, documentId: registered.documentId, version: registered.version, storagePath: registered.storagePath,
         sha256, sizeBytes: bytes.length, mimeType: input.mimeType });
