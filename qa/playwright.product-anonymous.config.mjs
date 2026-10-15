@@ -12,6 +12,7 @@ export default defineConfig({
   outputDir: path.join(evidence, 'artifacts'),
   reporter: [['list'], ['json', { outputFile: path.join(evidence, 'results.json') }]],
   use: { baseURL: mode.origin, browserName: 'chromium', serviceWorkers: 'block',
+    ...(process.platform === 'win32' ? { channel: 'msedge' } : {}),
     acceptDownloads: false, ignoreHTTPSErrors: false, screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   projects: [390, 768, 1280].map(width => ({ name: `product-anonymous-${width}`, use: { viewport: { width, height: 900 } } })),
   // No webServer: operator must provide the reviewed synthetic real application, never the shell fixture.

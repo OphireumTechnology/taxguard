@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'https://api.example.com' + path }));
-import { api, clearStoredToken, getStoredToken, setStoredToken } from '../services/api';
+import { api, clearStoredToken, getStoredToken, SESSION_TOKEN_CHANGED_EVENT, setStoredToken } from '../services/api';
 afterEach(() => { clearStoredToken(); vi.unstubAllGlobals(); });
 it('clears persisted authorization and notifies the UI after a 401', async () => {
   const dispatchEvent = vi.fn(); vi.stubGlobal('window', { dispatchEvent });
@@ -8,7 +8,9 @@ it('clears persisted authorization and notifies the UI after a 401', async () =>
   setStoredToken('test-session');
   await expect(api.auth.getMe()).rejects.toThrow('expired');
   expect(getStoredToken()).toBe(null);
-  expect(dispatchEvent.mock.calls[0][0].type).toBe('taxguard:session-expired');
+  expect(dispatchEvent.mock.calls.map(([event]) => event.type)).toEqual([
+    SESSION_TOKEN_CHANGED_EVENT, SESSION_TOKEN_CHANGED_EVENT, 'taxguard:session-expired',
+  ]);
 });
 it('does not destroy an authenticated session on temporary service failure', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 503 })));

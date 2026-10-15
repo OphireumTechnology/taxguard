@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
  * reopens the same view.
  */
 export function readHashView(hash: string, key: string, allowed: readonly string[]): string | null {
+  if (!/^[a-z][a-z0-9_-]{0,31}$/i.test(key)) return null;
   const m = new RegExp('^#' + key + '=([A-Za-z0-9_-]{1,48})$').exec(hash);
   if (!m) return null;
   const wanted = decodeURIComponent(m[1]).toLowerCase();
@@ -24,16 +25,22 @@ export function useHashView<T extends string>(key: string, allowed: readonly T[]
   useEffect(() => {
     // The allowed list may change (role change after re-authentication): re-validate.
     setView(read());
-    const sync = () => setView(read());
+    const sync = () => {
+      // A skip link targets a real DOM anchor, not a new workspace view.
+      const anchor = window.location.hash.slice(1);
+      if (anchor && document.getElementById(anchor)) return;
+      setView(read());
+    };
     window.addEventListener('popstate', sync);
     window.addEventListener('hashchange', sync);
     return () => { window.removeEventListener('popstate', sync); window.removeEventListener('hashchange', sync); };
   }, [read]);
   const select = useCallback((next: T) => {
+    if (!allowed.includes(next)) return;
     setView(next);
     if (typeof window === 'undefined') return;
     const hash = '#' + key + '=' + slug(next);
     if (window.location.hash !== hash) window.history.pushState(window.history.state, '', window.location.pathname + window.location.search + hash);
-  }, [key]);
-  return [view, select];
+  }, [key, allowed.join('|')]);
+  return [allowed.includes(view) ? view : fallback, select];
 }

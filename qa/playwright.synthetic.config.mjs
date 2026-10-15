@@ -11,6 +11,7 @@ export default defineConfig({
   outputDir: path.join(evidence, 'artifacts'),
   reporter: [['list'], ['json', { outputFile: path.join(evidence, 'results.json') }]],
   use: { baseURL: 'http://127.0.0.1:4179', browserName: 'chromium',
+    ...(process.platform === 'win32' ? { channel: 'msedge' } : {}),
     serviceWorkers: 'block', acceptDownloads: false, ignoreHTTPSErrors: false,
     screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   projects: [390, 768, 1280].map(width => ({ name: `synthetic-${width}`, use: { viewport: { width, height: 900 } } })),

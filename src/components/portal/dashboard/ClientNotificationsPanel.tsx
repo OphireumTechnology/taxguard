@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { documentRequestService, type ClientNotification } from '../../../services/documentRequestService';
 import { VaultRequestError } from '../../../services/vaultService';
+import { getStoredToken } from '../../../services/api';
+import { useClientPanelSession } from '../../../hooks/useClientPanelSession';
 
 /** Plain-language meaning of each server notification kind (proposal 031). Unknown kinds are shown neutrally. */
 export const NOTIFICATION_KINDS: Record<string, { label: string; description: string }> = {
@@ -10,7 +12,7 @@ export const NOTIFICATION_KINDS: Record<string, { label: string; description: st
   REQUEST_WAIVED: { label: 'Request waived', description: 'Your practice no longer needs this document.' },
   REQUEST_CANCELLED: { label: 'Request cancelled', description: 'Your practice cancelled this request.' },
   REPLACEMENT_REQUESTED: { label: 'Replacement requested', description: 'Your practice asked you to upload a new version of a document.' },
-  DOCUMENT_REJECTED: { label: 'Document not accepted', description: 'A document you uploaded was not accepted. See Documents for the reason.' },
+  DOCUMENT_REJECTED: { label: 'Document not accepted', description: 'A document you uploaded was not accepted. See Documents for replacement guidance.' },
 };
 export const notificationKind = (k: string) => NOTIFICATION_KINDS[k] ?? { label: 'Practice notice', description: 'A notice from your practice.' };
 const button = 'px-3 py-1.5 rounded-lg border border-slate-600 text-xs font-bold hover:border-[#D4A843] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4A843] disabled:opacity-50 min-h-[36px]';
@@ -24,42 +26,58 @@ type State = { status: 'loading' | 'ready' | 'error' | 'unavailable' | 'session'
  * clears the list instead of showing another session's notices.
  */
 export function ClientNotificationsPanel({ clientId, onOpenRequests }: { clientId: string; onOpenRequests?: () => void }) {
+  const session = useClientPanelSession(clientId);
+  return <NotificationsSession key={session} clientId={clientId} onOpenRequests={onOpenRequests} />;
+}
+function NotificationsSession({ clientId, onOpenRequests }: { clientId: string; onOpenRequests?: () => void }) {
   const [state, setState] = useState<State>({ status: 'loading', unread: 0, items: [] });
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const live = useRef(true);
   const seq = useRef(0);
+  const mutation = useRef(false);
 
   const load = useCallback(() => {
     const mine = ++seq.current;
-    setState(s => ({ ...s, status: 'loading' }));
+    setState({ status: 'loading', unread: 0, items: [] });
     documentRequestService.notifications(clientId)
       .then(r => {
         if (!live.current || mine !== seq.current) return;
         // Defensive: only well-formed records are shown.
-        const items = Array.isArray(r?.items) ? r.items.filter(n => n && typeof n.notificationId === 'string' && typeof n.title === 'string' && typeof n.createdAt === 'string') : [];
-        setState({ status: 'ready', unread: Number.isInteger(r?.unread) ? r.unread : items.filter(n => !n.readAt).length, items });
+        if (!Array.isArray(r?.items) || !Number.isInteger(r.unread) || r.unread < 0 || r.items.some(n =>
+          !n || typeof n.notificationId !== 'string' || !n.notificationId || typeof n.title !== 'string' ||
+          typeof n.kind !== 'string' || typeof n.createdAt !== 'string' || !Number.isFinite(Date.parse(n.createdAt)) ||
+          !(n.readAt === null || typeof n.readAt === 'string' && Number.isFinite(Date.parse(n.readAt))) ||
+          !(n.requestId === null || typeof n.requestId === 'string')))
+          throw new VaultRequestError(502, 'INVALID_NOTIFICATION_RESPONSE');
+        setState({ status: 'ready', unread: r.unread, items: r.items });
       })
       .catch(e => {
         if (!live.current || mine !== seq.current) return;
-        const status = e instanceof VaultRequestError ? (e.status === 401 || e.code === 'SESSION_CHANGED' || e.code === 'AUTH_REQUIRED' ? 'session' : e.status === 503 ? 'unavailable' : 'error') : 'error';
+        const status = e instanceof VaultRequestError ? (e.status === 401 || e.status === 403 || e.code === 'SESSION_CHANGED' || e.code === 'AUTH_REQUIRED' ? 'session' : e.status === 503 ? 'unavailable' : 'error') : 'error';
         setState({ status, unread: 0, items: [] });
       });
   }, [clientId]);
   useEffect(() => { live.current = true; load(); return () => { live.current = false; seq.current++; }; }, [load]);
 
   const markRead = async (n: ClientNotification) => {
-    if (busy) return;
+    if (mutation.current) return;
+    mutation.current = true;
+    const token = getStoredToken();
+    const valid = () => live.current && getStoredToken() === token;
+    ++seq.current; // A read started before this mutation cannot republish an unread snapshot.
     setBusy(n.notificationId); setNotice(null);
     try {
-      await documentRequestService.markRead(clientId, n.notificationId);
-      if (live.current) { setNotice({ error: false, text: `"${n.title}" marked as read.` }); load(); }
+      const result = await documentRequestService.markRead(clientId, n.notificationId);
+      if (!valid()) return;
+      if (result?.read !== true) throw new VaultRequestError(502, 'INVALID_NOTIFICATION_RESPONSE');
+      setNotice({ error: false, text: `"${n.title}" marked as read.` }); load();
     } catch (e) {
-      if (!live.current) return;
-      if (e instanceof VaultRequestError && (e.status === 401 || e.code === 'SESSION_CHANGED')) setState({ status: 'session', unread: 0, items: [] });
+      if (!valid()) return;
+      if (e instanceof VaultRequestError && (e.status === 401 || e.status === 403 || e.code === 'SESSION_CHANGED')) setState({ status: 'session', unread: 0, items: [] });
       else setNotice({ error: true, text: 'The server did not confirm this change. It is still shown as unread. Try again.' });
-    } finally { if (live.current) setBusy(null); }
+    } finally { if (valid()) { mutation.current = false; setBusy(null); } }
   };
 
   const shown = unreadOnly ? state.items.filter(n => !n.readAt) : state.items;
@@ -71,7 +89,7 @@ export function ClientNotificationsPanel({ clientId, onOpenRequests }: { clientI
       </div>
       <div className="flex items-center gap-3">
         <label className="inline-flex items-center gap-2 text-xs"><input type="checkbox" checked={unreadOnly} onChange={e => setUnreadOnly(e.target.checked)} /> Unread only</label>
-        <button type="button" className={button} onClick={load} disabled={state.status === 'loading'}>Refresh</button>
+        <button type="button" className={button} onClick={load} disabled={state.status === 'loading' || busy !== null}>Refresh</button>
       </div>
     </header>
     <div aria-live="polite" className="sr-only">{notice && !notice.error ? notice.text : ''}</div>
@@ -87,7 +105,7 @@ export function ClientNotificationsPanel({ clientId, onOpenRequests }: { clientI
         {shown.length === 0 && <p>No unread notifications.</p>}
         <ul className="space-y-2" aria-label="Notifications">{shown.map(n => {
           const kind = notificationKind(n.kind);
-          return <li key={n.notificationId} className={`rounded-xl border p-3 ${n.readAt ? 'border-slate-700' : 'border-[#D4A843]/60'}`}>
+          return <li key={n.notificationId} className={`rounded-xl border bg-[#071A2E] p-3 ${n.readAt ? 'border-slate-700' : 'border-[#D4A843]/60'}`}>
             <p className="font-semibold text-white">{!n.readAt && <span className="sr-only">Unread: </span>}{n.title}</p>
             <p className="text-xs">{kind.label} — {kind.description}</p>
             <p className="text-xs text-slate-400"><time dateTime={n.createdAt}>{new Date(n.createdAt).toLocaleString()}</time>{n.readAt ? <> · Read <time dateTime={n.readAt}>{new Date(n.readAt).toLocaleString()}</time></> : ' · Unread'}</p>
