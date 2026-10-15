@@ -336,6 +336,7 @@
     },
     {"file":"docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql","dependsOn":["docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"]},
     {"file":"docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql","dependsOn":["docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"]},
-    {"file":"docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql","dependsOn":["docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql","docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"]}
+    {"file":"docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql","dependsOn":["docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql","docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"]},
+    {"file":"docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql","dependsOn":["docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql","docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql","docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql"]}
   ]
 }

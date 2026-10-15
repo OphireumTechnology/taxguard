@@ -77,6 +77,7 @@ describe('documents: upload, quarantine, scan and independent review', () => {
     const { page } = mgr;
     await openModule(page, 'Document Review');
     await page.getByRole('row', { name: /synthetic-w2\.pdf/ }).getByRole('button', { name: 'Review' }).click();
+    await page.getByLabel('Internal review note (staff only)').fill('C9 PRIVATE approved review discussion');
     await page.getByRole('button', { name: 'Accept document' }).click();
     await sees(page, 'Document accepted.');
     const detail = await api(mgrToken, 'GET', `/api/vault/clients/${C}/documents/${documentId}`);
@@ -86,6 +87,33 @@ describe('documents: upload, quarantine, scan and independent review', () => {
     const download = await api(clientToken, 'POST', `/api/vault/clients/${C}/documents/${documentId}/versions/1/download`);
     expect(download.status).toBe(200); expect(download.body.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/storage\/v1\/object\/sign\//);
     expect(realErrors(client)).toEqual([]);
+  });
+  it('shows an explicitly public replacement reason while API responses conceal staff notes and history', async () => {
+    const previous = await api(mgrToken, 'GET', `/api/vault/clients/${C}/documents/${documentId}`);
+    const query = new URLSearchParams({ engagementId: previous.body.versions[0].engagementId, taxYear: '2025', category: 'income', fileName: 'c9-unreadable.pdf' });
+    const uploaded = await fetch(ORIGIN + `/api/vault/clients/${C}/documents?` + query, { method: 'POST',
+      headers: { Authorization: `Bearer ${clientToken}`, 'Content-Type': 'application/pdf', 'Idempotency-Key': 'c9-browser-upload' },
+      body: '%PDF-1.4\nSynthetic C9 document only\n%%EOF' });
+    expect(uploaded.status).toBe(201); const id = (await uploaded.json()).documentId;
+    const c = control();
+    expect((await fetch(c.origin + '/e2e/scan', { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' },
+      body: JSON.stringify({ tenant: 'tenantE2E', client: C, documentId: id, version: 1, result: 'CLEAN' }) })).status).toBe(200);
+    await mgr.page.reload();
+    await openModule(mgr.page, 'Document Review');
+    await mgr.page.getByRole('row', { name: /c9-unreadable\.pdf/ }).getByRole('button', { name: 'Review' }).click();
+    await mgr.page.getByLabel('Internal review note (staff only)').fill('C9 PRIVATE replacement review discussion');
+    const reason = 'Please replace the unreadable second page.';
+    await mgr.page.getByLabel('Reason shown to client', { exact: false }).fill(reason);
+    await mgr.page.getByRole('button', { name: 'Request replacement', exact: true }).click();
+    await sees(mgr.page, 'Replacement requested.');
+    const detail = await api(clientToken, 'GET', `/api/vault/clients/${C}/documents/${id}?includeInternal=true`);
+    expect(detail.body.versions[0].clientReason).toBe(reason);
+    expect(detail.body.history).toEqual([]);
+    expect(JSON.stringify(detail.body)).not.toMatch(/C9 PRIVATE|reviewNote|reviewedBy|actorUid|uploadedBy|e2e-mgr/);
+    const list = await api(clientToken, 'GET', `/api/vault/clients/${C}/documents`);
+    expect(JSON.stringify(list.body)).not.toMatch(/C9 PRIVATE|reviewNote|reviewedBy|actorUid|uploadedBy|e2e-mgr/);
+    await client.page.reload(); await sees(client.page, reason);
+    expect(await client.page.getByText('C9 PRIVATE', { exact: false }).count()).toBe(0);
   });
 });
 

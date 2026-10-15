@@ -3297,6 +3297,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-DOCUMENT-C9-CONFIDENTIALITY",
+      "requirement": "Server and database client projections redact internal review metadata while retaining explicitly authorized rejection/replacement reasons",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/development/c9-client-document-confidentiality.md"
+      ],
+      "tests": [
+        "src/tests-db/clientDocumentConfidentiality.db.test.ts"
+      ],
+      "remaining": "Additive proposal remains unapplied externally; direct HTTP, SQL and browser synthetic regressions do not authorize hosted rollout.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CASE-WORKFLOW",
       "requirement": "Durable case creation and sequential canonical 18-stage transitions with database-computed or reviewer-attested evidence",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4550,6 +4569,18 @@
       ]
     },
     {
+      "file": "docs/development/c9-client-document-confidentiality.md",
+      "sha256": "4a0149a6bae7a50f3dbaa72d1b63cb8b9d2934e19bde29a3ac9ffedaa7eeb2f1",
+      "bytes": 6294,
+      "headings": [
+        "# C9 — Client document review metadata confidentiality",
+        "## Defect and enforcement",
+        "## Client-facing reasons",
+        "## Regression evidence and rollout limit",
+        "## Final local validation — 2026-10-15"
+      ]
+    },
+    {
       "file": "docs/development/case-workflow.md",
       "sha256": "96cbc183182ae25dbc43b4915a995a05400ff86457ca79f063b593c27ab1e871",
       "bytes": 4748,
@@ -4765,8 +4796,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f71d046b859419b4834f28f6fc8d2f6e5d825ceb5956a43ec0ba37ba6e8afa84",
-      "bytes": 13752,
+      "sha256": "bc01134d04a8a9bcd8c0da4f6cdd2ec9d3a806052c1f34c777827933836bd48a",
+      "bytes": 13930,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5437,6 +5468,12 @@
       "file": "docs/proposed-migrations/20261015030000_taxguard_collection_requests.sql",
       "sha256": "d62bda3e7b8ca5e9eb6f0189453eccb0dca42c9fd0a94cf6e76f8911b36d2984",
       "bytes": 8747,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "sha256": "6a3b838d8b075cafa072399779ecbeed6789ef4013f26fab51525e01b946c36d",
+      "bytes": 6348,
       "headings": []
     },
     {
@@ -6453,6 +6490,7 @@
   ],
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
+    "docs/development/c9-client-document-confidentiality.md": "4a0149a6bae7a50f3dbaa72d1b63cb8b9d2934e19bde29a3ac9ffedaa7eeb2f1",
     "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
@@ -6587,9 +6625,10 @@
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/taxguard/stageCapabilities.ts": "b576daf7a89591a37813ea5e83e70edbe2f8bf7e4cea80c2fbec55586625ff81",
     "src/tests-db/backupRestore.db.test.ts": "deeb7cfb95d7d2372a0a9a5bf743a7ec2bff4b9c7685a83d43dbb4bedf149c09",
+    "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "e60b53865420d70c29db56968ca65e1519d8961f172e48b1fdc828b4aba97179",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
@@ -6631,7 +6670,7 @@
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
     "src/tests/documentRequestsHttp.test.ts": "23e8fb418bd8c2685d3ca571cd4f8bb758457762c2d320bc398633704bd203f8",
-    "src/tests/documentVaultHttp.test.ts": "246d52480291fc5dce7fe8212d54baf9745b3c4d812c3f298ab3c89d8d1d2759",
+    "src/tests/documentVaultHttp.test.ts": "891d81cb8915a12d1276c2e63bab025334eda642eab45326bd157b032eb0bfcd",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
     "src/tests/durableLedgerHttp.test.ts": "6074c97174479bea7bff8c447f3af7935612e9daeb44b1c3fae986b339705963",
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",

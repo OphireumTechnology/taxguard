@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 62,
+    "files": 63,
     "core": 13,
-    "proposals": 48,
+    "proposals": 49,
     "tables": 141,
-    "functions": 315,
-    "securityDefinerFunctions": 241,
+    "functions": 317,
+    "securityDefinerFunctions": 242,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2655,6 +2655,42 @@
     },
     {
       "order": 62,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_doc_client_json",
+        "taxguard_doc_review_with_reason"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_doc_detail",
+          "previous": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+        },
+        {
+          "function": "taxguard_doc_list",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        30
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 63,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
