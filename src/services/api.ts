@@ -1,4 +1,4 @@
-import type { StaffRecoveryQuery, StaffRecoveryPage, StaffRecoveryRequestInput, StaffRecoveryMutationResult } from '../types/staffRecovery';
+import type { StaffRecoveryQuery, StaffRecoveryPage, StaffRecoveryRequestInput, StaffRecoveryMutationResult, StaffRecoveryFollowUpResult } from '../types/staffRecovery';
 import type { StaffDirectoryQuery, StaffDirectoryPage, StaffMemberRecord, StaffInvitationRecord, StaffInvitationIssueInput, StaffInvitationIssueResult, StaffMembershipAction } from '../types/staffAccess';
 import type { DurableSessionList, SessionRevocationReason } from '../types/staffSessions';
 import { isStaffIdentityDevelopmentConfigured } from '../supabase/config';
@@ -156,6 +156,9 @@ export const api = {
     recoveries: (query: StaffRecoveryQuery = {}, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryPage>('/api/staff-access/mfa-recoveries' + staffDirectoryQuery(query), { method: 'GET', signal }),
     requestRecovery: (input: StaffRecoveryRequestInput, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries', { method: 'POST', body: JSON.stringify(input), signal }),
     approveRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryMutationResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/approve', { method: 'POST', signal }),
+    completeRecovery: (requestId: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryFollowUpResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/complete', { method: 'POST', signal }),
+    retryRecoveryReset: (requestId: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryFollowUpResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/retry', { method: 'POST', signal }),
+    cancelRecovery: (requestId: string, reason: string, signal?: AbortSignal) => staffAccessRequest<StaffRecoveryFollowUpResult>('/api/staff-access/mfa-recoveries/' + encodeURIComponent(requestId) + '/cancel', { method: 'POST', body: JSON.stringify({ reason }), signal }),
     sessions: (signal?: AbortSignal) => staffAccessRequest<DurableSessionList>('/api/staff-access/sessions', { method: 'GET', signal }),
     securityEvents: (signal?: AbortSignal) => staffAccessRequest<{items: Array<{action: string; actorUid: string; actorRole: string | null; at: string; byAdministrator: boolean; details: Record<string, unknown>}>}>('/api/staff-access/sessions/events', { method: 'GET', signal }),
     revokeSession: (sessionId: string, signal?: AbortSignal) => staffAccessRequest<{revoked: boolean}>('/api/staff-access/sessions/' + encodeURIComponent(sessionId) + '/revoke', { method: 'POST', signal }),

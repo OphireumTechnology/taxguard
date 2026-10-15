@@ -1,4 +1,5 @@
 import { StaffInvitationFlow } from './StaffInvitationFlow';
+import { StaffMfaRecoveryEnrollmentFlow } from './StaffMfaRecoveryEnrollmentFlow';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { isLocalServerLoginBuild } from '../../context/localServerLogin';
@@ -835,7 +836,7 @@ export const ClientRegisterPage: React.FC = () => {
 export const StaffLoginPage: React.FC = () => {
   const fieldPrefix = React.useId();
   const { login, setCurrentPage } = useApp();
-  const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation'>('signin');
+  const [loginMode, setLoginMode] = useState<'signin' | 'accept_invitation' | 'mfa_recovery'>('signin');
 
   // Sign in state
   const [email, setEmail] = useState('');
@@ -950,7 +951,7 @@ export const StaffLoginPage: React.FC = () => {
         <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
           <button
             type="button"
-            disabled={loginMode === 'accept_invitation'}
+            disabled={loginMode !== 'signin'}
             onClick={() => {
               setLoginMode('signin');
               clearStaleError();
@@ -963,7 +964,7 @@ export const StaffLoginPage: React.FC = () => {
           </button>
           <button
             type="button"
-            disabled={loading || mfaEnrollmentRequired}
+            disabled={loading || mfaEnrollmentRequired || loginMode === 'mfa_recovery'}
             onClick={() => {
               setLoginMode('accept_invitation');
               clearStaleError();
@@ -1108,8 +1109,18 @@ export const StaffLoginPage: React.FC = () => {
               <p className="text-[10px] text-slate-500">
                 Lost your security token or password? Contact firm IT or request an administrator invite re-issue.
               </p>
+              <button
+                type="button"
+                disabled={loading || mfaEnrollmentRequired}
+                onClick={() => { setLoginMode('mfa_recovery'); clearStaleError(); }}
+                className="text-[11px] text-[#D4A843] underline hover:text-[#E1BB60] disabled:opacity-50"
+              >
+                Administrator reset your authenticator? Set up a replacement
+              </button>
             </div>
           </>
+        ) : loginMode === 'mfa_recovery' ? (
+          <StaffMfaRecoveryEnrollmentFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
         ) : (
           <StaffInvitationFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
         )}

@@ -212,3 +212,14 @@ Proposal 029 (unapplied); development-only `/api/book-to-tax`; Accountant *Book-
 ## Claude worktree — Bookkeeper ledger workspace (2026-10-12)
 
 Bookkeepers can work assigned clients on the durable ledger; every posting awaits independent review. Details: [bookkeeper-dashboard.md](bookkeeper-dashboard.md). Production NO-GO.
+
+## MFA recovery administrator actions and re-enrolment screen (2026-10-16)
+
+Local branch fast-forwarded to origin `be15d7b` (clean tree, no local-only commits). Closed the
+remaining UI gap from [mfa-recovery-completion.md](mfa-recovery-completion.md): administrator
+complete / re-queue / cancel with confirmation and server-result validation, honest per-request reset
+state, and the staff re-enrolment screen (provider token only, no TaxGuard session, no reactivation
+claim). Validation: full suite (285 files) green after traceability regeneration; typecheck clean
+except the database / browser harnesses whose declared dev dependencies (`embedded-postgres`,
+`playwright-core`) are not installed in this checkout (not installed by this session); build PASS.
+Production NO-GO; no proposal applied; no provider contacted.

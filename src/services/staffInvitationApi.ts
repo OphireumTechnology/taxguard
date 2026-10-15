@@ -8,6 +8,13 @@ export class StaffInvitationFlowError extends Error {
 }
 const denied = () => new StaffInvitationFlowError('denied', 'Staff onboarding could not be completed. Check your information or contact your administrator.');
 const unavailable = () => new StaffInvitationFlowError('unavailable', 'Staff onboarding is unavailable in this environment. Contact your administrator.');
+/** Only states the member can act on; everything else stays a neutral refusal. */
+const RECOVERY_MESSAGES: Record<string, string> = {
+  MFA_RECOVERY_NOT_READY_FOR_ENROLLMENT: 'Your administrator has not finished resetting your authenticator yet. Try again later.',
+  MFA_ENROLLMENT_FRESH_SIGN_IN_REQUIRED: 'Sign in again with your password, then set up your authenticator within 15 minutes.',
+  MFA_ENROLLMENT_AAL2_REQUIRED: 'Verify your new authenticator code before continuing.',
+  MFA_ENROLLMENT_NEW_FACTOR_REQUIRED: 'Set up a new authenticator. An authenticator that existed before the reset cannot be used.',
+};
 
 /** Provider-only identity setup: no TaxGuard session, role metadata, or client provisioning. */
 export function createStaffInvitationApi(injectedProvider?: Pick<SupabaseClient, 'auth'>, transport: typeof fetch = fetch) {
@@ -86,6 +93,32 @@ export function createStaffInvitationApi(injectedProvider?: Pick<SupabaseClient,
       const result = await post('accept', token);
       if (result?.status !== 'pending_approval') throw denied();
       return { status: 'pending_approval' };
+    },
+    /**
+     * MFA recovery: the suspended member proves re-enrolment with a provider token only. The server
+     * checks AAL2, a primary sign-in after the reset and a newly created factor; it never reactivates.
+     */
+    async submitRecoveryEnrollment(): Promise<{ status: 'enrollment_verified' }> {
+      let response: Response;
+      try {
+        response = await transport('/api/staff-access/mfa-recovery/enrollment', {
+          method: 'POST', credentials: 'omit', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ providerAccessToken: await providerToken() }),
+        });
+      } catch (error) {
+        if (error instanceof StaffInvitationFlowError) throw error;
+        throw unavailable();
+      }
+      if (response.status === 503) throw new StaffInvitationFlowError('unavailable', 'Authenticator recovery is unavailable in this environment. Contact your administrator.');
+      if (!response.ok) {
+        const code = await response.json().then(body => body?.code, () => null);
+        const message = RECOVERY_MESSAGES[code as string];
+        throw new StaffInvitationFlowError(message ? 'verification' : 'denied', message || 'Authenticator recovery could not be confirmed. Contact your administrator.');
+      }
+      const result = await response.json().catch(() => null);
+      if (result?.status !== 'enrollment_verified' || typeof result.jobId !== 'string') throw denied();
+      return { status: 'enrollment_verified' };
     },
     async signOut() { if (!injectedProvider && !isStaffIdentityDevelopmentConfigured()) return; try { const result = await provider.auth.signOut(); if (result.error) throw unavailable(); } catch { throw unavailable(); } },
   };

@@ -12,3 +12,5 @@ export interface StaffRecoveryQuery { status?: 'all' | StaffRecoveryStatus; limi
 export interface StaffRecoveryPage { items: StaffRecoveryRecord[]; nextCursor: string | null; source: 'durable' }
 export interface StaffRecoveryRequestInput { requestId: string; targetUid: string; reasonCategory: StaffRecoveryReasonCategory; reason: string }
 export interface StaffRecoveryMutationResult { requestId: string; targetUid: string; status: StaffRecoveryStatus; resumed: boolean; jobId?: string; resetAvailability: 'unavailable' }
+/** complete → {requestId,targetUid,status:'completed',resumed}; cancel → {requestId,targetUid,status:'cancelled'}; retry → {jobId,status:'pending'}. */
+export interface StaffRecoveryFollowUpResult { requestId?: string; targetUid?: string; jobId?: string; status: 'completed' | 'cancelled' | 'pending'; resumed?: boolean }

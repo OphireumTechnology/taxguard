@@ -72,8 +72,30 @@ re-claim vs stale report), composition (034 included, idempotent re-apply), upda
 `staffAccessHttp` (privileged check runs first, refusal never reaches the membership RPC),
 `staffRecoveryDirectory`, `staffMfaRecoveryHook`.
 
+## Administrator actions and re-enrolment screen (added 2026-10-16)
+
+- **Staff MFA recovery panel** (Practice Staff & Roles): each request shows its real reset state
+  (queued, in progress, factors removed, new authenticator verified, failed with code and attempts,
+  completed). *Review recovery completion*, *Re-queue failed reset* and *Cancel recovery request*
+  appear only when the server's action hint, the row state and actor ≠ target all agree; each needs
+  an explicit confirmation step, cancellation needs a 10–1,000 character reason, and success is shown
+  only when the server result matches the row. A recent-sign-in refusal tells the administrator to
+  sign in again with MFA. Completion asks the administrator to confirm the person's identity
+  out-of-band first (firm procedure; not enforced by software).
+- **Re-enrolment screen** (staff sign-in → *Administrator reset your authenticator? Set up a
+  replacement*): provider password sign-in (fresh primary sign-in), new TOTP enrolment or challenge,
+  assurance re-checked immediately before the proof, then `POST /mfa-recovery/enrollment` with the
+  provider token only. It never requests a TaxGuard session (the provider-only identity guard
+  suppresses the session bridge) and never reports reactivation; it signs out afterwards. Refusals the
+  member can act on are explained; others stay neutral. Without the development provider
+  configuration it reports that recovery is unavailable.
+
+Tests: `staffMfaRecoveryFollowUpUi.test.tsx` (12), `staffMfaRecoveryEnrollmentClient.test.ts` (11);
+mutants removing the actor ≠ target guard, result validation or the pre-proof assurance check each fail.
+Browser: staff sign-in link, form, fail-closed message and 375 px layout checked on the local server;
+the administrator panel was not exercised in a browser (needs a non-production provider project).
+
 ## Remaining (not done here)
 
-Administrator UI for complete / cancel / retry and a provider-side re-enrolment screen; real provider
-verification; browser E2E against a provider emulator; moving the recency check into the 003/004
-database functions (needs their session proof parameter).
+Real provider verification; browser E2E of the full recovery against a provider emulator; moving the
+recency check into the 003/004 database functions (needs their session proof parameter).
