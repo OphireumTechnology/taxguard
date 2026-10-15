@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BookkeepingRequestError, bookkeepingService, type ChartOfAccountItem, type LedgerWorkQueue } from '../../services/bookkeepingService';
 import { ledgerMessage } from './LedgerControlsPanel';
 import { LedgerReportsPanel } from './LedgerReportsPanel';
+import { BookToTaxPanel } from './BookToTaxPanel';
 
 const money = (cents: number) => (cents < 0 ? '-' : '') + '$' + (Math.abs(cents) / 100).toFixed(2);
 type Line = { accountId: string; debit: string; credit: string };
@@ -95,5 +96,7 @@ export function BookkeeperLedgerWorkspace({ clientId, taxYear }: { clientId: str
       </form>
     </>}
     <LedgerReportsPanel clientId={clientId} taxYear={taxYear} accounts={accounts} />
+    {/* Durable book-to-tax workpapers (proposal 029): mappings and reviewed adjustments; no tax is computed. */}
+    <BookToTaxPanel clientId={clientId} taxYear={taxYear} accounts={accounts} />
   </section>;
 }

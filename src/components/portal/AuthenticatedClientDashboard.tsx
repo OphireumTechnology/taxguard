@@ -54,14 +54,11 @@ import {
 import { StageOneOnboardingService } from '../../services/stageOneOnboardingService';
 import { useApp } from '../../context/AppContext';
 import { CANONICAL_STAGE_LABELS, StageNumber } from '../../server/taxguard/persistence.types';
-import { StageTwoCollectionWorkspace } from '../collection/StageTwoCollectionWorkspace';
-import { StageThreeValidationWorkspace } from '../validation/StageThreeValidationWorkspace';
 import { StageOneIdentityWizard } from './StageOneIdentityWizard';
 import { TaxGuardDiscrepanciesView } from '../../taxguard/views/TaxGuardDiscrepanciesView';
 import { ClientAuditUnavailable, recordedMfaSetting } from './views/ClientSecurityPanel';
 import { ProfileSecurityView } from './views/ProfileSecurityView';
 import { ClientProfileView } from './views/ClientProfileView';
-import { MyDocumentsClientVault } from './views/MyDocumentsClientVault';
 import { ClientDocumentVaultPanel } from '../documents/ClientDocumentVaultPanel';
 import {DurableClientCollectionWorkspace} from '../collection/DurableClientCollectionWorkspace';
 import { ClientInvoicesPanel } from '../billing/ClientInvoicesPanel';
@@ -74,16 +71,9 @@ import { StageFiveReconcileView } from './views/stages/StageFiveReconcileView';
 import { StageSixReviewView } from './views/stages/StageSixReviewView';
 import { StageSevenReportView } from './views/stages/StageSevenReportView';
 import { StageEightPlanView } from './views/stages/StageEightPlanView';
-import { StageNinePrepareView } from './views/stages/StageNinePrepareView';
-import { StageTenApproveView } from './views/stages/StageTenApproveView';
-import { StageElevenSignView } from './views/stages/StageElevenSignView';
-import { StageTwelveFileView } from './views/stages/StageTwelveFileView';
-import { StageThirteenFeedbackView } from './views/stages/StageThirteenFeedbackView';
-import { StageFourteenResolveView } from './views/stages/StageFourteenResolveView';
-import { StageFifteenMonitorView } from './views/stages/StageFifteenMonitorView';
-import { StageSixteenArchiveView } from './views/stages/StageSixteenArchiveView';
-import { StageSeventeenRenewView } from './views/stages/StageSeventeenRenewView';
-import { StageEighteenRepeatView } from './views/stages/StageEighteenRepeatView';
+import { TaxStageStatusView } from './views/stages/TaxStageStatusView';
+import { ClientNotificationsPanel } from './dashboard/ClientNotificationsPanel';
+import { BLOCKED_STAGES } from '../../taxguard/stageCapabilities';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import { ClientSearchModal } from './dashboard/ClientSearchModal';
 import { NotificationCenterDropdown } from './dashboard/NotificationCenterDropdown';
@@ -163,6 +153,15 @@ export const SIMPLIFIED_JOURNEY_STEPS: SimplifiedJourneyStep[] = [
   }
 ];
 
+/** Views that may be restored from the URL hash (#nav=<view>). Anything else is ignored. */
+export const RESTORABLE_CLIENT_VIEWS = new Set(['home', 'tax_return', 'documents', 'questionnaire', 'requests', 'messages', 'notifications', 'appointments', 'billing', 'records',
+  'advisor', 'legal', 'settings', 'profile', 'security', 'activity', 'help', 'exceptions', 'stage_01', 'stage_02',
+  ...Array.from({ length: 16 }, (_, i) => 'stage_' + String(i + 3).padStart(2, '0'))]);
+export function navFromHash(hash: string): string | null {
+  const m = /^#nav=([a-z0-9_]{1,32})$/.exec(hash.toLowerCase());
+  return m && RESTORABLE_CLIENT_VIEWS.has(m[1]) ? m[1] : null;
+}
+
 export const WORKFLOW_STAGES: WorkflowStageItem[] = [
   { number: 1, shortLabel: '01', name: 'Onboard' },
   { number: 2, shortLabel: '02', name: 'Collect' },
@@ -221,6 +220,9 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.toLowerCase();
       const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+      // Exact view saved by handleSelectNav, so a refresh reopens the same view.
+      const saved = navFromHash(hash);
+      if (saved) return saved;
       if (pathname === '/portal/documents') return 'documents';
       if (pathname === '/portal/collection') return 'questionnaire';
       if (pathname === '/portal/requests') return 'requests';
@@ -338,6 +340,9 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   const handleSelectNav = (navId: string) => {
     setActiveNavId(navId);
+    if (typeof window !== 'undefined' && navFromHash('#nav=' + navId)) {
+      window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + '#nav=' + navId);
+    }
     setSelectedLockedStage(null);
     setMobileDrawerOpen(false);
 
@@ -377,64 +382,39 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       collapsed={!isMobile && sidebarCollapsed}
       onToggle={isMobile ? undefined : toggleSidebar}
       onNavigate={handleSelectNav}
-      detailedWorkflow={WORKFLOW_STAGES.map(stage => <button key={stage.number} onClick={() => handleStageClick(stage)}>{stage.shortLabel} {stage.name} ? {getStageStatus(stage.number)}</button>)}
+      detailedWorkflow={WORKFLOW_STAGES.map(stage => { const status = BLOCKED_STAGES.includes(stage.number) ? 'not available' : getStageStatus(stage.number); return <button type="button" key={stage.number} onClick={() => handleStageClick(stage)} aria-label={'Stage ' + stage.shortLabel + ' ' + stage.name + ': ' + status}>{stage.shortLabel} {stage.name} · {status}</button>; })}
     />
   );
 
   // Main Workspace Content based on context isolation
   const renderMainWorkspace = () => {
-    if (activeNavId.startsWith("stage_") && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
+    if (activeNavId.startsWith("stage_") && !BLOCKED_STAGES.includes(Number(activeNavId.slice(6))) && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
     if (["tax_return", "messages", "legal", "advisor", "requests", "exceptions", "billing", "records", "archive"].includes(activeNavId)) return <ClientDashboardModule key={clientId + ":" + selectedTaxYear + ":" + activeNavId} module={activeNavId === "exceptions" ? "requests" : activeNavId === "archive" ? "records" : activeNavId} user={currentUser!} data={dashboardData} taxYear={selectedTaxYear} onRefresh={() => setDashboardRefresh(value => value + 1)} onBack={() => handleSelectNav("home")} onSelectYear={year => { onTaxYearChange?.(year); handleSelectNav("documents"); }} />;
 
-    // 1. STAGE LOCKED BY TAXGUARD HARD GATE
+    // 1. LOCKED STAGE: canonical explanation for blocked stages; otherwise the real active stage.
     if (selectedLockedStage) {
+      if (BLOCKED_STAGES.includes(selectedLockedStage.number)) {
+        return <TaxStageStatusView key={'locked:' + selectedLockedStage.number} stage={selectedLockedStage.number} selectedTaxYear={selectedTaxYear} onNavigate={target => handleSelectNav(target)} />;
+      }
+      const activeStage = authority?.workflow?.activeStage as number | undefined;
+      const active = WORKFLOW_STAGES.find(s => s.number === activeStage);
       return (
-        <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
-          <div className="rounded-2xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] p-8 shadow-2xl text-center space-y-5">
-            <div className="w-16 h-16 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto text-slate-400 shadow-inner">
-              <Lock className="w-8 h-8 text-amber-400" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-xs font-mono font-bold tracking-widest uppercase text-amber-400">
-                STAGE LOCKED BY TAXGUARD HARD GATE
-              </div>
-              <h2 className="text-xl font-bold text-white">
-                Stage {selectedLockedStage.shortLabel}: {selectedLockedStage.name} is Currently Locked
-              </h2>
-              <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-                Complete <strong>Stage 02 Collect</strong> before Stage {selectedLockedStage.shortLabel} ({selectedLockedStage.name}) becomes available.
-              </p>
-            </div>
-
-            <div className="p-4 bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-xl text-left max-w-lg mx-auto text-xs text-slate-300 space-y-2 font-mono">
-              <div className="text-[#D4A843] font-bold uppercase tracking-wider text-[10px]">Authoritative Hard Gate Policy</div>
-              <div className="flex items-start gap-2">
-                <span className="text-emerald-400 font-bold">✓</span>
-                <span>Stage 01 Onboard: Cleared &amp; Certified</span>
-              </div>
-              <div className="flex items-start gap-2 text-blue-300 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse mt-1 shrink-0" />
-                <span>Stage 02 Collect: In Progress (Active Client Workspace)</span>
-              </div>
-              <div className="flex items-start gap-2 text-slate-500">
-                <span>🔒</span>
-                <span>Stage {selectedLockedStage.shortLabel}: Locked until all required documents &amp; intake checklists clear CPA verification</span>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => handleSelectNav('stage_02')}
-                className="px-6 py-3 rounded-xl text-sm font-bold text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all inline-flex items-center gap-2 shadow-xl cursor-pointer"
-              >
-                <span>Go to Active Stage 02 (Collect) Workspace</span>
-                <ArrowRight className="w-4 h-4" />
+        <section aria-labelledby="locked-stage-heading" className="max-w-3xl mx-auto py-8 px-4">
+          <div className="rounded-2xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] p-6 space-y-4 text-sm text-slate-200">
+            <Lock aria-hidden="true" className="w-8 h-8 text-amber-400" />
+            <h2 id="locked-stage-heading" className="text-xl font-bold text-white">Stage {selectedLockedStage.shortLabel}: {selectedLockedStage.name} is not available yet</h2>
+            <p role="status">{active
+              ? <>Your workflow is at Stage {active.shortLabel} ({active.name}). Stages open one at a time after the current stage is completed and confirmed.</>
+              : <>Your tax-year workflow status has not been reported by the server, so no stage can be opened. Refresh, or contact your advisor.</>}</p>
+            {active && (
+              <button type="button" onClick={() => handleSelectNav(active.number === 1 ? 'stage_01' : active.number === 2 ? 'stage_02' : 'stage_' + active.shortLabel)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] inline-flex items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+                <span>Go to Stage {active.shortLabel} ({active.name})</span>
+                <ArrowRight aria-hidden="true" className="w-4 h-4" />
               </button>
-            </div>
+            )}
           </div>
-        </div>
+        </section>
       );
     }
 
@@ -461,26 +441,26 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           <div className="max-w-7xl mx-auto px-4 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0D2745] border border-[rgba(148,163,184,0.18)] p-4 rounded-xl">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded">
-                  ✓ COMPLETED &bull; HARD EXIT GATE PASSED
-                </span>
+{getStageStatus(1) === 'completed'
+                  ? <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded">✓ Completed</span>
+                  : <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40 rounded">In progress</span>}
                 <span className="text-xs text-slate-400 font-mono">Stage 01 of 18</span>
               </div>
               <h2 className="text-lg font-bold text-white">Stage 01 (Onboard) Dossier &mdash; Read-Only Review</h2>
               <p className="text-xs text-slate-300">
-                Your statutory onboarding dossier and IRC § 7216 Consent status are recorded and locked.
+                {getStageStatus(1) === 'completed' ? 'Your onboarding details and consent status are recorded.' : 'Onboarding is not complete yet.'}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <button
+              {getStageStatus(1) === 'completed' && <button
                 type="button"
                 onClick={() => handleSelectNav('stage_02')}
                 className="px-4 py-2 rounded-lg text-xs font-bold text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <span>Continue to Stage 02</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -515,15 +495,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </button>
           </div>
 
-          <StageTwoCollectionWorkspace
-            clientId={clientId}
-            selectedTaxYear={selectedTaxYear}
-            onTaxYearChange={onTaxYearChange}
-            userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' || currentUser?.role === 'super_admin' ? 'STAFF' : 'CLIENT'}
-            initialSubTab={activeNavId === "upload" ? "upload" : "checklist"}
-            serverStageThreeEligible={authority?.eligibility?.eligibility?.stage3 === true}
-            onServerWorkflowRefresh={onServerWorkflowRefresh}
-          />
+          {/* Durable Stage 02 collection (proposals 053/054 and the vault): server-recorded drafts,
+              requirements, applicability claims, practice requests and uploads. The former browser-local
+              workspace (localStorage records) is no longer shown to clients. */}
+          <DurableClientCollectionWorkspace clientId={clientId} taxYear={selectedTaxYear} />
         </div>
       );
     }
@@ -555,12 +530,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           <ClientDocumentRequestsPanel clientId={clientId} />
           <ClientDocumentVaultPanel clientId={clientId} />
           <ClientInvoicesPanel clientId={clientId} />
-
-          <MyDocumentsClientVault
-            clientId={clientId}
-            selectedTaxYear={selectedTaxYear}
-            onNavigateToUpload={() => handleSelectNav('stage_02')}
-          />
+          {/* The legacy in-memory document list (/api/documents) is no longer shown: the durable vault above is authoritative. */}
         </div>
       );
     }
@@ -675,6 +645,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     }
 
     // 15. SETTINGS
+    if (activeNavId === 'notifications') {
+      return <ClientNotificationsPanel key={clientId} clientId={clientId} />;
+    }
+
     if (activeNavId === 'settings') {
       return (
         <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
@@ -686,10 +660,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             <div className="space-y-3 text-xs text-slate-300">
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
                 <div>
-                  <div className="font-semibold text-white">Email Notifications</div>
-                  <div className="text-[11px] text-slate-400">Receive alerts when documents are verified or requests issued</div>
+                  <div className="font-semibold text-white">Notifications</div>
+                  <div className="text-[11px] text-slate-400">Practice notices appear under Notifications in this portal. E-mail and text delivery are not offered.</div>
                 </div>
-                <span className="text-slate-300 font-bold">Preference not loaded</span>
+                <button type="button" onClick={() => handleSelectNav('notifications')} className="text-[#D4A843] font-bold underline">Open notifications</button>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#071A2E] border border-slate-800">
                 <div>
@@ -743,13 +717,9 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     // 17. STAGES 03 THROUGH 18
     if (activeNavId === 'stage_03') {
       return (
-        <StageThreeValidationWorkspace
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-          onTaxYearChange={onTaxYearChange}
-          userRole={currentUser?.role === 'accountant' || currentUser?.role === 'reviewer' || currentUser?.role === 'admin' ? 'accountant' : 'client'}
-          onNavigateToStageTwo={() => handleSelectNav('stage_02')}
-        />
+        // Stage 03 validation is performed and attested by practice staff; the client answers
+        // clarification requests in the durable Stage 02 collection workspace.
+        <TaxStageStatusView stage={3} selectedTaxYear={selectedTaxYear} workflowStatus={getStageStatus(3)} onNavigate={target => handleSelectNav(target === 'documents' ? 'stage_02' : target)} />
       );
     }
     if (activeNavId === 'stage_04') {
@@ -798,80 +768,18 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
         />
       );
     }
-    if (activeNavId === 'stage_09' || activeNavId === 'tax_prep') {
+    // Stages 09-18: one truthful view driven by the canonical stage capabilities (server policy 026).
+    // No figures, signatures, filing or acknowledgements are shown; blocked stages explain why.
+    const STAGE_ALIASES: Record<string, number> = { tax_prep: 9, approval: 10, signature: 11, filing: 12, completed: 15 };
+    const lateStage = STAGE_ALIASES[activeNavId] ?? (/^stage_(09|1[0-8])$/.test(activeNavId) ? Number(activeNavId.slice(6)) : 0);
+    if (lateStage) {
       return (
-        <StageNinePrepareView
-          clientId={clientId}
+        <TaxStageStatusView
+          key={clientId + ':' + selectedTaxYear + ':' + lateStage}
+          stage={lateStage}
           selectedTaxYear={selectedTaxYear}
-          onNavigateToStageTen={() => handleSelectNav('stage_10')}
-        />
-      );
-    }
-    if (activeNavId === 'stage_10' || activeNavId === 'approval') {
-      return (
-        <StageTenApproveView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-          onNavigateToStageEleven={() => handleSelectNav('stage_11')}
-        />
-      );
-    }
-    if (activeNavId === 'stage_11' || activeNavId === 'signature') {
-      return (
-        <StageElevenSignView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-        />
-      );
-    }
-    if (activeNavId === 'stage_12' || activeNavId === 'filing') {
-      return (
-        <StageTwelveFileView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-        />
-      );
-    }
-    if (activeNavId === 'stage_13') {
-      return (
-        <StageThirteenFeedbackView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-        />
-      );
-    }
-    if (activeNavId === 'stage_14') {
-      return (
-        <StageFourteenResolveView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-        />
-      );
-    }
-    if (activeNavId === 'stage_15' || activeNavId === 'completed') {
-      return (
-        <StageFifteenMonitorView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-        />
-      );
-    }
-    if (activeNavId === 'stage_17') {
-      return (
-        <StageSeventeenRenewView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-        />
-      );
-    }
-    if (activeNavId === 'stage_18') {
-      return (
-        <StageEighteenRepeatView
-          clientId={clientId}
-          selectedTaxYear={selectedTaxYear}
-          clientName={clientName}
-          onNavigateToYear={(year) => onTaxYearChange?.(year)}
-          onNavigateToVault={() => handleSelectNav('documents')}
+          workflowStatus={getStageStatus(lateStage as StageNumber)}
+          onNavigate={target => handleSelectNav(target)}
         />
       );
     }

@@ -13,13 +13,7 @@ import { StageOneOnboardingService } from '../../services/stageOneOnboardingServ
 
 
 
-import {
-  StageTwoCollectionWorkspace
-} from '../collection/StageTwoCollectionWorkspace';
 
-import {
-  StageThreeValidationWorkspace
-} from '../validation/StageThreeValidationWorkspace';
 
 import {
   useLiveWorkflowAuthority
@@ -265,24 +259,9 @@ React.FC<LiveClientWorkflowRouterProps> = ({
           onEnterStageTwo={() => setViewMode('workspace')}
           onReviewStageOne={() => setViewMode('review_stage1')}
           initialNav="home"
-          authority={{
-            ...authority,
-            workflow: {
-              ...authority.workflow,
-              activeStage: 2,
-              stage1: { ...authority.workflow.stage1, status: 'COMPLETED' },
-              stage2: { ...authority.workflow.stage2, status: 'IN_PROGRESS' }
-            },
-            eligibility: authority.eligibility
-              ? {
-                  ...authority.eligibility,
-                  eligibility: {
-                    ...authority.eligibility.eligibility,
-                    stage2: true
-                  }
-                }
-              : null
-          }}
+          // Server workflow authority is passed through unchanged: local onboarding hints never mark
+          // Stage 01 complete or Stage 02 eligible. The dashboard shows what the server reports.
+          authority={authority}
           onServerWorkflowRefresh={refreshAuthority}
         />
       );
@@ -409,15 +388,18 @@ React.FC<LiveClientWorkflowRouterProps> = ({
     }
 
     return (
-      <DashboardApplicationShell workspace="client" title="Document Validation" navigation={<button className="m-3 p-3 text-sm" onClick={refreshAuthority}>Refresh workflow</button>}>
-      <StageThreeValidationWorkspace
+      // Stage 03 is performed by practice staff; the client sees the canonical stage view and answers
+      // clarification requests in the durable collection workspace (no browser-local validation state).
+      <AuthenticatedClientDashboard
         clientId={clientId}
         selectedTaxYear={selectedTaxYear}
         onTaxYearChange={handleTaxYearChange}
-        userRole="client"
-        onNavigateToStageTwo={refreshAuthority}
+        onEnterStageTwo={() => setViewMode('workspace')}
+        onReviewStageOne={() => setViewMode('review_stage1')}
+        initialNav="stage_03"
+        authority={authority}
+        onServerWorkflowRefresh={refreshAuthority}
       />
-      </DashboardApplicationShell>
     );
   }
 
