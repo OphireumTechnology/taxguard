@@ -78,6 +78,7 @@ import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import { ClientSearchModal } from './dashboard/ClientSearchModal';
 import { NotificationCenterDropdown } from './dashboard/NotificationCenterDropdown';
 import { getStoredToken } from '../../services/api';
+import { useClientPanelSession } from '../../hooks/useClientPanelSession';
 
 interface WorkflowStageItem {
   number: StageNumber;
@@ -205,6 +206,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   onServerWorkflowRefresh
 }) => {
   const { currentUser, logout, notifications, authLifecycleState } = useApp();
+  // Re-render dashboard reads too when storage or an in-tab session mutation changes the token.
+  useClientPanelSession(clientId);
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
   const dashboardData = useClientDashboardData(currentUser, authLifecycleState, clientId, selectedTaxYear, dashboardRefresh);
   const dashboardScope = { userId: currentUser?.id || "", tenantId: currentUser?.tenantId || "", clientId, taxYear: selectedTaxYear };
@@ -258,7 +261,11 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handlePopState = () => {
+      const anchor = window.location.hash.slice(1);
+      if (anchor && document.getElementById(anchor)) return;
       const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+      const saved = navFromHash(window.location.hash);
+      if (saved) { setActiveNavId(saved); setSelectedLockedStage(null); return; }
       if (pathname === '/portal/documents') setActiveNavId('documents');
       else if (pathname === '/portal/collection') setActiveNavId('questionnaire');
       else if (pathname === '/portal/requests') setActiveNavId('requests');
@@ -267,7 +274,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       else if (pathname === '/portal/dashboard') setActiveNavId('home');
     };
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => { window.removeEventListener('popstate', handlePopState); window.removeEventListener('hashchange', handlePopState); };
   }, []);
 
   // Collapsible sidebar state
@@ -340,8 +348,9 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   const handleSelectNav = (navId: string) => {
     setActiveNavId(navId);
-    if (typeof window !== 'undefined' && navFromHash('#nav=' + navId)) {
-      window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + '#nav=' + navId);
+    // One history entry per view, so browser Back / Forward move between portal views.
+    if (typeof window !== 'undefined' && navFromHash('#nav=' + navId) && window.location.hash.toLowerCase() !== '#nav=' + navId) {
+      window.history.pushState(window.history.state, '', window.location.pathname + window.location.search + '#nav=' + navId);
     }
     setSelectedLockedStage(null);
     setMobileDrawerOpen(false);
@@ -646,7 +655,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
     // 15. SETTINGS
     if (activeNavId === 'notifications') {
-      return <ClientNotificationsPanel key={clientId} clientId={clientId} />;
+      return <ClientNotificationsPanel key={clientId} clientId={clientId} onOpenRequests={() => handleSelectNav('documents')} />;
     }
 
     if (activeNavId === 'settings') {
