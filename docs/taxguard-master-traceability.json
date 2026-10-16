@@ -5057,14 +5057,31 @@
     },
     {
       "file": "docs/development/phase12b-frontend-integration.md",
-      "sha256": "35f614a5d75d75cfb3f6b89bf3a5d987f3277dc4bfac5e6a56f2d5acafd50b69",
-      "bytes": 5256,
+      "sha256": "cca144c33a8b2f67de4350435bf8879cc26937c5d4396f06f0d6eb17abdf9873",
+      "bytes": 5547,
       "headings": [
         "# Phase 12B frontend ↔ Phase 12 backend integration (coordination with Codex)",
         "## Existing contracts the Phase 12B UI relies on (committed in `main`)",
         "## Required backend contracts (not invented; UI stays unavailable until they exist)",
         "## Conflicts and overlaps",
         "## Recommended integration order"
+      ]
+    },
+    {
+      "file": "docs/development/phase13a-contract-register.md",
+      "sha256": "12d4f674a085b253051f0f569a079510a77c4e32ffcad0869967f642a67d55d2",
+      "bytes": 8834,
+      "headings": [
+        "# Phase 13A contract register (C1–C8)",
+        "## C3: client reads for tax stages 04–08",
+        "## C1: client consultation history",
+        "## C4: durable staff onboarding",
+        "## C5: durable consultation rooms",
+        "## C6: notification preferences",
+        "## C7: live per-agent commissioning records",
+        "## C8: contact form delivery (prepared, disabled)",
+        "## C2: client MFA management (partial)",
+        "## Owner decisions raised by Phase 13A"
       ]
     },
     {
@@ -5188,14 +5205,15 @@
     },
     {
       "file": "docs/development/staging-readiness.md",
-      "sha256": "0ba628566d3fc85f06709eb0a895d9519e1f53ea87e32c5125de922d8728d1e1",
-      "bytes": 9182,
+      "sha256": "cdc6a62b757810ebaaab2cc943494df2c448691e1ea71652a0057705154378e6",
+      "bytes": 9780,
       "headings": [
         "# Staging readiness and implementation plan (updated 2026-10-14, Phase 11)",
         "## Current state",
         "## Implementation plan (each step needs the owner's go-ahead)",
         "## Phase 9 preparation artifacts (local, offline)",
         "## Phase 10 artifacts (local, offline)",
+        "## Phase 13A contract completion (local, offline)",
         "## Release checklist (staging; every step needs owner approval)"
       ]
     },
