@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "b67731c9040f1a41fe999341ecb0ac9810b1b1f070397bdd45695daa8b7ae4a1",
+  "executionPlanSha256": "9e9fe52f44afbde6822864623a9016d326c40629648cb62ae4ec4813d230cc2c",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3218,6 +3218,63 @@
         "--     or OPEN. The access window opens 15 minutes before the start and closes 15 minutes after the end.",
         "--   * The appointment's meeting link is returned only while the room is OPEN for a confirmed remote",
         "--     appointment. No video transport is provided or implied: videoProvider is 'NOT_COMMISSIONED'."
+      ]
+    },
+    {
+      "order": 66,
+      "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
+      "kind": "proposal",
+      "version": "20261016040000",
+      "sha256": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_client_notification_prefs",
+        "taxguard_reminders_enabled",
+        "taxguard_notification_prefs",
+        "taxguard_notification_pref_set",
+        "taxguard_client_notifications_list"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_client_notifications_list",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply proposal 031's taxguard_client_notifications_list, then drop the"
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON TABLE public.taxguard_client_notification_prefs FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "IF f.proname <> 'taxguard_reminders_enabled' THEN EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig); END IF;"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 13A, contract C6). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 027 (taxguard_doc_actor) and 031 (client notifications).",
+        "--",
+        "-- Durable per-user notification preferences for client portal users.",
+        "--   * Only the in-app channel exists. E-mail and SMS are reported as NOT_COMMISSIONED and cannot be",
+        "--     stored or enabled: no transport, channel-consent wording or retention policy is approved.",
+        "--   * Categories:",
+        "--       DOCUMENT_REQUESTS   - requests, fulfilment, waivers, cancellations, replacements, rejections.",
+        "--                             Action-required service notices: MANDATORY, cannot be turned off.",
+        "--       ACCOUNT_SECURITY_LEGAL - security and legal notices: MANDATORY, cannot be turned off.",
+        "--       DOCUMENT_REMINDERS  - repeat reminders for an open request (kind REQUEST_REMINDER): OPTIONAL.",
+        "--     Turning reminders off hides reminder notifications for that user only. The request itself and"
       ]
     }
   ]

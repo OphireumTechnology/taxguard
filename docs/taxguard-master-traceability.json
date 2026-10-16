@@ -2917,6 +2917,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-CONTRACT-C6-NOTIFICATION-PREFERENCES",
+      "requirement": "Durable per-user in-app notification preferences: reminders optional, required notices locked on, e-mail and SMS not commissioned and not storable",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql"
+      ],
+      "tests": [
+        "src/tests/notificationPreferences.test.ts"
+      ],
+      "remaining": "Proposal unapplied; e-mail/SMS need a transport, channel-consent wording and retention policy (owner decision).",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CONSULTATION-REQUESTS",
       "requirement": "Public consultation requests: validated, consented, rate-limited, idempotent submissions; manager review and conversion through the appointment service",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4840,8 +4859,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "87ea68b94b57c862284f3b963c0cdc5b85aa6f8f9dd3219f0ba2b4a184f4cf15",
-      "bytes": 14217,
+      "sha256": "32df5e6e8ec14671dc10cd19794ae0362e5fc451919b8dee924cf695ca74fe29",
+      "bytes": 14377,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5528,6 +5547,12 @@
       "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
       "sha256": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
       "bytes": 9736,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
+      "sha256": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
+      "bytes": 9531,
       "headings": []
     },
     {
@@ -6549,6 +6574,7 @@
     "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql": "1a662df6d1fdba046dd513eb119770dea44d6c706d7b3569adeffdda709de8a5",
     "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
     "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
+    "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "c230645d2a5ec57c4e817235af1d3b133bfe6a739ac67e07805e7b6cb27478cb",
@@ -6586,7 +6612,7 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "ae16019440ff800117193fa2fa0d7368c2a55fca2f6f99a2d1bbe2a968d2a99a",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "9ddcc9430fd7a711b2547cb0acd71a149905ef022fbceff2a43278166f099ab6",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
     "src/components/workspace/AccountantDashboard.tsx": "d062efd4e46f0d85b2fc11ef58fd8814fd16356f6f678b4e7096bfa61d4232b5",
@@ -6728,6 +6754,7 @@
     "src/tests/mfaRecoveryHistory.test.ts": "61e7e30f2402f8d96ef0528146467fcbf38b64d2a2173a31aa73aad1b79dd836",
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
     "src/tests/migrationReadinessAudit.test.ts": "f16d875e253293afecfdd36f2ae3adf6c7ed3ab7b79e21b26934a1a6c43adbc9",
+    "src/tests/notificationPreferences.test.ts": "e72b02069574eb53f116eeed551a22437327782ae6f2ea6c1f7f0ae34128d589",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
     "src/tests/phase10AiReadiness.test.ts": "93d6fd51736a66468d939aa839b1e610f32ea57fbbdfb4320d90f617740931ea",
@@ -6740,7 +6767,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "d399dc664c38dcbc2758dfcfa02f0e1815d62a841b4861d7215bb0800fec2313",
+    "src/tests/proposalCompositionSecurity.test.ts": "04b52dfbffe9a2f0971ae39433763376c66eef57df0626baaa2c8ec8e4ed235d",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

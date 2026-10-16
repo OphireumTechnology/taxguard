@@ -403,6 +403,13 @@
         "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
         "docs/proposed-migrations/20261014400000_taxguard_appointments.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ]
     }
   ]
 }

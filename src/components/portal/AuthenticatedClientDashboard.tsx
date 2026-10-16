@@ -75,6 +75,7 @@ import { TaxStageStatusView } from './views/stages/TaxStageStatusView';
 import { ClientCaseStageView } from './views/stages/ClientCaseStageView';
 import { ClientConsultationHistoryPanel } from './dashboard/ClientConsultationHistoryPanel';
 import { ClientNotificationsPanel } from './dashboard/ClientNotificationsPanel';
+import { ClientNotificationPreferencesPanel } from './dashboard/ClientNotificationPreferencesPanel';
 import { BLOCKED_STAGES } from '../../taxguard/stageCapabilities';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import { ClientSearchModal } from './dashboard/ClientSearchModal';
@@ -649,7 +650,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
     // 15. SETTINGS
     if (activeNavId === 'notifications') {
-      return <ClientNotificationsPanel key={clientId} clientId={clientId} />;
+      return <><ClientNotificationsPanel key={clientId} clientId={clientId} /><ClientNotificationPreferencesPanel key={'prefs-' + clientId} clientId={clientId} /></>;
     }
 
     if (activeNavId === 'settings') {

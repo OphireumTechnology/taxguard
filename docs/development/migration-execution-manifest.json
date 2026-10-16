@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 66,
+    "files": 67,
     "core": 13,
-    "proposals": 52,
-    "tables": 142,
-    "functions": 323,
-    "securityDefinerFunctions": 247,
+    "proposals": 53,
+    "tables": 143,
+    "functions": 326,
+    "securityDefinerFunctions": 250,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2772,6 +2772,42 @@
     },
     {
       "order": 66,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_client_notification_prefs"
+      ],
+      "functionsAdded": [
+        "taxguard_notification_pref_set",
+        "taxguard_notification_prefs",
+        "taxguard_reminders_enabled"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_client_notifications_list",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 1,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        30,
+        34
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 67,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
