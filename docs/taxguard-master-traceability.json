@@ -2841,6 +2841,82 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-CONTRACT-C3-CLIENT-CASE-STAGES",
+      "requirement": "Client reads for tax stages 04-08 from the durable case: status, requirements, booleans-only checks, evidence counts, team presence",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql"
+      ],
+      "tests": [
+        "src/tests/portalCaseStages.test.ts"
+      ],
+      "remaining": "Proposal unapplied; local verification only; stages 09-18 stay blocked.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-CONTRACT-C1-CONSULTATION-HISTORY",
+      "requirement": "Client consultation history: own converted requests with current appointment status, keyset paged",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql"
+      ],
+      "tests": [
+        "src/tests/portalConsultations.test.ts"
+      ],
+      "remaining": "Proposal unapplied; local verification only.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-CONTRACT-C4-STAFF-ONBOARDING",
+      "requirement": "Durable staff onboarding status for the verified identity: membership, MFA assurance, recovery and assignments; replaces the in-memory dossier",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql"
+      ],
+      "tests": [
+        "src/tests/staffOnboardingStatus.test.ts"
+      ],
+      "remaining": "Proposal unapplied; professional dossier (credentials, PTIN/EFIN) awaits an owner data and retention decision.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-CONTRACT-C5-CONSULTATION-ROOMS",
+      "requirement": "Durable consultation rooms derived from appointments: participant scope, access window, link only while open, append-only join/leave events, no video provider",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql"
+      ],
+      "tests": [
+        "src/tests/appointmentRooms.test.ts"
+      ],
+      "remaining": "Proposal unapplied; no video provider commissioned; recording requires provider, consent and retention decisions.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CONSULTATION-REQUESTS",
       "requirement": "Public consultation requests: validated, consented, rate-limited, idempotent submissions; manager review and conversion through the appointment service",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4764,8 +4840,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f71d046b859419b4834f28f6fc8d2f6e5d825ceb5956a43ec0ba37ba6e8afa84",
-      "bytes": 13752,
+      "sha256": "87ea68b94b57c862284f3b963c0cdc5b85aa6f8f9dd3219f0ba2b4a184f4cf15",
+      "bytes": 14217,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5428,6 +5504,30 @@
       "file": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
       "sha256": "b01be3c7a49f6e55f7a98c0d5ea9ea10a592487caf3d3ee8d1cb2888aed1e8a8",
       "bytes": 5039,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
+      "sha256": "6978fcb35b55de43fea9f89b183c76ff3add8ce94abd76f72b149f3e796efbd8",
+      "bytes": 6257,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql",
+      "sha256": "1a662df6d1fdba046dd513eb119770dea44d6c706d7b3569adeffdda709de8a5",
+      "bytes": 3951,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
+      "sha256": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
+      "bytes": 3338,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
+      "sha256": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
+      "bytes": 9736,
       "headings": []
     },
     {
@@ -6445,6 +6545,10 @@
     "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql": "fd9dc9e6372c5bbfb6cee648f84881993af987f6b4b99bcf1b96a495856ff5e9",
     "docs/proposed-migrations/20261014480000_taxguard_security_events.sql": "a712964ecd311b10b8f43569bad65289a8ae7a841e611682171f394a38825209",
     "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql": "10e2144dfb7a56e1b4bae28a5d755a5f9f9472ad0da91b78a9b304b4bc932290",
+    "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql": "6978fcb35b55de43fea9f89b183c76ff3add8ce94abd76f72b149f3e796efbd8",
+    "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql": "1a662df6d1fdba046dd513eb119770dea44d6c706d7b3569adeffdda709de8a5",
+    "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
+    "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "c230645d2a5ec57c4e817235af1d3b133bfe6a739ac67e07805e7b6cb27478cb",
@@ -6472,7 +6576,7 @@
     "scripts/staging/migration-manifest.mjs": "4dfee1c12a9c57883e7351f3ca9d0968caf3baa489fb6022f47ec352221da1fd",
     "scripts/synthetic-acceptance-plan.mjs": "9ffaaf343b846010ef6fad24d11b98b90e49e43a07b748e10583cb1801ac0df7",
     "scripts/verify-local-traceability.mjs": "e7aff96754962c5e14fadb07df2418912d926b72fc254a94d66dc6496018b000",
-    "src/App.tsx": "cae05677f55137415f9aad3687d63ffd94e4a12d5a145f81abc815ee162fda33",
+    "src/App.tsx": "7e14e639695763801b6cd4b4da3a280df748c991113ed5cd8909d39cc5b82803",
     "src/ai/architectureMapping.ts": "6d7af6b6cb2860e0247af0243b42e2704f1d77ee020cec5e6625a386115c9377",
     "src/ai/commissioningMatrix.ts": "64b85ee919c815116bd87578c1ddf8c4e56403b2cfe0fed5df0e0a90d89d181e",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
@@ -6482,7 +6586,7 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "bc36bcdac9eeffed6de0dfdbcbe052cc776aa732c12cbd3aa0bb71b1d37faf2b",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "ae16019440ff800117193fa2fa0d7368c2a55fca2f6f99a2d1bbe2a968d2a99a",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
     "src/components/workspace/AccountantDashboard.tsx": "d062efd4e46f0d85b2fc11ef58fd8814fd16356f6f678b4e7096bfa61d4232b5",
@@ -6574,6 +6678,7 @@
     "src/tests/aiLegacyProductionBoundary.test.ts": "7c0a5d3629e21e8951e2622c8e35e8fd89f1d8ca54b95cff2232e00ccd400180",
     "src/tests/aiMaterialActionPreparation.test.ts": "3eb2692f81a4297085daa12b719c87af609c76e4e7c7b6528df60e4ebeeb9eef",
     "src/tests/apiResponseRecovery.test.ts": "19420de069febcb49b8bfabd1c600c298cc402c68df94a093259e376d9fd6a67",
+    "src/tests/appointmentRooms.test.ts": "046c81dda4e8c46bec1771a8fe5b6fc8da314617403725fa3365872f0f3d8b1e",
     "src/tests/appointments.test.ts": "6591ddb5f6f5357361dbe583444ab7ee169c72ed78212d07302b5e37afc5834f",
     "src/tests/auditAppendOnlyProposal.test.ts": "5564438b5da4b5cdf9eda09a89bc5b2ff4f71154cff652b1c46833fafeb7af64",
     "src/tests/auditCenter.test.ts": "56bcdba92323a06c60dba4fb66349e2478bf7e32b41f6327a95e7599894bba41",
@@ -6604,7 +6709,7 @@
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
-    "src/tests/frontendReachabilityGuard.test.ts": "0ae61f211ec71b1b1b2025bece9d3d51030e5695722f7d39ccdb822b805a65fd",
+    "src/tests/frontendReachabilityGuard.test.ts": "e5987f3cefc5da4a96d2e5df200bb4cb3e5e55aa744607ed7ffcbacb49019677",
     "src/tests/healthEndpoints.test.ts": "0f689a65b46c67154c5ac4d04a475eb0385242b447db9e05cbd6ecad818eb1a3",
     "src/tests/lazyWorkspaceRouting.test.tsx": "c3c37d7e22fd803411a4c3e015e6d948215edfbfd5386b9a020e5f1a03a88140",
     "src/tests/ledgerIntegrityAndPeriodClose.test.ts": "e4ad4219a908f5eb441d394348d3fa745afafb4129340dd7180cdd7a2f902f0b",
@@ -6627,13 +6732,15 @@
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
     "src/tests/phase10AiReadiness.test.ts": "93d6fd51736a66468d939aa839b1e610f32ea57fbbdfb4320d90f617740931ea",
     "src/tests/phase12bFrontend.test.tsx": "b84b2fb03adae85e04b5e28a89d837283f23223f0c82d8fb227c64f5e8d6e735",
+    "src/tests/portalCaseStages.test.ts": "e0b075ec2e6d6cf17097f276bb4f0f0626e31d898b70a736b53981be3993e80a",
+    "src/tests/portalConsultations.test.ts": "5515ad61f3741711f371be1f24032865459e4889cee773f01e0bdf0c983d65aa",
     "src/tests/practiceManagementHttp.test.ts": "1004e5d96081e29a86c3cfe23c98ec19dcf08e319c07266cf06355bc578f1e72",
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
     "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "1c9771339d230eb865cad45f4260e69691596a911f81b146755b06cbf9f32cae",
+    "src/tests/proposalCompositionSecurity.test.ts": "d399dc664c38dcbc2758dfcfa02f0e1815d62a841b4861d7215bb0800fec2313",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
@@ -6648,6 +6755,7 @@
     "src/tests/staffAccessHardening.test.ts": "a4459de7f511cb9733562f459cbb6f75d0e8d4cb240c2cab5b1f3c6531edc78d",
     "src/tests/staffAccountSecurityPage.test.tsx": "5feca740f558a64a1b2d73952307feb61f4e20a4887f7233c5c409bce46a7400",
     "src/tests/staffAssignmentDateAuthorization.test.ts": "feb894945bb673466d5ad77a9348f0609e94acc6672979465ce17f4c3b08652c",
+    "src/tests/staffOnboardingStatus.test.ts": "0cf675b4536dedd57730fdf1d0da850de9245044f7347f81fb562379b156b20b",
     "src/tests/staffRoutingAuthorityCeiling.test.ts": "2d7cc74ec7f9c4056a2804d37bd4140e9fc7df914cae9759d447fea4792ba3f6",
     "src/tests/staffSessionManagementHttp.test.ts": "6a7bc6846e601c982ef8fb2e7a903a4f57fcf5a335e09325d5c7baa8bc702835",
     "src/tests/stageCapabilities.test.ts": "103fa07dd364ca4923dfdd9c014499398291e3e92f5ad626416be4a4a63f5872",

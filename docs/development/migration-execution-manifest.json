@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 65,
+    "files": 66,
     "core": 13,
-    "proposals": 51,
-    "tables": 141,
-    "functions": 318,
-    "securityDefinerFunctions": 244,
+    "proposals": 52,
+    "tables": 142,
+    "functions": 323,
+    "securityDefinerFunctions": 247,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2738,6 +2738,40 @@
     },
     {
       "order": 65,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_appointment_room_events"
+      ],
+      "functionsAdded": [
+        "taxguard_apt_room",
+        "taxguard_apt_room_event",
+        "taxguard_room_events_append_only",
+        "taxguard_room_participant",
+        "taxguard_room_state"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 1,
+      "indexesAdded": 2,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        28,
+        30,
+        43
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 66,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

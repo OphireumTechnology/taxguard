@@ -396,6 +396,13 @@
         "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014400000_taxguard_appointments.sql"
+      ]
     }
   ]
 }

@@ -30,7 +30,7 @@ const IndustriesPage = lazy(() => import('./components/public/IndustriesPage').t
 const NotFoundPage = lazy(() => import('./components/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 import { ClientLoginPage, ClientRegisterPage, StaffLoginPage } from './components/auth/AuthPages';
 const StaffOnboardingStatusPage = lazy(() => import('./components/workspace/StaffOnboardingStatusPage').then(m => ({ default: m.StaffOnboardingStatusPage })));
-const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
+const ConsultationRoomPage = lazy(() => import('./components/appointments/ConsultationRoomPanel').then(m => ({ default: m.ConsultationRoomPage })));
 
 // Resolve role authority before requesting the associated workspace module.
 const PublicV2Router = lazy(() => import('./public-v2/PublicV2Router').then(m => ({ default: m.PublicV2Router })));
@@ -412,8 +412,9 @@ const AppContent: React.FC = () => {
 
     if (currentPage === 'staff_onboarding') {
       if (isInitializingAuth) return renderAuthInitializingState();
-      // Durable onboarding status (contract C4). Works from the provider session, so a member
-      // still pending approval (no TaxGuard session yet) can see what is outstanding.
+      if (!currentUser) return <StaffLoginPage />;
+      // Durable onboarding status (contract C4), read with the verified provider session. A member
+      // still pending approval is told so when accepting the invitation.
       return <StaffOnboardingStatusPage />;
     }
 
@@ -439,8 +440,9 @@ const AppContent: React.FC = () => {
       case 'live_calendar': return <BookConsultationPage />;
       case 'virtual_consultation_room':
         return (
-          <VirtualConsultationRoom
-            roomId={pageParams?.roomId}
+          // Durable room derived from the appointment (contract C5); the in-memory room is retired.
+          <ConsultationRoomPage
+            clientId={pageParams?.clientId}
             appointmentId={pageParams?.appointmentId}
             onExit={() => setCurrentPage('stage_one_onboard')}
           />

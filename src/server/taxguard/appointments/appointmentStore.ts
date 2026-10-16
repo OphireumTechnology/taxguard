@@ -11,7 +11,8 @@ export class AppointmentStoreError extends Error {
 }
 const STATUS: Record<string, number> = { APPOINTMENT_ACCESS_DENIED: 403, APPOINTMENT_STAFF_REQUIRED: 403, APPOINTMENT_MANAGER_REQUIRED: 403, PRACTICE_ACCESS_DENIED: 403,
   APPOINTMENT_STAFF_CONFLICT: 409, APPOINTMENT_CLIENT_CONFLICT: 409, APPOINTMENT_VERSION_CONFLICT: 409, APPOINTMENT_CLOSED: 409, APPOINTMENT_TRANSITION_INVALID: 409,
-  APPOINTMENT_NOT_STARTED: 409, IDEMPOTENCY_KEY_REUSED: 409, APPOINTMENT_SCOPE_MISMATCH: 422, APPOINTMENT_STAFF_INVALID: 422 };
+  APPOINTMENT_NOT_STARTED: 409, IDEMPOTENCY_KEY_REUSED: 409, APPOINTMENT_SCOPE_MISMATCH: 422, APPOINTMENT_STAFF_INVALID: 422,
+  ROOM_NOT_OPEN: 409, ROOM_EVENT_LIMIT: 429, ROOM_INPUT_INVALID: 400 };
 const publicCode = (code: string) => ({ DOCUMENT_NOT_FOUND: 'APPOINTMENT_CLIENT_NOT_FOUND', DOCUMENT_ACCESS_DENIED: 'APPOINTMENT_ACCESS_DENIED', DOCUMENT_INPUT_INVALID: 'APPOINTMENT_INPUT_INVALID' } as Record<string, string>)[code] ?? code;
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 const KEY = /^[A-Za-z0-9_.:-]{8,80}$/;
@@ -49,6 +50,11 @@ export class AppointmentStore {
     return this.call('taxguard_apt_create', { ...this.b(tenant, client, actor), p_id: id, p_key: key, p_input: { ...input, startsAt: this.iso(input.startsAt), endsAt: this.iso(input.endsAt) } });
   }
   get(tenant: string, client: string, actor: string, id: unknown) { return this.call('taxguard_apt_get', { ...this.b(tenant, client, actor), p_id: this.id(id) }); }
+  /** Contract C5: derived consultation-room state and durable join / leave events (no video transport). */
+  room(tenant: string, client: string, actor: string, id: unknown) { return this.call('taxguard_apt_room', { ...this.b(tenant, client, actor), p_appointment: this.id(id) }); }
+  roomEvent(tenant: string, client: string, actor: string, id: unknown, event: 'JOINED' | 'LEFT') {
+    return this.call('taxguard_apt_room_event', { ...this.b(tenant, client, actor), p_appointment: this.id(id), p_event: event });
+  }
   listForClient(tenant: string, client: string, actor: string) { return this.call<any[]>('taxguard_apt_list_client', this.b(tenant, client, actor)); }
   schedule(tenant: string, actor: string, from: unknown, to: unknown, staffUid?: string) {
     return this.call<any[]>('taxguard_apt_schedule', { p_tenant: tenant, p_actor: actor, p_from: this.iso(from), p_to: this.iso(to), p_staff: staffUid ?? null });

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "a8a14cb9824c23381c200d6fe3c054939aab3b3680403a58dda380a5dd05adb9",
+  "executionPlanSha256": "b67731c9040f1a41fe999341ecb0ac9810b1b1f070397bdd45695daa8b7ae4a1",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3165,6 +3165,59 @@
         "-- MFA state is NOT stored here: the server adds it from the verified token (assurance level and",
         "-- verified factor count) and from taxguard_mfa_recovery_step. No credential or factor is created,",
         "-- read or reset by this function. A professional dossier (credentials, PTIN/EFIN, jurisdictions)"
+      ]
+    },
+    {
+      "order": 65,
+      "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
+      "kind": "proposal",
+      "version": "20261016030000",
+      "sha256": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014400000_taxguard_appointments.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261014400000_taxguard_appointments.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_appointment_room_events",
+        "taxguard_room_events_append_only",
+        "taxguard_room_participant",
+        "taxguard_room_state",
+        "taxguard_apt_room",
+        "taxguard_apt_room_event"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the two functions and the events table (events are history only)."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON TABLE public.taxguard_appointment_room_events FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "IF f.proname IN ('taxguard_apt_room','taxguard_apt_room_event') THEN EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig); END IF;"
+      ],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 13A, contract C5). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 027 (taxguard_doc_actor) and 040 (appointments).",
+        "--",
+        "-- Durable consultation rooms, derived from the authoritative appointment (proposal 040) instead of",
+        "-- the legacy in-memory /api/consultation-rooms state (which fabricated participant names).",
+        "--   * Participants: the client of the appointment's client, the appointment's assigned staff member",
+        "--     (host) and practice managers / administrators. Other staff, other clients and other tenants",
+        "--     are refused (APPOINTMENT_NOT_FOUND, no existence disclosure).",
+        "--   * Room state is computed, never stored: NOT_REMOTE, NOT_CONFIRMED, CANCELLED, ENDED, NOT_YET_OPEN",
+        "--     or OPEN. The access window opens 15 minutes before the start and closes 15 minutes after the end.",
+        "--   * The appointment's meeting link is returned only while the room is OPEN for a confirmed remote",
+        "--     appointment. No video transport is provided or implied: videoProvider is 'NOT_COMMISSIONED'."
       ]
     }
   ]
