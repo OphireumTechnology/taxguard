@@ -2974,6 +2974,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-CONTRACT-C2-CLIENT-MFA-STATUS",
+      "requirement": "Client MFA status read from the identity provider for its own session (assurance level, factor counts); no parallel credential store; enrolment blocked",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/supabase/clientMfa.ts"
+      ],
+      "tests": [
+        "src/tests/clientMfaStatus.test.tsx"
+      ],
+      "remaining": "Partial: enrolment needs client sign-in AAL2 verification and an approved client MFA policy; provider actions need a non-production project.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CONSULTATION-REQUESTS",
       "requirement": "Public consultation requests: validated, consented, rate-limited, idempotent submissions; manager review and conversion through the appointment service",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -6727,6 +6746,7 @@
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
     "src/services/api.ts": "9313e2837410c156560e4a136307a3a336b593194e0fbb6518551b4a8353ed1b",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
+    "src/supabase/clientMfa.ts": "edc9667e41943017da477c9bdb4a03c7fd7ab477e8a485183f8d8831769e2ff2",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/taxguard/stageCapabilities.ts": "b576daf7a89591a37813ea5e83e70edbe2f8bf7e4cea80c2fbec55586625ff81",
     "src/tests-db/backupRestore.db.test.ts": "deeb7cfb95d7d2372a0a9a5bf743a7ec2bff4b9c7685a83d43dbb4bedf149c09",
@@ -6766,6 +6786,7 @@
     "src/tests/caseWorkflowHttp.test.ts": "4e6a5dae9197e10d8a7ae8d0e6ad2c52e58d1645e097cf8d712490155aa6a7bf",
     "src/tests/clientDashboardMasterplan.test.tsx": "7372f48ccd14f01caa7070d10076d2c38a16542dbe56830d701d7be0a2194d37",
     "src/tests/clientMessaging.test.ts": "b3d71a1bbd3bbb3c582bfe79c49d917359f5bdc35938035a52a25a28418b7330",
+    "src/tests/clientMfaStatus.test.tsx": "2a193d7cf58332918e7609a742feefa795074fde65322405b9a56b9d0e025f06",
     "src/tests/clientPortalReadsAndReassignment.test.ts": "8b8c1516e0dbc17310ccee4e7f5e9cd620008ccd15a6de20b25f405746143770",
     "src/tests/clientServiceAuthority.test.ts": "5002c2b48bd210f87c83550d9cd8a59d64abb70d434aba9675713d43d2790771",
     "src/tests/clientStageActionTruthfulness.test.tsx": "1cdc4a43bc4e5eea9e908f6d197fc3fc42f426ec95970a912ea0db0825d803a3",
