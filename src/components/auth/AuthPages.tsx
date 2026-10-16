@@ -76,6 +76,9 @@ export const ClientLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [resendNotice, setResendNotice] = useState<string | null>(null);
   const [resendingVerification, setResendingVerification] = useState(false);
+  // Client sign-in challenge (C2): shown when the account has a verified authenticator.
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
 
   // Forgot Password State
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
@@ -89,11 +92,20 @@ export const ClientLoginPage: React.FC = () => {
     setErrorCode(null);
     setResendNotice(null);
     setLoading(true);
-    const result = await login(email, password);
+    const result = await login(email, password, mfaStep ? mfaCode : undefined);
     setLoading(false);
 
     if (result.success) {
+      setMfaStep(false); setMfaCode('');
       setCurrentPage('portal');
+      return;
+    }
+
+    if (result.mfaRequired) {
+      setMfaCode('');
+      setErrorCode(mfaStep ? 'INVALID_CREDENTIALS' : null);
+      setError(mfaStep ? (result.error || 'That code was not accepted. Enter the current code from your authenticator app.') : null);
+      setMfaStep(true);
       return;
     }
 
@@ -293,6 +305,28 @@ export const ClientLoginPage: React.FC = () => {
                 </div>
               </div>
 
+              {mfaStep && (
+                <div className="space-y-1" role="group" aria-labelledby={`${fieldPrefix}-mfa-legend`}>
+                  <p id={`${fieldPrefix}-mfa-legend`} role="status" className="text-slate-300">Your account is protected by an authenticator. Enter the 6-digit code from your app to finish signing in.</p>
+                  <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-mfa`}>Authenticator code</label>
+                  <input id={`${fieldPrefix}-auth-mfa`}
+                    required
+                    autoFocus
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                  />
+                  <button type="button" className="text-[11px] text-[#D4A843] hover:underline"
+                    onClick={() => { setMfaStep(false); setMfaCode(''); setPassword(''); setError(null); setErrorCode(null); void signOutProvider().catch(() => undefined); }}>
+                    Use a different account
+                  </button>
+                </div>
+              )}
+
               <div className="pt-2">
                 <button
                   type="submit"
@@ -300,7 +334,7 @@ export const ClientLoginPage: React.FC = () => {
                   className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                 >
                   <Lock className="w-4 h-4" />
-                  {loading ? 'Authenticating...' : 'Sign In Securely'}
+                  {loading ? 'Authenticating...' : mfaStep ? 'Verify code and sign in' : 'Sign In Securely'}
                 </button>
               </div>
             </form>

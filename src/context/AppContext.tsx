@@ -1067,6 +1067,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED') {
         return { success: false, mfaEnrollmentRequired: true, error: 'Set up an authenticator to continue.' };
       }
+      if (err?.code === 'CLIENT_MFA_REQUIRED') {
+        return { success: false, mfaRequired: true, error: 'Enter the code from your authenticator app to finish signing in.' };
+      }
       if (err?.code === 'STAFF_MFA_REQUIRED') {
         return { success: false, mfaRequired: true, error: 'Multi-factor authentication is required for staff access. Enter the code from your authenticator app.' };
       }
@@ -1535,3 +1538,6 @@ export const useApp = () => {
   if (!context) throw new Error('useApp must be used within an AppProvider');
   return context;
 };
+
+/** The app context when rendered inside AppProvider, otherwise undefined (static rendering, tests). */
+export const useOptionalApp = () => useContext(AppContext);

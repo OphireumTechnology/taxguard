@@ -39,7 +39,7 @@ export function ClientSecurityPanel({ tab, user, profile, status, onRetry }: { t
     data_export_closure: ['Export & Closure', 'Archive export and account closure are unavailable. No export package, email, closure ticket or retention decision is created by this screen.'],
   };
   // Contract C2: provider-reported status for this session; enrolment stays blocked (see ClientMfaPanel).
-  if (tab === 'mfa_security') return <ClientMfaPanel user={user} />;
+  if (tab === 'mfa_security') return <ClientMfaPanel key={user?.id ?? 'anonymous'} user={user} />;
   const [title, description] = messages[tab] || ['Security', 'This integration is unavailable.'];
   return <section className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-3 text-slate-300"><h2 className="font-bold text-white">{title}</h2><p role="status">{description}</p>
     {tab === 'data_export_closure' && <><button type="button" disabled>Export client archive unavailable</button><button type="button" disabled>Account closure unavailable</button></>}

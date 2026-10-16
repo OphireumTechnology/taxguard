@@ -21,7 +21,7 @@ import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 import { provisionClientIdentity } from './atomicClientIdentity';
 import { createDurableSession, revokeDurableSession } from './durableSessionTransactions';
 import { updateClientProfile } from './clientProfileUpdate';
-import { attachSessionAssuranceLevel, staffMfaDenial } from './staffMfa';
+import { attachSessionAssuranceLevel, clientMfaDenial, staffMfaDenial } from './staffMfa';
 
 // An explicitly enabled non-production identity project uses durable authority without demo fallbacks.
 const strictDurableAuthority = () => process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true';
@@ -273,7 +273,8 @@ export class SupabaseDurableSessions {
       }
 
       // Staff MFA gate: no staff session is minted unless the verified Supabase token is AAL2.
-      const mfaDenial = staffMfaDenial(resolvedMember?.role, verified);
+      // Client gate (C2): a client with a verified authenticator must also present AAL2.
+      const mfaDenial = staffMfaDenial(resolvedMember?.role, verified) ?? clientMfaDenial(resolvedMember?.role, verified);
       if (mfaDenial) {
         await Promise.resolve(this.client
           .from('taxguard_audit_log')

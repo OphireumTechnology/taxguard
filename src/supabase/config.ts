@@ -165,3 +165,14 @@ export function isStaffIdentityDevelopmentConfigured(): boolean {
   if (!viteEnv.DEV || viteEnv.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED !== 'true' || !browserConfig.configured) return false;
   return !isProtectedIdentityDestination(browserConfig.url);
 }
+
+/**
+ * Client authenticator enrolment (contract C2) through the identity provider's own factor API.
+ * Off unless VITE_TAXGUARD_CLIENT_MFA_ENABLED=true (an owner decision per environment) and never
+ * against the protected production project. Signing in with an already enrolled authenticator is
+ * always required, whatever this setting.
+ */
+export function isClientMfaEnrollmentConfigured(): boolean {
+  if (viteEnv.VITE_TAXGUARD_CLIENT_MFA_ENABLED !== 'true' || !browserConfig.configured) return false;
+  return !isProtectedIdentityDestination(browserConfig.url);
+}

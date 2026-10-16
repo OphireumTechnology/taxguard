@@ -13,7 +13,8 @@
  *   POST /e2e/provider-sign-in-age   backdates the user's next browser password sign-ins (recent-sign-in tests)
  * Browser-facing provider API (provider-mode E2E profile; anon key accepted):
  *   POST /auth/v1/token?grant_type=password|refresh_token, POST /auth/v1/logout,
- *   POST /auth/v1/factors (TOTP enrolment), POST /auth/v1/factors/:id/challenge | /verify
+ *   POST /auth/v1/factors (TOTP enrolment), POST /auth/v1/factors/:id/challenge | /verify,
+ *   DELETE /auth/v1/factors/:id (unenrol; a VERIFIED factor needs an AAL2 token)
  * TOTP codes are checked with RFC 6238 (30 s step, one step drift, no step replay). Factor secrets
  * stay inside the emulator and are never part of an API response except the enrolment response.
  * Identifiers are validated against an allow-list and regexes; every value is a bound parameter.
@@ -142,6 +143,14 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
     const f = newFactor('unverified'); f.friendly_name = String(body.friendly_name || 'Authenticator'); b.u.factors.push(f);
     send(200, { id: f.id, type: 'totp', friendly_name: f.friendly_name, totp: { qr_code: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>', secret: f.secret,
       uri: `otpauth://totp/TaxGuard:${encodeURIComponent(b.u.email)}?secret=${f.secret}&issuer=TaxGuard` } }); return true;
+  }
+  if (method === 'DELETE' && (m = /^\/auth\/v1\/factors\/([0-9a-f-]{36})$/.exec(path))) {
+    const b = bearerUser(headers); if (!b) { send(401, { code: 401, error_code: 'bad_jwt', msg: 'invalid JWT' }); return true; }
+    const factor = b.u.factors.find(x => x.id === m![1]); if (!factor) { send(404, { code: 404, error_code: 'mfa_factor_not_found', msg: 'Factor not found' }); return true; }
+    // As the provider requires: removing a VERIFIED factor needs an AAL2 token.
+    if (factor.status === 'verified' && b.t.aal !== 'aal2') { send(403, { code: 403, error_code: 'insufficient_aal', msg: 'AAL2 required to unenroll a verified factor' }); return true; }
+    b.u.factors = b.u.factors.filter(f => f.id !== factor.id);
+    send(200, { id: factor.id }); return true;
   }
   if (method === 'POST' && (m = /^\/auth\/v1\/factors\/([0-9a-f-]{36})\/(challenge|verify)$/.exec(path))) {
     const b = bearerUser(headers); if (!b) { send(401, { code: 401, error_code: 'bad_jwt', msg: 'invalid JWT' }); return true; }
