@@ -388,6 +388,14 @@
         "docs/proposed-migrations/20261014400000_taxguard_appointments.sql",
         "docs/proposed-migrations/20261014430000_taxguard_consultation_requests.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql",
+        "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ]
     }
   ]
 }

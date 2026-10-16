@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "57f80f8be4b8bcc28e2b93f1a84b9ffa46f6bcb1b613c0544aa133cef58af387",
+  "executionPlanSha256": "a8a14cb9824c23381c200d6fe3c054939aab3b3680403a58dda380a5dd05adb9",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3118,6 +3118,53 @@
         "-- Never returned: the prospect's name, e-mail, phone, message, consent text, fingerprints, the",
         "-- reviewer, decision reasons, the appointment's internal note, cancel reason or staff identity.",
         "-- Scope: taxguard_doc_actor (the client for their own client; assigned staff; managers)."
+      ]
+    },
+    {
+      "order": 64,
+      "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
+      "kind": "proposal",
+      "version": "20261016020000",
+      "sha256": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql",
+        "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012010000_taxguard_staff_invitations.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_staff_onboarding_status"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Idempotent: CREATE OR REPLACE only. Rollback: DROP FUNCTION public.taxguard_staff_onboarding_status(text,text)."
+      ],
+      "grantsAndRevocations": [
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 13A, contract C4). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 008-012 (staff invitations, acceptance, membership lifecycle) and 025 (assignments).",
+        "--",
+        "-- Durable staff onboarding status for the SIGNED-IN staff member only. The server passes the uid of",
+        "-- a verified provider identity; no caller can ask about another person. Works before activation",
+        "-- (membership pending_approval) so a newly invited professional can see what is outstanding.",
+        "-- Returned: membership status and role, invitation acceptance time, the counts of active",
+        "-- assignments and distinct assigned clients. Never returned: who invited or approved, other",
+        "-- members, invitation tokens or e-mail addresses, client identities or names.",
+        "-- MFA state is NOT stored here: the server adds it from the verified token (assurance level and",
+        "-- verified factor count) and from taxguard_mfa_recovery_step. No credential or factor is created,",
+        "-- read or reset by this function. A professional dossier (credentials, PTIN/EFIN, jurisdictions)"
       ]
     }
   ]

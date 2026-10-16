@@ -14,6 +14,7 @@ import { approveStaffActivation } from '../staffActivation';
 import { cancelMfaRecovery, completeMfaRecovery, recoveryHistory, recoveryStep, requirePrivilegedSession, retryMfaResetJob, submitRecoveryEnrollment } from '../mfaRecoveryCompletion';
 import { configuredMfaResetProvider, type MfaFactorProvider } from '../mfaResetProvider';
 import { StaffAccessRateLimit } from '../staffAccessRateLimit';
+import { staffOnboardingStatus } from '../staffOnboardingStatus';
 
 export interface StaffAccessDependencies {
   client?: () => SupabaseClient;
@@ -64,6 +65,8 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   const mfaProvider = () => deps.mfaProvider ? deps.mfaProvider() : configuredMfaResetProvider();
   router.post('/mfa-recovery/enrollment', run(async req => submitRecoveryEnrollment(client(), tenant(), mfaProvider(), await identity(req))));
   router.post('/mfa-recovery/status', run(async req => recoveryStep(client(), tenant(), await identity(req))));
+  // Contract C4: the verified identity's own onboarding status (works before activation).
+  router.post('/onboarding/status', run(async req => staffOnboardingStatus(client(), tenant(), await identity(req))));
   router.use(deps.authenticate || authenticateToken);
   const recoveryToken = (req: AuthenticatedRequest) => {
     if (!req.token || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new AuthorityError('AUTH_REQUIRED', 401);

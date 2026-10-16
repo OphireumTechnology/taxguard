@@ -29,7 +29,7 @@ const TaxStrategiesPage = lazy(() => import('./components/public/TaxStrategiesPa
 const IndustriesPage = lazy(() => import('./components/public/IndustriesPage').then(m => ({ default: m.IndustriesPage })));
 const NotFoundPage = lazy(() => import('./components/public/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 import { ClientLoginPage, ClientRegisterPage, StaffLoginPage } from './components/auth/AuthPages';
-const StaffOnboardingWizard = lazy(() => import('./components/workspace/StaffOnboardingWizard').then(m => ({ default: m.StaffOnboardingWizard })));
+const StaffOnboardingStatusPage = lazy(() => import('./components/workspace/StaffOnboardingStatusPage').then(m => ({ default: m.StaffOnboardingStatusPage })));
 const VirtualConsultationRoom = lazy(() => import('./components/consultation/VirtualConsultationRoom').then(m => ({ default: m.VirtualConsultationRoom })));
 
 // Resolve role authority before requesting the associated workspace module.
@@ -412,8 +412,9 @@ const AppContent: React.FC = () => {
 
     if (currentPage === 'staff_onboarding') {
       if (isInitializingAuth) return renderAuthInitializingState();
-      if (!currentUser) return <StaffLoginPage />;
-      return <StaffOnboardingWizard />;
+      // Durable onboarding status (contract C4). Works from the provider session, so a member
+      // still pending approval (no TaxGuard session yet) can see what is outstanding.
+      return <StaffOnboardingStatusPage />;
     }
 
     switch (currentPage) {
