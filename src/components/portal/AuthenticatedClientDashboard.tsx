@@ -72,6 +72,8 @@ import { StageSixReviewView } from './views/stages/StageSixReviewView';
 import { StageSevenReportView } from './views/stages/StageSevenReportView';
 import { StageEightPlanView } from './views/stages/StageEightPlanView';
 import { TaxStageStatusView } from './views/stages/TaxStageStatusView';
+import { ClientCaseStageView } from './views/stages/ClientCaseStageView';
+import { ClientConsultationHistoryPanel } from './dashboard/ClientConsultationHistoryPanel';
 import { ClientNotificationsPanel } from './dashboard/ClientNotificationsPanel';
 import { BLOCKED_STAGES } from '../../taxguard/stageCapabilities';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
@@ -588,6 +590,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           </div>
 
           <AppointmentsPanel mode={{ kind: "client", clientId }} />
+          <ClientConsultationHistoryPanel clientId={clientId} />
         </div>
       );
     }
@@ -709,9 +712,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // Legacy stage screens lack verified scoped providers or contain sample authority.
+    // Stages 04-08: the server's recorded case state for the engagement year (contract C3).
     if (unavailableClientStage(activeNavId)) {
-      return <ClientStageReadUnavailable nav={activeNavId} taxYear={selectedTaxYear}/>;
+      const stage = unavailableClientStage(activeNavId)!.number;
+      return <ClientCaseStageView key={clientId + ':' + selectedTaxYear + ':' + stage} clientId={clientId} stage={stage} taxYear={selectedTaxYear} onNavigate={target => handleSelectNav(target)} />;
     }
 
     // 17. STAGES 03 THROUGH 18
