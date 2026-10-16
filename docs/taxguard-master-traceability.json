@@ -2955,6 +2955,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-CONTRACT-C8-CONTACT-INTAKE",
+      "requirement": "Server-backed contact intake prepared but disabled: refused until an approved intake policy (retention, consent version, abuse limits) is recorded; no delivery claims",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql"
+      ],
+      "tests": [
+        "src/tests/contactIntake.test.ts"
+      ],
+      "remaining": "Disabled by default; consent wording, retention and rate policy are owner decisions; the contact page keeps the e-mail hand-off.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CONSULTATION-REQUESTS",
       "requirement": "Public consultation requests: validated, consented, rate-limited, idempotent submissions; manager review and conversion through the appointment service",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4878,8 +4897,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "32df5e6e8ec14671dc10cd19794ae0362e5fc451919b8dee924cf695ca74fe29",
-      "bytes": 14377,
+      "sha256": "2ab88202ee5697ea002a241448f14193673291f80c9ef30f3df8cd86d459deae",
+      "bytes": 14481,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5572,6 +5591,12 @@
       "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
       "sha256": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
       "bytes": 9531,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
+      "sha256": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
+      "bytes": 9864,
       "headings": []
     },
     {
@@ -6594,6 +6619,7 @@
     "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
     "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
     "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
+    "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "c230645d2a5ec57c4e817235af1d3b133bfe6a739ac67e07805e7b6cb27478cb",
@@ -6745,6 +6771,7 @@
     "src/tests/clientStageActionTruthfulness.test.tsx": "1cdc4a43bc4e5eea9e908f6d197fc3fc42f426ec95970a912ea0db0825d803a3",
     "src/tests/completeTaxGuardLifecycleStages10Through18.test.ts": "164b90ca8b5810f66415d0f605751d472c6db936cb8f2f23297a7b1c6831024d",
     "src/tests/consultationRequests.test.ts": "09925cbd207f8d0885def228a4f6b722cec49fa314671766d27c9f39de09a812",
+    "src/tests/contactIntake.test.ts": "1f6fcb5973beded68d463849302e47007c4756a8b4bc888dfe56a9492dd40c7d",
     "src/tests/coreRlsRoleExecution.test.ts": "dc108ce3fa32d92314362d026fb5092bd9699cd9cd56b937aecf867438bb13dd",
     "src/tests/dashboardApplicationShell.test.tsx": "c086eea43f27415d303a6234e85b065e85e5a03b6cbe96a0eff36f58115251b4",
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",
@@ -6788,7 +6815,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "04b52dfbffe9a2f0971ae39433763376c66eef57df0626baaa2c8ec8e4ed235d",
+    "src/tests/proposalCompositionSecurity.test.ts": "949859aa0b6436367bbda533472bf0be55f79bc3f985f03e63c652dcce510f75",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

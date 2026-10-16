@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "9e9fe52f44afbde6822864623a9016d326c40629648cb62ae4ec4813d230cc2c",
+  "executionPlanSha256": "3bc500f2e120ba3f64d83ff17bef222cba4f043e9d2d43667e48c99e776600f2",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3275,6 +3275,55 @@
         "--       ACCOUNT_SECURITY_LEGAL - security and legal notices: MANDATORY, cannot be turned off.",
         "--       DOCUMENT_REMINDERS  - repeat reminders for an open request (kind REQUEST_REMINDER): OPTIONAL.",
         "--     Turning reminders off hides reminder notifications for that user only. The request itself and"
+      ]
+    },
+    {
+      "order": 67,
+      "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
+      "kind": "proposal",
+      "version": "20261016050000",
+      "sha256": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_contact_intake_policies",
+        "taxguard_contact_messages",
+        "taxguard_contact_submit",
+        "taxguard_contact_list",
+        "taxguard_contact_purge_expired"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the taxguard_contact_* functions and the two tables."
+      ],
+      "grantsAndRevocations": [
+        "EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 13A, contract C8). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposal 027 (taxguard_doc_actor / taxguard_practice_is_manager) and the core tenants table.",
+        "--",
+        "-- Server-backed contact-form intake, PREPARED BUT DISABLED.",
+        "--   * Nothing is accepted until the practice records an approved intake policy for the tenant in",
+        "--     taxguard_contact_intake_policies: retention period, consent wording version and abuse limits.",
+        "--     This proposal inserts NO policy and provides NO function that writes one: recording a policy is",
+        "--     an owner decision applied through a separately reviewed change. Without it every submission is",
+        "--     refused with CONTACT_INTAKE_NOT_APPROVED.",
+        "--   * With a policy: validated name, e-mail, optional phone, topic and message; explicit consent to",
+        "--     the policy's consent version; idempotent per submission id; abuse limits from the policy",
+        "--     (per e-mail per day, per client fingerprint per hour - an HMAC of the address computed by the"
       ]
     }
   ]

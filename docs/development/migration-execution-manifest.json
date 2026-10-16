@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 67,
+    "files": 68,
     "core": 13,
-    "proposals": 53,
-    "tables": 143,
-    "functions": 326,
-    "securityDefinerFunctions": 250,
+    "proposals": 54,
+    "tables": 145,
+    "functions": 329,
+    "securityDefinerFunctions": 253,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2808,6 +2808,37 @@
     },
     {
       "order": 67,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_contact_intake_policies",
+        "taxguard_contact_messages"
+      ],
+      "functionsAdded": [
+        "taxguard_contact_list",
+        "taxguard_contact_purge_expired",
+        "taxguard_contact_submit"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 4,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        28
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 68,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
