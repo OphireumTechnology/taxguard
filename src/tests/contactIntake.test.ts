@@ -44,6 +44,13 @@ describe('contact intake (C8)', () => {
     expect(await q(`SELECT * FROM taxguard_contact_messages`)).toEqual([]);
     expect(await q(`SELECT * FROM taxguard_contact_intake_policies`)).toEqual([]);
   });
+  it('stays closed when only another tenant has an approved policy', async () => {
+    await q(`INSERT INTO taxguard_tenants(id,name) VALUES('tenantPolicyOnly','Synthetic Other Practice') ON CONFLICT DO NOTHING`);
+    await q(`INSERT INTO taxguard_contact_intake_policies(tenant_id,retention_days,consent_version,per_email_per_day,per_fingerprint_per_hour,tenant_per_hour,approved_by,approved_at,decision_reference)
+      VALUES('tenantPolicyOnly',90,'contact-test-1',2,10,100,'synthetic-owner',now(),'Synthetic other-tenant decision')`);
+    expect((await submit(form())).body.code).toBe('CONTACT_INTAKE_NOT_APPROVED');
+    expect(await q(`SELECT * FROM taxguard_contact_messages`)).toEqual([]);
+  });
   it('with a synthetic approved policy: accepts consented messages, never echoes data or claims delivery', async () => {
     await q(`INSERT INTO taxguard_contact_intake_policies(tenant_id,retention_days,consent_version,per_email_per_day,per_fingerprint_per_hour,tenant_per_hour,approved_by,approved_at,decision_reference)
       VALUES($1,90,'contact-test-1',2,10,100,'synthetic-owner',now(),'Synthetic test decision')`, [T]);
@@ -82,6 +89,11 @@ describe('contact intake (C8)', () => {
     expect(await store.list(T, 'ct-mgr')).toHaveLength(1);
     expect(await store.purgeExpired(T)).toBe(1);
     expect((await q(`SELECT count(*)::int AS c FROM taxguard_contact_messages`))[0].c).toBe(1);
+  });
+  it('closes again as soon as the policy is withdrawn', async () => {
+    await q(`DELETE FROM taxguard_contact_intake_policies WHERE tenant_id = $1`, [T]);
+    expect((await submit(form({ email: 'after-withdrawal@example.test' }))).body.code).toBe('CONTACT_INTAKE_NOT_APPROVED');
+    expect((await q(`SELECT count(*)::int AS c FROM taxguard_contact_messages WHERE email = 'after-withdrawal@example.test'`))[0].c).toBe(0);
   });
   it('keeps the tables and functions service-role only', async () => {
     for (const role of ['anon', 'authenticated']) {

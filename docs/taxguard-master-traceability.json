@@ -2993,6 +2993,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-PHASE13A-BROWSER-JOURNEYS",
+      "requirement": "Browser journeys for C1, C3, C5, C6, C7 screens, blocked C2 enrolment, disabled C8 intake and no unapproved tax output (C4 on the provider profile)",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/components/portal/AuthenticatedClientDashboard.tsx"
+      ],
+      "tests": [
+        "src/tests-e2e/15-phase13a-contracts.e2e.test.ts"
+      ],
+      "remaining": "Loopback browser verification only; C7 live data fails closed outside a configured governance database.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CONSULTATION-REQUESTS",
       "requirement": "Public consultation requests: validated, consented, rate-limited, idempotent submissions; manager review and conversion through the appointment service",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -5069,8 +5088,8 @@
     },
     {
       "file": "docs/development/phase13a-contract-register.md",
-      "sha256": "12d4f674a085b253051f0f569a079510a77c4e32ffcad0869967f642a67d55d2",
-      "bytes": 8834,
+      "sha256": "b24e8c8ceaed6f0157114e1edc20e29f0c7926e06f692bfa671d31ee6776cdd8",
+      "bytes": 14109,
       "headings": [
         "# Phase 13A contract register (C1–C8)",
         "## C3: client reads for tax stages 04–08",
@@ -5081,6 +5100,13 @@
         "## C7: live per-agent commissioning records",
         "## C8: contact form delivery (prepared, disabled)",
         "## C2: client MFA management (partial)",
+        "## Final hardening (browser journeys, refusals, integration)",
+        "### Browser E2E",
+        "### Fix found by the browser journeys",
+        "### Additional unit hardening",
+        "### Composition and re-application",
+        "### Integration with PR #18 (C9) and PR #20",
+        "### Validation evidence (2026-10-17, local only)",
         "## Owner decisions raised by Phase 13A"
       ]
     },
@@ -6671,7 +6697,7 @@
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/backup/logical-backup.mjs": "d43b32114ecd5ea781df3100ebaf1ae1b436b46a274f0bc7008d32a8ae005163",
-    "scripts/e2e/e2e-server.ts": "f54024c4c09b415d208ac4f2d91d942e89616e1f0bc8b1ca0c689dfc2708c4b6",
+    "scripts/e2e/e2e-server.ts": "bd68bfbcda87da7641ce98b7f6c249d992273fc69145a005342dd7d407a29699",
     "scripts/frontend/reachability-audit.mjs": "a4f32a935ecb879bc774d3b4a8d35c9466da08b33d1abad566591e0f7bae6481",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/migrations/migration-audit.mjs": "0fdde903233b5fd7c836b45da7e80e7d86aba205796d0e7de97032d92816df22",
@@ -6694,7 +6720,7 @@
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "9ddcc9430fd7a711b2547cb0acd71a149905ef022fbceff2a43278166f099ab6",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "6cd23916fd8efc43654eb8dd1713185cfef25aa9d42804734a914edf6def753a",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
     "src/components/workspace/AccountantDashboard.tsx": "d062efd4e46f0d85b2fc11ef58fd8814fd16356f6f678b4e7096bfa61d4232b5",
@@ -6773,12 +6799,13 @@
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
+    "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
     "src/tests/aiA00Orchestration.test.ts": "69af6e1bc5ec551894cc8152e9d9ccb2c59cf855d6fffd21e2000a443e39f86c",
     "src/tests/aiArchitectureMapping.test.ts": "5996998e908991572b4e4de369af59251943f2ff07d3f5c41ca5f02df9a72d17",
     "src/tests/aiCommissioningMatrix.test.ts": "524b419f257bf86ae31942217a322024119b3935dbdd2b629fb6777b869bde18",
-    "src/tests/aiCommissioningRecords.test.ts": "eea67c19d5bb7bd30021c29bab8b63bebd70cfae0a2b35e49b1f24b09a719609",
+    "src/tests/aiCommissioningRecords.test.ts": "376c0929fa834ad18715e79d7e7fb1974b8c081629ee7bf119d275c3596373f1",
     "src/tests/aiDocumentDuplicateAdvisory.test.ts": "39db91d3ffbd7e07c432f55410062331061c4ce61032fcd83d89c20633508f87",
     "src/tests/aiExecutionLedger.test.ts": "4e95d651201bc761f290042ac6f3b5c205aa709a31ef41d578b40ab88dff511a",
     "src/tests/aiGovernanceControlPlane.test.ts": "81ea6ef0a9caa8ad6fdf52b8f0852520fef73b9e260a93a1dfcce06601eed3ab",
@@ -6810,7 +6837,7 @@
     "src/tests/clientStageActionTruthfulness.test.tsx": "1cdc4a43bc4e5eea9e908f6d197fc3fc42f426ec95970a912ea0db0825d803a3",
     "src/tests/completeTaxGuardLifecycleStages10Through18.test.ts": "164b90ca8b5810f66415d0f605751d472c6db936cb8f2f23297a7b1c6831024d",
     "src/tests/consultationRequests.test.ts": "09925cbd207f8d0885def228a4f6b722cec49fa314671766d27c9f39de09a812",
-    "src/tests/contactIntake.test.ts": "1f6fcb5973beded68d463849302e47007c4756a8b4bc888dfe56a9492dd40c7d",
+    "src/tests/contactIntake.test.ts": "7f89e6d6eba9927b4e6440da8957459b8a5b49cb87835df5757b0f029b15a007",
     "src/tests/coreRlsRoleExecution.test.ts": "dc108ce3fa32d92314362d026fb5092bd9699cd9cd56b937aecf867438bb13dd",
     "src/tests/dashboardApplicationShell.test.tsx": "c086eea43f27415d303a6234e85b065e85e5a03b6cbe96a0eff36f58115251b4",
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",

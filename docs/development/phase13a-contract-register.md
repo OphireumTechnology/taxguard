@@ -137,6 +137,94 @@ exists yet.
   - Provider-backed actions need a non-production project.
 - Tests: `clientMfaStatus.test.tsx` (4) and the existing `clientSecurityTruthfulness.test.tsx`.
 
+## Final hardening (browser journeys, refusals, integration)
+
+### Browser E2E
+
+Both profiles use synthetic users on the real server with a local PostgreSQL.
+
+- `src/tests-e2e/15-phase13a-contracts.e2e.test.ts` (default profile):
+  - **C3:** stages 04–08 show the recorded case (completed, case at stage 09) with counts only, no
+    staff identities, no figures, and no enabled filing control; keyboard next-step navigation.
+  - **C1:** the converted consultation with its confirmed appointment; the visitor's contact
+    details are not echoed.
+  - **C5:** the client joins an open room. The practice link opens in a new tab and attendance is
+    recorded; the client then leaves. The host is admitted; bookkeeper, recruiter, foreign-tenant
+    manager, other-client and guessed ids are refused.
+  - **C6:** reminders off and on, with the setting kept across a reload. Required notices are
+    locked; e-mail and SMS are not offered. Only the client user may read or change preferences.
+  - **C7:** the live records section fails closed (the governance database is not configured in
+    development) and offers no enable or commission control. Build evidence still shows
+    0 / 61 commissioned. The live-data path itself is covered by `aiCommissioningRecords.test.ts`.
+  - **C2:** enrolment is disabled and no factor input is shown. A non-provider session does not
+    claim authenticator use.
+  - **C8:** `/api/public/contact` answers 503 `CONTACT_INTAKE_DISABLED`, and the contact page never
+    calls it.
+  - **No unapproved tax output:** stages 09–18 and the preparer workspace show no tax figures, no
+    filed or transmitted claims, and no enabled filing control.
+- `src/tests-e2e/provider/10-phase13a-staff-onboarding.e2e.test.ts` (provider profile):
+  - **C4:** a durable accountant signs in through the provider emulation (password + TOTP) and
+    sees active membership, authenticator use, no assignments, and the next step. The page has no
+    controls other than Refresh and makes no legacy `/api/onboarding` calls.
+  - Requests without a verified identity are refused, a forged uid is ignored, and a password-only
+    session is not treated as ready.
+
+### Fix found by the browser journeys
+
+- The client dashboard hid the C3 view behind the legacy client tax-year workflow gate, which
+  reports this client at stage 01. Stages 04–08 now always render the durable case view, which
+  reports locked stages itself.
+
+### Additional unit hardening
+
+- **C8:** another tenant's approved policy does not open intake, and withdrawing the policy closes
+  it again.
+- **C7:** an agent with an active model, an active prompt and an active approval policy is still
+  NOT_COMMISSIONED, with material actions BLOCKED.
+
+### Composition and re-application
+
+- The six proposals are applied in DAG order by the unit composition-security test (PGlite), by the
+  real-PostgreSQL composition test and by the E2E database. The PostgreSQL idempotent re-apply set
+  includes `20261016*`.
+- The only redefinition, `taxguard_client_notifications_list` (C6 over 031), survives re-application
+  because 031 is re-applied before C6.
+
+### Integration with PR #18 (C9) and PR #20
+
+Read-only comparison: PR #18 head `9205017`, PR #20 head `ad84eba`, base `6c3390c`.
+
+- **PR #18** adds `20261015030851_taxguard_document_client_confidentiality.sql`. It redefines
+  `taxguard_doc_list`, `taxguard_doc_detail` and `taxguard_doc_review_with_reason`, and adds
+  `taxguard_doc_client_json` and `taxguard_documents.client_reason`. No Phase 13A proposal defines,
+  redefines or reads those, so there is no functional conflict.
+- **Expected textual conflicts** (both branches append):
+  - `migration-execution-order.json`: keep both entries.
+  - The generated manifests and review JSON, plus traceability: regenerate.
+- **`migrationReviewBundle.test.ts`:** PR #18 asserts a count of 62 and that its proposal is the
+  *last* bundle entry. After both merge, the plan has 68 entries and the last is `20261016050000`.
+  Resolve by keeping the plan-length assertion from this branch and asserting that `20261015030851`
+  is included.
+- **`vault.routes.ts`:** separate hunks (client document projection vs notification-preference
+  routes); expected to merge cleanly.
+- **PR #20** overlaps on `AuthenticatedClientDashboard.tsx`, `documentRequestService.ts`,
+  `services/api.ts` and traceability. The changes here are localized: the stage-gate condition,
+  imports, the notification mount line, appended service methods and one union member.
+- Recommended order: merge PR #18, then rebase this branch and regenerate the manifests, review
+  bundle and traceability. Reconcile PR #20 afterwards.
+
+### Validation evidence (2026-10-17, local only)
+
+- `npm ci`: clean, 0 vulnerabilities.
+- Unit: 337 files, **5620 / 5620**.
+- Real PostgreSQL: 15 files, **51 / 51**.
+- Browser E2E: default profile 14 files, **80 / 80**; provider profile 2 files, **10 / 10**.
+- `tsc`: pass. Build: pass. Traceability: PASS (browser acceptance NOT VERIFIED; release not
+  authorized). Reachability guard: pass. Secret scan: PASS (no findings). `git diff --check`,
+  including against `origin/main`: pass.
+- ESLint is not configured in this repository and is not reported as passing.
+- No manual WCAG review has been performed.
+
 ## Owner decisions raised by Phase 13A
 
 1. Staff professional dossier data model and retention (C4).

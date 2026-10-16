@@ -358,7 +358,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   const handleStageClick = (stg: WorkflowStageItem) => {
     const status = getStageStatus(stg.number);
-    if (status === 'locked') {
+    if (status === 'locked' && !unavailableClientStage(`stage_${stg.shortLabel}`)) {
       setSelectedLockedStage(stg);
       setActiveNavId(`stage_${stg.shortLabel}`);
       setMobileDrawerOpen(false);
@@ -391,7 +391,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   // Main Workspace Content based on context isolation
   const renderMainWorkspace = () => {
-    if (activeNavId.startsWith("stage_") && !BLOCKED_STAGES.includes(Number(activeNavId.slice(6))) && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
+    // Stages 04-08 read the practice's durable case (contract C3), which reports locked stages itself.
+    if (activeNavId.startsWith("stage_") && !BLOCKED_STAGES.includes(Number(activeNavId.slice(6))) && !unavailableClientStage(activeNavId) && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
     if (["tax_return", "messages", "legal", "advisor", "requests", "exceptions", "billing", "records", "archive"].includes(activeNavId)) return <ClientDashboardModule key={clientId + ":" + selectedTaxYear + ":" + activeNavId} module={activeNavId === "exceptions" ? "requests" : activeNavId === "archive" ? "records" : activeNavId} user={currentUser!} data={dashboardData} taxYear={selectedTaxYear} onRefresh={() => setDashboardRefresh(value => value + 1)} onBack={() => handleSelectNav("home")} onSelectYear={year => { onTaxYearChange?.(year); handleSelectNav("documents"); }} />;
 
     // 1. LOCKED STAGE: canonical explanation for blocked stages; otherwise the real active stage.

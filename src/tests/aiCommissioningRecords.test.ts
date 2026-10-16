@@ -64,6 +64,18 @@ describe('commissioning records (C7)', () => {
     expect(a34).toMatchObject({ registry_status: 'ACTIVE', commissioning_state: 'NOT_COMMISSIONED', model: { configured: true }, prompt: { configured: true }, material_actions: 'BLOCKED' });
     expect(a34.grants.non_read).toBeGreaterThanOrEqual(1);
   });
+  it('never reports commissioned even when model, prompt and an approval policy are all active', async () => {
+    const a = (await pg.query<any>(`SELECT default_model, default_model_version, prompt_id, prompt_version FROM ai_agents WHERE agent_id='A34'`)).rows[0];
+    await pg.query(`UPDATE ai_models SET status='ACTIVE' WHERE model_id=$1 AND model_version=$2`, [a.default_model, a.default_model_version]);
+    await pg.query(`UPDATE ai_prompts SET status='ACTIVE' WHERE agent_id='A34' AND prompt_id=$1 AND version=$2`, [a.prompt_id, a.prompt_version]);
+    await pg.query(`INSERT INTO ai_human_approval_policies(tenant_id,agent_id,action,materiality,status) VALUES('tenantA','A34','UPDATE','MATERIAL','ACTIVE')`);
+    const a34 = (await service.commissioning('admin')).agents.find(x => x.agent_id === 'A34')!;
+    expect(a34).toMatchObject({ model: { configured: true, approved: true }, prompt: { configured: true, approved: true },
+      commissioning_state: 'NOT_COMMISSIONED', commissioning_record: null, material_actions: 'BLOCKED' });
+    expect(a34.active_approval_policies).toBeGreaterThanOrEqual(1);
+    const all = await service.commissioning('admin');
+    expect(JSON.stringify(all)).not.toMatch(/"COMMISSIONED"|"commissioned":true|"material_actions":"(ALLOWED|ENABLED)"/);
+  });
   it('applies only the caller tenant\'s stops', async () => {
     const b = await service.commissioning('adminB');
     expect(b.global_stop).toBe(true);
