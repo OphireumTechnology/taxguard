@@ -18,6 +18,7 @@ import { FEDERAL_FORMS } from '../taxForms/federalForms';
 type Row = Record<string, any>;
 function fakeSupabase(tables: Record<string, Row[]>, failing: Set<string> = new Set(), failingInserts: Set<string> = new Set()) {
   return {
+    auth: { admin: { mfa: { listFactors: async () => ({ data: { factors: [] }, error: null }) } } },
     rpc: async (name: string, input: Row) => {
       if (name !== 'taxguard_create_session') return { data:null,error:{code:'42883'} };
       if (failingInserts.has('taxguard_sessions') || failingInserts.has('taxguard_audit_log')) return { data:null,error:{code:'08006'} };

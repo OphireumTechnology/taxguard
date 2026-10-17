@@ -25,6 +25,7 @@ export function createMockSupabaseClient() {
   const client: any = {
     rpc: mockAtomicClientIdentityRpc(store),
     auth: {
+      admin: { mfa: { listFactors: vi.fn(async () => ({ data: { factors: [] }, error: null })) } },
       getUser: vi.fn(async (token: string) => {
         if (token === 'valid_sb_token') {
           return {

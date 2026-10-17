@@ -615,6 +615,24 @@ export class SupabaseDurableSessions {
 
     if (!staffAuthProofIsCurrent(resolvedMember, resolvedSession.auth_time)) return null;
 
+    // Enrollment can happen in another browser after this application session was minted.
+    // Never use the factor count recorded at sign-in to authorize an existing AAL1 session.
+    if (isProduction && (resolvedMember.role === 'client' || resolvedMember.role === 'prospective_client') && resolvedSession.aal !== 'aal2') {
+      try {
+        const inventory = await this.client.auth.admin.mfa.listFactors({ userId: resolvedSession.uid });
+        const factors = inventory.data?.factors;
+        if (inventory.error || !Array.isArray(factors) || factors.some(f => !f || !['verified', 'unverified'].includes(f.status))) return null;
+        if (factors.some(f => f.status === 'verified')) {
+          // Use the existing atomic revocation + audit transaction. Removal of the factor later
+          // must not resurrect a session that has already been refused for insufficient assurance.
+          await this.revoke(token);
+          return null;
+        }
+      } catch {
+        return null; // Provider outages and malformed inventories cannot authorize access.
+      }
+    }
+
     const user = { ...(resolvedIdentity.user_data as User) };
     if (isProduction && (resolvedMember.role === 'client' || resolvedMember.role === 'prospective_client')) {
       const { data: ownedClient, error: ownedClientError } = await this.client

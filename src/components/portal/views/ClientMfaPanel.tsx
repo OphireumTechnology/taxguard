@@ -39,8 +39,9 @@ export function ClientMfaStatusBody({ status, user, enrollmentAvailable = false 
  * After verification the client is signed out and signs in again with the code, so the new session
  * is established at AAL2.
  */
-export function ClientTotpEnrollment({ onEnrolled, api = { begin: beginClientTotpEnrollment, confirm: confirmClientTotpEnrollment, cancel: cancelClientTotpEnrollment } }:
-  { onEnrolled: () => void; api?: { begin: () => Promise<ClientTotpEnrollment>; confirm: (factorId: string, code: string) => Promise<void>; cancel: (factorId: string) => Promise<void> } }) {
+const PROVIDER_ENROLLMENT_API = { begin: beginClientTotpEnrollment, verifyCode: confirmClientTotpEnrollment, cancel: cancelClientTotpEnrollment };
+export function ClientTotpEnrollment({ onEnrolled, api = PROVIDER_ENROLLMENT_API }:
+  { onEnrolled: () => void; api?: { begin: () => Promise<ClientTotpEnrollment>; verifyCode: (factorId: string, code: string) => Promise<void>; cancel: (factorId: string) => Promise<void> } }) {
   const id = useId();
   const [setup, setSetup] = useState<ClientTotpEnrollment | null>(null);
   const [code, setCode] = useState('');
@@ -50,8 +51,10 @@ export function ClientTotpEnrollment({ onEnrolled, api = { begin: beginClientTot
   const startButton = useRef<HTMLButtonElement>(null);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
   // A setup left open is cancelled when the panel goes away (navigation, sign-out).
+  // Unmount only: a cleanup keyed on the api object ran on re-renders and removed the factor just created.
   const pending = useRef<string | null>(null);
-  useEffect(() => () => { if (pending.current) void api.cancel(pending.current).catch(() => undefined); }, [api]);
+  const apiRef = useRef(api); apiRef.current = api;
+  useEffect(() => () => { if (pending.current) void apiRef.current.cancel(pending.current).catch(() => undefined); }, []);
   const run = async (work: () => Promise<void>) => {
     if (busy) return;
     setBusy(true); setMessage(null);
@@ -67,7 +70,7 @@ export function ClientTotpEnrollment({ onEnrolled, api = { begin: beginClientTot
     setTimeout(() => startButton.current?.focus(), 0);
   });
   const verify = (e: React.FormEvent) => { e.preventDefault(); void run(async () => {
-    await api.confirm(setup!.factorId, code);
+    await api.verifyCode(setup!.factorId, code);
     pending.current = null;
     if (!live.current) return;
     setSetup(null); setCode('');

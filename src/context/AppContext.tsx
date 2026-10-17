@@ -678,7 +678,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stageStates: liveSession.stageStates,
         resumed: liveSession.resumed
       });
-    } else if (liveSession.user.role === 'client' && liveSession.user.clientId) {
+    } else if (liveSession.user.role === 'client' && liveSession.user.clientId && liveSession.onboardingAvailability?.status !== 'unavailable') {
+      // Durable sessions report the legacy case provisioner as unavailable (it answers 503 by design);
+      // the client continues without a fabricated onboarding case instead of failing sign-in.
       try {
         const bundle = await LiveWorkflowApi.provisionClientOnboarding(2025);
         if (bundle?.workflow && bundle?.eligibility) {

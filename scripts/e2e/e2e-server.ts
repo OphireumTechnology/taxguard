@@ -53,11 +53,16 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,
     'email',uid||'@example.test','name','Synthetic '||uid,'mfaEnabled',true,'isVerified',true) FROM taxguard_members WHERE uid LIKE 'd0000000-%';
   -- Phase 13B client MFA (C2): a durable client that signs in through the provider emulation.
-  INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${E2E.tenant}','e2eProviderClient','d0000000-0000-4000-8000-0000000000c1','Synthetic Provider Client');
-  INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c1','client','active','e2eProviderClient');
+  INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name,email,status) VALUES('${E2E.tenant}','E2EMFAC1','d0000000-0000-4000-8000-0000000000c1','Synthetic Provider Client','d0000000-0000-4000-8000-0000000000c1@example.test','active');
+  INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c1','client','active','E2EMFAC1');
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c1',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000c1',
     'tenantId','${E2E.tenant}','role','client','status','active','email','d0000000-0000-4000-8000-0000000000c1@example.test','name','Synthetic Provider Client',
-    'clientId','e2eProviderClient','isVerified',true,'onboardingStatus','COMPLETED'));`);
+    'clientId','E2EMFAC1','isVerified',true,'onboardingStatus','COMPLETED'));
+  INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name,email,status) VALUES('${E2E.tenant}','E2EMFAC2','d0000000-0000-4000-8000-0000000000c2','Synthetic Second Client','d0000000-0000-4000-8000-0000000000c2@example.test','active');
+  INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c2','client','active','E2EMFAC2');
+  INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c2',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000c2',
+    'tenantId','${E2E.tenant}','role','client','status','active','email','d0000000-0000-4000-8000-0000000000c2@example.test','name','Synthetic Second Client',
+    'clientId','E2EMFAC2','isVerified',true,'onboardingStatus','COMPLETED'));`);
 
 // Loopback stand-in for the project's service endpoints, keyed per run:
 //   POST /rest/v1/rpc/<taxguard_*>        -> the database RPC (PostgREST semantics)

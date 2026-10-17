@@ -99,6 +99,11 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
   const path = url.pathname;
   let m: RegExpExecArray | null;
   // ---- test controls -------------------------------------------------------------------------
+  if (method === 'POST' && path === '/e2e/provider-expire') {
+    for (const [key, value] of tokens) if (value.uid === body.uid) tokens.delete(key);
+    for (const [key, value] of refreshTokens) if (value.uid === body.uid) refreshTokens.delete(key);
+    send(200, { expired: true }); return true;
+  }
   if (method === 'POST' && path === '/e2e/provider-user') {
     const u: ProviderUser = { id: body.uid, email: String(body.email).toLowerCase(), name: body.name ?? body.uid, factors: body.withFactor === false ? [] : [newFactor()],
       password: typeof body.password === 'string' ? body.password : undefined };

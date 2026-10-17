@@ -258,6 +258,8 @@ export const api = {
         resumed?: boolean;
         workflow?: any;
         eligibility?: any;
+        /** Durable configurations: the legacy onboarding case provisioner is not available. */
+        onboardingAvailability?: { status: 'unavailable'; code: string };
         environment: string;
       }>('/api/auth/supabase-session', {
         method: 'POST',
