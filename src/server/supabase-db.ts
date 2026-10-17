@@ -21,7 +21,7 @@ import { isAssignmentCurrentlyEffective } from './assignment-authorization';
 import { provisionClientIdentity } from './atomicClientIdentity';
 import { createDurableSession, revokeDurableSession } from './durableSessionTransactions';
 import { updateClientProfile } from './clientProfileUpdate';
-import { attachSessionAssuranceLevel, staffMfaDenial } from './staffMfa';
+import { attachSessionAssuranceLevel, clientMfaDenial, staffMfaDenial } from './staffMfa';
 
 // An explicitly enabled non-production identity project uses durable authority without demo fallbacks.
 const strictDurableAuthority = () => process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true';
@@ -273,7 +273,8 @@ export class SupabaseDurableSessions {
       }
 
       // Staff MFA gate: no staff session is minted unless the verified Supabase token is AAL2.
-      const mfaDenial = staffMfaDenial(resolvedMember?.role, verified);
+      // Client gate (C2): a client with a verified authenticator must also present AAL2.
+      const mfaDenial = staffMfaDenial(resolvedMember?.role, verified) ?? clientMfaDenial(resolvedMember?.role, verified);
       if (mfaDenial) {
         await Promise.resolve(this.client
           .from('taxguard_audit_log')
@@ -613,6 +614,24 @@ export class SupabaseDurableSessions {
     }
 
     if (!staffAuthProofIsCurrent(resolvedMember, resolvedSession.auth_time)) return null;
+
+    // Enrollment can happen in another browser after this application session was minted.
+    // Never use the factor count recorded at sign-in to authorize an existing AAL1 session.
+    if (isProduction && (resolvedMember.role === 'client' || resolvedMember.role === 'prospective_client') && resolvedSession.aal !== 'aal2') {
+      try {
+        const inventory = await this.client.auth.admin.mfa.listFactors({ userId: resolvedSession.uid });
+        const factors = inventory.data?.factors;
+        if (inventory.error || !Array.isArray(factors) || factors.some(f => !f || !['verified', 'unverified'].includes(f.status))) return null;
+        if (factors.some(f => f.status === 'verified')) {
+          // Use the existing atomic revocation + audit transaction. Removal of the factor later
+          // must not resurrect a session that has already been refused for insufficient assurance.
+          await this.revoke(token);
+          return null;
+        }
+      } catch {
+        return null; // Provider outages and malformed inventories cannot authorize access.
+      }
+    }
 
     const user = { ...(resolvedIdentity.user_data as User) };
     if (isProduction && (resolvedMember.role === 'client' || resolvedMember.role === 'prospective_client')) {

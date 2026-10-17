@@ -44,7 +44,15 @@ export const appointmentsService = {
     request<Appointment>('POST', c(clientId) + '/' + encodeURIComponent(id) + '/reschedule', { version, ...input }, key),
   transition: (clientId: string, id: string, version: number, action: 'confirm' | 'complete' | 'no_show' | 'cancel', key: string, reason?: string) =>
     request<Appointment>('POST', c(clientId) + '/' + encodeURIComponent(id) + '/status', { version, action, ...(reason ? { reason } : {}) }, key),
+  room: (clientId: string, id: string, signal?: AbortSignal) => request<ConsultationRoom>('GET', c(clientId) + '/' + encodeURIComponent(id) + '/room', undefined, undefined, signal),
+  roomEvent: (clientId: string, id: string, event: 'join' | 'leave') => request<ConsultationRoom>('POST', c(clientId) + '/' + encodeURIComponent(id) + '/room/' + event),
 };
+
+/** Contract C5: room state derived from the appointment. No video transport exists (videoProvider NOT_COMMISSIONED). */
+export type RoomState = 'OPEN' | 'NOT_YET_OPEN' | 'NOT_REMOTE' | 'NOT_CONFIRMED' | 'CANCELLED' | 'ENDED';
+export interface ConsultationRoom { appointmentId: string; title: string; mode: AppointmentMode; appointmentStatus: AppointmentStatus; startsAt: string; endsAt: string; timezone: string;
+  participant: 'CLIENT' | 'HOST' | 'MANAGER'; roomState: RoomState; accessWindow: { opensAt: string; closesAt: string }; host: { assigned: boolean; displayName: string | null };
+  clientName: string | null; meetingUrl: string | null; videoProvider: 'NOT_COMMISSIONED'; joined: boolean; hostPresent: boolean; clientPresent: boolean; recorded?: boolean }
 
 /** "Tuesday, Oct 14, 2026, 10:00 AM – 11:00 AM EDT" in the appointment's own time zone. */
 export function formatAppointmentTime(a: Pick<Appointment, 'startsAt' | 'endsAt' | 'timezone'>, viewerZone?: string): string {
@@ -94,6 +102,8 @@ export function appointmentErrorText(error: unknown): string {
     case 'APPOINTMENT_STAFF_INVALID': return 'That staff member cannot be responsible for this client.';
     case 'APPOINTMENT_INPUT_INVALID': return 'Check the details: meeting links must be https addresses, and in-person appointments have no link.';
     case 'APPOINTMENT_CLIENT_NOT_FOUND': case 'APPOINTMENT_NOT_FOUND': return 'This appointment is not available to you.';
+    case 'ROOM_NOT_OPEN': return 'The room is not open. It opens 15 minutes before a confirmed video appointment starts.';
+    case 'ROOM_EVENT_LIMIT': return 'Too many join and leave actions were recorded for this appointment. Contact your advisor.';
     case 'IDEMPOTENCY_KEY_REUSED': return 'This request conflicts with one already sent. Refresh and try again.';
     default: return 'The server did not confirm this. Nothing was changed; try again.';
   }

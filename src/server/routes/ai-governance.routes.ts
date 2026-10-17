@@ -23,6 +23,7 @@ export function createAiGovernanceRouter(getPlane:()=>GovernanceControlPlane=get
   router.get('/control-center/decisions',authenticateToken,readOnly((s,t,q)=>s.decisions(t,q)));
   router.get('/control-center/security-events',authenticateToken,readOnly((s,t,q)=>s.securityEvents(t,q)));
   router.get('/control-center/usage',authenticateToken,readOnly((s,t,q)=>s.usage(t,q)));
+  router.get('/control-center/commissioning',authenticateToken,readOnly((s,t)=>s.commissioning(t)));
   router.post('/evaluate',authenticateToken,async(req:AuthenticatedRequest,res)=>{
     res.setHeader('Cache-Control','no-store');
     try {

@@ -4,8 +4,8 @@
 > Do not edit by hand; `src/tests/migrationReadinessAudit.test.ts` fails when this file is stale.
 > Nothing here has been applied to any Supabase project. Every proposal still needs human review and approval.
 
-Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 62 files (13 core, 48 proposals, 1 separate audit proposal);
-141 tables and 315 public functions (241 SECURITY DEFINER) after composition.
+Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 69 files (13 core, 55 proposals, 1 separate audit proposal);
+145 tables and 333 public functions (257 SECURITY DEFINER) after composition.
 
 Functions executable by anon or authenticated after every file, with Supabase default privileges: —;
 without default privileges: —.
@@ -74,7 +74,14 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 | 59 | `20261015030000_taxguard_collection_requests` | proposal | ok | 1 | 2 | — | 1, 4, 30, 58 | 1 | — | — |
 | 60 | `20261015040000_taxguard_mfa_lifecycle_canonical` | proposal | ok | 0 | 0 | — | 24, 39 | 0 | — | — |
 | 61 | `20261015050000_taxguard_document_scan_jobs` | proposal | ok | 0 | 1 | taxguard_doc_scan_complete (from #53) | 1, 30, 53 | 0 | — | — |
-| 62 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
+| 62 | `20261016000000_taxguard_portal_case_stages` | proposal | ok | 0 | 1 | — | 1, 4, 29, 30, 34 | 0 | — | — |
+| 63 | `20261016010000_taxguard_portal_consultations` | proposal | ok | 0 | 1 | — | 30, 43, 46 | 0 | — | — |
+| 64 | `20261016020000_taxguard_staff_onboarding_status` | proposal | ok | 0 | 1 | — | 1, 4, 15 | 0 | — | — |
+| 65 | `20261016030000_taxguard_appointment_rooms` | proposal | ok | 1 | 5 | — | 1, 28, 30, 43 | 0 | — | — |
+| 66 | `20261016040000_taxguard_notification_preferences` | proposal | ok | 1 | 3 | taxguard_client_notifications_list (from #34) | 1, 30, 34 | 0 | — | — |
+| 67 | `20261016050000_taxguard_contact_intake` | proposal | ok | 2 | 3 | — | 1, 28 | 0 | — | — |
+| 68 | `20261017000000_taxguard_membership_session_proof` | proposal | ok | 0 | 4 | — | 37, 38 | 0 | — | — |
+| 69 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
 
 ## Not re-runnable files
 
@@ -88,7 +95,7 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 - #16 `20261012020000_taxguard_staff_acceptance`: constraint "chk_taxguard_invitation_email_normalized" for relation "taxguard_staff_invitations" already exists
 - #21 `20261012070000_taxguard_client_intake_drafts`: relation "taxguard_client_intake_drafts" already exists
 - #24 `20261012100000_taxguard_mfa_recovery_requests`: relation "taxguard_mfa_recovery_requests" already exists
-- #62 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
+- #69 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
 
 ## Constraints added NOT VALID (validate after data review)
 
@@ -103,3 +110,4 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 
 - #52 `20261014490000_taxguard_data_api_lockdown` revokes: ai_capture_run_transition, ai_gateway_protect_pricing, ai_gateway_validate_link, ai_protect_registry_version, ai_protect_run_identity, ai_reject_history_mutation, ai_validate_action_record, ai_validate_capability_history, ai_validate_case_scope, ai_validate_execution_record, ai_validate_orchestration_decision, ai_validate_review, taxguard_privileged_max_age_seconds, taxguard_tax_rule_test_runs_guard, taxguard_tax_rule_tests_guard
 - #61 `20261015050000_taxguard_document_scan_jobs` revokes: taxguard_doc_record_scan
+- #68 `20261017000000_taxguard_membership_session_proof` revokes: taxguard_approve_staff_activation, taxguard_change_staff_membership_status, taxguard_create_staff_invitation, taxguard_revoke_staff_invitation

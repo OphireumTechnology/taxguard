@@ -117,6 +117,49 @@ export class ControlCenterReadService {
     });
   }
 
+  /**
+   * Contract C7: per-agent commissioning facts read from the live governance tables of the verified
+   * tenant. Read-only; it grants, enables and approves nothing. No commissioning record exists in
+   * the schema, so no agent is ever reported as commissioned, and material actions (AI-16) are
+   * always reported BLOCKED whatever the grants say.
+   */
+  async commissioning(token: string) {
+    return this.read(token, async (sql, identity) => {
+      const tenant = identity.tenant_id;
+      const agents = (await sql.query<any>(
+        `SELECT a.agent_id,a.agent_name,a.category,a.status,a.risk_class,a.version,a.default_model,a.default_model_version,
+           m.status AS model_status,p.status AS prompt_status,a.prompt_id IS NOT NULL AS prompt_configured
+         FROM ai_agents a
+         LEFT JOIN ai_models m ON m.model_id=a.default_model AND m.model_version=a.default_model_version
+         LEFT JOIN ai_prompts p ON p.agent_id=a.agent_id AND p.prompt_id=a.prompt_id AND p.version=a.prompt_version
+         ORDER BY a.agent_id`)).rows;
+      const count = async (q: string, params: unknown[] = []) => new Map((await sql.query<{ agent_id: string; n: number }>(q, params)).rows.map(r => [r.agent_id, Number(r.n)]));
+      const grants = await count(`SELECT agent_id,count(*)::int AS n FROM ai_agent_permissions WHERE permission_state<>'DENY' GROUP BY agent_id`);
+      const materialGrants = await count(`SELECT agent_id,count(*)::int AS n FROM ai_agent_permissions WHERE permission_state<>'DENY' AND action<>'READ' GROUP BY agent_id`);
+      const dataGrants = await count(`SELECT agent_id,count(*)::int AS n FROM ai_agent_data_permissions WHERE permission_state<>'DENY' GROUP BY agent_id`);
+      const stageGrants = await count(`SELECT agent_id,count(*)::int AS n FROM ai_stage_permissions WHERE permission_state<>'DENY' GROUP BY agent_id`);
+      const policies = await count(`SELECT agent_id,count(*)::int AS n FROM ai_human_approval_policies WHERE tenant_id=$1 AND status='ACTIVE' GROUP BY agent_id`, [tenant]);
+      const runs = await count(`SELECT agent_id,count(*)::int AS n FROM ai_runs WHERE tenant_id=$1 GROUP BY agent_id`, [tenant]);
+      const stops = (await sql.query<{ scope: string; target: string }>('SELECT scope,target FROM ai_kill_switches WHERE tenant_id=$1 AND enabled', [tenant])).rows;
+      const global = stops.some(s => s.scope === 'GLOBAL');
+      const stopped = new Set(stops.filter(s => s.scope === 'AGENT').map(s => s.target));
+      const stoppedModels = new Set(stops.filter(s => s.scope === 'MODEL').map(s => s.target));
+      return {
+        source: 'LIVE_GOVERNANCE_TABLES', global_stop: global, material_actions: 'BLOCKED',
+        agents: agents.map(a => {
+          const isStopped = global || stopped.has(a.agent_id) || (a.default_model ? stoppedModels.has(`${a.default_model}@${a.default_model_version}`) : false);
+          const state = isStopped ? 'STOPPED' : a.status === 'DRAFT' ? 'DRAFT' : ['DISABLED', 'OFFLINE', 'RETIRED'].includes(a.status) ? 'DENIED'
+            : a.status === 'RESTRICTED' ? 'RESTRICTED' : 'NOT_COMMISSIONED';
+          return { agent_id: a.agent_id, agent_name: a.agent_name, category: a.category, registry_status: a.status, risk_class: a.risk_class, version: a.version,
+            model: { configured: Boolean(a.default_model), approved: a.model_status === 'ACTIVE' },
+            prompt: { configured: Boolean(a.prompt_configured), approved: a.prompt_status === 'ACTIVE' },
+            grants: { resources: grants.get(a.agent_id) ?? 0, non_read: materialGrants.get(a.agent_id) ?? 0, data_classes: dataGrants.get(a.agent_id) ?? 0, stages: stageGrants.get(a.agent_id) ?? 0 },
+            active_approval_policies: policies.get(a.agent_id) ?? 0, recorded_runs: runs.get(a.agent_id) ?? 0, stopped: isStopped,
+            commissioning_state: state, commissioning_record: null, material_actions: 'BLOCKED' };
+        }) };
+    });
+  }
+
   async runs(token: string, raw: unknown) {
     const q = parsePageQuery(raw, { agent_id: isAgent, status: oneOf(RUN_STATUSES) });
     return this.read(token, async (sql, identity) => this.page(await this.keyset(sql, 'ai_runs', 'run_id',

@@ -43,6 +43,8 @@ export function createSchedulingRouter(deps: SchedulingRouterDeps = {}) {
   router.get('/clients/:clientId/appointments', run(req => store().listForClient(t(req), c(req), u(req))));
   router.post('/clients/:clientId/appointments', run(req => store().create(t(req), c(req), u(req), key(req), req.body ?? {}), 201));
   router.get('/clients/:clientId/appointments/:id', run(req => store().get(t(req), c(req), u(req), req.params.id)));
+  router.get('/clients/:clientId/appointments/:id/room', run(req => store().room(t(req), c(req), u(req), req.params.id)));
+  router.post('/clients/:clientId/appointments/:id/room/:event(join|leave)', run(req => store().roomEvent(t(req), c(req), u(req), req.params.id, req.params.event === 'join' ? 'JOINED' : 'LEFT')));
   router.post('/clients/:clientId/appointments/:id/update', run(req => store().update(t(req), c(req), u(req), req.params.id, req.body?.version, key(req), req.body?.fields)));
   router.post('/clients/:clientId/appointments/:id/reschedule', run(req => store().reschedule(t(req), c(req), u(req), req.params.id, req.body?.version, key(req),
     { startsAt: req.body?.startsAt, endsAt: req.body?.endsAt, timezone: req.body?.timezone, staffUid: req.body?.staffUid })));

@@ -35,5 +35,46 @@ export function createClientPortalRouter(deps: ClientPortalRouterDeps = {}) {
     }
     return res.json({ items: Array.isArray(response?.data) ? response.data : [] });
   });
+  // Contract C3 (proposal 20261016000000): canonical stage state for one engagement year.
+  router.get('/clients/:clientId/case-stages', async (req: AuthenticatedRequest, res) => {
+    const user = req.user;
+    if (!user?.tenantId || user.status !== 'active' || user.role === 'recruiter') return res.status(403).json({ code: 'PORTAL_ACCESS_DENIED' });
+    const engagementId = typeof req.query.engagementId === 'string' ? req.query.engagementId : '';
+    const taxYear = typeof req.query.taxYear === 'string' && /^\d{4}$/.test(req.query.taxYear) ? Number(req.query.taxYear) : NaN;
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(engagementId) || !Number.isInteger(taxYear)) return res.status(400).json({ code: 'PORTAL_INPUT_INVALID' });
+    return portalRpc(res, 'taxguard_portal_case_stages', { p_tenant: user.tenantId, p_client: req.params.clientId, p_actor: user.id, p_engagement: engagementId, p_year: taxYear });
+  });
+  // Contract C1 (proposal 20261016010000): consultation requests converted for this client, with
+  // the real appointment's current status. Bounded keyset pages; the cursor is opaque base64url JSON.
+  router.get('/clients/:clientId/consultations', async (req: AuthenticatedRequest, res) => {
+    const user = req.user;
+    if (!user?.tenantId || user.status !== 'active' || user.role === 'recruiter') return res.status(403).json({ code: 'PORTAL_ACCESS_DENIED' });
+    let after: unknown = null;
+    if (typeof req.query.after === 'string' && req.query.after) {
+      try { after = JSON.parse(Buffer.from(req.query.after, 'base64url').toString('utf8')); } catch { return res.status(400).json({ code: 'PORTAL_INPUT_INVALID' }); }
+      if (!after || typeof after !== 'object' || Array.isArray(after)) return res.status(400).json({ code: 'PORTAL_INPUT_INVALID' });
+    }
+    const send = res.json.bind(res);
+    // Re-shape the page: return an opaque cursor instead of the raw keyset.
+    res.json = (body: any) => send(body && Array.isArray(body.items)
+      ? { items: body.items, nextCursor: body.next ? Buffer.from(JSON.stringify(body.next)).toString('base64url') : null } : body);
+    return portalRpc(res, 'taxguard_portal_consultations', { p_tenant: user.tenantId, p_client: req.params.clientId, p_actor: user.id, p_limit: 20, p_after: after });
+  });
   return router;
+
+  /** Calls a portal RPC and maps database codes to safe HTTP answers (no database text is returned). */
+  async function portalRpc(res: import('express').Response, name: string, args: Record<string, unknown>) {
+    let response;
+    try { response = await rpc().rpc(name, args); } catch { return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' }); }
+    if (response?.error) {
+      const m = response.error.message;
+      if (response.error.code === 'P0001') {
+        if (m === 'DOCUMENT_NOT_FOUND' || m === 'PORTAL_ENGAGEMENT_NOT_FOUND' || m === 'CONSULT_CLIENT_NOT_FOUND') return res.status(404).json({ code: 'PORTAL_NOT_FOUND' });
+        if (m === 'DOCUMENT_ACCESS_DENIED') return res.status(403).json({ code: 'PORTAL_ACCESS_DENIED' });
+        if (m === 'DOCUMENT_INPUT_INVALID' || m === 'PORTAL_INPUT_INVALID') return res.status(400).json({ code: 'PORTAL_INPUT_INVALID' });
+      }
+      return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' });
+    }
+    return res.json(response?.data ?? null);
+  }
 }

@@ -88,6 +88,8 @@ export function createVaultRouter(deps: { store?: () => DocumentVaultStore; requ
     return requests().resolve(t(req), client(req), u(req), req.params.requestId, req.params.action as 'waive' | 'cancel', str(req.body?.reason, 1000) ?? '', int(req.body?.rowVersion)); }));
   router.post('/clients/:clientId/requests/:requestId/remind', run(async req => { staffOnly(req); return requests().remind(t(req), client(req), u(req), req.params.requestId); }));
   router.get('/clients/:clientId/notifications', run(async req => requests().notifications(t(req), client(req), u(req), bool(req.query.unreadOnly))));
+  router.get('/clients/:clientId/notification-preferences', run(async req => requests().preferences(t(req), client(req), u(req))));
+  router.post('/clients/:clientId/notification-preferences', express.json({ limit: '4kb' }), run(async req => requests().setPreference(t(req), client(req), u(req), req.body)));
   router.post('/clients/:clientId/notifications/:notificationId/read', run(async req => requests().markRead(t(req), client(req), u(req), req.params.notificationId)));
   // Oversized or unsupported bodies are refused by express.raw before the handler runs.
   router.use(((err: any, _req: any, res: Response, next: any) => {

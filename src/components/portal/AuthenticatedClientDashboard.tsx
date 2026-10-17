@@ -72,7 +72,10 @@ import { StageSixReviewView } from './views/stages/StageSixReviewView';
 import { StageSevenReportView } from './views/stages/StageSevenReportView';
 import { StageEightPlanView } from './views/stages/StageEightPlanView';
 import { TaxStageStatusView } from './views/stages/TaxStageStatusView';
+import { ClientCaseStageView } from './views/stages/ClientCaseStageView';
+import { ClientConsultationHistoryPanel } from './dashboard/ClientConsultationHistoryPanel';
 import { ClientNotificationsPanel } from './dashboard/ClientNotificationsPanel';
+import { ClientNotificationPreferencesPanel } from './dashboard/ClientNotificationPreferencesPanel';
 import { BLOCKED_STAGES } from '../../taxguard/stageCapabilities';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
 import { ClientSearchModal } from './dashboard/ClientSearchModal';
@@ -355,7 +358,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   const handleStageClick = (stg: WorkflowStageItem) => {
     const status = getStageStatus(stg.number);
-    if (status === 'locked') {
+    if (status === 'locked' && !unavailableClientStage(`stage_${stg.shortLabel}`)) {
       setSelectedLockedStage(stg);
       setActiveNavId(`stage_${stg.shortLabel}`);
       setMobileDrawerOpen(false);
@@ -388,7 +391,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
   // Main Workspace Content based on context isolation
   const renderMainWorkspace = () => {
-    if (activeNavId.startsWith("stage_") && !BLOCKED_STAGES.includes(Number(activeNavId.slice(6))) && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
+    // Stages 04-08 read the practice's durable case (contract C3), which reports locked stages itself.
+    if (activeNavId.startsWith("stage_") && !BLOCKED_STAGES.includes(Number(activeNavId.slice(6))) && !unavailableClientStage(activeNavId) && getStageStatus(Number(activeNavId.slice(6)) as StageNumber) === "locked" && !selectedLockedStage) return <div className="p-6" role="status">This stage is not available in the verified client tax-year workflow.</div>;
     if (["tax_return", "messages", "legal", "advisor", "requests", "exceptions", "billing", "records", "archive"].includes(activeNavId)) return <ClientDashboardModule key={clientId + ":" + selectedTaxYear + ":" + activeNavId} module={activeNavId === "exceptions" ? "requests" : activeNavId === "archive" ? "records" : activeNavId} user={currentUser!} data={dashboardData} taxYear={selectedTaxYear} onRefresh={() => setDashboardRefresh(value => value + 1)} onBack={() => handleSelectNav("home")} onSelectYear={year => { onTaxYearChange?.(year); handleSelectNav("documents"); }} />;
 
     // 1. LOCKED STAGE: canonical explanation for blocked stages; otherwise the real active stage.
@@ -588,6 +592,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           </div>
 
           <AppointmentsPanel mode={{ kind: "client", clientId }} />
+          <ClientConsultationHistoryPanel clientId={clientId} />
         </div>
       );
     }
@@ -646,7 +651,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
 
     // 15. SETTINGS
     if (activeNavId === 'notifications') {
-      return <ClientNotificationsPanel key={clientId} clientId={clientId} />;
+      return <><ClientNotificationsPanel key={clientId} clientId={clientId} /><ClientNotificationPreferencesPanel key={'prefs-' + clientId} clientId={clientId} /></>;
     }
 
     if (activeNavId === 'settings') {
@@ -709,9 +714,10 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
       );
     }
 
-    // Legacy stage screens lack verified scoped providers or contain sample authority.
+    // Stages 04-08: the server's recorded case state for the engagement year (contract C3).
     if (unavailableClientStage(activeNavId)) {
-      return <ClientStageReadUnavailable nav={activeNavId} taxYear={selectedTaxYear}/>;
+      const stage = unavailableClientStage(activeNavId)!.number;
+      return <ClientCaseStageView key={clientId + ':' + selectedTaxYear + ':' + stage} clientId={clientId} stage={stage} taxYear={selectedTaxYear} onNavigate={target => handleSelectNav(target)} />;
     }
 
     // 17. STAGES 03 THROUGH 18
