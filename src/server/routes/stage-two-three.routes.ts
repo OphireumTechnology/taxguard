@@ -39,6 +39,16 @@ import { getSupabaseAdmin, isSupabaseServerConfigured } from '../supabase';
 import { isAssignmentCurrentlyEffective } from '../assignment-authorization';
 import { createDurableCollectionRouter } from './collection-durable.routes';
 
+/**
+ * Authority refusals keep their own code and status. Anything else is unexpected: its message may
+ * carry database, provider or file-system detail, so the client receives a generic code only.
+ */
+function sendStageError(res: Response, err: unknown) {
+  if (err instanceof AuthorityError) return res.status(err.status).json({ error: err.code, code: err.code });
+  console.error('[stage-workflow] unexpected error:', err instanceof Error ? err.name : typeof err);
+  return res.status(500).json({ error: 'STAGE_WORKFLOW_UNAVAILABLE', code: 'STAGE_WORKFLOW_UNAVAILABLE' });
+}
+
 export const stageTwoThreeRouter = Router();
 
 stageTwoThreeRouter.use(authenticateToken);
@@ -102,7 +112,7 @@ stageTwoThreeRouter.get('/questionnaire/:taxYear', (req: AuthenticatedRequest, r
       questionnaire: record
     });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -137,7 +147,7 @@ stageTwoThreeRouter.post('/questionnaire/:taxYear', (req: AuthenticatedRequest, 
       requirements: result.requirements
     });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -198,7 +208,7 @@ stageTwoThreeRouter.get('/requirements/:taxYear', (req: AuthenticatedRequest, re
       requirements: reqs
     });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -259,7 +269,7 @@ stageTwoThreeRouter.post('/requirements/:taxYear/:reqCode/not-applicable', (req:
       requirement: item
     });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -334,7 +344,7 @@ stageTwoThreeRouter.get('/requests/:taxYear', (req: AuthenticatedRequest, res: R
       requests: allRequests
     });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -359,7 +369,7 @@ stageTwoThreeRouter.post('/requests/:taxYear/:requestId/respond', (req: Authenti
 
     return res.json({ success: true, request: updated });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -389,7 +399,7 @@ stageTwoThreeRouter.get('/accountant/review-queue', requireRole('accountant', 's
 
     return res.json({ count: items.length, items });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -411,7 +421,7 @@ stageTwoThreeRouter.get('/accountant/review-item/:documentId', requireRole('acco
     });
     return res.json({ item });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -461,7 +471,7 @@ stageTwoThreeRouter.post('/accountant/review-action', requireRole('accountant', 
 
     return res.json(result);
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -610,7 +620,7 @@ stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant'
       invalidatedStages: result.invalidatedStages
     });
   } catch (err: any) {
-    return res.status(err instanceof AuthorityError ? err.status : 500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -631,7 +641,7 @@ stageTwoThreeRouter.post('/gates/stage-2/evaluate', (req: AuthenticatedRequest, 
     });
     return res.json({ decision });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
 
@@ -650,6 +660,6 @@ stageTwoThreeRouter.post('/gates/stage-3/evaluate', (req: AuthenticatedRequest, 
     });
     return res.json({ decision });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendStageError(res, err);
   }
 });
