@@ -64,6 +64,16 @@ could mean "the UI claims something the backend cannot deliver".
   responsibilities do not establish executable scope; per-agent stages, tools and data permissions are undefined
   for every agent except A00, A10 and A34. Defining them is an owner decision.
 
+- **Error confidentiality (Block 14).** The production-mounted stage workflow API
+  (`/api/stage-two-three`, `/api/stage-workflow`) returned `err.message` for every caught error, including
+  unexpected 500s, so database, provider or engine exception text could reach any authenticated caller. Authority
+  refusals now keep their code and status; other errors return `STAGE_WORKFLOW_UNAVAILABLE` and are logged by error
+  class only. A regression test fails against the previous handlers. Other production routers were checked: the
+  durable ledger, billing and identity stores already map database errors to fixed codes. The
+  `/gates/stage-{2,3}/evaluate` endpoints are stateless calculators over caller-supplied booleans with no persistence
+  and no frontend consumer; real transitions evaluate server-derived snapshots (`serverStageGateOrchestrator.ts`).
+  They are recorded as removal candidates, not changed.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run
