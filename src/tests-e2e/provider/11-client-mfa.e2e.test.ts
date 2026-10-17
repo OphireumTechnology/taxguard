@@ -89,4 +89,3 @@ describe('client provider MFA browser security', () => {
     await s.context.close();
   });
 });
-
