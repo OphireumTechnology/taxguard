@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 69,
+    "files": 70,
     "core": 13,
-    "proposals": 55,
+    "proposals": 56,
     "tables": 145,
-    "functions": 333,
-    "securityDefinerFunctions": 257,
+    "functions": 335,
+    "securityDefinerFunctions": 258,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2656,6 +2656,42 @@
     {
       "order": 62,
       "kind": "proposal",
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_doc_client_json",
+        "taxguard_doc_review_with_reason"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_doc_detail",
+          "previous": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+        },
+        {
+          "function": "taxguard_doc_list",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        30
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 63,
+      "kind": "proposal",
       "file": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
       "appliesInOrder": true,
       "reapply": "ok",
@@ -2683,7 +2719,7 @@
       "hazards": []
     },
     {
-      "order": 63,
+      "order": 64,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql",
       "appliesInOrder": true,
@@ -2710,7 +2746,7 @@
       "hazards": []
     },
     {
-      "order": 64,
+      "order": 65,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
       "appliesInOrder": true,
@@ -2737,7 +2773,7 @@
       "hazards": []
     },
     {
-      "order": 65,
+      "order": 66,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
       "appliesInOrder": true,
@@ -2771,7 +2807,7 @@
       "hazards": []
     },
     {
-      "order": 66,
+      "order": 67,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
       "appliesInOrder": true,
@@ -2807,7 +2843,7 @@
       "hazards": []
     },
     {
-      "order": 67,
+      "order": 68,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
       "appliesInOrder": true,
@@ -2838,7 +2874,7 @@
       "hazards": []
     },
     {
-      "order": 68,
+      "order": 69,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
       "appliesInOrder": true,
@@ -2872,7 +2908,7 @@
       "hazards": []
     },
     {
-      "order": 69,
+      "order": 70,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

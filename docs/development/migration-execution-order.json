@@ -374,6 +374,14 @@
       ]
     },
     {
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql"
+      ]
+    },
+    {
       "file": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
       "dependsOn": [
         "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",

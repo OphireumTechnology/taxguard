@@ -92,9 +92,10 @@ export class DocumentVaultStore {
     return this.call<Array<{ engagementId: string; title: string; taxYear: number }>>('taxguard_doc_upload_targets', { p_tenant: tenantId, p_client: clientId, p_actor: actor });
   }
   reviewQueue(tenantId: string, actor: string, limit = 50) { return this.call<any[]>('taxguard_doc_review_queue', { p_tenant: tenantId, p_actor: actor, p_limit: limit }); }
-  review(tenantId: string, clientId: string, actor: string, documentId: string, version: number, decision: string, rowVersion: number, note?: string) {
-    return this.call('taxguard_doc_review', { p_tenant: tenantId, p_client: clientId, p_actor: actor, p_document_id: documentId, p_version: version,
-      p_decision: decision, p_note: note ?? null, p_row_version: rowVersion });
+  review(tenantId: string, clientId: string, actor: string, documentId: string, version: number, decision: string, rowVersion: number, note?: string, clientReason?: string) {
+    if (clientReason !== undefined && (typeof clientReason !== 'string' || clientReason.length > 500)) throw new DocumentVaultError('DOCUMENT_INPUT_INVALID', 400);
+    return this.call('taxguard_doc_review_with_reason', { p_tenant: tenantId, p_client: clientId, p_actor: actor, p_document_id: documentId, p_version: version,
+      p_decision: decision, p_note: note ?? null, p_row_version: rowVersion, p_client_reason: clientReason ?? null });
   }
   verifyExtraction(tenantId: string, clientId: string, actor: string, fieldId: string, decision: string, value?: unknown) {
     return this.call('taxguard_doc_verify_extraction', { p_tenant: tenantId, p_client: clientId, p_actor: actor, p_field: fieldId, p_decision: decision,

@@ -3468,6 +3468,25 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-DOCUMENT-C9-CONFIDENTIALITY",
+      "requirement": "Server and database client projections redact internal review metadata while retaining explicitly authorized rejection/replacement reasons",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/development/c9-client-document-confidentiality.md"
+      ],
+      "tests": [
+        "src/tests-db/clientDocumentConfidentiality.db.test.ts"
+      ],
+      "remaining": "Additive proposal remains unapplied externally; direct HTTP, SQL and browser synthetic regressions do not authorize hosted rollout.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CASE-WORKFLOW",
       "requirement": "Durable case creation and sequential canonical 18-stage transitions with database-computed or reviewer-attested evidence",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -4642,11 +4661,12 @@
     },
     {
       "file": "docs/development/backup-restore-runbook.md",
-      "sha256": "74ef843e82e4672ac6fccb675b09b34961b6f42617b4b12db6df7eac821711af",
-      "bytes": 5068,
+      "sha256": "c0ad721e50915f5bf9d9e2add9d5f7fe99958f091d4a4192a2b8ae01ff304e6f",
+      "bytes": 6449,
       "headings": [
         "# Backup, restore, rollback and recovery runbook (Phase 10)",
         "## What is rehearsed locally (and how)",
+        "## Phase 12 offline recovery acceptance",
         "## Hosted backups (staging; owner actions)",
         "## Proposed recovery objectives (owner to approve)",
         "## Restore procedure (staging)",
@@ -4717,6 +4737,18 @@
         "## Defects found by these suites and fixed",
         "## Limitations (not verified here)",
         "## Durable staff security (added 2026-10-13)"
+      ]
+    },
+    {
+      "file": "docs/development/c9-client-document-confidentiality.md",
+      "sha256": "4a0149a6bae7a50f3dbaa72d1b63cb8b9d2934e19bde29a3ac9ffedaa7eeb2f1",
+      "bytes": 6294,
+      "headings": [
+        "# C9 — Client document review metadata confidentiality",
+        "## Defect and enforcement",
+        "## Client-facing reasons",
+        "## Regression evidence and rollout limit",
+        "## Final local validation — 2026-10-15"
       ]
     },
     {
@@ -4936,8 +4968,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "d6bd620b952203316396c9b8588d6317704e79dca77afb832046d03e3a9b3f2c",
-      "bytes": 14805,
+      "sha256": "e8bb9f7ad23260888ae787b5cc0402bfcbbde21e4945911128d0792b2a884dce",
+      "bytes": 14983,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5057,6 +5089,38 @@
         "## Validation evidence",
         "## Remaining capabilities and commissioning",
         "## Owner decisions and next milestones",
+        "## Delivery checkpoint"
+      ]
+    },
+    {
+      "file": "docs/development/phase12-feature-gap-matrix.md",
+      "sha256": "f3c83b2bf02edd276f1549439c94d426f678012c9767e1979f1e73b048a0e639",
+      "bytes": 8424,
+      "headings": [
+        "# Phase 12 feature gap matrix",
+        "## Phase 12 migration release-candidate check",
+        "## Commissioning state"
+      ]
+    },
+    {
+      "file": "docs/development/phase12-final-integration.md",
+      "sha256": "9311e8c15062030fda149eb26b855427e099861981b22ed397a705f931f37bdb",
+      "bytes": 2253,
+      "headings": [
+        "# Phase 12 PR #18 integration — 2026-10-15"
+      ]
+    },
+    {
+      "file": "docs/development/phase12-report.md",
+      "sha256": "75eb654c6ea2a49259e3b7887641c8077606fe2ed8f88e0c9a859747a3f6e3f6",
+      "bytes": 7639,
+      "headings": [
+        "# Phase 12 local development report",
+        "## Baseline and scope",
+        "## Implemented in code",
+        "## Locally validated",
+        "## Not validated or commissioned",
+        "## Resume checkpoint — 2026-10-15",
         "## Delivery checkpoint"
       ]
     },
@@ -5618,6 +5682,12 @@
       "headings": []
     },
     {
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "sha256": "6a3b838d8b075cafa072399779ecbeed6789ef4013f26fab51525e01b946c36d",
+      "bytes": 6428,
+      "headings": []
+    },
+    {
       "file": "docs/proposed-migrations/20261015040000_taxguard_mfa_lifecycle_canonical.sql",
       "sha256": "f049d6fa3f04dc4d00a484fe6ce193e036fddedcbd5e66017bbf30a7ba9cf4b8",
       "bytes": 2059,
@@ -5680,7 +5750,7 @@
     {
       "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
       "sha256": "5ec6dd644c6a35f96795855431e8a88ab9097360b093a423f998d3df27ebe868",
-      "bytes": 4655,
+      "bytes": 4714,
       "headings": []
     },
     {
@@ -6673,6 +6743,7 @@
   ],
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
+    "docs/development/c9-client-document-confidentiality.md": "4a0149a6bae7a50f3dbaa72d1b63cb8b9d2934e19bde29a3ac9ffedaa7eeb2f1",
     "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
@@ -6706,7 +6777,7 @@
     "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "c230645d2a5ec57c4e817235af1d3b133bfe6a739ac67e07805e7b6cb27478cb",
+    "package.json": "a36993f3e0ffc8135cf80d2a4808fca1928687b8282609e542bd3ad6da53e568",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
@@ -6815,9 +6886,10 @@
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/taxguard/stageCapabilities.ts": "b576daf7a89591a37813ea5e83e70edbe2f8bf7e4cea80c2fbec55586625ff81",
     "src/tests-db/backupRestore.db.test.ts": "deeb7cfb95d7d2372a0a9a5bf743a7ec2bff4b9c7685a83d43dbb4bedf149c09",
+    "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "4f212dab0d3b75e62d4321a816f64a8b2c0f87f28609e0c90f4c64d39194b70d",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "e60b53865420d70c29db56968ca65e1519d8961f172e48b1fdc828b4aba97179",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
@@ -6864,7 +6936,7 @@
     "src/tests/dashboardShellAccess.test.ts": "dd034d1af88602fa861fc16d951dc9ce30b326f03e1e63fc14f8ab3d2f2e8cd3",
     "src/tests/dashboardShellAuthorityRemount.test.tsx": "e66f07bbe34a836c96e24f0a45ec40bc540235df8e3720e0b1c742511edbba07",
     "src/tests/documentRequestsHttp.test.ts": "23e8fb418bd8c2685d3ca571cd4f8bb758457762c2d320bc398633704bd203f8",
-    "src/tests/documentVaultHttp.test.ts": "246d52480291fc5dce7fe8212d54baf9745b3c4d812c3f298ab3c89d8d1d2759",
+    "src/tests/documentVaultHttp.test.ts": "891d81cb8915a12d1276c2e63bab025334eda642eab45326bd157b032eb0bfcd",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
     "src/tests/durableLedgerHttp.test.ts": "6074c97174479bea7bff8c447f3af7935612e9daeb44b1c3fae986b339705963",
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",

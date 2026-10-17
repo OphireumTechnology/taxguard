@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "99a942f54965d442517b254303984cf7b1e88f751bf558ddc9dd931d2b5dec5f",
+  "executionPlanSha256": "fd6f832ebb3bbf8c642911e858f978c6836eaafd18ac4e307dadf6fdb146ae79",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3026,6 +3026,65 @@
     },
     {
       "order": 62,
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "kind": "proposal",
+      "version": "20261015030851",
+      "sha256": "6a3b838d8b075cafa072399779ecbeed6789ef4013f26fab51525e01b946c36d",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_doc_client_json",
+        "taxguard_doc_list",
+        "taxguard_doc_detail",
+        "taxguard_doc_review_with_reason"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_doc_list",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_detail",
+          "previousFile": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: disable client document readers; never restore the leaking serializer to clients."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_doc_client_json(public.taxguard_documents) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_doc_review_with_reason(text,text,text,text,integer,text,text,integer,text) FROM PUBLIC,anon,authenticated,service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_doc_review_with_reason(text,text,text,text,integer,text,text,integer,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_doc_list(text,text,text,integer),public.taxguard_doc_detail(text,text,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_doc_list(text,text,text,integer),public.taxguard_doc_detail(text,text,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- C9 REVIEW-ONLY PROPOSAL. NOT APPLIED externally. Generated with Supabase CLI migration new.",
+        "-- Depends on document vault, audit custody overlay and Data API lockdown.",
+        "-- Rollback: disable client document readers; never restore the leaking serializer to clients.",
+        "-- Legacy review_note is ambiguous internal text: do not backfill client_reason from it.",
+        "-- Invoker-only pure projection. No role flag supplied by a caller can enable staff fields.",
+        "-- Explicit new API separates outward reasons from internal notes. Legacy RPC stays private-note",
+        "-- only and cannot accidentally publish old notes. Existing maker/checker, status and version",
+        "-- checks are delegated to the unchanged review function in this same transaction."
+      ]
+    },
+    {
+      "order": 63,
       "file": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
       "kind": "proposal",
       "version": "20261016000000",
@@ -3074,7 +3133,7 @@
       ]
     },
     {
-      "order": 63,
+      "order": 64,
       "file": "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql",
       "kind": "proposal",
       "version": "20261016010000",
@@ -3121,7 +3180,7 @@
       ]
     },
     {
-      "order": 64,
+      "order": 65,
       "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
       "kind": "proposal",
       "version": "20261016020000",
@@ -3168,7 +3227,7 @@
       ]
     },
     {
-      "order": 65,
+      "order": 66,
       "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
       "kind": "proposal",
       "version": "20261016030000",
@@ -3221,7 +3280,7 @@
       ]
     },
     {
-      "order": 66,
+      "order": 67,
       "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
       "kind": "proposal",
       "version": "20261016040000",
@@ -3278,7 +3337,7 @@
       ]
     },
     {
-      "order": 67,
+      "order": 68,
       "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
       "kind": "proposal",
       "version": "20261016050000",
@@ -3327,7 +3386,7 @@
       ]
     },
     {
-      "order": 68,
+      "order": 69,
       "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
       "kind": "proposal",
       "version": "20261017000000",

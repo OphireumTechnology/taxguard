@@ -55,7 +55,7 @@ export function ClientDocumentVaultPanel({ clientId }: { clientId: string }) {
     {docs.items.length > 0 && <table className="w-full text-left"><caption className="sr-only">Your uploaded documents</caption>
       <thead><tr>{['File', 'Year', 'Category', 'Version', 'Status', ''].map(h => <th key={h} scope="col" className="p-1">{h}</th>)}</tr></thead>
       <tbody>{docs.items.map(d => <tr key={d.documentId + d.version} className="border-t border-slate-800"><td className="p-1">{d.fileName}</td><td className="p-1">{d.taxYear}</td>
-        <td className="p-1">{label(d.category)}</td><td className="p-1">v{d.version}</td><td className="p-1">{documentStatusText(d.status)}{d.reviewNote ? ` — ${d.reviewNote}` : ''}</td>
+        <td className="p-1">{label(d.category)}</td><td className="p-1">v{d.version}</td><td className="p-1">{documentStatusText(d.status)}{d.clientReason ? ` — ${d.clientReason}` : ''}</td>
         <td className="p-1">{d.quarantineStatus === 'CLEAN' && <button type="button" className="underline" onClick={() => download(d)} aria-label={`Download ${d.fileName}`}>Download</button>}</td></tr>)}</tbody></table>}
   </section>;
 }
