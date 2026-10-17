@@ -27,7 +27,15 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
 const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
 const r = (requestId: string) => '/requests/' + encodeURIComponent(requestId);
 
+/** Contract C6: in-app preferences only; e-mail and SMS are reported as not commissioned. */
+export interface NotificationPreferences { channels: Record<'IN_APP' | 'EMAIL' | 'SMS', 'AVAILABLE' | 'NOT_COMMISSIONED'>;
+  categories: Array<{ category: 'DOCUMENT_REQUESTS' | 'DOCUMENT_REMINDERS' | 'ACCOUNT_SECURITY_LEGAL'; mandatory: boolean; inApp: boolean; version: number }>; changed?: boolean }
+
 export const documentRequestService = {
+  preferences: (clientId: string) => request<NotificationPreferences>('GET', c(clientId) + '/notification-preferences'),
+  setPreference: (clientId: string, category: string, enabled: boolean, version: number) =>
+    request<NotificationPreferences>('POST', c(clientId) + '/notification-preferences', { category, channel: 'IN_APP', enabled, version }),
+  hiddenCount: (clientId: string) => request<{ hidden?: number }>('GET', c(clientId) + '/notifications').then(r => r.hidden ?? 0),
   list: (clientId: string, taxYear?: number) => request<{ items: DocumentRequestItem[] }>('GET', c(clientId) + '/requests' + (taxYear ? `?taxYear=${taxYear}` : '')),
   create: (clientId: string, input: { engagementId: string; taxYear: number; title: string; category: string; required: boolean; dueDate?: string; instructions?: string }, key = newVaultKey()) =>
     request<DocumentRequestItem & { created: boolean }>('POST', c(clientId) + '/requests', input, key),

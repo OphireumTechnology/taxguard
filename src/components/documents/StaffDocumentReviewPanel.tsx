@@ -7,6 +7,7 @@ export function StaffDocumentReviewPanel() {
   const [selected, setSelected] = useState<VaultDocument | null>(null);
   const [fields, setFields] = useState<VaultExtraction[]>([]);
   const [note, setNote] = useState('');
+  const [clientReason, setClientReason] = useState('');
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,7 +17,7 @@ export function StaffDocumentReviewPanel() {
   }, []);
   useEffect(() => { load(); }, [load]);
   const open = (d: VaultDocument) => {
-    setSelected(d); setNote(''); setNotice(null); setFields([]);
+    setSelected(d); setNote(''); setClientReason(''); setNotice(null); setFields([]);
     vaultService.detail(d.clientId, d.documentId).then(r => setFields(r.extractions.filter(x => x.version === d.version))).catch(e => setNotice({ error: true, text: vaultMessage(e) }));
   };
   const act = async (op: () => Promise<unknown>, text: string, refreshQueue = true) => {
@@ -51,10 +52,11 @@ export function StaffDocumentReviewPanel() {
           <button type="button" disabled={busy || !(corrections[f.fieldId] ?? '').trim()} onClick={() => act(() => vaultService.verifyField(selected.clientId, f.fieldId, 'CORRECTED', corrections[f.fieldId].trim()), 'Corrected value recorded.', false)}>Save correction</button>
           <button type="button" disabled={busy} onClick={() => act(() => vaultService.verifyField(selected.clientId, f.fieldId, 'REJECTED'), 'Value rejected.', false)}>Reject value</button></>}
       </li>)}</ul>}
-      <label>Review note (required to reject or request a replacement)<input maxLength={500} value={note} onChange={e => setNote(e.target.value)} /></label>
+      <label>Internal review note (staff only)<input maxLength={500} value={note} onChange={e => setNote(e.target.value)} /></label>
+      <label>Reason shown to client (required to reject or request a replacement)<input maxLength={500} value={clientReason} onChange={e => setClientReason(e.target.value)} /></label>
       <button type="button" disabled={busy || !selected.canReview} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'approve', selected.rowVersion, note || undefined), 'Document accepted.')}>Accept document</button>
-      <button type="button" disabled={busy || !selected.canReview || note.trim().length < 5} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'request_replacement', selected.rowVersion, note), 'Replacement requested.')}>Request replacement</button>
-      <button type="button" disabled={busy || !selected.canReview || note.trim().length < 5} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'reject', selected.rowVersion, note), 'Document rejected.')}>Reject</button>
+      <button type="button" disabled={busy || !selected.canReview || clientReason.trim().length < 5} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'request_replacement', selected.rowVersion, note, clientReason), 'Replacement requested.')}>Request replacement</button>
+      <button type="button" disabled={busy || !selected.canReview || clientReason.trim().length < 5} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'reject', selected.rowVersion, note, clientReason), 'Document rejected.')}>Reject</button>
     </div>}
   </section>;
 }

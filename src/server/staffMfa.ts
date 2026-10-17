@@ -44,3 +44,14 @@ export function staffMfaDenial(role: string | undefined, verified: { aal?: Assur
   if (verified.aal !== 'aal2') return 'STAFF_MFA_REQUIRED';
   return null;
 }
+
+/**
+ * Client sign-in gate (contract C2). A client, or an identity without a staff role, that has a
+ * verified authenticator at the identity provider must have used it: no TaxGuard session is minted
+ * from an AAL1 token for such an account. The factor count comes from the provider's own user record
+ * for the verified token, never from the browser. Clients without an authenticator are unaffected.
+ */
+export function clientMfaDenial(role: string | undefined | null, verified: { aal?: AssuranceLevel; verifiedFactorCount?: number }): 'CLIENT_MFA_REQUIRED' | null {
+  if (requiresStaffMfa(role)) return null;
+  return (verified.verifiedFactorCount ?? 0) > 0 && verified.aal !== 'aal2' ? 'CLIENT_MFA_REQUIRED' : null;
+}

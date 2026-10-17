@@ -91,7 +91,8 @@ describe('document vault', () => {
     const [path] = [...storage.objects.keys()];
     expect(path).toBe(`tenants/${T}/clients/${C}/engagements/${engagementId}/2025/docs/${docId}_v1`);
     const listed = (await get(`/clients/${C}/documents`)).body.items;
-    expect(listed[0]).toMatchObject({ documentId: docId, status: 'PENDING_REVIEW', quarantineStatus: 'CLEAN', uploaderRole: 'client' });
+    expect(listed[0]).toMatchObject({ documentId: docId, status: 'PENDING_REVIEW', quarantineStatus: 'CLEAN' });
+    expect(listed[0]).not.toHaveProperty('uploaderRole');
     expect(JSON.stringify(listed)).not.toContain('tenants/');
   });
 
@@ -194,6 +195,27 @@ describe('document vault', () => {
     await post(`/clients/${C}/documents/${docId}/versions/2/review`, { decision: 'approve', rowVersion: 3 });
     const versions = (await get(`/clients/${C}/documents/${docId}`)).body.versions.map((v: any) => [v.version, v.status]);
     expect(versions).toEqual([[2, 'VERIFIED'], [1, 'SUPERSEDED']]);
+  });
+});
+
+describe('C9 client HTTP confidentiality with database-backed responses', () => {
+  it('returns explicit replacement reasons without internal notes or reviewer identities', async () => {
+    const uploaded = await upload(C, PDF('Synthetic C9 HTTP fixture'));
+    as('rev');
+    const internal = 'INTERNAL synthetic reviewer discussion';
+    const reason = 'Please replace the unreadable second page.';
+    const reviewed = await post(`/clients/${C}/documents/${uploaded.body.documentId}/versions/1/review`, {
+      decision: 'request_replacement', rowVersion: 3, note: internal, clientReason: reason });
+    expect(reviewed.status).toBe(200);
+    const staff = (await get(`/clients/${C}/documents/${uploaded.body.documentId}`)).body;
+    expect(staff.versions[0]).toMatchObject({ reviewNote: internal, reviewedBy: 'dv-rev', clientReason: reason });
+    as('client');
+    for (const path of [`/clients/${C}/documents?role=admin&actor=dv-rev`, `/clients/${C}/documents/${uploaded.body.documentId}?includeInternal=true`]) {
+      const response = await get(path); expect(response.status).toBe(200);
+      const text = JSON.stringify(response.body);
+      expect(text).toContain(reason); expect(text).not.toContain(internal);
+      expect(text).not.toMatch(/reviewNote|reviewedBy|uploadedBy|uploaderRole|actorUid|actorRole|dv-rev|synthetic-ocr/);
+    }
   });
 });
 

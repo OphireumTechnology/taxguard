@@ -14,6 +14,7 @@ import { approveStaffActivation } from '../staffActivation';
 import { cancelMfaRecovery, completeMfaRecovery, recoveryHistory, recoveryStep, requirePrivilegedSession, retryMfaResetJob, submitRecoveryEnrollment } from '../mfaRecoveryCompletion';
 import { configuredMfaResetProvider, type MfaFactorProvider } from '../mfaResetProvider';
 import { StaffAccessRateLimit } from '../staffAccessRateLimit';
+import { staffOnboardingStatus } from '../staffOnboardingStatus';
 
 export interface StaffAccessDependencies {
   client?: () => SupabaseClient;
@@ -64,6 +65,8 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   const mfaProvider = () => deps.mfaProvider ? deps.mfaProvider() : configuredMfaResetProvider();
   router.post('/mfa-recovery/enrollment', run(async req => submitRecoveryEnrollment(client(), tenant(), mfaProvider(), await identity(req))));
   router.post('/mfa-recovery/status', run(async req => recoveryStep(client(), tenant(), await identity(req))));
+  // Contract C4: the verified identity's own onboarding status (works before activation).
+  router.post('/onboarding/status', run(async req => staffOnboardingStatus(client(), tenant(), await identity(req))));
   router.use(deps.authenticate || authenticateToken);
   const recoveryToken = (req: AuthenticatedRequest) => {
     if (!req.token || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new AuthorityError('AUTH_REQUIRED', 401);
@@ -94,9 +97,9 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   router.post('/members/:uid/sessions/revoke', run(async req => revokeMemberSessions(client(), tenant(), req.user!, recoveryToken(req), { ...req.body, targetUid: req.params.uid })));
   router.get('/members', run(async req => listStaffMembers(client(), tenant(), req.user!, req.query)));
   router.get('/invitations', run(async req => listStaffInvitations(client(), tenant(), req.user!, req.query)));
-  router.post('/invitations', run(async req => { await recent(req); return createStaffInvitation(client(), tenant(), req.user!, req.body); }, 201));
-  router.post('/invitations/:id/revoke', run(async req => { await recent(req); return revokeStaffInvitation(client(), tenant(), req.user!, req.params.id); }));
-  router.post('/members/:uid/approve', run(async req => { await recent(req); return approveStaffActivation(client(), tenant(), req.user!, req.params.uid); }));
-  router.post('/members/:uid/status', run(async req => { await recent(req); return changeStaffMembershipStatus(client(), tenant(), req.user!, { ...req.body, targetUid: req.params.uid }); }));
+  router.post('/invitations', run(async req => { await recent(req); return createStaffInvitation(client(), tenant(), req.user!, recoveryToken(req), req.body); }, 201));
+  router.post('/invitations/:id/revoke', run(async req => { await recent(req); return revokeStaffInvitation(client(), tenant(), req.user!, recoveryToken(req), req.params.id); }));
+  router.post('/members/:uid/approve', run(async req => { await recent(req); return approveStaffActivation(client(), tenant(), req.user!, recoveryToken(req), req.params.uid); }));
+  router.post('/members/:uid/status', run(async req => { await recent(req); return changeStaffMembershipStatus(client(), tenant(), req.user!, recoveryToken(req), { ...req.body, targetUid: req.params.uid }); }));
   return router;
 }

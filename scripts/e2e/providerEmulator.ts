@@ -13,7 +13,8 @@
  *   POST /e2e/provider-sign-in-age   backdates the user's next browser password sign-ins (recent-sign-in tests)
  * Browser-facing provider API (provider-mode E2E profile; anon key accepted):
  *   POST /auth/v1/token?grant_type=password|refresh_token, POST /auth/v1/logout,
- *   POST /auth/v1/factors (TOTP enrolment), POST /auth/v1/factors/:id/challenge | /verify
+ *   POST /auth/v1/factors (TOTP enrolment), POST /auth/v1/factors/:id/challenge | /verify,
+ *   DELETE /auth/v1/factors/:id (unenrol; a VERIFIED factor needs an AAL2 token)
  * TOTP codes are checked with RFC 6238 (30 s step, one step drift, no step replay). Factor secrets
  * stay inside the emulator and are never part of an API response except the enrolment response.
  * Identifiers are validated against an allow-list and regexes; every value is a bound parameter.
@@ -28,6 +29,7 @@ const users = new Map<string, ProviderUser>();
 const tokens = new Map<string, { uid: string; aal: 'aal1' | 'aal2'; primary: number }>();
 const refreshTokens = new Map<string, { uid: string; aal: 'aal1' | 'aal2'; primary: number }>();
 const challenges = new Map<string, { factorId: string; expires: number }>();
+const adminFaults = new Map<string, { status: number; remaining: number }>();
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const base32 = (buf: Buffer) => { let bits = 0, v = 0, out = ''; for (const b of buf) { v = (v << 8) | b; bits += 8; while (bits >= 5) { out += B32[(v >>> (bits - 5)) & 31]; bits -= 5; } } if (bits) out += B32[(v << (5 - bits)) & 31]; return out; };
 const unbase32 = (s: string) => { let bits = 0, v = 0; const out: number[] = []; for (const ch of s) { v = (v << 5) | B32.indexOf(ch); bits += 5; if (bits >= 8) { out.push((v >>> (bits - 8)) & 255); bits -= 8; } } return Buffer.from(out); };
@@ -98,6 +100,11 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
   const path = url.pathname;
   let m: RegExpExecArray | null;
   // ---- test controls -------------------------------------------------------------------------
+  if (method === 'POST' && path === '/e2e/provider-expire') {
+    for (const [key, value] of tokens) if (value.uid === body.uid) tokens.delete(key);
+    for (const [key, value] of refreshTokens) if (value.uid === body.uid) refreshTokens.delete(key);
+    send(200, { expired: true }); return true;
+  }
   if (method === 'POST' && path === '/e2e/provider-user') {
     const u: ProviderUser = { id: body.uid, email: String(body.email).toLowerCase(), name: body.name ?? body.uid, factors: body.withFactor === false ? [] : [newFactor()],
       password: typeof body.password === 'string' ? body.password : undefined };
@@ -112,6 +119,12 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
   if (method === 'POST' && path === '/e2e/provider-factor') {
     const u = users.get(body.uid); if (!u) { send(404, { code: 'E2E_NO_PROVIDER_USER' }); return true; }
     const f = newFactor(); u.factors.push(f); send(200, { factors: u.factors.length, factorSecret: f.secret }); return true;
+  }
+  // The next `count` admin factor-API calls for this user answer `status` (e.g. 403 = permanent).
+  if (method === 'POST' && path === '/e2e/provider-admin-fault') {
+    const status = Number(body.status), count = Number(body.count);
+    if (!users.has(body.uid) || !Number.isInteger(status) || status < 400 || status > 599 || !Number.isInteger(count) || count < 0 || count > 10) { send(400, { code: 'E2E_FAULT_INVALID' }); return true; }
+    adminFaults.set(body.uid, { status, remaining: count }); send(200, { uid: body.uid, status, remaining: count }); return true;
   }
   if (method === 'POST' && path === '/e2e/provider-sign-in-age') {
     const u = users.get(body.uid); if (!u) { send(404, { code: 'E2E_NO_PROVIDER_USER' }); return true; }
@@ -143,6 +156,14 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
     send(200, { id: f.id, type: 'totp', friendly_name: f.friendly_name, totp: { qr_code: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>', secret: f.secret,
       uri: `otpauth://totp/TaxGuard:${encodeURIComponent(b.u.email)}?secret=${f.secret}&issuer=TaxGuard` } }); return true;
   }
+  if (method === 'DELETE' && (m = /^\/auth\/v1\/factors\/([0-9a-f-]{36})$/.exec(path))) {
+    const b = bearerUser(headers); if (!b) { send(401, { code: 401, error_code: 'bad_jwt', msg: 'invalid JWT' }); return true; }
+    const factor = b.u.factors.find(x => x.id === m![1]); if (!factor) { send(404, { code: 404, error_code: 'mfa_factor_not_found', msg: 'Factor not found' }); return true; }
+    // As the provider requires: removing a VERIFIED factor needs an AAL2 token.
+    if (factor.status === 'verified' && b.t.aal !== 'aal2') { send(403, { code: 403, error_code: 'insufficient_aal', msg: 'AAL2 required to unenroll a verified factor' }); return true; }
+    b.u.factors = b.u.factors.filter(f => f.id !== factor.id);
+    send(200, { id: factor.id }); return true;
+  }
   if (method === 'POST' && (m = /^\/auth\/v1\/factors\/([0-9a-f-]{36})\/(challenge|verify)$/.exec(path))) {
     const b = bearerUser(headers); if (!b) { send(401, { code: 401, error_code: 'bad_jwt', msg: 'invalid JWT' }); return true; }
     const factor = b.u.factors.find(x => x.id === m![1]); if (!factor) { send(404, { code: 404, error_code: 'mfa_factor_not_found', msg: 'Factor not found' }); return true; }
@@ -166,6 +187,11 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
   if ((m = /^\/auth\/v1\/admin\/users\/([A-Za-z0-9_-]+)\/factors(?:\/([A-Za-z0-9_-]+))?$/.exec(path))) {
     const u = users.get(m[1]);
     if (!u) { send(404, { code: 404, msg: 'User not found' }); return true; }
+    const fault = adminFaults.get(u.id);
+    if (fault && fault.remaining > 0) {
+      fault.remaining--;
+      send(fault.status, { code: fault.status, msg: 'Synthetic injected provider fault' }); return true;
+    }
     if (method === 'GET' && !m[2]) { send(200, u.factors.map(publicFactor)); return true; }
     if (method === 'DELETE' && m[2]) {
       const before = u.factors.length; u.factors = u.factors.filter(f => f.id !== m![2]);

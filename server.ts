@@ -18,6 +18,7 @@ import { configureDurableSecurityEvents } from './src/server/taxguard/audit/secu
 import { practiceStoreConfigured } from './src/server/taxguard/practice/practiceStoreConfig';
 import { createLegalMattersRouter } from './src/server/routes/legal-durable.routes';
 import { createConsultationReviewRouter, createPublicConsultationRouter } from './src/server/routes/consultations.routes';
+import { createPublicContactRouter } from './src/server/routes/contact-intake.routes';
 import { createClientPortalRouter } from './src/server/routes/client-portal.routes';
 import { createReassignmentRouter } from './src/server/routes/reassignment.routes';
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
@@ -236,6 +237,9 @@ if (process.env.NODE_ENV === 'production') {
 // Public consultation requests (proposal 043) are mounted BEFORE the global body parsers so their
 // own 8 KB JSON limit applies; development-only, 503 unless the durable store is configured.
 app.use('/api/public/consultation-requests', createPublicConsultationRouter());
+// Contact intake (contract C8): prepared but disabled (503) until TAXGUARD_CONTACT_INTAKE=enabled AND an
+// approved intake policy is recorded in the database. No e-mail is sent.
+app.use('/api/public/contact', createPublicContactRouter());
 // Malware scanning (proposal 050): no real provider is commissioned. Only the local fake scanner can
 // be configured (never in production); otherwise uploads stay quarantined. Status codes only.
 const scanner = scannerConfiguration(process.env);

@@ -2,6 +2,7 @@ import React from 'react';
 import type { User } from '../../../types';
 import type { ProfileSecurityTab } from '../../../types/clientPortal';
 import { ProfileEvidenceSections } from './ProfileEvidenceSections';
+import { ClientMfaPanel } from './ClientMfaPanel';
 
 export function recordedMfaSetting(user: Pick<User, 'mfaEnabled'> | null) {
   return user?.mfaEnabled === true ? 'Recorded as enabled' : user?.mfaEnabled === false ? 'Recorded as disabled' : 'Not recorded';
@@ -37,7 +38,8 @@ export function ClientSecurityPanel({ tab, user, profile, status, onRetry }: { t
     devices_sessions: ['Devices & Sessions', 'Verified device and session history is unavailable in this workspace. Session revocation requires an authorized backend operation.'],
     data_export_closure: ['Export & Closure', 'Archive export and account closure are unavailable. No export package, email, closure ticket or retention decision is created by this screen.'],
   };
-  if (tab === 'mfa_security') return <section className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-3 text-slate-300"><h2 className="font-bold text-white">MFA & Credentials</h2><p>Recorded MFA setting: {recordedMfaSetting(user)}</p><p>This setting does not verify the current authentication factor, an enrolled device or signing authority. Credential management is unavailable in this workspace.</p></section>;
+  // Contract C2: provider-reported status for this session; enrolment stays blocked (see ClientMfaPanel).
+  if (tab === 'mfa_security') return <ClientMfaPanel key={user?.id ?? 'anonymous'} user={user} />;
   const [title, description] = messages[tab] || ['Security', 'This integration is unavailable.'];
   return <section className="rounded-2xl bg-[#07172B] border border-[#1E3A5F] p-6 space-y-3 text-slate-300"><h2 className="font-bold text-white">{title}</h2><p role="status">{description}</p>
     {tab === 'data_export_closure' && <><button type="button" disabled>Export client archive unavailable</button><button type="button" disabled>Account closure unavailable</button></>}

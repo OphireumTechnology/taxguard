@@ -79,7 +79,8 @@ it('authorizes lifecycle changes from the session and path, ignoring spoofed act
   expect(response.status).toBe(200); expect(await response.json()).toEqual({status:'suspended',revokedSessions:2});
   // Proposal 034: a recent AAL2 sign-in of the session's own actor is checked first (never the body's).
   expect(rpc.mock.calls[0]).toEqual(['taxguard_privileged_session',{p_tenant:'tenantA',p_actor:'checker',p_session_hash:createHash('sha256').update(applicationToken!).digest('hex'),p_roles:['admin','administrator','super_admin','super_administrator']}]);
-  expect(rpc.mock.calls[1]).toEqual(['taxguard_change_staff_membership_status',{p_tenant:'tenantA',p_actor:'checker',p_uid:'staff',p_action:'suspend',p_reason:'Synthetic access review'}]);
+  // The change itself re-proves the same session inside its own transaction (proposal 20261017000000).
+  expect(rpc.mock.calls[1]).toEqual(['taxguard_change_staff_membership_status_proven',{p_tenant:'tenantA',p_actor:'checker',p_actor_session_hash:createHash('sha256').update(applicationToken!).digest('hex'),p_uid:'staff',p_action:'suspend',p_reason:'Synthetic access review'}]);
 });
 it('refuses privileged lifecycle changes without a recent sign-in and never reaches the membership RPC',async()=> {
   rpc.mockResolvedValueOnce({data:null,error:{code:'P0001',message:'STAFF_RECENT_SIGN_IN_REQUIRED'}});

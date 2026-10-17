@@ -4,16 +4,18 @@ import os from 'node:os';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import pg from 'pg';
-import { startDatabase } from '../../src/tests-db/harness';
+import { assertRecoveryInvocation } from './recovery-invocation-guard';
 import { discoverBackupTools, backupToolMajor } from './backup-tools.mjs';
 import { schemaFingerprint } from './schema-fingerprint';
 
 // This rehearsal creates its own disposable loopback server. There is no target URL option,
 // no .env loading and no ability to operate on a Supabase database. Password is passed in the
 // child environment, never arguments/output. Real staging backup remains an owner operation.
+assertRecoveryInvocation(process.argv, process.env);
 for (const file of ['.env', '.env.local', '.env.development', '.env.development.local']) {
   if (fs.existsSync(file)) throw new Error('BACKUP_REHEARSAL_ENV_FILE_REFUSED');
 }
+const { startDatabase } = await import('../../src/tests-db/harness');
 const { dump, restore } = discoverBackupTools();
 if (!dump || !restore || !path.isAbsolute(dump) || !path.isAbsolute(restore) || !fs.existsSync(dump) || !fs.existsSync(restore)) {
   console.error('BACKUP_TOOLS_REQUIRED: set absolute paths for TAXGUARD_PG_DUMP_BIN and TAXGUARD_PG_RESTORE_BIN (PostgreSQL 17+).');
@@ -64,8 +66,12 @@ try {
   catch (error: any) { if (error.message !== 'SECURITY_EVENT_IMMUTABLE') throw error; }
   console.log(JSON.stringify({ status: 'PASS', syntheticOnly: true, destination: 'disposable-loopback', archiveRetained: false, durationMs:Date.now()-startedAt }));
 } finally {
-  await restored?.end();
-  await db.stop();
-  const resolved = path.resolve(directory);
-  if (resolved.startsWith(path.resolve(os.tmpdir()) + path.sep) && path.basename(resolved).startsWith('taxguard-backup-rehearsal-')) fs.rmSync(resolved, { recursive: true, force: true });
+  try { await restored?.end(); }
+  finally {
+    try { await db.stop(); }
+    finally {
+      const resolved = path.resolve(directory);
+      if (resolved.startsWith(path.resolve(os.tmpdir()) + path.sep) && path.basename(resolved).startsWith('taxguard-backup-rehearsal-')) fs.rmSync(resolved, { recursive: true, force: true });
+    }
+  }
 }

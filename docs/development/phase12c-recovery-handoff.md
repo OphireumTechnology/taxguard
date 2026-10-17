@@ -62,7 +62,15 @@ PR #18's backend/recovery changes remain on their existing branch.
 - Windows browser fixture configurations use installed Edge instead of requiring an absent
   cached Chromium binary. Generated acceptance artifacts are retained locally and ignored by Git.
 
-## C9 — document-review metadata confidentiality (OPEN)
+## C9 — document-review metadata confidentiality (implemented in code via PR #18; not commissioned)
+
+**Integration update (2026-10-18):** PR #18 (merged into main at `f638a79`) added the client-safe
+server and database projection (proposal `20261015030851`, unapplied externally), client-addressed
+`clientReason`, and HTTP, PostgreSQL and browser regressions. After reconciling with main the client
+vault panel shows only `clientReason` for rejected or replacement-requested documents, beside the
+replacement action; it never reads `reviewNote` or `reviewedBy`. Staging remains NO-GO until the
+proposal is reviewed and applied by an authorized owner. The original findings follow.
+
 
 `taxguard_doc_json` in proposal 027 returns `uploadedBy`, `uploaderRole`, `reviewedBy`,
 `reviewNote` and review timestamps without an audience distinction. Both `taxguard_doc_list`

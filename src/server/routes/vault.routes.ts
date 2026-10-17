@@ -12,6 +12,7 @@ import { DocumentRequestStore } from '../taxguard/documents/documentRequestStore
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, SupabaseVaultStorage } from '../taxguard/documents/vaultIntegrations';
 import { practiceStoreConfigured } from './practice.routes';
 import type { ScanCoordinator } from '../taxguard/documents/malwareScanning';
+import { clientDocument, clientDocumentDetail } from '../taxguard/documents/clientDocumentProjection';
 
 export function createVaultRouter(deps: { store?: () => DocumentVaultStore; requests?: () => DocumentRequestStore; authenticate?: RequestHandler; scanRequests?: () => ScanCoordinator | null } = {}) {
   const router = Router();
@@ -51,16 +52,23 @@ export function createVaultRouter(deps: { store?: () => DocumentVaultStore; requ
     return { items: await store().reviewQueue(t(req), u(req)) };
   }));
   router.get('/clients/:clientId/upload-targets', run(async req => ({ items: await store().uploadTargets(t(req), client(req), u(req)) })));
-  router.get('/clients/:clientId/documents', run(async req => ({ items: await store().list(t(req), client(req), u(req), req.query.taxYear ? int(req.query.taxYear) : undefined) })));
+  const isClient = (req: AuthenticatedRequest) => ['client', 'prospective_client'].includes(req.user!.role);
+  router.get('/clients/:clientId/documents', run(async req => {
+    const items = await store().list(t(req), client(req), u(req), req.query.taxYear ? int(req.query.taxYear) : undefined);
+    return { items: isClient(req) ? items.map(clientDocument) : items };
+  }));
   router.post('/clients/:clientId/documents', express.raw({ type: [...ALLOWED_DOCUMENT_TYPES], limit: MAX_DOCUMENT_BYTES }), run(async req => {
     if (!Buffer.isBuffer(req.body)) throw new DocumentVaultError('DOCUMENT_TYPE_NOT_ALLOWED', 415);
     return store().upload(t(req), client(req), u(req), { engagementId: str(req.query.engagementId, 128) ?? '', taxYear: int(req.query.taxYear), caseId: str(req.query.caseId, 128),
       category: str(req.query.category, 32) ?? '', fileName: str(req.query.fileName) ?? '', mimeType: String(req.headers['content-type'] || '').split(';')[0].trim(),
       documentId: str(req.query.documentId, 64), idempotencyKey: req.get('idempotency-key') || '' }, req.body);
   }, 201));
-  router.get('/clients/:clientId/documents/:documentId', run(async req => store().detail(t(req), client(req), u(req), req.params.documentId)));
+  router.get('/clients/:clientId/documents/:documentId', run(async req => {
+    const detail = await store().detail(t(req), client(req), u(req), req.params.documentId);
+    return isClient(req) ? clientDocumentDetail(detail) : detail;
+  }));
   router.post('/clients/:clientId/documents/:documentId/versions/:version/review', express.json(), run(async req => store().review(t(req), client(req), u(req),
-    req.params.documentId, int(req.params.version), req.body?.decision, int(req.body?.rowVersion), str(req.body?.note, 500))));
+    req.params.documentId, int(req.params.version), req.body?.decision, int(req.body?.rowVersion), str(req.body?.note, 500), req.body?.clientReason)));
   router.post('/clients/:clientId/documents/:documentId/versions/:version/download', run(async req => store().downloadUrl(t(req), client(req), u(req), req.params.documentId, int(req.params.version))));
   router.post('/clients/:clientId/extractions/:fieldId/verify', express.json(), run(async req => store().verifyExtraction(t(req), client(req), u(req), req.params.fieldId,
     req.body?.decision, req.body?.value)));
@@ -88,6 +96,8 @@ export function createVaultRouter(deps: { store?: () => DocumentVaultStore; requ
     return requests().resolve(t(req), client(req), u(req), req.params.requestId, req.params.action as 'waive' | 'cancel', str(req.body?.reason, 1000) ?? '', int(req.body?.rowVersion)); }));
   router.post('/clients/:clientId/requests/:requestId/remind', run(async req => { staffOnly(req); return requests().remind(t(req), client(req), u(req), req.params.requestId); }));
   router.get('/clients/:clientId/notifications', run(async req => requests().notifications(t(req), client(req), u(req), bool(req.query.unreadOnly))));
+  router.get('/clients/:clientId/notification-preferences', run(async req => requests().preferences(t(req), client(req), u(req))));
+  router.post('/clients/:clientId/notification-preferences', express.json({ limit: '4kb' }), run(async req => requests().setPreference(t(req), client(req), u(req), req.body)));
   router.post('/clients/:clientId/notifications/:notificationId/read', run(async req => requests().markRead(t(req), client(req), u(req), req.params.notificationId)));
   // Oversized or unsupported bodies are refused by express.raw before the handler runs.
   router.use(((err: any, _req: any, res: Response, next: any) => {

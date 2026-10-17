@@ -88,6 +88,7 @@ function VaultSession({ clientId }: { clientId: string }) {
       <tbody>{docs.items.map(d => <tr key={d.documentId + d.version} className="border-t border-slate-800"><td className="p-1">{d.fileName}</td><td className="p-1">{d.taxYear}</td>
         <td className="p-1">{label(d.category)}</td><td className="p-1">v{d.version}</td><td className="p-1">{documentStatusText(d.status)}
           {CLIENT_ACTIONABLE_STATUSES.includes(d.status) && <span className="block text-amber-200">Please upload a replacement or message your practice for guidance.</span>}
+          {CLIENT_ACTIONABLE_STATUSES.includes(d.status) && d.clientReason && <span className="block text-slate-200">Reason from your practice: {d.clientReason}</span>}
           {GUIDANCE[d.status] && <span className="block text-xs text-slate-400">{GUIDANCE[d.status]}</span>}</td>
         <td className="p-1 space-x-2">{d.quarantineStatus === 'CLEAN' && <button type="button" className="underline" disabled={busy} onClick={() => download(d)} aria-label={`Download ${d.fileName}`}>Download</button>}
           {(CLIENT_ACTIONABLE_STATUSES.includes(d.status) || d.status === 'REJECTED_MALWARE') && !docs.items.some(other => other.documentId === d.documentId && other.version > d.version) && <button type="button" className="underline" disabled={busy || !targets.some(t => t.engagementId === d.engagementId && t.taxYear === d.taxYear)}
