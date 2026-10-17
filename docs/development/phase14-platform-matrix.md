@@ -73,6 +73,14 @@ could mean "the UI claims something the backend cannot deliver".
   `/gates/stage-{2,3}/evaluate` endpoints are stateless calculators over caller-supplied booleans with no persistence
   and no frontend consumer; real transitions evaluate server-derived snapshots (`serverStageGateOrchestrator.ts`).
   They are recorded as removal candidates, not changed.
+- **Session-bridge abuse throttling (Block 14).** `POST /api/auth/supabase-session` (production) made an
+  outbound identity-provider call for every request with no limit and accepted any token length. Failed
+  verifications are now counted per client address (`AuthFailureLimiter`, 20 per minute, bounded memory; client
+  address comes from the configured proxy hops). Once blocked, the address receives 429 with `Retry-After` before
+  any provider call; successful sign-ins never count, so ordinary sign-in bursts are unaffected. Tokens over 16 KiB
+  are refused without a provider call. In-process only: a multi-instance deployment additionally needs an edge or
+  shared limiter (recorded as a staging requirement). Tests: `sessionVerificationThrottle.test.ts` (removing the
+  pre-provider block fails two of them).
 
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
