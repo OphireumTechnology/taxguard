@@ -4991,6 +4991,27 @@
       ]
     },
     {
+      "file": "docs/development/not-valid-constraint-review.md",
+      "sha256": "fe4b38c1734d2e95eb763d28809266726d481494960b0924c8d657b828d5ad05",
+      "bytes": 13860,
+      "headings": [
+        "# NOT VALID constraint review",
+        "### 1. `chk_taxguard_case_status` on `public.taxguard_cases`",
+        "### 2. `collection_request_scope_fk` on `public.taxguard_client_requests`",
+        "### 3. `ck_taxguard_comm_message_content` on `public.taxguard_communication_messages`",
+        "### 4. `ck_taxguard_comm_message_visibility` on `public.taxguard_communication_messages`",
+        "### 5. `ck_taxguard_comm_thread_category` on `public.taxguard_communication_threads`",
+        "### 6. `ck_taxguard_comm_thread_status` on `public.taxguard_communication_threads`",
+        "### 7. `chk_taxguard_document_category` on `public.taxguard_documents`",
+        "### 8. `chk_taxguard_document_size` on `public.taxguard_documents`",
+        "### 9. `fk_taxguard_engagement_client` on `public.taxguard_engagements`",
+        "### 10. `chk_taxguard_extraction_decision` on `public.taxguard_extracted_data`",
+        "### 11. `chk_taxguard_payment_amounts` on `public.taxguard_invoice_payments`",
+        "### 12. `chk_taxguard_invoice_approver` on `public.taxguard_invoices`",
+        "### 13. `chk_taxguard_invoice_status` on `public.taxguard_invoices`"
+      ]
+    },
+    {
       "file": "docs/development/observability-and-alerts.md",
       "sha256": "28a69c8039c06a797276a9119c4a0c9749d5505260ba3ea5635a3798fba3a7cc",
       "bytes": 3661,
@@ -5187,6 +5208,19 @@
         "## 3. Live staff sign-in — source analysis (no production access)",
         "## 4. Remaining blockers",
         "## 5. Validation (2026-10-17, clean `npm ci`)"
+      ]
+    },
+    {
+      "file": "docs/development/phase14-platform-matrix.md",
+      "sha256": "9ad2e66ac89de7326f8bd3d87bce5fb7cb7335efab3e1517b71c34cdf28de754",
+      "bytes": 6965,
+      "headings": [
+        "# Phase 14 — platform matrix and release-candidate status",
+        "## 1. Audit method",
+        "## 2. Module matrix",
+        "## 3. Work delivered in Phase 14",
+        "## 4. Live staff sign-in (Block 3), from authorized read-only sources",
+        "## 5. Outstanding owner decisions"
       ]
     },
     {
@@ -6777,7 +6811,7 @@
     "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "a36993f3e0ffc8135cf80d2a4808fca1928687b8282609e542bd3ad6da53e568",
+    "package.json": "26bda55eed8422400e43d9c358414b639346e46828912b74b69610904bc49f86",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
     "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
