@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "3bc500f2e120ba3f64d83ff17bef222cba4f043e9d2d43667e48c99e776600f2",
+  "executionPlanSha256": "99a942f54965d442517b254303984cf7b1e88f751bf558ddc9dd931d2b5dec5f",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3324,6 +3324,55 @@
         "--   * With a policy: validated name, e-mail, optional phone, topic and message; explicit consent to",
         "--     the policy's consent version; idempotent per submission id; abuse limits from the policy",
         "--     (per e-mail per day, per client fingerprint per hour - an HMAC of the address computed by the"
+      ]
+    },
+    {
+      "order": 68,
+      "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
+      "kind": "proposal",
+      "version": "20261017000000",
+      "sha256": "5ec6dd644c6a35f96795855431e8a88ab9097360b093a423f998d3df27ebe868",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_create_staff_invitation_proven",
+        "taxguard_revoke_staff_invitation_proven",
+        "taxguard_approve_staff_activation_proven",
+        "taxguard_change_staff_membership_status_proven"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the four wrappers and re-grant the 035 functions to service_role."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_create_staff_invitation(text,text,text,text,text,text,text,text), public.taxguard_revoke_staff_invitation(text,text,text),",
+        "REVOKE ALL ON FUNCTION public.taxguard_create_staff_invitation_proven(text,text,text,text,text,text,text,text,text), public.taxguard_revoke_staff_invitation_proven(text,text,text,text),",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_create_staff_invitation_proven(text,text,text,text,text,text,text,text,text), public.taxguard_revoke_staff_invitation_proven(text,text,text,text),"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 13B, staff identity). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 034 (taxguard_privileged_session) and 035 (hardened membership functions).",
+        "--",
+        "-- Closes the remaining gap recorded in mfa-recovery-completion.md: invitation create / revoke,",
+        "-- activation approval and membership status changes required a recent AAL2 sign-in only in the",
+        "-- service, checked in a separate transaction before the database function ran. A session revoked",
+        "-- or an administrator gated between the two could still complete the change.",
+        "--",
+        "-- Each wrapper below verifies the actor's live durable AAL2 session (named by its token hash, signed",
+        "-- in after the actor's status epoch and within taxguard_privileged_max_age_seconds()) in the SAME",
+        "-- transaction as the change. taxguard_privileged_session takes FOR SHARE NOWAIT locks on the actor's",
+        "-- member, identity and session rows, so a concurrent revocation or suspension either commits first"
       ]
     }
   ]

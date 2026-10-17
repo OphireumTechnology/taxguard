@@ -97,9 +97,9 @@ export function createStaffAccessRouter(deps: StaffAccessDependencies = {}) {
   router.post('/members/:uid/sessions/revoke', run(async req => revokeMemberSessions(client(), tenant(), req.user!, recoveryToken(req), { ...req.body, targetUid: req.params.uid })));
   router.get('/members', run(async req => listStaffMembers(client(), tenant(), req.user!, req.query)));
   router.get('/invitations', run(async req => listStaffInvitations(client(), tenant(), req.user!, req.query)));
-  router.post('/invitations', run(async req => { await recent(req); return createStaffInvitation(client(), tenant(), req.user!, req.body); }, 201));
-  router.post('/invitations/:id/revoke', run(async req => { await recent(req); return revokeStaffInvitation(client(), tenant(), req.user!, req.params.id); }));
-  router.post('/members/:uid/approve', run(async req => { await recent(req); return approveStaffActivation(client(), tenant(), req.user!, req.params.uid); }));
-  router.post('/members/:uid/status', run(async req => { await recent(req); return changeStaffMembershipStatus(client(), tenant(), req.user!, { ...req.body, targetUid: req.params.uid }); }));
+  router.post('/invitations', run(async req => { await recent(req); return createStaffInvitation(client(), tenant(), req.user!, recoveryToken(req), req.body); }, 201));
+  router.post('/invitations/:id/revoke', run(async req => { await recent(req); return revokeStaffInvitation(client(), tenant(), req.user!, recoveryToken(req), req.params.id); }));
+  router.post('/members/:uid/approve', run(async req => { await recent(req); return approveStaffActivation(client(), tenant(), req.user!, recoveryToken(req), req.params.uid); }));
+  router.post('/members/:uid/status', run(async req => { await recent(req); return changeStaffMembershipStatus(client(), tenant(), req.user!, recoveryToken(req), { ...req.body, targetUid: req.params.uid }); }));
   return router;
 }

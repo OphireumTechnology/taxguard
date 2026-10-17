@@ -100,7 +100,27 @@ reset through the real adapter; audit history; re-enrolment with a wrong code re
 session created; reactivation; replays; a fresh staff sign-in with the new authenticator. The suite stays
 within the staff-access rate limit (20 requests a minute per client address) instead of relaxing it.
 
+Phase 13B additions (same file, 4 tests): a permanent provider failure (injected 403) fails the reset
+at once and the member stays suspended; a non-administrator gets 403 for retry, complete and cancel; a
+20-minute-old administrator sign-in is refused for retry; an administrator retries through the panel
+(reactivation is not offered while the reset has failed) and the retried reset verifies; the recovered
+member proves re-enrolment but cannot reactivate themselves (no session can be minted while suspended,
+and a provider token is refused by every administrator route, as bearer or in the body); cancellation
+through the panel needs a recorded reason of at least 10 characters, after which approval and
+completion are refused and the member can still sign in.
+
+## Recent sign-in inside the transaction (proposal 20261017000000, not applied)
+
+Invitation create / revoke, activation approval and membership status changes now call
+`*_proven` wrappers that run `taxguard_privileged_session` (live durable AAL2 session by token hash,
+signed in after the actor's status epoch and within 15 minutes, FOR SHARE NOWAIT locks) in the same
+transaction as the 035 function. A session revoked or an actor gated after the service-level check is
+refused. The 035 functions are no longer executable by `service_role`. The service-level check stays
+as defence in depth. Tests: `membershipSessionProof.test.ts` (9; removing the in-wrapper check fails 5,
+leaving `service_role` on the old functions fails 1).
+
 ## Remaining (not done here)
 
-Real provider verification against an authorized non-production project; moving the recency check into
-the 003/004 database functions (needs their session proof parameter); proposal 037 is unapplied.
+Real provider verification against an authorized non-production project; proposals 037 and
+20261017000000 are unapplied (apply 20261017000000 after 034/035 and before the server build that calls
+the wrappers; re-applying 035 afterwards restores the old grants, so re-apply in name order).

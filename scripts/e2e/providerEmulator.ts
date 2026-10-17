@@ -29,6 +29,7 @@ const users = new Map<string, ProviderUser>();
 const tokens = new Map<string, { uid: string; aal: 'aal1' | 'aal2'; primary: number }>();
 const refreshTokens = new Map<string, { uid: string; aal: 'aal1' | 'aal2'; primary: number }>();
 const challenges = new Map<string, { factorId: string; expires: number }>();
+const adminFaults = new Map<string, { status: number; remaining: number }>();
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const base32 = (buf: Buffer) => { let bits = 0, v = 0, out = ''; for (const b of buf) { v = (v << 8) | b; bits += 8; while (bits >= 5) { out += B32[(v >>> (bits - 5)) & 31]; bits -= 5; } } if (bits) out += B32[(v << (5 - bits)) & 31]; return out; };
 const unbase32 = (s: string) => { let bits = 0, v = 0; const out: number[] = []; for (const ch of s) { v = (v << 5) | B32.indexOf(ch); bits += 5; if (bits >= 8) { out.push((v >>> (bits - 8)) & 255); bits -= 8; } } return Buffer.from(out); };
@@ -119,6 +120,12 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
     const u = users.get(body.uid); if (!u) { send(404, { code: 'E2E_NO_PROVIDER_USER' }); return true; }
     const f = newFactor(); u.factors.push(f); send(200, { factors: u.factors.length, factorSecret: f.secret }); return true;
   }
+  // The next `count` admin factor-API calls for this user answer `status` (e.g. 403 = permanent).
+  if (method === 'POST' && path === '/e2e/provider-admin-fault') {
+    const status = Number(body.status), count = Number(body.count);
+    if (!users.has(body.uid) || !Number.isInteger(status) || status < 400 || status > 599 || !Number.isInteger(count) || count < 0 || count > 10) { send(400, { code: 'E2E_FAULT_INVALID' }); return true; }
+    adminFaults.set(body.uid, { status, remaining: count }); send(200, { uid: body.uid, status, remaining: count }); return true;
+  }
   if (method === 'POST' && path === '/e2e/provider-sign-in-age') {
     const u = users.get(body.uid); if (!u) { send(404, { code: 'E2E_NO_PROVIDER_USER' }); return true; }
     u.signInAgeSeconds = Math.max(0, Number(body.seconds) || 0); send(200, { uid: u.id, signInAgeSeconds: u.signInAgeSeconds }); return true;
@@ -180,6 +187,11 @@ export async function handleProviderEmulation(method: string, url: URL, headers:
   if ((m = /^\/auth\/v1\/admin\/users\/([A-Za-z0-9_-]+)\/factors(?:\/([A-Za-z0-9_-]+))?$/.exec(path))) {
     const u = users.get(m[1]);
     if (!u) { send(404, { code: 404, msg: 'User not found' }); return true; }
+    const fault = adminFaults.get(u.id);
+    if (fault && fault.remaining > 0) {
+      fault.remaining--;
+      send(fault.status, { code: fault.status, msg: 'Synthetic injected provider fault' }); return true;
+    }
     if (method === 'GET' && !m[2]) { send(200, u.factors.map(publicFactor)); return true; }
     if (method === 'DELETE' && m[2]) {
       const before = u.factors.length; u.factors = u.factors.filter(f => f.id !== m![2]);

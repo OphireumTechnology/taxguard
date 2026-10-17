@@ -39,7 +39,8 @@ import {
   RegistrationResultState,
   ControlledAuthErrorCode
 } from '../supabase/auth';
-import { isSupabaseConfigured, supabase } from '../supabase/config';
+import { isStaffIdentityDevelopmentConfigured, isSupabaseConfigured, supabase } from '../supabase/config';
+import { staffEnrollmentOutcome } from './staffEnrollmentOutcome';
 import { StageOneOnboardingService } from '../services/stageOneOnboardingService';
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
@@ -1058,17 +1059,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return { success: true, redirectPage };
     } catch (err: any) {
-      // Keep only the provider session for enrollment; no TaxGuard session or data is retained.
-      if (err?.code !== 'STAFF_MFA_ENROLLMENT_REQUIRED') await supabaseLogout().catch(() => {});
+      // Keep only the provider session for enrollment, and only where enrollment can actually run
+      // (production builds never enable staff self-enrollment); no TaxGuard session or data is retained.
+      const enrollment = err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED' ? staffEnrollmentOutcome(isStaffIdentityDevelopmentConfigured()) : null;
+      if (!enrollment?.keepProviderSession) await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
-      if (err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED') {
-        return { success: false, mfaEnrollmentRequired: true, error: 'Set up an authenticator to continue.' };
-      }
+      if (enrollment) return enrollment.result;
       if (err?.code === 'CLIENT_MFA_REQUIRED') {
         return { success: false, mfaRequired: true, error: 'Enter the code from your authenticator app to finish signing in.' };
       }

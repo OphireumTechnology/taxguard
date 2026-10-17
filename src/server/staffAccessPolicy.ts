@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { User } from '../types';
 import { sessionAssuranceLevel } from './staffMfa';
 import { AuthorityError, safeId } from './taxguard/authority.repository';
@@ -9,6 +10,20 @@ export function requireStaffAdministrator(actor: User, tenantId: string): void {
   if (actor.tenantId !== tenantId || actor.status !== 'active' || !['admin', 'administrator', 'super_admin', 'super_administrator'].includes(actor.role) || sessionAssuranceLevel(actor) !== 'aal2') {
     throw new AuthorityError('STAFF_ADMIN_REQUIRED', 403);
   }
+}
+/**
+ * SHA-256 of the actor's verified durable application token. The proposal 20261017000000 wrappers
+ * re-check that live AAL2 session, and its recency, inside the transaction that makes the change.
+ */
+export function actorSessionHash(verifiedApplicationToken: string): string {
+  if (typeof verifiedApplicationToken !== 'string' || !/^tg_live_[a-f0-9]{64}$/.test(verifiedApplicationToken)) throw new AuthorityError('AUTH_REQUIRED', 401);
+  return createHash('sha256').update(verifiedApplicationToken).digest('hex');
+}
+/** Session-proof refusals raised by taxguard_privileged_session keep their own codes. */
+export function privilegedSessionRefusal(error: { code?: string; message?: string } | null | undefined): AuthorityError | null {
+  if (error?.code === '55P03') return new AuthorityError('STAFF_ACCESS_BUSY', 409);
+  if (error?.code === 'P0001' && (error.message === 'STAFF_RECENT_SIGN_IN_REQUIRED' || error.message === 'STAFF_FRESH_SIGN_IN_REQUIRED')) return new AuthorityError(error.message, 403);
+  return null;
 }
 export function normalizedInvitationInput(input: unknown) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AuthorityError('INVITATION_INPUT_INVALID');

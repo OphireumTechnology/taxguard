@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 68,
+    "files": 69,
     "core": 13,
-    "proposals": 54,
+    "proposals": 55,
     "tables": 145,
-    "functions": 329,
-    "securityDefinerFunctions": 253,
+    "functions": 333,
+    "securityDefinerFunctions": 257,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2839,6 +2839,40 @@
     },
     {
       "order": 68,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_approve_staff_activation_proven",
+        "taxguard_change_staff_membership_status_proven",
+        "taxguard_create_staff_invitation_proven",
+        "taxguard_revoke_staff_invitation_proven"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        37,
+        38
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_approve_staff_activation",
+        "taxguard_change_staff_membership_status",
+        "taxguard_create_staff_invitation",
+        "taxguard_revoke_staff_invitation"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 69,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

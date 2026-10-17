@@ -416,6 +416,13 @@
       "dependsOn": [
         "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
+      ]
     }
   ]
 }
