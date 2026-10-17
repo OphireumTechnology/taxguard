@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "fd6f832ebb3bbf8c642911e858f978c6836eaafd18ac4e307dadf6fdb146ae79",
+  "executionPlanSha256": "9e275e946a05abb0635b20b03d0ffd75ff80411f1cde17a02f06b217fbbb3308",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3432,6 +3432,56 @@
         "-- in after the actor's status epoch and within taxguard_privileged_max_age_seconds()) in the SAME",
         "-- transaction as the change. taxguard_privileged_session takes FOR SHARE NOWAIT locks on the actor's",
         "-- member, identity and session rows, so a concurrent revocation or suspension either commits first"
+      ]
+    },
+    {
+      "order": 70,
+      "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+      "kind": "proposal",
+      "version": "20261018000000",
+      "sha256": "70cae21a66ee77bab855b9ae8d4c60b985f70f4785c267d875a4b9f6d7207776",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_evidence_checks"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_evidence_checks",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the proposal 031 definition."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_evidence_checks(public.taxguard_cases) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, stages 01-08 evidence). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 026 (case workflow) and 031 (document requests; current definition of",
+        "-- taxguard_case_evidence_checks).",
+        "--",
+        "-- Stage 03 (Validate) could pass while the latest version of a document for the engagement year",
+        "-- was REPLACEMENT_REQUESTED: the reviewer had asked the client for a replacement that had not",
+        "-- arrived, yet the case moved on to Record. Stage 03 now also requires that no document's latest",
+        "-- version (per tenant, client, document) is awaiting a requested replacement. Rejected documents are",
+        "-- final decisions and do not block. Stage 02 is unchanged. The checks stay server-derived; the",
+        "-- caller never supplies them. Everything else is identical to proposal 031.",
+        "-- Re-applying 031 after this proposal restores the previous definition: apply in name order.",
+        "-- Rollback (development): re-apply the proposal 031 definition."
       ]
     }
   ]

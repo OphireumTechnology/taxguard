@@ -94,6 +94,31 @@ could mean "the UI claims something the backend cannot deliver".
   over the real billing store (authorized client and staff, draft refused, other client / other tenant / malformed
   id refused, no staff-only text; removing the issued-status gate fails them), browser download of the paid invoice.
 
+- **Stage 03 evidence (Block 9, Priority 3).** Proposal `20261018000000_taxguard_case_validate_replacement_evidence.sql`
+  (not applied) adds the server-derived check `noOutstandingReplacementRequests` to stage 03 (Validate): a case could
+  previously move to Record while the latest version of a document for the engagement year was
+  `REPLACEMENT_REQUESTED`. Only the latest version per document counts (an uploaded replacement clears it once
+  reviewed); rejected documents are final and do not block. The function stays closed to every API role. The
+  existing stage 02/03 test exposed the defect (a requested replacement was never uploaded, yet Validate passed) and
+  now uploads and reviews the replacement before stage 03 passes. Included in execution order, manifests,
+  composition and idempotent re-apply checks. The browser case suite (03) now proves the gate on the real server:
+  when an earlier suite leaves a requested replacement outstanding, Validate is refused with
+  `noOutstandingReplacementRequests`; the client uploads the replacement, it is scanned CLEAN and reviewed, and
+  Validate then passes.
+  SQL boundary tests (`caseValidateReplacementEvidence.test.ts`, 6): an uploaded replacement alone does not clear
+  Validate (it must be scanned, then reviewed; a refused replacement keeps it blocked); superseded versions and final
+  rejections do not block; another client, engagement or tax year neither blocks nor unlocks the case (including a
+  same-ID later version under another client); stage 2 and other stages are unchanged; no API role may call the
+  function. Removing the client match from the later-version lookup fails them.
+- **Journey H in the browser (Block 19).** `provider/12-staff-invitation-journey.e2e.test.ts` (5): an administrator
+  issues a one-time invitation in Practice Staff & Roles (token shown for hand-off, nothing sent); a provider sign-in
+  for the invited e-mail is refused client auto-provisioning (`STAFF_INVITATION_ACCEPTANCE_REQUIRED`); the invitee
+  accepts on the staff portal with mandatory TOTP enrolment and receives no TaxGuard session (no session-bridge call,
+  no stored token, single-use invitation); the inviting administrator's activation is refused
+  (`STAFF_ACTIVATION_DENIED`); an independent administrator activates in the browser; the new staff member signs in
+  with the new authenticator and receives an active accountant session. Before this, invitation acceptance had no
+  browser coverage.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run

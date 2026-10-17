@@ -431,6 +431,13 @@
         "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
         "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ]
     }
   ]
 }

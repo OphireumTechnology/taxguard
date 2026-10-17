@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { api, apiLogin, C, closeBrowser, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, selectByText, staffLogin, type Session } from './helpers';
+import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, selectByText, staffLogin, type Session } from './helpers';
 
 // Bookkeeping and reconciliation in the bookkeeper's Ledger Workspace with independent review,
 // book-to-tax mapping and workpapers, and the case workflow through stages 1-8 (9-18 blocked).
@@ -18,8 +18,30 @@ const approveAllPrepared = async () => {
   return prepared.length;
 };
 
+/** Latest document versions for the engagement year that await a requested replacement. */
+const requestedReplacements = async () => {
+  const items: any[] = (await api(tokens.mgr, 'GET', `/api/vault/clients/${C}/documents`)).body.items;
+  const latest = new Map<string, any>();
+  for (const d of items) if ((latest.get(d.documentId)?.version ?? 0) < d.version) latest.set(d.documentId, d);
+  return [...latest.values()].filter(d => d.status === 'REPLACEMENT_REQUESTED' && d.engagementId === engagementId && d.taxYear === Y);
+};
+const supplyReplacement = async (d: any) => {
+  const query = new URLSearchParams({ engagementId: d.engagementId, taxYear: String(d.taxYear), category: d.category, fileName: 'synthetic-replacement.pdf', documentId: d.documentId });
+  const uploaded = await fetch(ORIGIN + `/api/vault/clients/${C}/documents?` + query, { method: 'POST',
+    headers: { Authorization: `Bearer ${tokens.client}`, 'Content-Type': 'application/pdf', 'Idempotency-Key': `e2e-replacement-${d.documentId}` },
+    body: '%PDF-1.4\nSynthetic replacement only\n%%EOF' }).then(async r => ({ status: r.status, body: await r.json() as any }));
+  expect(uploaded.status).toBe(201); expect(uploaded.body.version).toBe(d.version + 1);
+  const c = control();
+  expect((await fetch(c.origin + '/e2e/scan', { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' },
+    body: JSON.stringify({ tenant: 'tenantE2E', client: C, documentId: d.documentId, version: d.version + 1, result: 'CLEAN' }) })).status).toBe(200);
+  const next = (await api(tokens.mgr, 'GET', `/api/vault/clients/${C}/documents/${d.documentId}`)).body.versions.find((v: any) => v.version === d.version + 1);
+  expect(next.status).toBe('PENDING_REVIEW');
+  const reviewed = await api(tokens.mgr, 'POST', `/api/vault/clients/${C}/documents/${d.documentId}/versions/${next.version}/review`, { decision: 'approve', rowVersion: next.rowVersion });
+  expect(reviewed.body.status).toBe('VERIFIED');
+};
+
 beforeAll(async () => {
-  for (const [k, id] of [['mgr', 'e2e-mgr'], ['acct', 'e2e-acct'], ['rev', 'e2e-rev'], ['admin', 'e2e-admin']]) tokens[k] = await apiLogin(id);
+  for (const [k, id] of [['mgr', 'e2e-mgr'], ['acct', 'e2e-acct'], ['rev', 'e2e-rev'], ['admin', 'e2e-admin'], ['client', 'e2e-client']]) tokens[k] = await apiLogin(id);
   engagementId = await ensureStaffed(tokens.mgr);
   bk = await staffLogin('e2e-bk');
   tokens.bk = (await bk.page.evaluate(() => localStorage.getItem('artax_session_token')))!;
@@ -127,7 +149,19 @@ describe('case workflow stages 1-8 (stages 9-18 blocked)', () => {
     expect((await advance('acct', 1)).body.activeStage).toBe(2);
     expect((await advance('acct', 2, attest(['documents_received_or_waived', 'documents_in_private_storage']))).status).toBeGreaterThanOrEqual(400); // preparer cannot attest
     expect((await advance('rev', 2, attest(['documents_received_or_waived', 'documents_in_private_storage']))).body.activeStage).toBe(3);
-    expect((await advance('rev', 3, attest(['documents_reviewed_for_completeness', 'discrepancies_recorded_or_resolved']))).body.activeStage).toBe(4);
+    // Validate requires every requested replacement for the engagement year to have arrived and been
+    // reviewed (proposal 20261018000000). Earlier suites may leave one outstanding: prove the gate holds,
+    // then supply the replacement through the real vault (upload, CLEAN scan, staff review).
+    const validate = () => advance('rev', 3, attest(['documents_reviewed_for_completeness', 'discrepancies_recorded_or_resolved']));
+    const outstanding = await requestedReplacements();
+    if (outstanding.length) {
+      const blocked = await validate();
+      expect(blocked.status).toBe(409);
+      expect(blocked.body).toMatchObject({ code: 'STAGE_GATE_NOT_MET', failedChecks: expect.arrayContaining(['noOutstandingReplacementRequests']) });
+      for (const d of outstanding) await supplyReplacement(d);
+      expect(await requestedReplacements()).toEqual([]);
+    }
+    expect((await validate()).body.activeStage).toBe(4);
     expect((await advance('acct', 4)).body.activeStage).toBe(5); // posted entries, none awaiting review
     expect((await advance('acct', 5)).body.activeStage).toBe(6); // closed reconciliation, every bank transaction posted
     expect((await advance('rev', 6, attest(['workpapers_reviewed', 'no_unresolved_blocking_exceptions']))).body.activeStage).toBe(7);

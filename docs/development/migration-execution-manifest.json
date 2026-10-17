@@ -2,9 +2,9 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 70,
+    "files": 71,
     "core": 13,
-    "proposals": 56,
+    "proposals": 57,
     "tables": 145,
     "functions": 335,
     "securityDefinerFunctions": 258,
@@ -2909,6 +2909,35 @@
     },
     {
       "order": 70,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_case_evidence_checks",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        34
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 71,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
