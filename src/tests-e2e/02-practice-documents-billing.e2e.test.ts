@@ -153,6 +153,16 @@ describe('billing: maker-checker approval, numbering and sandbox payment', () =>
     // A second payment of the settled invoice is refused.
     const again = await api(clientToken, 'POST', `/api/billing/clients/${C}/invoices/${invoiceId}/pay-sandbox`, { amount: '1.00', testCard: SANDBOX_SUCCESS_CARD });
     expect(again.status).toBeGreaterThanOrEqual(400);
+    // The issued invoice document downloads as a PDF of the recorded amounts; nothing is delivered.
+    const [download] = await Promise.all([page.waitForEvent('download'),
+      page.getByRole('button', { name: /^Download invoice INV-\d{4}-000001 \(PDF\)$/ }).click()]);
+    expect(download.suggestedFilename()).toMatch(/^invoice-INV-\d{4}-000001\.pdf$/);
+    const fs = await import('node:fs');
+    const pdf = fs.readFileSync((await download.path())!).toString('latin1');
+    expect(pdf.startsWith('%PDF-1.4')).toBe(true);
+    expect(pdf).toContain('Status: PAID');
+    expect(pdf).toMatch(/Balance due\s+0\.00 USD/);
+    await sees(page, 'Invoice document downloaded. It is not a receipt.');
     expect(realErrors(client)).toEqual([]);
   });
 });

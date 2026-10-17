@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { billingApi, billingMessage, newBillingKey, type AgingRow, type Invoice } from '../../services/billingApiService';
+import { billingApi, billingMessage, ISSUED_INVOICE_STATUSES, newBillingKey, saveBlob, type AgingRow, type Invoice } from '../../services/billingApiService';
 
 /** Staff billing: AR aging, client invoices, draft / submit / approve / return / void, payments and credits. */
 export function BillingWorkspacePanel() {
@@ -50,6 +50,8 @@ export function BillingWorkspacePanel() {
       {invoices.map(inv => <article key={inv.invoiceId} className="tg-manager-card">
         <h4>{inv.invoiceNumber ?? 'Draft'} · {inv.status} · total ${inv.total} · balance ${inv.balanceDue} · due {inv.dueDate}</h4>
         {inv.reviewNote && <p>Reviewer note: {inv.reviewNote}</p>}
+        {ISSUED_INVOICE_STATUSES.includes(inv.status) && <p><button type="button" disabled={busy} aria-label={`Download client invoice document ${inv.invoiceNumber ?? inv.invoiceId} (PDF)`}
+          onClick={() => { billingApi.document(clientId, inv.invoiceId).then(blob => { saveBlob(blob, `invoice-${(inv.invoiceNumber ?? inv.invoiceId).replace(/[^A-Za-z0-9_-]/g, '_')}.pdf`); setNotice({ error: false, text: 'Client invoice document downloaded (client fields only). Nothing was sent to the client.' }); }).catch(e => setNotice({ error: true, text: billingMessage(e) })); }}>Download client invoice (PDF)</button></p>}
         <ul>{inv.lines.map(l => <li key={l.lineNo}>{l.description} — {l.quantity} × ${l.unitRate} = ${l.amount}{l.rateOverrideReason ? ` (override: ${l.rateOverrideReason})` : ''}</li>)}</ul>
         {inv.status === 'DRAFT' && <form onSubmit={e => { e.preventDefault(); void run('line', () => billingApi.addLine(clientId, inv.invoiceId, { serviceCode: line.serviceCode, quantity: line.quantity,
             ...(line.unitRate ? { unitRate: line.unitRate, overrideReason: line.overrideReason } : {}) }), 'Line added.'); }}>

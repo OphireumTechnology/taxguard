@@ -5212,8 +5212,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "ba00a81e45e056c1816f5b4c1809f381d336e5474ca2d2f455db5f0007d716d3",
-      "bytes": 8699,
+      "sha256": "51bcfbe2c0b8aeebbd7c61bb1d0f717885bbe2cc22db713db6f124c84330af21",
+      "bytes": 9938,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -6923,7 +6923,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "e60b53865420d70c29db56968ca65e1519d8961f172e48b1fdc828b4aba97179",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "a38283414435ba1575cd4829864a69f3d5c6447994df2d07e4031869f0049e23",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
@@ -6950,7 +6950,7 @@
     "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
     "src/tests/authenticatedScanner.test.ts": "5454d6da8c3d16f3470c96c1e5e2ff97081527fa8afe1c107d517f6616667e0c",
     "src/tests/billingClientProjection.test.ts": "99a26dafb8e73e46744cd8fad4b1fa72b0cc14588f2814c5113bf5e0aeacd295",
-    "src/tests/billingHttp.test.ts": "71fc8872b8fe051ba8fcf0ddd0ca2c792f36b945f126b8d37d4ef34e86cfc0fe",
+    "src/tests/billingHttp.test.ts": "79944fb619e52947c999d8b42df405f08238e8cd192ff14bc00ec0fc4c2d044a",
     "src/tests/bookToTaxHttp.test.ts": "97eadc3446c41f631daa8c371a516ea2d41483b98e7242b68112b21074877764",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/bookkeeperDurableHttp.test.ts": "0225e02509de2193a7e917566a124e4aa72a7dce6cd364b78c240795d7b866e3",

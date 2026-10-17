@@ -8,7 +8,8 @@ import express, { Router, type RequestHandler, type Response } from 'express';
 import { authenticateToken, type AuthenticatedRequest } from '../auth';
 import { getSupabaseAdmin } from '../supabase';
 import { BillingError, BillingStore, SandboxPaymentProvider } from '../taxguard/billing/billingStore';
-import { clientBillingView } from '../taxguard/billing/clientBillingView';
+import { clientBillingView, clientInvoiceView } from '../taxguard/billing/clientBillingView';
+import { renderInvoicePdf, type InvoiceDocumentView } from '../taxguard/billing/invoiceDocument';
 import { practiceStoreConfigured } from './practice.routes';
 
 export function createBillingRouter(deps: { store?: () => BillingStore; authenticate?: RequestHandler } = {}) {
@@ -52,6 +53,25 @@ export function createBillingRouter(deps: { store?: () => BillingStore; authenti
   router.post('/catalog', run(async req => store().upsertService(t(req), u(req), req.body ?? {})));
   router.get('/ar-aging', run(async req => { staffOnly(req); return store().arAging(t(req), u(req), typeof req.query.asOf === 'string' ? req.query.asOf : undefined); }));
   router.get('/clients/:clientId/invoices', run(async req => ({ items: await store().list(t(req), client(req), u(req)) })));
+  // Invoice document (PDF) for an issued invoice, built from the client allow-list for every caller. It is
+  // returned to the requester only; nothing is stored, e-mailed or delivered.
+  router.get('/clients/:clientId/invoices/:invoiceId/document', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(req.params.invoiceId)) throw new BillingError('INVOICE_NOT_FOUND', 404);
+      const items = await store().list(t(req), client(req), u(req));
+      const invoice = Array.isArray(items) ? items.find((i: any) => i?.invoiceId === req.params.invoiceId) : undefined;
+      if (!invoice) throw new BillingError('INVOICE_NOT_FOUND', 404);
+      const pdf = renderInvoicePdf(clientInvoiceView(invoice) as InvoiceDocumentView);
+      const name = String((invoice as any).invoiceNumber || req.params.invoiceId).replace(/[^A-Za-z0-9_-]/g, '_');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="invoice-${name}.pdf"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return res.status(200).send(pdf);
+    } catch (error) {
+      if (error instanceof BillingError) return res.status(error.status).json({ code: error.code });
+      return res.status(503).json({ code: 'BILLING_STORE_UNAVAILABLE' });
+    }
+  });
   router.get('/clients/:clientId/invoice-pages', run(async req => {
     let after: {at:string;id:string}|undefined;
     if (req.query.cursor !== undefined) {

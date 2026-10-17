@@ -82,6 +82,18 @@ could mean "the UI claims something the backend cannot deliver".
   shared limiter (recorded as a staging requirement). Tests: `sessionVerificationThrottle.test.ts` (removing the
   pre-provider block fails two of them).
 
+- **Invoice documents (Block 8, Priority 2).** `GET /api/billing/clients/:clientId/invoices/:invoiceId/document`
+  returns a PDF for an issued invoice (ISSUED, PARTIALLY_PAID, PAID, PAST_DUE; VOID marked "not payable"); drafts
+  and pending invoices are refused (`INVOICE_DOCUMENT_NOT_ISSUED`). It reuses the authorized invoice list (client
+  ownership and tenant checks) and renders only the client allow-listed fields for every caller, so preparer,
+  approver and internal review notes never appear even in a staff download. Amounts must be exact two-decimal
+  strings (no rounding); text is restricted to printable ASCII and escaped. The PDF is generated on request, never
+  stored, e-mailed or delivered, and states that it is not a receipt. Client Invoices and the staff billing
+  workspace gained download actions. Self-contained PDF 1.4 writer (`invoiceDocument.ts`, no new dependency).
+  Tests: renderer unit tests (escaping, refusals, pagination with verified cross-reference offsets), HTTP tests
+  over the real billing store (authorized client and staff, draft refused, other client / other tenant / malformed
+  id refused, no staff-only text; removing the issued-status gate fails them), browser download of the paid invoice.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run

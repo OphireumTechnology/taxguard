@@ -207,4 +207,39 @@ describe('billing', () => {
     const env = process.env.NODE_ENV; process.env.NODE_ENV = 'production';
     try { expect(() => new SandboxPaymentProvider()).toThrow('PAYMENT_PROVIDER_NOT_COMMISSIONED'); } finally { process.env.NODE_ENV = env; }
   });
+  it('produces an issued-invoice PDF from client-visible fields only, for authorized callers only', async () => {
+    const pdf = (path: string) => fetch(origin + '/billing' + path).then(async r => ({ status: r.status, type: r.headers.get('content-type'), disposition: r.headers.get('content-disposition'),
+      bytes: Buffer.from(await r.arrayBuffer()) }));
+    as('client');
+    const r = await pdf(`/clients/${C}/invoices/${inv}/document`);
+    expect(r.status).toBe(200); expect(r.type).toBe('application/pdf');
+    expect(r.disposition).toMatch(/^attachment; filename="invoice-INV-\d{4}-000001\.pdf"$/);
+    const text = r.bytes.toString('latin1');
+    expect(text.startsWith('%PDF-1.4\n')).toBe(true); expect(text.trimEnd().endsWith('%%EOF')).toBe(true);
+    // Every cross-reference offset points at the start of its object.
+    const xref = Number(/startxref\n(\d+)\n/.exec(text)![1]);
+    expect(text.slice(xref, xref + 4)).toBe('xref');
+    const entries = [...text.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map(m => Number(m[1]));
+    entries.forEach((offset, i) => expect(text.slice(offset, offset + `${i + 1} 0 obj`.length)).toBe(`${i + 1} 0 obj`));
+    const issued = (await call('GET', `/clients/${C}/invoices`, undefined, null)).body.items.find((i: any) => i.invoiceId === inv);
+    expect(text).toContain(issued.invoiceNumber);
+    for (const amount of [issued.total, issued.balanceDue, issued.amountPaid]) expect(text).toContain(amount);
+    expect(text).toContain('This document is not a receipt. It has not been e-mailed or otherwise delivered by TaxGuard.');
+    // Staff receive the same client-facing document: no preparer, approver or internal review note.
+    as('mgr');
+    const staff = (await pdf(`/clients/${C}/invoices/${inv}/document`)).bytes.toString('latin1');
+    for (const secret of ['bl-acct', 'bl-mgr', 'Add the engagement reference', 'Initial staffing']) expect(staff).not.toContain(secret);
+    // Not issued: refused. Unknown or another client's invoice: not found, without a document.
+    const draft = (await call('POST', `/clients/${C}/invoices`, { dueDate: '2026-06-30' })).body.invoiceId;
+    const refused = await pdf(`/clients/${C}/invoices/${draft}/document`);
+    expect(refused.status).toBe(409); expect(JSON.parse(refused.bytes.toString())).toEqual({ code: 'INVOICE_DOCUMENT_NOT_ISSUED' });
+    expect((await pdf(`/clients/${C}/invoices/not-an-invoice/document`)).status).toBe(404);
+    expect((await pdf(`/clients/${C}/invoices/${encodeURIComponent('../x')}/document`)).status).toBe(404);
+    as('other');
+    const foreign = await pdf(`/clients/${C}/invoices/${inv}/document`);
+    expect(foreign.status).toBe(404); expect(foreign.type).not.toBe('application/pdf');
+    expect((await pdf(`/clients/${OTHER}/invoices/${inv}/document`)).status).toBe(404);
+    as('mgr', 'tenantOther');
+    expect((await pdf(`/clients/${C}/invoices/${inv}/document`)).type).not.toBe('application/pdf');
+  });
 });

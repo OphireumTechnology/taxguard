@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BillingRequestError, billingApi, billingMessage, newBillingKey, type Invoice } from '../../services/billingApiService';
+import { BillingRequestError, billingApi, billingMessage, ISSUED_INVOICE_STATUSES, newBillingKey, saveBlob, type Invoice } from '../../services/billingApiService';
 
 /** Client view of issued invoices. Payment uses the sandbox provider only (development); no real card is charged. */
 export function ClientInvoicesPanel({ clientId }: { clientId: string }) {
@@ -18,6 +18,10 @@ export function ClientInvoicesPanel({ clientId }: { clientId: string }) {
     try { await billingApi.paySandbox(clientId, inv.invoiceId, inv.balanceDue, card.replace(/\s/g, ''), k); delete keys.current[inv.invoiceId]; setNotice({ error: false, text: 'Sandbox payment recorded.' }); load(); }
     catch (e) { setNotice({ error: true, text: billingMessage(e) }); }
   };
+  const download = async (inv: Invoice) => {
+    try { saveBlob(await billingApi.document(clientId, inv.invoiceId), `invoice-${(inv.invoiceNumber || inv.invoiceId).replace(/[^A-Za-z0-9_-]/g, '_')}.pdf`); setNotice({ error: false, text: 'Invoice document downloaded. It is not a receipt.' }); }
+    catch (e) { setNotice({ error: true, text: billingMessage(e) }); }
+  };
   return <section aria-labelledby="client-invoices-heading" className="space-y-3 rounded-2xl border border-slate-700 bg-[#0D2745] p-4 text-sm text-slate-200">
     <h3 id="client-invoices-heading" className="font-bold text-white">Invoices</h3>
     {notice && <p role={notice.error ? 'alert' : 'status'}>{notice.text}</p>}
@@ -31,7 +35,7 @@ export function ClientInvoicesPanel({ clientId }: { clientId: string }) {
         <thead><tr>{['Invoice', 'Issued', 'Due', 'Total', 'Paid', 'Balance', 'Status', ''].map(h => <th key={h} scope="col" className="p-1">{h}</th>)}</tr></thead>
         <tbody>{state.items.map(inv => <tr key={inv.invoiceId} className="border-t border-slate-800"><td className="p-1">{inv.invoiceNumber}</td><td className="p-1">{inv.issueDate}</td>
           <td className="p-1">{inv.dueDate}</td><td className="p-1">${inv.total}</td><td className="p-1">${inv.amountPaid}</td><td className="p-1">${inv.balanceDue}</td><td className="p-1">{inv.status.replace('_', ' ').toLowerCase()}</td>
-          <td className="p-1">{Number(inv.balanceDue) > 0 && inv.status !== 'VOID' && <button type="button" className="underline" disabled={!card} onClick={() => pay(inv)}>Pay ${inv.balanceDue} (sandbox)</button>}</td></tr>)}</tbody></table>
+          <td className="p-1 space-x-2">{ISSUED_INVOICE_STATUSES.includes(inv.status) && <button type="button" className="underline" aria-label={`Download invoice ${inv.invoiceNumber || inv.invoiceId} (PDF)`} onClick={() => download(inv)}>Download PDF</button>}{Number(inv.balanceDue) > 0 && inv.status !== 'VOID' && <button type="button" className="underline" disabled={!card} onClick={() => pay(inv)}>Pay ${inv.balanceDue} (sandbox)</button>}</td></tr>)}</tbody></table>
     </>}
   </section>;
 }
