@@ -42,7 +42,7 @@ async function seedSessions() {
 }
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(0[0-9]|1[01])0000_|^20261012340000_/);
+  await applyProposals(fixture.pg, /^20261012(0[0-9]|1[01])0000_|^20261012340000_|^20261012350000_|^20261017000000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES ('${T}','rc-admin-a','admin','active'),('${T}','rc-admin-b','admin','active'),
       ('${T}','rc-admin-c','admin','active'),('${T}','rc-admin-stale','admin','active'),('${T}','rc-staff','accountant','active'),('${T}','rc-staff-2','accountant','active');
     INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,'mfaEnabled',true,'name','Synthetic '||uid)

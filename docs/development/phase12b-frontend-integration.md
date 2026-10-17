@@ -26,6 +26,10 @@ E2E 13 / 14). Please flag such changes so the UI can be updated in the same inte
 
 ## Required backend contracts (not invented; UI stays unavailable until they exist)
 
+> Phase 13A update: C1–C8 are now implemented, partially implemented or prepared-but-disabled on
+> `claude/taxguard-phase13a-contract-completion`. Current status, blockers and owner decisions are in
+> `phase13a-contract-register.md`. The table below records the Phase 12B starting point.
+
 | ID | Contract needed | Current UI behaviour |
 |---|---|---|
 | C1 | Client-scoped consultation history: the client's own consultation requests / converted appointments, read-only, tenant and client scoped | Not shown (appointments are shown) |

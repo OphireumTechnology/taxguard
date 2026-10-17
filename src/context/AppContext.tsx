@@ -39,7 +39,8 @@ import {
   RegistrationResultState,
   ControlledAuthErrorCode
 } from '../supabase/auth';
-import { isSupabaseConfigured, supabase } from '../supabase/config';
+import { isStaffIdentityDevelopmentConfigured, isSupabaseConfigured, supabase } from '../supabase/config';
+import { staffEnrollmentOutcome } from './staffEnrollmentOutcome';
 import { StageOneOnboardingService } from '../services/stageOneOnboardingService';
 import { LiveWorkflowAuthority } from '../services/liveWorkflowAuthority';
 import { LiveWorkflowApi } from '../services/liveWorkflowApi';
@@ -678,7 +679,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stageStates: liveSession.stageStates,
         resumed: liveSession.resumed
       });
-    } else if (liveSession.user.role === 'client' && liveSession.user.clientId) {
+    } else if (liveSession.user.role === 'client' && liveSession.user.clientId && liveSession.onboardingAvailability?.status !== 'unavailable') {
+      // Durable sessions report the legacy case provisioner as unavailable (it answers 503 by design);
+      // the client continues without a fabricated onboarding case instead of failing sign-in.
       try {
         const bundle = await LiveWorkflowApi.provisionClientOnboarding(2025);
         if (bundle?.workflow && bundle?.eligibility) {
@@ -1056,16 +1059,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return { success: true, redirectPage };
     } catch (err: any) {
-      // Keep only the provider session for enrollment; no TaxGuard session or data is retained.
-      if (err?.code !== 'STAFF_MFA_ENROLLMENT_REQUIRED') await supabaseLogout().catch(() => {});
+      // Keep only the provider session for enrollment, and only where enrollment can actually run
+      // (production builds never enable staff self-enrollment); no TaxGuard session or data is retained.
+      const enrollment = err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED' ? staffEnrollmentOutcome(isStaffIdentityDevelopmentConfigured()) : null;
+      if (!enrollment?.keepProviderSession) await supabaseLogout().catch(() => {});
       clearStoredToken();
       clearTaxpayerState();
       setCurrentUser(null);
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
       if (typeof window !== 'undefined') localStorage.removeItem('taxguard_environment');
-      if (err?.code === 'STAFF_MFA_ENROLLMENT_REQUIRED') {
-        return { success: false, mfaEnrollmentRequired: true, error: 'Set up an authenticator to continue.' };
+      if (enrollment) return enrollment.result;
+      if (err?.code === 'CLIENT_MFA_REQUIRED') {
+        return { success: false, mfaRequired: true, error: 'Enter the code from your authenticator app to finish signing in.' };
       }
       if (err?.code === 'STAFF_MFA_REQUIRED') {
         return { success: false, mfaRequired: true, error: 'Multi-factor authentication is required for staff access. Enter the code from your authenticator app.' };
@@ -1535,3 +1541,6 @@ export const useApp = () => {
   if (!context) throw new Error('useApp must be used within an AppProvider');
   return context;
 };
+
+/** The app context when rendered inside AppProvider, otherwise undefined (static rendering, tests). */
+export const useOptionalApp = () => useContext(AppContext);

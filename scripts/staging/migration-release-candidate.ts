@@ -53,7 +53,7 @@ async function main() {
     // Reapply only the proposal family already proven replay-safe by the real-PostgreSQL suite.
     // Historical proposals remain reviewable but are not represented as universally idempotent.
     const replayEntries = manifest.entries.filter(entry => entry.kind === 'proposal' &&
-      /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015/.test(entry.file.split('/').at(-1)!));
+      /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017/.test(entry.file.split('/').at(-1)!));
     for (const entry of replayEntries) await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
     const replayFingerprint = await schemaFingerprint(canonical.pool);
     if (replayFingerprint.sha256 !== initialFingerprint.sha256) throw new Error('MIGRATION_CANDIDATE_REPLAY_DRIFT');
@@ -85,12 +85,15 @@ async function main() {
 
 main().catch(error => {
   const value = error as { code?: string; message?: string };
-  console.error(JSON.stringify({
+  const report = JSON.stringify({
     status: 'FAIL',
     code: value.code ?? 'MIGRATION_CANDIDATE_FAILED',
     message: value.message ?? 'unknown failure',
     externalApplication: false,
     externalDatabaseAccess: false,
-  }));
+  });
   process.exitCode = 1;
+  // embedded-postgres registers async-exit-hook, whose beforeExit handler calls process.exit(0) and
+  // would turn this failure into success for CI. Exit explicitly once the report is written.
+  process.stderr.write(report + '\n', () => process.exit(1));
 });

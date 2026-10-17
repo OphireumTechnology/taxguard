@@ -11,6 +11,7 @@ type Row = Record<string, any>;
 /** `failing` simulates a database read error (not "no row") for the named tables. */
 function fakeSupabase(tables: Record<string, Row[]>, failing: Set<string> = new Set()) {
   return {
+    auth: { admin: { mfa: { listFactors: async () => ({ data: { factors: [] }, error: null }) } } },
     from(table: string) {
       const filters: [string, unknown][] = [];
       let patch: Row | null = null;

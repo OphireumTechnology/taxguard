@@ -46,10 +46,25 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
   -- created by the tests through /e2e/provider-user; they have no local password.
   INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000a','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-00000000000b','admin','active'),
     ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000c','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000001','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000002','accountant','active'),
+    -- Phase 13A onboarding status (C4): an active accountant with no assignments, used by no other suite.
+    ('${E2E.tenant}','d0000000-0000-4000-8000-000000000003','accountant','active'),
+    -- MFA recovery retry / cancellation / self-reactivation (provider suite 09 only).
+    ('${E2E.tenant}','d0000000-0000-4000-8000-000000000004','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000005','accountant','active'),
     -- An administrator of ANOTHER tenant (cross-tenant denial): no membership in this deployment's tenant.
     ('${E2E.other}','d0000000-0000-4000-8000-0000000000f1','admin','active');
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,
-    'email',uid||'@example.test','name','Synthetic '||uid,'mfaEnabled',true,'isVerified',true) FROM taxguard_members WHERE uid LIKE 'd0000000-%';`);
+    'email',uid||'@example.test','name','Synthetic '||uid,'mfaEnabled',true,'isVerified',true) FROM taxguard_members WHERE uid LIKE 'd0000000-%';
+  -- Phase 13B client MFA (C2): a durable client that signs in through the provider emulation.
+  INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name,email,status) VALUES('${E2E.tenant}','E2EMFAC1','d0000000-0000-4000-8000-0000000000c1','Synthetic Provider Client','d0000000-0000-4000-8000-0000000000c1@example.test','active');
+  INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c1','client','active','E2EMFAC1');
+  INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c1',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000c1',
+    'tenantId','${E2E.tenant}','role','client','status','active','email','d0000000-0000-4000-8000-0000000000c1@example.test','name','Synthetic Provider Client',
+    'clientId','E2EMFAC1','isVerified',true,'onboardingStatus','COMPLETED'));
+  INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name,email,status) VALUES('${E2E.tenant}','E2EMFAC2','d0000000-0000-4000-8000-0000000000c2','Synthetic Second Client','d0000000-0000-4000-8000-0000000000c2@example.test','active');
+  INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c2','client','active','E2EMFAC2');
+  INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000c2',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000c2',
+    'tenantId','${E2E.tenant}','role','client','status','active','email','d0000000-0000-4000-8000-0000000000c2@example.test','name','Synthetic Second Client',
+    'clientId','E2EMFAC2','isVerified',true,'onboardingStatus','COMPLETED'));`);
 
 // Loopback stand-in for the project's service endpoints, keyed per run:
 //   POST /rest/v1/rpc/<taxguard_*>        -> the database RPC (PostgREST semantics)
@@ -65,7 +80,7 @@ const serviceKey = 'e2e-synthetic-service-key-' + Math.random().toString(36).sli
 // browser-facing auth endpoints; database, storage, admin and control paths need the service key.
 const PROVIDER_PROFILE = process.env.E2E_PROFILE === 'provider';
 const anonKey = 'e2e-synthetic-anon-key-' + Math.random().toString(36).slice(2);
-const BROWSER_AUTH = /^\/auth\/v1\/(token|logout|user|factors(\/[0-9a-f-]{36}\/(challenge|verify))?)$/;
+const BROWSER_AUTH = /^\/auth\/v1\/(token|logout|user|factors(\/[0-9a-f-]{36}(\/(challenge|verify))?)?)$/;
 const objects = new Map<string, Buffer>();
 const shim = http.createServer((req, res) => {
   const cors: Record<string, string> = PROVIDER_PROFILE ? { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info, x-supabase-api-version',
@@ -134,6 +149,8 @@ if (PROVIDER_PROFILE) {
   process.env.VITE_SUPABASE_URL = process.env.SUPABASE_URL;
   process.env.VITE_SUPABASE_ANON_KEY = anonKey;
   process.env.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED = 'true';
+  // Client authenticator enrolment (C2) is exercised only against the provider emulation.
+  process.env.VITE_TAXGUARD_CLIENT_MFA_ENABLED = 'true';
 }
 process.env.TAXGUARD_MFA_RESET_PROVIDER = 'supabase-admin';
 if (process.env.E2E_CONTROL_FILE) fs.writeFileSync(process.env.E2E_CONTROL_FILE, JSON.stringify({ origin: process.env.SUPABASE_URL, key: serviceKey }), { mode: 0o600 });

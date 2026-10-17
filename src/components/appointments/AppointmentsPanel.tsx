@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { appointmentErrorText, appointmentsService, CATEGORY_LABEL, formatAppointmentTime, MODE_LABEL, newAppointmentKey, STATUS_LABEL, zonedLocalToIso,
   type Appointment, type AppointmentCategory, type AppointmentMode } from '../../services/appointmentsService';
+import { ConsultationRoomPanel } from './ConsultationRoomPanel';
 
 type Mode = { kind: 'client'; clientId: string } | { kind: 'staff' } | { kind: 'practice' };
 type Load<T> = { status: 'loading' | 'ready' | 'error' | 'off'; data: T | null; error?: string };
@@ -114,6 +115,7 @@ function AppointmentDetail({ appointment: a, loaded, isClient, busy, clientId, o
     {a.mode === 'REMOTE' && (a.meetingUrl ? <p>Meeting link: <a href={a.meetingUrl} target="_blank" rel="noopener noreferrer">{a.meetingUrl}</a></p>
       : <p>{a.status === 'CONFIRMED' || !isClient ? 'No meeting link recorded yet.' : 'The meeting link appears here once the appointment is confirmed.'}</p>)}
     {a.status === 'CANCELLED' && a.cancelReason && <p>Cancellation reason: {a.cancelReason}</p>}
+    {loaded && a.mode === 'REMOTE' && a.status === 'CONFIRMED' && <ConsultationRoomPanel clientId={clientId} appointmentId={a.appointmentId} />}
     {!isClient && <>
       <p>Responsible staff: {a.staffUid ?? 'not assigned'}{a.internalNote ? ` · Internal note: ${a.internalNote}` : ''}</p>
       {loaded && a.history && <details><summary>Change history ({a.history.length})</summary><ol className="list-decimal pl-5">{a.history.map(h =>

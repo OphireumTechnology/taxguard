@@ -4,6 +4,7 @@ import type { User } from '../types';
 import { attachSessionAssuranceLevel } from '../server/staffMfa';
 import { INVITABLE_STAFF_ROLES, normalizedInvitationInput, requireStaffAdministrator } from '../server/staffAccessPolicy';
 import { createStaffInvitation, lookupStaffInvitation, revokeStaffInvitation } from '../server/staffInvitationManagement';
+const TOKEN = 'tg_live_' + 'a'.repeat(64), TOKEN_HASH = createHash('sha256').update(TOKEN).digest('hex');
 
 const tenant = 'tenantA';
 const input = { email: ' Staff@Example.Test ', role: 'accountant', legalFirstName: ' Synthetic ', legalLastName: ' Staff ' };
@@ -36,8 +37,8 @@ describe('staff administrator policy', () => {
     const rpc = vi.fn();
     const actor = admin(overrides as Partial<User>);
     expect(() => requireStaffAdministrator(actor, tenant)).toThrow('STAFF_ADMIN_REQUIRED');
-    await expect(createStaffInvitation({ rpc } as any, tenant, actor, input)).rejects.toMatchObject({ status: 403 });
-    await expect(revokeStaffInvitation({ rpc } as any, tenant, actor, 'invite')).rejects.toMatchObject({ status: 403 });
+    await expect(createStaffInvitation({ rpc } as any, tenant, actor, TOKEN, input)).rejects.toMatchObject({ status: 403 });
+    await expect(revokeStaffInvitation({ rpc } as any, tenant, actor, TOKEN, 'invite')).rejects.toMatchObject({ status: 403 });
     expect(rpc).not.toHaveBeenCalled();
   });
   it.each(['aal1', null] as const)('denies %s assurance', aal => {
@@ -64,13 +65,13 @@ describe('invitation creation and revocation', () => {
   it('passes only hashed token and authoritative actor/tenant to RPC and returns fresh handoff tokens', async () => {
     const rpc = vi.fn(async (_name: string, args: any) => ({ data: { id: args.p_id, expiresAt: '2027-01-01T00:00:00Z', token: 'untrusted-store-token' }, error: null }));
     const client = { rpc } as any;
-    const first = await createStaffInvitation(client, tenant, admin(), { ...input, tenantId: 'tenantB', actor: 'spoof' });
-    const second = await createStaffInvitation(client, tenant, admin(), input);
+    const first = await createStaffInvitation(client, tenant, admin(), TOKEN, { ...input, tenantId: 'tenantB', actor: 'spoof' });
+    const second = await createStaffInvitation(client, tenant, admin(), TOKEN, input);
     expect(first).toEqual({ id: expect.any(String), token: expect.stringMatching(/^[a-f0-9]{64}$/), expiresAt: '2027-01-01T00:00:00Z', delivery: 'administrator_handoff' });
     expect(first.token).not.toBe(second.token);
     expect(first.id).not.toBe(second.id);
-    expect(rpc.mock.calls[0]).toEqual(['taxguard_create_staff_invitation', {
-      p_tenant: tenant, p_actor: 'admin-maker', p_id: first.id, p_email: 'staff@example.test', p_role: 'accountant',
+    expect(rpc.mock.calls[0]).toEqual(['taxguard_create_staff_invitation_proven', {
+      p_tenant: tenant, p_actor: 'admin-maker', p_actor_session_hash: TOKEN_HASH, p_id: first.id, p_email: 'staff@example.test', p_role: 'accountant',
       p_first: 'Synthetic', p_last: 'Staff', p_token_hash: hash(first.token),
     }]);
     expect(JSON.stringify(rpc.mock.calls)).not.toContain(first.token);
@@ -82,24 +83,24 @@ describe('invitation creation and revocation', () => {
     [{ code: '23505', message: 'private email collision' }, 'INVITATION_CREATION_DENIED', 409],
     [{ code: '42P01', message: 'private missing schema' }, 'STAFF_INVITATION_STORE_UNAVAILABLE', 503],
   ])('sanitizes creation errors %j', async (error, code, status) => {
-    await expect(createStaffInvitation({ rpc: async () => ({ data: null, error }) } as any, tenant, admin(), input)).rejects.toMatchObject({ code, status, message: code });
+    await expect(createStaffInvitation({ rpc: async () => ({ data: null, error }) } as any, tenant, admin(), TOKEN, input)).rejects.toMatchObject({ code, status, message: code });
   });
   it.each([null, { id: 'incorrect', expiresAt: '2027-01-01' }, { id: 'incorrect' }])('fails closed on malformed creation response %j', async data => {
-    await expect(createStaffInvitation({ rpc: async () => ({ data, error: null }) } as any, tenant, admin(), input)).rejects.toMatchObject({ code: 'STAFF_INVITATION_STORE_UNAVAILABLE', status: 503 });
+    await expect(createStaffInvitation({ rpc: async () => ({ data, error: null }) } as any, tenant, admin(), TOKEN, input)).rejects.toMatchObject({ code: 'STAFF_INVITATION_STORE_UNAVAILABLE', status: 503 });
   });
   it('revokes only the authoritative tenant invitation', async () => {
     const rpc = vi.fn(async () => ({ data: { status: 'revoked', token: 'must-not-return' }, error: null }));
-    expect(await revokeStaffInvitation({ rpc } as any, tenant, admin(), 'invite-1')).toEqual({ status: 'revoked' });
-    expect(rpc).toHaveBeenCalledWith('taxguard_revoke_staff_invitation', { p_tenant: tenant, p_actor: 'admin-maker', p_id: 'invite-1' });
+    expect(await revokeStaffInvitation({ rpc } as any, tenant, admin(), TOKEN, 'invite-1')).toEqual({ status: 'revoked' });
+    expect(rpc).toHaveBeenCalledWith('taxguard_revoke_staff_invitation_proven', { p_tenant: tenant, p_actor: 'admin-maker', p_actor_session_hash: TOKEN_HASH, p_id: 'invite-1' });
   });
   it.each([
     [{ code: 'P0001', message: 'private detail' }, 'INVITATION_REVOCATION_DENIED', 409],
     [{ code: '42P01', message: 'private detail' }, 'STAFF_INVITATION_STORE_UNAVAILABLE', 503],
   ])('sanitizes revocation errors %j', async (error, code, status) => {
-    await expect(revokeStaffInvitation({ rpc: async () => ({ data: null, error }) } as any, tenant, admin(), 'invite')).rejects.toMatchObject({ code, status, message: code });
+    await expect(revokeStaffInvitation({ rpc: async () => ({ data: null, error }) } as any, tenant, admin(), TOKEN, 'invite')).rejects.toMatchObject({ code, status, message: code });
   });
   it.each([null, { status: 'pending' }])('denies invalid revocation response %j', async data => {
-    await expect(revokeStaffInvitation({ rpc: async () => ({ data, error: null }) } as any, tenant, admin(), 'invite')).rejects.toMatchObject({ status: 503 });
+    await expect(revokeStaffInvitation({ rpc: async () => ({ data, error: null }) } as any, tenant, admin(), TOKEN, 'invite')).rejects.toMatchObject({ status: 503 });
   });
 });
 

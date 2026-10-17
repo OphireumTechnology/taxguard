@@ -72,6 +72,15 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 | `/api/health/live`, `/ready`, `/diagnostics` | liveness, readiness, administrator diagnostics without disclosure | `healthEndpoints.test.ts` |
 | `scripts/mutation/phase10-mutations.mjs` | proves the new protections are tested | 19 / 19 mutants killed |
 
+## Phase 13A contract completion (local, offline)
+
+Proposals `20261016000000`–`20261016050000` add the C1, C3, C4, C5, C6 and C8 database contracts.
+C7 reads existing governance tables; C2 reads the identity provider only. All six proposals are in
+the execution DAG, the staging manifest, the review bundle and the composition-security test. None
+is applied anywhere. Per-contract status, blockers and owner decisions:
+`phase13a-contract-register.md`. Staging and production remain NO-GO. Local tests do not establish
+staging or production readiness, and no full WCAG review has been performed.
+
 ## Release checklist (staging; every step needs owner approval)
 
 1. Non-production project provisioned; URL and keys only in the staging secret store.

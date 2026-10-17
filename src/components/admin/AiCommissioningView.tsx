@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { BLOCKED_CAPABILITIES, commissioningMatrix, type CommissioningRow } from '../../ai/commissioningMatrix';
 import { useApp } from '../../context/AppContext';
 import { useAdminProviderReadiness } from '../../hooks/useAdminProviderReadiness';
+import { AiLiveCommissioningRecords } from './AiLiveCommissioningRecords';
 
 const GATES: Array<[keyof CommissioningRow, string]> = [['registered', 'Registered'], ['handlerImplemented', 'Handler implemented'], ['locallyTested', 'Locally tested'],
   ['providerConfigured', 'Provider configured'], ['humanApproved', 'Human-approved'], ['stagingValidated', 'Staging validated'], ['productionCommissioned', 'Production commissioned']];
@@ -43,5 +44,6 @@ export function AiCommissioningView() {
         </tr>)}</tbody>
       </table>
     </div>
+    <AiLiveCommissioningRecords />
   </div>;
 }

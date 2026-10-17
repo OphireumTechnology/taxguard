@@ -9,7 +9,7 @@ import type { PracticeRpcClient } from '../practice/practiceStore';
 import { DocumentVaultError } from './documentVaultStore';
 
 const STATUS: Record<string, number> = { DOC_REQUEST_STAFF_REQUIRED: 403, DOC_REQUEST_MANAGER_REQUIRED: 403, DOC_REQUEST_WAIVER_REQUIRES_REVIEWER: 403,
-  NOTIFICATION_CLIENT_ONLY: 403, DOCUMENT_ACCESS_DENIED: 403, DOC_REQUEST_VERSION_CONFLICT: 409, DOC_REQUEST_CLOSED: 409, DOC_REQUEST_REMINDER_TOO_SOON: 429,
+  NOTIFICATION_CLIENT_ONLY: 403, NOTIFICATION_CATEGORY_MANDATORY: 422, NOTIFICATION_CHANNEL_UNAVAILABLE: 422, NOTIFICATION_PREF_VERSION_CONFLICT: 409, NOTIFICATION_PREF_LIMIT: 429, DOCUMENT_ACCESS_DENIED: 403, DOC_REQUEST_VERSION_CONFLICT: 409, DOC_REQUEST_CLOSED: 409, DOC_REQUEST_REMINDER_TOO_SOON: 429,
   ENGAGEMENT_YEAR_NOT_OPEN: 409, DOC_REQUEST_SCOPE_MISMATCH: 422, DOC_REQUEST_REQUIREMENT_NOT_MET: 422, DOCUMENT_NOT_ELIGIBLE: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 const KEY = /^[A-Za-z0-9_.:-]{8,128}$/;
@@ -61,6 +61,14 @@ export class DocumentRequestStore {
   reviewQueue(tenant: string, actor: string, limit = 50) { return this.call<any[]>('taxguard_docreq_review_queue', { p_tenant: tenant, p_actor: actor, p_limit: limit }); }
   notifications(tenant: string, client: string, actor: string, unreadOnly = false) {
     return this.call('taxguard_client_notifications_list', { ...this.b(tenant, client, actor), p_unread_only: unreadOnly });
+  }
+  /** Contract C6: this client user's in-app preferences; e-mail and SMS are not commissioned. */
+  preferences(tenant: string, client: string, actor: string) { return this.call('taxguard_notification_prefs', this.b(tenant, client, actor)); }
+  setPreference(tenant: string, client: string, actor: string, input: { category?: unknown; channel?: unknown; enabled?: unknown; version?: unknown }) {
+    const { category, channel = 'IN_APP', enabled, version } = input ?? {};
+    if (typeof category !== 'string' || !/^[A-Z_]{3,32}$/.test(category) || typeof channel !== 'string' || !/^[A-Z_]{2,16}$/.test(channel) || typeof enabled !== 'boolean'
+      || !Number.isInteger(version) || (version as number) < 0 || (version as number) > 1000) throw new DocumentVaultError('NOTIFICATION_INPUT_INVALID', 400);
+    return this.call('taxguard_notification_pref_set', { ...this.b(tenant, client, actor), p_category: category, p_channel: channel, p_enabled: enabled, p_version: version });
   }
   markRead(tenant: string, client: string, actor: string, notificationId: string) {
     if (!/^[0-9a-f-]{36}$/.test(notificationId)) throw new DocumentVaultError('NOTIFICATION_NOT_FOUND', 404);

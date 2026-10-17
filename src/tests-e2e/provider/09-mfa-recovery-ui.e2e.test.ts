@@ -6,7 +6,8 @@ import { ORIGIN, api as rawApi, closeBrowser, control, dumpOnFailure, durableSes
 // panel drives request, independent approval, reactivation and audit history, and the staff member
 // re-enrols a new authenticator on the staff portal. Synthetic users, loopback services only.
 const D = { adminA: 'd0000000-0000-4000-8000-00000000000a', adminB: 'd0000000-0000-4000-8000-00000000000b', adminC: 'd0000000-0000-4000-8000-00000000000c',
-  staff: 'd0000000-0000-4000-8000-000000000001', staff2: 'd0000000-0000-4000-8000-000000000002', foreignAdmin: 'd0000000-0000-4000-8000-0000000000f1',
+  staff: 'd0000000-0000-4000-8000-000000000001', staff2: 'd0000000-0000-4000-8000-000000000002',
+  staffRetry: 'd0000000-0000-4000-8000-000000000004', staffCancel: 'd0000000-0000-4000-8000-000000000005', foreignAdmin: 'd0000000-0000-4000-8000-0000000000f1',
   nonMember: 'd0000000-0000-4000-8000-0000000000e9' };
 const PASSWORD = 'Synthetic-pass-1!';
 const email = (uid: string) => `${uid}@example.test`;
@@ -248,5 +249,98 @@ describe('MFA recovery driven through the administrator and staff UI', () => {
     expect((await api((await storedToken(s))!, 'GET', '/api/auth/me')).body.user).toMatchObject({ id: D.staff, status: 'active' });
     expect(realErrors(s)).toEqual([]);
     await s.context.close();
+  });
+});
+
+describe('retry, cancellation and authorization of the remaining recovery actions', () => {
+  const session = async (uid: string) => (await durableSession(await providerToken(uid))).body.token as string;
+  const recover = async (token: string, targetUid: string) => {
+    const requestId = crypto.randomUUID(); await budget(1);
+    const r = await api(token, 'POST', '/api/staff-access/mfa-recoveries', { requestId, targetUid, reasonCategory: 'lost_authenticator', reason: 'Synthetic lost device' });
+    expect(r.status, JSON.stringify(r.body)).toBe(201); return requestId;
+  };
+  const worker = async () => { const c = control(); return fetch(c.origin + '/e2e/run-reset-worker', { method: 'POST', headers: { apikey: c.key } }).then(r => r.json()); };
+  const post = (path: string, body: unknown) => { hits.push(Date.now()); return fetch(ORIGIN + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); };
+  let retryId = '';
+
+  it('a permanent provider failure marks the reset failed; non-administrators and stale administrators cannot act on it', async () => {
+    const adminA = await session(D.adminA), adminB = await session(D.adminB);
+    retryId = await recover(adminA, D.staffRetry);
+    await budget(1); expect((await api(adminB, 'POST', `/api/staff-access/mfa-recoveries/${retryId}/approve`)).status).toBe(200);
+    // 403 from the provider is classified as permanent: the job fails at once and nothing is reset.
+    expect((await providerControl('/e2e/provider-admin-fault', { uid: D.staffRetry, status: 403, count: 1 })).status).toBe(200);
+    const run = await worker();
+    expect(run.outcome, JSON.stringify(run)).toMatchObject({ jobId: retryId, status: 'failed', lastErrorCode: 'PROVIDER_NOT_AUTHORIZED' });
+    // Still suspended: the member cannot open a session while the reset has failed.
+    expect((await durableSession(await providerToken(D.staffRetry))).status).toBeGreaterThanOrEqual(400);
+    const accountant = await session(D.staff2);
+    await budget(3);
+    for (const action of ['retry', 'complete']) expect((await api(accountant, 'POST', `/api/staff-access/mfa-recoveries/${retryId}/${action}`)).status, action).toBe(403);
+    expect((await api(accountant, 'POST', `/api/staff-access/mfa-recoveries/${retryId}/cancel`, { reason: 'Synthetic unauthorised cancellation' })).status).toBe(403);
+    // A durable session minted from a provider sign-in 20 minutes old.
+    const stale = (await durableSession(await providerToken(D.adminC, { primaryAgeSeconds: 20 * 60 }))).body.token;
+    expect(stale).toMatch(/^tg_live_/);
+    await budget(1);
+    expect((await api(stale, 'POST', `/api/staff-access/mfa-recoveries/${retryId}/retry`)).body.code).toBe('STAFF_RECENT_SIGN_IN_REQUIRED');
+  });
+
+  it('an administrator retries the failed reset through the panel; the retried reset then verifies', async () => {
+    const c = await adminPanel(D.adminC);
+    const r = row(c, D.staffRetry);
+    await r.getByText(/Factor reset: Failed \(PROVIDER_NOT_AUTHORIZED\)/).waitFor();
+    // Reactivation is not offered while the reset has failed.
+    expect(await r.getByRole('button', { name: `Review reactivation for ${D.staffRetry}` }).count()).toBe(0);
+    await r.getByRole('button', { name: `Review reset retry for ${D.staffRetry}` }).click();
+    await c.page.getByRole('button', { name: 'Confirm reset retry' }).click();
+    await sees(c.page, 'The failed reset was queued again.');
+    await row(c, D.staffRetry).getByText(/Factor reset: Queued/).waitFor();
+    expect(realErrors(c)).toEqual([]);
+    await c.context.close();
+    const run = await worker();
+    expect(run.outcome, JSON.stringify(run)).toMatchObject({ jobId: retryId, status: 'reset_verified' });
+  });
+
+  it('the recovered member proves re-enrolment but cannot reactivate themselves by any route', async () => {
+    await pause(1100); // the enrolment sign-in must come after the reset
+    expect((await providerControl('/e2e/provider-factor', { uid: D.staffRetry })).status).toBe(200);
+    const provider = await providerToken(D.staffRetry);
+    await budget(4);
+    const proof = await post('/api/staff-access/mfa-recovery/enrollment', { providerAccessToken: provider });
+    expect(proof.status).toBe(200); expect(await proof.json()).toMatchObject({ status: 'enrollment_verified' });
+    // No TaxGuard session can be minted for a suspended member, so no administrator route is reachable.
+    expect((await durableSession(provider)).status).toBeGreaterThanOrEqual(400);
+    // A provider token is not an application session, whether sent as the bearer or in the body.
+    expect((await api(provider, 'POST', `/api/staff-access/mfa-recoveries/${retryId}/complete`)).status).toBe(401);
+    expect((await post(`/api/staff-access/mfa-recoveries/${retryId}/complete`, { providerAccessToken: provider })).status).toBe(401);
+    // The re-sent proof changes nothing: still suspended, recovery still open.
+    expect((await durableSession(await providerToken(D.staffRetry))).status).toBeGreaterThanOrEqual(400);
+    const list = (await api(await session(D.adminA), 'GET', '/api/staff-access/mfa-recoveries?status=approved')).body.items;
+    expect(list.find((x: any) => x.requestId === retryId)).toMatchObject({ status: 'approved', jobStatus: 'enrollment_verified', completedAt: null });
+  });
+
+  it('an administrator cancels a pending request through the panel with a recorded reason; it cannot then proceed', async () => {
+    const cancelId = await recover(await session(D.adminA), D.staffCancel);
+    const b = await adminPanel(D.adminB);
+    const r = row(b, D.staffCancel);
+    await r.getByText('Status: pending approval').waitFor();
+    await r.getByRole('button', { name: `Review cancellation for ${D.staffCancel}` }).click();
+    const reason = b.page.getByLabel('Cancellation reason (recorded, at least 10 characters)');
+    await reason.fill('Too short');
+    await b.page.getByRole('button', { name: 'Confirm cancellation' }).click();
+    // The short reason is refused before any request is sent.
+    expect(await reason.evaluate(el => (el as HTMLTextAreaElement).validity.valid)).toBe(false);
+    await reason.fill('Requested for the wrong colleague');
+    await b.page.getByRole('button', { name: 'Confirm cancellation' }).click();
+    await sees(b.page, 'The recovery request was cancelled.');
+    await b.page.getByRole('combobox', { name: 'Recovery status' }).selectOption('cancelled');
+    await row(b, D.staffCancel).getByText('Status: cancelled').waitFor();
+    const token = (await storedToken(b))!;
+    await budget(2);
+    expect((await api(token, 'POST', `/api/staff-access/mfa-recoveries/${cancelId}/approve`)).status).toBeGreaterThanOrEqual(400);
+    expect((await api(token, 'POST', `/api/staff-access/mfa-recoveries/${cancelId}/complete`)).status).toBeGreaterThanOrEqual(400);
+    expect(realErrors(b)).toEqual([]);
+    await b.context.close();
+    // Cancelling before approval changes nothing for the staff member: they can still sign in.
+    expect((await durableSession(await providerToken(D.staffCancel))).status).toBe(200);
   });
 });
