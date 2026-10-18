@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "7dd7717798cd595d7fbeed09be6b5d37a84032832935d7124af647d8bef0e0e4",
-      "bytes": 20411,
+      "sha256": "f34a006fb351a502c04ecd0eea1a0fa68d5880289e1baa01c680942855fcad12",
+      "bytes": 20677,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5496,8 +5496,8 @@
     },
     {
       "file": "docs/development/phase15-financial-write-review.md",
-      "sha256": "ab40e115580b7ee6d58bd154d2791d2ba95ade7c6614d421a423c5042756b36b",
-      "bytes": 9325,
+      "sha256": "f3e1da66cd4c43f7d84c9b4eb72647b95d130f31cd500fa242f9b09b7347d94c",
+      "bytes": 9512,
       "headings": [
         "# Phase 15 financial write and audit review",
         "## Evidence classification",
@@ -5516,6 +5516,17 @@
         "## Correction",
         "## Measured validation",
         "## Limits and next package"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-ledger-write-retries-results.md",
+      "sha256": "cc91fb7e3bfecf1737f2c3e6eaca6f7a93769a5ec4d4c0e3f585fc49f4d3f624",
+      "bytes": 4702,
+      "headings": [
+        "# Phase 15 ledger posting and reversal retries",
+        "## Measured defects and correction",
+        "## Validation",
+        "## Limits"
       ]
     },
     {
@@ -6341,6 +6352,12 @@
       "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
       "sha256": "15c5b11b506dbbff85fcc827a5f7125d8d9a90d8e8c9f98308d23d296fb56970",
       "bytes": 6951,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+      "sha256": "ca382a2ea21ad636fcbb6d22c07201e4cb3071fa9286f09cbfb34aab316f78cc",
+      "bytes": 3453,
       "headings": []
     },
     {

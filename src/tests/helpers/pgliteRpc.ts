@@ -28,6 +28,7 @@ export async function applyProposals(pg: PGlite, pattern: RegExp) {
   if([...selected].some(file=>/20261012240000_/.test(file))){
     selected.add('docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql');
     selected.add('docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql');
+    selected.add('docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql');
   }
   if([...selected].some(file=>/20261012270000_|20261014460000_/.test(file)))selected.add('docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql');
   if([...selected].some(file=>/20261012270000_/.test(file)))selected.add('docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql');

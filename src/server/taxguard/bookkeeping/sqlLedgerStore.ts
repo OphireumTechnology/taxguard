@@ -133,7 +133,7 @@ export class SqlLedgerStore {
       description: input.description, reference: input.reference || null, source: input.source || 'MANUAL', isAdjusting: Boolean(input.isAdjusting),
       adjustingType: input.adjustingType || null, documentIds: input.documentIds || [],
       lines: input.lines.map(l => ({ accountId: l.accountId, debitCents: toCents(l.debit ?? 0), creditCents: toCents(l.credit ?? 0), memo: l.memo || null, taxCategory: l.taxCategory || null })) };
-    const data = await this.call('taxguard_ledger_post_entry', { ...this.base(scope, actor), p_key: input.idempotencyKey,
+    const data = await this.call('taxguard_ledger_post_entry_once', { ...this.base(scope, actor), p_key: input.idempotencyKey,
       p_hash: requestHash({ body, replaces: input.replacesEntryId || null }), p_entry: body, p_replaces: input.replacesEntryId || null });
     return this.entry(scope, data);
   }
@@ -141,7 +141,7 @@ export class SqlLedgerStore {
     return this.entry(scope, await this.call('taxguard_ledger_review_entry', { ...this.base(scope, actor), p_entry: entryId, p_decision: decision, p_note: note ?? null, p_version: expectedVersion }));
   }
   async reverseEntry(scope: LedgerScope, actor: string, input: { idempotencyKey: string; entryId: string; postingDate: string; reason: string; periodId?: string }) {
-    return this.entry(scope, await this.call('taxguard_ledger_reverse_entry', { ...this.base(scope, actor), p_key: input.idempotencyKey,
+    return this.entry(scope, await this.call('taxguard_ledger_reverse_entry_once', { ...this.base(scope, actor), p_key: input.idempotencyKey,
       p_hash: requestHash({ entryId: input.entryId, postingDate: input.postingDate, reason: input.reason, periodId: input.periodId || null }),
       p_entry: input.entryId, p_posting_date: input.postingDate, p_period: input.periodId || null, p_reason: input.reason }));
   }
