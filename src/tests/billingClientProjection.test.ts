@@ -32,14 +32,14 @@ beforeAll(async () => {
   store = new BillingStore(rpc(), new SandboxPaymentProvider());
   await store.upsertService(T, 'bp-mgr', { serviceCode: 'IND-1040', name: 'Individual return', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '400.00' });
   inv = (await store.createInvoice(T, C, 'bp-acct', 'bp-invoice-1', { dueDate: '2026-04-30' })).invoiceId;
-  let r: any = await store.addLine(T, C, 'bp-acct', inv, { serviceCode: 'IND-1040', quantity: 1, unitRate: '380.00', overrideReason: 'Synthetic loyalty discount' });
+  let r: any = await store.addLine(T, C, 'bp-acct', inv, { serviceCode: 'IND-1040', quantity: 1, unitRate: '380.00', overrideReason: 'Synthetic loyalty discount' }, 'projection-line-key');
   r = await store.transition(T, C, 'bp-acct', inv, 'submit', r.rowVersion);
   r = await store.transition(T, C, 'bp-mgr', inv, 'return', r.rowVersion, 'Internal: check the engagement letter');
   r = await store.transition(T, C, 'bp-acct', inv, 'submit', r.rowVersion);
   await store.transition(T, C, 'bp-mgr', inv, 'approve', r.rowVersion);
-  const applied = await store.requestCredit(T, C, 'bp-acct', inv, '30.00', 'Internal: goodwill for delay');
+  const applied = await store.requestCredit(T, C, 'bp-acct', inv, '30.00', 'Internal: goodwill for delay', 'projection-applied-credit');
   await store.decideCredit(T, C, 'bp-mgr', applied.creditId, true);
-  await store.requestCredit(T, C, 'bp-acct', inv, '10.00', 'Internal: pending second credit');
+  await store.requestCredit(T, C, 'bp-acct', inv, '10.00', 'Internal: pending second credit', 'projection-pending-credit');
 }, 90000);
 afterAll(async () => { await fixture?.pg.close(); });
 
