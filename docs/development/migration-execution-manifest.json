@@ -2,9 +2,9 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 92,
+    "files": 93,
     "core": 13,
-    "proposals": 78,
+    "proposals": 79,
     "tables": 160,
     "functions": 391,
     "securityDefinerFunctions": 301,
@@ -3813,6 +3813,36 @@
     },
     {
       "order": 92,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_b2t_prepare_adjustment",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        27,
+        32
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 93,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

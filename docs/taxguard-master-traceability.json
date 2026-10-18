@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "cc752b2556521783bfbb6d399e61c14cda4be8e5aa998227ee33ad4e18af6a34",
-      "bytes": 19847,
+      "sha256": "2f7cb5777815c07e6c1f9f1fbf832bb68331d8f975fca429c0115c2d113c8425",
+      "bytes": 20002,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5447,6 +5447,17 @@
       ]
     },
     {
+      "file": "docs/development/phase15-adjustment-idempotency-results.md",
+      "sha256": "e4c465bb2098ca937885b69708db8362887b3eb44159cbf07ee2651d4856e9f3",
+      "bytes": 3464,
+      "headings": [
+        "# Phase 15 tax-adjustment idempotency",
+        "## Measured defect and correction",
+        "## Validation",
+        "## Remaining scope"
+      ]
+    },
+    {
       "file": "docs/development/phase15-financial-reporting-integration.md",
       "sha256": "b8b5ffa96638c67730f2a18dc263308263c1a7ba3d2dced464835ae3189d586a",
       "bytes": 5041,
@@ -5474,8 +5485,8 @@
     },
     {
       "file": "docs/development/phase15-financial-write-review.md",
-      "sha256": "a09d778fe7df49296c1807840fcadc364b2eb4e69d4011ae983f81c768d77f12",
-      "bytes": 8944,
+      "sha256": "918021041fd0e27afd6cfdb8be1afa76b7b54e08a942c33659fbb4102f4ef28c",
+      "bytes": 9011,
       "headings": [
         "# Phase 15 financial write and audit review",
         "## Evidence classification",
@@ -6289,6 +6300,12 @@
       "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
       "sha256": "f177127a3fecfefe609401e129aca139baed8d10bcb56cf5f4235b1986f6e648",
       "bytes": 3155,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "sha256": "0d5764f100fca5927026374ee470d45de4a0254fd564fdf83b9358c3a29cce8a",
+      "bytes": 3937,
       "headings": []
     },
     {

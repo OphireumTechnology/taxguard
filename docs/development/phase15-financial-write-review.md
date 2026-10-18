@@ -46,7 +46,7 @@ Authority: proposals 024 and 029, `SqlLedgerStore`, `BookToTaxStore` and their d
 | Ingest bank transactions / categorize | Provider/batch/transaction identity and transaction locks; inspect differing-payload retries and audit duplication before declaring complete |
 | Start / clear / finalize reconciliation | Scoped rows and locking; request identity and retry semantics need dedicated fixtures |
 | Save category / open mapping set / set mapping / review set | Firm-defined taxonomy, scoped sets, immutable approved mappings and reviewer guards; no generic stored request outcome |
-| Prepare tax adjustment | Scoped key uniqueness, but 029 replays an existing key without comparing the adjustment payload or preparer; concurrent first submissions may reach the unique constraint; next independent correction |
+| Prepare tax adjustment | 029's unbound replay and concurrent unavailable errors reproduced (2/2 regression failures). Additive proposal 20261019010000 serializes tenant/client/key and compares all material fields plus preparer; 8 targeted PostgreSQL cases pass. Approval remains independent |
 | Review adjustment / generate and review workpaper | Row locks and immutable/reconciled snapshot guards; stable request outcomes require further investigation |
 
 The older `operations/engagementBilling.service.ts` is a separate in-memory implementation referenced by `practice-operations.routes.ts`, including a Stripe webhook. It must not be treated as the durable billing authority or a commissioned live-payment implementation. Inspect route-retirement mounting and idempotency-service failure behavior before changing it; no real webhook or provider calls were executed.

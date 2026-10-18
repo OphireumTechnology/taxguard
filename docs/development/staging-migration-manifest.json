@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "58df277029caf934521ad259529c88147b277806bcefbbe93266bd07743ae54e",
+  "executionPlanSha256": "f841a17f517fd7a5f344735aab697c38dc3a5228639c88cb5927deaa3bb65427",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4852,6 +4852,48 @@
         "-- Depends on billing 028 and access overlay 058. Preserve historical proposals.",
         "-- Serialize first submissions as well as retries; the existing tenant/key unique index remains",
         "-- the durable uniqueness authority. No financial amounts or accounting transitions change."
+      ]
+    },
+    {
+      "order": 92,
+      "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "kind": "proposal",
+      "version": "20261019010000",
+      "sha256": "0d5764f100fca5927026374ee470d45de4a0254fd564fdf83b9358c3a29cce8a",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_b2t_prepare_adjustment"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_b2t_prepare_adjustment",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: disable adjustment creation pending review; do not restore unbound retries."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_b2t_prepare_adjustment(text,text,text,text,jsonb) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_b2t_prepare_adjustment(text,text,text,text,jsonb) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on book-to-tax proposal 029.",
+        "-- Preserve scoped uniqueness, exact integer cents, evidence verification and maker-checker.",
+        "-- Rollback: disable adjustment creation pending review; do not restore unbound retries."
       ]
     }
   ]
