@@ -131,7 +131,7 @@ describe('invoice numbering and duplicate payments', () => {
     await bill.upsertService('tenantA', 'db-mgr', { serviceCode: 'SYN-1', name: 'Synthetic service', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '100.00' });
     for (let i = 0; i < N; i++) {
       const inv = await bill.createInvoice('tenantA', 'dbBill', 'db-acct', 'db-inv-' + i, { dueDate: '2026-06-30' });
-      const lined = await bill.addLine('tenantA', 'dbBill', 'db-acct', inv.invoiceId, { serviceCode: 'SYN-1', quantity: '1' });
+      const lined = await bill.addLine('tenantA', 'dbBill', 'db-acct', inv.invoiceId, { serviceCode: 'SYN-1', quantity: '1' }, 'concurrency-line-' + i);
       invoices.push(await bill.transition('tenantA', 'dbBill', 'db-acct', inv.invoiceId, 'submit', lined.rowVersion));
     }
   });

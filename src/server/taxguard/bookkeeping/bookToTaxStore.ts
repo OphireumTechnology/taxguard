@@ -9,7 +9,7 @@ export class BookToTaxError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
 }
 const STATUS: Record<string, number> = { LEDGER_ACCESS_DENIED: 403, B2T_REVIEWER_REQUIRED: 403, B2T_MANAGER_REQUIRED: 403, MAKER_CHECKER_VIOLATION: 403,
-  B2T_CONCURRENT_UPDATE: 409, WORKPAPER_NOT_RECONCILED: 409, WORKPAPER_STALE: 409 };
+  B2T_CONCURRENT_UPDATE: 409, B2T_IDEMPOTENCY_CONFLICT: 409, WORKPAPER_NOT_RECONCILED: 409, WORKPAPER_STALE: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 /** Signed dollars (two decimals at most) to integer cents; never rounds. */
 export function signedCents(value: unknown): number {
@@ -25,6 +25,7 @@ export class BookToTaxStore {
     try { response = await this.client.rpc(name, args); } catch { throw new BookToTaxError('B2T_STORE_UNAVAILABLE', 503); }
     if (response?.error) {
       const { code, message } = response.error;
+      if (['55P03', '40001', '40P01'].includes(code)) throw new BookToTaxError('B2T_BUSY', 409);
       if (code === 'P0001' && typeof message === 'string' && /^[A-Z0-9_]{3,64}$/.test(message)) throw new BookToTaxError(message, statusOf(message));
       throw new BookToTaxError('B2T_STORE_UNAVAILABLE', 503);
     }
