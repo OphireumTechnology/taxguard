@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "2eaf9ae32133aae57d5ad9118720daf85c2d2c820bdd68fc067be9a72f890520",
-      "bytes": 16136,
+      "sha256": "e21c00e9eb3ae1f7f2039ca2bb9636488d78c9065caa1d031f6ff12e7d9edc86",
+      "bytes": 16372,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",

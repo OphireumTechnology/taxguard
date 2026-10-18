@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "1ef533bc640741838b05677c13ebd3f3aa50fe9a37915aa6c0f116355036ad54",
+  "executionPlanSha256": "4deb41ee0a55f0799ab39599a87d409789cabc225484cb35f8dff3892d653c61",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3730,6 +3730,51 @@
         "-- Deferred checks execute at COMMIT, after RPC definer context has ended. Keep their existing",
         "-- pinned path and invariant logic, but give the private trigger its owner's read authority.",
         "-- Internal implementations remain available to their definer, not the external service role."
+      ]
+    },
+    {
+      "order": 77,
+      "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
+      "kind": "proposal",
+      "version": "20261019050000",
+      "sha256": "f60feabd1f5079e8cd7a7374097828928442513aad41deca138adfd9567f9da2",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_retry_result",
+        "taxguard_bill_remove_line_once"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_retry_result",
+          "previousFile": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: disable line removal pending review; preserve receipts and audit history."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_retry_result(text,text,text,text,text,jsonb) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_remove_line(text,text,text,text,integer) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_remove_line_once(text,text,text,text,integer,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_remove_line_once(text,text,text,text,integer,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on keyed billing writes 20261019030000.",
+        "-- A delayed retry must not delete a new line which reused the removed line's number.",
+        "-- Rollback: disable line removal pending review; preserve receipts and audit history."
       ]
     }
   ]
