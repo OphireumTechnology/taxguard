@@ -437,6 +437,12 @@
       "dependsOn": [
         "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018010000_taxguard_report_cent_transport.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018000000_taxguard_financial_reporting.sql"
+      ]
     }
   ]
 }

@@ -14,6 +14,7 @@ import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.eng
 import { selectLedger } from '../taxguard/bookkeeping/ledgerBackend';
 import { generateStandardChartOfAccounts } from '../taxguard/bookkeeping/defaultAccounts';
 import { generalLedger } from '../taxguard/bookkeeping/ledgerReports';
+import { ReportAmountError } from '../taxguard/bookkeeping/reportMoney';
 import { LedgerStoreError, toCents, type LedgerScope, type SqlLedgerStore } from '../taxguard/bookkeeping/sqlLedgerStore';
 import type { JournalEntry } from '../taxguard/bookkeeping/types';
 
@@ -27,7 +28,7 @@ function scopeOf(req: AuthenticatedRequest) {
   return { tenantId: context.tenantId, clientId: context.clientId, taxYear: Number(req.query.taxYear || req.body?.taxYear) || 2025 };
 }
 function fail(res: Response, error: unknown) {
-  if (error instanceof LedgerStoreError) return res.status(error.status).json({ code: error.code, error: error.code });
+  if (error instanceof LedgerStoreError || error instanceof ReportAmountError) return res.status(error.status).json({ code: error.code, error: error.code });
   const message = error instanceof Error ? error.message : '';
   const code = /^[A-Z_]{3,64}/.exec(message)?.[0];
   if (code) return res.status(code.endsWith('_NOT_FOUND') ? 404 : code === 'MAKER_CHECKER_VIOLATION' ? 403 : 400).json({ code, error: message });

@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "eb9945674371f7fa283506d312a0d8df5d8243041a06c8f1df96c04872611ad4",
-      "bytes": 15089,
+      "sha256": "456956e7b8adafe7a3dd96957d2eef161b6e9f1295ce983ae066966f0fd895fb",
+      "bytes": 15201,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6976,7 +6976,7 @@
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
     "src/server/productionApp.ts": "1ab71410800ac91c70af3a7bb06466332e36f7a3848d65f0922948c36013bfdc",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
-    "src/server/routes/ledgerDispatch.routes.ts": "8f31ed13030cb6057c5f72fe8f4158ddefafe7f76565d78b4ad91ee5750ac3f9",
+    "src/server/routes/ledgerDispatch.routes.ts": "7e75618981ee05f021455b8d4f4226d0f835cf08ea0d02fd9d43b264c66d0854",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
     "src/server/routes/retiredLegacyRoutes.ts": "848153c049beb9ed5116d2942ba53d07d5036b0c50c0f71f6cb3e5843b4ad073",
     "src/server/securityEventRecorder.ts": "74a242fb3951141fc699f9dddfc4318f7ca5b80445979fc98858df3cf371d82b",
@@ -7072,7 +7072,7 @@
     "src/tests/documentRequestsHttp.test.ts": "23e8fb418bd8c2685d3ca571cd4f8bb758457762c2d320bc398633704bd203f8",
     "src/tests/documentVaultHttp.test.ts": "891d81cb8915a12d1276c2e63bab025334eda642eab45326bd157b032eb0bfcd",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
-    "src/tests/durableLedgerHttp.test.ts": "6074c97174479bea7bff8c447f3af7935612e9daeb44b1c3fae986b339705963",
+    "src/tests/durableLedgerHttp.test.ts": "92dd020badda8673ce77ec29b4a8d99134ad0d1d771baef545a7df4c120e595e",
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
