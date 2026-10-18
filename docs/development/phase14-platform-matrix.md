@@ -149,12 +149,22 @@ could mean "the UI claims something the backend cannot deliver".
   approval holds a share lock on the period so a concurrent close waits, one reversal per entry (unique index), frozen
   posted fields, maker-checker, idempotent posting and balance enforcement are all in place with HTTP and concurrency
   database tests. No defect found; nothing changed.
-- **Journey N on the real server: blocked, not faked.** An attempted provider-profile suite showed that the E2E server
-  has no governance store: every evaluation and control-center read answers `AI_GOVERNANCE_UNAVAILABLE` (fail closed),
-  which suite 15 (C7) already covers. Tests passing for that reason would not prove policy refusals, so the suite was
-  not committed. Policy refusals (tenant, unmapped agent, proposals, forged fields) and the permitted advisory path are
-  covered with synthetic governance state in the unit suites. Real-server coverage needs a governance store composed
-  into the E2E environment (development work, no commissioning) and remains open.
+- **Journey N on the real server (Block 19).** The production governance wiring only accepted `NODE_ENV=production`
+  with a TLS `DATABASE_URL`, so no development environment could compose it. `governanceDatabaseTarget` adds a
+  development-only mode: outside production, an explicit loopback `TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL` (no TLS)
+  selects the same SQL store and durable-session verification; production behaviour is unchanged and ignores the local
+  setting; remote hosts and other protocols are refused (`governanceDatabaseTarget.test.ts`). The provider E2E profile
+  composes it on its own disposable PostgreSQL and seeds one synthetic case assigned to the durable accountant (no
+  agent, model, prompt, grant or approval policy). Suite `provider/13-ai-governance-journey` (6): uncommissioned A34 and
+  unmapped A11 refused with `AI_AGENT_INACTIVE` on the assigned case; an unassigned case or year refused with
+  `AI_CASE_ACCESS_DENIED`; another tenant `AI_TENANT_DENIED`; forged approval/identity fields refused by the schema;
+  anonymous and provider tokens refused; an administrator activates an agent kill switch (the accountant cannot,
+  `AI_KILL_SWITCH_ROLE_DENIED`) and the agent reports `STOPPED`; the administrator reads exactly the seven policy
+  refusals, all `DENIED`, none executed, attributed to the accountant; all 61 agents remain DRAFT or STOPPED with
+  material actions BLOCKED. Limits: the kill switch's effect on evaluation is not isolated (inactive agents are
+  refused first); a permitted advisory run requires commissioning and is covered only with synthetic state in unit
+  suites. A first attempt was discarded because its requests failed schema validation (`AI_INVALID_REQUEST`) and so
+  proved nothing about policy; the suite now asserts that no refusal is a schema or availability refusal.
 
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 

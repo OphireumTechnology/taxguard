@@ -79,6 +79,19 @@ const serviceKey = 'e2e-synthetic-service-key-' + Math.random().toString(36).sli
 // Provider-mode profile: the browser gets its own (public, per-run) key that only opens the
 // browser-facing auth endpoints; database, storage, admin and control paths need the service key.
 const PROVIDER_PROFILE = process.env.E2E_PROFILE === 'provider';
+if (PROVIDER_PROFILE) {
+  // Journey N (provider suite 13): one synthetic case assigned to the durable accountant, so governed AI
+  // evaluation reaches the agent and commissioning checks instead of stopping at case access. No agent,
+  // model, prompt, grant or approval policy is created: every agent stays DRAFT and uncommissioned.
+  await q(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name,status) VALUES('${E2E.tenant}','E2EAIC1','e2e-ai-client-owner','Synthetic AI Journey Client','active');
+    INSERT INTO taxguard_engagements(tenant_id,client_id,engagement_id,type,status) VALUES('${E2E.tenant}','E2EAIC1','e2e-ai-engagement','tax_preparation','active');
+    INSERT INTO taxguard_tax_years(tenant_id,client_id,engagement_id,tax_year,status) VALUES('${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,'active');
+    INSERT INTO taxguard_cases(case_id,tenant_id,client_id,engagement_id,tax_year,active_stage,client_uid,preparer_uid,reviewer_uid,created_by,updated_by)
+      VALUES('e2e-ai-case','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,3,'e2e-ai-client-owner','d0000000-0000-4000-8000-000000000002','e2e-ai-reviewer','e2e-seed','e2e-seed');
+    INSERT INTO taxguard_case_assignments(case_id,tenant_id,uid,role) VALUES('e2e-ai-case','${E2E.tenant}','d0000000-0000-4000-8000-000000000002','preparer');
+    INSERT INTO taxguard_staff_assignments(id,tenant_id,client_id,engagement_id,tax_year,role,user_id,assigned_by,status,effective_from)
+      VALUES('e2e-ai-asg-1','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,'preparer','d0000000-0000-4000-8000-000000000002','e2e-seed','ACTIVE',now()-interval '1 day');`);
+}
 const anonKey = 'e2e-synthetic-anon-key-' + Math.random().toString(36).slice(2);
 const BROWSER_AUTH = /^\/auth\/v1\/(token|logout|user|factors(\/[0-9a-f-]{36}(\/(challenge|verify))?)?)$/;
 const objects = new Map<string, Buffer>();
@@ -151,6 +164,12 @@ if (PROVIDER_PROFILE) {
   process.env.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED = 'true';
   // Client authenticator enrolment (C2) is exercised only against the provider emulation.
   process.env.VITE_TAXGUARD_CLIENT_MFA_ENABLED = 'true';
+  // Governed AI evaluation (journey N) against this run's own loopback PostgreSQL: the same SQL store and
+  // durable-session verification as production, with no agent commissioned and no model configured.
+  const g = database.pool.options as { host?: string; port?: number; user?: string; password?: string; database?: string };
+  process.env.TAXGUARD_AI_GOVERNANCE_ENABLED = 'true';
+  process.env.TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL =
+    `postgres://${encodeURIComponent(g.user ?? '')}:${encodeURIComponent(g.password ?? '')}@127.0.0.1:${g.port}/${encodeURIComponent(g.database ?? '')}`;
 }
 process.env.TAXGUARD_MFA_RESET_PROVIDER = 'supabase-admin';
 if (process.env.E2E_CONTROL_FILE) fs.writeFileSync(process.env.E2E_CONTROL_FILE, JSON.stringify({ origin: process.env.SUPABASE_URL, key: serviceKey }), { mode: 0o600 });
