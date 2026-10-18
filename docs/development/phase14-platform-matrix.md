@@ -272,6 +272,29 @@ could mean "the UI claims something the backend cannot deliver".
   development-shortcut section. The offline staging validator refuses it (`DEVELOPMENT_SHORTCUT_DENIED`), with a unit
   case, so a staging configuration cannot carry a loopback governance database even though production code ignores it.
 
+- **C9 client-safe API sweep (Block 22).** Suite `18-client-confidentiality-sweep` (5, default profile) runs
+  last, after every other suite has recorded staff-only data: document review notes, internal message notes,
+  invoice rework notes, credit and refund reasons, and preparer, approver and decider identities.
+  - **What it reads:** with the client's own session it calls every client-reachable read directly:
+    - identity and Stage 01;
+    - vault documents, including details with `includeInternal=true`, requests, notifications, preferences and
+      upload targets;
+    - message threads and messages;
+    - appointments and rooms;
+    - legal matters and portal engagements, case stages and consultations;
+    - reassignment requests;
+    - invoices, invoice pages and issued invoice PDFs;
+    - Stage 02 questionnaire, requirements and requests.
+  - **What it scans for:** staff-only field names, staff identities, the planted private texts and
+    other-tenant or other-client identifiers.
+  - **Proof that it works:** a self-test plants each leak class and checks the scanner catches it. A contrast
+    test shows staff sessions do see those notes and identities, so the client result proves withholding rather
+    than absence.
+  - **Isolation and portal:** other clients, other tenants and staff-only endpoints are refused, and the portal
+    views render none of the private text.
+  - **Result:** **no leak found.** The existing audience projections hold: document confidentiality (proposal
+    20261015030851 and PR #20), the client billing view, the appointment and messaging projections, and Stage 01.
+    No projection code was changed, because no defect was demonstrated.
 - **Integration with PR #20 (2026-10-18).** PR #20 merged into `main` (6e31a40). `main` was merged into this
   branch normally (no rebase, no force-push), keeping every Phase 14 commit through 9a11fb6. The only conflict
   was the generated `docs/taxguard-master-traceability.json`, regenerated with the canonical generator.
