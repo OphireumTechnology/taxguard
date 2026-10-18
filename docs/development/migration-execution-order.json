@@ -438,6 +438,12 @@
         "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
         "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ]
     }
   ]
 }

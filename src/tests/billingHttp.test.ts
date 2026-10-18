@@ -21,7 +21,7 @@ const call = (method: 'GET' | 'POST', path: string, body?: unknown, key: string 
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(250000|270000|280000)_/);
+  await applyProposals(fixture.pg, /^20261012(250000|270000|280000)_|^20261018010000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${T}','${C}','bl-client','Synthetic Billing Client'),('${T}','${OTHER}','bl-other','Other Synthetic');
     INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${T}','bl-mgr','practice_manager','active',NULL),('${T}','bl-mgr2','admin','active',NULL),
       ('${T}','bl-acct','accountant','active',NULL),('${T}','bl-outsider','accountant','active',NULL),('${T}','bl-client','client','active','${C}'),('${T}','bl-other','client','active','${OTHER}');`);
@@ -133,8 +133,20 @@ describe('billing', () => {
     expect((await call('POST', `/clients/${C}/credits/${own.body.creditId}/apply`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
     const payments = applied.body.payments;
     expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '200.00', reason: 'Too much' })).body.code).toBe('REFUND_EXCEEDS_PAYMENT');
-    const refunded = await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' });
-    expect(refunded.body).toMatchObject({ amountPaid: '124.90', balanceDue: '450.10', status: 'PARTIALLY_PAID' });
+    const refunded = await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' }, 'bl-refund-key-1');
+    expect(refunded.body).toMatchObject({ amountPaid: '124.90', balanceDue: '450.10', status: 'PARTIALLY_PAID', replayed: false });
+    // A retried request with the same key replays the recorded refund instead of recording it twice.
+    const replay = await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' }, 'bl-refund-key-1');
+    expect(replay.body).toMatchObject({ amountPaid: '124.90', balanceDue: '450.10', replayed: true, refundId: refunded.body.refundId });
+    expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.20', reason: 'Synthetic rounding refund' }, 'bl-refund-key-1')).body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+    expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' }, null)).body.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
+    const rows = (await fixture.pg.query<{ amount: string; reason: string; recorded_by: string }>("SELECT amount, reason, recorded_by FROM taxguard_invoice_refunds WHERE client_id = $1", [C])).rows;
+    expect(rows).toEqual([{ amount: '0.10', reason: 'Synthetic rounding refund', recorded_by: 'bl-mgr' }]);
+    await expect(fixture.pg.query('UPDATE taxguard_invoice_refunds SET amount = 0.05')).rejects.toThrow('BILLING_REFUND_IMMUTABLE');
+    await expect(fixture.pg.query('DELETE FROM taxguard_invoice_refunds')).rejects.toThrow('BILLING_REFUND_IMMUTABLE');
+    as('client');
+    expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Client attempt' })).status).toBeGreaterThanOrEqual(400);
+    as('mgr');
     as('mgr2');
     expect((await call('POST', `/clients/${C}/invoices/${inv}/void`, { rowVersion: refunded.body.rowVersion, note: 'Cannot void with payments' })).body.code).toBe('INVOICE_STATUS_TRANSITION_INVALID');
   });

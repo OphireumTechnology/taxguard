@@ -119,6 +119,19 @@ could mean "the UI claims something the backend cannot deliver".
   with the new authenticator and receives an active accountant session. Before this, invitation acceptance had no
   browser coverage.
 
+- **Refund records (Blocks 8 and B, Priority A).** The proposal-028 refund function had no idempotency (a retried or
+  double-submitted request recorded the refund twice, up to the payment amount) and discarded the required reason.
+  Proposal `20261018010000_taxguard_billing_refund_records.sql` (not applied) adds an immutable, RLS-enabled
+  `taxguard_invoice_refunds` ledger (amount, reason, recorder, idempotency key) and `taxguard_bill_refund_keyed`: the
+  same key replays the recorded result, a key reused for a different refund is refused (`IDEMPOTENCY_KEY_REUSED`),
+  a missing key is refused, the reason is kept in the record and the audit. The unkeyed function is revoked from
+  `service_role`. Refunds remain records of money returned outside TaxGuard; no provider is called. The staff billing
+  workspace gained a per-payment "Record refund" control for managers (amount, reason, retry-safe key; the form stays
+  open on failure). Tests: HTTP over the real store (replay, key reuse, missing key, stored reason, immutability,
+  client refused; removing the replay lookup fails them) and a browser step (manager records the refund in the UI,
+  accountant refused, client projection shows the refunded amount but never the reason). The browser test also caught
+  a stripped regex escape in the new control before commit.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run

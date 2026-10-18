@@ -93,7 +93,7 @@ export function createBillingRouter(deps: { store?: () => BillingStore; authenti
     { amount: req.body?.amount, method: req.body?.method, idempotencyKey: idem(req) }), 201));
   router.post('/clients/:clientId/invoices/:invoiceId/pay-sandbox', run(async req => store().paySandbox(t(req), client(req), u(req), req.params.invoiceId,
     { amount: req.body?.amount, idempotencyKey: idem(req), testCard: String(req.body?.testCard ?? '') }), 201));
-  router.post('/clients/:clientId/payments/:paymentId/refund', run(async req => store().refund(t(req), client(req), u(req), req.params.paymentId, req.body?.amount, req.body?.reason)));
+  router.post('/clients/:clientId/payments/:paymentId/refund', run(async req => store().refund(t(req), client(req), u(req), req.params.paymentId, req.body?.amount, req.body?.reason, idem(req))));
   router.post('/clients/:clientId/invoices/:invoiceId/credits', run(async req => store().requestCredit(t(req), client(req), u(req), req.params.invoiceId, req.body?.amount, req.body?.reason), 201));
   router.post('/clients/:clientId/credits/:creditId/:decision(apply|reject)', run(async req => store().decideCredit(t(req), client(req), u(req), req.params.creditId, req.params.decision === 'apply')));
   return router;

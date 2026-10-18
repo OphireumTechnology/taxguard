@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "9e275e946a05abb0635b20b03d0ffd75ff80411f1cde17a02f06b217fbbb3308",
+  "executionPlanSha256": "1d4103e4e913f55c2860edf95e364860419be930294d23482ce20da6b64018b8",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3482,6 +3482,56 @@
         "-- caller never supplies them. Everything else is identical to proposal 031.",
         "-- Re-applying 031 after this proposal restores the previous definition: apply in name order.",
         "-- Rollback (development): re-apply the proposal 031 definition."
+      ]
+    },
+    {
+      "order": 71,
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "kind": "proposal",
+      "version": "20261018010000",
+      "sha256": "1ab7f87708517728447be53daf6bcfe373704d63d86b70f20eea74deef6ff4ee",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_invoice_refunds",
+        "taxguard_invoice_refunds_immutable",
+        "taxguard_bill_refund_keyed"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the function and table; re-grant taxguard_bill_refund to service_role."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_invoice_refunds FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_invoice_refunds_immutable() FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund_keyed(text,text,text,text,numeric,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_refund_keyed(text,text,text,text,numeric,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, billing). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposal 028 (billing) and the core tenants table.",
+        "--",
+        "-- Refund recording (proposal 028, taxguard_bill_refund) had two defects:",
+        "--   * no idempotency: a retried or double-submitted request recorded the refund twice (bounded only",
+        "--     by the payment amount);",
+        "--   * the required reason was validated and then discarded: neither a record nor the audit kept it.",
+        "-- This proposal adds an immutable refund ledger (one row per recorded refund, with its reason, actor",
+        "-- and idempotency key) and taxguard_bill_refund_keyed, which replays the original result for the same",
+        "-- key and refuses a key reused for a different refund. The unkeyed function is revoked from",
+        "-- service_role so the keyed path is the only entry point. Refunds remain RECORDS of money returned",
+        "-- outside TaxGuard: no payment provider is called and nothing is claimed as processed."
       ]
     }
   ]

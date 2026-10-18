@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 71,
+    "files": 72,
     "core": 13,
-    "proposals": 57,
-    "tables": 145,
-    "functions": 335,
-    "securityDefinerFunctions": 258,
+    "proposals": 58,
+    "tables": 146,
+    "functions": 337,
+    "securityDefinerFunctions": 259,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2938,6 +2938,38 @@
     },
     {
       "order": 71,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_invoice_refunds"
+      ],
+      "functionsAdded": [
+        "taxguard_bill_refund_keyed",
+        "taxguard_invoice_refunds_immutable"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 1,
+      "indexesAdded": 3,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        31
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_bill_refund"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 72,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

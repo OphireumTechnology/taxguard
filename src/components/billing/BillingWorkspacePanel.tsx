@@ -11,6 +11,7 @@ export function BillingWorkspacePanel() {
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
   const [pay, setPay] = useState({ amount: '', method: 'CHECK' });
+  const [refund, setRefund] = useState<{ paymentId: string; amount: string; reason: string } | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const keys = useRef<Record<string, string>>({});
@@ -21,11 +22,11 @@ export function BillingWorkspacePanel() {
   }, []);
   useEffect(() => { loadAging(); }, [loadAging]);
   const loadInvoices = useCallback((id: string) => { if (!id) return; billingApi.invoices(id).then(r => setInvoices(r.items)).catch(e => { setInvoices([]); setNotice({ error: true, text: billingMessage(e) }); }); }, []);
-  const run = async (k: string, op: () => Promise<unknown>, text: string) => {
-    if (busy) return;
+  const run = async (k: string, op: () => Promise<unknown>, text: string): Promise<boolean> => {
+    if (busy) return false;
     setBusy(true); setNotice(null);
-    try { await op(); delete keys.current[k]; setNotice({ error: false, text }); loadInvoices(clientId); loadAging(); }
-    catch (e) { setNotice({ error: true, text: billingMessage(e) }); }
+    try { await op(); delete keys.current[k]; setNotice({ error: false, text }); loadInvoices(clientId); loadAging(); return true; }
+    catch (e) { setNotice({ error: true, text: billingMessage(e) }); return false; }
     finally { setBusy(false); }
   };
   return <section aria-labelledby="billing-heading" className="tg-manager-card">
@@ -78,6 +79,21 @@ export function BillingWorkspacePanel() {
         {inv.credits.filter(cr => cr.status === 'REQUESTED').map(cr => <p key={cr.creditId}>Credit ${cr.amount} requested by {cr.requestedBy}: {cr.reason}
           <button type="button" disabled={busy} onClick={() => run('credit-d', () => billingApi.decideCredit(clientId, cr.creditId, true), 'Credit applied.')}>Apply</button>
           <button type="button" disabled={busy} onClick={() => run('credit-d', () => billingApi.decideCredit(clientId, cr.creditId, false), 'Credit rejected.')}>Reject</button></p>)}
+        {inv.payments.length > 0 && <ul aria-label={`Payments for ${inv.invoiceNumber ?? inv.invoiceId}`}>{inv.payments.map(p => {
+          const refundable = (Math.round(Number(p.amount) * 100) - Math.round(Number(p.refundedAmount) * 100)) / 100;
+          const open = refund?.paymentId === p.paymentId;
+          return <li key={p.paymentId}>Payment ${p.amount} ({p.method.replaceAll('_', ' ').toLowerCase()}, {p.status.toLowerCase()}){Number(p.refundedAmount) > 0 && <> · refunded ${p.refundedAmount}</>}
+            {refundable > 0 && !open && <button type="button" disabled={busy} aria-label={`Record a refund for payment ${p.paymentId}`} onClick={() => setRefund({ paymentId: p.paymentId, amount: '', reason: '' })}>Record refund</button>}
+            {open && <form aria-label={`Refund for payment ${p.paymentId}`} onSubmit={e => { e.preventDefault(); const r = refund!;
+              void run(`refund-${r.paymentId}-${r.amount}-${r.reason.trim()}`, () => billingApi.recordRefund(clientId, r.paymentId, r.amount.trim(), r.reason.trim(), keyFor(`refund-${r.paymentId}-${r.amount}-${r.reason.trim()}`)),
+                'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.').then(ok => { if (ok) setRefund(null); }); }}>
+              <p>Records money already returned to the client outside TaxGuard (up to ${refundable.toFixed(2)}). A practice manager is required; nothing is sent to a payment provider.</p>
+              <label>Refund amount<input inputMode="decimal" required value={refund!.amount} onChange={e => setRefund({ ...refund!, amount: e.target.value })} /></label>
+              <label>Refund reason (recorded)<input required minLength={5} maxLength={500} value={refund!.reason} onChange={e => setRefund({ ...refund!, reason: e.target.value })} /></label>
+              <button disabled={busy || !/^\d{1,12}(\.\d{1,2})?$/.test(refund!.amount.trim()) || refund!.reason.trim().length < 5}>Record refund</button>
+              <button type="button" disabled={busy} onClick={() => setRefund(null)}>Cancel</button>
+            </form>}</li>;
+        })}</ul>}
       </article>)}
     </>}
   </section>;

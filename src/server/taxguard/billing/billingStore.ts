@@ -10,7 +10,7 @@ export class BillingError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
 }
 const STATUS: Record<string, number> = { BILLING_MANAGER_REQUIRED: 403, BILLING_STAFF_REQUIRED: 403, MAKER_CHECKER_VIOLATION: 403, PAYMENT_NOT_AUTHORIZED: 403,
-  BILLING_ACCESS_DENIED: 403, INVOICE_VERSION_CONFLICT: 409, BILLING_IDEMPOTENCY_CONFLICT: 409, DUPLICATE_PAYMENT: 409, CREDIT_ALREADY_DECIDED: 409 };
+  BILLING_ACCESS_DENIED: 403, INVOICE_VERSION_CONFLICT: 409, BILLING_IDEMPOTENCY_CONFLICT: 409, DUPLICATE_PAYMENT: 409, CREDIT_ALREADY_DECIDED: 409, IDEMPOTENCY_KEY_REUSED: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 /** Accepts numbers or numeric strings with at most two decimals; never rounds. */
 export function money(value: unknown): string {
@@ -85,8 +85,10 @@ export class BillingStore {
     return this.call('taxguard_bill_record_payment', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_amount: amount, p_method: 'CARD_SANDBOX', p_key: k,
       p_provider: this.provider.name, p_provider_txn: result.providerTransactionId });
   }
-  refund(tenant: string, client: string, actor: string, paymentId: string, amount: unknown, reason: string) {
-    return this.call('taxguard_bill_refund', { ...this.b(tenant, client, actor), p_payment: paymentId, p_amount: money(amount), p_reason: reason });
+  /** Records money returned outside TaxGuard (no provider call). Idempotent per key (proposal 20261018010000). */
+  refund(tenant: string, client: string, actor: string, paymentId: string, amount: unknown, reason: string, key: string | undefined) {
+    if (typeof key !== 'string' || !/^[A-Za-z0-9_.:-]{8,128}$/.test(key)) throw new BillingError('IDEMPOTENCY_KEY_REQUIRED', 400);
+    return this.call('taxguard_bill_refund_keyed', { ...this.b(tenant, client, actor), p_payment: paymentId, p_amount: money(amount), p_reason: reason, p_key: key });
   }
   requestCredit(tenant: string, client: string, actor: string, invoiceId: string, amount: unknown, reason: string) {
     return this.call('taxguard_bill_request_credit', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_amount: money(amount), p_reason: reason });

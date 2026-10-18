@@ -4968,8 +4968,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "c051cecac689494f603e07ad5b769c028659a08b406566983072b8d1308c44d6",
-      "bytes": 15144,
+      "sha256": "ea94bb0b7e130ace2e62f8920db050cc88d48a30497e89b8d316e1d114274668",
+      "bytes": 15344,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5212,8 +5212,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "9f0f2fa14956bb2e3336ab14e983d5888e6b92b9d4060c5043f37da34b2014b0",
-      "bytes": 12409,
+      "sha256": "6ab7639c5c7061330ff30b8ca2b7fe8a5a4b0289ec84b55dbc93c3937c40645a",
+      "bytes": 13740,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5791,6 +5791,12 @@
       "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
       "sha256": "70cae21a66ee77bab855b9ae8d4c60b985f70f4785c267d875a4b9f6d7207776",
       "bytes": 3141,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "sha256": "1ab7f87708517728447be53daf6bcfe373704d63d86b70f20eea74deef6ff4ee",
+      "bytes": 6321,
       "headings": []
     },
     {
@@ -6929,7 +6935,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "a38283414435ba1575cd4829864a69f3d5c6447994df2d07e4031869f0049e23",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "a268bffb34b4682732cc998ddcd21a66c3db3f2df0684afb391aaa251f94ac8c",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
@@ -6956,7 +6962,7 @@
     "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
     "src/tests/authenticatedScanner.test.ts": "5454d6da8c3d16f3470c96c1e5e2ff97081527fa8afe1c107d517f6616667e0c",
     "src/tests/billingClientProjection.test.ts": "99a26dafb8e73e46744cd8fad4b1fa72b0cc14588f2814c5113bf5e0aeacd295",
-    "src/tests/billingHttp.test.ts": "79944fb619e52947c999d8b42df405f08238e8cd192ff14bc00ec0fc4c2d044a",
+    "src/tests/billingHttp.test.ts": "5ae1f24923b3a2637db5a823aae57c0153b7fdf1b7b3cb1457a10504da28e247",
     "src/tests/bookToTaxHttp.test.ts": "97eadc3446c41f631daa8c371a516ea2d41483b98e7242b68112b21074877764",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/bookkeeperDurableHttp.test.ts": "0225e02509de2193a7e917566a124e4aa72a7dce6cd364b78c240795d7b866e3",
@@ -7014,7 +7020,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "ac67c04dff73ad7919b11f2ec621019f783e59ab75464def6582718ea9dc0aa2",
+    "src/tests/proposalCompositionSecurity.test.ts": "3b04bcee78a3faae67f5ed2637f953b96cd2343cda63e0cbc1468be6e9fbfe68",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

@@ -44,6 +44,9 @@ export const billingApi = {
     request<Invoice>('POST', `${i(clientId, invoiceId)}/${action}`, { rowVersion, note }),
   recordPayment: (clientId: string, invoiceId: string, amount: string, method: string, key: string) => request('POST', i(clientId, invoiceId) + '/payments', { amount, method }, key),
   paySandbox: (clientId: string, invoiceId: string, amount: string, testCard: string, key: string) => request('POST', i(clientId, invoiceId) + '/pay-sandbox', { amount, testCard }, key),
+  /** Records a refund made outside TaxGuard (managers only). The key makes a retry safe. */
+  recordRefund: (clientId: string, paymentId: string, amount: string, reason: string, key: string) =>
+    request<Invoice>('POST', `${c(clientId)}/payments/${encodeURIComponent(paymentId)}/refund`, { amount, reason }, key),
   requestCredit: (clientId: string, invoiceId: string, amount: string, reason: string) => request('POST', i(clientId, invoiceId) + '/credits', { amount, reason }),
   decideCredit: (clientId: string, creditId: string, apply: boolean) => request<Invoice>('POST', `${c(clientId)}/credits/${encodeURIComponent(creditId)}/${apply ? 'apply' : 'reject'}`),
   /** Issued-invoice PDF for the signed-in user. Generated on request; never stored or delivered by TaxGuard. */
@@ -72,6 +75,7 @@ const MESSAGES: Record<string, string> = {
   BILLING_AMOUNT_INVALID: 'Enter an amount with at most two decimals.', PAYMENT_DECLINED: 'The sandbox payment was declined.', DUPLICATE_PAYMENT: 'This payment was already recorded.',
   SANDBOX_TEST_CARD_REQUIRED: 'Use a published sandbox test card number. No real card is ever charged.', BILLING_UNAVAILABLE: 'Billing is not enabled in this environment.',
   INVOICE_NOT_EDITABLE: 'Only draft invoices can be edited.', INVOICE_EMPTY: 'Add at least one line before submitting.',
+  REFUND_EXCEEDS_PAYMENT: 'The refund is larger than the amount still refundable on this payment.', IDEMPOTENCY_KEY_REUSED: 'This request was already used for a different refund. Refresh and enter the refund again.',
   INVOICE_DOCUMENT_NOT_ISSUED: 'A document is available only after the invoice is issued.', INVOICE_DOCUMENT_DATA_INVALID: 'The invoice document could not be produced from the recorded amounts.',
 };
 export function billingMessage(error: unknown): string {

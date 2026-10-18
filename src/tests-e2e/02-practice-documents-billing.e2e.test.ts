@@ -165,4 +165,25 @@ describe('billing: maker-checker approval, numbering and sandbox payment', () =>
     await sees(page, 'Invoice document downloaded. It is not a receipt.');
     expect(realErrors(client)).toEqual([]);
   });
+
+  it('a manager records a refund made outside TaxGuard exactly once; the client never sees its reason', async () => {
+    const paymentId = (await api(mgrToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId).payments[0].paymentId;
+    // Only managers record refunds.
+    expect((await api(acctToken, 'POST', `/api/billing/clients/${C}/payments/${paymentId}/refund`, { amount: '1.00', reason: 'Synthetic accountant attempt' })).body.code).toBe('BILLING_MANAGER_REQUIRED');
+    const { page } = mgr;
+    await page.getByRole('button', { name: 'Open client billing' }).click();
+    await page.getByRole('button', { name: `Record a refund for payment ${paymentId}` }).click();
+    const form = page.getByRole('form', { name: `Refund for payment ${paymentId}` });
+    await form.getByLabel('Refund amount').fill('10.00');
+    await form.getByLabel('Refund reason (recorded)').fill('Synthetic overpayment returned by cheque');
+    await form.getByRole('button', { name: 'Record refund' }).click();
+    await sees(page, 'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.');
+    const after = (await api(mgrToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId);
+    expect(after).toMatchObject({ amountPaid: '440.00', balanceDue: '10.00', status: 'PARTIALLY_PAID' });
+    expect(after.payments[0].refundedAmount).toBe('10.00');
+    const clientView = (await api(clientToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId);
+    expect(clientView.payments[0].refundedAmount).toBe('10.00');
+    expect(JSON.stringify(clientView)).not.toMatch(/overpayment returned|e2e-mgr/);
+    expect(realErrors(mgr)).toEqual([]);
+  });
 });
