@@ -2841,6 +2841,120 @@
       "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
     },
     {
+      "id": "CONTROL-PHASE12C-SESSION-ISOLATION",
+      "requirement": "Client panels discard cached state across token and authority changes; stale expiration cannot revoke a replacement session",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/hooks/useClientPanelSession.ts"
+      ],
+      "tests": [
+        "src/tests/phase12cFrontend.test.ts"
+      ],
+      "remaining": "Local frontend/unit and synthetic browser evidence only; real provider and deployed independent acceptance remain unverified.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-PHASE12C-NOTIFICATIONS",
+      "requirement": "Durable portal notices with unread filtering, confirmed receipts, failure feedback and document-request navigation",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/components/portal/dashboard/ClientNotificationsPanel.tsx"
+      ],
+      "tests": [
+        "src/tests-e2e/15-phase12c-recovery.e2e.test.ts"
+      ],
+      "remaining": "Loopback browser verification only; no outbound delivery or notification preference contract.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-PHASE12C-NAVIGATION",
+      "requirement": "Allowlisted workspace hashes with browser history, refresh restoration and preserved skip-link focus",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/hooks/useHashView.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/15-phase12c-recovery.e2e.test.ts"
+      ],
+      "remaining": "Administrator, manager, bookkeeper and client views exercised locally; case selection remains server-authorized and is not persisted by this hook.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-PHASE12C-REPLACEMENT",
+      "requirement": "Latest actionable document replacement keeps original scope and creates a quarantined version under server authority",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/components/documents/ClientDocumentVaultPanel.tsx"
+      ],
+      "tests": [
+        "src/tests-e2e/15-phase12c-recovery.e2e.test.ts"
+      ],
+      "remaining": "Synthetic local storage/scanner only; actual storage and detection commissioning remain absent.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-PHASE12C-ACCESSIBILITY",
+      "requirement": "Automated named controls, notification text contrast, responsive layout, skip navigation and mobile focus checks",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "src/tests-e2e/15-phase12c-recovery.e2e.test.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/15-phase12c-recovery.e2e.test.ts"
+      ],
+      "remaining": "Bounded automated checks only; no manual assistive-technology audit or whole-product WCAG conformance claim.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
+      "id": "CONTROL-PHASE12C-C9-CONFIDENTIALITY",
+      "requirement": "Client-safe document list/detail projection must omit internal review notes and staff actor metadata",
+      "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
+      "implementation": [
+        "docs/development/phase12c-recovery-handoff.md"
+      ],
+      "tests": [
+        "src/tests/clientDocumentConfidentialityHttp.test.ts"
+      ],
+      "remaining": "Implemented in code (PR #18: server/database client projection, proposal 20261015030851); the client panel shows only the authorized clientReason, never internal review notes or reviewer identity. Proposal unapplied externally; not staging-commissioned.",
+      "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
+      "functionality": "Incomplete; see remaining boundary",
+      "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
+      "integrationAcceptance": "Local synthetic evidence only; external integration NOT VERIFIED",
+      "browserAcceptance": "NOT VERIFIED",
+      "securityAcceptance": "Independent deployed security acceptance NOT VERIFIED; referenced local regressions are bounded evidence only",
+      "syntheticBrowserAcceptance": "Not independently certified by the shared-shell suite"
+    },
+    {
       "id": "CONTROL-CONTRACT-C3-CLIENT-CASE-STAGES",
       "requirement": "Client reads for tax stages 04-08 from the durable case: status, requirements, booleans-only checks, evidence counts, team presence",
       "status": "IMPLEMENTED BUT INSUFFICIENTLY TESTED",
@@ -5152,6 +5266,19 @@
       ]
     },
     {
+      "file": "docs/development/phase12c-recovery-handoff.md",
+      "sha256": "5139fbbf8d6dd44def5130e39142e5c869164f061d8b53341ba4c1ec98988b26",
+      "bytes": 9535,
+      "headings": [
+        "# Phase 12C interruption recovery — 2026-10-15",
+        "## Inspected state and preservation",
+        "## Continued implementation",
+        "## C9 — document-review metadata confidentiality (implemented in code via PR #18; not commissioned)",
+        "## Integration order and boundaries",
+        "## Validation"
+      ]
+    },
+    {
       "file": "docs/development/phase13a-contract-register.md",
       "sha256": "b24e8c8ceaed6f0157114e1edc20e29f0c7926e06f692bfa671d31ee6776cdd8",
       "bytes": 14109,
@@ -6744,6 +6871,7 @@
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
     "docs/development/c9-client-document-confidentiality.md": "4a0149a6bae7a50f3dbaa72d1b63cb8b9d2934e19bde29a3ac9ffedaa7eeb2f1",
+    "docs/development/phase12c-recovery-handoff.md": "5139fbbf8d6dd44def5130e39142e5c869164f061d8b53341ba4c1ec98988b26",
     "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
@@ -6779,8 +6907,8 @@
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
     "package.json": "a36993f3e0ffc8135cf80d2a4808fca1928687b8282609e542bd3ad6da53e568",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
-    "qa/playwright.product-anonymous.config.mjs": "a53188c87ea612ae7277da606d61efbd90b6bd3a7a9ba10f4dafe6e2da6e56e7",
-    "qa/playwright.synthetic.config.mjs": "e141cc531b1277be2f8ab6a184949b23074719255cf532e5d901280bbaf80806",
+    "qa/playwright.product-anonymous.config.mjs": "b0e5408e01d6927c1a0252ff3d34ac316497ea45487d8c65f80997f04e1a8a98",
+    "qa/playwright.synthetic.config.mjs": "c3ccd5411de6800c47a306a511481dedf4b1b86cc706a942e1f0e018d52b199c",
     "qa/product-browser/anonymous-boundaries.spec.mjs": "bcba9b0ec32b5798bd391817cdcdb8a9f9cc963cc657b07681e0e6ad3963a6aa",
     "qa/product-browser/boundary.mjs": "9945f6daf2eead644e34cc19ed0de5aed00b9c15a7def81c20fb7ad0ec8b54c4",
     "qa/staging-acceptance-plan.mjs": "66311ca7a93ac4bdf14ab4da266756fb9efa5ee552976e8b1bb86a6e7f70b846",
@@ -6807,22 +6935,26 @@
     "src/ai/commissioningMatrix.ts": "64b85ee919c815116bd87578c1ddf8c4e56403b2cfe0fed5df0e0a90d89d181e",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/AiCommissioningView.tsx": "be88bea1d06caa7806ea9e939be9ea80ec7bd66c34736cb846899763d779b858",
-    "src/components/admin/PracticeAdminWorkspace.tsx": "b628387f61f871d8f4ef72ed5de372bc61d54a8cc53e360e6bfa0cf9c240ecf0",
+    "src/components/admin/PracticeAdminWorkspace.tsx": "c6a9d511d0ac49c2d627108f7166a3b9bff11e3cb5fa5b2be5c6b961532b5a02",
     "src/components/auth/AuthPages.tsx": "7953e42b0b971a89f77ea927f5fe2fd7806925a098ad1c5e14b7b64f0ea49489",
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
+    "src/components/documents/ClientDocumentVaultPanel.tsx": "3edb12f96445fcdf8f6672b07ec9863e41e6c7940f0e084f054a0bddf2a69aab",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "6cd23916fd8efc43654eb8dd1713185cfef25aa9d42804734a914edf6def753a",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "886effc8c8a9fd3d8e1feb9c2a4b7645cce7321b48423c32363ebca6692e35b4",
+    "src/components/portal/dashboard/ClientNotificationsPanel.tsx": "650c1a1dd37797e71097df4dee96decf92734bba115cda3729989119d31beac8",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
     "src/components/workspace/AccountantDashboard.tsx": "d062efd4e46f0d85b2fc11ef58fd8814fd16356f6f678b4e7096bfa61d4232b5",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
-    "src/components/workspace/BookkeeperDashboard.tsx": "78c42ab05796f6374e6de5c9368105d2a7c536f9b1dfb8062c2e9fb0b458925a",
+    "src/components/workspace/BookkeeperDashboard.tsx": "de799cd694b9c01ce53458d176ebecd110b894b0abf83e3427dfd99166dac90c",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "0b40952c4aee9afb8200c626b4d3f8102e58f875df341efc08479513181c6ef2",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "a1ea6ab7ce20b46994858f0c5f470d1a3446711f9c259fae5bd95819f8f9477e",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "572003d8c8ab71f8606bc7c01b36adcfd17e7988a5e5217b48d708306cddb120",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
+    "src/hooks/useClientPanelSession.ts": "46c864f013080f2cbd9e684a7ac5bf6738d1e0f6e3a185f5d3207a2d4c36d560",
+    "src/hooks/useHashView.ts": "9437b37bbceef578cd7b9c5cfd21f23e48574d2957ad23aebd2d246b25ea1009",
     "src/server/ai/capabilities/GovernedCapabilityExecutor.ts": "7d9ed0170cd95372555e2398e44a41427fe5c1292f2256c64353afa1aa1d23c1",
     "src/server/ai/capabilities/ScopedReadRepository.ts": "c4c738163414daf292c20d13b395ea0e43c6ea2a822bea18c677faefe7f80f40",
     "src/server/ai/documents/DocumentDuplicateAdvisory.ts": "70a562e16382f8c3d2cff8340b2d67cfb0af47b85ff827c42c117f2f590b4919",
@@ -6880,7 +7012,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "2069c40b66d2d767a73145df17ba97b51f9f3d38ae6c4b5390c7afaefc48c7ad",
+    "src/services/api.ts": "2c18a7f6acda55b7ffd485ac5096932e4e362bad9bc7018302f022ec99914051",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
@@ -6892,6 +7024,7 @@
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "e60b53865420d70c29db56968ca65e1519d8961f172e48b1fdc828b4aba97179",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
+    "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
@@ -6923,6 +7056,7 @@
     "src/tests/caseAuthorityHttp.test.ts": "041dcce15b7f86c40a5fae80d99b79b6e153e50672b65cbbdb68b33b1c42358e",
     "src/tests/caseWorkflowHttp.test.ts": "4e6a5dae9197e10d8a7ae8d0e6ad2c52e58d1645e097cf8d712490155aa6a7bf",
     "src/tests/clientDashboardMasterplan.test.tsx": "7372f48ccd14f01caa7070d10076d2c38a16542dbe56830d701d7be0a2194d37",
+    "src/tests/clientDocumentConfidentialityHttp.test.ts": "0ab0bec35ce3a8ec2a66a370093f65cbb9a47844a24b0d0b7e45f72df36ad025",
     "src/tests/clientMessaging.test.ts": "b3d71a1bbd3bbb3c582bfe79c49d917359f5bdc35938035a52a25a28418b7330",
     "src/tests/clientMfaStatus.test.tsx": "ef482293bafe1b255f0e7576491eb606e7372948e6d38ac4078eef3993870a8f",
     "src/tests/clientPortalReadsAndReassignment.test.ts": "8b8c1516e0dbc17310ccee4e7f5e9cd620008ccd15a6de20b25f405746143770",
@@ -6966,6 +7100,7 @@
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
     "src/tests/phase10AiReadiness.test.ts": "93d6fd51736a66468d939aa839b1e610f32ea57fbbdfb4320d90f617740931ea",
     "src/tests/phase12bFrontend.test.tsx": "b84b2fb03adae85e04b5e28a89d837283f23223f0c82d8fb227c64f5e8d6e735",
+    "src/tests/phase12cFrontend.test.ts": "46658da68ddd3253ef3add022c6a9fd2123a8a9166ceec280cfc90c7b3cf9583",
     "src/tests/portalCaseStages.test.ts": "e0b075ec2e6d6cf17097f276bb4f0f0626e31d898b70a736b53981be3993e80a",
     "src/tests/portalConsultations.test.ts": "5515ad61f3741711f371be1f24032865459e4889cee773f01e0bdf0c983d65aa",
     "src/tests/practiceManagementHttp.test.ts": "1004e5d96081e29a86c3cfe23c98ec19dcf08e319c07266cf06355bc578f1e72",

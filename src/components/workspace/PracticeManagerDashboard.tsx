@@ -3,6 +3,7 @@ import {useApp} from '../../context/AppContext';
 import {DashboardApplicationShell} from '../layout/DashboardApplicationShell';
 import {useDashboardInspection} from '../layout/dashboardInspection';
 import {usePracticeManagerDashboardData} from '../../hooks/usePracticeManagerDashboardData';
+import {useHashView} from '../../hooks/useHashView';
 import {MANAGER_MODULES,MANAGER_STAGES,managerDistribution,managerMetrics,managerWorkload,managerMatches,activeCase,updateAge} from './practiceManagerModel';
 import {PracticeClientsPanel} from './PracticeClientsPanel';
 import {StaffMessageInboxPanel} from '../communications/StaffMessageInboxPanel';
@@ -16,7 +17,7 @@ import {StaffDocumentRequestsPanel} from '../documents/StaffDocumentRequestsPane
 import {PracticeSummaryPanel} from './PracticeSummaryPanel';
 import './practiceManagerDashboard.css';
 export function PracticeManagerDashboard(){
- const {currentUser,authLifecycleState}=useApp();const [module,setModule]=useState('Dashboard');const [year,setYear]=useState('All');const [filter,setFilter]=useState('Active Cases');const [query,setQuery]=useState('');const [stage,setStage]=useState('All');const [refresh,setRefresh]=useState(0);const [collapsed,setCollapsed]=useState(false);
+ const {currentUser,authLifecycleState}=useApp();const [module,setModule]=useHashView('view',MANAGER_MODULES,'Dashboard');const [year,setYear]=useState('All');const [filter,setFilter]=useState('Active Cases');const [query,setQuery]=useState('');const [stage,setStage]=useState('All');const [refresh,setRefresh]=useState(0);const [collapsed,setCollapsed]=useState(false);
  const state=usePracticeManagerDashboardData(currentUser,authLifecycleState,year,refresh);
  const inspecting=useDashboardInspection();
  if(!state.allowed&&!inspecting)return <p role="alert">Authenticated Practice Manager access with tenant context is required.</p>;
