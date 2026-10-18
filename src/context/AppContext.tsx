@@ -204,6 +204,16 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+/**
+ * Portal intent for a provider session restored without a sign-in form (reload, interrupted sign-in, provider
+ * auth events). On staff pages it is 'staff', so restoring there never self-registers a client; existing
+ * clients still restore. Elsewhere it is left unset (client self-registration, e.g. e-mail verification).
+ */
+export function restoredSessionPortal(pathname: string): 'staff' | undefined {
+  return /^\/staff(\/|$)/i.test(pathname) ? 'staff' : undefined;
+}
+const currentRestorePortal = () => (typeof window === 'undefined' ? undefined : restoredSessionPortal(window.location.pathname || ''));
+
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const resolveRoute = (rawInput: string): PageRoute | null => {
@@ -826,8 +836,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 'client_onboarding'
               ].includes(currentRoute);
 
+            const restorePortal = currentRestorePortal();
             await establishSupabaseServerSession(sbAccessToken, {
-              navigateIfAuthRoute: isAuthEntryRoute
+              navigateIfAuthRoute: isAuthEntryRoute,
+              ...(restorePortal ? { portal: restorePortal } : {})
             });
             if (active) {
               setAuthLifecycleState('AUTHENTICATED');
@@ -867,9 +879,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!existingToken) {
           try {
             authOperationInProgressRef.current = true;
+            const restorePortal = currentRestorePortal();
             await establishSupabaseServerSession(session.access_token, {
               navigateIfAuthRoute: true,
-              trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED'
+              trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED',
+              ...(restorePortal ? { portal: restorePortal } : {})
             });
           } catch (err) {
             console.warn('[TaxGuard Auth] Failed to bridge Supabase auth event:', err);

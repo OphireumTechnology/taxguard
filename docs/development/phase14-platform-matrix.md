@@ -213,6 +213,22 @@ could mean "the UI claims something the backend cannot deliver".
      now sends `portal: 'staff'` and the server never creates a client for it (`STAFF_MEMBERSHIP_REQUIRED`); the
      value can only restrict, an unknown value is refused (`PORTAL_INVALID`), and existing clients are unaffected.
      Suite 09 keeps its refusal and now also proves no client record is created; a route unit test covers the rest.
+  4. *Restoring a provider session on a staff page created a client.* The reload and provider-event restore paths
+     sent no portal value. With a provider session still in the browser (for example an interrupted client-portal
+     sign-in), opening the staff sign-in page provisioned a client and moved the person into the client portal.
+     The restore now carries staff intent on any `/staff` page (`restoredSessionPortal`), so it is refused there
+     with no client created. Existing clients still restore, and self-registration from client and public pages
+     (including e-mail verification) is unchanged. Reproduced first by a failing provider test.
+  Regression cases added after the self-review: `clientProvisioningConcurrency.db` (3) covers eight simultaneous
+  first sign-ins of one identity (one client, replay resumes it, no other tenant), 24 concurrent registrations
+  with the proposal replayed mid-flight (no shared ID, counter equals the highest issued), and a database with an
+  issued client but no counter row (refused until initialized, then resumes after the highest ID; replay is a
+  no-op). Provider suite `15-session-restore-intent` (4) covers six simultaneous first sign-ins through the real
+  server and two failed provider sign-outs followed by reload: a refused staff sign-in leaves no session and no
+  client, and a signed-out client stays signed out with the old session revoked. The installed provider library
+  clears its local session even when the network sign-out fails. The suite also covers the restore intent above,
+  with negative and positive cases. The counter proposal still needs Codex's independent review and owner
+  approval.
   Provider suite `14-new-client-journey` (3): first sign-in provisions exactly one client (server-issued ID), a
   later sign-in resumes it, the client cannot use practice management; Stage 01 stays unavailable and cannot be
   completed with forged gate fields (onboarding status remains `NOT_STARTED`); the portal shows the notice, no
