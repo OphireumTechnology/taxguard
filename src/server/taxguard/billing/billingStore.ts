@@ -10,7 +10,7 @@ export class BillingError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
 }
 const STATUS: Record<string, number> = { BILLING_MANAGER_REQUIRED: 403, BILLING_STAFF_REQUIRED: 403, MAKER_CHECKER_VIOLATION: 403, PAYMENT_NOT_AUTHORIZED: 403,
-  BILLING_ACCESS_DENIED: 403, INVOICE_VERSION_CONFLICT: 409, BILLING_IDEMPOTENCY_CONFLICT: 409, DUPLICATE_PAYMENT: 409, CREDIT_ALREADY_DECIDED: 409 };
+  BILLING_ACCESS_DENIED: 403, PRACTICE_ACCESS_DENIED: 403, INVOICE_VERSION_CONFLICT: 409, BILLING_IDEMPOTENCY_CONFLICT: 409, DUPLICATE_PAYMENT: 409, CREDIT_ALREADY_DECIDED: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 /** Accepts numbers or numeric strings with at most two decimals; never rounds. */
 export function money(value: unknown): string {
@@ -55,7 +55,7 @@ export class BillingStore {
   private b(tenant: string, client: string, actor: string) { return { p_tenant: tenant, p_client: client, p_actor: actor }; }
 
   upsertService(tenant: string, actor: string, s: { serviceCode: string; name: string; category: string; billingMethod: string; baseFee: unknown; reason?: string }) {
-    return this.call('taxguard_bill_upsert_service', { p_tenant: tenant, p_actor: actor, p_code: s.serviceCode, p_name: s.name, p_category: s.category, p_method: s.billingMethod,
+    return this.call('taxguard_bill_upsert_service_serialized', { p_tenant: tenant, p_actor: actor, p_code: s.serviceCode, p_name: s.name, p_category: s.category, p_method: s.billingMethod,
       p_fee: money(s.baseFee), p_reason: s.reason ?? null });
   }
   catalog(tenant: string, actor: string) { return this.call<any[]>('taxguard_bill_catalog', { p_tenant: tenant, p_actor: actor }); }
@@ -63,11 +63,11 @@ export class BillingStore {
     if (typeof input?.dueDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) throw new BillingError('BILLING_INPUT_INVALID', 400);
     return this.call<{ invoiceId: string; created: boolean }>('taxguard_bill_create_invoice', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_engagement: input.engagementId ?? null, p_due: input.dueDate });
   }
-  addLine(tenant: string, client: string, actor: string, invoiceId: string, line: { serviceCode: string; quantity: unknown; unitRate?: unknown; description?: string; overrideReason?: string }, idempotencyKey?: unknown) {
+  addLine(tenant: string, client: string, actor: string, invoiceId: string, line: { serviceCode: string; quantity: unknown; unitRate?: unknown; description?: string; overrideReason?: string }, idempotencyKey: unknown) {
     return this.call('taxguard_bill_add_line_once', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_invoice: invoiceId, p_service: line.serviceCode, p_quantity: money(line.quantity),
       p_rate: line.unitRate === undefined || line.unitRate === null || line.unitRate === '' ? null : money(line.unitRate), p_description: line.description ?? null, p_override_reason: line.overrideReason ?? null });
   }
-  removeLine(tenant: string, client: string, actor: string, invoiceId: string, lineNo: number, idempotencyKey?: unknown) {
+  removeLine(tenant: string, client: string, actor: string, invoiceId: string, lineNo: number, idempotencyKey: unknown) {
     return this.call('taxguard_bill_remove_line_once', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_line: lineNo, p_key: key(idempotencyKey) });
   }
   transition(tenant: string, client: string, actor: string, invoiceId: string, action: string, rowVersion: number, note?: string) {
@@ -86,10 +86,10 @@ export class BillingStore {
     return this.call('taxguard_bill_record_payment', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_amount: amount, p_method: 'CARD_SANDBOX', p_key: k,
       p_provider: this.provider.name, p_provider_txn: result.providerTransactionId });
   }
-  refund(tenant: string, client: string, actor: string, paymentId: string, amount: unknown, reason: string, idempotencyKey?: unknown) {
+  refund(tenant: string, client: string, actor: string, paymentId: string, amount: unknown, reason: string, idempotencyKey: unknown) {
     return this.call('taxguard_bill_refund', { ...this.b(tenant, client, actor), p_payment: paymentId, p_amount: money(amount), p_reason: reason, p_key: key(idempotencyKey) });
   }
-  requestCredit(tenant: string, client: string, actor: string, invoiceId: string, amount: unknown, reason: string, idempotencyKey?: unknown) {
+  requestCredit(tenant: string, client: string, actor: string, invoiceId: string, amount: unknown, reason: string, idempotencyKey: unknown) {
     return this.call('taxguard_bill_request_credit_once', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_invoice: invoiceId, p_amount: money(amount), p_reason: reason });
   }
   decideCredit(tenant: string, client: string, actor: string, creditId: string, apply: boolean) {

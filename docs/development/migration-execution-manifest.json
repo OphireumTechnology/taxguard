@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 78,
+    "files": 79,
     "core": 13,
-    "proposals": 64,
+    "proposals": 65,
     "tables": 147,
-    "functions": 347,
-    "securityDefinerFunctions": 269,
+    "functions": 348,
+    "securityDefinerFunctions": 270,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3158,6 +3158,34 @@
     },
     {
       "order": 78,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_bill_upsert_service_serialized"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        28,
+        31
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_bill_upsert_service"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 79,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

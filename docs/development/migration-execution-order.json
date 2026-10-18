@@ -479,6 +479,12 @@
       "dependsOn": [
         "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
     }
   ]
 }

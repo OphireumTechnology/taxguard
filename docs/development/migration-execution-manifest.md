@@ -4,8 +4,8 @@
 > Do not edit by hand; `src/tests/migrationReadinessAudit.test.ts` fails when this file is stale.
 > Nothing here has been applied to any Supabase project. Every proposal still needs human review and approval.
 
-Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 78 files (13 core, 64 proposals, 1 separate audit proposal);
-147 tables and 347 public functions (269 SECURITY DEFINER) after composition.
+Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 79 files (13 core, 65 proposals, 1 separate audit proposal);
+147 tables and 348 public functions (270 SECURITY DEFINER) after composition.
 
 Functions executable by anon or authenticated after every file, with Supabase default privileges: —;
 without default privileges: —.
@@ -90,7 +90,8 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 | 75 | `20261019030000_taxguard_billing_write_retries` | proposal | ok | 1 | 4 | — | 1, 4, 31 | 0 | — | — |
 | 76 | `20261019040000_taxguard_ledger_write_retries` | proposal | ok | 0 | 3 | taxguard_ledger_assert_balanced (from #27) | 27 | 0 | — | — |
 | 77 | `20261019050000_taxguard_line_removal_retries` | proposal | ok | 0 | 1 | taxguard_bill_retry_result (from #75) | 4, 31, 75 | 0 | — | — |
-| 78 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
+| 78 | `20261019060000_taxguard_catalog_concurrency` | proposal | ok | 0 | 1 | — | 28, 31 | 0 | — | — |
+| 79 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
 
 ## Not re-runnable files
 
@@ -104,7 +105,7 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 - #16 `20261012020000_taxguard_staff_acceptance`: constraint "chk_taxguard_invitation_email_normalized" for relation "taxguard_staff_invitations" already exists
 - #21 `20261012070000_taxguard_client_intake_drafts`: relation "taxguard_client_intake_drafts" already exists
 - #24 `20261012100000_taxguard_mfa_recovery_requests`: relation "taxguard_mfa_recovery_requests" already exists
-- #78 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
+- #79 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
 
 ## Constraints added NOT VALID (validate after data review)
 
@@ -123,3 +124,4 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 - #75 `20261019030000_taxguard_billing_write_retries` revokes: taxguard_bill_add_line, taxguard_bill_request_credit
 - #76 `20261019040000_taxguard_ledger_write_retries` revokes: taxguard_ledger_post_entry, taxguard_ledger_reverse_entry
 - #77 `20261019050000_taxguard_line_removal_retries` revokes: taxguard_bill_remove_line
+- #78 `20261019060000_taxguard_catalog_concurrency` revokes: taxguard_bill_upsert_service
