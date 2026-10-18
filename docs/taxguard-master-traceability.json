@@ -5338,9 +5338,22 @@
       ]
     },
     {
+      "file": "docs/development/phase14-phase15-billing-overlap.md",
+      "sha256": "3ebd1173c8235b28b62b224ed0487c37dee85a119b4aad191c890b0e5ce1ebdb",
+      "bytes": 4118,
+      "headings": [
+        "# Phase 14 / Phase 15 billing overlap: refund records (handoff, 2026-10-19)",
+        "## Recovery CI failure (run 39153095799)",
+        "## The overlap",
+        "## Executable evidence",
+        "## Options (decision for the owner, with Codex)",
+        "## Other Phase 15 changes Phase 14 will need to absorb"
+      ]
+    },
+    {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "a38143f8718253c157b37d8f2aff86ccc6f7e63f1500aa836e0a459eecd528a3",
-      "bytes": 32482,
+      "sha256": "99a1b21500e82dd706dc5d26ea619a7f53ca086b83b38339b34b5617a1b84ab3",
+      "bytes": 33064,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",

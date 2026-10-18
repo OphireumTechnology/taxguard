@@ -329,6 +329,13 @@ database; staff identities with verified TOTP factors. No credential was used an
 
 ## 5. Outstanding owner decisions
 
+**Phase 14 / Phase 15 refund overlap (integration blocker).** Phase 14's `20261018010000` and Codex's Phase 15
+`20261019020000` both create `taxguard_invoice_refunds`. Composed together, every Phase 15 keyed refund fails
+(`column "result" ... does not exist`), as shown by a disposable PostgreSQL probe. The recommendation is to make
+the Phase 15 mechanism canonical and carry the Phase 14 regressions over as its acceptance tests. Evidence and
+options are in `phase14-phase15-billing-overlap.md`. Both proposals stay review only, and the branches must not
+both merge as they are.
+
 **Audit append-only enforcement (for review, not incorporated).** Within the canonical migration plan only
 `SECURITY_*` audit rows are append-only at the database level (proposal 20261015060000); the service role has no
 `UPDATE`, `DELETE` or `TRUNCATE` on `taxguard_audit_log` (verified on PostgreSQL), but a database owner can still
