@@ -90,7 +90,13 @@ if (PROVIDER_PROFILE) {
       VALUES('e2e-ai-case','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,3,'e2e-ai-client-owner','d0000000-0000-4000-8000-000000000002','e2e-ai-reviewer','e2e-seed','e2e-seed');
     INSERT INTO taxguard_case_assignments(case_id,tenant_id,uid,role) VALUES('e2e-ai-case','${E2E.tenant}','d0000000-0000-4000-8000-000000000002','preparer');
     INSERT INTO taxguard_staff_assignments(id,tenant_id,client_id,engagement_id,tax_year,role,user_id,assigned_by,status,effective_from)
-      VALUES('e2e-ai-asg-1','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,'preparer','d0000000-0000-4000-8000-000000000002','e2e-seed','ACTIVE',now()-interval '1 day');`);
+      VALUES('e2e-ai-asg-1','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,'preparer','d0000000-0000-4000-8000-000000000002','e2e-seed','ACTIVE',now()-interval '1 day');
+    -- Journey B (provider suite 14): a durable practice manager used by no other suite. The new client
+    -- itself is NOT seeded; it is provisioned by the server on its first verified sign-in.
+    INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000d1','practice_manager','active');
+    INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000d1',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000d1',
+      'tenantId','${E2E.tenant}','role','practice_manager','status','active','email','d0000000-0000-4000-8000-0000000000d1@example.test','name','Synthetic Durable Manager',
+      'mfaEnabled',true,'isVerified',true));`);
 }
 const anonKey = 'e2e-synthetic-anon-key-' + Math.random().toString(36).slice(2);
 const BROWSER_AUTH = /^\/auth\/v1\/(token|logout|user|factors(\/[0-9a-f-]{36}(\/(challenge|verify))?)?)$/;

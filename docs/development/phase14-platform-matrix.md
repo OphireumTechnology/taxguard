@@ -185,14 +185,44 @@ could mean "the UI claims something the backend cannot deliver".
   lines. A manager requests a credit in the Billing UI and is refused on applying it (`A different manager must approve
   this.`). The preparer cannot decide it; a second manager applies it in the UI, giving total and balance 500.00. A
   second decision, an over-balance credit and a client-requested credit are all refused. The client API and portal show
-  the adjusted total, balance and credit amount only, with no reasons, notes or staff identities. The client's invoice
+  the adjusted total, balance and credit amount only, with no reasons, notes or staff identities (journey B is
+  covered in the next entry). The client's invoice
   PDF from the real server shows the same subtotal, credit, total and balance and no staff detail (Priority 4: the
   refund path already checks amounts against the ledger fields in suite 02 and `billingRefunds.db`, so no other
-  regression was added and no billing code changed). Journey B (new client
-  → identity → onboarding → engagement) is still only partly in the browser: the suites start from a seeded client
-  record (engagement creation and staffing are covered in 02). There is no durable staff operation that creates a
-  client record, and the portal identity/onboarding screens belong to PR #20's frontend work. Completing B needs that
-  operation (a product decision) and PR #20 to land, so it was not built here.
+  regression was added and no billing code changed).
+- **Journey B: new client → identity → onboarding → engagement (Block 20).** Built on the approved durable
+  contracts only; no staff client-creation operation was added. A verified provider sign-in with no invitation is
+  provisioned as a client by `taxguard_provision_client_identity`. Two defects found and fixed:
+  1. *No client could ever self-register on a freshly migrated database.* No migration created the `'primary'`
+     row of `taxguard_client_id_sequence`, and the provisioning function (deliberately) refuses a missing counter
+     (`CLIENT_COUNTER_CORRUPT`), so the portal showed "authentication service unavailable". Unit fixtures had
+     inserted the row by hand. Proposal `20261018020000_taxguard_client_id_sequence_initialize` creates the row
+     once and only moves the counter forward to the highest numeric ID already issued; the function's fail-closed
+     behaviour for a later-missing or corrupt counter is unchanged (`clientIdSequence.db`, 3). **Backend/PostgreSQL
+     change for Codex review**, review-only like every proposal; whether the hosted database already has the row
+     is unknown (not accessed).
+  2. *The portal collected identity data it could not record.* In durable deployments every Stage 01 onboarding
+     route returns `DURABLE_ONBOARDING_PROVIDER_REQUIRED`, yet a new client was shown the full identity wizard
+     (TIN, addresses, consent) as a "live" workspace; entries went only to browser storage and submission failed.
+     The wizard now asks the server first and, when onboarding is unavailable, shows an explicit notice with no
+     form fields and stores no dossier (completed clients keep their read-only review).
+  3. *A staff sign-in could create a client account.* Once self-registration worked, an account with no
+     membership in this tenant (for example a former employee whose membership row was removed) signing in at the
+     **staff** portal was provisioned as a client. Provider suite 09 had only passed because provisioning was
+     broken. Owner decision (2026-10-18): self-registration is allowed from the client portal only. The staff page
+     now sends `portal: 'staff'` and the server never creates a client for it (`STAFF_MEMBERSHIP_REQUIRED`); the
+     value can only restrict, an unknown value is refused (`PORTAL_INVALID`), and existing clients are unaffected.
+     Suite 09 keeps its refusal and now also proves no client record is created; a route unit test covers the rest.
+  Provider suite `14-new-client-journey` (3): first sign-in provisions exactly one client (server-issued ID), a
+  later sign-in resumes it, the client cannot use practice management; Stage 01 stays unavailable and cannot be
+  completed with forged gate fields (onboarding status remains `NOT_STARTED`); the portal shows the notice, no
+  inputs and no stored dossier; a durable practice manager finds the new client and opens and activates an
+  engagement in the UI; the client cannot create one; another tenant's administrator gets no access.
+  **Still blocked:** Stage 01 identity onboarding itself. It needs a durable onboarding provider and owner
+  policy for identity verification, TIN capture and storage, IRC § 7216 consent records and duplicate review.
+  Until then a self-registered client cannot pass Stage 01 to reach collection. Separately, the local
+  (non-durable) Stage 01 route accepts gate booleans supplied by the browser; it is unreachable on durable
+  deployments (503 above) and must not become the durable design.
 - **Staging validator: local governance database (Block 19, Priority 3).** The development-only
   `TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL` added for journey N is listed in the staging template's
   development-shortcut section. The offline staging validator refuses it (`DEVELOPMENT_SHORTCUT_DENIED`), with a unit

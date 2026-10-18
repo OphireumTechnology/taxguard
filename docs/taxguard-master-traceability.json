@@ -4968,8 +4968,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "ea94bb0b7e130ace2e62f8920db050cc88d48a30497e89b8d316e1d114274668",
-      "bytes": 15344,
+      "sha256": "a4d70f5f4b15a0a0499e7171e46026d0a06eed38c70e88e2b398ac50a675d162",
+      "bytes": 15459,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5212,8 +5212,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "026857ce882823ebfb4a5a95dfd775d5e63d96e2cc94ff297486adfcd6cfda78",
-      "bytes": 21703,
+      "sha256": "4cc4f3764d8ad5a0ce50f0955c0727aa686d131261b0b390044bba1a17d9098f",
+      "bytes": 24797,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5344,12 +5344,13 @@
     },
     {
       "file": "docs/development/staging-readiness.md",
-      "sha256": "cdc6a62b757810ebaaab2cc943494df2c448691e1ea71652a0057705154378e6",
-      "bytes": 9780,
+      "sha256": "51e836866a7b953ff9f2d30835d8d113a7230542285876543b50e380ddce0e94",
+      "bytes": 12036,
       "headings": [
-        "# Staging readiness and implementation plan (updated 2026-10-14, Phase 11)",
+        "# Staging readiness and implementation plan (updated 2026-10-18, Phase 14)",
         "## Current state",
         "## Implementation plan (each step needs the owner's go-ahead)",
+        "## Phase 14 assessment (2026-10-18, local and offline only)",
         "## Phase 9 preparation artifacts (local, offline)",
         "## Phase 10 artifacts (local, offline)",
         "## Phase 13A contract completion (local, offline)",
@@ -5797,6 +5798,12 @@
       "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
       "sha256": "1ab7f87708517728447be53daf6bcfe373704d63d86b70f20eea74deef6ff4ee",
       "bytes": 6321,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
+      "sha256": "13501313f224d840f8204357d47ff5a5a6ece78b27a02ad2dd48b334e7a551cd",
+      "bytes": 2044,
       "headings": []
     },
     {
@@ -6835,7 +6842,7 @@
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/backup/logical-backup.mjs": "d43b32114ecd5ea781df3100ebaf1ae1b436b46a274f0bc7008d32a8ae005163",
-    "scripts/e2e/e2e-server.ts": "a6aa31ccd14becf09f7fb1a162e80bb036e729fe98d6c48bb5089b75e92e365b",
+    "scripts/e2e/e2e-server.ts": "2aa80f2ab58f797219a3286a7bfa71017461cda894b7a5dbe747eefed1da16b7",
     "scripts/frontend/reachability-audit.mjs": "a4f32a935ecb879bc774d3b4a8d35c9466da08b33d1abad566591e0f7bae6481",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/migrations/migration-audit.mjs": "0fdde903233b5fd7c836b45da7e80e7d86aba205796d0e7de97032d92816df22",
@@ -6854,7 +6861,7 @@
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/AiCommissioningView.tsx": "be88bea1d06caa7806ea9e939be9ea80ec7bd66c34736cb846899763d779b858",
     "src/components/admin/PracticeAdminWorkspace.tsx": "b628387f61f871d8f4ef72ed5de372bc61d54a8cc53e360e6bfa0cf9c240ecf0",
-    "src/components/auth/AuthPages.tsx": "7953e42b0b971a89f77ea927f5fe2fd7806925a098ad1c5e14b7b64f0ea49489",
+    "src/components/auth/AuthPages.tsx": "182ce7ec17de94f655f2c5d62a9099f22c8787791d0d17a4dee9c67684a70957",
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
@@ -6926,7 +6933,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "2069c40b66d2d767a73145df17ba97b51f9f3d38ae6c4b5390c7afaefc48c7ad",
+    "src/services/api.ts": "e97777f3e3a9eaf07c726681b07d13f8577319416d44c42c602870917b657796",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
@@ -7020,7 +7027,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "3b04bcee78a3faae67f5ed2637f953b96cd2343cda63e0cbc1468be6e9fbfe68",
+    "src/tests/proposalCompositionSecurity.test.ts": "43ea7662b5001888ddd6c8692859692f5404a8e79b04c581738268ac66f5b41d",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

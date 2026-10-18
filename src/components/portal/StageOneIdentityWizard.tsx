@@ -103,6 +103,22 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   const [gateErrorMessage, setGateErrorMessage] = useState<string | null>(null);
   const [gateSuccessMessage, setGateSuccessMessage] = useState<string | null>(null);
   const [initializationError, setInitializationError] = useState<string | null>(null);
+  // LIVE onboarding needs the server's durable onboarding provider. Until it answers, no dossier is created,
+  // so nothing a client types is kept in this browser when the server cannot record it.
+  const [onboardingAvailability, setOnboardingAvailability] = useState<'checking' | 'available' | 'unavailable'>(
+    isLiveClient && currentUser?.onboardingStatus !== 'COMPLETED' ? 'checking' : 'available');
+  useEffect(() => {
+    // Completed onboarding is a read-only review of what was already recorded.
+    if (!isLiveClient || currentUser?.onboardingStatus === 'COMPLETED') { setOnboardingAvailability('available'); return; }
+    let active = true;
+    setOnboardingAvailability('checking');
+    LiveWorkflowApi.getScopedWorkflowBundle(taxYear)
+      .then(() => { if (active) setOnboardingAvailability('available'); })
+      .catch((error: { code?: string }) => {
+        if (active) setOnboardingAvailability(error?.code === 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' ? 'unavailable' : 'available');
+      });
+    return () => { active = false; };
+  }, [isLiveClient, taxYear, currentUser?.id, currentUser?.onboardingStatus]);
 
   // Reviewer role simulation toggle for duplicate overrides
   const [isReviewerMode, setIsReviewerMode] = useState(false);
@@ -111,6 +127,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   // Initialize or load dossier
   useEffect(() => {
     setInitializationError(null);
+    if (onboardingAvailability !== 'available') return;
 
     /*
      * LIVE must NEVER inherit the browser's previously active
@@ -173,7 +190,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     }
 
     setDossier(loaded);
-  }, [initialClientId, currentUser]);
+  }, [initialClientId, currentUser, onboardingAvailability]);
 
   const updateDossier = (updated: StageOneDossier) => {
     StageOneOnboardingService.saveDossier(updated);
@@ -391,6 +408,17 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     };
     updateDossier(updated);
   };
+
+  if (onboardingAvailability === 'unavailable') {
+    return (
+      <section aria-labelledby="stage-one-unavailable-title" role="status" className="max-w-2xl mx-auto p-8 text-center text-amber-100 bg-amber-950/40 border border-amber-500/50 rounded-2xl">
+        <AlertTriangle aria-hidden="true" className="w-7 h-7 mx-auto mb-3 text-amber-400" />
+        <h2 id="stage-one-unavailable-title" className="font-bold text-white">Online identity onboarding is not available yet</h2>
+        <p className="text-xs mt-2">This service cannot yet record Stage 01 identity details, taxpayer identification numbers, addresses or consent, so this form is not shown and nothing has been saved. Please contact the practice to complete onboarding.</p>
+        {authenticatedClientId && <p className="text-xs mt-2 font-mono">Client ID: {authenticatedClientId}</p>}
+      </section>
+    );
+  }
 
   if (initializationError) {
     return (

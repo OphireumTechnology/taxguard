@@ -1,8 +1,8 @@
-# Staging readiness and implementation plan (updated 2026-10-14, Phase 11)
+# Staging readiness and implementation plan (updated 2026-10-18, Phase 14)
 
 Phase 11 reconciles the independently merged Phase 10 PR #16 (`origin/main` 5f1553c) while preserving the unmerged Codex Phase 10 commit f0549ef and PR #15. The canonical execution DAG/checksum manifest is `staging-migration-manifest.json`; the catalog audit is a derived analysis artifact. New proposals 051–058 avoid the merged 047–050 identifiers; 057/058 preserve inherited corrections additively, and all 56 approved SQL artifacts match pinned main. The executable review packet covers 61 files. See `phase11-release-operations.md`, `phase11-owner-decisions.md`, `phase11-remaining-work.json`, `phase11-ai-readiness.json` and the final report. Current code remains locally validated only. No external action is authorized.
 
-**Status: NOT READY for staging â€” staging GO / NO-GO: NO-GO.** Nothing has been deployed and no migration has been applied
+**Status: NOT READY for staging — staging GO / NO-GO: NO-GO.** Nothing has been deployed and no migration has been applied
 anywhere. Production remains NO-GO. The protected production project `cvrlhixxczerytiocxid` is never
 accessed, inspected, deployed to or migrated; tooling refuses it. No non-production project is
 assumed to exist. Staging is deployed only with explicit owner approval.
@@ -13,9 +13,11 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 |---|---|---|
 | Isolated non-production Supabase project | none configured | owner provisions a separate project |
 | Synthetic-only data | all suites use generated synthetic records; durable deployments load no demonstration seed | staging seed script (synthetic tenant, staff, clients) |
-| Migration review and ordering | 13 core migrations + 40 proposals (000â€“011, 023â€“050) + the separate audit proposal; canonical manifest and readiness report (Phase 10); Supabase default privileges reproduced; Data API exposure found and closed by proposal 049 | human review / approval of each proposal in manifest order; 049 approved separately; NOT VALID constraints validated after data review |
-| Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery â€” verified against the loopback emulator; real-provider runner requires a confirmed project ref and a different production ref (`--readiness`: BLOCKED) | real-provider validation once a project exists; rate-limit policy decision |
+| Migration review and ordering | 13 core migrations + 40 proposals (000–011, 023–050) + the separate audit proposal; canonical manifest and readiness report (Phase 10); Supabase default privileges reproduced; Data API exposure found and closed by proposal 049 | human review / approval of each proposal in manifest order; 049 approved separately; NOT VALID constraints validated after data review |
+| Staff authentication and MFA | AAL2, 15-minute recent sign-in, invitations, recovery — verified against the loopback emulator; real-provider runner requires a confirmed project ref and a different production ref (`--readiness`: BLOCKED) | real-provider validation once a project exists; rate-limit policy decision |
 | Client authentication | local password + TOTP and provider paths | client provider configuration in staging |
+| Client self-registration (Phase 14) | provider sign-in provisions a client identity; a fresh database had no client-ID counter row, so every self-registration was refused, fixed by proposal 20261018020000 (review only) | approve 20261018020000; confirm whether the staging database already holds the counter row |
+| Stage 01 identity onboarding (Phase 14) | no durable provider: every onboarding route returns `DURABLE_ONBOARDING_PROVIDER_REQUIRED`; the portal says so and collects nothing | owner policy for identity verification, TIN capture/storage, IRC § 7216 consent records and duplicate review, then a durable onboarding store |
 | Tenant and environment isolation | enforced in every proposal function; negative tests in unit, DB and E2E | one `TAXGUARD_TENANT_ID` per environment; separate keys per environment |
 | Private document storage | private bucket, write-once objects, signed URLs, scan-required release | staging bucket |
 | Malware scanner | asynchronous boundary (proposal 050): durable requests, HMAC-authenticated single-use verdict callback, outage-safe quarantine; local fake scanner only | choose a provider; implement its adapter; approve the callback secret handling |
@@ -45,13 +47,36 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 7. **Storage and scanning**: private staging bucket; integrate a malware scanner; confirm infected
    samples (EICAR) stay quarantined.
 8. **Billing**: sandbox keys only; confirm no live charge path exists.
-9. **AI**: only after a provider decision â€” commission through the gateway with budgets and kill
+9. **AI**: only after a provider decision — commission through the gateway with budgets and kill
    switches; AI-16 stays blocked.
 10. **Monitoring**: ship server logs, alert on 5xx / refused-access spikes; review the audit center.
 11. **Backup / restore and rollback**: take and restore a backup; rehearse rollback of the latest
     proposal using its rollback notes.
 12. **Hosting**: separate staging host for the API and a staging static deployment, never the
     production Pages environment; deploy only on explicit approval.
+
+## Phase 14 assessment (2026-10-18, local and offline only)
+
+Staging **NO-GO**, production **NO-GO**. Verified locally on the Phase 14 branch (PR #22, draft); nothing was
+deployed, applied or accessed externally. What is ready to review:
+- **Migrations:** 72 manifest entries; release-candidate check passes on disposable loopback PostgreSQL
+  (review only, owner approval required); composition and replay pass. The 13 NOT VALID constraints have a
+  review sheet (`not-valid-constraint-review.md`) and each needs an owner decision on its validation window.
+  The audit append-only proposal is listed for review and not in the plan.
+- **Configuration:** `check-staging-config.ts` validates a candidate configuration offline. It refuses the
+  production project, live payment keys, uncommissioned integrations, reused secrets and every development
+  shortcut, including the local AI-governance database added in Phase 14.
+
+Still needed before any staging step, each requiring authorization:
+1. An isolated non-production Supabase project, API host and secret store.
+2. Real-provider MFA validation (`provider-mfa-validation.md`).
+3. A storage bucket and a chosen malware scanner with its adapter.
+4. Physical backup and restore: `pg_dump` and `pg_restore` are not installed here, and provider backups,
+   PITR and RPO/RTO are unapproved.
+5. Hosted monitoring and audit custody: log shipping, alerting, and the append-only audit decision.
+6. Tax-professional approval of rule sets. Stages 09–18 stay blocked.
+7. AI governance approval. All 61 agents stay uncommissioned; AI-16 stays blocked.
+8. The durable Stage 01 onboarding policy above.
 
 ## Phase 9 preparation artifacts (local, offline)
 
