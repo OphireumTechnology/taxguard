@@ -444,6 +444,12 @@
       "dependsOn": [
         "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql"
+      ]
     }
   ]
 }

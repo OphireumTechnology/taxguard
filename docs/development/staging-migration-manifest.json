@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "1d4103e4e913f55c2860edf95e364860419be930294d23482ce20da6b64018b8",
+  "executionPlanSha256": "869fa850a5a6b50d7c5281f8aa7ff4bdde5b70d6b589183d6e4a6cfcf76cdb71",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3532,6 +3532,44 @@
         "-- key and refuses a key reused for a different refund. The unkeyed function is revoked from",
         "-- service_role so the keyed path is the only entry point. Refunds remain RECORDS of money returned",
         "-- outside TaxGuard: no payment provider is called and nothing is claimed as processed."
+      ]
+    },
+    {
+      "order": 72,
+      "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
+      "kind": "proposal",
+      "version": "20261018020000",
+      "sha256": "13501313f224d840f8204357d47ff5a5a6ece78b27a02ad2dd48b334e7a551cd",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): none required; the row is the counter the function already expects."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 0,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, client identity). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires the core schema (taxguard_client_id_sequence, taxguard_clients, taxguard_members,",
+        "-- taxguard_identities) and proposal 20261012060000 (atomic client identity).",
+        "--",
+        "-- taxguard_provision_client_identity deliberately refuses to allocate a client ID when the 'primary'",
+        "-- counter row is missing (CLIENT_COUNTER_CORRUPT): recreating a lost counter inside the function could",
+        "-- restart numbering. But no migration ever created that row, so on a freshly migrated database the first",
+        "-- self-registered client was refused and the portal reported the identity store as unavailable",
+        "-- (found by the Phase 14 journey B browser test; unit fixtures inserted the row by hand).",
+        "-- This proposal creates the row once, at migration time, and only ever moves the counter forward to the",
+        "-- highest numeric client ID already issued (3-9 digits), so no existing ID is reissued. The function's",
+        "-- fail-closed behaviour for a row that later goes missing or corrupt is unchanged. Alphabetic-range IDs"
       ]
     }
   ]

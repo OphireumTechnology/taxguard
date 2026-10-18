@@ -50,7 +50,7 @@ describe('proposal composition', () => {
       '20261016020000_taxguard_staff_onboarding_status.sql', '20261016030000_taxguard_appointment_rooms.sql',
       '20261016040000_taxguard_notification_preferences.sql', '20261016050000_taxguard_contact_intake.sql',
       '20261017000000_taxguard_membership_session_proof.sql', '20261018000000_taxguard_case_validate_replacement_evidence.sql',
-      '20261018010000_taxguard_billing_refund_records.sql']));
+      '20261018010000_taxguard_billing_refund_records.sql', '20261018020000_taxguard_client_id_sequence_initialize.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
     await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236|^2026101237|^2026101238|^20261013|^20261014|^20261015|^20261016/);
