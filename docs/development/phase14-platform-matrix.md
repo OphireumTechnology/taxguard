@@ -185,7 +185,10 @@ could mean "the UI claims something the backend cannot deliver".
   lines. A manager requests a credit in the Billing UI and is refused on applying it (`A different manager must approve
   this.`). The preparer cannot decide it; a second manager applies it in the UI, giving total and balance 500.00. A
   second decision, an over-balance credit and a client-requested credit are all refused. The client API and portal show
-  the adjusted total, balance and credit amount only, with no reasons, notes or staff identities. Journey B (new client
+  the adjusted total, balance and credit amount only, with no reasons, notes or staff identities. The client's invoice
+  PDF from the real server shows the same subtotal, credit, total and balance and no staff detail (Priority 4: the
+  refund path already checks amounts against the ledger fields in suite 02 and `billingRefunds.db`, so no other
+  regression was added and no billing code changed). Journey B (new client
   → identity → onboarding → engagement) is still only partly in the browser: the suites start from a seeded client
   record.
 - **Staging validator: local governance database (Block 19, Priority 3).** The development-only

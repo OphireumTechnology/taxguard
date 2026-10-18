@@ -5212,8 +5212,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "1e2fd195c8837b819ced8b5b821b57fa8200f48f05809027b1d1dd5c94d021de",
-      "bytes": 21101,
+      "sha256": "9a2a070f2959c978c9b231f3e61e9489110df8799a93d86092b1fe9e29bfe5c0",
+      "bytes": 21402,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",

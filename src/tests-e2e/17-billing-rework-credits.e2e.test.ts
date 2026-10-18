@@ -113,6 +113,17 @@ describe('journey K: billing adjustment with independent approval and the client
     expect(await row.innerText()).toContain('$500.00');
     const body = await client.page.locator('body').innerText();
     expect(body).not.toMatch(/F-PRIVATE|K-PRIVATE|goodwill|Synthetic Second Manager/);
+    // The client invoice document carries the same recorded amounts, including the credit, and no staff detail.
+    const [download] = await Promise.all([client.page.waitForEvent('download'),
+      client.page.getByRole('button', { name: `Download invoice ${invoiceNumber} (PDF)` }).click()]);
+    const fs = await import('node:fs');
+    const pdf = fs.readFileSync((await download.path())!).toString('latin1');
+    expect(pdf.startsWith('%PDF-1.4')).toBe(true);
+    expect(pdf).toMatch(/Subtotal\s+600\.00 USD/);
+    expect(pdf).toMatch(/Credits applied\s+100\.00 USD/);
+    expect(pdf).toMatch(/Total\s+500\.00 USD/);
+    expect(pdf).toMatch(/Balance due\s+500\.00 USD/);
+    expect(pdf).not.toMatch(/F-PRIVATE|K-PRIVATE|goodwill|Synthetic state return add-on|e2e-mgr|e2e-acct/);
     await client.context.close();
   });
 });
