@@ -149,4 +149,20 @@ describe('durable bookkeeping over HTTP', () => {
       expect(selectLedger().mode).toBe('unavailable');
     } finally { setLedgerStoreForTesting(new SqlLedgerStore(pgliteRpc(() => fixture.pg))); }
   });
+
+  it.each(['/general-ledger', '/trial-balance', '/financial-statements'])('returns coded 422 for unrepresentable report money on %s', async path => {
+    const actual = pgliteRpc(() => fixture.pg);
+    setLedgerStoreForTesting(new SqlLedgerStore({ async rpc(name, args) {
+      const result = await actual.rpc(name, args);
+      if (!result.error && name.endsWith('_exact')) result.data = result.data.map((row: any, index: number) => index ? row : {
+        ...row, endingCents: '9100000000000001', periodDebitCents: '9100000000000001',
+      });
+      return result;
+    } }));
+    try {
+      const response = await call('reviewer', 'GET', path);
+      expect(response.status).toBe(422);
+      expect(response.body).toEqual({ code: 'LEDGER_REPORT_AMOUNT_OUT_OF_RANGE', error: 'LEDGER_REPORT_AMOUNT_OUT_OF_RANGE' });
+    } finally { setLedgerStoreForTesting(new SqlLedgerStore(actual)); }
+  });
 });

@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f880a239e34b46f6366e86671cc98e85abd04111394f7d4c66a440aeb43b71bc",
-      "bytes": 19434,
+      "sha256": "20f05daf02bacf899652a7bb2fa896acd629de16df7c9ce3194cd8565c0e75ae",
+      "bytes": 19546,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5470,6 +5470,19 @@
         "## Release considerations",
         "## Publication and integration status",
         "## Next backend investigation: aggregate monetary precision"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-monetary-precision.md",
+      "sha256": "4def171d44da8bd9f2fa3fff1a90d4b67d51492ff494020087b5c1849bd655cc",
+      "bytes": 5787,
+      "headings": [
+        "# Phase 15 monetary precision",
+        "## Reproduction",
+        "## Correction and compatibility",
+        "## Regression evidence",
+        "## Commands and results",
+        "## Limits and gates"
       ]
     },
     {
@@ -6186,6 +6199,12 @@
       "file": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
       "sha256": "3c61b709074f434cfdb75a46b77cb52b4c414b268ee506bc78cd4172ea084ffb",
       "bytes": 4010,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql",
+      "sha256": "06490e4f5adb47834b4c390c528b288096d9a0071b8ba97c80551ec3bb757185",
+      "bytes": 2349,
       "headings": []
     },
     {
@@ -7320,7 +7339,7 @@
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
     "src/server/productionApp.ts": "d9bea579ae38856cc991d30b9e6f2aff45bc44f4715b3e72a1b62d80aa4e5713",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
-    "src/server/routes/ledgerDispatch.routes.ts": "8f31ed13030cb6057c5f72fe8f4158ddefafe7f76565d78b4ad91ee5750ac3f9",
+    "src/server/routes/ledgerDispatch.routes.ts": "7e75618981ee05f021455b8d4f4226d0f835cf08ea0d02fd9d43b264c66d0854",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
     "src/server/routes/retiredLegacyRoutes.ts": "848153c049beb9ed5116d2942ba53d07d5036b0c50c0f71f6cb3e5843b4ad073",
     "src/server/securityEventRecorder.ts": "74a242fb3951141fc699f9dddfc4318f7ca5b80445979fc98858df3cf371d82b",
@@ -7416,7 +7435,7 @@
     "src/tests/documentRequestsHttp.test.ts": "7c83921e48f66c94eef683436b9eacde428f49d9a95ea104e89fa36a2711d13f",
     "src/tests/documentVaultHttp.test.ts": "891d81cb8915a12d1276c2e63bab025334eda642eab45326bd157b032eb0bfcd",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
-    "src/tests/durableLedgerHttp.test.ts": "6074c97174479bea7bff8c447f3af7935612e9daeb44b1c3fae986b339705963",
+    "src/tests/durableLedgerHttp.test.ts": "92dd020badda8673ce77ec29b4a8d99134ad0d1d771baef545a7df4c120e595e",
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",

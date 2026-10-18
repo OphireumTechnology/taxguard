@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "5ed5d12d8551a699503446a764f5bcb41df780b6c7ccaf3218d896bf95c12249",
+  "executionPlanSha256": "b45ff8b29b7120c7288fd34794b7004e7c4bd24e7a6cf38bf6c330c7ae82c6a2",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4725,6 +4725,42 @@
         "-- Depends on proposal 024. Historical proposal bytes remain unchanged.",
         "-- Complete balances and bounded per-account detail share one database snapshot. The",
         "-- display limit is applied only AFTER integer-cent totals and running sums."
+      ]
+    },
+    {
+      "order": 89,
+      "file": "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql",
+      "kind": "proposal",
+      "version": "20261018120000",
+      "sha256": "06490e4f5adb47834b4c390c528b288096d9a0071b8ba97c80551ec3bb757185",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_ledger_trial_balance_exact",
+        "taxguard_ledger_general_ledger_exact"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_trial_balance_exact(text,text,text,integer,date) FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_general_ledger_exact(text,text,text,integer,text,jsonb) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_trial_balance_exact(text,text,text,integer,date) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_general_ledger_exact(text,text,text,integer,text,jsonb) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 0,
+      "notValidConstraints": 0,
+      "header": [
+        "-- Phase 15 exact report transport. Development proposal; no hosted execution authorized.",
+        "-- Keep historical RPCs unchanged. Cast numeric aggregates to text BEFORE a JSON client parses them.",
+        "-- Invoker wrappers retain the existing underlying RPC actor/tenant/client authorization."
       ]
     }
   ]

@@ -25,7 +25,10 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
 export async function applyProposals(pg: PGlite, pattern: RegExp) {
   const plan=buildMigrationManifest().entries;const selected=new Set(plan.filter(e=>e.kind==='proposal'&&pattern.test(e.file.split('/').at(-1)!)).map(e=>e.file));
   // Narrow historical fixtures exercise the current additive security overlays, never edited history.
-  if([...selected].some(file=>/20261012240000_/.test(file)))selected.add('docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql');
+  if([...selected].some(file=>/20261012240000_/.test(file))){
+    selected.add('docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql');
+    selected.add('docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql');
+  }
   if([...selected].some(file=>/20261012270000_|20261014460000_/.test(file)))selected.add('docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql');
   if([...selected].some(file=>/20261012270000_/.test(file)))selected.add('docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql');
   if([...selected].some(file=>/20261012280000_/.test(file))){selected.add('docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql');selected.add('docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql');}

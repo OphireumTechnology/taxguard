@@ -6,6 +6,7 @@
 import { createHash } from 'node:crypto';
 import type { AccountingPeriod, BankReconciliation, BankTransaction, ChartOfAccount, JournalEntry, TrialBalanceReport, FinancialStatements } from './types';
 import { financialStatements, trialBalanceReport, type GeneralLedgerAccount, type TrialBalanceRow } from './ledgerReports';
+import { exactReportCents, reportDollars } from './reportMoney';
 
 export interface LedgerRpcClient { rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: any; error: { code?: string; message?: string } | null }> }
 export interface LedgerScope { tenantId: string; clientId: string }
@@ -177,9 +178,10 @@ export class SqlLedgerStore {
       reconciliations: (data.reconciliations as any[]).map(r => this.reconciliation(scope, r)), rawEntries: data.entries as any[] };
   }
   private async trialBalanceRows(scope: LedgerScope, actor: string, taxYear: number, asOf?: string): Promise<TrialBalanceRow[]> {
-    const rows = await this.call<any[]>('taxguard_ledger_trial_balance', { ...this.base(scope, actor), p_tax_year: taxYear, p_as_of: asOf || null });
+    const rows = await this.call<any[]>('taxguard_ledger_trial_balance_exact', { ...this.base(scope, actor), p_tax_year: taxYear, p_as_of: asOf || null });
     return rows.map(r => ({ accountId: r.accountId, accountNumber: r.accountNumber, accountName: r.accountName, accountType: r.accountType,
-      beginningDebitCents: Number(r.beginningDebitCents), beginningCreditCents: Number(r.beginningCreditCents), periodDebitCents: Number(r.periodDebitCents), periodCreditCents: Number(r.periodCreditCents) }));
+      beginningDebitCents: exactReportCents(r.beginningDebitCents), beginningCreditCents: exactReportCents(r.beginningCreditCents),
+      periodDebitCents: exactReportCents(r.periodDebitCents), periodCreditCents: exactReportCents(r.periodCreditCents) }));
   }
   async trialBalance(scope: LedgerScope, actor: string, taxYear: number, asOf?: string): Promise<TrialBalanceReport> {
     return trialBalanceReport(scope.tenantId, scope.clientId, taxYear, await this.trialBalanceRows(scope, actor, taxYear, asOf));
@@ -189,16 +191,16 @@ export class SqlLedgerStore {
   }
   async generalLedger(scope: LedgerScope, actor: string, taxYear: number, accountId?: string,
     filter: { fromDate?: string; toDate?: string; limit?: number } = {}): Promise<GeneralLedgerAccount[]> {
-    const rows = await this.call<any[]>('taxguard_ledger_general_ledger', { ...this.base(scope, actor), p_tax_year: taxYear,
+    const rows = await this.call<any[]>('taxguard_ledger_general_ledger_exact', { ...this.base(scope, actor), p_tax_year: taxYear,
       p_account: accountId ?? null, p_filter: filter });
     return rows.map(r => {
-      const sign = ['ASSET', 'EXPENSE', 'COGS', 'OTHER_EXPENSE'].includes(r.accountType) ? 1 : -1;
+      const sign = ['ASSET', 'EXPENSE', 'COGS', 'OTHER_EXPENSE'].includes(r.accountType) ? 1n : -1n;
       return { accountId: r.accountId, accountNumber: r.accountNumber, accountName: r.accountName, accountType: r.accountType,
-        openingBalance: sign * Number(r.openingCents) / 100, endingBalance: sign * Number(r.endingCents) / 100,
+        openingBalance: reportDollars(sign * exactReportCents(r.openingCents)), endingBalance: reportDollars(sign * exactReportCents(r.endingCents)),
         totalLineCount: Number(r.totalLineCount), detailTruncated: Number(r.totalLineCount) > r.lines.length,
         lines: r.lines.map((l: any) => ({ entryId: l.entryId, entryNumber: l.entryNumber, postingDate: date(l.postingDate),
-          description: l.description, debit: Number(l.debitCents) / 100, credit: Number(l.creditCents) / 100,
-          runningBalance: sign * Number(l.runningCents) / 100 })) };
+          description: l.description, debit: reportDollars(l.debitCents), credit: reportDollars(l.creditCents),
+          runningBalance: reportDollars(sign * exactReportCents(l.runningCents)) })) };
     });
   }
   /** Bookkeeper work queue (proposal 030): uncategorized and duplicate bank items, entries awaiting review, returned entries, open reconciliations, periods. */
