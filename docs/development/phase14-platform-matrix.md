@@ -144,6 +144,18 @@ could mean "the UI claims something the backend cannot deliver".
   row remains the separate `docs/sql/taxguard-audit-append-only.proposal.sql` decision. Browser: a refused refund keeps
   the form and its values and records nothing; the corrected request for the same operation succeeds.
 
+- **Accounting integrity review (Priority A).** Re-checked the durable ledger SQL (proposal 024): approval re-checks the
+  period at posting time (hard-closed refused, soft-closed only through review), closing refuses unapproved entries and
+  approval holds a share lock on the period so a concurrent close waits, one reversal per entry (unique index), frozen
+  posted fields, maker-checker, idempotent posting and balance enforcement are all in place with HTTP and concurrency
+  database tests. No defect found; nothing changed.
+- **Journey N on the real server: blocked, not faked.** An attempted provider-profile suite showed that the E2E server
+  has no governance store: every evaluation and control-center read answers `AI_GOVERNANCE_UNAVAILABLE` (fail closed),
+  which suite 15 (C7) already covers. Tests passing for that reason would not prove policy refusals, so the suite was
+  not committed. Policy refusals (tenant, unmapped agent, proposals, forged fields) and the permitted advisory path are
+  covered with synthetic governance state in the unit suites. Real-server coverage needs a governance store composed
+  into the E2E environment (development work, no commissioning) and remains open.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run
