@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f34a006fb351a502c04ecd0eea1a0fa68d5880289e1baa01c680942855fcad12",
-      "bytes": 20677,
+      "sha256": "99388999eff89ee8a021525ad70925319a557711ea5eec59cfbf2e3c35ff79fd",
+      "bytes": 20913,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5496,8 +5496,8 @@
     },
     {
       "file": "docs/development/phase15-financial-write-review.md",
-      "sha256": "f3e1da66cd4c43f7d84c9b4eb72647b95d130f31cd500fa242f9b09b7347d94c",
-      "bytes": 9512,
+      "sha256": "f3e884be244c4323fd55e449909e9ac3c171f67cbac0be7a15dad167c10db57d",
+      "bytes": 9606,
       "headings": [
         "# Phase 15 financial write and audit review",
         "## Evidence classification",
@@ -5527,6 +5527,16 @@
         "## Measured defects and correction",
         "## Validation",
         "## Limits"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-line-removal-retries-results.md",
+      "sha256": "74b440ee95b31bc07a6d839c6805b7f8a0c201ccbce330d5953fb82b1400c808",
+      "bytes": 3236,
+      "headings": [
+        "# Phase 15 delayed invoice-line removal retries",
+        "## Reproduction and correction",
+        "## Validation"
       ]
     },
     {
@@ -6358,6 +6368,12 @@
       "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
       "sha256": "ca382a2ea21ad636fcbb6d22c07201e4cb3071fa9286f09cbfb34aab316f78cc",
       "bytes": 3453,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
+      "sha256": "f60feabd1f5079e8cd7a7374097828928442513aad41deca138adfd9567f9da2",
+      "bytes": 3849,
       "headings": []
     },
     {

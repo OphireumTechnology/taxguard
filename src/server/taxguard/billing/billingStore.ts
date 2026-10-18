@@ -67,8 +67,8 @@ export class BillingStore {
     return this.call('taxguard_bill_add_line_once', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_invoice: invoiceId, p_service: line.serviceCode, p_quantity: money(line.quantity),
       p_rate: line.unitRate === undefined || line.unitRate === null || line.unitRate === '' ? null : money(line.unitRate), p_description: line.description ?? null, p_override_reason: line.overrideReason ?? null });
   }
-  removeLine(tenant: string, client: string, actor: string, invoiceId: string, lineNo: number) {
-    return this.call('taxguard_bill_remove_line', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_line: lineNo });
+  removeLine(tenant: string, client: string, actor: string, invoiceId: string, lineNo: number, idempotencyKey?: unknown) {
+    return this.call('taxguard_bill_remove_line_once', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_line: lineNo, p_key: key(idempotencyKey) });
   }
   transition(tenant: string, client: string, actor: string, invoiceId: string, action: string, rowVersion: number, note?: string) {
     return this.call('taxguard_bill_transition', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_action: action, p_row_version: rowVersion, p_note: note ?? null });

@@ -43,6 +43,45 @@ it('does not append a second invoice line when an HTTP request key is retried', 
   expect((await db.pool.query(`SELECT count(*)::int n FROM taxguard_invoice_lines WHERE invoice_id=$1`, [id])).rows[0].n).toBe(1);
 });
 
+it('removes once with one audit across six simultaneous identical removal requests', async () => {
+  const id = await invoice('writes-remove-concurrent'), lines = `/clients/client-a/invoices/${id}/lines`;
+  await post(lines, 'writes-remove-concurrent-line', { serviceCode: 'SYNTHETIC', quantity: '1' });
+  const results = await Promise.all(Array.from({ length: 6 }, () => post(lines + '/1/remove', 'writes-remove-concurrent-key', {})));
+  expect(results.every(r => r.status === 200 && JSON.stringify(r.body) === JSON.stringify(results[0].body))).toBe(true);
+  const audit = (await db.pool.query(`SELECT actor_uid,metadata FROM taxguard_audit_log WHERE action='BILLING_INVOICE_LINE_REMOVED' AND metadata->>'invoiceId'=$1`, [id])).rows;
+  expect(audit).toHaveLength(1);
+  expect(audit[0]).toMatchObject({ actor_uid: 'maker-a', metadata: { clientId: 'client-a', lineNo: 1,
+    before: { subtotal: '100.00', total: '100.00' }, after: { subtotal: '0.00', total: '0.00' } } });
+});
+
+it('rolls back line removal and receipt on audit failure and recovers the same key', async () => {
+  const id = await invoice('writes-remove-rollback'), lines = `/clients/client-a/invoices/${id}/lines`;
+  await post(lines, 'writes-remove-rollback-line', { serviceCode: 'SYNTHETIC', quantity: '1' });
+  await db.pool.query(`CREATE FUNCTION remove_fixture_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+    IF NEW.action='BILLING_INVOICE_LINE_REMOVED' THEN RAISE EXCEPTION 'Synthetic removal failure' USING ERRCODE='XX000'; END IF; RETURN NEW; END $$;
+    CREATE TRIGGER remove_fixture_failure BEFORE INSERT ON taxguard_audit_log FOR EACH ROW EXECUTE FUNCTION remove_fixture_failure();`);
+  try {
+    expect((await post(lines + '/1/remove', 'writes-remove-recovery-key', {})).status).toBe(503);
+    expect((await db.pool.query(`SELECT total::text total FROM taxguard_invoices WHERE id=$1`, [id])).rows[0].total).toBe('100.00');
+    expect((await db.pool.query(`SELECT count(*)::int n FROM taxguard_invoice_lines WHERE invoice_id=$1`, [id])).rows[0].n).toBe(1);
+    expect((await db.pool.query(`SELECT count(*)::int n FROM taxguard_billing_write_receipts WHERE operation='REMOVE_LINE' AND idempotency_key='writes-remove-recovery-key'`)).rows[0].n).toBe(0);
+  } finally { await db.pool.query('DROP TRIGGER remove_fixture_failure ON taxguard_audit_log; DROP FUNCTION remove_fixture_failure()'); }
+  expect((await post(lines + '/1/remove', 'writes-remove-recovery-key', {})).status).toBe(200);
+});
+
+it('requires removal keys and allows service-role keyed execution without a keyless bypass', async () => {
+  const id = await invoice('writes-remove-service'), lines = `/clients/client-a/invoices/${id}/lines`;
+  await post(lines, 'writes-remove-service-line', { serviceCode: 'SYNTHETIC', quantity: '1' });
+  expect((await post(lines + '/1/remove', '', {})).body.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN'); await c.query('SET LOCAL ROLE service_role');
+    expect((await new BillingStore(pgRpc(c)).removeLine('writes-a', 'client-a', 'maker-a', id, 1, 'writes-remove-service-key')).total).toBe('0.00');
+    await c.query('COMMIT');
+  } finally { await c.query('ROLLBACK'); await c.end(); }
+  expect((await db.pool.query(`SELECT has_function_privilege('service_role','taxguard_bill_remove_line(text,text,text,text,integer)','EXECUTE') allowed`)).rows[0].allowed).toBe(false);
+});
+
 it('does not create a second pending credit request when an HTTP request key is retried', async () => {
   const id = await invoice('writes-invoice-credit');
   const lined = await post(`/clients/client-a/invoices/${id}/lines`, 'writes-credit-line', { serviceCode: 'SYNTHETIC', quantity: '1' });
@@ -131,4 +170,21 @@ it('allows service-role keyed writes while denying keyless, helper and raw-table
     expect(privileges).toEqual({ line: false, credit: false, helper: false, raw: false });
   } finally { await c.query('ROLLBACK'); await c.end(); }
   expect((await post(`/clients/client-a/invoices/${id}/lines`, '', { serviceCode: 'SYNTHETIC', quantity: '1' })).body.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
+});
+
+it('does not remove a replacement line when a delayed removal request is retried', async () => {
+  const id = await invoice('writes-remove-reuse'), lines = `/clients/client-a/invoices/${id}/lines`;
+  expect((await post(lines, 'writes-remove-first-line', { serviceCode: 'SYNTHETIC', quantity: '1' })).status).toBe(200);
+  const removed = await post(lines + '/1/remove', 'writes-remove-retry-key', {});
+  expect(removed.status).toBe(200); expect(removed.body.total).toBe('0.00');
+  const replacement = await post(lines, 'writes-remove-replacement', { serviceCode: 'SYNTHETIC', quantity: '2' });
+  expect(replacement.body.lines[0].lineNo).toBe(1); expect(replacement.body.total).toBe('200.00');
+  expect(await post(lines + '/1/remove', 'writes-remove-retry-key', {})).toEqual(removed);
+  expect((await db.pool.query(`SELECT total::text total FROM taxguard_invoices WHERE id=$1`, [id])).rows[0].total).toBe('200.00');
+  expect((await db.pool.query(`SELECT count(*)::int n FROM taxguard_invoice_lines WHERE invoice_id=$1`, [id])).rows[0].n).toBe(1);
+  expect((await post(lines + '/2/remove', 'writes-remove-retry-key', {})).status).toBe(409);
+  const submitted = await store().transition('writes-a', 'client-a', 'maker-a', id, 'submit', replacement.body.rowVersion);
+  await store().transition('writes-a', 'client-a', 'checker-a', id, 'approve', submitted.rowVersion);
+  expect(await post(lines + '/1/remove', 'writes-remove-retry-key', {})).toEqual(removed);
+  expect((await db.pool.query(`SELECT total::text total,status FROM taxguard_invoices WHERE id=$1`, [id])).rows[0]).toEqual({ total: '200.00', status: 'ISSUED' });
 });

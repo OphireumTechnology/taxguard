@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 96,
+    "files": 97,
     "core": 13,
-    "proposals": 82,
+    "proposals": 83,
     "tables": 161,
-    "functions": 398,
-    "securityDefinerFunctions": 309,
+    "functions": 399,
+    "securityDefinerFunctions": 310,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3947,6 +3947,40 @@
     },
     {
       "order": 96,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_bill_remove_line_once"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_bill_retry_result",
+          "previous": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        4,
+        31,
+        94
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_bill_remove_line"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 97,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

@@ -86,7 +86,7 @@ export function createBillingRouter(deps: { store?: () => BillingStore; authenti
   }));
   router.post('/clients/:clientId/invoices', run(async req => store().createInvoice(t(req), client(req), u(req), idem(req), req.body ?? {}), 201));
   router.post('/clients/:clientId/invoices/:invoiceId/lines', run(async req => store().addLine(t(req), client(req), u(req), req.params.invoiceId, req.body ?? {}, idem(req))));
-  router.post('/clients/:clientId/invoices/:invoiceId/lines/:lineNo/remove', run(async req => store().removeLine(t(req), client(req), u(req), req.params.invoiceId, int(req.params.lineNo))));
+  router.post('/clients/:clientId/invoices/:invoiceId/lines/:lineNo/remove', run(async req => store().removeLine(t(req), client(req), u(req), req.params.invoiceId, int(req.params.lineNo), idem(req))));
   router.post('/clients/:clientId/invoices/:invoiceId/:action(submit|approve|return|void)', run(async req => store().transition(t(req), client(req), u(req), req.params.invoiceId,
     req.params.action, int(req.body?.rowVersion), typeof req.body?.note === 'string' ? req.body.note : undefined)));
   router.post('/clients/:clientId/invoices/:invoiceId/payments', run(async req => store().recordManualPayment(t(req), client(req), u(req), req.params.invoiceId,
