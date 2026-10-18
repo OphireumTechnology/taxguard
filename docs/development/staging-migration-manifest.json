@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "13328bb545c48c9a28e39c5437cf24c6079f705df4ce3d32211f12ac2facc28e",
+  "executionPlanSha256": "47e52d930c98795046d321af86ff924f88e4cd13efaa82c7d93608753a60d465",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3584,6 +3584,58 @@
         "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on book-to-tax proposal 029.",
         "-- Preserve scoped uniqueness, exact integer cents, evidence verification and maker-checker.",
         "-- Rollback: disable adjustment creation pending review; do not restore unbound retries."
+      ]
+    },
+    {
+      "order": 74,
+      "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "kind": "proposal",
+      "version": "20261019020000",
+      "sha256": "8c69264aeedcd948263b283ab387833fd2b82d3b76e9fe1b34dab82d9de33209",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_invoice_refunds",
+        "taxguard_bill_refund"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_refund",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_bill_refund",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback: disable refunds pending review; retain receipts and audit evidence."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_invoice_refunds FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text) FROM PUBLIC,anon,authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on billing access overlay 058.",
+        "-- Recording only: no processor calls or real money movement. Existing refund caps/roles remain.",
+        "-- Rollback: disable refunds pending review; retain receipts and audit evidence.",
+        "-- Keep the legacy signature as a fail-closed compatibility boundary. A keyless partial refund",
+        "-- cannot safely be inferred from amount/reason: separate intentional refunds may be identical."
       ]
     }
   ]
