@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "456956e7b8adafe7a3dd96957d2eef161b6e9f1295ce983ae066966f0fd895fb",
-      "bytes": 15201,
+      "sha256": "208512cf340196fd964e6da13bc98d3dbd13b7d24daba22ef0a4c3bd502e531f",
+      "bytes": 15349,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -7021,7 +7021,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "e60b53865420d70c29db56968ca65e1519d8961f172e48b1fdc828b4aba97179",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "09000aa6558c9a8c69326f786ba580e6211eecef084591d62a80a6d031bb1c77",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "c7334ee807352db7af540e18fff164818d550a0da379dd834c39826c5fc80571",
+  "executionPlanSha256": "cdf3dfc7ae07da06cc5b78af433ccc83bac8195065e02e1253531fd4fa582cce",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3501,6 +3501,47 @@
         "-- Phase 15 exact report transport. Development proposal; no hosted execution authorized.",
         "-- Keep historical RPCs unchanged. Cast numeric aggregates to text BEFORE a JSON client parses them.",
         "-- Invoker wrappers retain the existing underlying RPC actor/tenant/client authorization."
+      ]
+    },
+    {
+      "order": 72,
+      "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "kind": "proposal",
+      "version": "20261019000000",
+      "sha256": "f177127a3fecfefe609401e129aca139baed8d10bcb56cf5f4235b1986f6e648",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_create_invoice"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_create_invoice",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_create_invoice(text,text,text,text,text,date) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_create_invoice(text,text,text,text,text,date) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED TO A HOSTED DATABASE.",
+        "-- Depends on billing 028 and access overlay 058. Preserve historical proposals.",
+        "-- Serialize first submissions as well as retries; the existing tenant/key unique index remains",
+        "-- the durable uniqueness authority. No financial amounts or accounting transitions change."
       ]
     }
   ]
