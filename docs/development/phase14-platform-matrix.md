@@ -234,11 +234,39 @@ could mean "the UI claims something the backend cannot deliver".
   completed with forged gate fields (onboarding status remains `NOT_STARTED`); the portal shows the notice, no
   inputs and no stored dossier; a durable practice manager finds the new client and opens and activates an
   engagement in the UI; the client cannot create one; another tenant's administrator gets no access.
-  **Still blocked:** Stage 01 identity onboarding itself. It needs a durable onboarding provider and owner
-  policy for identity verification, TIN capture and storage, IRC § 7216 consent records and duplicate review.
-  Until then a self-registered client cannot pass Stage 01 to reach collection. Separately, the local
-  (non-durable) Stage 01 route accepts gate booleans supplied by the browser; it is unreachable on durable
-  deployments (503 above) and must not become the durable design.
+  The local (non-durable) Stage 01 route accepts gate booleans supplied by the browser. It is unreachable on
+  durable deployments (503 above) and was not used for the durable design below.
+- **Durable Stage 01 onboarding, consent-gated (Block 21, owner decision 2026-10-18).** Proposal
+  `20261018030000_taxguard_client_onboarding` (review only) adds a per-client onboarding record and an
+  owner-managed table of approved consent versions. No application role, including `service_role`, can read or
+  write either table directly.
+  - **What the client records:** taxpayer type, legal name, address, a representative for entities, and the TIN
+    type with its last four digits only. A full TIN, forged readiness flags and unknown fields are refused.
+  - **Submission** requires every section and an IRC § 7216 consent against an approved consent version. The
+    consent text fingerprint and the signer are recorded.
+  - **Approval** is a practice manager or administrator decision, never the client's. It requires a vault
+    `identity` document VERIFIED by staff, a server-computed duplicate check (same last four and legal name)
+    that needs an explicit override with a reason, and the consent version still approved.
+  - **Approval effect:** it sets the identity's onboarding status to COMPLETED, which the collection API now
+    requires before any Stage 02 request from a client (`STAGE_01_NOT_APPROVED`, fail-closed). Seeded E2E
+    clients are marked as already onboarded.
+  - **Change requests** carry a client-safe reason; internal notes, decider identities and duplicate details
+    never reach the client view.
+  - **Integrity:** every write is versioned and audited (`ONBOARDING_SUBMITTED`, `_CHANGES_REQUESTED`,
+    `_APPROVED`).
+  - **UI:** a durable Stage 01 panel in the client portal and an *Onboarding Review* module for managers. The
+    capability list opens only those three review endpoints.
+  - **Tests:**
+    - `clientOnboarding.db` (10): isolation and authorization, full-TIN and flag refusal, the consent gate, the
+      identity-document gate, change requests, duplicate override, a retired consent, concurrent decisions and
+      saves, and table privileges;
+    - `onboardingDurableRouter` (6): API boundary and the Stage 02 gate;
+    - provider suite 14 (6): the browser journey to Stage 02 with a SYNTHETIC consent version recorded by a
+      keyed test control.
+
+  **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
+  approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
+  owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.
 - **Staging validator: local governance database (Block 19, Priority 3).** The development-only
   `TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL` added for journey N is listed in the staging template's
   development-shortcut section. The offline staging validator refuses it (`DEVELOPMENT_SHORTCUT_DENIED`), with a unit

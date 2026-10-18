@@ -38,5 +38,8 @@ export function practiceManagerRequestAllowed(role:string,method:string,url:stri
   if(method==='POST'&&new RegExp(`^/api/stage-two-three/requests/\\d{4}(/${ID}/resolve)?$`).test(path))return practiceStoreConfigured();
   if ((method==='GET' && ['/api/operations/manager-dashboard','/api/auth/me','/api/auth/session'].includes(path)) || (method==='POST' && path==='/api/auth/logout')) return true;
   if (!practiceStoreConfigured()) return false;
+  // Stage 01 onboarding review (proposal 20261018030000): the database re-checks manager authority and scope.
+  if (method === 'GET' && (path === '/api/stage-one/queue' || new RegExp(`^/api/stage-one/clients/${ID}$`).test(path))) return true;
+  if (method === 'POST' && new RegExp(`^/api/stage-one/clients/${ID}/decision$`).test(path)) return true;
   return (method === 'GET' && DURABLE_GET.test(path)) || (method === 'POST' && DURABLE_POST.test(path));
 }

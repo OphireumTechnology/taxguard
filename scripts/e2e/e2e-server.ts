@@ -41,6 +41,8 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
     ('${E2E.tenant}','${E2E.unassignedClient}','e2e-nobody','Synthetic Unassigned Client'),('${E2E.other}','${E2E.otherTenantClient}','e2e-foreign-owner','Synthetic Foreign Client');
   INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES ${members};
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT m.tenant_id,m.uid,jsonb_build_object('id',m.uid,'tenantId',m.tenant_id,'role',m.role,'status',m.status,'email',n.email,'name',n.name)
+    -- Seeded clients stand for clients whose Stage 01 onboarding was already completed (Stage 02 suites).
+    || CASE WHEN m.role = 'client' THEN jsonb_build_object('onboardingStatus','COMPLETED','onboardingCompletedAt','2026-01-02T00:00:00.000000Z') ELSE '{}'::jsonb END
     FROM taxguard_members m JOIN (VALUES ${identityNames}) AS n(uid,email,name) ON n.uid = m.uid WHERE m.uid LIKE 'e2e-%';
   -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
   -- created by the tests through /e2e/provider-user; they have no local password.
@@ -142,6 +144,14 @@ const shim = http.createServer((req, res) => {
       if (objects.has(id)) return send(400, { statusCode: '409', error: 'Duplicate', message: 'The resource already exists' });
       objects.set(id, raw);
       return send(200, { Key: id, Id: id });
+    }
+    // Journey B (provider suite 14): records a SYNTHETIC consent version as the database owner, the only way
+    // a version can exist (no application role may write it). Test wording only; never real consent text.
+    if (PROVIDER_PROFILE && req.method === 'POST' && path === '/e2e/synthetic-consent-version') {
+      await database.pool.query(`INSERT INTO taxguard_onb_consent_versions(tenant_id,version,consent_text,approved_by,approved_at,status)
+        VALUES($1,'SYNTHETIC-E2E-1',$2,'Synthetic E2E fixture (not approved wording)',now(),'APPROVED') ON CONFLICT DO NOTHING`,
+        [E2E.tenant, 'SYNTHETIC TEST CONSENT. This placeholder exists only in disposable end-to-end tests and is not approved IRC section 7216 wording.']);
+      return send(200, { version: 'SYNTHETIC-E2E-1' });
     }
     if (req.method === 'POST' && path === '/e2e/scan') {
       const b = json() || {};

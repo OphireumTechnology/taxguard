@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { api, closeBrowser, dumpOnFailure, durableSession, liveSessionWithToken, newSession, ORIGIN, providerControl, providerToken, realErrors, sees, type Session } from '../helpers';
+import { api, closeBrowser, control, dumpOnFailure, durableSession, liveSessionWithToken, newSession, ORIGIN, providerControl, providerToken, realErrors, sees, type Session } from '../helpers';
 
 // Journey B on the approved durable contracts: a person with no invitation and no seeded record signs in to
 // the client portal; the server provisions their client identity (taxguard_provision_client_identity); a
@@ -50,7 +50,8 @@ describe('journey B: new client to engagement on durable contracts', () => {
     await s.context.close();
   });
 
-  it('Stage 01 onboarding stays unavailable: it cannot be completed by forged gate fields and the portal records nothing', async () => {
+  it('Stage 01 runs only on the durable store: forged legacy gate fields change nothing and the browser keeps no dossier', async () => {
+    // The legacy, browser-trusting Stage 01 route stays closed on durable deployments.
     const workflow = await api(clientToken, 'GET', '/api/case-authority/client-onboarding/workflow?taxYear=2025');
     expect([workflow.status, workflow.body.code]).toEqual([503, 'DURABLE_ONBOARDING_PROVIDER_REQUIRED']);
     const forged = await api(clientToken, 'POST', '/api/case-authority/client-onboarding/stage-1', { taxYear: 2025, completeStage: true,
@@ -58,18 +59,30 @@ describe('journey B: new client to engagement on durable contracts', () => {
         supportingDocumentsComplete: true, duplicateResolutionComplete: true, consentComplete: true, reviewComplete: true } });
     expect([forged.status, forged.body.code]).toEqual([503, 'DURABLE_ONBOARDING_PROVIDER_REQUIRED']);
     expect((await api(clientToken, 'GET', '/api/auth/me')).body.user.onboardingStatus).toBe('NOT_STARTED');
+    expect((await api(clientToken, 'GET', '/api/stage-one/me')).body).toMatchObject({ clientId, status: 'DRAFT', revision: 0, consent: null });
+    // Stage 02 is closed on the server, not only in the portal.
+    const stageTwo = await api(clientToken, 'GET', '/api/stage-two-three/questionnaire/2025');
+    expect([stageTwo.status, stageTwo.body.code]).toEqual([403, 'STAGE_01_NOT_APPROVED']);
 
     const s = await liveSessionWithToken(clientToken, '/portal/collection');
-    const notice = s.page.getByRole('status').filter({ has: s.page.getByRole('heading', { name: 'Online identity onboarding is not available yet' }) });
-    await notice.waitFor();
-    expect(await notice.innerText()).toContain('nothing has been saved');
-    expect(await notice.innerText()).toContain(`Client ID: ${clientId}`);
+    await s.page.getByRole('heading', { name: 'Stage 01 onboarding' }).waitFor();
+    await sees(s.page, "consent wording is awaiting approval");
+    expect(await s.page.getByRole('button', { name: 'Submit for practice review' }).count()).toBe(0);
     expect(await s.page.getByText('Identity Verification Wizard').count()).toBe(0);
-    expect(await s.page.locator('input').count()).toBe(0);
-    const stored = await s.page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('artax_stage_one_dossier_')));
-    expect(stored).toEqual([]);
+    expect(await s.page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('artax_stage_one_dossier_')))).toEqual([]);
     expect(realErrors(s)).toEqual([]);
     await s.context.close();
+
+    // Without the durable store the portal says onboarding is unavailable and offers no form.
+    const off = await newSession();
+    await off.context.route('**/api/stage-one/**', r => r.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'ONBOARDING_STORE_UNAVAILABLE' }) }));
+    await off.context.addInitScript(t => { localStorage.setItem('artax_session_token', t); localStorage.setItem('token', t); localStorage.setItem('taxguard_environment', 'live'); }, clientToken);
+    await off.page.goto(ORIGIN + '/portal/collection', { waitUntil: 'domcontentloaded' });
+    const notice = off.page.getByRole('status').filter({ has: off.page.getByRole('heading', { name: 'Online identity onboarding is not available yet' }) });
+    await notice.waitFor();
+    expect(await notice.innerText()).toContain(`Client ID: ${clientId}`);
+    expect(await off.page.locator('input').count()).toBe(0);
+    await off.context.close();
   });
 
   it('a durable practice manager finds the new client and opens an engagement; the client cannot create one', async () => {
@@ -95,5 +108,118 @@ describe('journey B: new client to engagement on durable contracts', () => {
     else { expect(foreign.status).toBeGreaterThanOrEqual(400); expect(foreign.body?.token).toBeUndefined(); }
     expect(realErrors(m)).toEqual([]);
     await m.context.close();
+  });
+});
+
+describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
+  const engagementId = async () => (await api(managerToken, 'GET', `/api/practice/clients/${clientId}`)).body.engagements[0].engagementId as string;
+  const signAndSubmit = async (s: Session) => {
+    const consent = s.page.getByRole('region', { name: 'IRC § 7216 consent' }).or(s.page.locator('section[aria-labelledby="stage-one-consent"]'));
+    await consent.getByText('SYNTHETIC TEST CONSENT', { exact: false }).waitFor();
+    await consent.getByRole('checkbox').check();
+    await consent.getByLabel('Full name of the person signing').fill('Synthetic New Client');
+    await consent.getByRole('button', { name: 'Submit for practice review' }).click();
+    await sees(s.page, 'Submitted for practice review.');
+  };
+
+  it('the client completes the onboarding form in the browser; only the last four digits are accepted', async () => {
+    expect((await api(clientToken, 'POST', '/api/stage-one/me', { revision: 0, fields: { tinLast4: '123456789' } })).body.code).toBe('ONBOARDING_FULL_TIN_REFUSED');
+    expect((await api(clientToken, 'POST', '/api/stage-one/me', { revision: 0, fields: { identityComplete: true, consentComplete: true } })).body.code).toBe('ONBOARDING_INPUT_INVALID');
+    const s = await liveSessionWithToken(clientToken, '/portal/collection');
+    const form = s.page.getByRole('form', { name: 'Onboarding details' });
+    await form.getByLabel('Taxpayer type').selectOption('individual');
+    await form.getByLabel('Legal name').fill('Synthetic New Client');
+    await form.getByLabel('Identification number type').selectOption('SSN');
+    const last4 = form.getByLabel('Last four digits');
+    expect(await last4.getAttribute('maxlength')).toBe('4');
+    await last4.fill('4321');
+    await form.getByLabel('Street address').fill('1 Synthetic Way');
+    await form.getByLabel('City').fill('Columbia');
+    await form.getByLabel('State').fill('SC');
+    await form.getByLabel('ZIP code').fill('29201');
+    await form.getByRole('button', { name: 'Save details' }).click();
+    await sees(s.page, 'Your onboarding details were saved.');
+    const saved = (await api(clientToken, 'GET', '/api/stage-one/me')).body;
+    expect(saved).toMatchObject({ status: 'DRAFT', tinMasked: '***-**-4321', requirements: { profile: true, tin: true, address: true, representative: true, identityDocument: false, consentAvailable: false } });
+    // No approved consent wording exists yet, so the server refuses submission.
+    expect((await api(clientToken, 'POST', '/api/stage-one/me/submit', { revision: saved.revision, consentVersion: 'SYNTHETIC-E2E-1', signer: 'Synthetic New Client' })).body.code)
+      .toBe('ONBOARDING_CONSENT_NOT_APPROVED');
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+  });
+
+  it('with (synthetic) approved consent wording the client signs and submits; the practice requests a change without exposing its note', async () => {
+    const c = control();
+    expect((await fetch(c.origin + '/e2e/synthetic-consent-version', { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' }, body: '{}' })).status).toBe(200);
+    const s = await liveSessionWithToken(clientToken, '/portal/collection');
+    await signAndSubmit(s);
+    await sees(s.page, 'Submitted. The practice is reviewing your onboarding.');
+    expect((await api(clientToken, 'GET', '/api/stage-two-three/questionnaire/2025')).body.code).toBe('STAGE_01_NOT_APPROVED');
+
+    const m = await liveSessionWithToken(managerToken, '/staff');
+    await m.page.getByRole('button', { name: 'Onboarding Review' }).first().click();
+    const row = m.page.getByRole('row', { name: new RegExp(clientId) });
+    await row.waitFor();
+    expect(await row.innerText()).toContain('Not verified');
+    await row.getByRole('button', { name: `Review onboarding for client ${clientId}` }).click();
+    await m.page.getByRole('button', { name: 'Approve onboarding' }).click();
+    await sees(m.page, 'An identification document must be verified by the practice before approval.');
+    await m.page.getByLabel('Reason shown to the client (required to request changes)').fill('Please confirm the ZIP code.');
+    await m.page.getByLabel('Internal note (staff only)').fill('B-PRIVATE zip looked unusual');
+    await m.page.getByRole('button', { name: 'Request changes' }).click();
+    await sees(m.page, `Changes requested from ${clientId}.`);
+    await m.context.close();
+
+    await s.page.reload();
+    await sees(s.page, 'Practice note: Please confirm the ZIP code.');
+    const clientView = JSON.stringify((await api(clientToken, 'GET', '/api/stage-one/me')).body);
+    expect(clientView).not.toMatch(/B-PRIVATE|internalNote|decidedBy|d0000000-0000-4000-8000-0000000000d1/);
+    expect(await s.page.locator('body').innerText()).not.toContain('B-PRIVATE');
+    const form = s.page.getByRole('form', { name: 'Onboarding details' });
+    await form.getByLabel('ZIP code').fill('29205');
+    await form.getByRole('button', { name: 'Save details' }).click();
+    await sees(s.page, 'Your onboarding details were saved.');
+    await signAndSubmit(s);
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+  });
+
+  it('after the practice verifies an identification document and a manager approves, Stage 02 opens on the server', async () => {
+    const eng = await engagementId();
+    const query = new URLSearchParams({ engagementId: eng, taxYear: '2025', category: 'identity', fileName: 'synthetic-id.pdf' });
+    const uploaded = await fetch(ORIGIN + `/api/vault/clients/${clientId}/documents?` + query, { method: 'POST',
+      headers: { Authorization: `Bearer ${clientToken}`, 'Content-Type': 'application/pdf', 'Idempotency-Key': 'journey-b-identity-upload' },
+      body: '%PDF-1.4\nSynthetic identification document for E2E only\n%%EOF' });
+    expect(uploaded.status).toBe(201);
+    const documentId = (await uploaded.json()).documentId;
+    const c = control();
+    expect((await fetch(c.origin + '/e2e/scan', { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' },
+      body: JSON.stringify({ tenant: 'tenantE2E', client: clientId, documentId, version: 1, result: 'CLEAN' }) })).status).toBe(200);
+    const doc = (await api(managerToken, 'GET', `/api/vault/clients/${clientId}/documents/${documentId}`)).body.versions[0];
+    expect((await api(managerToken, 'POST', `/api/vault/clients/${clientId}/documents/${documentId}/versions/1/review`, { decision: 'approve', rowVersion: doc.rowVersion })).status).toBe(200);
+
+    const m = await liveSessionWithToken(managerToken, '/staff');
+    await m.page.getByRole('button', { name: 'Onboarding Review' }).first().click();
+    const row = m.page.getByRole('row', { name: new RegExp(clientId) });
+    await row.waitFor();
+    expect(await row.innerText()).toContain('Verified');
+    await row.getByRole('button', { name: `Review onboarding for client ${clientId}` }).click();
+    await m.page.getByRole('button', { name: 'Approve onboarding' }).click();
+    await sees(m.page, `Onboarding for ${clientId} approved. Stage 02 is open for the client.`);
+    await sees(m.page, 'No onboarding is awaiting review.');
+    expect(realErrors(m)).toEqual([]);
+    await m.context.close();
+
+    expect((await api(clientToken, 'GET', '/api/auth/me')).body.user.onboardingStatus).toBe('COMPLETED');
+    expect((await api(clientToken, 'GET', '/api/stage-one/me')).body).toMatchObject({ status: 'APPROVED', clientReason: null });
+    const stageTwo = await api(clientToken, 'GET', `/api/stage-two-three/questionnaire/2025?engagementId=${encodeURIComponent(eng)}`);
+    expect(stageTwo.status, stageTwo.body?.code).toBe(200);
+    // The client cannot decide its own onboarding or reach another client's record.
+    expect((await api(clientToken, 'POST', `/api/stage-one/clients/${clientId}/decision`, { decision: 'approve', revision: 1 })).status).toBe(403);
+    expect((await api(clientToken, 'GET', '/api/stage-one/clients/E2EMFAC1')).status).toBe(403);
+    const s = await liveSessionWithToken(clientToken, '/portal/collection');
+    await s.page.waitForLoadState('networkidle');
+    expect(await s.page.getByRole('heading', { name: 'Stage 01 onboarding' }).count()).toBe(0);
+    await s.context.close();
   });
 });

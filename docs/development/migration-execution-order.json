@@ -450,6 +450,14 @@
       "dependsOn": [
         "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ]
     }
   ]
 }

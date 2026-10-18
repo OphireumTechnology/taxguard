@@ -1,5 +1,6 @@
 import { createStaffAccessRouter, staffAccessDevelopmentConfigured } from './src/server/routes/staff-access.routes';
 import { createPracticeRouter } from './src/server/routes/practice.routes';
+import { createOnboardingRouter } from './src/server/routes/onboarding-durable.routes';
 import { createCasesRouter } from './src/server/routes/cases.routes';
 import { createVaultRouter } from './src/server/routes/vault.routes';
 import { createBillingRouter } from './src/server/routes/billing.routes';
@@ -477,6 +478,8 @@ if (staffAccessDevelopmentConfigured()) {
 console.log('[security-events] ' + (securityRecorder?'DURABLE_OUTBOX':configureDurableSecurityEvents(process.env,false,()=>getSupabaseAdmin() as any)));
 // Client and engagement management (proposal 025): development-only, 503 unless configured.
 app.use('/api/practice', createPracticeRouter());
+// Durable Stage 01 onboarding (proposal 20261018030000): same boundary as the practice store.
+app.use('/api/stage-one', createOnboardingRouter());
 app.use('/api/cases', createCasesRouter());
 app.use('/api/vault', createVaultRouter({ scanRequests: () => scanCoordinator }));
 app.use('/api/billing', createBillingRouter());

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "869fa850a5a6b50d7c5281f8aa7ff4bdde5b70d6b589183d6e4a6cfcf76cdb71",
+  "executionPlanSha256": "d0ef302a1c48c19deb0793d8352a0179ae297be0387db550f9467ae0f0f01c60",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3570,6 +3570,70 @@
         "-- This proposal creates the row once, at migration time, and only ever moves the counter forward to the",
         "-- highest numeric client ID already issued (3-9 digits), so no existing ID is reissued. The function's",
         "-- fail-closed behaviour for a row that later goes missing or corrupt is unchanged. Alphabetic-range IDs"
+      ]
+    },
+    {
+      "order": 73,
+      "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+      "kind": "proposal",
+      "version": "20261018030000",
+      "sha256": "a72e3a9e525935bb1ad94dc51060809edc88b07817665f44cf04d1f3a1ce59fd",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_onb_consent_versions",
+        "taxguard_client_onboarding",
+        "taxguard_onb_client_owner",
+        "taxguard_onb_duplicates",
+        "taxguard_onb_identity_verified",
+        "taxguard_onb_current_consent",
+        "taxguard_onb_requirements",
+        "taxguard_onb_view",
+        "taxguard_onb_blank",
+        "taxguard_onb_get",
+        "taxguard_onb_text",
+        "taxguard_onb_save",
+        "taxguard_onb_submit",
+        "taxguard_onb_decide",
+        "taxguard_onb_queue",
+        "taxguard_onb_client_ready"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the taxguard_onb_* functions and both tables. Identities already marked"
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_onb_consent_versions FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON public.taxguard_client_onboarding FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated, service_role', fn);",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', fn);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', fn);"
+      ],
+      "securityDefinerDeclarations": 13,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, Stage 01 onboarding). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires the core schema, proposal 20261012060000 (atomic client identity), 20261012250000 (practice",
+        "-- management: actor, visibility and audit helpers) and 20261012270000 (document vault).",
+        "--",
+        "-- Durable, server-authoritative Stage 01 onboarding for a client record:",
+        "--   * The client records identity and tax-profile facts (legal name, taxpayer type, address, representative",
+        "--     for entities) and the TIN TYPE plus its LAST FOUR digits only. A full TIN is refused; nothing here can",
+        "--     store one.",
+        "--   * Submission requires every field and an IRC section 7216 consent against an APPROVED consent version of",
+        "--     this tenant. Consent versions are rows in taxguard_onb_consent_versions, which no application role can",
+        "--     write: wording is approved by counsel/practitioner and recorded by the database owner through a",
+        "--     reviewed change. With no approved version (the state of this proposal) nobody can submit."
       ]
     }
   ]

@@ -51,6 +51,8 @@ import { DocumentUpload } from './DocumentUpload';
 import { EnvironmentConfigService, AppEnvironment } from '../../config/environmentConfig';
 import { useApp } from '../../context/AppContext';
 import { LiveWorkflowApi } from '../../services/liveWorkflowApi';
+import { onboardingApi } from '../../services/onboardingApi';
+import { DurableStageOnePanel } from '../onboarding/DurableStageOnePanel';
 import { LiveWorkflowAuthority } from '../../services/liveWorkflowAuthority';
 import { getStoredToken } from '../../services/api';
 
@@ -105,7 +107,8 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   const [initializationError, setInitializationError] = useState<string | null>(null);
   // LIVE onboarding needs the server's durable onboarding provider. Until it answers, no dossier is created,
   // so nothing a client types is kept in this browser when the server cannot record it.
-  const [onboardingAvailability, setOnboardingAvailability] = useState<'checking' | 'available' | 'unavailable'>(
+  // 'durable': the durable onboarding store (/api/stage-one) holds the record instead of this browser.
+  const [onboardingAvailability, setOnboardingAvailability] = useState<'checking' | 'available' | 'durable' | 'unavailable'>(
     isLiveClient && currentUser?.onboardingStatus !== 'COMPLETED' ? 'checking' : 'available');
   useEffect(() => {
     // Completed onboarding is a read-only review of what was already recorded.
@@ -115,7 +118,12 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     LiveWorkflowApi.getScopedWorkflowBundle(taxYear)
       .then(() => { if (active) setOnboardingAvailability('available'); })
       .catch((error: { code?: string }) => {
-        if (active) setOnboardingAvailability(error?.code === 'DURABLE_ONBOARDING_PROVIDER_REQUIRED' ? 'unavailable' : 'available');
+        if (!active) return;
+        if (error?.code !== 'DURABLE_ONBOARDING_PROVIDER_REQUIRED') { setOnboardingAvailability('available'); return; }
+        // Durable deployment: use the durable store when it answers; otherwise stay explicitly unavailable.
+        onboardingApi.mine()
+          .then(() => { if (active) setOnboardingAvailability('durable'); })
+          .catch(() => { if (active) setOnboardingAvailability('unavailable'); });
       });
     return () => { active = false; };
   }, [isLiveClient, taxYear, currentUser?.id, currentUser?.onboardingStatus]);
@@ -408,6 +416,10 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     };
     updateDossier(updated);
   };
+
+  if (onboardingAvailability === 'durable') {
+    return <DurableStageOnePanel onApproved={() => { void refreshBackendData().catch(() => {}); onExitGatePassed?.(); onNavigateToDashboard?.(); }} />;
+  }
 
   if (onboardingAvailability === 'unavailable') {
     return (

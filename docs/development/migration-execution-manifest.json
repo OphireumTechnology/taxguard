@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 73,
+    "files": 74,
     "core": 13,
-    "proposals": 59,
-    "tables": 146,
-    "functions": 337,
-    "securityDefinerFunctions": 259,
+    "proposals": 60,
+    "tables": 148,
+    "functions": 351,
+    "securityDefinerFunctions": 272,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2993,6 +2993,48 @@
     },
     {
       "order": 73,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_client_onboarding",
+        "taxguard_onb_consent_versions"
+      ],
+      "functionsAdded": [
+        "taxguard_onb_blank",
+        "taxguard_onb_client_owner",
+        "taxguard_onb_client_ready",
+        "taxguard_onb_current_consent",
+        "taxguard_onb_decide",
+        "taxguard_onb_duplicates",
+        "taxguard_onb_get",
+        "taxguard_onb_identity_verified",
+        "taxguard_onb_queue",
+        "taxguard_onb_requirements",
+        "taxguard_onb_save",
+        "taxguard_onb_submit",
+        "taxguard_onb_text",
+        "taxguard_onb_view"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 2,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        28
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 74,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
