@@ -4394,7 +4394,7 @@
     "src/tests/stagingConfiguration.test.ts": "6de84efce4cb3e896f93ec3e21812b85d06d7c5427c5a7db69b9e2bfb9b64dda",
     "src/tests/syntheticAcceptancePlan.test.ts": "13e12715ecddec5731b2960ac5bef709bfe3137cf90cb5ba339363f411fc7bac",
     "src/tests/syntheticFixtureLabels.test.tsx": "36246a115afa65bc0c7b6e494df12b1c96d7dd990e06f78ce8a2e731e97fde8f",
-    "src/tests/syntheticShellIsolation.test.ts": "d0708698c732c38278572a0c7001a75fb46d03346622d6f09133eec1aa4c1ab9",
+    "src/tests/syntheticShellIsolation.test.ts": "fe7d185cda4cf0ca1d033e83781c21d7e7365f9a91a163e55d15b5386bc0415d",
     "src/tests/taxCalculationCore.test.ts": "b018057026066e7cb382b6929dd14172bbad32195ab0944060078d5a07a289f9",
     "src/tests/taxGuardBookkeepingEngine.test.ts": "f796feedbe701b400f55f5faf946d04b268cb53f2ed92fa1572707883703173b",
     "src/tests/traceabilityEvidenceIntegrity.test.ts": "679deceba1ae27afe433e3a8240fb37c05db05b8ff5cf3837f3f3aab1dbdd6e3",
