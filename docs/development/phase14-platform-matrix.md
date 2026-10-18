@@ -295,6 +295,13 @@ could mean "the UI claims something the backend cannot deliver".
   - **Result:** **no leak found.** The existing audience projections hold: document confidentiality (proposal
     20261015030851 and PR #20), the client billing view, the appointment and messaging projections, and Stage 01.
     No projection code was changed, because no defect was demonstrated.
+- **Staff sign-out destination (Block 23).** Sign-out chose the return page from a hard-coded role list that
+  omitted `practice_manager`, `bookkeeper` and `recruiter`, so a practice manager or bookkeeper signing out of
+  the staff workspace landed on the *client* sign-in page. The existing sign-out test used a reviewer and
+  accepted any non-staff page, so it could not see this. The rule is now role-agnostic: every non-client account
+  returns to `/staff/login`, and client accounts return to `/portal/login`. Suite 01 now signs out the manager,
+  bookkeeper, accountant and administrator and checks the exact page and the server-side revocation; the manager
+  and bookkeeper cases failed before the fix. The client case is covered by provider suite 15.
 - **Integration with PR #20 (2026-10-18).** PR #20 merged into `main` (6e31a40). `main` was merged into this
   branch normally (no rebase, no force-push), keeping every Phase 14 commit through 9a11fb6. The only conflict
   was the generated `docs/taxguard-master-traceability.json`, regenerated with the canonical generator.

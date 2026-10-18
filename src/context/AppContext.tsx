@@ -1224,7 +1224,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = async () => {
     authOperationInProgressRef.current = true;
     const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('taxguard_environment') === 'demo';
-    const isStaffSession = Boolean(currentUser && ['accountant', 'preparer', 'reviewer', 'senior_reviewer', 'admin', 'super_admin', 'billing', 'compliance', 'operations'].includes(currentUser.role));
+    // Every non-client account signs in at the staff portal (practice managers, bookkeepers and recruiters
+    // included), so it returns there; only client accounts go back to the client sign-in page.
+    const isStaffSession = Boolean(currentUser && !['client', 'prospective_client'].includes(currentUser.role));
     const logoutTargetPage: PageRoute = isStaffSession ? 'staff_login' : 'client_login';
     const logoutTargetPath = isStaffSession ? '/staff/login' : '/portal/login';
 
