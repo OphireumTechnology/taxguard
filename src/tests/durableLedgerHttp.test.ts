@@ -165,4 +165,56 @@ describe('durable bookkeeping over HTTP', () => {
       expect(response.body).toEqual({ code: 'LEDGER_REPORT_AMOUNT_OUT_OF_RANGE', error: 'LEDGER_REPORT_AMOUNT_OUT_OF_RANGE' });
     } finally { setLedgerStoreForTesting(new SqlLedgerStore(actual)); }
   });
+
+  it.each([
+    'taxYear=garbage', 'taxYear=2025.5', 'taxYear=1999', 'taxYear=2101', 'taxYear=Infinity', 'taxYear=',
+    'taxYear=2025&taxYear=2026', 'taxYear[x]=2025',
+    'taxYear=2025&asOf=2025-02-30', 'taxYear=2025&asOf=2025-02-29', 'taxYear=2025&asOf=2025-13-01', 'taxYear=2025&asOf=garbage',
+    'taxYear=2025&asOf=2025-12-31T00:00:00Z', 'taxYear=2025&asOf=',
+    'taxYear=2025&asOf=2025-01-01&asOf=2025-12-31', 'taxYear=2025&asOf[x]=2025-01-01', 'taxYear=2025&asOf=0000-01-01',
+  ])('rejects malformed report selection rather than defaulting it: %s', async query => {
+    const response = await fetch(`${origin}/api/bookkeeping/trial-balance?clientId=${C}&${query}`, {
+      headers: { Authorization: `Bearer ${people.reviewer}-token` },
+    });
+    const body = await response.json();
+    console.log(JSON.stringify({ query, status: response.status, returnedYear: body.trialBalance?.taxYear }));
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ code: 'LEDGER_INPUT_INVALID', error: 'LEDGER_INPUT_INVALID' });
+  });
+
+  it.each([null, true, 'garbage', '2025.5', 1999, 2101, 2025.5, {}, []])('rejects invalid body taxYear %s before calling persistence', async taxYear => {
+    let calls = 0;
+    setLedgerStoreForTesting(new SqlLedgerStore({ async rpc() { calls++; return { data: null, error: { code: 'unexpected' } }; } }));
+    try {
+      const response = await call('accountant', 'POST', '/journal-entries', { taxYear, postingDate: '2025-04-02', description: 'Invalid-year request',
+        lines: [{ accountId: acct['1010'], debit: 1, credit: 0 }, { accountId: acct['4010'], debit: 0, credit: 1 }] });
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('LEDGER_INPUT_INVALID');
+      expect(calls).toBe(0);
+    } finally { setLedgerStoreForTesting(new SqlLedgerStore(pgliteRpc(() => fixture.pg))); }
+  });
+
+  it.each(['', '&taxYear=2000', '&taxYear=2100', '&taxYear=2025&asOf=2024-02-29'])('preserves omitted-year default and valid boundaries/cutoffs: %s', async suffix => {
+    const response = await fetch(`${origin}/api/bookkeeping/trial-balance?clientId=${C}${suffix}`, {
+      headers: { Authorization: `Bearer ${people.reviewer}-token` },
+    });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    if (!suffix) expect(body.trialBalance.taxYear).toBe(2025);
+  });
+
+  it('validates the same report selections in memory mode', async () => {
+    setLedgerStoreForTesting(null); vi.stubEnv('TAXGUARD_LEDGER_STORE', '');
+    try {
+      for (const path of ['/trial-balance?asOf=2025-02-30', '/financial-statements?asOf=garbage', '/general-ledger?taxYear=garbage']) {
+        const response = await call('reviewer', 'GET', path);
+        expect(response.status).toBe(400); expect(response.body.code).toBe('LEDGER_INPUT_INVALID');
+      }
+    } finally { setLedgerStoreForTesting(new SqlLedgerStore(pgliteRpc(() => fixture.pg))); }
+  });
+
+  it.each(['/trial-balance', '/financial-statements'])('rejects invalid cutoff consistently on %s', async path => {
+    const response = await call('reviewer', 'GET', path + '?asOf=garbage');
+    expect(response.status).toBe(400); expect(response.body.code).toBe('LEDGER_INPUT_INVALID');
+  });
 });

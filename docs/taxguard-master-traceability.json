@@ -5486,6 +5486,18 @@
       ]
     },
     {
+      "file": "docs/development/phase15-report-input-validation.md",
+      "sha256": "8f5c6c2dc0b8f498bf30e02377f50540c3805e200e7f4f20cf6c1cc91bf391e3",
+      "bytes": 4525,
+      "headings": [
+        "# Phase 15 financial report request validation",
+        "## Measured defect",
+        "## Correction",
+        "## Validation",
+        "## Review and remaining work"
+      ]
+    },
+    {
       "file": "docs/development/phase7-reviews.md",
       "sha256": "3b49870b60fc8ea72fa0a1190fe66880b6e8d0adde7ade42ea04c14456bff4e3",
       "bytes": 4291,
@@ -7345,7 +7357,7 @@
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
     "src/server/productionApp.ts": "d9bea579ae38856cc991d30b9e6f2aff45bc44f4715b3e72a1b62d80aa4e5713",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
-    "src/server/routes/ledgerDispatch.routes.ts": "7e75618981ee05f021455b8d4f4226d0f835cf08ea0d02fd9d43b264c66d0854",
+    "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
     "src/server/routes/retiredLegacyRoutes.ts": "848153c049beb9ed5116d2942ba53d07d5036b0c50c0f71f6cb3e5843b4ad073",
     "src/server/securityEventRecorder.ts": "74a242fb3951141fc699f9dddfc4318f7ca5b80445979fc98858df3cf371d82b",
@@ -7441,7 +7453,7 @@
     "src/tests/documentRequestsHttp.test.ts": "7c83921e48f66c94eef683436b9eacde428f49d9a95ea104e89fa36a2711d13f",
     "src/tests/documentVaultHttp.test.ts": "891d81cb8915a12d1276c2e63bab025334eda642eab45326bd157b032eb0bfcd",
     "src/tests/durableAuthority.test.ts": "e1c2188d17510ce1d245e51f979e7a54b508d67a92dcb818818d845a86b58df1",
-    "src/tests/durableLedgerHttp.test.ts": "92dd020badda8673ce77ec29b4a8d99134ad0d1d771baef545a7df4c120e595e",
+    "src/tests/durableLedgerHttp.test.ts": "ccba9ea2b72559cf432ba87408ec6c30b5ab44ae329d7e0098182b1602e46778",
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
