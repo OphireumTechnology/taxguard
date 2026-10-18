@@ -81,7 +81,8 @@ export function financialStatements(rows: TrialBalanceRow[]): FinancialStatement
 }
 
 export interface GeneralLedgerLine { entryId: string; entryNumber: string; postingDate: string; description: string; debit: number; credit: number; runningBalance: number }
-export interface GeneralLedgerAccount { accountId: string; accountNumber: string; accountName: string; accountType: AccountType; lines: GeneralLedgerLine[]; endingBalance: number }
+export interface GeneralLedgerAccount { accountId: string; accountNumber: string; accountName: string; accountType: AccountType; lines: GeneralLedgerLine[]; endingBalance: number;
+  openingBalance?: number; totalLineCount?: number; detailTruncated?: boolean }
 /** Posted lines grouped by account in posting order with a running balance on the account's normal side. */
 export function generalLedger(accounts: Array<{ accountId: string; accountNumber: string; accountName: string; accountType: AccountType }>,
   entries: Array<{ entryId: string; entryNumber: string; postingDate: string; description: string; status: string; lines: Array<{ accountId: string; debitCents: number; creditCents: number }> }>,
