@@ -575,6 +575,12 @@
         "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
     }
   ]
 }

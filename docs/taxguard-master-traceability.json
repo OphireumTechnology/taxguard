@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "fdfbb5f0c9eda94391991c8ed8a53b98607b2588e27a48b5c6cbda1d2809d037",
-      "bytes": 19328,
+      "sha256": "f880a239e34b46f6366e86671cc98e85abd04111394f7d4c66a440aeb43b71bc",
+      "bytes": 19434,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5444,6 +5444,32 @@
         "## General client-level records (owner decision required)",
         "## Option C: record-specific definitions (for review; not implemented)",
         "## Implementation outline (after approval)"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-financial-reporting-integration.md",
+      "sha256": "b8b5ffa96638c67730f2a18dc263308263c1a7ba3d2dced464835ae3189d586a",
+      "bytes": 5041,
+      "headings": [
+        "# Phase 15 reporting integration",
+        "## Implementation",
+        "## Measured reproduction and reconciliation",
+        "## Validation",
+        "## Remaining gates"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-financial-reporting-results.md",
+      "sha256": "73dd9d646fa9e402f8399f45a12842598624eddc360058c2af7b759419fdb9d0",
+      "bytes": 8100,
+      "headings": [
+        "# Phase 15 financial reporting integrity",
+        "## Measured reproduction",
+        "## Reporting contract",
+        "## Validation commands",
+        "## Release considerations",
+        "## Publication and integration status",
+        "## Next backend investigation: aggregate monetary precision"
       ]
     },
     {
@@ -6154,6 +6180,12 @@
       "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
       "sha256": "bbdf927c8f47db44ebbd49317fc2f907004882a8a233e5478fc27f87ec1e724b",
       "bytes": 6125,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+      "sha256": "3c61b709074f434cfdb75a46b77cb52b4c414b268ee506bc78cd4172ea084ffb",
+      "bytes": 4010,
       "headings": []
     },
     {
