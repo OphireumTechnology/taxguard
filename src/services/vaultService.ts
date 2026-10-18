@@ -1,5 +1,5 @@
 /** Browser client for /api/vault (secure document vault). */
-import { getStoredToken } from './api';
+import { clearStoredToken, getStoredToken } from './api';
 import { apiEndpoint } from '../config/apiEndpoint';
 
 export class VaultRequestError extends Error {
@@ -20,7 +20,11 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: BodyInit,
   const response = await fetch(apiEndpoint('/api/vault' + path), { method, cache: 'no-store', credentials: 'omit', headers: { Authorization: `Bearer ${token}`, ...headers }, ...(body ? { body } : {}) });
   const data = await response.json().catch(() => null);
   if (getStoredToken() !== token) throw new VaultRequestError(409, 'SESSION_CHANGED');
-  if (!response.ok) throw new VaultRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403 && data?.code === 'STAFF_MFA_REQUIRED') { clearStoredToken(); if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired')); }
+    throw new VaultRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new VaultRequestError(502, 'INVALID_VAULT_RESPONSE');
   return data as T;
 }
 const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);

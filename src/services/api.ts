@@ -37,6 +37,10 @@ let memoryToken: string | null = null;
 let memoryAuthoritative = false;
 const tokenStores = ['localStorage', 'sessionStorage'] as const;
 const tokenKeys = [TOKEN_KEY, 'token'];
+export const SESSION_TOKEN_CHANGED_EVENT = 'taxguard:session-token-changed';
+function notifyTokenChange() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(SESSION_TOKEN_CHANGED_EVENT));
+}
 
 export function getStoredToken(): string | null {
   // A failed write/removal must not resurrect an older persisted identity.
@@ -59,6 +63,7 @@ export function setStoredToken(token: string) {
     try { globalThis[store].setItem(key, token); }
     catch { memoryAuthoritative = true; }
   }
+  notifyTokenChange();
 }
 
 export function clearStoredToken() {
@@ -68,6 +73,20 @@ export function clearStoredToken() {
     try { globalThis[store].removeItem(key); }
     catch { /* Session stays cleared even when persistent storage is restricted. */ }
   }
+  notifyTokenChange();
+}
+/** An out-of-tab logout must not resurrect this tab's old sessionStorage copy. */
+export function reconcileSessionStorageEvent(event: Pick<StorageEvent, 'storageArea' | 'key' | 'oldValue' | 'newValue'>) {
+  try {
+    if (event.storageArea !== globalThis.localStorage) return;
+    const token = getStoredToken();
+    const removedCurrentToken = tokenKeys.includes(event.key ?? '') && event.newValue === null && event.oldValue === token;
+    const clearedStore = event.key === null && tokenKeys.every(key => globalThis.localStorage.getItem(key) === null);
+    if (token && (removedCurrentToken || clearedStore)) {
+      clearStoredToken();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired'));
+    }
+  } catch { /* A restricted store cannot supply a trustworthy cross-tab event. */ }
 }
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredToken();

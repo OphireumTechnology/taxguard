@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
+vi.mock('../context/AppContext', () => ({ useApp: () => ({ currentUser: { id: 'client-user', clientId: 'client-a', tenantId: 'tenant-a', role: 'client', status: 'active' }, authLifecycleState: 'AUTHENTICATED' }) }));
 import { setStoredToken, clearStoredToken } from '../services/api';
 import { documentStatusText, VaultRequestError, vaultMessage, vaultService } from '../services/vaultService';
 import { ClientDocumentVaultPanel } from '../components/documents/ClientDocumentVaultPanel';

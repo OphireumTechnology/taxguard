@@ -3,13 +3,14 @@ import {useApp} from '../../context/AppContext';
 import {DashboardApplicationShell} from '../layout/DashboardApplicationShell';
 import {useDashboardInspection} from '../layout/dashboardInspection';
 import {useBookkeeperDashboardData,useBookkeeperClientGrants} from '../../hooks/useBookkeeperDashboardData';
+import {useHashView} from '../../hooks/useHashView';
 import {BOOKKEEPER_MODULES,bookkeeperKpis,transactionMatches} from './bookkeeperDashboardModel';
 import {BookkeeperLedgerWorkspace} from './BookkeeperLedgerWorkspace';
 import {ACCOUNTANT_STAGES} from './accountantDashboardModel';
 import './bookkeeperDashboard.css';
 export function BookkeeperDashboard() {
   const {currentUser,authLifecycleState}=useApp();
-  const [module,setModule]=useState<string>('Dashboard');const [client,setClient]=useState('');const [year,setYear]=useState('');const [period,setPeriod]=useState('');const [refresh,setRefresh]=useState(0);const [collapsed,setCollapsed]=useState(false);const [filter,setFilter]=useState('All');const [query,setQuery]=useState('');const [selected,setSelected]=useState('');
+  const [module,setModule]=useHashView<string>('view',BOOKKEEPER_MODULES,'Dashboard');const [client,setClient]=useState('');const [year,setYear]=useState('');const [period,setPeriod]=useState('');const [refresh,setRefresh]=useState(0);const [collapsed,setCollapsed]=useState(false);const [filter,setFilter]=useState('All');const [query,setQuery]=useState('');const [selected,setSelected]=useState('');
   const state=useBookkeeperDashboardData(currentUser,authLifecycleState,client,year,period,refresh);
   const grants=useBookkeeperClientGrants(currentUser,authLifecycleState);
   const inspecting=useDashboardInspection();

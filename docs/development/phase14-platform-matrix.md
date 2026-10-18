@@ -244,6 +244,13 @@ could mean "the UI claims something the backend cannot deliver".
   development-shortcut section. The offline staging validator refuses it (`DEVELOPMENT_SHORTCUT_DENIED`), with a unit
   case, so a staging configuration cannot carry a loopback governance database even though production code ignores it.
 
+- **Integration with PR #20 (2026-10-18).** PR #20 merged into `main` (6e31a40). `main` was merged into this
+  branch normally (no rebase, no force-push), keeping every Phase 14 commit through 9a11fb6. The only conflict
+  was the generated `docs/taxguard-master-traceability.json`, regenerated with the canonical generator.
+  `src/services/api.ts` merged automatically: it differs from `main` only by the session `portal` field. PR #20's
+  client document, notification and session-isolation changes are kept unchanged. `main` changed no migration, so
+  the manifests stayed current.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run
