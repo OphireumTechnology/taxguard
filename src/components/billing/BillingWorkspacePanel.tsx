@@ -11,7 +11,10 @@ export function BillingWorkspacePanel() {
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
   const [pay, setPay] = useState({ amount: '', method: 'CHECK' });
-  const [refund, setRefund] = useState<{ paymentId: string; amount: string; reason: string } | null>(null);
+  // One idempotency key per refund operation (created when the form opens, reused for retries of that
+  // form). A refused attempt records nothing, so a corrected resubmission is accepted; if a timed-out
+  // attempt was in fact recorded, a changed resubmission is refused as key reuse instead of duplicating.
+  const [refund, setRefund] = useState<{ paymentId: string; amount: string; reason: string; key: string } | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const keys = useRef<Record<string, string>>({});
@@ -83,9 +86,9 @@ export function BillingWorkspacePanel() {
           const refundable = (Math.round(Number(p.amount) * 100) - Math.round(Number(p.refundedAmount) * 100)) / 100;
           const open = refund?.paymentId === p.paymentId;
           return <li key={p.paymentId}>Payment ${p.amount} ({p.method.replaceAll('_', ' ').toLowerCase()}, {p.status.toLowerCase()}){Number(p.refundedAmount) > 0 && <> · refunded ${p.refundedAmount}</>}
-            {refundable > 0 && !open && <button type="button" disabled={busy} aria-label={`Record a refund for payment ${p.paymentId}`} onClick={() => setRefund({ paymentId: p.paymentId, amount: '', reason: '' })}>Record refund</button>}
+            {refundable > 0 && !open && <button type="button" disabled={busy} aria-label={`Record a refund for payment ${p.paymentId}`} onClick={() => setRefund({ paymentId: p.paymentId, amount: '', reason: '', key: newBillingKey() })}>Record refund</button>}
             {open && <form aria-label={`Refund for payment ${p.paymentId}`} onSubmit={e => { e.preventDefault(); const r = refund!;
-              void run(`refund-${r.paymentId}-${r.amount}-${r.reason.trim()}`, () => billingApi.recordRefund(clientId, r.paymentId, r.amount.trim(), r.reason.trim(), keyFor(`refund-${r.paymentId}-${r.amount}-${r.reason.trim()}`)),
+              void run('refund', () => billingApi.recordRefund(clientId, r.paymentId, r.amount.trim(), r.reason.trim(), r.key),
                 'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.').then(ok => { if (ok) setRefund(null); }); }}>
               <p>Records money already returned to the client outside TaxGuard (up to ${refundable.toFixed(2)}). A practice manager is required; nothing is sent to a payment provider.</p>
               <label>Refund amount<input inputMode="decimal" required value={refund!.amount} onChange={e => setRefund({ ...refund!, amount: e.target.value })} /></label>

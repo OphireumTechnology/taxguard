@@ -131,6 +131,18 @@ could mean "the UI claims something the backend cannot deliver".
   client refused; removing the replay lookup fails them) and a browser step (manager records the refund in the UI,
   accountant refused, client projection shows the refunded amount but never the reason). The browser test also caught
   a stripped regex escape in the new control before commit.
+  Follow-up hardening: the UI key now identifies the refund operation (created when the form opens and reused for its
+  retries) rather than the payment/amount/reason combination, so two separately entered identical refunds are two
+  operations, while a refused attempt (which records nothing) can be corrected and resubmitted. Real-PostgreSQL tests
+  (`src/tests-db/billingRefunds.db.test.ts`, 5): identical separate operations both recorded; retry replays; key reused
+  with a different amount refused; four connections submitting one operation produce one record and one result; six
+  concurrent distinct operations never exceed the payment (exactly the affordable ones succeed); other tenant, other
+  client, accountant and client refused; refund records immutable; audit rows carry the reason and the service role
+  cannot update, delete or truncate the audit log; the unkeyed function is closed to the service role. The advisory
+  lock is covered behaviourally (the same-key race); a source mutation could not be run because the harness refuses a
+  proposal whose checksum no longer matches the review packet. Owner-level append-only enforcement for every audit
+  row remains the separate `docs/sql/taxguard-audit-append-only.proposal.sql` decision. Browser: a refused refund keeps
+  the form and its values and records nothing; the corrected request for the same operation succeeds.
 
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
@@ -143,6 +155,14 @@ of current main with the `VITE_*` variables; a running API host; the identity pr
 database; staff identities with verified TOTP factors. No credential was used and no production system touched.
 
 ## 5. Outstanding owner decisions
+
+**Audit append-only enforcement (for review, not incorporated).** Within the canonical migration plan only
+`SECURITY_*` audit rows are append-only at the database level (proposal 20261015060000); the service role has no
+`UPDATE`, `DELETE` or `TRUNCATE` on `taxguard_audit_log` (verified on PostgreSQL), but a database owner can still
+change other audit rows. The standalone proposal `docs/sql/taxguard-audit-append-only.proposal.sql` would make every
+audit row append-only for the owner as well. It is deliberately not added to the migration plan here: it affects
+retention and correction procedures and several test fixtures that clean audit rows, so it needs an owner decision
+and its own review.
 
 Per-agent AI responsibilities and permissions; migration approval and NOT VALID validation windows; backup-tool
 installation; staging infrastructure (isolated Supabase project, API/frontend hosts, secrets); provider

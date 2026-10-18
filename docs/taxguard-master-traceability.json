@@ -5212,8 +5212,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "6ab7639c5c7061330ff30b8ca2b7fe8a5a4b0289ec84b55dbc93c3937c40645a",
-      "bytes": 13740,
+      "sha256": "3deb47a6c7ffeb85920e6031bae2f5ccee6e8951a7cd21afc63c61deae815d16",
+      "bytes": 15830,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -6935,7 +6935,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "a268bffb34b4682732cc998ddcd21a66c3db3f2df0684afb391aaa251f94ac8c",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ddc367dfb4903abf22ba8cba895167c950f28f040015ff2c0ed10db3650af478",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
