@@ -25,7 +25,7 @@ beforeAll(async () => {
   await practice.setEngagementStatus(T, C, 'db-bk-mgr', eng, 'active', 1);
   await billing.upsertService(T, 'db-bk-mgr', { serviceCode: 'SYN-1', name: 'Synthetic service', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '125.50' });
   const inv = (await billing.createInvoice(T, C, 'db-bk-mgr', 'db-bk-invoice', { dueDate: '2026-12-31' })).invoiceId;
-  let r: any = await billing.addLine(T, C, 'db-bk-mgr', inv, { serviceCode: 'SYN-1', quantity: '2' });
+  let r: any = await billing.addLine(T, C, 'db-bk-mgr', inv, { serviceCode: 'SYN-1', quantity: '2' }, 'backup-line-key');
   r = await billing.transition(T, C, 'db-bk-mgr', inv, 'submit', r.rowVersion);
   await billing.transition(T, C, 'db-bk-mgr2', inv, 'approve', r.rowVersion);
   await source.pool.query(`SELECT public.taxguard_security_event_record('${T}','AUTH','AUTH_FAILURE_TELEMETRY','warning',NULL,'${'ab'.repeat(16)}','{}'::jsonb)`);

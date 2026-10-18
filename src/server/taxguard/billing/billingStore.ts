@@ -42,6 +42,7 @@ export class BillingStore {
     try { response = await this.client.rpc(name, args); } catch { throw new BillingError('BILLING_STORE_UNAVAILABLE', 503); }
     if (response?.error) {
       const { code, message } = response.error;
+      if (['55P03', '40001', '40P01'].includes(code)) throw new BillingError('BILLING_BUSY', 409);
       if (code === 'P0001' && typeof message === 'string' && /^[A-Z_]{3,64}$/.test(message)) {
         // The shared client-access helper speaks in document terms; report billing terms.
         const mapped = message === 'DOCUMENT_NOT_FOUND' ? 'CLIENT_NOT_FOUND' : message === 'DOCUMENT_ACCESS_DENIED' ? 'BILLING_ACCESS_DENIED' : message;
@@ -62,8 +63,8 @@ export class BillingStore {
     if (typeof input?.dueDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) throw new BillingError('BILLING_INPUT_INVALID', 400);
     return this.call<{ invoiceId: string; created: boolean }>('taxguard_bill_create_invoice', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_engagement: input.engagementId ?? null, p_due: input.dueDate });
   }
-  addLine(tenant: string, client: string, actor: string, invoiceId: string, line: { serviceCode: string; quantity: unknown; unitRate?: unknown; description?: string; overrideReason?: string }) {
-    return this.call('taxguard_bill_add_line', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_service: line.serviceCode, p_quantity: money(line.quantity),
+  addLine(tenant: string, client: string, actor: string, invoiceId: string, line: { serviceCode: string; quantity: unknown; unitRate?: unknown; description?: string; overrideReason?: string }, idempotencyKey?: unknown) {
+    return this.call('taxguard_bill_add_line_once', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_invoice: invoiceId, p_service: line.serviceCode, p_quantity: money(line.quantity),
       p_rate: line.unitRate === undefined || line.unitRate === null || line.unitRate === '' ? null : money(line.unitRate), p_description: line.description ?? null, p_override_reason: line.overrideReason ?? null });
   }
   removeLine(tenant: string, client: string, actor: string, invoiceId: string, lineNo: number) {
@@ -85,11 +86,11 @@ export class BillingStore {
     return this.call('taxguard_bill_record_payment', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_amount: amount, p_method: 'CARD_SANDBOX', p_key: k,
       p_provider: this.provider.name, p_provider_txn: result.providerTransactionId });
   }
-  refund(tenant: string, client: string, actor: string, paymentId: string, amount: unknown, reason: string) {
-    return this.call('taxguard_bill_refund', { ...this.b(tenant, client, actor), p_payment: paymentId, p_amount: money(amount), p_reason: reason });
+  refund(tenant: string, client: string, actor: string, paymentId: string, amount: unknown, reason: string, idempotencyKey?: unknown) {
+    return this.call('taxguard_bill_refund', { ...this.b(tenant, client, actor), p_payment: paymentId, p_amount: money(amount), p_reason: reason, p_key: key(idempotencyKey) });
   }
-  requestCredit(tenant: string, client: string, actor: string, invoiceId: string, amount: unknown, reason: string) {
-    return this.call('taxguard_bill_request_credit', { ...this.b(tenant, client, actor), p_invoice: invoiceId, p_amount: money(amount), p_reason: reason });
+  requestCredit(tenant: string, client: string, actor: string, invoiceId: string, amount: unknown, reason: string, idempotencyKey?: unknown) {
+    return this.call('taxguard_bill_request_credit_once', { ...this.b(tenant, client, actor), p_key: key(idempotencyKey), p_invoice: invoiceId, p_amount: money(amount), p_reason: reason });
   }
   decideCredit(tenant: string, client: string, actor: string, creditId: string, apply: boolean) {
     return this.call('taxguard_bill_decide_credit', { ...this.b(tenant, client, actor), p_credit: creditId, p_apply: apply });
