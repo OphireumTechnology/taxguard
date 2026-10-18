@@ -449,6 +449,12 @@
       "dependsOn": [
         "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ]
     }
   ]
 }
