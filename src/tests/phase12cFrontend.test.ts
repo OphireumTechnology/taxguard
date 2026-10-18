@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readHashView, slug } from '../hooks/useHashView';
 import { notificationKind, NOTIFICATION_KINDS } from '../components/portal/dashboard/ClientNotificationsPanel';
@@ -21,7 +22,16 @@ describe('allowlisted workspace hashes', () => {
 });
 describe('notification meaning', () => {
   it('describes every supported kind and labels unknown kinds neutrally', () => {
-    expect(Object.keys(NOTIFICATION_KINDS)).toHaveLength(7);
+    // The labelled kinds are exactly the kinds the database accepts: the latest proposal that defines the
+    // taxguard_client_notifications kind list (031, widened by 20261018030000 for onboarding decisions).
+    const sources = fs.readdirSync('docs/proposed-migrations').filter(n => /^\d{14}_.+\.sql$/.test(n)).sort()
+      .map(n => fs.readFileSync('docs/proposed-migrations/' + n, 'utf8'))
+      .filter(sql => /taxguard_client_notifications[\s\S]{0,400}kind[^;]*CHECK \(kind IN|taxguard_client_notifications_kind_check CHECK \(kind IN/.test(sql));
+    const latest = sources.at(-1)!;
+    const list = /(?:kind VARCHAR\(32\) NOT NULL CHECK \(kind IN|taxguard_client_notifications_kind_check CHECK \(kind IN)\s*\(([^)]*)\)/.exec(latest)!;
+    const serverKinds = [...list[1].matchAll(/'([A-Z_]+)'/g)].map(m => m[1]).sort();
+    expect(serverKinds.length).toBeGreaterThanOrEqual(9);
+    expect(Object.keys(NOTIFICATION_KINDS).sort()).toEqual(serverKinds);
     for (const kind of Object.keys(NOTIFICATION_KINDS)) {
       expect(notificationKind(kind).label).toBeTruthy(); expect(notificationKind(kind).description).toBeTruthy();
     }

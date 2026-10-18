@@ -264,6 +264,14 @@ could mean "the UI claims something the backend cannot deliver".
     - provider suite 14 (6): the browser journey to Stage 02 with a SYNTHETIC consent version recorded by a
       keyed test control.
 
+  **Decision notices (Block 24).** A change request or an approval now leaves an in-portal client notice
+  (`ONBOARDING_CHANGES_REQUESTED`, `ONBOARDING_APPROVED`; in-app only, no e-mail or SMS). The notice carries a
+  generic title only; the reason stays in the onboarding view, and staff identities are never projected. The
+  proposal widens the notification kind list without narrowing it, so every existing kind and row stays valid.
+  The database test checks exactly one notice per decision, none for other clients, none from the losing
+  concurrent decision, and that unknown kinds are still refused. Provider suite 14 checks that the API and the
+  portal's notifications list show both notices in plain language without the reason.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

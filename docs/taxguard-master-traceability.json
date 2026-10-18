@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "33ba982a6658ef24df2f4ce8a2951d88a4abcc6ee3efeab059e6eb570cf34525",
-      "bytes": 15567,
+      "sha256": "a327e68f8f8812ca843bd2cb74cf87d79d828844a4d54f18cea1e9d776a30bfd",
+      "bytes": 15571,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5339,8 +5339,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "9bdec5a5a519d0ea42eadfe7d00bd75dacec48a814935305411a896d771fadea",
-      "bytes": 31743,
+      "sha256": "a38143f8718253c157b37d8f2aff86ccc6f7e63f1500aa836e0a459eecd528a3",
+      "bytes": 32482,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5935,8 +5935,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
-      "sha256": "a72e3a9e525935bb1ad94dc51060809edc88b07817665f44cf04d1f3a1ce59fd",
-      "bytes": 24930,
+      "sha256": "4db162346f9a36e68635ceb25f451e5b76068c44759b281dbb70adc29c61805c",
+      "bytes": 26210,
       "headings": []
     },
     {
@@ -7001,7 +7001,7 @@
     "src/components/layout/DashboardApplicationShell.tsx": "c249a8124266882e0d335917f8bb9febeeb4de1853d506a81077b144f9819ced",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
     "src/components/portal/AuthenticatedClientDashboard.tsx": "886effc8c8a9fd3d8e1feb9c2a4b7645cce7321b48423c32363ebca6692e35b4",
-    "src/components/portal/dashboard/ClientNotificationsPanel.tsx": "650c1a1dd37797e71097df4dee96decf92734bba115cda3729989119d31beac8",
+    "src/components/portal/dashboard/ClientNotificationsPanel.tsx": "873fdc578ab2eea2b5df6e2cf7c066ce9d9fab983e2c214d1eb0c9be1e82d4df",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
     "src/components/workspace/AccountantDashboard.tsx": "d062efd4e46f0d85b2fc11ef58fd8814fd16356f6f678b4e7096bfa61d4232b5",
@@ -7159,7 +7159,7 @@
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
     "src/tests/phase10AiReadiness.test.ts": "93d6fd51736a66468d939aa839b1e610f32ea57fbbdfb4320d90f617740931ea",
     "src/tests/phase12bFrontend.test.tsx": "b84b2fb03adae85e04b5e28a89d837283f23223f0c82d8fb227c64f5e8d6e735",
-    "src/tests/phase12cFrontend.test.ts": "46658da68ddd3253ef3add022c6a9fd2123a8a9166ceec280cfc90c7b3cf9583",
+    "src/tests/phase12cFrontend.test.ts": "96973fcb42487a98b8619e50ad345bdd0220c2861bc51b7601f311a7021c1821",
     "src/tests/portalCaseStages.test.ts": "e0b075ec2e6d6cf17097f276bb4f0f0626e31d898b70a736b53981be3993e80a",
     "src/tests/portalConsultations.test.ts": "5515ad61f3741711f371be1f24032865459e4889cee773f01e0bdf0c983d65aa",
     "src/tests/practiceManagementHttp.test.ts": "1004e5d96081e29a86c3cfe23c98ec19dcf08e319c07266cf06355bc578f1e72",

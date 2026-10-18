@@ -1,6 +1,7 @@
 -- PROPOSAL (Phase 14, Stage 01 onboarding). REVIEW ONLY; NOT APPLIED anywhere external.
 -- Requires the core schema, proposal 20261012060000 (atomic client identity), 20261012250000 (practice
--- management: actor, visibility and audit helpers) and 20261012270000 (document vault).
+-- management: actor, visibility and audit helpers), 20261012270000 (document vault) and 20261012310000
+-- (client notifications, whose kind list this widens).
 --
 -- Durable, server-authoritative Stage 01 onboarding for a client record:
 --   * The client records identity and tax-profile facts (legal name, taxpayer type, address, representative
@@ -62,6 +63,13 @@ CREATE TABLE IF NOT EXISTS public.taxguard_client_onboarding (
 );
 ALTER TABLE public.taxguard_client_onboarding ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.taxguard_client_onboarding FROM PUBLIC, anon, authenticated, service_role;
+
+-- Onboarding decisions notify the client in the portal (in-app only, like proposal 031's notices; no e-mail or SMS).
+-- The kind list is widened, never narrowed: every existing kind stays valid, so existing rows satisfy it.
+ALTER TABLE public.taxguard_client_notifications DROP CONSTRAINT IF EXISTS taxguard_client_notifications_kind_check;
+ALTER TABLE public.taxguard_client_notifications ADD CONSTRAINT taxguard_client_notifications_kind_check CHECK (kind IN
+  ('REQUEST_CREATED','REQUEST_REMINDER','REQUEST_FULFILLED','REQUEST_WAIVED','REQUEST_CANCELLED','REPLACEMENT_REQUESTED','DOCUMENT_REJECTED',
+   'ONBOARDING_CHANGES_REQUESTED','ONBOARDING_APPROVED'));
 
 -- The client who owns p_client (active client membership and client record), or NULL.
 CREATE OR REPLACE FUNCTION public.taxguard_onb_client_owner(p_tenant text, p_client text, p_actor text) RETURNS boolean
@@ -249,6 +257,9 @@ BEGIN
       decided_by = p_actor, decided_at = now(), revision = revision + 1, updated_at = now()
       WHERE tenant_id = p_tenant AND client_id = p_client RETURNING * INTO o;
     PERFORM public.taxguard_practice_audit(p_tenant, p_client, p_actor, r, 'ONBOARDING_CHANGES_REQUESTED', jsonb_build_object('revision', o.revision));
+    -- The notice carries no reason or staff detail; the client reads the reason in the onboarding view.
+    INSERT INTO public.taxguard_client_notifications(tenant_id, client_id, kind, request_id, title, created_by)
+      VALUES (p_tenant, p_client, 'ONBOARDING_CHANGES_REQUESTED', NULL, 'Your onboarding needs changes', p_actor);
     RETURN public.taxguard_onb_view(o, true);
   END IF;
   IF NOT public.taxguard_onb_identity_verified(p_tenant, p_client) THEN RAISE EXCEPTION 'ONBOARDING_IDENTITY_DOCUMENT_REQUIRED' USING ERRCODE = 'P0001'; END IF;
@@ -267,6 +278,8 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'ONBOARDING_IDENTITY_MISSING' USING ERRCODE = 'P0001'; END IF;
   PERFORM public.taxguard_practice_audit(p_tenant, p_client, p_actor, r, 'ONBOARDING_APPROVED',
     jsonb_build_object('revision', o.revision, 'duplicateDecision', o.duplicate_decision, 'possibleDuplicates', to_jsonb(dups), 'consentVersion', o.consent_version));
+  INSERT INTO public.taxguard_client_notifications(tenant_id, client_id, kind, request_id, title, created_by)
+    VALUES (p_tenant, p_client, 'ONBOARDING_APPROVED', NULL, 'Your onboarding was approved', p_actor);
   RETURN public.taxguard_onb_view(o, true);
 END $$;
 

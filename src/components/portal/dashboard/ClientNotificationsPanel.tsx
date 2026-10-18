@@ -13,6 +13,8 @@ export const NOTIFICATION_KINDS: Record<string, { label: string; description: st
   REQUEST_CANCELLED: { label: 'Request cancelled', description: 'Your practice cancelled this request.' },
   REPLACEMENT_REQUESTED: { label: 'Replacement requested', description: 'Your practice asked you to upload a new version of a document.' },
   DOCUMENT_REJECTED: { label: 'Document not accepted', description: 'A document you uploaded was not accepted. See Documents for replacement guidance.' },
+  ONBOARDING_CHANGES_REQUESTED: { label: 'Onboarding changes requested', description: 'Your practice asked you to update your Stage 01 onboarding. Open Onboarding to see why.' },
+  ONBOARDING_APPROVED: { label: 'Onboarding approved', description: 'Your practice approved your Stage 01 onboarding. Document collection is open.' },
 };
 export const notificationKind = (k: string) => NOTIFICATION_KINDS[k] ?? { label: 'Practice notice', description: 'A notice from your practice.' };
 const button = 'px-3 py-1.5 rounded-lg border border-slate-600 text-xs font-bold hover:border-[#D4A843] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4A843] disabled:opacity-50 min-h-[36px]';

@@ -174,6 +174,11 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     await sees(s.page, 'Practice note: Please confirm the ZIP code.');
     const clientView = JSON.stringify((await api(clientToken, 'GET', '/api/stage-one/me')).body);
     expect(clientView).not.toMatch(/B-PRIVATE|internalNote|decidedBy|d0000000-0000-4000-8000-0000000000d1/);
+    // The client is told in the portal, without the reason or any staff detail in the notice itself.
+    const notices = JSON.stringify((await api(clientToken, 'GET', `/api/vault/clients/${clientId}/notifications`)).body);
+    expect(notices).toContain('"kind":"ONBOARDING_CHANGES_REQUESTED"');
+    expect(notices).toContain('Your onboarding needs changes');
+    expect(notices).not.toMatch(/ZIP code|B-PRIVATE|d0000000-0000-4000-8000-0000000000d1|createdBy/);
     expect(await s.page.locator('body').innerText()).not.toContain('B-PRIVATE');
     const form = s.page.getByRole('form', { name: 'Onboarding details' });
     await form.getByLabel('ZIP code').fill('29205');
@@ -220,6 +225,12 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     const s = await liveSessionWithToken(clientToken, '/portal/collection');
     await s.page.waitForLoadState('networkidle');
     expect(await s.page.getByRole('heading', { name: 'Stage 01 onboarding' }).count()).toBe(0);
+    // The approval notice appears in the portal's notifications, described in plain language.
+    await s.page.goto(ORIGIN + '/portal/dashboard#nav=notifications');
+    const list = s.page.getByRole('list', { name: 'Notifications' });
+    await list.getByText('Your onboarding was approved').waitFor();
+    await list.getByText('Onboarding approved — Your practice approved your Stage 01 onboarding. Document collection is open.').waitFor();
+    expect(await list.getByText('Your onboarding needs changes').count()).toBe(1);
     await s.context.close();
   });
 });

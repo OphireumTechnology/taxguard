@@ -111,6 +111,8 @@ describe('staff decision', () => {
     const clientView = await get(C, 'onb-client');
     expect(clientView).toMatchObject({ status: 'CHANGES_REQUESTED', clientReason: 'Please confirm the street address.' });
     expect(JSON.stringify(clientView)).not.toMatch(/ONB-PRIVATE|onb-mgr|internalNote|decidedBy/);
+    const notices = (await db.pool.query('SELECT kind, title, request_id FROM taxguard_client_notifications WHERE tenant_id = $1 AND client_id = $2', [T, C])).rows;
+    expect(notices).toEqual([{ kind: 'ONBOARDING_CHANGES_REQUESTED', title: 'Your onboarding needs changes', request_id: null }]);
     const edited = await save(C, 'onb-client', 4, { street: '2 Synthetic Way' });
     expect(edited.status).toBe('CHANGES_REQUESTED');
     expect((await submit(C, 'onb-client', 5)).status).toBe('SUBMITTED');
@@ -135,6 +137,12 @@ describe('staff decision', () => {
     expect(again.data).toMatchObject({ clientId: C, resumed: true, user: { onboardingStatus: 'COMPLETED' } });
     expect(await code(decide(C, 'onb-mgr', 7, 'approve'))).toBe('ONBOARDING_NOT_SUBMITTED');
     expect(await audit('ONBOARDING_APPROVED')).toHaveLength(1);
+    // One approval notice for this client only; the losing concurrent decision wrote nothing.
+    expect((await db.pool.query("SELECT kind, title FROM taxguard_client_notifications WHERE tenant_id = $1 AND client_id = $2 AND kind = 'ONBOARDING_APPROVED'", [T, C])).rows)
+      .toEqual([{ kind: 'ONBOARDING_APPROVED', title: 'Your onboarding was approved' }]);
+    expect((await db.pool.query('SELECT count(*)::int AS n FROM taxguard_client_notifications WHERE client_id = $1', [C2])).rows[0].n).toBe(0);
+    // The widened kind list still holds every earlier kind and refuses unknown ones.
+    expect(await code(db.pool.query(`INSERT INTO taxguard_client_notifications(tenant_id, client_id, kind, title, created_by) VALUES ('${T}', '${C}', 'NOT_A_KIND', 'x', 'onb-seed')`).then(() => {}, e => { throw Object.assign(e, { code: 'CHECK' }); }))).toBe('CHECK');
   });
 
   it('a possible duplicate needs an explicit, reasoned override; a retired consent version blocks approval', async () => {
