@@ -431,6 +431,24 @@
         "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
         "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018000000_taxguard_financial_reporting.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018010000_taxguard_report_cent_transport.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018000000_taxguard_financial_reporting.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
     }
   ]
 }

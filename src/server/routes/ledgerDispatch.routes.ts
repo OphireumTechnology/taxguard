@@ -14,6 +14,7 @@ import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.eng
 import { selectLedger } from '../taxguard/bookkeeping/ledgerBackend';
 import { generateStandardChartOfAccounts } from '../taxguard/bookkeeping/defaultAccounts';
 import { generalLedger } from '../taxguard/bookkeeping/ledgerReports';
+import { ReportAmountError } from '../taxguard/bookkeeping/reportMoney';
 import { LedgerStoreError, toCents, type LedgerScope, type SqlLedgerStore } from '../taxguard/bookkeeping/sqlLedgerStore';
 import type { JournalEntry } from '../taxguard/bookkeeping/types';
 
@@ -24,10 +25,23 @@ type Handler = (req: AuthenticatedRequest, res: Response, scope: LedgerScope & {
 
 function scopeOf(req: AuthenticatedRequest) {
   const context = req.authorizedClientContext!;
-  return { tenantId: context.tenantId, clientId: context.clientId, taxYear: Number(req.query.taxYear || req.body?.taxYear) || 2025 };
+  const raw = req.query.taxYear !== undefined ? req.query.taxYear : req.body?.taxYear;
+  const taxYear = raw === undefined ? 2025 : typeof raw === 'string' && /^\d{4}$/.test(raw) ? Number(raw) : raw;
+  if (typeof taxYear !== 'number' || !Number.isInteger(taxYear) || taxYear < 2000 || taxYear > 2100)
+    throw new LedgerStoreError('LEDGER_INPUT_INVALID', 400);
+  return { tenantId: context.tenantId, clientId: context.clientId, taxYear };
+}
+function reportCutoff(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000-'))
+    throw new LedgerStoreError('LEDGER_INPUT_INVALID', 400);
+  const date = new Date(value + 'T00:00:00.000Z');
+  if (!Number.isFinite(date.valueOf()) || date.toISOString().slice(0, 10) !== value)
+    throw new LedgerStoreError('LEDGER_INPUT_INVALID', 400);
+  return value;
 }
 function fail(res: Response, error: unknown) {
-  if (error instanceof LedgerStoreError) return res.status(error.status).json({ code: error.code, error: error.code });
+  if (error instanceof LedgerStoreError || error instanceof ReportAmountError) return res.status(error.status).json({ code: error.code, error: error.code });
   const message = error instanceof Error ? error.message : '';
   const code = /^[A-Z_]{3,64}/.exec(message)?.[0];
   if (code) return res.status(code.endsWith('_NOT_FOUND') ? 404 : code === 'MAKER_CHECKER_VIOLATION' ? 403 : 400).json({ code, error: message });
@@ -65,8 +79,8 @@ export function registerLedgerDispatch(router: Router) {
       const selection = selectLedger();
       if (selection.mode === 'unavailable') return res.status(503).json({ code: 'DURABLE_ACCOUNTING_PROVIDER_REQUIRED' });
       res.setHeader('X-TaxGuard-Ledger-Store', selection.mode);
-      const scope = scopeOf(req);
       try {
+        const scope = scopeOf(req);
         if (selection.mode === 'memory') return memory ? await memory(req, res, scope, next) : next();
         res.setHeader('Cache-Control', 'no-store');
         return await durable(req, res, scope, selection.store);
@@ -206,8 +220,10 @@ export function registerLedgerDispatch(router: Router) {
   });
 
   // Reports and history
-  route('get', '/trial-balance', async (req, res, s, store) => res.json({ trialBalance: await store.trialBalance(s, uid(req), s.taxYear, text(req.query.asOf, 10)) }));
-  route('get', '/financial-statements', async (req, res, s, store) => res.json({ statements: await store.financialStatements(s, uid(req), s.taxYear, text(req.query.asOf, 10)) }));
+  route('get', '/trial-balance', async (req, res, s, store) => res.json({ trialBalance: await store.trialBalance(s, uid(req), s.taxYear, reportCutoff(req.query.asOf)) }),
+    (req, _res, _s, next) => { reportCutoff(req.query.asOf); next(); });
+  route('get', '/financial-statements', async (req, res, s, store) => res.json({ statements: await store.financialStatements(s, uid(req), s.taxYear, reportCutoff(req.query.asOf)) }),
+    (req, _res, _s, next) => { reportCutoff(req.query.asOf); next(); });
   route('get', '/general-ledger', async (req, res, s, store) => res.json({ accounts: await store.generalLedger(s, uid(req), s.taxYear, text(req.query.accountId, 160)) }),
     (req, res, s) => {
       const accounts = globalBookkeepingEngine.getChartOfAccounts(s.tenantId, s.clientId).map(a => ({ accountId: a.id, accountNumber: a.accountNumber, accountName: a.accountName, accountType: a.accountType }));
