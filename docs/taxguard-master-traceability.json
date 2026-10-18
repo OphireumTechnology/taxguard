@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "2c91dc528e48e839f84ba302a2540e3282c102fba22ad03ad410a0f927558ded",
-      "bytes": 19699,
+      "sha256": "cc752b2556521783bfbb6d399e61c14cda4be8e5aa998227ee33ad4e18af6a34",
+      "bytes": 19847,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5470,6 +5470,30 @@
         "## Release considerations",
         "## Publication and integration status",
         "## Next backend investigation: aggregate monetary precision"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-financial-write-review.md",
+      "sha256": "a09d778fe7df49296c1807840fcadc364b2eb4e69d4011ae983f81c768d77f12",
+      "bytes": 8944,
+      "headings": [
+        "# Phase 15 financial write and audit review",
+        "## Evidence classification",
+        "## Durable billing inventory",
+        "## Ledger and book-to-tax inventory",
+        "## Audit integrity review and independent-review proposal",
+        "## Release gates"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-invoice-idempotency-results.md",
+      "sha256": "8eeb633778e21fdf8e6bb4d79db2423bc0bd2e303ed938b854da6dc53bb7743c",
+      "bytes": 4302,
+      "headings": [
+        "# Phase 15 invoice creation idempotency",
+        "## Correction",
+        "## Measured validation",
+        "## Limits and next package"
       ]
     },
     {
@@ -6259,6 +6283,12 @@
       "file": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
       "sha256": "0867b12a58af92fded4b3913c8fa62dbc85e8ab03180791bc5f3e1b33fc755e4",
       "bytes": 17564,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "sha256": "f177127a3fecfefe609401e129aca139baed8d10bcb56cf5f4235b1986f6e648",
+      "bytes": 3155,
       "headings": []
     },
     {
@@ -7402,7 +7432,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "6c7e692720994f07c2ecf5b2e5831493c3af0cf455b7ed97373ef5bcf15039f8",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ebfe940b1a4e29cf0a2970c8b19a232461c5a1f8bc2e340f05d0aa604c09f2f5",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",

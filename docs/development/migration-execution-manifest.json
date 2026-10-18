@@ -2,9 +2,9 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 91,
+    "files": 92,
     "core": 13,
-    "proposals": 77,
+    "proposals": 78,
     "tables": 160,
     "functions": 391,
     "securityDefinerFunctions": 301,
@@ -3783,6 +3783,36 @@
     },
     {
       "order": 91,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_bill_create_invoice",
+          "previous": "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        31
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 92,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

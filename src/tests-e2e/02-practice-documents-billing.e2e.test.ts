@@ -54,6 +54,8 @@ describe('documents: upload, quarantine, scan and independent review', () => {
     await sees(page, 'Secure document upload');
     const form = page.locator('form', { has: page.getByRole('button', { name: /Upload securely/ }) });
     const target = form.getByLabel('Engagement and tax year');
+    // The form renders before its asynchronous engagement lookup completes.
+    await target.locator('option:not([value=""])').first().waitFor({ state: 'attached' });
     const value = await target.locator('option').evaluateAll(os => (os as HTMLOptionElement[]).map(o => o.value).find(v => v));
     await target.selectOption(value!);
     await form.locator('input[type=file]').setInputFiles({ name: 'synthetic-w2.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nSynthetic W-2 for E2E only\n%%EOF') });

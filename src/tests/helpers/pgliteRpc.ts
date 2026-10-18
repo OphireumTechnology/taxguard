@@ -32,6 +32,7 @@ export async function applyProposals(pg: PGlite, pattern: RegExp) {
   if([...selected].some(file=>/20261012270000_|20261014460000_/.test(file)))selected.add('docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql');
   if([...selected].some(file=>/20261012270000_/.test(file)))selected.add('docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql');
   if([...selected].some(file=>/20261012280000_/.test(file))){selected.add('docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql');selected.add('docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql');}
+  if([...selected].some(file=>/20261012280000_/.test(file)))selected.add('docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql');
   for (const entry of plan.filter(e=>selected.has(e.file)))
     await pg.exec(readFileSync(entry.file, 'utf8'));
 }

@@ -42,6 +42,7 @@ export class BillingStore {
     try { response = await this.client.rpc(name, args); } catch { throw new BillingError('BILLING_STORE_UNAVAILABLE', 503); }
     if (response?.error) {
       const { code, message } = response.error;
+      if (['55P03', '40001', '40P01'].includes(code)) throw new BillingError('BILLING_BUSY', 409);
       if (code === 'P0001' && typeof message === 'string' && /^[A-Z_]{3,64}$/.test(message)) {
         // The shared client-access helper speaks in document terms; report billing terms.
         const mapped = message === 'DOCUMENT_NOT_FOUND' ? 'CLIENT_NOT_FOUND' : message === 'DOCUMENT_ACCESS_DENIED' ? 'BILLING_ACCESS_DENIED' : message;
