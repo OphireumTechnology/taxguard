@@ -166,6 +166,33 @@ could mean "the UI claims something the backend cannot deliver".
   suites. A first attempt was discarded because its requests failed schema validation (`AI_INVALID_REQUEST`) and so
   proved nothing about policy; the suite now asserts that no refusal is a schema or availability refusal.
 
+- **Staff accessibility automation (Block 18, Priority 1).** `src/tests-e2e/a11yAudit.ts` is a dependency-free DOM audit
+  (unnamed controls, unlabelled fields, duplicate IDs, images without alt text, positive tabindex). Suite
+  `16-staff-accessibility` (8, default profile): a self-test proves each rule fires on a synthetic page with planted
+  defects and ignores hidden content; practice manager (8 modules), bookkeeper (2), administrator (audit log),
+  accountant and reviewer workspaces report no findings; the refund form opens and cancels by keyboard with focus moved
+  to the amount field and returned to its trigger (new focus management in the billing workspace); at 375 px the
+  modal navigation drawer receives focus, closes on Escape and returns focus to its opener, and the billing workspace
+  has no horizontal page scroll. Client navigation and named client controls are covered by PR #20's suite and were not
+  duplicated. Automated checks only: **no WCAG conformance is claimed**; manual assistive-technology testing remains.
+- **Journeys F and K: rework and billing adjustments (Block 19, Priority 2).** Mapping A–O against the browser suites
+  showed that A (12), C (02, 05), D (10, 14), E and L (03, 15), G (02, 03, 12), H (provider 12), I (08, provider 09),
+  J (provider 11), M (14, 15), N (provider 13) and O (04, plus refusals in each suite) were covered, but nothing
+  exercised a reviewer *returning* work or a billing *adjustment*. Suite `17-billing-rework-credits` (4): a manager
+  cannot return a submitted invoice without a note; the return puts it back to draft with the note, and the client
+  sees neither the invoice nor the note. The preparer revises it (a rate override with a reason); a stale version is
+  refused (`INVOICE_VERSION_CONFLICT`); the preparer cannot approve; a manager approves and it is numbered with both
+  lines. A manager requests a credit in the Billing UI and is refused on applying it (`A different manager must approve
+  this.`). The preparer cannot decide it; a second manager applies it in the UI, giving total and balance 500.00. A
+  second decision, an over-balance credit and a client-requested credit are all refused. The client API and portal show
+  the adjusted total, balance and credit amount only, with no reasons, notes or staff identities. Journey B (new client
+  → identity → onboarding → engagement) is still only partly in the browser: the suites start from a seeded client
+  record.
+- **Staging validator: local governance database (Block 19, Priority 3).** The development-only
+  `TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL` added for journey N is listed in the staging template's
+  development-shortcut section. The offline staging validator refuses it (`DEVELOPMENT_SHORTCUT_DENIED`), with a unit
+  case, so a staging configuration cannot carry a loopback governance database even though production code ignores it.
+
 ## 4. Live staff sign-in (Block 3), from authorized read-only sources
 
 The public site at artaxserv.com is served by the manual `deploy-pages.yml` workflow. Its last successful run

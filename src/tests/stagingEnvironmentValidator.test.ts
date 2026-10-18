@@ -67,6 +67,7 @@ describe('staging environment validator', () => {
     ['a third-party integration secret', { XERO_CLIENT_SECRET: 'synthetic' }, 'XERO_CLIENT_SECRET:INTEGRATION_NOT_COMMISSIONED'],
     ['a development shortcut', { TAXGUARD_DEV_EXPOSE_RESET_TOKEN: 'true' }, 'TAXGUARD_DEV_EXPOSE_RESET_TOKEN:DEVELOPMENT_SHORTCUT_DENIED'],
     ['a demonstration seed password', { SEED_STAFF_PASSWORD: 'synthetic' }, 'SEED_STAFF_PASSWORD:DEVELOPMENT_SHORTCUT_DENIED'],
+    ['the local AI governance database', { TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL: 'postgres://synthetic:synthetic@127.0.0.1:5432/taxguard' }, 'TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL:DEVELOPMENT_SHORTCUT_DENIED'],
     ['a development runtime', { NODE_ENV: 'development' }, 'NODE_ENV:PRODUCTION_BOUNDARY_REQUIRED'],
     ['no staging identity', { TAXGUARD_DEPLOYMENT_ENVIRONMENT: 'production' }, 'TAXGUARD_DEPLOYMENT_ENVIRONMENT:STAGING_IDENTITY_REQUIRED'],
     ['a secret in a VITE variable', { VITE_SERVICE_ROLE_KEY: 'x' }, 'VITE_SECRET:CLIENT_SECRET_DENIED'],

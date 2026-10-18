@@ -5212,8 +5212,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "96cf6d8f1f264701986a9854e3b083d693b08be656f1e1975eb4c809a2f56b40",
-      "bytes": 18198,
+      "sha256": "1e2fd195c8837b819ced8b5b821b57fa8200f48f05809027b1d1dd5c94d021de",
+      "bytes": 21101,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -6885,7 +6885,7 @@
     "src/server/bookkeeperAccess.ts": "5227ef220351a66b8505f7388d22d40f19deed72ac46ccd18f763269112ff30c",
     "src/server/clientServiceProjection.ts": "f3db03bf4728ce3763843f15c9497158190dfdbd55eb2ba27ddc274f6b4afda3",
     "src/server/config/stagingConfiguration.ts": "9d6da82a4c46a84dff45d5140f016b86642cdbe5e5f0a2a996a620d12a376101",
-    "src/server/config/stagingEnvironmentValidator.ts": "08bb2c32f048533d5104ffff65f80dbf94d877c1a92b774ec06eb25454bc1a55",
+    "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
     "src/server/productionApp.ts": "1ab71410800ac91c70af3a7bb06466332e36f7a3848d65f0922948c36013bfdc",
@@ -7045,7 +7045,7 @@
     "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "05cad4c6600c25995fa68cf93206ea04f1985b35b61c42b383b863cb64656c54",
     "src/tests/stagingAcceptanceCoverage.test.ts": "259cbfeab328766bd3e43919a7ddec83b6ac1b03ae9087befcbc32e866374368",
     "src/tests/stagingConfiguration.test.ts": "d337febae5b1d4e85a129fae45688acc3ba5344764c975e7eb2a79072c8ea5b0",
-    "src/tests/stagingEnvironmentValidator.test.ts": "9f69174c76b9dddf908d86f8c5a0aba4f10f0cbf17e8ce15a7eb5d09cc398852",
+    "src/tests/stagingEnvironmentValidator.test.ts": "340fc4908b74616f46cf948f099b631e4d5b9626f76b97672a4be67e260a83e4",
     "src/tests/stagingMigrationManifest.test.ts": "50e7df093aad4280542702cf004bfd7ffcafdc22b89774f375b7e7a3980185b2",
     "src/tests/syntheticAcceptancePlan.test.ts": "13e12715ecddec5731b2960ac5bef709bfe3137cf90cb5ba339363f411fc7bac",
     "src/tests/syntheticFixtureLabels.test.tsx": "36246a115afa65bc0c7b6e494df12b1c96d7dd990e06f78ce8a2e731e97fde8f",

@@ -70,7 +70,8 @@ export function validateStagingEnvironment(values: Readonly<Record<string, strin
   // APP: an explicit staging identity on both server and client, and no development shortcuts.
   if (v('TAXGUARD_DEPLOYMENT_ENVIRONMENT') !== 'staging') add('APP', 'TAXGUARD_DEPLOYMENT_ENVIRONMENT', 'STAGING_IDENTITY_REQUIRED');
   if (v('VITE_APP_ENV') !== 'staging') add('APP', 'VITE_APP_ENV', 'STAGING_IDENTITY_REQUIRED');
-  for (const field of ['TAXGUARD_DEV_EXPOSE_RESET_TOKEN', 'TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED', 'SEED_STAFF_PASSWORD', 'SEED_CLIENT_PASSWORD', 'TAXGUARD_ALLOW_FAKE_SCANNER'])
+  for (const field of ['TAXGUARD_DEV_EXPOSE_RESET_TOKEN', 'TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED', 'SEED_STAFF_PASSWORD', 'SEED_CLIENT_PASSWORD', 'TAXGUARD_ALLOW_FAKE_SCANNER',
+    'TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL'])
     if (v(field)) add('APP', field, 'DEVELOPMENT_SHORTCUT_DENIED');
 
   // API_HOST: a dedicated https staging origin used by the browser build.
