@@ -45,3 +45,21 @@ The first `npm.cmd test` run had 5,292 passed and 2 failed (297 files, 221.84 se
 This edits an unapplied SQL proposal; it does not create or apply an approved production migration. The server needs the new RPC before durable general-ledger reads can succeed. Deployment sequencing and migration approval remain separate gates. The original three untracked paths are preserved and excluded from the commit.
 
 API consumers retain their existing fields, but consumers that assumed a zero opening or equated visible line totals with the full account balance must use the new contract. The UI currently does not render the additive truncation/opening metadata. Date/limit options are available at the store boundary; extending the HTTP/UI controls is separate work. Large-history query performance beyond these fixtures has not been benchmarked. SQL retains exact cents; the existing number-based API still has JavaScript safe-integer limits for extremely large aggregates.
+
+## Publication and integration status
+
+Correction commit: `c196884`. Pushed to `codex/taxguard-phase15-financial-reporting-integrity`; separate draft PR: https://github.com/OphireumTechnology/taxguard/pull/24.
+
+Validation above applies to the authorized checkout starting at `49369c3`, not current main. A read-only fetch found main at `6e31a40283b2475f7a836ef3a9f0c96a6d2d2101`. GitHub reports the draft not mergeable; the non-mutating three-tree preview confirms a conflict in `docs/taxguard-master-traceability.json`. Main contains substantial later development. No merge, rebase, force-push or modification of main was performed. Resolving that integration conflict and validating the combined revision remain necessary before review/merge readiness; the successful local results do not certify the combined tree.
+
+## Next backend investigation: aggregate monetary precision
+
+After opening the draft, a fresh disposable PostgreSQL investigation used `node --import tsx --input-type=module` with the existing `startDatabase`, `pgRpc` and `SqlLedgerStore` helpers. It created one synthetic tenant/client, an active administrator, cash/revenue accounts, then posted 91 entries of $1,000,000,000,000 plus one $0.01 entry through `postEntry`. Each amount is accepted by the existing per-entry amount contract. The database was stopped in `finally`.
+
+Measured output:
+
+```json
+{"postedEntries":92,"exactSqlCents":"9100000000000001","generalLedgerDollars":"91000000000000.00","trialBalanceDollars":"91000000000000.00","safeIntegerCents":false,"lostCents":"1"}
+```
+
+The SQL control was `SELECT sum(debit_cents-credit_cents)::text` scoped to that synthetic cash account. It retained the exact cent; both number-based reports lost it. This is a separate existing transport/conversion defect, not another display-cap failure. The next improvement should carry aggregate cents as text through JSON and use exact arithmetic or fail explicitly outside the safe range, with a documented compatibility contract for dollar-number consumers. Required follow-up fixtures should bracket the safe-integer boundary, include positive/negative balances and reversals, and compare SQL text controls with every report. No precision correction is claimed in this PR.
