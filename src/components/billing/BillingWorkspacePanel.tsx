@@ -18,6 +18,13 @@ export function BillingWorkspacePanel() {
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const keys = useRef<Record<string, string>>({});
+  // Focus returns to the payment's "Record refund" trigger when its form closes (cancel or success).
+  const refundReturnFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (refund || !refundReturnFocus.current) return;
+    const id = refundReturnFocus.current; refundReturnFocus.current = null;
+    document.querySelector<HTMLButtonElement>(`button[data-refund-trigger="${CSS.escape(id)}"]`)?.focus();
+  }, [refund]);
   const keyFor = (k: string) => (keys.current[k] ??= newBillingKey());
   const loadAging = useCallback(() => {
     billingApi.aging().then(r => setAging({ status: 'ready', rows: r.clients, pending: r.pendingApproval })).catch(e => setAging({ status: 'error', rows: [], pending: 0, message: billingMessage(e) }));
@@ -86,15 +93,15 @@ export function BillingWorkspacePanel() {
           const refundable = (Math.round(Number(p.amount) * 100) - Math.round(Number(p.refundedAmount) * 100)) / 100;
           const open = refund?.paymentId === p.paymentId;
           return <li key={p.paymentId}>Payment ${p.amount} ({p.method.replaceAll('_', ' ').toLowerCase()}, {p.status.toLowerCase()}){Number(p.refundedAmount) > 0 && <> · refunded ${p.refundedAmount}</>}
-            {refundable > 0 && !open && <button type="button" disabled={busy} aria-label={`Record a refund for payment ${p.paymentId}`} onClick={() => setRefund({ paymentId: p.paymentId, amount: '', reason: '', key: newBillingKey() })}>Record refund</button>}
+            {refundable > 0 && !open && <button type="button" disabled={busy} aria-label={`Record a refund for payment ${p.paymentId}`} data-refund-trigger={p.paymentId} onClick={() => setRefund({ paymentId: p.paymentId, amount: '', reason: '', key: newBillingKey() })}>Record refund</button>}
             {open && <form aria-label={`Refund for payment ${p.paymentId}`} onSubmit={e => { e.preventDefault(); const r = refund!;
               void run('refund', () => billingApi.recordRefund(clientId, r.paymentId, r.amount.trim(), r.reason.trim(), r.key),
-                'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.').then(ok => { if (ok) setRefund(null); }); }}>
+                'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.').then(ok => { if (ok) { refundReturnFocus.current = r.paymentId; setRefund(null); } }); }}>
               <p>Records money already returned to the client outside TaxGuard (up to ${refundable.toFixed(2)}). A practice manager is required; nothing is sent to a payment provider.</p>
-              <label>Refund amount<input inputMode="decimal" required value={refund!.amount} onChange={e => setRefund({ ...refund!, amount: e.target.value })} /></label>
+              <label>Refund amount<input autoFocus inputMode="decimal" required value={refund!.amount} onChange={e => setRefund({ ...refund!, amount: e.target.value })} /></label>
               <label>Refund reason (recorded)<input required minLength={5} maxLength={500} value={refund!.reason} onChange={e => setRefund({ ...refund!, reason: e.target.value })} /></label>
               <button disabled={busy || !/^\d{1,12}(\.\d{1,2})?$/.test(refund!.amount.trim()) || refund!.reason.trim().length < 5}>Record refund</button>
-              <button type="button" disabled={busy} onClick={() => setRefund(null)}>Cancel</button>
+              <button type="button" disabled={busy} onClick={() => { refundReturnFocus.current = refund!.paymentId; setRefund(null); }}>Cancel</button>
             </form>}</li>;
         })}</ul>}
       </article>)}
