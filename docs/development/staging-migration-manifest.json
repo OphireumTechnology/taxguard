@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "88ed0f41bd8ab35e85b7b7c7b6b502eb6654856ce4cf61b32690fe086737b155",
+  "executionPlanSha256": "24b042951771541932340886d8b4ee58b2405f16eb016571a601d4bfa10d891f",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5093,6 +5093,43 @@
         "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on keyed billing writes 20261019030000.",
         "-- A delayed retry must not delete a new line which reused the removed line's number.",
         "-- Rollback: disable line removal pending review; preserve receipts and audit history."
+      ]
+    },
+    {
+      "order": 97,
+      "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
+      "kind": "proposal",
+      "version": "20261019060000",
+      "sha256": "6aad8f03124633646d45f5dfcf2018d36a4452c41f0828ed117088d690b71de0",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_upsert_service_serialized"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback: disable catalog writes pending review; preserve price history."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_upsert_service(text,text,text,text,text,text,numeric,text) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_upsert_service_serialized(text,text,text,text,text,text,numeric,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_upsert_service_serialized(text,text,text,text,text,text,numeric,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on billing 028 and access overlay 058.",
+        "-- Serialize natural catalog identity before the original missing-row lookup. Preserve prices,",
+        "-- reason requirements and history logic; do not infer financial intent from equal amounts.",
+        "-- Rollback: disable catalog writes pending review; preserve price history."
       ]
     }
   ]

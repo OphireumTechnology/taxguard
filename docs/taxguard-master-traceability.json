@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "99388999eff89ee8a021525ad70925319a557711ea5eec59cfbf2e3c35ff79fd",
-      "bytes": 20913,
+      "sha256": "b0c5887b0821cc6bc9c213c5fbbcb8910819a364fed10ac7f7fd958c4b3da177",
+      "bytes": 21113,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5469,6 +5469,18 @@
       ]
     },
     {
+      "file": "docs/development/phase15-catalog-concurrency-results.md",
+      "sha256": "bd347faccbd1fdfc9608c1d761f699bd150c43ad25c38282e01e56568125627f",
+      "bytes": 4445,
+      "headings": [
+        "# Phase 15 catalog first-write concurrency and price history",
+        "## Measured defect",
+        "## Correction",
+        "## Validation",
+        "## Limits and independent review"
+      ]
+    },
+    {
       "file": "docs/development/phase15-financial-reporting-integration.md",
       "sha256": "b8b5ffa96638c67730f2a18dc263308263c1a7ba3d2dced464835ae3189d586a",
       "bytes": 5041,
@@ -5496,8 +5508,8 @@
     },
     {
       "file": "docs/development/phase15-financial-write-review.md",
-      "sha256": "f3e884be244c4323fd55e449909e9ac3c171f67cbac0be7a15dad167c10db57d",
-      "bytes": 9606,
+      "sha256": "a294be22bd6c6b7ae97b2cdbe4242d2c55d8de8127b7e9f8506096b2b77fc1ef",
+      "bytes": 9842,
       "headings": [
         "# Phase 15 financial write and audit review",
         "## Evidence classification",
@@ -6374,6 +6386,12 @@
       "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
       "sha256": "f60feabd1f5079e8cd7a7374097828928442513aad41deca138adfd9567f9da2",
       "bytes": 3849,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
+      "sha256": "6aad8f03124633646d45f5dfcf2018d36a4452c41f0828ed117088d690b71de0",
+      "bytes": 1737,
       "headings": []
     },
     {
