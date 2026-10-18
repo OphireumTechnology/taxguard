@@ -69,7 +69,7 @@ export function defineRefundContract(adapter: RefundAdapter) {
       const store = new BillingStore(pgRpc(db.pool), new SandboxPaymentProvider());
       await store.upsertService(T, 'rf-mgr', { serviceCode: 'RF-1040', name: 'Synthetic return', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '100.00' });
       invoiceId = (await store.createInvoice(T, C, 'rf-acct', 'rf-invoice-key', { dueDate: '2026-04-30' }) as any).invoiceId;
-      const lined: any = await store.addLine(T, C, 'rf-acct', invoiceId, { serviceCode: 'RF-1040', quantity: 1 });
+      const lined: any = await store.addLine(T, C, 'rf-acct', invoiceId, { serviceCode: 'RF-1040', quantity: 1 }, 'rf-line-key');
       const submitted: any = await store.transition(T, C, 'rf-acct', invoiceId, 'submit', lined.rowVersion);
       await store.transition(T, C, 'rf-mgr', invoiceId, 'approve', submitted.rowVersion);
       const paid: any = await store.recordManualPayment(T, C, 'rf-mgr', invoiceId, { amount: '100.00', method: 'CHECK', idempotencyKey: 'rf-payment-key' });

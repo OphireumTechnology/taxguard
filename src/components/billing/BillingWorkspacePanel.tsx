@@ -64,8 +64,8 @@ export function BillingWorkspacePanel() {
         {ISSUED_INVOICE_STATUSES.includes(inv.status) && <p><button type="button" disabled={busy} aria-label={`Download client invoice document ${inv.invoiceNumber ?? inv.invoiceId} (PDF)`}
           onClick={() => { billingApi.document(clientId, inv.invoiceId).then(blob => { saveBlob(blob, `invoice-${(inv.invoiceNumber ?? inv.invoiceId).replace(/[^A-Za-z0-9_-]/g, '_')}.pdf`); setNotice({ error: false, text: 'Client invoice document downloaded (client fields only). Nothing was sent to the client.' }); }).catch(e => setNotice({ error: true, text: billingMessage(e) })); }}>Download client invoice (PDF)</button></p>}
         <ul>{inv.lines.map(l => <li key={l.lineNo}>{l.description} — {l.quantity} × ${l.unitRate} = ${l.amount}{l.rateOverrideReason ? ` (override: ${l.rateOverrideReason})` : ''}</li>)}</ul>
-        {inv.status === 'DRAFT' && <form onSubmit={e => { e.preventDefault(); void run('line', () => billingApi.addLine(clientId, inv.invoiceId, { serviceCode: line.serviceCode, quantity: line.quantity,
-            ...(line.unitRate ? { unitRate: line.unitRate, overrideReason: line.overrideReason } : {}) }), 'Line added.'); }}>
+        {inv.status === 'DRAFT' && <form onSubmit={e => { e.preventDefault(); void run('line-' + inv.invoiceId, () => billingApi.addLine(clientId, inv.invoiceId, { serviceCode: line.serviceCode, quantity: line.quantity,
+            ...(line.unitRate ? { unitRate: line.unitRate, overrideReason: line.overrideReason } : {}) }, keyFor('line-' + inv.invoiceId)), 'Line added.'); }}>
           <label>Service<select required value={line.serviceCode} onChange={e => setLine({ ...line, serviceCode: e.target.value })}><option value="">Select</option>
             {catalog.map(s => <option key={s.serviceCode} value={s.serviceCode}>{s.name} (${s.baseFee})</option>)}</select></label>
           <label>Quantity<input required inputMode="decimal" value={line.quantity} onChange={e => setLine({ ...line, quantity: e.target.value })} /></label>
@@ -83,7 +83,7 @@ export function BillingWorkspacePanel() {
           <label>Payment amount<input required inputMode="decimal" value={pay.amount} onChange={e => setPay({ ...pay, amount: e.target.value })} /></label>
           <label>Method<select value={pay.method} onChange={e => setPay({ ...pay, method: e.target.value })}>{['CHECK', 'ACH', 'WIRE'].map(m => <option key={m}>{m}</option>)}</select></label>
           <button disabled={busy}>Record payment</button>
-          <button type="button" disabled={busy || !pay.amount || note.trim().length < 5} onClick={() => run('credit', () => billingApi.requestCredit(clientId, inv.invoiceId, pay.amount, note), 'Credit requested for approval.')}>Request credit (amount + note)</button>
+          <button type="button" disabled={busy || !pay.amount || note.trim().length < 5} onClick={() => run('credit-' + inv.invoiceId, () => billingApi.requestCredit(clientId, inv.invoiceId, pay.amount, note, keyFor('credit-' + inv.invoiceId)), 'Credit requested for approval.')}>Request credit (amount + note)</button>
           <label>Note<input value={note} maxLength={500} onChange={e => setNote(e.target.value)} /></label>
         </form>}
         {inv.credits.filter(cr => cr.status === 'REQUESTED').map(cr => <p key={cr.creditId}>Credit ${cr.amount} requested by {cr.requestedBy}: {cr.reason}

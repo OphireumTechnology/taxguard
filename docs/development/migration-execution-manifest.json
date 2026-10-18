@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 94,
+    "files": 95,
     "core": 13,
-    "proposals": 80,
-    "tables": 160,
-    "functions": 391,
-    "securityDefinerFunctions": 301,
+    "proposals": 81,
+    "tables": 161,
+    "functions": 395,
+    "securityDefinerFunctions": 305,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3877,6 +3877,41 @@
     },
     {
       "order": 94,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_billing_write_receipts"
+      ],
+      "functionsAdded": [
+        "taxguard_bill_add_line_once",
+        "taxguard_bill_request_credit_once",
+        "taxguard_bill_retry_result",
+        "taxguard_bill_retry_save"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 2,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        31
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_bill_add_line",
+        "taxguard_bill_request_credit"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 95,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

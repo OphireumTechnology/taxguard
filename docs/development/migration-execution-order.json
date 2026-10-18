@@ -615,6 +615,12 @@
         "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
         "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
     }
   ]
 }

@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "d5d283fc05c4200fd780fce211cee12414a994048c7e4eb585e42ca67a62b5ab",
-      "bytes": 20181,
+      "sha256": "7dd7717798cd595d7fbeed09be6b5d37a84032832935d7124af647d8bef0e0e4",
+      "bytes": 20411,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5458,6 +5458,17 @@
       ]
     },
     {
+      "file": "docs/development/phase15-billing-write-retries-results.md",
+      "sha256": "e94786dc0a8051e558b868d7cb831c17835ee10a92dd6c4954c4b939a716756d",
+      "bytes": 4586,
+      "headings": [
+        "# Phase 15 invoice-line and credit-request retries",
+        "## Measured defects and correction",
+        "## Exact validation",
+        "## Limits and review decisions"
+      ]
+    },
+    {
       "file": "docs/development/phase15-financial-reporting-integration.md",
       "sha256": "b8b5ffa96638c67730f2a18dc263308263c1a7ba3d2dced464835ae3189d586a",
       "bytes": 5041,
@@ -5485,8 +5496,8 @@
     },
     {
       "file": "docs/development/phase15-financial-write-review.md",
-      "sha256": "c36f020f3eb2c2d81de3b5a8475c28e8a910faf10b3d256a80edc50c45ed47e0",
-      "bytes": 9135,
+      "sha256": "ab40e115580b7ee6d58bd154d2791d2ba95ade7c6614d421a423c5042756b36b",
+      "bytes": 9325,
       "headings": [
         "# Phase 15 financial write and audit review",
         "## Evidence classification",
@@ -6324,6 +6335,12 @@
       "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
       "sha256": "be8aebf26decc7a40b83f46722a8a77089cec613f2e47237f09e12c55fe48d10",
       "bytes": 8428,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+      "sha256": "15c5b11b506dbbff85fcc827a5f7125d8d9a90d8e8c9f98308d23d296fb56970",
+      "bytes": 6951,
       "headings": []
     },
     {
@@ -7463,9 +7480,9 @@
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
     "src/taxguard/stageCapabilities.ts": "b576daf7a89591a37813ea5e83e70edbe2f8bf7e4cea80c2fbec55586625ff81",
-    "src/tests-db/backupRestore.db.test.ts": "deeb7cfb95d7d2372a0a9a5bf743a7ec2bff4b9c7685a83d43dbb4bedf149c09",
+    "src/tests-db/backupRestore.db.test.ts": "310beea6e47dbbe3559771647b7b8c2479ac5a442cedda45025edf8dbdb9e751",
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
-    "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
+    "src/tests-db/concurrency.db.test.ts": "a631b70043342fab5233cd3c645c9eef542757a72b8a435e4ce34eef7bcf2f54",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ebfe940b1a4e29cf0a2970c8b19a232461c5a1f8bc2e340f05d0aa604c09f2f5",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
@@ -7494,7 +7511,7 @@
     "src/tests/auditCenter.test.ts": "56bcdba92323a06c60dba4fb66349e2478bf7e32b41f6327a95e7599894bba41",
     "src/tests/authFormLabelAssociations.test.tsx": "af5497592fca00003797b4f447fcf932c6a0b9b0eb432c725b1670e4befc6e37",
     "src/tests/authenticatedScanner.test.ts": "5454d6da8c3d16f3470c96c1e5e2ff97081527fa8afe1c107d517f6616667e0c",
-    "src/tests/billingClientProjection.test.ts": "99a26dafb8e73e46744cd8fad4b1fa72b0cc14588f2814c5113bf5e0aeacd295",
+    "src/tests/billingClientProjection.test.ts": "3d4a1dd15243031124f9a6d98b4306248ac56c580453a2a29a9bc772a1ac6e2c",
     "src/tests/billingHttp.test.ts": "5ae1f24923b3a2637db5a823aae57c0153b7fdf1b7b3cb1457a10504da28e247",
     "src/tests/bookToTaxHttp.test.ts": "857f60a00e89b5c56d6e0190cefa7e60dc28c327f6f6906da592ab35d7efda4e",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
