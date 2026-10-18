@@ -150,8 +150,9 @@ export class SupabaseDurableSessions {
 
   /**
    * Provisions or restores a durable TaxGuard server session for a verified Supabase identity.
+   * allowClientProvisioning=false (a staff-portal sign-in) never creates a new client identity.
    */
-  async create(verified: VerifiedSupabaseUser): Promise<{
+  async create(verified: VerifiedSupabaseUser, options: { allowClientProvisioning?: boolean } = {}): Promise<{
     token: string;
     user: User;
     clientId: string;
@@ -376,6 +377,8 @@ export class SupabaseDurableSessions {
           });
         }
       } else {
+        // No identity or membership in this tenant: only a client-portal sign-in may self-register.
+        if (options.allowClientProvisioning === false) throw new AuthorityError('STAFF_MEMBERSHIP_REQUIRED', 403);
         if (this.usesDurableAuthority) {
           user = (await provisionClientIdentity(this.client, this.tenantId, verified)).user;
         } else {

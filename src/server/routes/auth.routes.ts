@@ -60,7 +60,11 @@ authRouter.use((req, res, next) => {
  * supplied by the browser.
  */
 authRouter.post('/supabase-session', async (req: Request, res: Response) => {
-  const { accessToken } = req.body || {};
+  const { accessToken, portal } = req.body || {};
+  // The sign-in page that sent the request. It can only restrict: a staff sign-in never creates a client.
+  if (portal !== undefined && portal !== 'staff' && portal !== 'client') {
+    return res.status(400).json({ error: 'Unknown sign-in portal.', code: 'PORTAL_INVALID' });
+  }
 
   const source = req.ip || 'unknown';
   const retryAfter = sessionVerificationFailures.blockedFor(source);
@@ -95,7 +99,7 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
 
   try {
     const sessions = new SupabaseDurableSessions();
-    const session = await sessions.create(verifiedUser);
+    const session = await sessions.create(verifiedUser, { allowClientProvisioning: portal !== 'staff' });
 
     let onboardingBundle = null;
     if (!sessions.usesDurableAuthority && session.user.role === 'client' && session.clientId) {

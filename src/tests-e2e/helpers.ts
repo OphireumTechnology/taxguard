@@ -161,8 +161,9 @@ export async function providerControl(path: string, body: unknown) {
 export const providerToken = async (uid: string, opts: { aal?: 'aal1' | 'aal2'; primaryAgeSeconds?: number } = {}) =>
   (await providerControl('/e2e/provider-token', { uid, aal: opts.aal ?? 'aal2', primaryAgeSeconds: opts.primaryAgeSeconds ?? 0 })).body.accessToken as string;
 /** Exchanges a provider access token for a durable TaxGuard session through the real server. */
-export async function durableSession(providerAccessToken: string) {
-  const r = await fetch(ORIGIN + '/api/auth/supabase-session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accessToken: providerAccessToken }) });
+export async function durableSession(providerAccessToken: string, portal?: 'staff' | 'client') {
+  const r = await fetch(ORIGIN + '/api/auth/supabase-session', { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ accessToken: providerAccessToken, ...(portal ? { portal } : {}) }) });
   return { status: r.status, body: await r.json().catch(() => null) as any };
 }
 /** A browser context restoring a durable ("live") TaxGuard session. */

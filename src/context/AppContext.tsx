@@ -147,7 +147,7 @@ interface AppContextType {
   onboardingState: OnboardingState | null;
   onboardingProgress: { percentComplete: number; missingRequirements: string[]; nextAction: string } | null;
   securityTestResults: SecurityTestResult[];
-  login: (email: string, password: string, mfaCode?: string) => Promise<{
+  login: (email: string, password: string, mfaCode?: string, options?: { portal?: 'staff' | 'client' }) => Promise<{
     success: boolean;
     mfaRequired?: boolean;
     mfaEnrollmentRequired?: boolean;
@@ -626,6 +626,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     options?: {
       navigateIfAuthRoute?: boolean;
       trackRegistrationStates?: boolean;
+      portal?: 'staff' | 'client';
     }
   ): Promise<{ user: User; redirectPage: PageRoute }> => {
     clearTaxpayerState();
@@ -636,7 +637,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRegistrationState('ESTABLISHING_SESSION');
     }
 
-    const liveSession = await api.auth.supabaseSession({ accessToken });
+    const liveSession = await api.auth.supabaseSession({ accessToken, ...(options?.portal ? { portal: options.portal } : {}) });
     if (!liveSession?.token || !liveSession?.user) {
       const err = new Error('A secure TaxGuard server session could not be established.') as Error & {
         code?: ControlledAuthErrorCode;
@@ -954,7 +955,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = async (
     email: string,
     password: string,
-    mfaCode?: string
+    mfaCode?: string,
+    loginOptions?: { portal?: 'staff' | 'client' }
   ): Promise<{
     success: boolean;
     mfaRequired?: boolean;
@@ -1055,7 +1057,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const { redirectPage } = await establishSupabaseServerSession(accessToken, {
-        navigateIfAuthRoute: true
+        navigateIfAuthRoute: true,
+        ...(loginOptions?.portal ? { portal: loginOptions.portal } : {})
       });
       return { success: true, redirectPage };
     } catch (err: any) {

@@ -76,6 +76,11 @@ function createMockSupabaseBackend() {
             error: null
           };
         }
+        if (token === 'valid_portal_newcomer_jwt') {
+          // Used only by the staff-portal test, so no earlier test has created it.
+          return { data: { user: { id: 'sb_uid_portal_newcomer', email: 'portal.newcomer@example.com', user_metadata: { full_name: 'Synthetic Newcomer' },
+            email_confirmed_at: new Date().toISOString(), last_sign_in_at: new Date().toISOString() } }, error: null };
+        }
         return { data: { user: null }, error: { message: 'Invalid JWT token' } };
       })
     },
@@ -429,6 +434,26 @@ describe('Post-Registration Client Routing, Session Establishment & Stage 01 Pro
       expect(secondBody.engagementId).toBe('eng_2025_501');
       expect(secondBody.caseId).toBe('case_2025_501');
       expect(secondBody.resumed).toBe(true);
+    });
+
+    it('never creates a client from a staff-portal sign-in, and refuses an unknown portal value', async () => {
+      const post = (body: Record<string, unknown>) => fetch(`${origin}/api/auth/supabase-session`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://artaxserv.com' }, body: JSON.stringify(body) });
+      const staff = await post({ accessToken: 'valid_portal_newcomer_jwt', portal: 'staff' });
+      expect(staff.status).toBe(403);
+      const staffBody = await staff.json();
+      expect(staffBody.code).toBe('STAFF_MEMBERSHIP_REQUIRED');
+      expect(staffBody.token).toBeUndefined();
+      expect(mockSupabase.store.clients.size).toBe(0);
+      expect(mockSupabase.store.members.size).toBe(0);
+      expect(mockSupabase.store.sequence.current_sequence).toBe(500);
+      const invalid = await post({ accessToken: 'valid_portal_newcomer_jwt', portal: 'admin' });
+      expect([invalid.status, (await invalid.json()).code]).toEqual([400, 'PORTAL_INVALID']);
+      // The client portal still self-registers, and an existing client signing in later is unaffected.
+      const client = await post({ accessToken: 'valid_portal_newcomer_jwt', portal: 'client' });
+      expect([client.status, (await client.json()).clientId]).toEqual([200, '501']);
+      const resumed = await post({ accessToken: 'valid_portal_newcomer_jwt', portal: 'staff' });
+      expect([resumed.status, (await resumed.json()).clientId]).toEqual([200, '501']);
     });
 
     it('serves scoped Stage 01 workflow state in the isolated demonstration fixture and allows Stage 01 save & completion', async () => {
