@@ -4,9 +4,9 @@
   "executionAllowed": false,
   "supabaseCliValidated": false,
   "externalApplicationStatus": "NOT_APPLIED",
-  "executionPlanSha256": "fd6f832ebb3bbf8c642911e858f978c6836eaafd18ac4e307dadf6fdb146ae79",
-  "packetId": "6e23dee32cd67ad625dc2c303e5c3ebb9a084d884a0e4392d0bc8f2b83219f84",
-  "outputDirectory": "qa/migration-review/6e23dee32cd67ad625dc2c303e5c3ebb9a084d884a0e4392d0bc8f2b83219f84",
+  "executionPlanSha256": "47e52d930c98795046d321af86ff924f88e4cd13efaa82c7d93608753a60d465",
+  "packetId": "ed618e4bc8a69a1e001ba0ca88a32369296550ebe1ae9746dfb3e2675c26f90e",
+  "outputDirectory": "qa/migration-review/ed618e4bc8a69a1e001ba0ca88a32369296550ebe1ae9746dfb3e2675c26f90e",
   "note": "Core versions preserved; proposed files mapped to a reserved valid review namespace. Owner approves final versions and bundle before any external application. Source SQL content is copied without rewriting history.",
   "entries": [
     {
@@ -422,6 +422,36 @@
       "source": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
       "sourceSha256": "5ec6dd644c6a35f96795855431e8a88ab9097360b093a423f998d3df27ebe868",
       "version": "20261016000056"
+    },
+    {
+      "file": "20261016000057_review_taxguard_financial_reporting.sql",
+      "source": "docs/proposed-migrations/20261018000000_taxguard_financial_reporting.sql",
+      "sourceSha256": "3c61b709074f434cfdb75a46b77cb52b4c414b268ee506bc78cd4172ea084ffb",
+      "version": "20261016000057"
+    },
+    {
+      "file": "20261016000058_review_taxguard_report_cent_transport.sql",
+      "source": "docs/proposed-migrations/20261018010000_taxguard_report_cent_transport.sql",
+      "sourceSha256": "06490e4f5adb47834b4c390c528b288096d9a0071b8ba97c80551ec3bb757185",
+      "version": "20261016000058"
+    },
+    {
+      "file": "20261016000059_review_taxguard_invoice_idempotency.sql",
+      "source": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "sourceSha256": "f177127a3fecfefe609401e129aca139baed8d10bcb56cf5f4235b1986f6e648",
+      "version": "20261016000059"
+    },
+    {
+      "file": "20261016000100_review_taxguard_adjustment_idempotency.sql",
+      "source": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "sourceSha256": "0d5764f100fca5927026374ee470d45de4a0254fd564fdf83b9358c3a29cce8a",
+      "version": "20261016000100"
+    },
+    {
+      "file": "20261016000101_review_taxguard_refund_idempotency.sql",
+      "source": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "sourceSha256": "8c69264aeedcd948263b283ab387833fd2b82d3b76e9fe1b34dab82d9de33209",
+      "version": "20261016000101"
     }
   ]
 }
