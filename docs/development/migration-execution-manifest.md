@@ -4,8 +4,8 @@
 > Do not edit by hand; `src/tests/migrationReadinessAudit.test.ts` fails when this file is stale.
 > Nothing here has been applied to any Supabase project. Every proposal still needs human review and approval.
 
-Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 70 files (13 core, 56 proposals, 1 separate audit proposal);
-145 tables and 335 public functions (258 SECURITY DEFINER) after composition.
+Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 71 files (13 core, 57 proposals, 1 separate audit proposal);
+145 tables and 336 public functions (259 SECURITY DEFINER) after composition.
 
 Functions executable by anon or authenticated after every file, with Supabase default privileges: —;
 without default privileges: —.
@@ -82,7 +82,8 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 | 67 | `20261016040000_taxguard_notification_preferences` | proposal | ok | 1 | 3 | taxguard_client_notifications_list (from #34) | 1, 30, 34 | 0 | — | — |
 | 68 | `20261016050000_taxguard_contact_intake` | proposal | ok | 2 | 3 | — | 1, 28 | 0 | — | — |
 | 69 | `20261017000000_taxguard_membership_session_proof` | proposal | ok | 0 | 4 | — | 37, 38 | 0 | — | — |
-| 70 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
+| 70 | `20261018000000_taxguard_financial_reporting` | proposal | ok | 0 | 1 | — | 27 | 0 | — | — |
+| 71 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
 
 ## Not re-runnable files
 
@@ -96,7 +97,7 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 - #16 `20261012020000_taxguard_staff_acceptance`: constraint "chk_taxguard_invitation_email_normalized" for relation "taxguard_staff_invitations" already exists
 - #21 `20261012070000_taxguard_client_intake_drafts`: relation "taxguard_client_intake_drafts" already exists
 - #24 `20261012100000_taxguard_mfa_recovery_requests`: relation "taxguard_mfa_recovery_requests" already exists
-- #70 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
+- #71 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
 
 ## Constraints added NOT VALID (validate after data review)
 

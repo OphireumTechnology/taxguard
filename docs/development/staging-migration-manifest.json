@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "fd6f832ebb3bbf8c642911e858f978c6836eaafd18ac4e307dadf6fdb146ae79",
+  "executionPlanSha256": "2c7985fafb717368de1b71762cf3ee52f71bd53fa8daf777e419d2eb75fa0de0",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3432,6 +3432,39 @@
         "-- in after the actor's status epoch and within taxguard_privileged_max_age_seconds()) in the SAME",
         "-- transaction as the change. taxguard_privileged_session takes FOR SHARE NOWAIT locks on the actor's",
         "-- member, identity and session rows, so a concurrent revocation or suspension either commits first"
+      ]
+    },
+    {
+      "order": 70,
+      "file": "docs/proposed-migrations/20261018000000_taxguard_financial_reporting.sql",
+      "kind": "proposal",
+      "version": "20261018000000",
+      "sha256": "3c61b709074f434cfdb75a46b77cb52b4c414b268ee506bc78cd4172ea084ffb",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_ledger_general_ledger"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_general_ledger(text,text,text,integer,text,jsonb) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_general_ledger(text,text,text,integer,text,jsonb) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- Phase 15 additive financial reporting proposal. Development only; no hosted execution authorized.",
+        "-- Depends on proposal 024. Historical proposal bytes remain unchanged.",
+        "-- Complete balances and bounded per-account detail share one database snapshot. The",
+        "-- display limit is applied only AFTER integer-cent totals and running sums."
       ]
     }
   ]
