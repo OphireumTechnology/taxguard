@@ -13,7 +13,7 @@ try{target=await startDatabase({durable:true});
  const billingSource=new BillingStore(pgRpc(source.pool));
  await billingSource.upsertService('recoveryA','managerA',{serviceCode:'RECOVERY-1',name:'Synthetic recovery service',category:'INDIVIDUAL_TAX',billingMethod:'FLAT_FEE',baseFee:'125.50'});
  const {invoiceId}=await billingSource.createInvoice('recoveryA','clientA','managerA','recovery-invoice-1',{dueDate:'2026-12-31'});
- const line=await billingSource.addLine('recoveryA','clientA','managerA',invoiceId,{serviceCode:'RECOVERY-1',quantity:'2'});
+ const line=await billingSource.addLine('recoveryA','clientA','managerA',invoiceId,{serviceCode:'RECOVERY-1',quantity:'2'},'recovery-line-1');
  const submitted=await billingSource.transition('recoveryA','clientA','managerA',invoiceId,'submit',line.rowVersion);
  await billingSource.transition('recoveryA','clientA','approverA',invoiceId,'approve',submitted.rowVersion);
  await source.pool.query("SELECT taxguard_security_record('recoveryA',NULL,gen_random_uuid(),'AUTH_FAILURE','warning')");

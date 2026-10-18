@@ -65,16 +65,16 @@ export function createBillingRouter(deps: { store?: () => BillingStore; authenti
     return {items:page.items,summary:page.summary,nextCursor:page.next?Buffer.from(JSON.stringify(page.next)).toString('base64url'):null};
   }));
   router.post('/clients/:clientId/invoices', run(async req => store().createInvoice(t(req), client(req), u(req), idem(req), req.body ?? {}), 201));
-  router.post('/clients/:clientId/invoices/:invoiceId/lines', run(async req => store().addLine(t(req), client(req), u(req), req.params.invoiceId, req.body ?? {})));
-  router.post('/clients/:clientId/invoices/:invoiceId/lines/:lineNo/remove', run(async req => store().removeLine(t(req), client(req), u(req), req.params.invoiceId, int(req.params.lineNo))));
+  router.post('/clients/:clientId/invoices/:invoiceId/lines', run(async req => store().addLine(t(req), client(req), u(req), req.params.invoiceId, req.body ?? {}, idem(req))));
+  router.post('/clients/:clientId/invoices/:invoiceId/lines/:lineNo/remove', run(async req => store().removeLine(t(req), client(req), u(req), req.params.invoiceId, int(req.params.lineNo), idem(req))));
   router.post('/clients/:clientId/invoices/:invoiceId/:action(submit|approve|return|void)', run(async req => store().transition(t(req), client(req), u(req), req.params.invoiceId,
     req.params.action, int(req.body?.rowVersion), typeof req.body?.note === 'string' ? req.body.note : undefined)));
   router.post('/clients/:clientId/invoices/:invoiceId/payments', run(async req => store().recordManualPayment(t(req), client(req), u(req), req.params.invoiceId,
     { amount: req.body?.amount, method: req.body?.method, idempotencyKey: idem(req) }), 201));
   router.post('/clients/:clientId/invoices/:invoiceId/pay-sandbox', run(async req => store().paySandbox(t(req), client(req), u(req), req.params.invoiceId,
     { amount: req.body?.amount, idempotencyKey: idem(req), testCard: String(req.body?.testCard ?? '') }), 201));
-  router.post('/clients/:clientId/payments/:paymentId/refund', run(async req => store().refund(t(req), client(req), u(req), req.params.paymentId, req.body?.amount, req.body?.reason)));
-  router.post('/clients/:clientId/invoices/:invoiceId/credits', run(async req => store().requestCredit(t(req), client(req), u(req), req.params.invoiceId, req.body?.amount, req.body?.reason), 201));
+  router.post('/clients/:clientId/payments/:paymentId/refund', run(async req => store().refund(t(req), client(req), u(req), req.params.paymentId, req.body?.amount, req.body?.reason, req.get('idempotency-key'))));
+  router.post('/clients/:clientId/invoices/:invoiceId/credits', run(async req => store().requestCredit(t(req), client(req), u(req), req.params.invoiceId, req.body?.amount, req.body?.reason, idem(req)), 201));
   router.post('/clients/:clientId/credits/:creditId/:decision(apply|reject)', run(async req => store().decideCredit(t(req), client(req), u(req), req.params.creditId, req.params.decision === 'apply')));
   return router;
 }
