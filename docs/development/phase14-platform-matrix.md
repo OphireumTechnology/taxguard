@@ -190,7 +190,9 @@ could mean "the UI claims something the backend cannot deliver".
   refund path already checks amounts against the ledger fields in suite 02 and `billingRefunds.db`, so no other
   regression was added and no billing code changed). Journey B (new client
   → identity → onboarding → engagement) is still only partly in the browser: the suites start from a seeded client
-  record.
+  record (engagement creation and staffing are covered in 02). There is no durable staff operation that creates a
+  client record, and the portal identity/onboarding screens belong to PR #20's frontend work. Completing B needs that
+  operation (a product decision) and PR #20 to land, so it was not built here.
 - **Staging validator: local governance database (Block 19, Priority 3).** The development-only
   `TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL` added for journey N is listed in the staging template's
   development-shortcut section. The offline staging validator refuses it (`DEVELOPMENT_SHORTCUT_DENIED`), with a unit
