@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 76,
+    "files": 77,
     "core": 13,
-    "proposals": 62,
+    "proposals": 63,
     "tables": 147,
-    "functions": 343,
-    "securityDefinerFunctions": 264,
+    "functions": 346,
+    "securityDefinerFunctions": 268,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3089,6 +3089,41 @@
     },
     {
       "order": 76,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_ledger_post_entry_once",
+        "taxguard_ledger_retry_lock",
+        "taxguard_ledger_reverse_entry_once"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_ledger_assert_balanced",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        27
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_ledger_post_entry",
+        "taxguard_ledger_reverse_entry"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 77,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

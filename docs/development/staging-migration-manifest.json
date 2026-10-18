@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "874fec35f0fdb4f8ef7105196f01dc41d0c7097f2f8acb79054848fb7e2fdebc",
+  "executionPlanSha256": "1ef533bc640741838b05677c13ebd3f3aa50fe9a37915aa6c0f116355036ad54",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3684,6 +3684,52 @@
         "-- Existing business functions remain unchanged but become internal to keyed wrappers.",
         "-- Rollback: disable affected writes; retain operation receipts for review/recovery.",
         "-- The legacy implementations are callable only by the definer, never directly by API roles."
+      ]
+    },
+    {
+      "order": 76,
+      "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+      "kind": "proposal",
+      "version": "20261019040000",
+      "sha256": "ca382a2ea21ad636fcbb6d22c07201e4cb3071fa9286f09cbfb34aab316f78cc",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_ledger_retry_lock",
+        "taxguard_ledger_post_entry_once",
+        "taxguard_ledger_reverse_entry_once"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback: disable affected writes pending review; do not expose uncoordinated entry points."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_assert_balanced() FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_post_entry(text,text,text,text,text,jsonb,uuid) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_reverse_entry(text,text,text,text,text,uuid,date,text,text) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_retry_lock(text,text,text,text) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_post_entry_once(text,text,text,text,text,jsonb,uuid) FROM PUBLIC,anon,authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_reverse_entry_once(text,text,text,text,text,uuid,date,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_post_entry_once(text,text,text,text,text,jsonb,uuid) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_reverse_entry_once(text,text,text,text,text,uuid,date,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on durable ledger 024.",
+        "-- Preserve original business implementations, scoped uniqueness, hashes, integer cents,",
+        "-- period rules, reversal posting dates and independent review. Serialize before replay lookup.",
+        "-- Rollback: disable affected writes pending review; do not expose uncoordinated entry points.",
+        "-- Deferred checks execute at COMMIT, after RPC definer context has ended. Keep their existing",
+        "-- pinned path and invariant logic, but give the private trigger its owner's read authority.",
+        "-- Internal implementations remain available to their definer, not the external service role."
       ]
     }
   ]

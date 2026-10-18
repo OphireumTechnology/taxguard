@@ -40,9 +40,9 @@ Authority: proposals 024 and 029, `SqlLedgerStore`, `BookToTaxStore` and their d
 | --- | --- |
 | Create accounts / activate account | Scoped account uniqueness and actor checks; repeated activation can emit repeated audit; investigate conflicting bootstrap payloads |
 | Open / close / reopen period | Scoped period checks and row locks; state guards protect posting; stable retry outcome and reason evidence need review |
-| Post entry / replacement / adjusting journal | Scoped `(tenant,client,key)` uniqueness and request hash; exact integer cents; reviewable adjustments and period checks; existing real PostgreSQL tests cover duplicate posting, rollback and maker-checker races |
+| Post entry / replacement / adjusting journal | Scoped `(tenant,client,key)` uniqueness and hash, exact cents and review/period guards retained. Concurrent replay race measured and corrected by coordinated entry points in proposal 20261019040000; service-role deferred balance-trigger failure also reproduced and corrected without removing the constraint |
 | Review entry | Row lock, expected version, reviewer authorization; winner only; retry conflict |
-| Prepare / approve reversal | Original entry lock, reviewer approval, opposite integer-cent lines and reversal posting date; existing reporting fixtures cover historical cutoff behavior; competing keys and audit replay need dedicated coverage |
+| Prepare / approve reversal | Concurrent identical callers measured receiving already-reversed errors; proposal 20261019040000 serializes replay lookup. Dedicated PostgreSQL tests cover one reversal/audit, changed intent conflicts, independent approval, integer-cent historical cutoffs, rollback and different-key guard preservation |
 | Ingest bank transactions / categorize | Provider/batch/transaction identity and transaction locks; inspect differing-payload retries and audit duplication before declaring complete |
 | Start / clear / finalize reconciliation | Scoped rows and locking; request identity and retry semantics need dedicated fixtures |
 | Save category / open mapping set / set mapping / review set | Firm-defined taxonomy, scoped sets, immutable approved mappings and reviewer guards; no generic stored request outcome |
