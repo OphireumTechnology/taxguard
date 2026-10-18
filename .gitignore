@@ -35,6 +35,7 @@ firebase-admin.json
 .taxguard/
 backups/
 dist/
+qa/synthetic-shell/artifacts/
 node_modules/
 TAXGUARD_*.txt
 TAXGUARD_*_REPORT.md
@@ -75,4 +76,3 @@ TAXGUARD_PRODUCTION_DEPLOYMENT_MILESTONE.md
 TAXGUARD_SERVER_AUTHORITY_MILESTONE.md
 NEXT_STAGE02_DEVELOPMENT.md
 TAXGUARD_LIVE_DEVELOPMENT_POLICY.md
-
