@@ -35,6 +35,14 @@ describe('billing browser client', () => {
     expect(billingMessage(new BillingRequestError(403, 'MAKER_CHECKER_VIOLATION'))).toMatch(/different manager/);
     expect(billingMessage(new BillingRequestError(400, 'SANDBOX_TEST_CARD_REQUIRED'))).toMatch(/No real card is ever charged/);
   });
+  it('retains caller keys across transport failures for line and credit requests', async () => {
+    transport.mockRejectedValueOnce(new TypeError('synthetic lost response'));
+    await expect(billingApi.addLine('client', 'invoice', { serviceCode: 'SYN', quantity: '1' }, 'line-retry-key')).rejects.toThrow();
+    await billingApi.addLine('client', 'invoice', { serviceCode: 'SYN', quantity: '1' }, 'line-retry-key');
+    await billingApi.requestCredit('client', 'invoice', '10.00', 'Synthetic reason', 'credit-retry-key');
+    expect(transport.mock.calls.map(([, options]) => options.headers['Idempotency-Key']))
+      .toEqual(['line-retry-key', 'line-retry-key', 'credit-retry-key']);
+  });
   it('renders staff and client panels and exposes Billing to practice managers', () => {
     expect(renderToStaticMarkup(<BillingWorkspacePanel />)).toContain('Loading receivables');
     expect(renderToStaticMarkup(<ClientInvoicesPanel clientId="c1" />)).toContain('Loading invoices');

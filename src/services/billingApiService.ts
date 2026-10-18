@@ -39,12 +39,12 @@ export const billingApi = {
     throw new BillingRequestError(503,'BILLING_PAGE_LIMIT');
   },
   create: (clientId: string, dueDate: string, key: string) => request<{ invoiceId: string }>('POST', c(clientId) + '/invoices', { dueDate }, key),
-  addLine: (clientId: string, invoiceId: string, line: { serviceCode: string; quantity: string; unitRate?: string; overrideReason?: string }) => request<Invoice>('POST', i(clientId, invoiceId) + '/lines', line),
+  addLine: (clientId: string, invoiceId: string, line: { serviceCode: string; quantity: string; unitRate?: string; overrideReason?: string }, key: string) => request<Invoice>('POST', i(clientId, invoiceId) + '/lines', line, key),
   transition: (clientId: string, invoiceId: string, action: 'submit' | 'approve' | 'return' | 'void', rowVersion: number, note?: string) =>
     request<Invoice>('POST', `${i(clientId, invoiceId)}/${action}`, { rowVersion, note }),
   recordPayment: (clientId: string, invoiceId: string, amount: string, method: string, key: string) => request('POST', i(clientId, invoiceId) + '/payments', { amount, method }, key),
   paySandbox: (clientId: string, invoiceId: string, amount: string, testCard: string, key: string) => request('POST', i(clientId, invoiceId) + '/pay-sandbox', { amount, testCard }, key),
-  requestCredit: (clientId: string, invoiceId: string, amount: string, reason: string) => request('POST', i(clientId, invoiceId) + '/credits', { amount, reason }),
+  requestCredit: (clientId: string, invoiceId: string, amount: string, reason: string, key: string) => request('POST', i(clientId, invoiceId) + '/credits', { amount, reason }, key),
   decideCredit: (clientId: string, creditId: string, apply: boolean) => request<Invoice>('POST', `${c(clientId)}/credits/${encodeURIComponent(creditId)}/${apply ? 'apply' : 'reject'}`),
 };
 const MESSAGES: Record<string, string> = {

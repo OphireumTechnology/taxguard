@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "47e52d930c98795046d321af86ff924f88e4cd13efaa82c7d93608753a60d465",
+  "executionPlanSha256": "874fec35f0fdb4f8ef7105196f01dc41d0c7097f2f8acb79054848fb7e2fdebc",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3636,6 +3636,54 @@
         "-- Rollback: disable refunds pending review; retain receipts and audit evidence.",
         "-- Keep the legacy signature as a fail-closed compatibility boundary. A keyless partial refund",
         "-- cannot safely be inferred from amount/reason: separate intentional refunds may be identical."
+      ]
+    },
+    {
+      "order": 75,
+      "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+      "kind": "proposal",
+      "version": "20261019030000",
+      "sha256": "15c5b11b506dbbff85fcc827a5f7125d8d9a90d8e8c9f98308d23d296fb56970",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_billing_write_receipts",
+        "taxguard_bill_retry_result",
+        "taxguard_bill_retry_save",
+        "taxguard_bill_add_line_once",
+        "taxguard_bill_request_credit_once"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback: disable affected writes; retain operation receipts for review/recovery."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_billing_write_receipts FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_add_line(text,text,text,text,text,numeric,numeric,text,text) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_request_credit(text,text,text,text,numeric,text) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_retry_result(text,text,text,text,text,jsonb) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_retry_save(text,text,text,text,text,jsonb,jsonb) FROM PUBLIC,anon,authenticated,service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_add_line_once(text,text,text,text,text,numeric,numeric,text,text,text) FROM PUBLIC,anon,authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_request_credit_once(text,text,text,text,numeric,text,text) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_add_line_once(text,text,text,text,text,numeric,numeric,text,text,text) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_request_credit_once(text,text,text,text,numeric,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on 028/058.",
+        "-- Existing business functions remain unchanged but become internal to keyed wrappers.",
+        "-- Rollback: disable affected writes; retain operation receipts for review/recovery.",
+        "-- The legacy implementations are callable only by the definer, never directly by API roles."
       ]
     }
   ]

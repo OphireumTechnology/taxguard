@@ -11,7 +11,7 @@ let db: TestDatabase, server: Server, origin: string;
 const bill = () => new BillingStore(pgRpc(db.pool));
 async function paidInvoice(suffix: string, tenant = 'refund-a', client = 'client-a', maker = 'manager-a', checker = 'manager-other') {
   const inv = await bill().createInvoice(tenant, client, maker, 'refund-invoice-' + suffix, { dueDate: '2026-11-01' });
-  const lined = await bill().addLine(tenant, client, maker, inv.invoiceId, { serviceCode: 'SYNTHETIC', quantity: '1' });
+  const lined = await bill().addLine(tenant, client, maker, inv.invoiceId, { serviceCode: 'SYNTHETIC', quantity: '1' }, 'refund-line-' + suffix);
   const submitted = await bill().transition(tenant, client, maker, inv.invoiceId, 'submit', lined.rowVersion);
   await bill().transition(tenant, client, checker, inv.invoiceId, 'approve', submitted.rowVersion);
   const payment = await bill().recordManualPayment(tenant, client, maker, inv.invoiceId,
