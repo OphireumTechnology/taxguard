@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { AccountingPeriod, BankReconciliation, BankTransaction, ChartOfAccount, JournalEntry, TrialBalanceReport, FinancialStatements } from './types';
-import { financialStatements, generalLedger, trialBalanceReport, type GeneralLedgerAccount, type TrialBalanceRow } from './ledgerReports';
+import { financialStatements, trialBalanceReport, type GeneralLedgerAccount, type TrialBalanceRow } from './ledgerReports';
 
 export interface LedgerRpcClient { rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: any; error: { code?: string; message?: string } | null }> }
 export interface LedgerScope { tenantId: string; clientId: string }
@@ -187,11 +187,19 @@ export class SqlLedgerStore {
   async financialStatements(scope: LedgerScope, actor: string, taxYear: number, asOf?: string): Promise<FinancialStatements> {
     return financialStatements(await this.trialBalanceRows(scope, actor, taxYear, asOf));
   }
-  async generalLedger(scope: LedgerScope, actor: string, taxYear: number, accountId?: string): Promise<GeneralLedgerAccount[]> {
-    const data = await this.read(scope, actor, taxYear, { status: 'POSTED', limit: 500, ...(accountId ? { accountId } : {}) });
-    return generalLedger(data.accounts.map(a => ({ accountId: a.id, accountNumber: a.accountNumber, accountName: a.accountName, accountType: a.accountType })),
-      data.rawEntries.map(e => ({ entryId: e.entryId, entryNumber: e.entryNumber, postingDate: date(e.postingDate), description: e.description, status: e.status,
-        lines: e.lines.map((l: any) => ({ accountId: l.accountId, debitCents: Number(l.debitCents), creditCents: Number(l.creditCents) })) })), accountId);
+  async generalLedger(scope: LedgerScope, actor: string, taxYear: number, accountId?: string,
+    filter: { fromDate?: string; toDate?: string; limit?: number } = {}): Promise<GeneralLedgerAccount[]> {
+    const rows = await this.call<any[]>('taxguard_ledger_general_ledger', { ...this.base(scope, actor), p_tax_year: taxYear,
+      p_account: accountId ?? null, p_filter: filter });
+    return rows.map(r => {
+      const sign = ['ASSET', 'EXPENSE', 'COGS', 'OTHER_EXPENSE'].includes(r.accountType) ? 1 : -1;
+      return { accountId: r.accountId, accountNumber: r.accountNumber, accountName: r.accountName, accountType: r.accountType,
+        openingBalance: sign * Number(r.openingCents) / 100, endingBalance: sign * Number(r.endingCents) / 100,
+        totalLineCount: Number(r.totalLineCount), detailTruncated: Number(r.totalLineCount) > r.lines.length,
+        lines: r.lines.map((l: any) => ({ entryId: l.entryId, entryNumber: l.entryNumber, postingDate: date(l.postingDate),
+          description: l.description, debit: Number(l.debitCents) / 100, credit: Number(l.creditCents) / 100,
+          runningBalance: sign * Number(l.runningCents) / 100 })) };
+    });
   }
   /** Bookkeeper work queue (proposal 030): uncategorized and duplicate bank items, entries awaiting review, returned entries, open reconciliations, periods. */
   workQueue(scope: LedgerScope, actor: string, taxYear: number) {

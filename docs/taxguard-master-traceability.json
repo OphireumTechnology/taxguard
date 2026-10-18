@@ -4627,8 +4627,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
-      "sha256": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
-      "bytes": 68885,
+      "sha256": "8926c8a6716ccc1df61d5476064d5384b25f77fa23b08232ed557b0fc27f3895",
+      "bytes": 72503,
       "headings": []
     },
     {
@@ -5735,7 +5735,7 @@
   ],
   "evidence_versions": {
     "docs/DISASTER_RECOVERY.md": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
-    "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
+    "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql": "8926c8a6716ccc1df61d5476064d5384b25f77fa23b08232ed557b0fc27f3895",
     "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
     "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
     "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
