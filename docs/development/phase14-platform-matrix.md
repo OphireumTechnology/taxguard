@@ -357,7 +357,9 @@ could mean "the UI claims something the backend cannot deliver".
   - **Kept client-level by design:** chart of accounts and bank-feed ingestion, which carry no tax year.
   - **Left for Codex** (`phase14-phase15-billing-overlap.md`): idempotent replays, and the Phase 15
     general-ledger and exact trial-balance reports.
-  - **Tests:** `ledgerYearScope.db` (8) failed first on five cases. The insert-trigger case was shown to fail with
+  - **Amended:** the trial balance's "as of" date must fall inside the requested year. Without that, a
+    2024-only member received 2025 activity by asking for 2024 "as of" a 2025 date. The case failed first.
+  - **Tests:** `ledgerYearScope.db` (9) failed first on five cases. The insert-trigger case was shown to fail with
     the triggers disabled. It also covers managers, administrators and client-wide staff (every year), stale,
     revoked and other-tenant staff, and immediate revocation.
 

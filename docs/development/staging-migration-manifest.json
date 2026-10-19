@@ -3856,7 +3856,7 @@
       "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
       "kind": "proposal",
       "version": "20261018070000",
-      "sha256": "3beae706e4527ba405473ddb343bf14d4b10b059145bc76ec3e83d08d81809a7",
+      "sha256": "79b95bbe709418a6228c3e591fcc70067a2ff481f3ad9cda86048368457d36c3",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",

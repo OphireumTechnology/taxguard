@@ -5,8 +5,8 @@
   "supabaseCliValidated": false,
   "externalApplicationStatus": "NOT_APPLIED",
   "executionPlanSha256": "16a37ff1d0e9c6be91361b170e8092e6422d16d91a05453663c91643b2520548",
-  "packetId": "0a0d4dfefd48d79de4606a5dafe2e05bb7924edb384a09779db714373a131888",
-  "outputDirectory": "qa/migration-review/0a0d4dfefd48d79de4606a5dafe2e05bb7924edb384a09779db714373a131888",
+  "packetId": "a292f5202b3efc048a33e90dde21dede4bdb3f73d85173149e14c3477c2a08b9",
+  "outputDirectory": "qa/migration-review/a292f5202b3efc048a33e90dde21dede4bdb3f73d85173149e14c3477c2a08b9",
   "note": "Core versions preserved; proposed files mapped to a reserved valid review namespace. Owner approves final versions and bundle before any external application. Source SQL content is copied without rewriting history.",
   "entries": [
     {
@@ -468,7 +468,7 @@
     {
       "file": "20261016000104_review_taxguard_ledger_year_scope.sql",
       "source": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
-      "sourceSha256": "3beae706e4527ba405473ddb343bf14d4b10b059145bc76ec3e83d08d81809a7",
+      "sourceSha256": "79b95bbe709418a6228c3e591fcc70067a2ff481f3ad9cda86048368457d36c3",
       "version": "20261016000104"
     },
     {

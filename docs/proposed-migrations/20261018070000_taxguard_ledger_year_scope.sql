@@ -113,13 +113,14 @@ BEGIN
 EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow OR invalid_text_representation THEN RAISE EXCEPTION 'LEDGER_INPUT_INVALID' USING ERRCODE = 'P0001';
 END $$;
 
--- Current definition: 20261012240000. Added: the requested tax year must be in the actor's scope.
+-- Current definition: 20261012240000. Added: the requested tax year must be in the actor's scope, and an "as of" date must fall inside that year (otherwise later years' activity was summed into the period).
 CREATE OR REPLACE FUNCTION public.taxguard_ledger_trial_balance(p_tenant text, p_client text, p_actor text, p_tax_year integer, p_as_of date) RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE r text; start_date date := make_date(p_tax_year, 1, 1); end_date date := COALESCE(p_as_of, make_date(p_tax_year, 12, 31));
 BEGIN
   r := public.taxguard_ledger_actor(p_tenant, p_client, p_actor);
   PERFORM public.taxguard_ledger_year_guard(p_tenant, p_client, p_actor, r, p_tax_year);
+  IF p_as_of IS NOT NULL AND (p_as_of < start_date OR p_as_of > make_date(p_tax_year, 12, 31)) THEN RAISE EXCEPTION 'LEDGER_INPUT_INVALID' USING ERRCODE = 'P0001'; END IF;
   RETURN (SELECT COALESCE(jsonb_agg(jsonb_build_object('accountId', t.account_id, 'accountNumber', t.account_number, 'accountName', t.account_name,
       'accountType', t.account_type, 'accountSubtype', t.account_subtype, 'beginningDebitCents', t.bd, 'beginningCreditCents', t.bc,
       'periodDebitCents', t.pd, 'periodCreditCents', t.pc) ORDER BY t.account_number), '[]'::jsonb)

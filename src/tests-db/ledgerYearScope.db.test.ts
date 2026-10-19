@@ -27,7 +27,7 @@ beforeAll(async () => {
     INSERT INTO taxguard_clients(tenant_id, client_id, owner_uid, name) VALUES ('${T}', '${C}', 'ly-client', 'Synthetic Ledger Client');
     INSERT INTO taxguard_members(tenant_id, uid, role, status) VALUES ('${T}', 'ly-admin', 'admin', 'active'), ('${T}', 'ly-mgr', 'practice_manager', 'active'),
       ('${T}', 'ly-bk', 'bookkeeper', 'active'), ('${T}', 'ly-rev', 'reviewer', 'active'), ('${T}', 'ly-wbk', 'bookkeeper', 'active'), ('${T}', 'ly-wrev', 'reviewer', 'active'),
-      ('${T}', 'ly-stale', 'bookkeeper', 'active'), ('${T}', 'ly-revoked', 'bookkeeper', 'active'), ('${T2}', 'ly-foreign', 'admin', 'active');`);
+      ('${T}', 'ly-stale', 'bookkeeper', 'active'), ('${T}', 'ly-revoked', 'bookkeeper', 'active'), ('${T}', 'ly-bk24', 'bookkeeper', 'active'), ('${T2}', 'ly-foreign', 'admin', 'active');`);
   const practice = new PracticeStore(pgRpc(db.pool));
   const eng = (await practice.createEngagement(T, C, 'ly-mgr', 'ly-engagement', { title: 'Synthetic multi-year', type: 'bookkeeping', taxYears: [2025, 2024] })).engagementId;
   await practice.setEngagementStatus(T, C, 'ly-mgr', eng, 'active', 1);
@@ -38,7 +38,8 @@ beforeAll(async () => {
     ('ly-wide-bk', '${T}', '${C}', NULL, NULL, 'bookkeeper', 'ly-wbk', 'ly-mgr', 'ACTIVE', now() - interval '1 day', NULL),
     ('ly-wide-rev', '${T}', '${C}', NULL, NULL, 'reviewer', 'ly-wrev', 'ly-mgr', 'ACTIVE', now() - interval '1 day', NULL),
     ('ly-stale-1', '${T}', '${C}', '${eng}', 2025, 'preparer_assistant', 'ly-stale', 'ly-mgr', 'ACTIVE', now() - interval '10 days', now() - interval '1 day'),
-    ('ly-revoked-1', '${T}', '${C}', '${eng}', 2025, 'bookkeeper_assistant', 'ly-revoked', 'ly-mgr', 'REVOKED', now() - interval '10 days', NULL);`);
+    ('ly-revoked-1', '${T}', '${C}', '${eng}', 2025, 'bookkeeper_assistant', 'ly-revoked', 'ly-mgr', 'REVOKED', now() - interval '10 days', NULL),
+    ('ly-bk24-1', '${T}', '${C}', '${eng}', 2024, 'bookkeeper', 'ly-bk24', 'ly-mgr', 'ACTIVE', now() - interval '1 day', NULL);`);
   await ledger.createAccounts(S, 'ly-admin', [{ id: acct.cash, accountNumber: '1010', accountName: 'Cash', accountType: 'ASSET', accountSubtype: 'BANK' } as any,
     { id: acct.equity, accountNumber: '3010', accountName: 'Owner equity', accountType: 'EQUITY', accountSubtype: 'EQUITY' } as any]);
   for (const year of [2025, 2024]) {
@@ -127,6 +128,35 @@ describe('a staff member assigned for one tax year reaches only that year of the
     expect(mine.some(h => refs(h).some(r => of2025.has(r)))).toBe(true);
     expect(mine.every(h => refs(h).length > 0 && !refs(h).some(r => of2024.has(r)))).toBe(true);
     expect((await ledger.history(S, 'ly-wbk', 200)).length).toBe(all.length);
+  });
+
+  it('a trial balance "as of" date must fall inside the requested tax year, so later years are never summed in', async () => {
+    // entry[2025] was approved (POSTED) above; a 2024-only member asking for 2024 "as of" a 2025 date would receive it.
+    expect((await ledger.read(S, 'ly-admin', 2025)).entries.find(e => e.id === entry[2025])!.status).toBe('POSTED');
+    expect(await code(ledger.trialBalance(S, 'ly-bk24', 2025))).toBe('LEDGER_ACCESS_DENIED');
+    expect(await code(ledger.trialBalance(S, 'ly-bk24', 2024, '2025-12-31'))).toBe('LEDGER_INPUT_INVALID');
+    expect(await code(ledger.trialBalance(S, 'ly-bk24', 2024, '2023-12-31'))).toBe('LEDGER_INPUT_INVALID');
+    expect(await code(ledger.trialBalance(S, 'ly-admin', 2024, '2025-12-31'))).toBe('LEDGER_INPUT_INVALID');
+    expect(await code(ledger.trialBalance(S, 'ly-bk24', 2024, '2024-06-30'))).toBe('OK');
+    expect(await code(ledger.trialBalance(S, 'ly-bk24', 2024))).toBe('OK');
+    // Boundaries: the first and last day of the year are inside it; the days either side are not, for every role.
+    for (const who of ['ly-bk24', 'ly-mgr', 'ly-admin', 'ly-wbk']) {
+      expect(await code(ledger.trialBalance(S, who, 2024, '2024-01-01')), who).toBe('OK');
+      expect(await code(ledger.trialBalance(S, who, 2024, '2024-12-31')), who).toBe('OK');
+      expect(await code(ledger.trialBalance(S, who, 2024, '2023-12-31')), who).toBe('LEDGER_INPUT_INVALID');
+      expect(await code(ledger.trialBalance(S, who, 2024, '2025-01-01')), who).toBe('LEDGER_INPUT_INVALID');
+    }
+    // Within the year the period holds only that year's postings: the 2025 posting never appears in a 2024 report.
+    const posted = async (from: string, to: string) => Number((await db.pool.query(`SELECT COALESCE(sum(l.debit_cents), 0) AS d FROM taxguard_ledger_lines l
+      JOIN taxguard_ledger_entries e ON e.tenant_id = l.tenant_id AND e.client_id = l.client_id AND e.entry_id = l.entry_id
+      WHERE e.tenant_id = $1 AND e.client_id = $2 AND e.status = 'POSTED' AND e.posting_date BETWEEN $3 AND $4`, [T, C, from, to])).rows[0].d);
+    const periodDebits = async (who: string, asOf: string) => ((await b2t('taxguard_ledger_trial_balance', who, { p_tax_year: 2024, p_as_of: asOf })) as any[])
+      .reduce((n, r) => n + Number(r.periodDebitCents), 0);
+    expect(await posted('2025-01-01', '2025-12-31')).toBeGreaterThan(0);
+    for (const who of ['ly-bk24', 'ly-wbk']) expect(await periodDebits(who, '2024-12-31'), who).toBe(await posted('2024-01-01', '2024-12-31'));
+    // Managers, administrators and client-wide staff keep every year; the 2024-only member still cannot ask for 2025.
+    for (const who of ['ly-mgr', 'ly-admin', 'ly-wbk']) expect(await code(ledger.trialBalance(S, who, 2025, '2025-12-31')), who).toBe('OK');
+    expect(await code(ledger.trialBalance(S, 'ly-bk24', 2025, '2025-12-31'))).toBe('LEDGER_ACCESS_DENIED');
   });
 });
 

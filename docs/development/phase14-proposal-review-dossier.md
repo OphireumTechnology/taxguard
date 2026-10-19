@@ -105,8 +105,12 @@ function from the proposal and from the file named on its `-- Current definition
   - A year in the request is refused with `LEDGER_ACCESS_DENIED`; a record addressed by id that is out of scope
     gets its not-found code.
   - Chart of accounts and bank-feed ingestion stay client-level.
-- **Evidence:** `ledgerYearScope.db` (8). Five cases failed first; the trigger case was shown to fail with the
+- **Evidence:** `ledgerYearScope.db` (9). Five cases failed first; the trigger case was shown to fail with the
   triggers disabled.
+- **Amended 2026-10-19:** `taxguard_ledger_trial_balance` accepted any "as of" date, so a member assigned only for
+  2024 could request 2024 "as of" a 2025 date and receive 2025 activity in the period. The date must now fall
+  inside the requested year (`LEDGER_INPUT_INVALID`). The new case failed first. Codex's `trial_balance_exact`
+  delegates here and inherits the fix.
 - **Rollback:** re-apply the listed definitions, drop both triggers and the helpers.
 
 ### 20261018080000: document-request engagement-year scope (Package B)
@@ -256,6 +260,9 @@ function from the proposal and from the file named on its `-- Current definition
      requesting owner approval.
 
 ## Integration readiness against Codex's Phase 15 branches (read-only, 2026-10-19)
+
+The owner-approval plan for the version collision, refund withdrawal, merge steps and reproduction is
+`phase14-phase15-migration-integration-plan.md`.
 
 The ten `origin/codex/taxguard-phase15-*` branches were compared with `origin/main` (`6e31a40`). Nothing on those
 branches was modified.

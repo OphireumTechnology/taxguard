@@ -5354,9 +5354,29 @@
       ]
     },
     {
+      "file": "docs/development/phase14-phase15-migration-integration-plan.md",
+      "sha256": "93de7d2ebc413c6609d314c193f9825da5ab065a8efa87017d3d11d7cfa2e8ba",
+      "bytes": 17094,
+      "headings": [
+        "# Phase 14 / Phase 15 migration integration plan (for owner approval)",
+        "## 1. The collision (verified)",
+        "## 2. Preconditions for renumbering the two Phase 15 reporting migrations",
+        "## 3. Decision matrix",
+        "## 4. Exact steps (Option A), after owner approval",
+        "### 4.1 Codex branch (Codex executes; Phase 14 does not touch Codex branches)",
+        "### 4.2 Phase 14 branch (only after the owner confirms the refund decision)",
+        "### 4.3 Merged branch",
+        "## 5. Reproduction (disposable loopback PostgreSQL, scratch worktree, since deleted)",
+        "## 6. Pre-existing finding (not caused by either phase)",
+        "## 7. Financial integration findings",
+        "## 8. Codex handoff: exact changes (Codex executes; nothing here was applied to Codex branches)",
+        "## 9. Remaining approvals (exact)"
+      ]
+    },
+    {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "b102fa4cb775dcc1e527c57ba33b3158673bc2e580707d26a5c40c366a72f02e",
-      "bytes": 46627,
+      "sha256": "67e1b6d39f7ab5c8d8989c21a2707612ab4c3bcda2c1635508f1fd18efea2208",
+      "bytes": 46837,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5368,8 +5388,8 @@
     },
     {
       "file": "docs/development/phase14-proposal-review-dossier.md",
-      "sha256": "64873589a5755ea9784dd9eac9c4da7120ef4fdbcc96b3b6f3250b5cde32f92c",
-      "bytes": 21047,
+      "sha256": "4e3fe61f396640ac91481df0a16bc52f79a060edc04bfc03af6f26bbd9fabc54",
+      "bytes": 21574,
       "headings": [
         "# Phase 14 proposal review dossier: 20261018020000 to 20261018100000",
         "## How the copies were made",
@@ -5391,13 +5411,14 @@
     },
     {
       "file": "docs/development/phase14-remaining-domain-access-policy.md",
-      "sha256": "dca61096cfc75fa612caf2cd50589f3bf1cf360988eee21a391b8a797acb0769",
-      "bytes": 4824,
+      "sha256": "35668487ffd4f946b5bc12e050f0524443fe472b4b4609ca7ffa3b72448b63cc",
+      "bytes": 7291,
       "headings": [
         "# Messaging, appointments and legal matters: access policy decision (owner)",
         "## Findings (current definitions, execution order)",
         "## Engagement-attached records (recommended, no policy question)",
         "## General client-level records (owner decision required)",
+        "## Option C: record-specific definitions (for review; not implemented)",
         "## Implementation outline (after approval)"
       ]
     },
@@ -5547,6 +5568,35 @@
         "## What is deliberately not here",
         "## Source-cited verification cases (proposal 036, added 2026-10-13)",
         "## Verification-case coverage (proposal 038, added 2026-10-13)"
+      ]
+    },
+    {
+      "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
+      "sha256": "a79e52ead5437a41d4e680ad23f6a6d2761cfbbfdd5cff96bae46d39d0cddefe",
+      "bytes": 10003,
+      "headings": [
+        "# TaxGuard AI master completion plan",
+        "## How status is assigned",
+        "## Repository facts (read from source, 2026-10-19)",
+        "## Workstream inventory",
+        "### Phase 14 and Phase 15 integration (Phase B)",
+        "### Core application (Phase C)",
+        "### Documents, communication, finance, AI, security (Phases D–G)",
+        "### Production readiness (Phases H–J)",
+        "## Next packages (independently executable, ordered by risk)"
+      ]
+    },
+    {
+      "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
+      "sha256": "3a1dbe65f82768a1e5a4c59b09ec10eb5aee99617f60b0884436e5f6c069af81",
+      "bytes": 3191,
+      "headings": [
+        "# TaxGuard AI master completion status",
+        "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
+        "### Verified (with evidence)",
+        "### In progress (not yet verified)",
+        "### Blocked (recorded, not worked around)",
+        "### Next priorities"
       ]
     },
     {
@@ -6010,8 +6060,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
-      "sha256": "3beae706e4527ba405473ddb343bf14d4b10b059145bc76ec3e83d08d81809a7",
-      "bytes": 52761,
+      "sha256": "79b95bbe709418a6228c3e591fcc70067a2ff481f3ad9cda86048368457d36c3",
+      "bytes": 53042,
       "headings": []
     },
     {

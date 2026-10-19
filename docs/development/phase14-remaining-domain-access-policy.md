@@ -40,6 +40,44 @@ meeting or an estate matter not tied to a return.
 **Recommendation: C**, plus a manager action to attach a general record to an engagement, which then follows the
 engagement rule. `INTERNAL_ONLY` messages in a general thread follow the thread's visibility, never wider.
 
+## Option C: record-specific definitions (for review; not implemented)
+
+**General record** means a record attached to no engagement:
+- a thread with `engagement_id IS NULL AND case_id IS NULL`;
+- an appointment with `engagement_id IS NULL`;
+- a legal matter with `engagement_id IS NULL`.
+
+A record that names an engagement or a case is never general. It follows the engagement rule, even when its
+participants differ.
+
+**Participant** means a staff member recorded on the record itself, never one inferred from documents, cases or
+other links:
+
+| Domain | Participants (recorded columns) |
+|---|---|
+| Messaging | the thread's `created_by`, and every `sender_id` of a message in that thread (`INTERNAL_ONLY` messages included) |
+| Appointments and rooms | the appointment's `staff_uid` and `created_by`, every `actor_uid` in `taxguard_appointment_events`, and every staff `actor_uid` in `taxguard_appointment_room_events` |
+| Legal matters | the matter's `created_by`, and every `actor_uid` in `taxguard_legal_matter_events` |
+
+**Recommended conditions:**
+- **Participation never outlives the client relationship.** A participant also needs a live assignment to the
+  client (any engagement or year). Otherwise someone who posted once would keep a general thread after leaving
+  the client. Revoking every assignment ends access at once, as in the other packages.
+- **Clients** are unchanged: their own client only, no `INTERNAL_ONLY` messages, no internal notes, and archived
+  threads hidden.
+- **Becoming a participant:** a staff member who is not a participant cannot make themselves one by posting.
+  Posting to a general record requires already seeing it. A manager can add a participant or attach the record
+  to an engagement, and both actions are audited.
+- **Refusals** reuse each domain's existing not-found codes (`COMM_THREAD_NOT_FOUND` and the appointment and legal
+  equivalents), so an out-of-scope record is indistinguishable from a missing one.
+
+**Risks to weigh for the decision:**
+- **Event tables grow participant sets over time.** Every staff member who ever acted on a legal matter remains a
+  participant while assigned to the client. Restricting participants to the creator and the assigned staff member
+  is narrower but loses co-workers.
+- **Routing work:** under option C a general client question reaches only whole-client staff until a manager
+  routes it. Measure that against the response-time expectations the firm sets for clients.
+
 ## Implementation outline (after approval)
 
 1. One proposal replacing the current `taxguard_comm_*`, `taxguard_apt_*`, `taxguard_room_*` and `taxguard_legal_*`
