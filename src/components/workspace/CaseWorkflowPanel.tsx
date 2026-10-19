@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { caseMessage, caseService, dependencyLabel, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
+import { caseMessage, caseService, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
+import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
 
 const label = (v: string) => v.replace(/_/g, ' ');
 
@@ -13,6 +14,9 @@ export function CaseWorkflowPanel() {
   const [statement, setStatement] = useState('');
   const [reason, setReason] = useState('');
   const [returnStage, setReturnStage] = useState('');
+  const [teamRole, setTeamRole] = useState<'preparer' | 'reviewer'>('reviewer');
+  const [teamUser, setTeamUser] = useState('');
+  const [team, setTeam] = useState<{ status: 'idle' | 'loading' | 'ready' | 'error'; rows: PracticeClientDetail['team'] }>({ status: 'idle', rows: [] });
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const selectedRef = useRef(selected); selectedRef.current = selected;
@@ -38,6 +42,15 @@ export function CaseWorkflowPanel() {
     finally { setBusy(false); }
   };
   const c = detail?.case; const policy = detail?.stagePolicy;
+  // Visibility only: the server decides who may restaff (managers and administrators) and re-checks every condition.
+  const managing = queue.items.find(q => q.caseId === selected)?.myRole === 'manager';
+  const teamClient = managing ? c?.clientId : undefined;
+  const loadTeam = useCallback((clientId: string) => {
+    setTeam({ status: 'loading', rows: [] });
+    practiceService.clientDetail(clientId).then(d => setTeam({ status: 'ready', rows: d.team })).catch(() => setTeam({ status: 'error', rows: [] }));
+  }, []);
+  useEffect(() => { if (teamClient) loadTeam(teamClient); else setTeam({ status: 'idle', rows: [] }); }, [teamClient, loadTeam]);
+  const candidates = c ? restaffCandidates(team.rows, c, teamRole) : [];
   return <section aria-labelledby="case-workflow-heading" className="tg-manager-card">
     <h2 id="case-workflow-heading">Case Workflow</h2>
     <div className="tg-manager-controls"><label>Queue<select value={role} onChange={e => setRole(e.target.value)}><option value="">All my cases</option>
@@ -81,6 +94,18 @@ export function CaseWorkflowPanel() {
           <button type="button" disabled={busy || !returnStage || reason.trim().length < 10} onClick={() => run(() => caseService.returnTo(c.caseId, Number(returnStage), c.version, reason), 'Case returned.')}>Return case</button></>}
         <button type="button" disabled={busy || reason.trim().length < 5 || !['ACTIVE', 'ON_HOLD'].includes(c.status)}
           onClick={() => run(() => caseService.hold(c.caseId, c.status === 'ACTIVE', c.version, reason), c.status === 'ACTIVE' ? 'Case placed on hold.' : 'Case resumed.')}>{c.status === 'ON_HOLD' ? 'Resume case' : 'Place on hold'}</button>
+        {managing && <form aria-labelledby="case-team-heading" onSubmit={e => { e.preventDefault(); void run(() => caseService.restaff(c.caseId, teamRole, teamUser, c.version, reason), 'Case team updated.'); }}>
+          <h4 id="case-team-heading">Case team</h4>
+          <p>Engagement {c.engagementId} · tax year {c.taxYear}. Only people already assigned to this engagement and year in that role can take it over; the reason above is recorded.</p>
+          <label>Role<select value={teamRole} onChange={e => { setTeamRole(e.target.value as 'preparer' | 'reviewer'); setTeamUser(''); }}><option value="preparer">Preparer (now {c.preparerUid})</option><option value="reviewer">Reviewer (now {c.reviewerUid})</option></select></label>
+          <button type="button" disabled={team.status === 'loading'} onClick={() => loadTeam(c.clientId)}>Refresh team</button>
+          {team.status === 'loading' && <p role="status">Loading the engagement team…</p>}
+          {team.status === 'error' && <p role="alert">The engagement team could not be loaded. <button type="button" onClick={() => loadTeam(c.clientId)}>Retry</button></p>}
+          {team.status === 'ready' && candidates.length === 0 && <p role="status">No one else holds the {teamRole} assignment for this engagement and year. Assign someone in Client Management first.</p>}
+          {candidates.length > 0 && <label>New {teamRole}<select value={teamUser} onChange={e => setTeamUser(e.target.value)}><option value="">Select a person</option>
+            {candidates.map(u => <option key={u} value={u}>{u}</option>)}</select></label>}
+          <button disabled={busy || !teamUser || reason.trim().length < 10 || !['ACTIVE', 'ON_HOLD'].includes(c.status)}>{busy ? 'Saving…' : 'Change case team'}</button>
+        </form>}
         <h4>History</h4>
         <ul>{detail!.events.map((ev, i) => <li key={ev.at + i}>{label(ev.action.toLowerCase())} → {stageLabel(ev.toStage)}{ev.evidenceType ? ` · ${label(ev.evidenceType.toLowerCase())}` : ''}{ev.reason ? ` · ${ev.reason}` : ''} · {ev.actorUid} · {new Date(ev.at).toLocaleString()}</li>)}</ul>
       </>}

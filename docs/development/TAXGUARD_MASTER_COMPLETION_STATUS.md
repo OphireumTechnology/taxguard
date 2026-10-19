@@ -53,6 +53,13 @@ Audits completed in this cycle (documents):
   lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 113/113 and provider
   browser 40/40. The security-header package was published as `7c26026` (CI run 39255408711 success).
 
+- **Manager case-team form** in Case Workflow: `caseService.restaff`, `restaffCandidates`, Refresh team, specific refusal
+  messages, entries kept on refusal. The browser test found a route-allowlist defect (`practiceManagerAccess.ts` did
+  not list `POST /api/cases/:id/team`), now fixed with a failing-first allowlist test. Local validation passes:
+  PostgreSQL 133, unit 5842, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
+  browser 113/113 and provider browser 41/41 (the new reassignment journey included). The route-cutover gate was
+  published as `092e756` (CI run 39260819850 success).
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**

@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "971d635712488daf45fc4426030a3685420f963a3d29bbcfaaa23fecb6f87810",
-      "bytes": 47417,
+      "sha256": "8d830be198b0d28fcdb74a6afd1154e1f6190ed81dfe44c628aa550f2d0c168b",
+      "bytes": 48559,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5597,8 +5597,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "64b6c8160b7968e6fabc10b52fcd227611ac74997d478658bf91711f852ca7e8",
-      "bytes": 10597,
+      "sha256": "567d0251d4816bd6a236e2fbc81cf02941437cfdfda406695918e71e288d49db",
+      "bytes": 10631,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "8e5c9c9d49dc7c0f3b8cf0823ec202177f7baf38b97cfb7264d166b56ab2e438",
-      "bytes": 5259,
+      "sha256": "197d8a5d26f4da7ff26dc652cd00a8f5dce763e3ce735d690b60cf6affe8cdf5",
+      "bytes": 5897,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7150,7 +7150,7 @@
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/backup/logical-backup.mjs": "d43b32114ecd5ea781df3100ebaf1ae1b436b46a274f0bc7008d32a8ae005163",
-    "scripts/e2e/e2e-server.ts": "c3658e6683ffaf50dea2d731ecbe568977b286481ceb47a072df9a6f15e23afd",
+    "scripts/e2e/e2e-server.ts": "7c8cadf8c9486e64cffd29b03757219587458aaf6fa35e642fad0185b9d4412a",
     "scripts/frontend/reachability-audit.mjs": "a4f32a935ecb879bc774d3b4a8d35c9466da08b33d1abad566591e0f7bae6481",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/migrations/migration-audit.mjs": "0fdde903233b5fd7c836b45da7e80e7d86aba205796d0e7de97032d92816df22",

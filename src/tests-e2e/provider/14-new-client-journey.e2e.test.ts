@@ -421,6 +421,54 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     const leak = /1000|42\.5|d0000000-0000-4000-8000-0000000000a[5-7]|Synthetic reviewer attestation/.exec(portalText);
     expect(leak ? portalText.slice(Math.max(0, leak.index - 80), leak.index + 80) : null).toBeNull();
   });
+
+  it('the manager moves the case reviewer from the case workflow; a refused change keeps what was entered', async () => {
+    const NEW_REVIEWER = 'd0000000-0000-4000-8000-0000000000a8';
+    const eng = await engagementId();
+    const team = async () => (await api(managerToken, 'GET', `/api/practice/clients/${clientId}`)).body.team as Array<{ assignmentId: string; role: string; userId: string }>;
+    const revoke = async (userId: string) => {
+      const row = (await team()).find(t => t.role === 'reviewer' && t.userId === userId)!;
+      const r = await api(managerToken, 'POST', `/api/practice/clients/${clientId}/team/${row.assignmentId}/revoke`, { reason: 'Synthetic reviewer change for journey B' });
+      expect(r.status, r.body?.code).toBeLessThan(300);
+    };
+    const assign = async (key: string) => {
+      const r = await api(managerToken, 'POST', `/api/practice/clients/${clientId}/engagements/${eng}/team`, { taxYear: 2025, role: 'reviewer', userId: NEW_REVIEWER, reason: 'Synthetic reviewer change for journey B' }, key);
+      expect(r.status, r.body?.code).toBeLessThan(300);
+    };
+    const m = await liveSessionWithToken(managerToken, '/staff');
+    const { page } = m;
+    await page.getByRole('button', { name: 'Case Workflow' }).first().click();
+    await page.getByRole('button', { name: caseId.slice(0, 16) }).click();
+    const form = page.getByRole('form', { name: 'Case team' });
+    await form.waitFor();
+    expect(await form.innerText()).toContain('tax year 2025');
+    await sees(page, 'No one else holds the reviewer assignment');
+    // The engagement's reviewer assignment moves to the new reviewer; the case still records the old one.
+    await revoke(REVIEWER);
+    await assign('journey-b-reviewer-a8');
+    await form.getByRole('button', { name: 'Refresh team' }).click();
+    await form.getByLabel('New reviewer').selectOption(NEW_REVIEWER);
+    await page.getByLabel('Reason (recorded)').fill('Synthetic reassignment after a staffing change');
+    // The assignment is withdrawn before submitting: the server refuses and the entries stay as they were.
+    await revoke(NEW_REVIEWER);
+    await form.getByRole('button', { name: 'Change case team' }).click();
+    await sees(page, 'no longer holds this role');
+    expect(await form.getByLabel('New reviewer').inputValue()).toBe(NEW_REVIEWER);
+    expect(await page.getByLabel('Reason (recorded)').inputValue()).toBe('Synthetic reassignment after a staffing change');
+    expect((await api(managerToken, 'GET', `/api/cases/${caseId}`)).body.case.reviewerUid).toBe(REVIEWER);
+    // With the assignment restored, the same entries succeed.
+    await assign('journey-b-reviewer-a8-again');
+    await form.getByRole('button', { name: 'Change case team' }).click();
+    await sees(page, 'Case team updated.');
+    await sees(page, `Reviewer ${NEW_REVIEWER}`);
+    expect((await api(managerToken, 'GET', `/api/cases/${caseId}`)).body.case.reviewerUid).toBe(NEW_REVIEWER);
+    // The former reviewer no longer reaches the case; a non-manager cannot restaff.
+    expect((await api(reviewerToken, 'GET', `/api/cases/${caseId}`)).status).toBe(404);
+    const version = (await api(managerToken, 'GET', `/api/cases/${caseId}`)).body.case.version;
+    expect((await api(preparerToken, 'POST', `/api/cases/${caseId}/team`, { role: 'reviewer', userId: REVIEWER, version, reason: 'Synthetic attempt by the preparer' })).status).toBe(403);
+    expect(realErrors(m)).toEqual([]);
+    await m.context.close();
+  });
 });
 
 /** Selects the option whose text contains the account number (the ledger account pickers show "1010 · Cash"). */

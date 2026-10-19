@@ -37,7 +37,17 @@ export const caseService = {
     request<{ activeStage: number; version: number }>('POST', id(caseId) + '/advance', { fromStage, version, attestation }),
   returnTo: (caseId: string, toStage: number, version: number, reason: string) => request('POST', id(caseId) + '/return', { toStage, version, reason }),
   hold: (caseId: string, hold: boolean, version: number, reason: string) => request('POST', id(caseId) + '/hold', { hold, version, reason }),
+  /** Managers and administrators: move the case's preparer or reviewer to a person who already holds that live assignment. */
+  restaff: (caseId: string, role: 'preparer' | 'reviewer', userId: string, version: number, reason: string) =>
+    request<{ role: string; previousUid: string; newUid: string; version: number }>('POST', id(caseId) + '/team', { role, userId, version, reason }),
 };
+/** People who may take over a case role: they already hold that live assignment for the case's engagement and year. */
+export function restaffCandidates(team: ReadonlyArray<{ role: string; userId: string; engagementId: string | null; taxYear: number | null }>,
+  target: { engagementId: string; taxYear: number; preparerUid: string; reviewerUid: string }, role: 'preparer' | 'reviewer'): string[] {
+  const current = role === 'preparer' ? target.preparerUid : target.reviewerUid;
+  return [...new Set(team.filter(t => t.role === role && (t.engagementId === null || t.engagementId === target.engagementId)
+    && (t.taxYear === null || t.taxYear === target.taxYear) && t.userId !== current).map(t => t.userId))].sort();
+}
 export const STAGE_NAMES = ['Onboard', 'Collect', 'Validate', 'Record', 'Reconcile', 'Review', 'Report', 'Plan', 'Prepare Taxes', 'Approve', 'Sign', 'File',
   'Government Feedback', 'Resolve', 'Monitor', 'Archive', 'Renew', 'Repeat'];
 export const stageLabel = (n: number) => `${String(n).padStart(2, '0')} ${STAGE_NAMES[n - 1] ?? ''}`;
@@ -57,6 +67,10 @@ export function caseMessage(error: unknown): string {
     STAGE_SEQUENCE_INVALID: 'Stages advance one at a time from the current stage.', CASE_TEAM_INCOMPLETE: 'Assign an independent preparer and reviewer first.',
     CASE_STORE_UNAVAILABLE: 'Case workflow is not enabled in this environment.', STATUS_REASON_REQUIRED: 'Enter a reason of 5 to 500 characters.',
     RETURN_REASON_REQUIRED: 'Enter a reason of at least 10 characters.',
+    CASE_ASSIGNEE_NOT_ASSIGNED: 'That person no longer holds this role for the case\'s engagement and tax year. Refresh the team and try again.',
+    ASSIGNMENT_SEGREGATION_OF_DUTIES: 'Not allowed: the reviewer must be independent of anyone who prepared this case.',
+    PRACTICE_MANAGER_REQUIRED: 'Only a practice manager or administrator can change the case team.',
+    CASE_INPUT_INVALID: 'Choose a different person and enter a reason of 10 to 500 characters.',
   };
   return (error.code && known[error.code]) || (error.status === 403 ? 'Your role is not authorized for this action.' : 'The case service did not confirm this action.');
 }

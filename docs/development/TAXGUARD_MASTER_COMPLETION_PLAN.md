@@ -85,7 +85,7 @@ it; otherwise it maps to REVIEW REQUIRED.
 | General-ledger requested-year guard | PARTIAL | Codex candidate is unpublished |
 | Prior-year opening balances | BLOCKED | Owner policy |
 | Ledger engagement attribution | BLOCKED | Owner confirmation of client-and-year authority |
-| Case-team reassignment (reviewed operation) | REVIEW REQUIRED | `20261018105000`, `caseRestaff.db` (7), `POST /api/cases/:caseId/team`; manager console control not built |
+| Case-team reassignment (reviewed operation) | REVIEW REQUIRED | `20261018105000`, `caseRestaff.db` (7), `POST /api/cases/:caseId/team`; manager Case team form in Case Workflow (provider browser suite 14) |
 | Messaging, appointments, legal: engagement-linked records | MISSING | Ready to implement after the general-record policy |
 | Messaging, appointments, legal: general records | BLOCKED | Owner policy (`phase14-remaining-domain-access-policy.md`, option C recommended) |
 | Native PostgreSQL 17 acceptance (concurrency, backup and restore) | BLOCKED | `pg_dump` / `pg_restore` 17 absent locally. The embedded loopback suite passes; it is preliminary evidence, not acceptance. |

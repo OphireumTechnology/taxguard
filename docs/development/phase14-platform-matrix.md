@@ -418,7 +418,19 @@ could mean "the UI claims something the backend cannot deliver".
   - **Controls:** a reason and the case version are required, segregation of duties is kept, history is untouched,
     and the change is audited.
   - **Tests:** `caseRestaff.db` (7) failed first, including the API cases.
-  - **Not yet built:** a manager console control for this route.
+  - **Manager console (Block 33):** Case Workflow has a Case team form for practice managers.
+    - It shows the engagement and year, the current holder of each role, and only people who already hold that
+      live assignment (`restaffCandidates`).
+    - It requires a recorded reason and the case version, and has a Refresh team action.
+    - Specific refusal messages; a refused change keeps the selection and reason.
+    - Visibility is a hint only; the server decides.
+  - **Defect found by the browser test and fixed:** the practice-manager route allowlist (`practiceManagerAccess.ts`)
+    did not list `POST /api/cases/:id/team`, so every durable manager was refused before the database. The
+    database-level tests mount the router directly and could not see it. The allowlist test failed first.
+  - **Browser coverage:** provider suite 14. The manager reassigns the case reviewer through the UI; an assignment
+    withdrawn just before submitting is refused with the entries kept; once restored, the change succeeds; the
+    former reviewer loses the case and the preparer cannot restaff. Unit coverage: `caseWorkflowPanel.test`
+    (restaff request shape, candidate filtering, refusal messages).
 
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
