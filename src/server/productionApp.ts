@@ -14,6 +14,7 @@ import { createAccountantDashboardRouter, type AccountantDashboardDeps } from '.
 import { taxFormsRouter } from './routes/taxForms.routes';
 import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service';
 import { createHealthRouter } from './observability/health';
+import { applyFramingPolicy } from './securityHeaders';
 import { runtimeProbes } from './observability/defaultProbes';
 import {
   protectServerBuildArtifacts,
@@ -42,6 +43,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    applyFramingPolicy(res, true);
     res.vary('Origin');
     const origin = req.headers.origin;
     if (origin && !['https://artaxserv.com', 'https://www.artaxserv.com'].includes(origin)) {

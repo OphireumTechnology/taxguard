@@ -89,7 +89,14 @@ unavailable feature.
    - `Content-Security-Policy: frame-ancestors 'none'`;
    - `Strict-Transport-Security: max-age=31536000; includeSubDomains`.
 
-   The development server is unchanged.
+   Both entry points share `src/server/securityHeaders.ts`. `server.ts` applies it whenever
+   `NODE_ENV=production` and keeps framing open only in development. Covered by `productionFrameHeaders.test`, which
+   failed first.
+   **Remaining (deployment architecture):** the public site and portals are published to GitHub Pages
+   (`deploy-pages.yml`, custom domain), and GitHub Pages cannot set response headers. HTML served from Pages
+   therefore cannot carry `frame-ancestors` or `X-Frame-Options`; a meta-tag CSP ignores `frame-ancestors`. Closing
+   this needs the portal HTML served through a host or CDN that sets headers. That is a hosting decision for the
+   owner, recorded as a release blocker.
 2. **No full Content-Security-Policy.** A script and style CSP needs tuning against the built bundle (inline
    styles, the asset host). It is recorded as remaining hardening, not guessed.
 3. **CORS methods:** the production allowlist sends `GET, POST, PATCH, OPTIONS`. No router under

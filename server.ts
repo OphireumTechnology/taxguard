@@ -49,6 +49,7 @@ import {
   resolveProductionIndexHtmlPath,
   createSpaFallbackHandler,
 } from './src/server/staticAssetPolicy';
+import { applyFramingPolicy } from './src/server/securityHeaders';
 import { caseAuthorityRouter } from './src/server/routes/case-authority.routes';
 import { createServer as createViteServer } from 'vite';
 
@@ -340,14 +341,10 @@ app.use(
     );
 
     /**
-     * Existing application behavior retained.
-     *
-     * The application may be rendered in supported preview
-     * environments, so X-Frame-Options is not forced here.
+     * Development may be rendered in supported preview environments, so framing stays open there.
+     * Production is never framable and is HTTPS-only (src/server/securityHeaders.ts).
      */
-    res.removeHeader(
-      'X-Frame-Options'
-    );
+    applyFramingPolicy(res, process.env.NODE_ENV === 'production');
 
     if (
       req.method ===

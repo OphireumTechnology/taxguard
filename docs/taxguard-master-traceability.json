@@ -4775,8 +4775,8 @@
     },
     {
       "file": "docs/development/ai-workforce-audit.md",
-      "sha256": "d12f39188d6f3a0c661c3f4a4ecc82b4d11a025abc846b18c49ac2e6eec866a9",
-      "bytes": 4363,
+      "sha256": "bc5f2fb051581a6e7e4a42a949de186ef6fcfa19900906a78d866308d76a5fb8",
+      "bytes": 5039,
       "headings": [
         "# AI workforce audit: definitions versus governed, executable agents (2026-10-19)",
         "## What exists",
@@ -5472,8 +5472,8 @@
     },
     {
       "file": "docs/development/production-route-parity.md",
-      "sha256": "959bb8fe2884fd17da3f310b4512f8f660e928cee34a4232bb2d780b6d257cde",
-      "bytes": 6977,
+      "sha256": "d26cc9a9a17acd4549bc9c833625c2adfad3a15333e0cdf77d0279f205b9aec0",
+      "bytes": 7644,
       "headings": [
         "# Production route parity (verified inventory, 2026-10-19)",
         "## How the two entry points relate",
@@ -5612,8 +5612,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "11d1cceb6c0d831f2c746eb95fc5b5b0dc14bc6334569861adba80dcc74dff04",
-      "bytes": 4032,
+      "sha256": "da4fc5ab81d670dd117905e7e467c5e3513bc7b2c924645956583fc1775c1350",
+      "bytes": 4611,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7206,7 +7206,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "1ab71410800ac91c70af3a7bb06466332e36f7a3848d65f0922948c36013bfdc",
+    "src/server/productionApp.ts": "c5910fcf561ea2c6b03169aad1c8d14cfdb9d3505338ccd357efbd479cbaf6c8",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "8f31ed13030cb6057c5f72fe8f4158ddefafe7f76565d78b4ad91ee5750ac3f9",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",

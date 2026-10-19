@@ -23,7 +23,7 @@ Local validation at the start of this cycle:
 
 On `8f207c9`, before commit: default browser 113/113 and provider browser 40/40.
 
-Case-team restaffing (`20261018105000_taxguard_case_restaff`, `CaseStore.restaff`, `POST /api/cases/:caseId/team`) was verified locally before publication. Its CI result is recorded in the next cycle.
+Case-team restaffing (`20261018105000_taxguard_case_restaff`, `CaseStore.restaff`, `POST /api/cases/:caseId/team`) was published as `3676f89` (CI run 39250380841 success). Local evidence before publication:
 - `caseRestaff.db`: 7 cases, all failing first while the function was absent;
 - PostgreSQL 133 (30 files);
 - unit 5764/5764 (352 files) after traceability regeneration;
@@ -39,7 +39,12 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Production framing and transport headers:** the failing-first test is drafted; the fix is next.
+- **Production framing and transport headers:** `src/server/securityHeaders.ts` is used by `createProductionApp`
+  and by `server.ts` in production; `productionFrameHeaders.test` failed first. Local validation passes: PostgreSQL 133, unit 5770, lint,
+  typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 113/113 and provider
+  browser 40/40.
+  **Remaining:** GitHub Pages cannot send headers, so HTML served from Pages stays framable until it moves to a
+  host or CDN that can. This is a hosting decision for the owner.
 
 ### Blocked (recorded, not worked around)
 
@@ -62,7 +67,9 @@ Audits completed in this cycle (documents):
 
 ### Next priorities
 
-1. Production framing and transport headers (`X-Frame-Options`, `frame-ancestors`, HSTS) in `createProductionApp`.
+1. Production framing and transport headers (validation and publication).
+2. AI capability reads: verify that `document.read` and `workflow.read` follow the requesting human's engagement and
+   year scope; failing-first if not.
 2. Engagement-linked messaging, appointment and legal records (no general-record change without the policy).
 3. A re-run of the function inventory for any remaining client-level reads.
 4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`).

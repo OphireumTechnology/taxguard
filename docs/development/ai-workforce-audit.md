@@ -36,8 +36,16 @@ and the `src/tests/ai*` suites. **No agent was activated or commissioned.**
    not authority.
 2. **Prompt-injection regression.** Retrieved document text containing instructions must not change the
    capability, scope or output schema. Extend `aiGovernedCapabilities` with injected evidence content.
-3. **Engagement and year scope for the capability reads.** `document.read` and `workflow.read` should follow the
-   same engagement and year scope as the Phase 14 database functions (`taxguard_staff_scope`) for the requesting
-   human. To be verified next, with a failing-first test if they do not.
+3. **Engagement and year scope for the capability reads: verified, no defect.**
+   - `SqlGovernanceStore.load` sets `assigned` only when the requester holds an active case-assignment row and a
+     live staff assignment for the case's exact engagement and year, in the role matching the recorded case name.
+   - `evaluateGovernancePolicy` denies with `AI_CASE_ACCESS_DENIED` otherwise.
+   - `document.read` returns only clean, released or verified documents of that case and year.
+   - `aiGovernanceControlPlane` and `aiGovernedCapabilities` cover deactivated and future-dated assignments.
+   - Case restaffing (`20261018105000`) deactivates the former person's case-assignment row, so their AI access ends
+     with their case access.
+4. **Workforce-wide deny-by-default regression (next).** Every one of the 61 agents is refused while DRAFT, and a
+   capability outside an active agent's grants is refused. Agent suspension already exists as an AGENT-scope kill
+   switch.
 
 Anything that gives an agent new write, external or financial authority is a protected gate.
