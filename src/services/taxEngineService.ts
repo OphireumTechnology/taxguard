@@ -40,11 +40,27 @@ export const taxEngineService = {
   transition: (ruleSetId: string, action: 'submit' | 'approve' | 'reject', note?: string) =>
     request<RuleSetSummary>('POST', '/rule-sets' + id(ruleSetId) + '/' + action, note ? { note } : {}),
   tests: (ruleSetId: string) => request<RuleSetTests>('GET', '/rule-sets' + id(ruleSetId) + '/tests'),
+  /** The server validates, hashes and versions the definition; nothing here is treated as tax law until approved. */
+  draftRuleSet: (definition: unknown) => request<RuleSetSummary>('POST', '/rule-sets', { definition }),
+  addTest: (ruleSetId: string, test: NewRuleTest) => request<{ testId: string }>('POST', '/rule-sets' + id(ruleSetId) + '/tests', test),
+  removeTest: (ruleSetId: string, testId: string) => request('POST', '/rule-sets' + id(ruleSetId) + '/tests' + id(testId) + '/remove', {}),
   /** The server evaluates every test with the deterministic engine and records the run; the browser computes nothing. */
   runTests: (ruleSetId: string) => request<{ testCount: number; passedCount: number; allPassed: boolean }>('POST', '/rule-sets' + id(ruleSetId) + '/run-tests', {}),
   caseRuns: (caseId: string) => request<{ items: CalculationRun[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/runs').then(r => r.items),
   reviewRun: (runId: string, decision: 'approve' | 'reject', note: string) => request<CalculationRun>('POST', '/runs' + id(runId) + '/' + decision, { note }),
 };
+export interface NewRuleTest { name: string; sourceId: string; citation: string; filingStatus?: string;
+  inputs: Array<{ factPath: string; value: string; evidenceIds: string[] }>; expected: Record<string, string> }
+/** Parses "path = value" lines (one per line). Returns null when any line is malformed or a key repeats. */
+export function parseAssignments(text: string): Array<[string, string]> | null {
+  const out: Array<[string, string]> = [];
+  for (const raw of text.split('\n').map(l => l.trim()).filter(Boolean)) {
+    const m = /^([A-Za-z0-9_.]{1,120})\s*=\s*(-?\d{1,15}(?:\.\d{1,4})?)$/.exec(raw);
+    if (!m || out.some(([k]) => k === m[1])) return null;
+    out.push([m[1], m[2]]);
+  }
+  return out.length ? out : null;
+}
 export interface RuleSetTests {
   testsSha256: string;
   tests: Array<{ testId: string; name: string; filingStatus: string | null; expected: Record<string, string>; sourceId: string; citation: string; createdBy: string }>;
@@ -75,6 +91,11 @@ export function taxEngineMessage(error: unknown): string {
     TAX_CONTENT_ROLE_REQUIRED: 'Your role cannot prepare tax content.',
     TAX_SOURCE_NOT_FOUND: 'This source no longer exists or is not visible to you.',
     TAX_RULE_SET_INTEGRITY: 'Refused: the stored rule set does not match its recorded content hash.',
+    TAX_ENGINE_DEFINITION_INVALID: 'The rule set definition is not valid. Check its structure, steps, outputs and cited sources.',
+    TAX_RULE_SET_DUPLICATE: 'An identical rule set is already recorded.',
+    TAX_RULE_TEST_INPUT_INVALID: 'Check the test: a name, a cited source, inputs and expected outputs as "path = amount" lines.',
+    TAX_RULE_TEST_IMMUTABLE: 'Tests can only change while the rule set is a draft.',
+    TAX_RULE_TEST_NOT_FOUND: 'This test no longer exists.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
     TAX_CALC_ALREADY_REVIEWED: 'This calculation run has already been reviewed.',
     TAX_CALC_INPUT_INVALID: 'Enter a review note of at least 10 characters.',

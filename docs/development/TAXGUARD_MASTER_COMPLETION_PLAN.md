@@ -101,7 +101,7 @@ it; otherwise it maps to REVIEW REQUIRED.
 | Workflow stages 01–09, 14, 15, 17, 18: complete product experience | PARTIAL | `STAGE-xx-PRODUCT`: the gate engine is validated (`STAGE-xx` base items); provider-backed and professional-decision surfaces remain |
 | Stages 10–13, 16 (filing, provider and payment dependent) | BLOCKED | `REQUIRES EXTERNAL INFRASTRUCTURE` / human policy |
 | Process-local domain stores replaced by durable adapters | PARTIAL | `CONTROL-DURABILITY`; retained in-memory routes are listed in `phase10-reviews.md` |
-| Tax engine: sources of law, versioned rule sets, tests and coverage, calculation runs | PARTIAL | API and database validated (`20261012330000`, `360000`, `380000`; `taxEngineHttp`, default browser suite 07). Tax Rules console added (`TaxRulesPanel`: sources, rule sets, tests and recorded test runs) and calculation runs with reviewer decisions in Case Workflow. Adding tests and drafting rule-set definitions are still API-only. Real rule content needs approved, verified sources (professional input). |
+| Tax engine: sources of law, versioned rule sets, tests and coverage, calculation runs | PARTIAL | API and database validated (`20261012330000`, `360000`, `380000`; `taxEngineHttp`, default browser suite 07). Tax Rules console added (`TaxRulesPanel`: sources, rule sets, tests and recorded test runs) and calculation runs with reviewer decisions in Case Workflow. Drafting rule sets and adding or removing tests are in the console too. Real rule content needs approved, verified sources (professional input). |
 | Public website, honest public content | REVIEW REQUIRED | `CONTROL-FRONTEND-HONEST-PUBLIC`; accessibility and SEO not independently audited |
 
 ### Documents, communication, finance, AI, security (Phases D–G)

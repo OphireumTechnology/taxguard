@@ -79,6 +79,10 @@ Audits completed in this cycle (documents):
   PostgreSQL 133, unit 5852, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
   browser 115/115 and provider browser 42/42. Tax years and deadlines were published as `aafb24c` (CI run 39288880317 success).
 
+- **Rule-set authoring** in the Tax Rules console: `taxRulesPanel.test` (8) and local validation passes: PostgreSQL 133,
+  unit 5854, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 116/116
+  and provider browser 42/42. The audit security volume was published as `cb1bb29` (CI run 39294602087 success).
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**

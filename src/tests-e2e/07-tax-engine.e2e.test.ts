@@ -136,4 +136,52 @@ describe('tax engine foundation on the real server', () => {
     expect(realErrors(rev)).toEqual([]);
     await rev.context.close();
   });
+
+  it('rule-set authoring in the console: draft, add and remove source-cited tests, run them, submit; the reviewer approves', async () => {
+    const mgr = await staffLogin('e2e-mgr');
+    await openModule(mgr.page, 'Tax Rules');
+    const panel = (s: typeof mgr) => s.page.locator('section', { has: s.page.getByRole('heading', { name: 'Tax Rules', exact: true }) });
+    await panel(mgr).getByText('Draft a rule set').click();
+    const draft = panel(mgr).getByRole('form', { name: 'Draft a rule set' });
+    await draft.getByLabel('Definition (JSON)').fill('{ not json');
+    await draft.getByText('The definition is not a JSON object.').waitFor();
+    await draft.getByLabel('Definition (JSON)').fill(JSON.stringify(syntheticRuleSet(2025, { returnFamily: 'SYN-UI' })));
+    await draft.getByRole('button', { name: 'Draft rule set' }).click();
+    await sees(mgr.page, 'Rule set drafted;');
+    await panel(mgr).getByRole('button', { name: /state ZZ SYN-UI \(synthetic\)/ }).first().click();
+    await sees(mgr.page, /SYN-UI 2025 · version 1 · DRAFT/);
+    const add = panel(mgr).getByRole('form', { name: 'Add a test' });
+    const addTest = async (name: string, filingStatus: string, expected: string) => {
+      await add.getByLabel('Test name').fill(name);
+      await add.getByLabel(/^Source \(verified for 2025\)/).selectOption(SYNTHETIC_SOURCE_ID);
+      await add.getByLabel('Citation for the expected result').fill('Synthetic console example');
+      await add.getByLabel('Filing status (optional)').fill(filingStatus);
+      await add.getByLabel(/^Inputs/).fill('synthetic.income_a = 5000.00');
+      await add.getByLabel('Evidence reference for the inputs').fill('doc:e2e-console');
+      await add.getByLabel(/^Expected outputs/).fill(expected);
+      await add.getByRole('button', { name: 'Add test' }).click();
+      await sees(mgr.page, 'Test added; run the tests again before submitting.');
+    };
+    await addTest('Synthetic console single', '', 'synthetic_base = 4000.00\nsynthetic_amount = 290.00');
+    await addTest('Synthetic console joint', 'synthetic_joint', 'synthetic_base = 3000.00\nsynthetic_amount = 217.50');
+    await addTest('Synthetic console mistake', '', 'synthetic_base = 1.00');
+    await panel(mgr).getByRole('button', { name: 'Remove test Synthetic console mistake' }).click();
+    await sees(mgr.page, 'Test removed.');
+    expect(await panel(mgr).getByRole('table', { name: 'Source-cited tests' }).innerText()).not.toContain('Synthetic console mistake');
+    await panel(mgr).getByRole('button', { name: 'Run tests' }).click();
+    await sees(mgr.page, /Latest run: 2 of 2 passed/);
+    await panel(mgr).getByRole('button', { name: 'Submit for review' }).click();
+    await sees(mgr.page, 'Submitted for independent review.');
+    expect(realErrors(mgr)).toEqual([]);
+    await mgr.context.close();
+    // The reviewer approves the submitted version in the console.
+    const rev = await staffLogin('e2e-rev');
+    await panel(rev).getByRole('button', { name: /state ZZ SYN-UI \(synthetic\)/ }).first().click();
+    await sees(rev.page, /SYN-UI 2025 · version 1 · PENDING_REVIEW/);
+    await panel(rev).getByRole('form', { name: 'Review decision' }).getByRole('button', { name: 'Approve' }).click();
+    await sees(rev.page, 'Rule set approved.');
+    await sees(rev.page, /SYN-UI 2025 · version 1 · APPROVED/);
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+  });
 });

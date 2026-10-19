@@ -476,6 +476,20 @@ could mean "the UI claims something the backend cannot deliver".
   separate from the 92-day event-log limit. Tests: `auditSecurityVolume.test` (2); default browser suite 11 checks
   the view and the over-range message, and that managers are refused the summary.
 
+  **Rule-set authoring in the Tax Rules console (Block 38).** Drafting a rule set and adding or removing its tests
+  were API-only, and a rule set cannot be submitted without passing, covering tests. The console now has:
+  - **Draft a rule set:** a JSON definition, checked to be an object in the browser and validated, hashed and
+    versioned by the server.
+  - **Add a source-cited test:** only sources verified for the rule set's year are offered. Inputs and expected
+    outputs are entered as "name = amount" lines, refused if malformed or repeated, with one evidence reference
+    applied to every input.
+  - **Remove** for tests while the rule set is a draft.
+
+  Tests: `taxRulesPanel.test` (8), including the line parser. Default browser suite 07 journey: the manager drafts a
+  synthetic rule set, adds two tests, adds and removes a third, runs the tests (2 of 2), submits, and the reviewer
+  approves it in the console. Remaining API-only by design: invoice line removal, which overlaps Codex's Phase 15
+  line-removal retries.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

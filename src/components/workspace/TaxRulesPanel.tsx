@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AUTHORITY_TYPES, isSha256, taxEngineMessage, taxEngineService, type RuleSetCoverage, type RuleSetDetail, type RuleSetSummary,
+import { AUTHORITY_TYPES, isSha256, parseAssignments, taxEngineMessage, taxEngineService, type RuleSetCoverage, type RuleSetDetail, type RuleSetSummary,
   type RuleSetTests, type TaxSource } from '../../services/taxEngineService';
 
 type Load<T> = { status: 'loading' | 'ready' | 'error'; value: T; message?: string };
@@ -16,6 +16,9 @@ export function TaxRulesPanel() {
   const [form, setForm] = useState(blankSource);
   const [hashes, setHashes] = useState<Record<string, string>>({});
   const [note, setNote] = useState('');
+  const [draftJson, setDraftJson] = useState('');
+  const blankTest = { name: '', sourceId: '', citation: '', filingStatus: '', inputs: '', evidence: '', expected: '' };
+  const [testForm, setTestForm] = useState(blankTest);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const selectedRef = useRef(selected); selectedRef.current = selected;
@@ -51,6 +54,13 @@ export function TaxRulesPanel() {
   const formValid = form.sourceId.trim().length >= 3 && form.title.trim().length >= 3 && form.issuer.trim() && form.citation.trim()
     && /^[A-Z]{2}$/.test(form.jurisdictionCode) && years.length >= 1 && years.length <= 10 && years.every(y => /^\d{4}$/.test(y)) && (!form.url || form.url.startsWith('https://'));
   const rs = detail?.ruleSet;
+  let draftParsed: unknown = null;
+  try { draftParsed = draftJson.trim() ? JSON.parse(draftJson) : null; } catch { draftParsed = null; }
+  const draftInvalid = draftJson.trim() !== '' && (draftParsed === null || typeof draftParsed !== 'object' || Array.isArray(draftParsed));
+  const testInputs = parseAssignments(testForm.inputs), testExpected = parseAssignments(testForm.expected);
+  const verifiedSources = sources.value.filter(s => s.status === 'VERIFIED' && (!rs || s.tax_years.includes(rs.taxYear)));
+  const testValid = testForm.name.trim().length >= 3 && !!testForm.sourceId && testForm.citation.trim().length >= 3 && !!testInputs && !!testExpected
+    && /^[A-Za-z0-9_.:-]{3,128}$/.test(testForm.evidence.trim()) && (!testForm.filingStatus || /^[a-z_]{2,40}$/.test(testForm.filingStatus));
 
   return <section aria-labelledby="tax-rules-heading" className="tg-manager-card">
     <h2 id="tax-rules-heading">Tax Rules</h2>
@@ -100,6 +110,14 @@ export function TaxRulesPanel() {
     <h3>Rule sets</h3>
     <div className="tg-manager-controls"><label>Tax year<input value={year} inputMode="numeric" maxLength={4} placeholder="All" onChange={e => setYear(e.target.value.replace(/\D/g, ''))} /></label>
       <button type="button" onClick={loadRuleSets} disabled={ruleSets.status === 'loading'}>Refresh rule sets</button></div>
+    <details><summary>Draft a rule set</summary>
+      <form aria-label="Draft a rule set" onSubmit={e => { e.preventDefault(); if (!draftParsed || draftInvalid) return;
+        void run(() => taxEngineService.draftRuleSet(draftParsed), 'Rule set drafted; add source-cited tests, run them, then submit it for review.', () => { setDraftJson(''); loadRuleSets(); }); }}>
+        <p>Paste the rule set definition (JSON). The server validates its structure, steps, outputs and cited sources, then hashes and versions it.</p>
+        <label>Definition (JSON)<textarea value={draftJson} rows={8} onChange={e => setDraftJson(e.target.value)} /></label>
+        {draftInvalid && <p role="alert">The definition is not a JSON object.</p>}
+        <button disabled={busy || !draftParsed || draftInvalid}>Draft rule set</button>
+      </form></details>
     {ruleSets.status === 'loading' && <p role="status">Loading rule sets…</p>}
     {ruleSets.status === 'error' && <p role="alert">{ruleSets.message}</p>}
     {ruleSets.status === 'ready' && ruleSets.value.length === 0 && <p role="status">No rule sets for this selection.</p>}
@@ -129,13 +147,32 @@ export function TaxRulesPanel() {
                 return <tr key={test.testId}><td>{test.name}</td><td>{test.filingStatus ?? 'All'}</td><td>{Object.entries(test.expected).map(([k, v]) => k + ' = ' + v).join('; ')}</td>
                   <td>{test.sourceId} · {test.citation}</td>
                   <td>{!result ? 'Not run' : result.passed ? 'Passed' : result.error ? 'Failed: ' + result.error.replace(/_/g, ' ').toLowerCase()
-                    : 'Failed: ' + (result.mismatches ?? []).map(m => m.output + ' expected ' + m.expected + ', got ' + (m.actual ?? 'nothing')).join('; ')}</td></tr>; })}</tbody></table>}
+                    : 'Failed: ' + (result.mismatches ?? []).map(m => m.output + ' expected ' + m.expected + ', got ' + (m.actual ?? 'nothing')).join('; ')}
+                    {rs.status === 'DRAFT' && <button type="button" disabled={busy} aria-label={`Remove test ${test.name}`} onClick={() => run(() => taxEngineService.removeTest(rs.ruleSetId, test.testId),
+                      'Test removed.', () => loadDetail(rs.ruleSetId))}>Remove</button>}</td></tr>; })}</tbody></table>}
           <p role="status">{detail.tests.latestRun ? `Latest run: ${detail.tests.latestRun.passedCount} of ${detail.tests.latestRun.testCount} passed`
               + (detail.tests.latestRun.testsSha256 === detail.tests.testsSha256 ? '' : ' (the tests have changed since; run them again)')
               + ` · engine ${detail.tests.latestRun.engineVersion} · by ${detail.tests.latestRun.runBy} · ${new Date(detail.tests.latestRun.runAt).toLocaleString()}`
             : 'The tests have not been run.'}</p>
           {rs.status === 'DRAFT' && detail.tests.tests.length > 0 && <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.runTests(rs.ruleSetId),
             'Tests run and recorded by the server.', () => loadDetail(rs.ruleSetId))}>Run tests</button>}
+          {rs.status === 'DRAFT' && <form aria-label="Add a test" onSubmit={e => { e.preventDefault(); if (!testValid) return;
+              void run(() => taxEngineService.addTest(rs.ruleSetId, { name: testForm.name.trim(), sourceId: testForm.sourceId, citation: testForm.citation.trim(),
+                ...(testForm.filingStatus ? { filingStatus: testForm.filingStatus } : {}),
+                inputs: testInputs!.map(([factPath, value]) => ({ factPath, value, evidenceIds: [testForm.evidence.trim()] })),
+                expected: Object.fromEntries(testExpected!) }), 'Test added; run the tests again before submitting.', () => { setTestForm(blankTest); loadDetail(rs.ruleSetId); }); }}>
+            <h5>Add a source-cited test</h5>
+            <label>Test name<input value={testForm.name} maxLength={200} onChange={e => setTestForm({ ...testForm, name: e.target.value })} /></label>
+            <label>Source (verified for {rs.taxYear})<select value={testForm.sourceId} onChange={e => setTestForm({ ...testForm, sourceId: e.target.value })}>
+              <option value="">Select a verified source</option>{verifiedSources.map(s => <option key={s.source_id} value={s.source_id}>{s.source_id}{s.synthetic ? ' (synthetic)' : ''}</option>)}</select></label>
+            <label>Citation for the expected result<input value={testForm.citation} maxLength={300} onChange={e => setTestForm({ ...testForm, citation: e.target.value })} /></label>
+            <label>Filing status (optional)<input value={testForm.filingStatus} maxLength={40} onChange={e => setTestForm({ ...testForm, filingStatus: e.target.value.toLowerCase() })} /></label>
+            <label>Inputs, one "fact.path = amount" per line<textarea value={testForm.inputs} rows={3} onChange={e => setTestForm({ ...testForm, inputs: e.target.value })} /></label>
+            <label>Evidence reference for the inputs<input value={testForm.evidence} maxLength={128} onChange={e => setTestForm({ ...testForm, evidence: e.target.value })} /></label>
+            <label>Expected outputs, one "output = amount" per line<textarea value={testForm.expected} rows={3} onChange={e => setTestForm({ ...testForm, expected: e.target.value })} /></label>
+            {(testForm.inputs.trim() && !testInputs) || (testForm.expected.trim() && !testExpected) ? <p role="alert">Each line must read "name = amount", with no repeated names.</p> : null}
+            <button disabled={busy || !testValid}>Add test</button>
+          </form>}
         </>}
         {rs.status === 'DRAFT' && <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.transition(rs.ruleSetId, 'submit'),
           'Submitted for independent review.', () => { loadDetail(rs.ruleSetId); loadRuleSets(); })}>Submit for review</button>}

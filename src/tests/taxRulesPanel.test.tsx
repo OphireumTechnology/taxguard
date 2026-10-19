@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
-import { isSha256, TaxEngineRequestError, taxEngineMessage, taxEngineService } from '../services/taxEngineService';
+import { isSha256, parseAssignments, TaxEngineRequestError, taxEngineMessage, taxEngineService } from '../services/taxEngineService';
 import { TaxRulesPanel } from '../components/workspace/TaxRulesPanel';
 import { MANAGER_MODULES } from '../components/workspace/practiceManagerModel';
 
@@ -37,6 +37,22 @@ describe('tax rules client', () => {
     expect(transport.mock.calls[2][0]).toBe('http://127.0.0.1:3000/api/tax-engine/cases/case%2F1/runs');
     expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_CALC_REVIEWER_REQUIRED'))).toMatch(/independent reviewer/);
     expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_CALC_ALREADY_REVIEWED'))).toMatch(/already been reviewed/);
+  });
+  it('authoring sends the definition and structured tests; removal names only the test', async () => {
+    await taxEngineService.draftRuleSet({ returnFamily: 'SYN-1' });
+    expect(transport.mock.calls[0][0]).toBe('http://127.0.0.1:3000/api/tax-engine/rule-sets');
+    expect(JSON.parse(transport.mock.calls[0][1].body)).toEqual({ definition: { returnFamily: 'SYN-1' } });
+    const test = { name: 'Synthetic example', sourceId: 'ZZ-1', citation: 'Synthetic citation', inputs: [{ factPath: 'synthetic.income_a', value: '5000.00', evidenceIds: ['doc:1'] }],
+      expected: { synthetic_base: '4000.00' } };
+    await taxEngineService.addTest('rs-1', test);
+    expect(transport.mock.calls[1][0]).toBe('http://127.0.0.1:3000/api/tax-engine/rule-sets/rs-1/tests');
+    expect(JSON.parse(transport.mock.calls[1][1].body)).toEqual(test);
+    await taxEngineService.removeTest('rs-1', 't/1');
+    expect(transport.mock.calls[2][0]).toBe('http://127.0.0.1:3000/api/tax-engine/rule-sets/rs-1/tests/t%2F1/remove');
+  });
+  it('parses "name = amount" lines and refuses malformed or repeated names', () => {
+    expect(parseAssignments('synthetic.income_a = 5000.00\n\n synthetic_b=-12.5 ')).toEqual([['synthetic.income_a', '5000.00'], ['synthetic_b', '-12.5']]);
+    for (const bad of ['', 'x = 1\nx = 2', 'x = abc', 'no equals sign', 'x = 1.23456']) expect(parseAssignments(bad), bad).toBeNull();
   });
   it('carries the server code and detail on refusal', async () => {
     transport.mockImplementationOnce(async () => new Response(JSON.stringify({ code: 'TAX_SOURCE_NOT_VERIFIED', detail: 'ZZ-GUIDANCE-1' }), { status: 409 }));
