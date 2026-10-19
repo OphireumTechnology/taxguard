@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "5d1ae070cd4e1640333f2d1368cce81fcd46f639004241cb1d1702c23247246f",
-      "bytes": 16368,
+      "sha256": "46ec6a8e7d2f40612d702c1903754a0f17717f79bce0ff7da80a004ba0f482c7",
+      "bytes": 17657,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5339,8 +5339,8 @@
     },
     {
       "file": "docs/development/phase14-phase15-billing-overlap.md",
-      "sha256": "3ebd66f984f6d722e2f49fb40feb40c3066752c2f4e3d126eede66ac92184b7f",
-      "bytes": 9760,
+      "sha256": "fe834fc9d97672d1ef711c8fae29b5645ccd2b76270089c83cb44da2d1b7810a",
+      "bytes": 11559,
       "headings": [
         "# Phase 14 / Phase 15 billing overlap: refund records (handoff, 2026-10-19)",
         "## Recovery CI failure (run 39153095799)",
@@ -5349,13 +5349,14 @@
         "## Options (decision for the owner, with Codex)",
         "## Owner decision and Phase 14 preparation (2026-10-19)",
         "## Confirmed requirements for the canonical refund migration (for Codex, 2026-10-19)",
-        "## Other Phase 15 changes Phase 14 will need to absorb"
+        "## Other Phase 15 changes Phase 14 will need to absorb",
+        "## Ledger tax-year scope: what Phase 15 must carry (for Codex, 2026-10-19)"
       ]
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "b704a39d1a5b2e0a1d7b15d8f495e6b43f82d311b2406065b2e55f670ffbecfb",
-      "bytes": 40027,
+      "sha256": "be3aeae4d4af9be00e16cb49d3a3fd3a1a806e221f76e80f6a5dbdccc013937e",
+      "bytes": 43451,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5486,8 +5487,8 @@
     },
     {
       "file": "docs/development/staging-readiness.md",
-      "sha256": "164f38afc621cc233d4fb075869e105aa7e5554238ee1bd1431c72b627a9eeef",
-      "bytes": 12187,
+      "sha256": "77881bc2525d80f50ec2a46053c964400d9d01cbbaf5259342163e8160e6a2bc",
+      "bytes": 12734,
       "headings": [
         "# Staging readiness and implementation plan (updated 2026-10-18, Phase 14)",
         "## Current state",
@@ -5970,6 +5971,18 @@
       "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
       "sha256": "eaf770b74db8d57304995185127e8938048e5566a58242d8255b4395691d5132",
       "bytes": 21551,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+      "sha256": "3beae706e4527ba405473ddb343bf14d4b10b059145bc76ec3e83d08d81809a7",
+      "bytes": 52761,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018080000_taxguard_document_request_scope.sql",
+      "sha256": "90c0d56bd08da7e2f0563d8cee8a673506a6ae810026a50c89692c04629590f3",
+      "bytes": 20011,
       "headings": []
     },
     {
@@ -7201,7 +7214,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "394ed2fe569e43f52c87d8496d2ead77805b464239bb2e670cd8349a07d86179",
+    "src/tests/proposalCompositionSecurity.test.ts": "0cbf78948c8ac5830c350726df1e5a095a6971bc1d0a2abe746dd8a23ecbd121",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

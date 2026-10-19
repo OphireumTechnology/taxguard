@@ -134,3 +134,26 @@ whose `ownerImmutable` and `auditCarriesReason` flags are `true`.
 `addLine` and `requestCredit` become keyed on Phase 15. On reconciliation, the Phase 14 billing workspace (line
 and credit forms) and the E2E suites that add lines or request credits through the store or UI will need stable
 keys. The `api()` E2E helper already sends an `Idempotency-Key` header on every request.
+
+## Ledger tax-year scope: what Phase 15 must carry (for Codex, 2026-10-19)
+
+Phase 14 proposal `20261018070000_taxguard_ledger_year_scope` (review only) limits a staff member assigned for one
+tax year to that year of the client's ledger and book-to-tax. Managers, administrators and client-wide assignments
+keep every year. It does not edit any function that Phase 15 redefines.
+
+1. **Already covered without edits:** insert triggers on `taxguard_ledger_entries` (`creator_uid`) and
+   `taxguard_b2t_adjustments` (`prepared_by`) refuse a new row whose author lacks its tax year
+   (`LEDGER_ACCESS_DENIED`). Phase 15's `post_entry(_once)`, `reverse_entry(_once)` and `b2t_prepare_adjustment`
+   inherit this as long as they keep writing those columns.
+2. **For Codex to add in the Phase 15 definitions:**
+   - Idempotent replays return the existing record without inserting, so the trigger does not see them. The
+     current `post_entry`, `reverse_entry` and `prepare_adjustment` have the same gap. A replay should check the
+     existing record's year with `taxguard_ledger_year_scope(p_tenant, p_client, p_actor, r, <row>.tax_year)`
+     and refuse as not found.
+   - `general_ledger(_exact)` and `trial_balance_exact` take a tax year. They should call
+     `taxguard_ledger_year_guard(p_tenant, p_client, p_actor, r, p_tax_year)` after `taxguard_ledger_actor`, as the
+     Phase 14 `taxguard_ledger_read` and `taxguard_ledger_trial_balance` now do.
+3. **Ordering:** if a Phase 15 migration that redefines `taxguard_ledger_read`, `trial_balance`, `work_queue` or
+   any book-to-tax function listed in the proposal runs after `20261018070000`, it must keep the year check. The
+   check is one line after the actor call (or on the row's not-found test). `ledgerYearScope.db` fails if it is
+   lost.
