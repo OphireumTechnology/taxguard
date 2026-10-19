@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "0f5a17fb648dd2207e3477da2a190af3372812817814901282079803fc0a5ebe",
-      "bytes": 18033,
+      "sha256": "88956e2c24692d4d2a7044ebf8a7b1389781ecae5975736c009ff43093ddfeb4",
+      "bytes": 18361,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5355,8 +5355,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "a996a014ea91ee97544bd5ea1d271d9131f0765eafe6bac3fef7e96877525da4",
-      "bytes": 45183,
+      "sha256": "b102fa4cb775dcc1e527c57ba33b3158673bc2e580707d26a5c40c366a72f02e",
+      "bytes": 46627,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5368,10 +5368,10 @@
     },
     {
       "file": "docs/development/phase14-proposal-review-dossier.md",
-      "sha256": "c161316c870477d3c80dea204014fd0a7b248918a20e6ba3265846f3741848ca",
-      "bytes": 13745,
+      "sha256": "cab2def5e834ca02de35c7d0149e43d5d7f20205a3a6d57048b31a7ab03db776",
+      "bytes": 18479,
       "headings": [
-        "# Phase 14 proposal review dossier: 20261018020000 to 20261018090000",
+        "# Phase 14 proposal review dossier: 20261018020000 to 20261018100000",
         "## How the copies were made",
         "## Execution order",
         "## Proposals",
@@ -5383,8 +5383,21 @@
         "### 20261018070000: ledger, book-to-tax and work-queue tax-year scope (Package B)",
         "### 20261018080000: document-request engagement-year scope (Package B)",
         "### 20261018090000: case access follows the live assignment",
+        "### 20261018100000: practice client detail confidentiality",
         "## Codex handoff (Phase 15)",
         "## Remaining authorization gaps (read-only inventory, 2026-10-19)"
+      ]
+    },
+    {
+      "file": "docs/development/phase14-remaining-domain-access-policy.md",
+      "sha256": "dca61096cfc75fa612caf2cd50589f3bf1cf360988eee21a391b8a797acb0769",
+      "bytes": 4824,
+      "headings": [
+        "# Messaging, appointments and legal matters: access policy decision (owner)",
+        "## Findings (current definitions, execution order)",
+        "## Engagement-attached records (recommended, no policy question)",
+        "## General client-level records (owner decision required)",
+        "## Implementation outline (after approval)"
       ]
     },
     {
@@ -5508,8 +5521,8 @@
     },
     {
       "file": "docs/development/staging-readiness.md",
-      "sha256": "52a5ecb884a22a14afc0e27a2a9e74ae791df10318711de515c88f5171e13de6",
-      "bytes": 12856,
+      "sha256": "ecfdbddfa11475cf26969d325abe9c6e1cff43a3b1ec4d5c3e593a2bd2e9dd7d",
+      "bytes": 12897,
       "headings": [
         "# Staging readiness and implementation plan (updated 2026-10-18, Phase 14)",
         "## Current state",
@@ -6010,6 +6023,12 @@
       "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
       "sha256": "a089345f7d80254a3b05f8da7205c74f973ae4d02e716f30c99be1ad558534fc",
       "bytes": 19925,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+      "sha256": "79a3b7c4b26a7df36cf51ec7fae06c4634db9b1611e08542b97dbb051c30e2f2",
+      "bytes": 22658,
       "headings": []
     },
     {
@@ -7241,7 +7260,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "011adbe902722d692fe44cf990a212d4e70a3c2f33b7d0a64629cae16eb9fce2",
+    "src/tests/proposalCompositionSecurity.test.ts": "65ffa466e911c35fec610aa55d843c44fe0445cfdd28867f5daed2163b7b0e1f",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

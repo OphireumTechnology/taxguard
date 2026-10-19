@@ -393,6 +393,23 @@ could mean "the UI claims something the backend cannot deliver".
   - **Review:** proposals 20261018020000 to 090000 are consolidated for Codex and the owner in
     `phase14-proposal-review-dossier.md`, with the Codex handoff and the remaining-gaps inventory.
 
+  **Practice client detail confidentiality (Block 31).** `taxguard_practice_client_detail` decided access per
+  client. An engagement-year assignee received every engagement's internal notes, tasks and deadlines, the whole
+  team and assignment history, and the client's case and ledger activity of every year. The ledger activity
+  bypassed the Block 29 history filter. The same staff member could also add notes, tasks and deadlines to any
+  engagement and year, and resolve its deadlines.
+  - **Fix:** proposal `20261018100000_taxguard_practice_client_scope` (review only). A record is scoped by the
+    dimensions it carries, and a case-linked item takes its case's engagement and year. Activity is scoped by the
+    referenced ledger record's year, the case, or the event's engagement and year. Five functions change, copied
+    from their current definitions and diffed.
+  - **Refusals and visibility:** refusals reuse `ENGAGEMENT_NOT_FOUND`, `CASE_NOT_FOUND` and
+    `DEADLINE_NOT_FOUND`. Client-wide staff, managers and administrators are unchanged. A task assigned to, or
+    created by, the actor stays visible to them.
+  - **Tests:** `practiceClientDetailScope.db` (8) failed first on six cases. Refused writes leave no rows or audit
+    entries, and replaying a manager's out-of-scope task key no longer confirms that the task exists. The
+    composition re-apply check
+    caught a missing `REVOKE` on a new helper before commit.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

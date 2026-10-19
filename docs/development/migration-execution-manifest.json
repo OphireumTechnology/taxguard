@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 80,
+    "files": 81,
     "core": 13,
-    "proposals": 66,
+    "proposals": 67,
     "tables": 148,
-    "functions": 357,
-    "securityDefinerFunctions": 278,
+    "functions": 361,
+    "securityDefinerFunctions": 281,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3398,6 +3398,58 @@
     },
     {
       "order": 80,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_practice_event_scope",
+        "taxguard_practice_item_scope",
+        "taxguard_practice_year",
+        "taxguard_staff_record_scope"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_practice_add_deadline",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_add_note",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_client_detail",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_create_task",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_resolve_deadline",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        77
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 81,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
