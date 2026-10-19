@@ -83,6 +83,11 @@ Audits completed in this cycle (documents):
   unit 5854, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 116/116
   and provider browser 42/42. The audit security volume was published as `cb1bb29` (CI run 39294602087 success).
 
+- **Unreachable code inventory** (`unreachable-code-inventory.md`, read-only): 274 frontend modules are unreachable from
+  the browser, server and script roots, including all of `src/demo` and 96 of 107 in `src/taxguard`. `/api/documents`
+  no longer has a reachable consumer, contrary to `phase10-reviews.md`. Deletion is an owner decision; nothing was
+  deleted.
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**

@@ -5597,8 +5597,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "76c829fd83cb010f770539e7e4e40adf5d55feb47b38c6202b476276e27efb1b",
-      "bytes": 11143,
+      "sha256": "4d8f64a02ebc0a71d8099cc6ebd154494272b8dbc0e3c4f8aa4f58b62f428d65",
+      "bytes": 11351,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "7806f013d04d7445f7752f58982311bd2983869d59c09e8a4f7a77807911c3a9",
-      "bytes": 7973,
+      "sha256": "b5eddb753ef9acc83f8fda56f936555d1ea871de1d14294de2bb17c064404bc9",
+      "bytes": 8339,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -5622,6 +5622,19 @@
         "### In progress (not yet verified)",
         "### Blocked (recorded, not worked around)",
         "### Next priorities"
+      ]
+    },
+    {
+      "file": "docs/development/unreachable-code-inventory.md",
+      "sha256": "842758b52be97075cf263fe9755adb42f2faf418e4877676531c8c183039c4b8",
+      "bytes": 16317,
+      "headings": [
+        "# Unreachable frontend code inventory (read-only, 2026-10-20)",
+        "## Method",
+        "## Counts",
+        "## Findings that change recorded decisions",
+        "## Recommendation (owner decision)",
+        "## Appendix: unreachable modules"
       ]
     },
     {
