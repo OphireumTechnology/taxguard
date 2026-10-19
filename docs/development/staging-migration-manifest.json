@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "16a37ff1d0e9c6be91361b170e8092e6422d16d91a05453663c91643b2520548",
+  "executionPlanSha256": "9d6c0d9bc5a2f2e6a78878a45b3e2f2a7a13f8e44d8a55692808a564ef6cffa4",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4291,6 +4291,56 @@
         "-- case and ledger activity of every year (the latter bypassing the 20261018070000 ledger history filter); and could",
         "-- add notes, tasks and deadlines to, and resolve deadlines of, any engagement and year.",
         "--"
+      ]
+    },
+    {
+      "order": 81,
+      "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
+      "kind": "proposal",
+      "version": "20261018105000",
+      "sha256": "bbdf927c8f47db44ebbd49317fc2f907004882a8a233e5478fc27f87ec1e724b",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_restaff"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop taxguard_case_restaff. Restaffing already performed is a recorded, audited state."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_restaff(text,text,text,text,text,integer,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_case_restaff(text,text,text,text,text,integer,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, case-team restaffing). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012250000 (practice management: staff assignments, actor, manager role), 20261012260000",
+        "-- (case workflow: cases, case assignments, case audit), 20261012330000 (tax calculation runs) and 20261018090000",
+        "-- (case access follows the live assignment).",
+        "--",
+        "-- Since 20261018090000 a case's recorded preparer and reviewer count only while they hold the live assignment, so a",
+        "-- replacement assignee could not act on an existing case and only a manager could. taxguard_case_restaff is the",
+        "-- reviewed operation that moves the case's preparer or reviewer to another person:",
+        "--   * practice managers and administrators of the tenant only (PRACTICE_MANAGER_REQUIRED), with a reason (10-500",
+        "--     characters) and the case's current version (CASE_VERSION_CONFLICT); the case must be ACTIVE or ON_HOLD;",
+        "--   * the new person must hold, now, an ACTIVE and effective assignment of that role covering the case's client,",
+        "--     engagement and year (CASE_ASSIGNEE_NOT_ASSIGNED), so restaffing never grants access by itself;"
       ]
     }
   ]

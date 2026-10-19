@@ -412,6 +412,14 @@ could mean "the UI claims something the backend cannot deliver".
     composition re-apply check
     caught a missing `REVOKE` on a new helper before commit.
 
+  **Case-team restaffing (Block 32).** Proposal `20261018105000_taxguard_case_restaff` (review only), with
+  `CaseStore.restaff` and `POST /api/cases/:caseId/team`, lets a practice manager or administrator move a case's
+  preparer or reviewer to someone who already holds the live assignment.
+  - **Controls:** a reason and the case version are required, segregation of duties is kept, history is untouched,
+    and the change is audited.
+  - **Tests:** `caseRestaff.db` (7) failed first, including the API cases.
+  - **Not yet built:** a manager console control for this route.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

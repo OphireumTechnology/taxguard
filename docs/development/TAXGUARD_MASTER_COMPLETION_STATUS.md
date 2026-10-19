@@ -12,8 +12,8 @@ status: **staging NO-GO, production NO-GO.**
 | Case access follows the live assignment (`20261018090000`) | `fc4f9a5` | run 39222567841 success | `caseAssignmentRevocation.db` (6, failing-first) |
 | Practice client detail confidentiality (`20261018100000`) | `d30259b` | run 39232901991 success | `practiceClientDetailScope.db` (8, failing-first) |
 | Phase 15 integration readiness findings | `acb2086` | run 39233897596 success | dossier section; read-only comparison of 10 Codex branches |
-| Trial-balance "as of" bound, base and Phase 15 exact wrapper (`20261018070000` amended) | pending, this cycle | pending | `ledgerYearScope.db` (9, failing-first). Merged-schema wrapper check: 10/10 with the fix, 8/10 without. |
-| Migration integration plan (collision, refund withdrawal, merge steps, reproduction) | pending, this cycle | pending | `phase14-phase15-migration-integration-plan.md` |
+| Trial-balance "as of" bound, base and Phase 15 exact wrapper (`20261018070000` amended) | `8f207c9` | run 39244878809 success | `ledgerYearScope.db` (9, failing-first). Merged-schema wrapper check: 10/10 with the fix, 8/10 without. |
+| Migration integration plan (collision, refund withdrawal, merge steps, reproduction) | `8f207c9` | run 39244878809 success | `phase14-phase15-migration-integration-plan.md` |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -21,13 +21,25 @@ Local validation at the start of this cycle:
 - lint (`tsc --noEmit`), typecheck and build;
 - release candidate (80 entries), NOT VALID review, secret scan and diff check.
 
-The default and provider browser profiles are running. They are recorded below when complete.
+On `8f207c9`, before commit: default browser 113/113 and provider browser 40/40.
+
+Case-team restaffing (`20261018105000_taxguard_case_restaff`, `CaseStore.restaff`, `POST /api/cases/:caseId/team`) was verified locally before publication. Its CI result is recorded in the next cycle.
+- `caseRestaff.db`: 7 cases, all failing first while the function was absent;
+- PostgreSQL 133 (30 files);
+- unit 5764/5764 (352 files) after traceability regeneration;
+- lint, typecheck, build, release candidate (81 entries), NOT VALID review, secret scan and diff check;
+- default browser 113/113 and provider browser 40/40.
+
+Audits completed in this cycle (documents):
+- `production-route-parity.md`: 17 development-only routers, each with its proposal dependencies and cutover
+  requirement. None was mounted, because each depends on review-only proposals. It also records the framing and
+  HSTS header gap.
+- `ai-workforce-audit.md`: 61 DRAFT definitions, 13 named and 48 placeholders. Two bounded read capabilities
+  are executable; governance, gateway, kill switch and human review are tested.
 
 ### In progress (not yet verified)
 
-- **Case-team restaffing:** proposal `20261018105000_taxguard_case_restaff`, `caseRestaff.db` (failing-first), the
-  store method, the `POST /api/cases/:caseId/team` route and an HTTP test. Version `20261018105000` is used so that
-  `20261018110000` and `20261018120000` stay free for the recommended Phase 15 renumbering.
+- **Production framing and transport headers:** the failing-first test is drafted; the fix is next.
 
 ### Blocked (recorded, not worked around)
 
@@ -50,7 +62,7 @@ The default and provider browser profiles are running. They are recorded below w
 
 ### Next priorities
 
-1. Case-team restaffing (finish, validate, publish).
+1. Production framing and transport headers (`X-Frame-Options`, `frame-ancestors`, HSTS) in `createProductionApp`.
 2. Engagement-linked messaging, appointment and legal records (no general-record change without the policy).
 3. A re-run of the function inventory for any remaining client-level reads.
 4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`).

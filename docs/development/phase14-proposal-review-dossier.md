@@ -30,6 +30,7 @@ function from the proposal and from the file named on its `-- Current definition
 | 78 | `20261018080000_taxguard_document_request_scope` | 20261012310000, 20261018060000 |
 | 79 | `20261018090000_taxguard_case_assignment_liveness` | 20261012250000, 260000, 320000, 330000 |
 | 80 | `20261018100000_taxguard_practice_client_scope` | 20261012250000, 260000, 20261018070000 |
+| 81 | `20261018105000_taxguard_case_restaff` | 20261012250000, 260000, 330000, 20261018090000 |
 
 **Ordering hazards.**
 - 060000 replaces `taxguard_doc_list` and `taxguard_doc_detail`. Their current definitions are in
@@ -188,6 +189,24 @@ function from the proposal and from the file named on its `-- Current definition
   The composition re-apply check caught a missing `REVOKE` on the new year helper before commit.
 - **Rollback:** re-apply proposal 20261012250000's definitions and drop the four helpers.
 
+### 20261018105000: case-team restaffing
+- **Gap closed:** since 090000 a replacement assignee could not act on an existing case.
+- **Change:** `taxguard_case_restaff`, exposed through `POST /api/cases/:caseId/team` and `CaseStore.restaff`.
+  - Practice managers and administrators only, with a reason and the case version; the case must be active or on
+    hold.
+  - The new person must already hold the live assignment of that role for the case's engagement and year.
+  - The reviewer is never the current preparer, any former preparer of the case, or the requester of a tax run
+    awaiting review. The preparer is never the current reviewer.
+  - The previous case-assignment row is deactivated, not deleted; stage history, notes and runs are untouched.
+  - One `CASE_TEAM_CHANGED` audit row is written with the reason.
+- **Version:** `20261018105000` keeps `20261018110000` and `120000` free for the recommended Phase 15
+  renumbering.
+- **Evidence:** `caseRestaff.db` (7; all failed first while the function was absent). It covers authority,
+  cross-tenant refusal, the live-assignment requirement, stale version, unchanged slot, unknown role, short
+  reason, segregation (current and former preparer, pending run requester), the reviewer and preparer moves,
+  history preservation and the case API.
+- **Rollback:** drop the function.
+
 ## Codex handoff (Phase 15)
 
 1. **Idempotent replay authorization.**
@@ -308,7 +327,6 @@ the work queue, cases, tax runs and the practice client detail with its notes, t
 | Messaging (`comm_*`) | optional engagement, no year | threads and internal notes of other engagements | owner decision on general (engagement-less) threads, then scope engagement-linked threads (`phase14-remaining-domain-access-policy.md`) |
 | Appointments, rooms, legal matters (`apt_*`, `legal_*`) | optional engagement | other engagements' appointments and matters | same decision and pattern as messaging |
 | Billing (`bill_*`) | invoice: engagement | other engagements' invoices | **Codex** (Phase 15 redefines `taxguard_bill_*`) |
-| Case team restaffing | case: recorded preparer and reviewer | none (fails closed); availability gap only | **next package:** reviewed case-team change with segregation check |
 
 Client-level by design: Stage 01 onboarding (client identity), client notifications and preferences,
 consultations, reassignment requests, and the tenant-wide tax content (rule sets, sources), which is not client

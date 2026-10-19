@@ -10,7 +10,7 @@ export class CaseStoreError extends PracticeStoreError {
 }
 const STATUS: Record<string, number> = { CASE_VERSION_CONFLICT: 409, CASE_ALREADY_EXISTS: 409, STAGE_ACTION_NOT_AUTHORIZED: 403, STAGE_ATTESTATION_REQUIRES_REVIEWER: 403,
   STAGE_RETURN_REQUIRES_REVIEWER: 403, CASE_CREATE_NOT_AUTHORIZED: 403, PRACTICE_ACCESS_DENIED: 403, PRACTICE_MANAGER_REQUIRED: 403, ASSIGNMENT_SEGREGATION_OF_DUTIES: 409,
-  STAGE_GATE_NOT_MET: 409, CASE_BUSY: 409 };
+  STAGE_GATE_NOT_MET: 409, CASE_BUSY: 409, CASE_ASSIGNEE_NOT_ASSIGNED: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.startsWith('STAGE_BLOCKED_') ? 409 : code.endsWith('_NOT_FOUND') ? 404 : 400);
 
 export class CaseStore {
@@ -44,6 +44,10 @@ export class CaseStore {
   }
   setHold(tenantId: string, caseId: string, actor: string, hold: boolean, version: number, reason: string) {
     return this.call('taxguard_case_set_hold', { p_tenant: tenantId, p_case: caseId, p_actor: actor, p_hold: hold, p_version: version, p_reason: reason });
+  }
+  /** Moves the case's preparer or reviewer to a person holding the live assignment (managers and administrators only; proposal 20261018105000). */
+  restaff(tenantId: string, caseId: string, actor: string, input: { role: string; userId: string; version: number; reason: string }) {
+    return this.call('taxguard_case_restaff', { p_tenant: tenantId, p_case: caseId, p_actor: actor, p_role: input.role, p_user: input.userId, p_version: input.version, p_reason: input.reason });
   }
   detail(tenantId: string, caseId: string, actor: string) { return this.call('taxguard_case_detail', { p_tenant: tenantId, p_case: caseId, p_actor: actor }); }
   addNote(tenantId: string, caseId: string, actor: string, body: string) { return this.call('taxguard_case_add_note', { p_tenant: tenantId, p_case: caseId, p_actor: actor, p_body: body }); }

@@ -40,6 +40,19 @@ it; otherwise it maps to REVIEW REQUIRED.
   - `src/server/ai/gateway`: governed gateway, prompt and model resolver, structured output, usage.
 
   Every deployment is DRAFT; no agent is commissioned.
+- **Production surface:** `createProductionApp` (`src/server/productionApp.ts`) mounts only:
+  - auth;
+  - health;
+  - AI governance;
+  - case authority;
+  - bookkeeping;
+  - operations;
+  - the accountant dashboard;
+  - tax forms.
+
+  The durable case, billing, document, messaging, appointment, legal and practice routers are mounted by the
+  development server (`server.ts`) only, and several say so in their headers ("not mounted in
+  createProductionApp"). Production cutover of each is part of `CONTROL-DURABILITY`.
 - **CI** (`.github/workflows/taxguard-development-ci.yml`) runs on every push:
   - diff check;
   - lint (`tsc --noEmit`) and typecheck;
@@ -72,7 +85,7 @@ it; otherwise it maps to REVIEW REQUIRED.
 | General-ledger requested-year guard | PARTIAL | Codex candidate is unpublished |
 | Prior-year opening balances | BLOCKED | Owner policy |
 | Ledger engagement attribution | BLOCKED | Owner confirmation of client-and-year authority |
-| Case-team reassignment (reviewed operation) | MISSING | Next Phase 14 package (§ Next packages) |
+| Case-team reassignment (reviewed operation) | REVIEW REQUIRED | `20261018105000`, `caseRestaff.db` (7), `POST /api/cases/:caseId/team`; manager console control not built |
 | Messaging, appointments, legal: engagement-linked records | MISSING | Ready to implement after the general-record policy |
 | Messaging, appointments, legal: general records | BLOCKED | Owner policy (`phase14-remaining-domain-access-policy.md`, option C recommended) |
 | Native PostgreSQL 17 acceptance (concurrency, backup and restore) | BLOCKED | `pg_dump` / `pg_restore` 17 absent locally. The embedded loopback suite passes; it is preliminary evidence, not acceptance. |

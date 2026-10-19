@@ -516,6 +516,15 @@
         "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
         "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ]
     }
   ]
 }

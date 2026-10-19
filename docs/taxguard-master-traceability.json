@@ -4774,6 +4774,17 @@
       ]
     },
     {
+      "file": "docs/development/ai-workforce-audit.md",
+      "sha256": "d12f39188d6f3a0c661c3f4a4ecc82b4d11a025abc846b18c49ac2e6eec866a9",
+      "bytes": 4363,
+      "headings": [
+        "# AI workforce audit: definitions versus governed, executable agents (2026-10-19)",
+        "## What exists",
+        "## Classification",
+        "## Bounded packages that are safe without new approvals"
+      ]
+    },
+    {
       "file": "docs/development/backup-restore-runbook.md",
       "sha256": "c0ad721e50915f5bf9d9e2add9d5f7fe99958f091d4a4192a2b8ae01ff304e6f",
       "bytes": 6449,
@@ -5082,8 +5093,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "88956e2c24692d4d2a7044ebf8a7b1389781ecae5975736c009ff43093ddfeb4",
-      "bytes": 18361,
+      "sha256": "6ff8aac66727db4a910fe55ac16561509c4b42c48caa61bf0fb7cc894cbfb6aa",
+      "bytes": 18474,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5355,8 +5366,8 @@
     },
     {
       "file": "docs/development/phase14-phase15-migration-integration-plan.md",
-      "sha256": "93de7d2ebc413c6609d314c193f9825da5ab065a8efa87017d3d11d7cfa2e8ba",
-      "bytes": 17094,
+      "sha256": "a5ce8039ac786735512fed54b1259ada96e8bfc4b2f235e27b1e014af5cf8954",
+      "bytes": 17166,
       "headings": [
         "# Phase 14 / Phase 15 migration integration plan (for owner approval)",
         "## 1. The collision (verified)",
@@ -5375,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "67e1b6d39f7ab5c8d8989c21a2707612ab4c3bcda2c1635508f1fd18efea2208",
-      "bytes": 46837,
+      "sha256": "971d635712488daf45fc4426030a3685420f963a3d29bbcfaaa23fecb6f87810",
+      "bytes": 47417,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5388,8 +5399,8 @@
     },
     {
       "file": "docs/development/phase14-proposal-review-dossier.md",
-      "sha256": "4e3fe61f396640ac91481df0a16bc52f79a060edc04bfc03af6f26bbd9fabc54",
-      "bytes": 21574,
+      "sha256": "80f260755a806d7a5f79e9bf79db3f17f9e68ce56404a2d362bf2b7a866aa8d8",
+      "bytes": 22834,
       "headings": [
         "# Phase 14 proposal review dossier: 20261018020000 to 20261018100000",
         "## How the copies were made",
@@ -5404,6 +5415,7 @@
         "### 20261018080000: document-request engagement-year scope (Package B)",
         "### 20261018090000: case access follows the live assignment",
         "### 20261018100000: practice client detail confidentiality",
+        "### 20261018105000: case-team restaffing",
         "## Codex handoff (Phase 15)",
         "## Integration readiness against Codex's Phase 15 branches (read-only, 2026-10-19)",
         "## Remaining authorization gaps (read-only inventory, 2026-10-19)"
@@ -5456,6 +5468,18 @@
         "## AI workforce (Block 9) — unchanged",
         "## Tax engine (Block 10) — unchanged",
         "## Open owner decisions recorded in Phase 9"
+      ]
+    },
+    {
+      "file": "docs/development/production-route-parity.md",
+      "sha256": "959bb8fe2884fd17da3f310b4512f8f660e928cee34a4232bb2d780b6d257cde",
+      "bytes": 6977,
+      "headings": [
+        "# Production route parity (verified inventory, 2026-10-19)",
+        "## How the two entry points relate",
+        "## Mounted in production (`createProductionApp`)",
+        "## Development only (deliberately not in production)",
+        "## Findings"
       ]
     },
     {
@@ -5543,8 +5567,8 @@
     },
     {
       "file": "docs/development/staging-readiness.md",
-      "sha256": "ecfdbddfa11475cf26969d325abe9c6e1cff43a3b1ec4d5c3e593a2bd2e9dd7d",
-      "bytes": 12897,
+      "sha256": "2c10816f2a845c9d694573d1f7fe53d7a23a524e76a40c5658082e76a5486f32",
+      "bytes": 12935,
       "headings": [
         "# Staging readiness and implementation plan (updated 2026-10-18, Phase 14)",
         "## Current state",
@@ -5572,8 +5596,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "a79e52ead5437a41d4e680ad23f6a6d2761cfbbfdd5cff96bae46d39d0cddefe",
-      "bytes": 10003,
+      "sha256": "64b6c8160b7968e6fabc10b52fcd227611ac74997d478658bf91711f852ca7e8",
+      "bytes": 10597,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5588,8 +5612,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "3a1dbe65f82768a1e5a4c59b09ec10eb5aee99617f60b0884436e5f6c069af81",
-      "bytes": 3191,
+      "sha256": "11d1cceb6c0d831f2c746eb95fc5b5b0dc14bc6334569861adba80dcc74dff04",
+      "bytes": 4032,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6080,6 +6104,12 @@
       "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
       "sha256": "79a3b7c4b26a7df36cf51ec7fae06c4634db9b1611e08542b97dbb051c30e2f2",
       "bytes": 22658,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
+      "sha256": "bbdf927c8f47db44ebbd49317fc2f907004882a8a233e5478fc27f87ec1e724b",
+      "bytes": 6125,
       "headings": []
     },
     {
@@ -7311,7 +7341,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "65ffa466e911c35fec610aa55d843c44fe0445cfdd28867f5daed2163b7b0e1f",
+    "src/tests/proposalCompositionSecurity.test.ts": "e749cd1aef1c20949cf6e95e3e7be1f078a15b9b273ca327d794c5ef243cefd6",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

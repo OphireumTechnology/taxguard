@@ -176,7 +176,7 @@ requirements:
 | 7 | Ledger insert triggers | Every Phase 15 insert into `taxguard_ledger_entries` or `taxguard_b2t_adjustments` | `creator_uid` or `prepared_by` is the acting member; no system uid | Compatible today: `ledgerYearScope.db` passes on the merged schema |
 | 8 | Prior-year balances | GL opening and trial-balance beginning balances | Owner policy (§7). Never filter balances silently. | Codex `qa/phase15-scope`: 2 cases pending a policy |
 | 9 | Engagement and financial authorization | `taxguard_bill_*`, ledger reports | Owner confirms client-and-year ledger authority or commissions engagement attribution; invoices follow `taxguard_staff_record_scope` once decided | dossier, Codex handoff item 6 |
-| 10 | Case-team reassignment | new reviewed operation (Phase 14 can deliver it) | Manager-only, audited, live assignment required, segregation kept | dossier, Codex handoff item 7 |
+| 10 | Case-team reassignment | delivered by Phase 14 as `20261018105000_taxguard_case_restaff` (review only); Codex reviews it with the other proposals | Manager-only, audited, live assignment required, segregation kept | dossier, Codex handoff item 7 |
 
 ## 9. Remaining approvals (exact)
 
