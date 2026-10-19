@@ -57,6 +57,54 @@ migration order and manifests, `composition.db.test.ts`, `migration-release-cand
 Until decided, neither proposal may be applied to a hosted database (both are review only), and the two
 branches must not both be merged as they are.
 
+## Owner decision and Phase 14 preparation (2026-10-19)
+
+The owner chose the Phase 15 refund-idempotency design as the canonical target, subject to independent review
+and full compatibility testing. Neither refund migration is to be integrated until the unified implementation
+is independently validated.
+
+**Retained Phase 14 regressions, now implementation-neutral.** `src/tests-db/refundContract.ts` holds the
+Phase 14 refund regressions as a contract: retries and replay, identical separate refunds, key reuse, short
+keys, concurrent submissions of one operation, the payment cap under concurrent distinct operations, tenant,
+client and role refusal, audit evidence, table and function privileges, and the unkeyed path. Each
+implementation supplies an adapter (function name, error codes, result shape). `billingRefunds.db.test.ts` runs
+it with the Phase 14 adapter (5 passing). The unified Phase 15 implementation should run it with its own
+adapter. The UI regressions (suite 02 refund flow, suite 16 refund keyboard and focus) do not depend on the
+database contract and stay as they are.
+
+**Gap analysis against the published Phase 15 SQL.** A temporary probe (not committed) ran the contract on a
+disposable PostgreSQL database composed from this branch. The Phase 14 refund objects were removed and Codex's
+`20261019020000` applied exactly as published. The Phase 15 adapter used `BILLING_IDEMPOTENCY_CONFLICT` for key
+reuse and the kept, fail-closed 6-argument function. Outcome: retries, replay, concurrency, the cap, isolation,
+privileges, grants and the fail-closed unkeyed path all **pass**. Two Phase 14 safeguards are **missing** and
+should be carried into the canonical design:
+
+1. **Owner-level immutability of refund records.** Phase 14 has a `BEFORE UPDATE OR DELETE` trigger raising
+   `BILLING_REFUND_IMMUTABLE`. Under Phase 15, `UPDATE taxguard_invoice_refunds ...` succeeds for the table
+   owner. (`service_role` has no table privileges in either design.)
+2. **The refund reason in the audit entry.** Phase 14's `BILLING_PAYMENT_REFUNDED` metadata includes the
+   reason. Phase 15's carries the refund id and before/after amounts, and keeps the reason only in the refund
+   record. Under Phase 15 the reason therefore survives only as long as that row, which is not immutable (gap 1).
+
+Phase 15 is stronger than Phase 14 in several ways that the canonical design should keep:
+- a key matches only with the same reason and actor;
+- a foreign key ties the refund to its payment;
+- the stored result is replayed;
+- the audit carries before and after amounts;
+- the 6-argument signature is kept and fails closed.
+
+**Caller compatibility.** No application code reads Phase 14's `refundId` or `replayed` result fields. The
+Phase 14 refund form already sends a stable per-operation key (`newBillingKey()`, reused on retry, renewed for a
+new refund). The only Phase 14 caller change is `BillingStore.refund`: call
+`taxguard_bill_refund(..., p_key)` instead of `taxguard_bill_refund_keyed(...)`, with the same arguments. Phase
+15 already contains that change. The browser should also map `BILLING_IDEMPOTENCY_CONFLICT` to the existing
+"already used for a different refund" message. That change is deliberately not made on this branch now, because
+its database does not have the 7-argument function.
+
+**Mixed-schema guard (for Codex's unified migration).** Both proposals use `CREATE TABLE IF NOT EXISTS`, which
+is how the incompatible table was skipped silently. The unified migration should fail explicitly when
+`taxguard_invoice_refunds` exists without the expected columns, rather than skipping the definition.
+
 ## Other Phase 15 changes Phase 14 will need to absorb
 
 `addLine` and `requestCredit` become keyed on Phase 15. On reconciliation, the Phase 14 billing workspace (line

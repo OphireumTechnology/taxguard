@@ -5339,14 +5339,15 @@
     },
     {
       "file": "docs/development/phase14-phase15-billing-overlap.md",
-      "sha256": "3ebd1173c8235b28b62b224ed0487c37dee85a119b4aad191c890b0e5ce1ebdb",
-      "bytes": 4118,
+      "sha256": "6ce82a781cb1be4aa7841a112411eb9d776ca090de1b003a59cbd44c27b27837",
+      "bytes": 7747,
       "headings": [
         "# Phase 14 / Phase 15 billing overlap: refund records (handoff, 2026-10-19)",
         "## Recovery CI failure (run 39153095799)",
         "## The overlap",
         "## Executable evidence",
         "## Options (decision for the owner, with Codex)",
+        "## Owner decision and Phase 14 preparation (2026-10-19)",
         "## Other Phase 15 changes Phase 14 will need to absorb"
       ]
     },
