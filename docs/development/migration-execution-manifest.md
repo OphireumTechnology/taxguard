@@ -85,7 +85,7 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 | 70 | `20261018000000_taxguard_case_validate_replacement_evidence` | proposal | ok | 0 | 0 | taxguard_case_evidence_checks (from #34) | 1, 34 | 0 | — | — |
 | 71 | `20261018010000_taxguard_billing_refund_records` | proposal | ok | 1 | 2 | — | 1, 4, 31 | 0 | — | — |
 | 72 | `20261018020000_taxguard_client_id_sequence_initialize` | proposal | ok | 0 | 0 | — | 1 | 0 | — | — |
-| 73 | `20261018030000_taxguard_client_onboarding` | proposal | ok | 2 | 14 | — | 1, 28, 34 | 0 | — | — |
+| 73 | `20261018030000_taxguard_client_onboarding` | proposal | ok | 2 | 14 | taxguard_case_system_checks (from #29) | 1, 4, 27, 28, 34 | 0 | — | — |
 | 74 | `20261018040000_taxguard_billing_transition_audit` | proposal | ok | 0 | 0 | taxguard_bill_transition (from #31) | 4, 31 | 0 | — | — |
 | 75 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
 

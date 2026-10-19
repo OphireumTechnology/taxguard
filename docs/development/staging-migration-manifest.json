@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "018e5258736952e64ae8d180661cf8dcba71c5f23507582ee95c31d14053302e",
+  "executionPlanSha256": "68fc9d820e1a0e1e6b20f93bf45bd047381b3053ad445f44473b13ce24736d69",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3577,7 +3577,7 @@
       "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
       "kind": "proposal",
       "version": "20261018030000",
-      "sha256": "4db162346f9a36e68635ceb25f451e5b76068c44759b281dbb70adc29c61805c",
+      "sha256": "03929e4ebdfa7240b67043eb0478d0678bd5339bf7c3fcc8423314d4351a9347",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -3585,12 +3585,15 @@
         "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
         "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
-        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
       ],
       "referencedDependencies": [
         "supabase/migrations/20260928000000_taxguard_core_schema.sql",
         "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
-        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
       ],
       "declaredObjects": [
         "taxguard_onb_consent_versions",
@@ -3608,9 +3611,16 @@
         "taxguard_onb_submit",
         "taxguard_onb_decide",
         "taxguard_onb_queue",
-        "taxguard_onb_client_ready"
+        "taxguard_onb_client_ready",
+        "taxguard_case_system_checks"
       ],
-      "supersededFunctions": [],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_system_checks",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
       "rollback": [
         "-- Rollback (development): drop the taxguard_onb_* functions and both tables. Identities already marked"
       ],
@@ -3621,21 +3631,21 @@
         "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', fn);",
         "EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', fn);"
       ],
-      "securityDefinerDeclarations": 13,
+      "securityDefinerDeclarations": 14,
       "notValidConstraints": 0,
       "header": [
         "-- PROPOSAL (Phase 14, Stage 01 onboarding). REVIEW ONLY; NOT APPLIED anywhere external.",
         "-- Requires the core schema, proposal 20261012060000 (atomic client identity), 20261012250000 (practice",
-        "-- management: actor, visibility and audit helpers), 20261012270000 (document vault) and 20261012310000",
-        "-- (client notifications, whose kind list this widens).",
+        "-- management: actor, visibility and audit helpers), 20261012270000 (document vault), 20261012310000",
+        "-- (client notifications, whose kind list this widens) and 20261012260000 (case workflow, whose Stage 1 system",
+        "-- checks gain 'clientOnboardingCompleted').",
         "--",
         "-- Durable, server-authoritative Stage 01 onboarding for a client record:",
         "--   * The client records identity and tax-profile facts (legal name, taxpayer type, address, representative",
         "--     for entities) and the TIN TYPE plus its LAST FOUR digits only. A full TIN is refused; nothing here can",
         "--     store one.",
         "--   * Submission requires every field and an IRC section 7216 consent against an APPROVED consent version of",
-        "--     this tenant. Consent versions are rows in taxguard_onb_consent_versions, which no application role can",
-        "--     write: wording is approved by counsel/practitioner and recorded by the database owner through a"
+        "--     this tenant. Consent versions are rows in taxguard_onb_consent_versions, which no application role can"
       ]
     },
     {

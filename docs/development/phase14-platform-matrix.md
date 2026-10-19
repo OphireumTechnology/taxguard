@@ -272,6 +272,18 @@ could mean "the UI claims something the backend cannot deliver".
   concurrent decision, and that unknown kinds are still refused. Provider suite 14 checks that the API and the
   portal's notifications list show both notices in plain language without the reason.
 
+  **Case continuity, Stage 01 to Stage 03 (Block 26).** The case workflow's own *Onboard* stage checked only
+  client, engagement, year and staffing, so a fully staffed case advanced past Onboard for a client whose Stage
+  01 onboarding the practice had never approved. That defect was shown first by `caseOnboardingGate.db`.
+  Proposal `20261018030000` now replaces `taxguard_case_system_checks` with proposal 026's function plus one
+  Stage 1 check, `clientOnboardingCompleted` (server-recorded completion). All other stages are unchanged, and
+  clients see only booleans for Stages 4–8. Provider suite 14 (8) now covers the whole path:
+  1. Before approval, a staffed case is refused at Onboard with exactly `clientOnboardingCompleted`.
+  2. After approval, the durable preparer completes Onboard.
+  3. The client saves a Stage 02 questionnaire in the browser collection workspace.
+  4. The preparer cannot attest collection; the independent durable reviewer does.
+  5. The reviewer validates Stage 03 and the case reaches Stage 04.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

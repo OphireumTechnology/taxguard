@@ -12,6 +12,8 @@ const EMAIL = `${NEW_UID}@example.test`;
 const PASSWORD = 'Synthetic-new-client-1!';
 const ENGAGEMENT = 'Synthetic new-client 2025 return';
 let clientId = ''; let clientToken = ''; let managerToken = '';
+const PREPARER = 'd0000000-0000-4000-8000-0000000000a6', REVIEWER = 'd0000000-0000-4000-8000-0000000000a5';
+let preparerToken = ''; let reviewerToken = ''; let caseId = ''; let caseVersion = 0;
 const tokenOf = (s: Session) => s.page.evaluate(() => localStorage.getItem('artax_session_token'));
 const findClient = async () => (await api(managerToken, 'GET', `/api/practice/clients?q=${encodeURIComponent(EMAIL)}`)).body.items;
 
@@ -21,6 +23,12 @@ beforeAll(async () => {
   const m = await durableSession(await providerToken(MANAGER));
   expect(m.status, m.body?.code).toBe(200);
   managerToken = m.body.token;
+  for (const [uid, set] of [[PREPARER, (t: string) => { preparerToken = t; }], [REVIEWER, (t: string) => { reviewerToken = t; }]] as const) {
+    expect((await providerControl('/e2e/provider-user', { uid, email: `${uid}@example.test`, password: 'Synthetic-durable-staff-1!', withFactor: true })).status).toBe(200);
+    const s = await durableSession(await providerToken(uid));
+    expect(s.status, s.body?.code).toBe(200);
+    set(s.body.token);
+  }
 });
 afterEach(async ctx => { if (ctx.task.result?.state === 'fail') await dumpOnFailure(ctx.task.name); });
 afterAll(closeBrowser);
@@ -189,6 +197,22 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     await s.context.close();
   });
 
+  it('before onboarding is approved, a fully staffed case cannot leave its Onboard stage', async () => {
+    const eng = await engagementId();
+    for (const [role, userId] of [['preparer', PREPARER], ['reviewer', REVIEWER]]) {
+      const r = await api(managerToken, 'POST', `/api/practice/clients/${clientId}/engagements/${eng}/team`, { taxYear: 2025, role, userId, reason: 'Synthetic staffing for journey B' }, `journey-b-${role}`);
+      expect(r.status, r.body?.code).toBeLessThan(300);
+    }
+    const created = await api(managerToken, 'POST', '/api/cases', { clientId, engagementId: eng, taxYear: 2025, returnFamily: '1040' }, 'journey-b-case-1');
+    expect(created.status, created.body?.code).toBe(201);
+    caseId = created.body.caseId;
+    caseVersion = (await api(managerToken, 'GET', `/api/cases/${caseId}`)).body.case.version;
+    const blocked = await api(preparerToken, 'POST', `/api/cases/${caseId}/advance`, { fromStage: 1, version: caseVersion });
+    expect(blocked.status).toBe(409);
+    expect(blocked.body).toMatchObject({ code: 'STAGE_GATE_NOT_MET', failedChecks: ['clientOnboardingCompleted'] });
+    expect((await api(managerToken, 'GET', `/api/cases/${caseId}`)).body.case.activeStage).toBe(1);
+  });
+
   it('after the practice verifies an identification document and a manager approves, Stage 02 opens on the server', async () => {
     const eng = await engagementId();
     const query = new URLSearchParams({ engagementId: eng, taxYear: '2025', category: 'identity', fileName: 'synthetic-id.pdf' });
@@ -232,5 +256,42 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     await list.getByText('Onboarding approved — Your practice approved your Stage 01 onboarding. Document collection is open.').waitFor();
     expect(await list.getByText('Your onboarding needs changes').count()).toBe(1);
     await s.context.close();
+  });
+
+  it('after approval the case continues: Onboard completes, the client collects in Stage 02, and Stage 03 validation is reached', async () => {
+    const attest = (confirmed: string[]) => ({ confirmed, statement: 'Synthetic reviewer attestation for E2E testing only.' });
+    const advance = async (token: string, fromStage: number, attestation?: unknown) => {
+      const r = await api(token, 'POST', `/api/cases/${caseId}/advance`, { fromStage, version: caseVersion, attestation });
+      if (r.status === 200) caseVersion = r.body.version;
+      return r;
+    };
+    const onboard = await advance(preparerToken, 1);
+    expect(onboard.status, JSON.stringify(onboard.body)).toBe(200);
+    expect(onboard.body.activeStage).toBe(2);
+
+    // Stage 02 collection in the browser, on the durable collection workspace.
+    const s = await liveSessionWithToken(clientToken, '/portal/collection');
+    await sees(s.page, 'Document collection · 2025');
+    await s.page.getByRole('button', { name: 'Start questionnaire draft', exact: true }).click();
+    const dialog = s.page.getByRole('dialog');
+    await dialog.getByLabel('State of Primary Residency').fill('SC');
+    await dialog.getByText('Earned wages reported on Form W-2', { exact: true }).click();
+    await dialog.getByRole('button', { name: 'Save & Update Checklist', exact: true }).click();
+    await sees(s.page, 'Edit questionnaire draft');
+    const eng = await engagementId();
+    const stored = await api(clientToken, 'GET', `/api/stage-two-three/questionnaire/2025?engagementId=${encodeURIComponent(eng)}`);
+    expect(stored.status).toBe(200);
+    expect(stored.body.questionnaire).toMatchObject({ version: 1 });
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+
+    // Collection needs an independent reviewer's attestation; the preparer cannot give it.
+    expect((await advance(preparerToken, 2, attest(['documents_received_or_waived', 'documents_in_private_storage']))).status).toBeGreaterThanOrEqual(400);
+    expect((await advance(reviewerToken, 2, attest(['documents_received_or_waived', 'documents_in_private_storage']))).body.activeStage).toBe(3);
+    const validated = await advance(reviewerToken, 3, attest(['documents_reviewed_for_completeness', 'discrepancies_recorded_or_resolved']));
+    expect(validated.status, JSON.stringify(validated.body)).toBe(200);
+    expect(validated.body.activeStage).toBe(4);
+    const detail = (await api(managerToken, 'GET', `/api/cases/${caseId}`)).body;
+    expect(detail.stages.filter((x: any) => x.status === 'COMPLETED').map((x: any) => x.stage ?? x.stageNumber)).toEqual([1, 2, 3]);
   });
 });

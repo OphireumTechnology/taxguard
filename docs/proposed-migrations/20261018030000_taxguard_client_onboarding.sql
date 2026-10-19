@@ -1,7 +1,8 @@
 -- PROPOSAL (Phase 14, Stage 01 onboarding). REVIEW ONLY; NOT APPLIED anywhere external.
 -- Requires the core schema, proposal 20261012060000 (atomic client identity), 20261012250000 (practice
--- management: actor, visibility and audit helpers), 20261012270000 (document vault) and 20261012310000
--- (client notifications, whose kind list this widens).
+-- management: actor, visibility and audit helpers), 20261012270000 (document vault), 20261012310000
+-- (client notifications, whose kind list this widens) and 20261012260000 (case workflow, whose Stage 1 system
+-- checks gain 'clientOnboardingCompleted').
 --
 -- Durable, server-authoritative Stage 01 onboarding for a client record:
 --   * The client records identity and tax-profile facts (legal name, taxpayer type, address, representative
@@ -300,6 +301,42 @@ CREATE OR REPLACE FUNCTION public.taxguard_onb_client_ready(p_tenant text, p_cli
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT EXISTS (SELECT 1 FROM public.taxguard_clients c JOIN public.taxguard_identities i ON i.uid = c.owner_uid AND i.tenant_id = c.tenant_id
     WHERE c.tenant_id = p_tenant AND c.client_id = p_client AND c.status = 'active' AND upper(i.user_data->>'onboardingStatus') = 'COMPLETED') $$;
+
+-- Case continuity: the case workflow's own "Onboard" stage (proposal 026) must not complete for a client whose
+-- Stage 01 onboarding the practice has not approved. Identical to proposal 026's function except for the added
+-- 'clientOnboardingCompleted' check; every other stage's checks are unchanged. CREATE OR REPLACE keeps grants.
+CREATE OR REPLACE FUNCTION public.taxguard_case_system_checks(p_case public.taxguard_cases) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE c public.taxguard_cases := p_case; y_start date := make_date(p_case.tax_year, 1, 1); y_end date := make_date(p_case.tax_year, 12, 31);
+  posted integer; prepared integer; debits bigint; credits bigint; closed integer; open_recons integer; unposted integer;
+BEGIN
+  IF c.active_stage = 1 THEN
+    RETURN jsonb_build_object(
+      'clientActive', EXISTS (SELECT 1 FROM public.taxguard_clients WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND status = 'active'),
+      'engagementActive', EXISTS (SELECT 1 FROM public.taxguard_engagements WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND engagement_id = c.engagement_id AND status = 'active'),
+      'taxYearActive', EXISTS (SELECT 1 FROM public.taxguard_tax_years WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND engagement_id = c.engagement_id AND tax_year = c.tax_year AND status = 'active'),
+      'preparerAssigned', EXISTS (SELECT 1 FROM public.taxguard_staff_assignments WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND engagement_id = c.engagement_id
+        AND tax_year = c.tax_year AND role = 'preparer' AND user_id = c.preparer_uid AND status = 'ACTIVE'),
+      'reviewerAssigned', EXISTS (SELECT 1 FROM public.taxguard_staff_assignments WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND engagement_id = c.engagement_id
+        AND tax_year = c.tax_year AND role = 'reviewer' AND user_id = c.reviewer_uid AND status = 'ACTIVE'),
+      'independentReviewer', c.preparer_uid <> c.reviewer_uid,
+      'clientOnboardingCompleted', public.taxguard_onb_client_ready(c.tenant_id, c.client_id));
+  END IF;
+  SELECT count(*) FILTER (WHERE status = 'POSTED'), count(*) FILTER (WHERE status = 'PREPARED') INTO posted, prepared
+    FROM public.taxguard_ledger_entries WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND posting_date BETWEEN y_start AND y_end;
+  SELECT COALESCE(sum(l.debit_cents), 0), COALESCE(sum(l.credit_cents), 0) INTO debits, credits FROM public.taxguard_ledger_lines l
+    JOIN public.taxguard_ledger_entries e ON e.tenant_id = l.tenant_id AND e.client_id = l.client_id AND e.entry_id = l.entry_id
+    WHERE l.tenant_id = c.tenant_id AND l.client_id = c.client_id AND e.status = 'POSTED' AND e.posting_date BETWEEN y_start AND y_end;
+  IF c.active_stage = 4 THEN
+    RETURN jsonb_build_object('postedEntries', posted > 0, 'noEntriesAwaitingReview', prepared = 0, 'ledgerBalanced', debits = credits);
+  END IF;
+  SELECT count(*) FILTER (WHERE status = 'CLOSED'), count(*) FILTER (WHERE status = 'IN_PROGRESS') INTO closed, open_recons
+    FROM public.taxguard_ledger_reconciliations WHERE tenant_id = c.tenant_id AND client_id = c.client_id AND tax_year = c.tax_year;
+  SELECT count(*) INTO unposted FROM public.taxguard_ledger_bank_transactions WHERE tenant_id = c.tenant_id AND client_id = c.client_id
+    AND transaction_date BETWEEN y_start AND y_end AND journal_entry_id IS NULL;
+  RETURN jsonb_build_object('closedReconciliation', closed > 0, 'noReconciliationInProgress', open_recons = 0, 'allBankTransactionsPosted', unposted = 0,
+    'noEntriesAwaitingReview', prepared = 0);
+END $$;
 
 DO $$ DECLARE fn text; BEGIN
   FOREACH fn IN ARRAY ARRAY['taxguard_onb_client_owner(text,text,text)', 'taxguard_onb_duplicates(text,text)', 'taxguard_onb_identity_verified(text,text)',
