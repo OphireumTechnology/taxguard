@@ -469,6 +469,52 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     expect(realErrors(m)).toEqual([]);
     await m.context.close();
   });
+
+  it('the manager adds a tax year and records, meets and waives deadlines from the client view', async () => {
+    const m = await liveSessionWithToken(managerToken, '/staff');
+    const { page } = m;
+    await page.getByRole('button', { name: 'Clients & Engagements' }).first().click();
+    await page.getByRole('button', { name: new RegExp(NEW_UID) }).click();
+    const year = page.getByRole('form', { name: `Add tax year to ${ENGAGEMENT}` });
+    await year.getByLabel('Add tax year').fill('2026');
+    await year.getByRole('button', { name: 'Add year' }).click();
+    await sees(page, 'Tax year added.');
+    await sees(page, /tax years 2025, 2026/);
+    // A statutory deadline needs its citation before it can be recorded.
+    const add = page.getByRole('form', { name: 'Add a deadline' });
+    await add.getByLabel('Deadline').fill('Synthetic statutory filing deadline');
+    await add.getByLabel('Category').selectOption('filing');
+    await add.getByLabel('Due date').fill('2026-04-15');
+    await add.getByLabel('Authority').selectOption('STATUTORY');
+    await add.getByLabel('Tax year (optional)').fill('2025');
+    expect(await add.getByRole('button', { name: 'Add deadline' }).isDisabled()).toBe(true);
+    await add.getByLabel(/Source citation/).fill('Synthetic statutory citation 1');
+    await add.getByRole('button', { name: 'Add deadline' }).click();
+    await sees(page, 'Deadline recorded.');
+    await add.getByLabel('Deadline').fill('Synthetic internal review checkpoint');
+    await add.getByLabel('Category').selectOption('review');
+    await add.getByLabel('Due date').fill('2026-03-01');
+    await add.getByRole('button', { name: 'Add deadline' }).click();
+    await sees(page, 'Deadline recorded.');
+    const deadlines = page.getByRole('table', { name: 'Client deadlines' });
+    const statutory = deadlines.getByRole('row', { name: /Synthetic statutory filing deadline/ });
+    const internal = deadlines.getByRole('row', { name: /Synthetic internal review checkpoint/ });
+    expect(await statutory.innerText()).toMatch(/statutory · Synthetic statutory citation 1/);
+    // Statutory deadlines are never waivable; the internal one is waived with a recorded reason.
+    expect(await statutory.getByRole('button', { name: 'Waive' }).count()).toBe(0);
+    const internalId = (await api(managerToken, 'GET', `/api/practice/clients/${clientId}`)).body.deadlines.find((x: any) => x.title === 'Synthetic internal review checkpoint').deadlineId;
+    expect((await api(preparerToken, 'POST', `/api/practice/clients/${clientId}/deadlines/${internalId}/resolve`, { status: 'WAIVED', reason: 'Synthetic preparer waiver' })).status).toBeGreaterThanOrEqual(400);
+    await page.getByLabel(/Reason for waiving a deadline/).fill('Synthetic checkpoint no longer needed');
+    await internal.getByRole('button', { name: 'Waive' }).click();
+    await sees(page, 'Deadline waived.');
+    await statutory.getByRole('button', { name: 'Mark met' }).click();
+    await sees(page, 'Deadline marked met.');
+    const after = (await api(managerToken, 'GET', `/api/practice/clients/${clientId}`)).body.deadlines;
+    expect(after.filter((x: any) => x.title.startsWith('Synthetic ')).map((x: any) => [x.title, x.status]).sort())
+      .toEqual([['Synthetic internal review checkpoint', 'WAIVED'], ['Synthetic statutory filing deadline', 'MET']]);
+    expect(realErrors(m)).toEqual([]);
+    await m.context.close();
+  });
 });
 
 /** Selects the option whose text contains the account number (the ledger account pickers show "1010 · Cash"). */

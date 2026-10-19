@@ -459,6 +459,17 @@ could mean "the UI claims something the backend cannot deliver".
     - Default browser suite 07: the preparer's own approval attempt is refused with the note kept, and the reviewer
       approves the run in the UI. `taxRulesPanel.test` (6).
 
+  **Engagement tax years and practice deadlines (Block 36).** The client detail already returned deadlines but never
+  showed them, and adding a tax year or a deadline was API-only. Clients & Engagements now has:
+  - **Add tax year** on each open engagement;
+  - a **Deadlines** table showing authority, citation, tax year and status, with Mark met and, for non-statutory
+    deadlines only, Waive (the reason is recorded; the server limits waivers to managers);
+  - an **Add a deadline** form, where a statutory deadline cannot be recorded without its source citation.
+
+  Refusals have specific messages. `practiceClientsPanel.test` (6). Provider suite 14 journey: the manager adds 2026,
+  records a statutory deadline (blocked until the citation is entered) and an internal one, the preparer's waiver is
+  refused, and the manager waives the internal deadline and marks the statutory one met.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.
