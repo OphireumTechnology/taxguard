@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "179049f4c03765c4f3ce23d8f1ec033c95de4ce6c09b5c6d12f8de32b357bcb6",
-      "bytes": 15913,
+      "sha256": "5d1ae070cd4e1640333f2d1368cce81fcd46f639004241cb1d1702c23247246f",
+      "bytes": 16368,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5354,8 +5354,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "debb97bf9399559ab4b610fe3ed1a794d06515dc3c64933bd198fa1f574f6527",
-      "bytes": 38307,
+      "sha256": "b704a39d1a5b2e0a1d7b15d8f495e6b43f82d311b2406065b2e55f670ffbecfb",
+      "bytes": 40027,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5964,6 +5964,12 @@
       "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
       "sha256": "4f7259155265d9e08558ef7d01e2aafccdfb63edd3d6a420bd2c31eb7265ffdf",
       "bytes": 3869,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "sha256": "eaf770b74db8d57304995185127e8938048e5566a58242d8255b4395691d5132",
+      "bytes": 21551,
       "headings": []
     },
     {
@@ -7195,7 +7201,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "07c9992b32cf74457dfc78139c1b321d6757d636b8bf3face8cf106bc600439b",
+    "src/tests/proposalCompositionSecurity.test.ts": "394ed2fe569e43f52c87d8496d2ead77805b464239bb2e670cd8349a07d86179",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

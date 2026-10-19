@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 76,
+    "files": 77,
     "core": 13,
-    "proposals": 62,
+    "proposals": 63,
     "tables": 148,
-    "functions": 351,
-    "securityDefinerFunctions": 272,
+    "functions": 352,
+    "securityDefinerFunctions": 273,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3102,6 +3102,72 @@
     },
     {
       "order": 76,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_staff_scope"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_collection_scope",
+          "previous": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql"
+        },
+        {
+          "function": "taxguard_doc_authorize_download",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_begin_upload",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_detail",
+          "previous": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql"
+        },
+        {
+          "function": "taxguard_doc_list",
+          "previous": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql"
+        },
+        {
+          "function": "taxguard_doc_review",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_review_queue",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_upload_targets",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_verify_extraction",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        30,
+        62
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 77,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "39e6c6880427ff48e08a16b9126c8600e0b4cd36c0627f8a9277bc2529eac189",
+  "executionPlanSha256": "7d50461f8bfb66b2c33bbc94c93315e4a1660e38b87634626b149adcf5ecb2b5",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3744,6 +3744,111 @@
         "-- superseded workpapers, and workpapers of another year, return family or client, do not count.",
         "-- Who may attest, the attestation checklist and every other stage are unchanged. Stages 02 and 03 are",
         "-- identical to 20261018000000. The check is server-derived; the caller never supplies it."
+      ]
+    },
+    {
+      "order": 76,
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "kind": "proposal",
+      "version": "20261018060000",
+      "sha256": "eaf770b74db8d57304995185127e8938048e5566a58242d8255b4395691d5132",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+        "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_staff_scope",
+        "taxguard_doc_list",
+        "taxguard_doc_detail",
+        "taxguard_doc_authorize_download",
+        "taxguard_doc_review",
+        "taxguard_doc_review_queue",
+        "taxguard_doc_upload_targets",
+        "taxguard_doc_begin_upload",
+        "taxguard_doc_verify_extraction",
+        "taxguard_collection_scope"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_doc_list",
+          "previousFile": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_detail",
+          "previousFile": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_authorize_download",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_review",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_review_queue",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_upload_targets",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_begin_upload",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_verify_extraction",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_collection_scope",
+          "previousFile": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the listed proposals' definitions and drop taxguard_staff_scope."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_staff_scope(text,text,text,text,text,integer) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 10,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, engagement-scoped staff access). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 025 (practice management), 027 (document vault), 20261015020000 (collection questionnaires),",
+        "-- 20261015060000 (audit custody overlay) and 20261015030851 (document client confidentiality), which runs after",
+        "-- 20261015060000 in execution order and holds the current taxguard_doc_list and taxguard_doc_detail.",
+        "--",
+        "-- Owner decision 2026-10-19: a staff member assigned to one engagement and tax year reaches that client's records",
+        "-- for that engagement and year only, unless independently authorized (a client-wide assignment, a practice manager",
+        "-- or an administrator). The document vault and Stage 02 collection checked visibility per client only",
+        "-- (taxguard_practice_can_see: any active assignment to the client), so an engagement-year assignee could list, read,",
+        "-- download, review and upload into every engagement and year of the client, and open another engagement's",
+        "-- collection. Each function below is identical to its current definition except for the added scope check against",
+        "-- the record's own engagement and tax year. Refusals keep the existing \"not found\" / \"access denied\" codes, so a"
       ]
     }
   ]

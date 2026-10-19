@@ -473,6 +473,16 @@
         "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
         "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+        "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+      ]
     }
   ]
 }

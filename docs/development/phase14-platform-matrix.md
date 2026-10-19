@@ -319,6 +319,24 @@ could mean "the UI claims something the backend cannot deliver".
   refused. Other durable routes that rely only on `authorizedClientIds` would refuse per-engagement staff in
   production in the same way. They should adopt `hasClientYearAccess` route by route, with tests.
 
+  **Engagement-scoped access at the database boundary, documents and Stage 02 (Block 28).** The document vault and
+  Stage 02 collection decided staff visibility per client (`taxguard_practice_can_see`: any active assignment to
+  the client). A preparer assigned to one engagement for 2025 could therefore list, read, download, review, queue
+  and upload into every engagement and year of that client, and open another engagement's collection.
+  - **Fix:** proposal `20261018060000_taxguard_engagement_scoped_access` (review only) adds `taxguard_staff_scope`
+    and replaces the current definition of each affected function with an identical copy plus a scope check on
+    the record's own engagement and year. The functions are list, detail, download, review (and so review with
+    reason), review queue, upload targets, begin upload, verify extraction and collection scope.
+  - **Scope rule:** managers and administrators keep full access; a client-wide assignment keeps the whole
+    client; an empty engagement or year on an assignment is a wildcard.
+  - **Refusals:** they reuse the existing "not found" or "access denied" codes, so an out-of-scope record looks
+    missing. A refused download writes no audit row.
+  - **Tests:** `engagementScopedAccess.db` (6) failed first on five cases. It covers same client with another
+    engagement, same engagement with another year, whole-client and manager access, stale, revoked, other-client
+    and other-tenant staff, and immediate effect of revocation.
+  - **Execution order:** the current definitions were resolved from the migration execution order, not filenames.
+    `clientDocumentConfidentiality.db` caught a first draft built on a superseded `doc_detail`.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.
