@@ -432,6 +432,26 @@ could mean "the UI claims something the backend cannot deliver".
     former reviewer loses the case and the preparer cannot restaff. Unit coverage: `caseWorkflowPanel.test`
     (restaff request shape, candidate filtering, refusal messages).
 
+  **Tax Rules console (Block 34).** The tax-engine API had no frontend at all: sources of law, versioned rule sets
+  with maker-checker approval, and test coverage were reachable only by API. `TaxRulesPanel` (manager module
+  "Tax Rules" and the reviewer dashboard), with `taxEngineService`, adds:
+  - a sources table with registration;
+  - reviewer verification against a 64-character document hash;
+  - rule sets by year, with a detail view (parameters with filing status, source and citation; content hash;
+    sources; coverage);
+  - submit, approve and reject, with a note required to reject.
+
+  Every decision stays on the server: reviewers verify and approve, nobody checks their own work, and approval needs
+  passing, covering tests. Refusals have specific messages and keep what was entered. Synthetic content is always
+  labelled.
+  - **Allowlist:** the practice-manager route allowlist now permits the read-only
+    `GET /api/tax-engine/rule-sets/:id/coverage`. The allowlist test failed first.
+  - **Tests:** `taxRulesPanel.test` (5): request shapes, refusal messages, hash validation, navigation. Default
+    browser suite 07 adds the console journey: the manager registers a source, the manager's verify attempt is
+    refused with the hash kept, the reviewer verifies it, and the reviewer reads the approved synthetic rule set
+    with full coverage.
+  - **Next:** rule-set tests and test runs, and case calculation runs in Case Workflow.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

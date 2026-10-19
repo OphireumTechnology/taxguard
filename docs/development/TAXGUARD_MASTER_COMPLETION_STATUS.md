@@ -60,6 +60,11 @@ Audits completed in this cycle (documents):
   browser 113/113 and provider browser 41/41 (the new reassignment journey included). The route-cutover gate was
   published as `092e756` (CI run 39260819850 success).
 
+- **Tax Rules console** (`TaxRulesPanel`, `taxEngineService`; manager and reviewer dashboards; coverage read allowed for
+  managers): `taxRulesPanel.test` (5) and default browser suite 07. The manager case-team UI was published as
+  `f5ae250` (CI run 39269700388 success). Local validation passes: PostgreSQL 133, unit 5847, lint, typecheck, build, release candidate (81 entries), secret
+  scan, diff check, default browser 114/114 and provider browser 41/41.
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**

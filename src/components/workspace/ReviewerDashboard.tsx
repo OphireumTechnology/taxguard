@@ -8,6 +8,7 @@ import { REVIEW_FILTERS, REVIEW_TABS, REVIEWER_STAGES, reviewFilter, reviewerDec
 import { ReviewEmpty, ReviewerExceptionPanel, ReviewerQualityPanel, ReviewerReadPanel } from './ReviewerCasePanels';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
 import { CaseWorkflowPanel } from './CaseWorkflowPanel';
+import { TaxRulesPanel } from './TaxRulesPanel';
 import { StaffDocumentReviewPanel } from '../documents/StaffDocumentReviewPanel';
 import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
@@ -59,6 +60,8 @@ export function ReviewerDashboard() {
       {/* Durable case workflow and document review: the server limits both to cases and clients assigned to this reviewer. */}
       {!inspecting && <CaseWorkflowPanel />}
       {!inspecting && <StaffDocumentReviewPanel />}
+      {/* Reviewers verify sources and decide on rule sets; the server enforces maker-checker and test gates. */}
+      {!inspecting && <TaxRulesPanel />}
       {!inspecting && <StaffMessageInboxPanel />}
       {!inspecting && <AppointmentsPanel mode={{ kind: 'staff' }} actorId={currentUser?.id} />}
       <section className="tg-review-card tg-review-queue"><h2>Quality Review Queue <button disabled={busy} onClick={()=>setRefresh(n=>n+1)}>Refresh</button></h2><div className="tg-review-filters">{REVIEW_FILTERS.slice(0,6).map(f=><button key={f} aria-pressed={filter===f} onClick={()=>setFilter(f)}>{f}</button>)}<label>Search authorized cases<input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)}/></label><label>Tax year<select value={year} onChange={e=>setYear(e.target.value)}><option>All</option>{[...new Set(rows.map(r=>r.scope.taxYear))].sort((a,b)=>b-a).map(y=><option key={y}>{y}</option>)}</select></label></div>

@@ -12,6 +12,7 @@ import {ConsultationRequestsPanel} from '../consultations/ConsultationRequestsPa
 import {ReassignmentRequestsPanel} from './ReassignmentRequestsPanel';
 import {OnboardingReviewPanel} from '../onboarding/OnboardingReviewPanel';
 import {CaseWorkflowPanel} from './CaseWorkflowPanel';
+import {TaxRulesPanel} from './TaxRulesPanel';
 import {StaffDocumentReviewPanel} from '../documents/StaffDocumentReviewPanel';
 import {BillingWorkspacePanel} from '../billing/BillingWorkspacePanel';
 import {StaffDocumentRequestsPanel} from '../documents/StaffDocumentRequestsPanel';
@@ -33,6 +34,7 @@ export function PracticeManagerDashboard(){
  {module==='Dashboard'&&!inspecting&&<PracticeSummaryPanel taxYear={year==='All'?undefined:Number(year)}/>}
  {module==='Clients & Engagements'&&<><StaffMessageInboxPanel canArchive/><PracticeClientsPanel/></>}
  {module==='Case Workflow'&&<CaseWorkflowPanel/>}
+ {module==='Tax Rules'&&<TaxRulesPanel/>}
  {module==='Document Review'&&<StaffDocumentReviewPanel/>}
  {module==='Document Requests'&&<StaffDocumentRequestsPanel/>}
  {module==='Billing'&&<BillingWorkspacePanel/>}

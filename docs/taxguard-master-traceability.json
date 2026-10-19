@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "8d830be198b0d28fcdb74a6afd1154e1f6190ed81dfe44c628aa550f2d0c168b",
-      "bytes": 48559,
+      "sha256": "d8ad504cd4783367ed6b15660746668e7dd41cc100ee9611f121fab16095d957",
+      "bytes": 50015,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5597,8 +5597,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "567d0251d4816bd6a236e2fbc81cf02941437cfdfda406695918e71e288d49db",
-      "bytes": 10631,
+      "sha256": "b8799561d1591c9bc6ce4ecf58529c8bc0fd77b362698b021bbf8ca8fa673383",
+      "bytes": 11052,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "197d8a5d26f4da7ff26dc652cd00a8f5dce763e3ce735d690b60cf6affe8cdf5",
-      "bytes": 5897,
+      "sha256": "f62041ecd8ec0de3981c9f561aa1cdaa80267843798973e760664e70f41e8a04",
+      "bytes": 6358,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7182,7 +7182,7 @@
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "de799cd694b9c01ce53458d176ebecd110b894b0abf83e3427dfd99166dac90c",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "3fbd1d9812f40712e9f7565eae68e1fe8b2313711994e240bba18a40fd0ee52f",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "f89d25c37e3066151948435ede0671df84ce79ad809fe7b7f85649c05417e996",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "572003d8c8ab71f8606bc7c01b36adcfd17e7988a5e5217b48d708306cddb120",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",
