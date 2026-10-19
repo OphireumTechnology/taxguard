@@ -22,6 +22,7 @@ import { provisionClientIdentity } from './atomicClientIdentity';
 import { createDurableSession, revokeDurableSession } from './durableSessionTransactions';
 import { updateClientProfile } from './clientProfileUpdate';
 import { attachSessionAssuranceLevel, clientMfaDenial, staffMfaDenial } from './staffMfa';
+import { attachScopedClientGrants, type ScopedClientGrant } from './staffScopedGrants';
 
 // An explicitly enabled non-production identity project uses durable authority without demo fallbacks.
 const strictDurableAuthority = () => process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true';
@@ -121,7 +122,11 @@ export class SupabaseDurableSessions {
     return this.tenantId;
   }
 
-  private async getAuthorizedClientIds(uid: string): Promise<string[]> {
+  /**
+   * Whole-client grants (client-wide assignments) and, separately, engagement / tax-year scoped grants
+   * (owner decision 2026-10-19). Scoped grants never join the whole-client list.
+   */
+  private async getStaffGrants(uid: string): Promise<{ clientIds: string[]; scoped: ScopedClientGrant[] }> {
     const { data, error } = await this.client
       .from('taxguard_staff_assignments')
       // status must be selected: isAssignmentCurrentlyEffective rejects rows without it,
@@ -132,20 +137,19 @@ export class SupabaseDurableSessions {
       .eq('status', 'ACTIVE');
     if (error) throw new AuthorityError('STAFF_ASSIGNMENT_STORE_UNAVAILABLE', 503);
 
-    return Array.from(new Set((data || [])
-      .filter((assignment: {
-        status?: string;
-        engagement_id?: string | null;
-        tax_year?: number | null;
-        effective_from?: string;
-        effective_to?: string | null;
-      }) => {
-        return assignment.engagement_id == null &&
-          assignment.tax_year == null &&
-          isAssignmentCurrentlyEffective(assignment);
-      })
-      .map((assignment: { client_id?: string }) => assignment.client_id)
-      .filter((clientId: unknown): clientId is string => typeof clientId === 'string' && clientId.length > 0)));
+    type Row = { client_id?: string; status?: string; engagement_id?: string | null; tax_year?: number | null; effective_from?: string; effective_to?: string | null };
+    const current = ((data || []) as Row[]).filter(a => typeof a.client_id === 'string' && a.client_id.length > 0 && isAssignmentCurrentlyEffective(a));
+    const clientIds = Array.from(new Set(current.filter(a => a.engagement_id == null && a.tax_year == null).map(a => a.client_id as string)));
+    const scoped = current
+      .filter(a => typeof a.engagement_id === 'string' && a.engagement_id.length > 0 && Number.isInteger(a.tax_year))
+      .map(a => ({ clientId: a.client_id as string, engagementId: a.engagement_id as string, taxYear: a.tax_year as number }));
+    return { clientIds, scoped };
+  }
+
+  private async attachStaffGrants(user: User, uid: string): Promise<void> {
+    const grants = await this.getStaffGrants(uid);
+    attachAuthorizedClientIds(user, grants.clientIds);
+    attachScopedClientGrants(user, grants.scoped);
   }
 
   /**
@@ -335,7 +339,7 @@ export class SupabaseDurableSessions {
           this.usesDurableAuthority &&
           ASSIGNMENT_REQUIRED_ROLES.has(user.role)
         ) {
-          attachAuthorizedClientIds(user, await this.getAuthorizedClientIds(uid));
+          await this.attachStaffGrants(user, uid);
         }
 
         const inMemUser = this.usesDurableAuthority ? null : inMemoryCached || db.users.get(user.id);
@@ -663,7 +667,7 @@ export class SupabaseDurableSessions {
     user.role = resolvedMember.role as User['role'];
     if (isProduction && ASSIGNMENT_REQUIRED_ROLES.has(user.role)) {
       try {
-        attachAuthorizedClientIds(user, await this.getAuthorizedClientIds(resolvedSession.uid));
+        await this.attachStaffGrants(user, resolvedSession.uid);
       } catch {
         return null;
       }
