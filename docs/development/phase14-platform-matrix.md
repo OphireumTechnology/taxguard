@@ -310,6 +310,15 @@ could mean "the UI claims something the backend cannot deliver".
   returns to `/staff/login`, and client accounts return to `/portal/login`. Suite 01 now signs out the manager,
   bookkeeper, accountant and administrator and checks the exact page and the server-side revocation; the manager
   and bookkeeper cases failed before the fix. The client case is covered by provider suite 15.
+- **Invoice transition audit completeness (Block 25).** Every invoice transition was audited with the invoice
+  id only. A reviewer's return note lives on the invoice until the preparer resubmits, and submit clears it by
+  design, so the reason a checker sent an invoice back for rework was lost entirely. The void reason existed
+  only on the mutable row. Proposal `20261018040000_taxguard_billing_transition_audit` (review only) replaces
+  `taxguard_bill_transition` with a function identical to proposal 028's except for the audit call. That call
+  now records the prior and new status, the note for return and void, and the issued number for approve.
+  Authorization, maker-checker, state rules, numbering and projections are unchanged. No Phase 15 branch
+  redefines this function. `billingTransitionAudit.db` (3) failed first on the return and void cases. It also
+  checks that refused transitions write no audit row and that the client projection carries neither reason.
 - **Integration with PR #20 (2026-10-18).** PR #20 merged into `main` (6e31a40). `main` was merged into this
   branch normally (no rebase, no force-push), keeping every Phase 14 commit through 9a11fb6. The only conflict
   was the generated `docs/taxguard-master-traceability.json`, regenerated with the canonical generator.

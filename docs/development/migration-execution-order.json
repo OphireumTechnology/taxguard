@@ -459,6 +459,12 @@
         "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
         "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ]
     }
   ]
 }

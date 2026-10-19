@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "c0f7139462ae571ff9dc6daa8a43d4bb142288baafe644b80b1d67139f9d1062",
+  "executionPlanSha256": "018e5258736952e64ae8d180661cf8dcba71c5f23507582ee95c31d14053302e",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3636,6 +3636,53 @@
         "--   * Submission requires every field and an IRC section 7216 consent against an APPROVED consent version of",
         "--     this tenant. Consent versions are rows in taxguard_onb_consent_versions, which no application role can",
         "--     write: wording is approved by counsel/practitioner and recorded by the database owner through a"
+      ]
+    },
+    {
+      "order": 74,
+      "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
+      "kind": "proposal",
+      "version": "20261018040000",
+      "sha256": "6ae0c34b36a2efe17fed537b8026a1693cbf94a2251a1ce2cbc48d70a9ae0a84",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_transition"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_transition",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-run the function definition from proposal 028."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, billing audit completeness). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposal 028 (20261012280000, billing).",
+        "--",
+        "-- taxguard_bill_transition audited every invoice transition with the invoice id only. A reviewer's return note",
+        "-- is kept on the invoice only until the preparer resubmits (submit clears review_note by design), so the reason",
+        "-- a checker sent an invoice back for rework was lost entirely, and void reasons existed only on the mutable row.",
+        "-- This replacement is identical to proposal 028's function except for the audit call. That call now records",
+        "-- the prior and new status, the note for 'return' and 'void', and the issued invoice number for 'approve'.",
+        "-- Authorization, maker-checker, state rules, numbering and the returned projection are unchanged. Audit rows are",
+        "-- staff-only (administrator audit center); the client projection never includes notes or reasons.",
+        "-- CREATE OR REPLACE keeps the existing grants (service_role only).",
+        "-- Rollback (development): re-run the function definition from proposal 028."
       ]
     }
   ]

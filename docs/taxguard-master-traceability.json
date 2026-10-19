@@ -5082,8 +5082,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "a327e68f8f8812ca843bd2cb74cf87d79d828844a4d54f18cea1e9d776a30bfd",
-      "bytes": 15571,
+      "sha256": "9ec40bb764bfc89646e3164fe402bbdc78e632835884928e284baae0f22a3d94",
+      "bytes": 15717,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5352,8 +5352,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "99a1b21500e82dd706dc5d26ea619a7f53ca086b83b38339b34b5617a1b84ab3",
-      "bytes": 33064,
+      "sha256": "2995fec2989a96c726c6c6bc90c649995e10fb0fe4b1549c2b56866fb0aa1c49",
+      "bytes": 34042,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5950,6 +5950,12 @@
       "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
       "sha256": "4db162346f9a36e68635ceb25f451e5b76068c44759b281dbb70adc29c61805c",
       "bytes": 26210,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
+      "sha256": "6ae0c34b36a2efe17fed537b8026a1693cbf94a2251a1ce2cbc48d70a9ae0a84",
+      "bytes": 5034,
       "headings": []
     },
     {
@@ -7181,7 +7187,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "208e0a97794ae88c6fa20f84e9d7765b8bedc315fe58ac1fcff71e1fd265fcf6",
+    "src/tests/proposalCompositionSecurity.test.ts": "0aeae5147900eb779589b559b5a7803abce8a432e1992d39a42f4ff7c8815aa3",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
