@@ -71,6 +71,33 @@ shared practice-store module: `20261012250000`, `320000`, `20261018090000` and `
 | `/api/reassignment` | `reassignment.routes.ts` | 20261014450000 | — |
 | `/api/staff-access` | `staff-access.routes.ts` | direct table reads (no RPC) | Staff directory policy reviewed |
 
+## Cutover gate (implemented)
+
+`src/server/routeCutover.ts` is wired into `createProductionApp`. Fourteen of the routers above are catalogued with
+their proposals and sentinel RPCs. A router is mounted in production only when all of the following hold:
+1. it is listed in `TAXGUARD_PRODUCTION_ROUTE_CUTOVER`;
+2. every required proposal is in `OWNER_APPROVED_PROPOSALS`, which is empty: only an owner-approved, reviewed change
+   may add entries;
+3. a schema probe confirms the sentinel RPCs.
+
+No reviewed schema-introspection probe exists yet, so even an eligible route answers 503
+`ROUTE_CUTOVER_SCHEMA_UNVERIFIED`. Unmounted routes answer the existing `API_NOT_RELEASED` boundary. Each router keeps
+its own store gate, which is still closed in production. Opening it for the protected project is a separate owner
+decision at cutover.
+
+`GET /api/route-cutover` reports each route's state; it is restricted to operational administrators.
+
+**Evidence:** `routeCutover.test` (8). It covers:
+- the empty approval list;
+- unknown, unrequested and partly approved routes;
+- catalogue integrity (every proposal is in the execution order and defines its sentinels);
+- verified, missing-sentinel, failing and absent probes;
+- every route requested in the production app with none reachable;
+- authentication on the status report.
+
+Vault scan, public contact and staff access are outside the catalogue: they need their own provider and abuse
+reviews.
+
 **Rule:** no router moves into `createProductionApp` until all of the following hold:
 - its proposals are approved and applied through the protected gate;
 - its providers are configured;

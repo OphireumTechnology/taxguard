@@ -5472,13 +5472,14 @@
     },
     {
       "file": "docs/development/production-route-parity.md",
-      "sha256": "d26cc9a9a17acd4549bc9c833625c2adfad3a15333e0cdf77d0279f205b9aec0",
-      "bytes": 7644,
+      "sha256": "5e04307e69b06752b3b4132ba2760d137e075e6b67749aad0f308c876f3b8984",
+      "bytes": 9087,
       "headings": [
         "# Production route parity (verified inventory, 2026-10-19)",
         "## How the two entry points relate",
         "## Mounted in production (`createProductionApp`)",
         "## Development only (deliberately not in production)",
+        "## Cutover gate (implemented)",
         "## Findings"
       ]
     },
@@ -5612,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "da4fc5ab81d670dd117905e7e467c5e3513bc7b2c924645956583fc1775c1350",
-      "bytes": 4611,
+      "sha256": "8e5c9c9d49dc7c0f3b8cf0823ec202177f7baf38b97cfb7264d166b56ab2e438",
+      "bytes": 5259,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7206,7 +7207,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "c5910fcf561ea2c6b03169aad1c8d14cfdb9d3505338ccd357efbd479cbaf6c8",
+    "src/server/productionApp.ts": "d9bea579ae38856cc991d30b9e6f2aff45bc44f4715b3e72a1b62d80aa4e5713",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "8f31ed13030cb6057c5f72fe8f4158ddefafe7f76565d78b4ad91ee5750ac3f9",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",

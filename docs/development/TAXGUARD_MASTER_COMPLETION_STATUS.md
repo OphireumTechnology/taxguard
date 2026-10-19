@@ -46,6 +46,13 @@ Audits completed in this cycle (documents):
   **Remaining:** GitHub Pages cannot send headers, so HTML served from Pages stays framable until it moves to a
   host or CDN that can. This is a hosting decision for the owner.
 
+- **Production route cutover gate:** `src/server/routeCutover.ts` is wired into `createProductionApp`, with the
+  admin-only `GET /api/route-cutover`; `routeCutover.test` (8). It fails closed: no proposal is approved, so nothing
+  is mounted. Local validation passes: PostgreSQL 133, unit 5839 (including
+  `aiWorkforceDenyByDefault.test`, 61 cases: 58 agents `UNMAPPED_DENIED` and 3 bounded, none with execution authority),
+  lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 113/113 and provider
+  browser 40/40. The security-header package was published as `7c26026` (CI run 39255408711 success).
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**
