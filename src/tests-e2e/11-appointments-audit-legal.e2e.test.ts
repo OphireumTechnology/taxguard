@@ -104,11 +104,22 @@ describe('administrative audit center', () => {
     const detail = center.getByRole('article', { name: 'Audit event detail' });
     await detail.getByText('appointmentId').waitFor();
     expect(await center.innerText()).not.toMatch(/Synthetic planning appointment|meet\.|disclaimer/i);
+    // Security view: event volume per category for the range, with its own 31-day bound.
+    const filters = center.getByRole('form', { name: 'Audit filters' });
+    await filters.getByLabel(/Security events only/).check();
+    await filters.getByRole('button', { name: 'Apply filters' }).click();
+    const volume = center.getByRole('region', { name: 'Security event volume' });
+    await volume.getByText(/^(Category|No security events were recorded in this range\.)$/).first().waitFor();
+    expect(await volume.getByRole('alert').count()).toBe(0);
+    await filters.getByLabel('From (UTC date)').fill(new Date(Date.now() - 40 * 86_400_000).toISOString().slice(0, 10));
+    await filters.getByRole('button', { name: 'Apply filters' }).click();
+    await volume.getByRole('alert').filter({ hasText: 'Security event volume covers at most 31 days.' }).waitFor();
     expect(realErrors(admin)).toEqual([]);
     await admin.context.close();
     const range = `from=${encodeURIComponent(new Date(Date.now() - 86_400_000).toISOString())}&to=${encodeURIComponent(new Date(Date.now() + 86_400_000).toISOString())}`;
     expect((await api(mgrToken, 'GET', `/api/audit-center/events?${range}`)).status).toBe(403);
     expect((await api(clientToken, 'GET', `/api/audit-center/events?${range}`)).status).toBe(403);
     expect((await api(acctToken, 'GET', `/api/audit-center/events?${range}`)).body.code).toBe('AUDIT_ADMIN_REQUIRED');
+    expect((await api(mgrToken, 'GET', `/api/audit-center/security-summary?${range}`)).status).toBe(403);
   });
 });

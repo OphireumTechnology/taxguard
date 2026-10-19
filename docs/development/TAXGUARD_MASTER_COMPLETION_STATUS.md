@@ -75,6 +75,10 @@ Audits completed in this cycle (documents):
   browser 115/115 and provider browser 42/42. The Tax Rules console (`91fc6a3`, CI run 39278170178) and rule-set tests
   and calculation runs (`57dab4b`, CI run 39283183667) are published with CI success.
 
+- **Security event volume** in the audit center: `auditSecurityVolume.test` (2) and local validation passes:
+  PostgreSQL 133, unit 5852, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
+  browser 115/115 and provider browser 42/42. Tax years and deadlines were published as `aafb24c` (CI run 39288880317 success).
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**

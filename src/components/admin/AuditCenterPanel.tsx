@@ -24,6 +24,12 @@ export function auditErrorText(error: unknown) {
   if (e?.code === 'AUDIT_RANGE_INVALID') return 'Choose a date range of at most 92 days.';
   return 'Audit records could not be loaded. Nothing is shown in their place.';
 }
+type SecurityVolume = { category: string; recorded: number; suppressed: number };
+/** The security event volume covers at most 31 days (the event log allows 92). */
+export function securityVolumeErrorText(error: unknown) {
+  if ((error as { code?: string })?.code === 'AUDIT_RANGE_INVALID') return 'Security event volume covers at most 31 days. Narrow the date range to see it.';
+  return auditErrorText(error);
+}
 
 /**
  * Read-only, tenant-scoped audit events (proposal 041). The server returns allow-listed identifier
@@ -39,6 +45,8 @@ export function AuditCenterPanel({ securityOnly: initialSecurity = false }: { se
   const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error'; items: AuditEvent[]; next: string | null; error?: string }>({ status: 'loading', items: [], next: null });
   const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
   const [selected, setSelected] = useState<AuditEvent | null>(null);
+  // Security event volume (proposal 048): recorded and suppressed (rate-limited duplicate) counts per category, administrators only.
+  const [volume, setVolume] = useState<{ status: 'idle' | 'loading' | 'ready' | 'error'; categories: SecurityVolume[]; error?: string }>({ status: 'idle', categories: [] });
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const params = (f: typeof filter) => {
@@ -53,6 +61,11 @@ export function AuditCenterPanel({ securityOnly: initialSecurity = false }: { se
       .then(page => { if (mounted.current) setState(s => ({ status: 'ready', items: cursor ? [...s.items, ...page.items] : page.items, next: page.nextCursor })); })
       .catch(error => { if (mounted.current && !signal?.aborted) setState({ status: 'error', items: [], next: null, error: auditErrorText(error) }); });
     read<Array<{ category: string; count: number }>>('/categories', { from: params(f).from, to: params(f).to }, signal).then(c => mounted.current && setCategories(c)).catch(() => undefined);
+    if (!securityOnly) { setVolume({ status: 'idle', categories: [] }); return; }
+    setVolume({ status: 'loading', categories: [] });
+    read<{ categories: SecurityVolume[] }>('/security-summary', { from: params(f).from, to: params(f).to }, signal)
+      .then(s => { if (mounted.current) setVolume({ status: 'ready', categories: s.categories }); })
+      .catch(error => { if (mounted.current && !signal?.aborted) setVolume({ status: 'error', categories: [], error: securityVolumeErrorText(error) }); });
   }, [securityOnly]);
   useEffect(() => { const controller = new AbortController(); load(applied, undefined, controller.signal); return () => controller.abort(); }, [applied, load]);
   const field = (k: keyof typeof filter, label: string, type = 'text') => <label className="block">{label}<input type={type} value={filter[k]} maxLength={128}
@@ -68,6 +81,17 @@ export function AuditCenterPanel({ securityOnly: initialSecurity = false }: { se
       <label className="flex items-center gap-2"><input type="checkbox" checked={securityOnly} onChange={e => setSecurityOnly(e.target.checked)} /> Security events only (sessions, staff access and MFA, sign-in, AI governance)</label>
       <button className="rounded border border-slate-500 px-3 py-2">Apply filters</button>
     </form>
+    {securityOnly && <section aria-labelledby="security-volume-heading">
+      <h3 id="security-volume-heading" className="font-bold text-white">Security event volume</h3>
+      <p className="text-slate-400">Counts recorded by the server for this range (up to 31 days). Suppressed events are duplicates the server rate-limited; a rising suppressed count warrants investigation.</p>
+      {volume.status === 'loading' && <p role="status">Loading security event volume…</p>}
+      {volume.status === 'error' && <p role="alert">{volume.error}</p>}
+      {volume.status === 'ready' && volume.categories.length === 0 && <p>No security events were recorded in this range.</p>}
+      {volume.categories.length > 0 && <table className="text-left"><caption className="sr-only">Security event volume by category</caption>
+        <thead><tr>{['Category', 'Recorded', 'Suppressed'].map(h => <th key={h} scope="col" className="p-2">{h}</th>)}</tr></thead>
+        <tbody>{volume.categories.map(c => <tr key={c.category} className="border-t border-slate-700"><td className="p-2">{c.category.toLowerCase()}</td>
+          <td className="p-2">{c.recorded}</td><td className="p-2">{c.suppressed}</td></tr>)}</tbody></table>}
+    </section>}
     {state.status === 'loading' && state.items.length === 0 && <p role="status">Loading audit records…</p>}
     {state.status === 'error' && <p role="alert">{state.error} <button type="button" onClick={() => load(applied)}>Retry</button></p>}
     {state.status === 'ready' && state.items.length === 0 && <p>No audit records match these filters.</p>}

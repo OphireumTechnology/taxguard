@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "54138dabc2c358c5696eef1981564422280051d1ea19cf5718964987774f30d7",
-      "bytes": 51524,
+      "sha256": "df3fa36eb2eff0f6c430b8415ca5d059180a6f8e9841cf32221c6203ff438f83",
+      "bytes": 52074,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "ff9b2f2125b74dcf01e7144ae0d0817dc7d5652a580872799c2dafcf6e1e0b75",
-      "bytes": 7264,
+      "sha256": "446554ebc4a84808108fda3c2410f12560311b3ef38c92beef2a0fcbedb8562c",
+      "bytes": 7620,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",

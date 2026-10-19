@@ -470,6 +470,12 @@ could mean "the UI claims something the backend cannot deliver".
   records a statutory deadline (blocked until the citation is entered) and an internal one, the preparer's waiver is
   refused, and the manager waives the internal deadline and marks the statutory one met.
 
+  **Security event volume in the audit center (Block 37).** `GET /api/audit-center/security-summary` (proposal 048) had
+  no frontend. The audit center's security view now shows recorded and suppressed (rate-limited duplicate) counts per
+  category for the selected range. The view is for administrators only, and the 31-day limit has its own message,
+  separate from the 92-day event-log limit. Tests: `auditSecurityVolume.test` (2); default browser suite 11 checks
+  the view and the over-range message, and that managers are refused the summary.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.
