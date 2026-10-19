@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AUTHORITY_TYPES, isSha256, taxEngineMessage, taxEngineService, type RuleSetCoverage, type RuleSetDetail, type RuleSetSummary,
-  type TaxSource } from '../../services/taxEngineService';
+  type RuleSetTests, type TaxSource } from '../../services/taxEngineService';
 
 type Load<T> = { status: 'loading' | 'ready' | 'error'; value: T; message?: string };
 const blankSource = { sourceId: '', jurisdiction: 'federal' as 'federal' | 'state', jurisdictionCode: 'US', authorityType: 'publication', title: '', issuer: '', citation: '', url: '', taxYears: '' };
@@ -12,7 +12,7 @@ export function TaxRulesPanel() {
   const [ruleSets, setRuleSets] = useState<Load<RuleSetSummary[]>>({ status: 'loading', value: [] });
   const [year, setYear] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const [detail, setDetail] = useState<{ ruleSet: RuleSetDetail; coverage: RuleSetCoverage | null } | null>(null);
+  const [detail, setDetail] = useState<{ ruleSet: RuleSetDetail; coverage: RuleSetCoverage | null; tests: RuleSetTests | null } | null>(null);
   const [form, setForm] = useState(blankSource);
   const [hashes, setHashes] = useState<Record<string, string>>({});
   const [note, setNote] = useState('');
@@ -31,8 +31,8 @@ export function TaxRulesPanel() {
   }, [year]);
   const loadDetail = useCallback((ruleSetId: string) => {
     setDetail(null);
-    Promise.all([taxEngineService.ruleSet(ruleSetId), taxEngineService.coverage(ruleSetId).catch(() => null)])
-      .then(([ruleSet, coverage]) => { if (selectedRef.current === ruleSetId) setDetail({ ruleSet, coverage }); })
+    Promise.all([taxEngineService.ruleSet(ruleSetId), taxEngineService.coverage(ruleSetId).catch(() => null), taxEngineService.tests(ruleSetId).catch(() => null)])
+      .then(([ruleSet, coverage, tests]) => { if (selectedRef.current === ruleSetId) setDetail({ ruleSet, coverage, tests }); })
       .catch(e => { if (selectedRef.current === ruleSetId) setNotice({ error: true, text: taxEngineMessage(e) }); });
   }, []);
   useEffect(() => { loadSources(); }, [loadSources]);
@@ -121,6 +121,22 @@ export function TaxRulesPanel() {
         {detail?.coverage && <p role="status">{detail.coverage.missingOutputs.length || detail.coverage.missingFilingStatuses.length
           ? `Test coverage incomplete: outputs ${detail.coverage.missingOutputs.join(', ') || 'covered'}; filing statuses ${detail.coverage.missingFilingStatuses.join(', ') || 'covered'}.`
           : 'Tests cover every output and filing status.'}</p>}
+        {detail?.tests && <>
+          <h5>Verification tests</h5>
+          {detail.tests.tests.length === 0 ? <p role="status">No source-cited tests are recorded for this rule set.</p> :
+            <table><caption>Source-cited tests</caption><thead><tr>{['Test', 'Filing status', 'Expected outputs', 'Source and citation', 'Result'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+              <tbody>{detail.tests.tests.map(test => { const result = detail.tests!.latestRun?.results.find(r => r.testId === test.testId);
+                return <tr key={test.testId}><td>{test.name}</td><td>{test.filingStatus ?? 'All'}</td><td>{Object.entries(test.expected).map(([k, v]) => k + ' = ' + v).join('; ')}</td>
+                  <td>{test.sourceId} · {test.citation}</td>
+                  <td>{!result ? 'Not run' : result.passed ? 'Passed' : result.error ? 'Failed: ' + result.error.replace(/_/g, ' ').toLowerCase()
+                    : 'Failed: ' + (result.mismatches ?? []).map(m => m.output + ' expected ' + m.expected + ', got ' + (m.actual ?? 'nothing')).join('; ')}</td></tr>; })}</tbody></table>}
+          <p role="status">{detail.tests.latestRun ? `Latest run: ${detail.tests.latestRun.passedCount} of ${detail.tests.latestRun.testCount} passed`
+              + (detail.tests.latestRun.testsSha256 === detail.tests.testsSha256 ? '' : ' (the tests have changed since; run them again)')
+              + ` · engine ${detail.tests.latestRun.engineVersion} · by ${detail.tests.latestRun.runBy} · ${new Date(detail.tests.latestRun.runAt).toLocaleString()}`
+            : 'The tests have not been run.'}</p>
+          {rs.status === 'DRAFT' && detail.tests.tests.length > 0 && <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.runTests(rs.ruleSetId),
+            'Tests run and recorded by the server.', () => loadDetail(rs.ruleSetId))}>Run tests</button>}
+        </>}
         {rs.status === 'DRAFT' && <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.transition(rs.ruleSetId, 'submit'),
           'Submitted for independent review.', () => { loadDetail(rs.ruleSetId); loadRuleSets(); })}>Submit for review</button>}
         {rs.status === 'PENDING_REVIEW' && <form aria-label="Review decision" onSubmit={e => e.preventDefault()}>

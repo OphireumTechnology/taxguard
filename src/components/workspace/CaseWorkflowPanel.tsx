@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { caseMessage, caseService, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
 import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
+import { taxEngineMessage, taxEngineService, type CalculationRun } from '../../services/taxEngineService';
 
 const label = (v: string) => v.replace(/_/g, ' ');
 
@@ -51,6 +52,24 @@ export function CaseWorkflowPanel() {
   }, []);
   useEffect(() => { if (teamClient) loadTeam(teamClient); else setTeam({ status: 'idle', rows: [] }); }, [teamClient, loadTeam]);
   const candidates = c ? restaffCandidates(team.rows, c, teamRole) : [];
+  // Tax calculation runs recorded for this case (proposal 033). They are advisory records: never used for a return.
+  const [runs, setRuns] = useState<{ status: 'loading' | 'ready' | 'error'; items: CalculationRun[]; message?: string }>({ status: 'loading', items: [] });
+  const [runNotes, setRunNotes] = useState<Record<string, string>>({});
+  const runCase = c?.caseId;
+  const loadRuns = useCallback((caseId: string) => {
+    setRuns({ status: 'loading', items: [] });
+    taxEngineService.caseRuns(caseId).then(items => { if (selectedRef.current === caseId) setRuns({ status: 'ready', items }); })
+      .catch(e => { if (selectedRef.current === caseId) setRuns({ status: 'error', items: [], message: taxEngineMessage(e) }); });
+  }, []);
+  useEffect(() => { if (runCase) loadRuns(runCase); }, [runCase, loadRuns]);
+  const decideRun = async (runId: string, decision: 'approve' | 'reject') => {
+    if (busy || !selected) return;
+    setBusy(true); setNotice(null);
+    try { await taxEngineService.reviewRun(runId, decision, (runNotes[runId] ?? '').trim()); setNotice({ error: false, text: decision === 'approve' ? 'Calculation run approved.' : 'Calculation run rejected.' });
+      setRunNotes(n => ({ ...n, [runId]: '' })); loadRuns(selected); }
+    catch (e) { setNotice({ error: true, text: taxEngineMessage(e) }); }
+    finally { setBusy(false); }
+  };
   return <section aria-labelledby="case-workflow-heading" className="tg-manager-card">
     <h2 id="case-workflow-heading">Case Workflow</h2>
     <div className="tg-manager-controls"><label>Queue<select value={role} onChange={e => setRole(e.target.value)}><option value="">All my cases</option>
@@ -106,6 +125,25 @@ export function CaseWorkflowPanel() {
             {candidates.map(u => <option key={u} value={u}>{u}</option>)}</select></label>}
           <button disabled={busy || !teamUser || reason.trim().length < 10 || !['ACTIVE', 'ON_HOLD'].includes(c.status)}>{busy ? 'Saving…' : 'Change case team'}</button>
         </form>}
+        <section aria-labelledby="case-runs-heading">
+          <h4 id="case-runs-heading">Tax calculation runs</h4>
+          <p>Calculations from an approved rule set, recorded with their inputs and outputs for review. They are not used to prepare or file a return.</p>
+          {runs.status === 'loading' && <p role="status">Loading calculation runs…</p>}
+          {runs.status === 'error' && <p role="alert">{runs.message}</p>}
+          {runs.status === 'ready' && runs.items.length === 0 && <p role="status">No calculation runs are recorded for this case.</p>}
+          {runs.items.length > 0 && <table><caption className="sr-only">Calculation runs for this case</caption>
+            <thead><tr>{['Recorded', 'Outputs', 'Status', 'Requested / reviewed by', 'Review'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+            <tbody>{runs.items.map(r => <tr key={r.run_id}>
+              <td>{new Date(r.created_at).toLocaleString()}{r.synthetic ? ' (synthetic)' : ''}</td>
+              <td>{Object.entries(r.outputs).map(([k, v]) => k + ' = ' + v).join('; ')}</td>
+              <td>{r.status.replace(/_/g, ' ').toLowerCase()}{r.review_note ? ` · ${r.review_note}` : ''}</td>
+              <td>{r.requested_by}{r.reviewed_by ? ` / ${r.reviewed_by}` : ''}</td>
+              <td>{r.status === 'COMPUTED' && <form aria-label={`Review run ${r.run_id.slice(0, 8)}`} onSubmit={e => e.preventDefault()}>
+                <label>Review note<textarea value={runNotes[r.run_id] ?? ''} maxLength={1000} onChange={e => setRunNotes(n => ({ ...n, [r.run_id]: e.target.value }))} /></label>
+                <button type="button" disabled={busy || (runNotes[r.run_id] ?? '').trim().length < 10} onClick={() => decideRun(r.run_id, 'approve')}>Approve run</button>
+                <button type="button" disabled={busy || (runNotes[r.run_id] ?? '').trim().length < 10} onClick={() => decideRun(r.run_id, 'reject')}>Reject run</button>
+              </form>}</td></tr>)}</tbody></table>}
+        </section>
         <h4>History</h4>
         <ul>{detail!.events.map((ev, i) => <li key={ev.at + i}>{label(ev.action.toLowerCase())} → {stageLabel(ev.toStage)}{ev.evidenceType ? ` · ${label(ev.evidenceType.toLowerCase())}` : ''}{ev.reason ? ` · ${ev.reason}` : ''} · {ev.actorUid} · {new Date(ev.at).toLocaleString()}</li>)}</ul>
       </>}

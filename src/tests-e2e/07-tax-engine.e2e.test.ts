@@ -94,6 +94,45 @@ describe('tax engine foundation on the real server', () => {
     await sees(rev.page, /SYN-1 2025 · version \d+ · APPROVED/);
     await sees(rev.page, 'Tests cover every output and filing status.');
     expect(await panel(rev).getByRole('table', { name: 'Parameters' }).innerText()).toContain('synthetic_rate');
+    // The approved rule set's source-cited tests and their recorded run.
+    const tests = await panel(rev).getByRole('table', { name: 'Source-cited tests' }).innerText();
+    expect(tests).toContain('Synthetic worked example'); expect(tests).toContain('Synthetic joint example'); expect(tests).not.toMatch(/Failed|Not run/);
+    await sees(rev.page, /Latest run: 2 of 2 passed/);
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+  });
+
+  it('calculation runs in Case Workflow: the preparer cannot review their own run; the independent reviewer approves it', async () => {
+    const [mgr, acct] = [await apiLogin('e2e-mgr'), await apiLogin('e2e-acct')];
+    const caseId = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025).caseId;
+    const ruleSetId = (await api(mgr, 'GET', '/api/tax-engine/rule-sets?taxYear=2025')).body.items.find((r: any) => r.returnFamily === 'SYN-1' && r.status === 'APPROVED').ruleSetId;
+    const run = await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/runs`, { ruleSetId, inputs: [{ factPath: 'synthetic.income_a', value: '6000.00', evidenceIds: ['doc:e2e-console'] }] });
+    expect(run.status, run.body?.code).toBe(201);
+    const runLabel = `Review run ${run.body.run_id.slice(0, 8)}`;
+    const NOTE = 'Synthetic inputs traced to the source document';
+    const openCase = async (s: Awaited<ReturnType<typeof staffLogin>>) => {
+      await s.page.getByRole('button', { name: caseId.slice(0, 16) }).first().click();
+      await s.page.getByRole('heading', { name: 'Tax calculation runs' }).waitFor();
+    };
+    // The preparer who requested the run: refused by the server, and the note stays.
+    const prep = await staffLogin('e2e-acct');
+    await openCase(prep);
+    const prepForm = prep.page.getByRole('form', { name: runLabel });
+    await prepForm.getByLabel('Review note').fill(NOTE);
+    await prepForm.getByRole('button', { name: 'Approve run' }).click();
+    await sees(prep.page, "Only the case's independent reviewer can decide on a calculation run.");
+    expect(await prepForm.getByLabel('Review note').inputValue()).toBe(NOTE);
+    expect(realErrors(prep)).toEqual([]);
+    await prep.context.close();
+    // The independent reviewer approves it in the same view.
+    const rev = await staffLogin('e2e-rev');
+    await openCase(rev);
+    const revForm = rev.page.getByRole('form', { name: runLabel });
+    await revForm.getByLabel('Review note').fill(NOTE);
+    await revForm.getByRole('button', { name: 'Approve run' }).click();
+    await sees(rev.page, 'Calculation run approved.');
+    const after = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/runs`)).body.items.find((r: any) => r.run_id === run.body.run_id);
+    expect(after).toMatchObject({ status: 'REVIEW_APPROVED', review_note: NOTE, returnUse: 'BLOCKED' });
     expect(realErrors(rev)).toEqual([]);
     await rev.context.close();
   });

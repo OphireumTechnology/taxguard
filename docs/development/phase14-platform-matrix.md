@@ -450,7 +450,14 @@ could mean "the UI claims something the backend cannot deliver".
     browser suite 07 adds the console journey: the manager registers a source, the manager's verify attempt is
     refused with the hash kept, the reviewer verifies it, and the reviewer reads the approved synthetic rule set
     with full coverage.
-  - **Next:** rule-set tests and test runs, and case calculation runs in Case Workflow.
+  - **Tests and calculation runs (Block 35):**
+    - The rule-set detail shows each source-cited test with its expected outputs, its result in the latest
+      recorded run (with mismatches), the run summary (flagged when the tests changed since) and a Run tests
+      action. The server evaluates and records the run.
+    - Case Workflow lists the case's calculation runs, labelled as never used for a return, with Approve or Reject
+      and a required note. The server limits decisions to the case's independent reviewer.
+    - Default browser suite 07: the preparer's own approval attempt is refused with the note kept, and the reviewer
+      approves the run in the UI. `taxRulesPanel.test` (6).
 
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The

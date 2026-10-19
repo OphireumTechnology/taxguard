@@ -26,6 +26,18 @@ describe('tax rules client', () => {
     await taxEngineService.ruleSets(2025);
     expect(transport.mock.calls[3][0]).toBe('http://127.0.0.1:3000/api/tax-engine/rule-sets?taxYear=2025');
   });
+  it('test runs and run reviews are server actions; the browser sends no results or outputs of its own', async () => {
+    await taxEngineService.runTests('rs-1');
+    expect(transport.mock.calls[0][0]).toBe('http://127.0.0.1:3000/api/tax-engine/rule-sets/rs-1/run-tests');
+    expect(JSON.parse(transport.mock.calls[0][1].body)).toEqual({});
+    await taxEngineService.reviewRun('run/1', 'approve', 'Synthetic inputs traced to evidence');
+    expect(transport.mock.calls[1][0]).toBe('http://127.0.0.1:3000/api/tax-engine/runs/run%2F1/approve');
+    expect(JSON.parse(transport.mock.calls[1][1].body)).toEqual({ note: 'Synthetic inputs traced to evidence' });
+    await taxEngineService.caseRuns('case/1');
+    expect(transport.mock.calls[2][0]).toBe('http://127.0.0.1:3000/api/tax-engine/cases/case%2F1/runs');
+    expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_CALC_REVIEWER_REQUIRED'))).toMatch(/independent reviewer/);
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_CALC_ALREADY_REVIEWED'))).toMatch(/already been reviewed/);
+  });
   it('carries the server code and detail on refusal', async () => {
     transport.mockImplementationOnce(async () => new Response(JSON.stringify({ code: 'TAX_SOURCE_NOT_VERIFIED', detail: 'ZZ-GUIDANCE-1' }), { status: 409 }));
     const error = await taxEngineService.transition('rs-1', 'submit').catch(e => e);

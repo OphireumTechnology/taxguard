@@ -65,6 +65,11 @@ Audits completed in this cycle (documents):
   `f5ae250` (CI run 39269700388 success). Local validation passes: PostgreSQL 133, unit 5847, lint, typecheck, build, release candidate (81 entries), secret
   scan, diff check, default browser 114/114 and provider browser 41/41.
 
+- **Rule-set tests and calculation runs:** tests and the latest recorded run with a Run tests action in Tax Rules;
+  calculation runs with reviewer decisions in Case Workflow. `taxRulesPanel.test` (6) and local validation passes:
+  PostgreSQL 133, unit 5848, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
+  browser 115/115 and provider browser 41/41. The Tax Rules console was published as `91fc6a3`.
+
 ### Blocked (recorded, not worked around)
 
 - **Owner decisions:**

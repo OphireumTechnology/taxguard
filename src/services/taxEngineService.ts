@@ -39,7 +39,21 @@ export const taxEngineService = {
   coverage: (ruleSetId: string) => request<RuleSetCoverage>('GET', '/rule-sets' + id(ruleSetId) + '/coverage'),
   transition: (ruleSetId: string, action: 'submit' | 'approve' | 'reject', note?: string) =>
     request<RuleSetSummary>('POST', '/rule-sets' + id(ruleSetId) + '/' + action, note ? { note } : {}),
+  tests: (ruleSetId: string) => request<RuleSetTests>('GET', '/rule-sets' + id(ruleSetId) + '/tests'),
+  /** The server evaluates every test with the deterministic engine and records the run; the browser computes nothing. */
+  runTests: (ruleSetId: string) => request<{ testCount: number; passedCount: number; allPassed: boolean }>('POST', '/rule-sets' + id(ruleSetId) + '/run-tests', {}),
+  caseRuns: (caseId: string) => request<{ items: CalculationRun[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/runs').then(r => r.items),
+  reviewRun: (runId: string, decision: 'approve' | 'reject', note: string) => request<CalculationRun>('POST', '/runs' + id(runId) + '/' + decision, { note }),
 };
+export interface RuleSetTests {
+  testsSha256: string;
+  tests: Array<{ testId: string; name: string; filingStatus: string | null; expected: Record<string, string>; sourceId: string; citation: string; createdBy: string }>;
+  latestRun: { runId: string; testCount: number; passedCount: number; allPassed: boolean; engineVersion: string; runBy: string; runAt: string; testsSha256: string;
+    results: Array<{ testId: string; passed: boolean; error?: string; mismatches?: Array<{ output: string; expected: string; actual: string | null }> }> } | null;
+}
+export interface CalculationRun { run_id: string; rule_set_id: string; tax_year: number; status: 'COMPUTED' | 'REVIEW_APPROVED' | 'REVIEW_REJECTED'; synthetic: boolean;
+  engine_version: string; outputs: Record<string, string>; requested_by: string; created_at: string; reviewed_by: string | null; reviewed_at: string | null;
+  review_note: string | null; returnUse: 'BLOCKED' }
 export const isSha256 = (v: string) => /^[a-f0-9]{64}$/.test(v.trim());
 
 export function taxEngineMessage(error: unknown): string {
@@ -60,6 +74,12 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RULE_SET_COVERAGE_INCOMPLETE: 'Approval refused: the tests do not cover every output and filing status.',
     TAX_CONTENT_ROLE_REQUIRED: 'Your role cannot prepare tax content.',
     TAX_SOURCE_NOT_FOUND: 'This source no longer exists or is not visible to you.',
+    TAX_RULE_SET_INTEGRITY: 'Refused: the stored rule set does not match its recorded content hash.',
+    TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
+    TAX_CALC_ALREADY_REVIEWED: 'This calculation run has already been reviewed.',
+    TAX_CALC_INPUT_INVALID: 'Enter a review note of at least 10 characters.',
+    TAX_CALC_CASE_NOT_FOUND: 'This case is not available to you.',
+    TAX_CALC_RUN_NOT_FOUND: 'This calculation run no longer exists or is not visible to you.',
     TAX_ENGINE_ACCESS_DENIED: 'Your role cannot use the tax rules service.',
     TAX_ENGINE_UNAVAILABLE: 'The tax rules service is not enabled in this environment.',
     TAX_ENGINE_STORE_UNAVAILABLE: 'The tax rules service is not enabled in this environment.',
