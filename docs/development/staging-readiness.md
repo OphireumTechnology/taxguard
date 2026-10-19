@@ -18,7 +18,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 | Client authentication | local password + TOTP and provider paths | client provider configuration in staging |
 | Client self-registration (Phase 14) | provider sign-in provisions a client identity; a fresh database had no client-ID counter row, so every self-registration was refused, fixed by proposal 20261018020000 (review only) | approve 20261018020000; confirm whether the staging database already holds the counter row |
 | Stage 01 identity onboarding (Phase 14) | durable store proposed (20261018030000, review only): masked TIN, staff-verified identity document, duplicate review, staff approval, audited; Stage 02 requires server-recorded completion; consent-gated with no approved version, so nobody can submit | counsel/practitioner approval of the IRC § 7216 consent wording (purposes, recipients, duration, revocation); owner records the approved version; proposal review and approval |
-| Engagement and tax-year scoped staff access (Phase 14) | a staff member assigned to one engagement and year reaches only that engagement and year at the database boundary: documents and Stage 02 (20261018060000), ledger, book-to-tax and work queue (20261018070000), document requests (20261018080000), all review only; managers, administrators and client-wide assignments unchanged | Codex review and owner approval of the three proposals; Codex carries the year check into its Phase 15 ledger functions (`phase14-phase15-billing-overlap.md`) |
+| Engagement and tax-year scoped staff access (Phase 14) | a staff member assigned to one engagement and year reaches only that engagement and year at the database boundary: documents and Stage 02 (20261018060000), ledger, book-to-tax and work queue (20261018070000), document requests (20261018080000), case access following the live preparer and reviewer assignment (20261018090000), all review only; managers, administrators and client-wide assignments unchanged | Codex review and owner approval of the four proposals (see phase14-proposal-review-dossier.md); Codex carries the year check into its Phase 15 ledger functions (`phase14-phase15-billing-overlap.md`) |
 | Tenant and environment isolation | enforced in every proposal function; negative tests in unit, DB and E2E | one `TAXGUARD_TENANT_ID` per environment; separate keys per environment |
 | Private document storage | private bucket, write-once objects, signed URLs, scan-required release | staging bucket |
 | Malware scanner | asynchronous boundary (proposal 050): durable requests, HMAC-authenticated single-use verdict callback, outage-safe quarantine; local fake scanner only | choose a provider; implement its adapter; approve the callback secret handling |
@@ -60,7 +60,7 @@ assumed to exist. Staging is deployed only with explicit owner approval.
 
 Staging **NO-GO**, production **NO-GO**. Verified locally on the Phase 14 branch (PR #22, draft); nothing was
 deployed, applied or accessed externally. What is ready to review:
-- **Migrations:** 78 manifest entries; release-candidate check passes on disposable loopback PostgreSQL
+- **Migrations:** 79 manifest entries; release-candidate check passes on disposable loopback PostgreSQL
   (review only, owner approval required); composition and replay pass. The 13 NOT VALID constraints have a
   review sheet (`not-valid-constraint-review.md`) and each needs an owner decision on its validation window.
   The audit append-only proposal is listed for review and not in the plan.

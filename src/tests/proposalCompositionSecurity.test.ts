@@ -53,7 +53,8 @@ describe('proposal composition', () => {
       '20261018010000_taxguard_billing_refund_records.sql', '20261018020000_taxguard_client_id_sequence_initialize.sql',
       '20261018030000_taxguard_client_onboarding.sql', '20261018040000_taxguard_billing_transition_audit.sql',
       '20261018050000_taxguard_case_workpaper_evidence.sql', '20261018060000_taxguard_engagement_scoped_access.sql',
-      '20261018070000_taxguard_ledger_year_scope.sql', '20261018080000_taxguard_document_request_scope.sql']));
+      '20261018070000_taxguard_ledger_year_scope.sql', '20261018080000_taxguard_document_request_scope.sql',
+      '20261018090000_taxguard_case_assignment_liveness.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
     await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236|^2026101237|^2026101238|^20261013|^20261014|^20261015|^20261016/);

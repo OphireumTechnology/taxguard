@@ -374,6 +374,25 @@ could mean "the UI claims something the backend cannot deliver".
     and receive no staff identities, template ids, resolution notes or reminder times.
   - **Tests:** `documentRequestScope.db` (7) failed first on every case.
 
+  **Case access follows the live assignment (Block 30).** A case records its preparer and reviewer at creation.
+  `taxguard_case_actor`, the queue, status counts, dashboard and tax-calculation runs authorized on those recorded
+  names only. A revoked or expired preparer or reviewer therefore kept the case: detail, notes, advance (including
+  the reviewer's attestations), return, hold, queue, counts and dashboard. A former preparer could still record
+  and list tax runs, and a former reviewer could still approve a computed run.
+  - **Fix:** proposal `20261018090000_taxguard_case_assignment_liveness` (review only) adds
+    `taxguard_case_slot_live`. A recorded name counts only while that person holds an ACTIVE, effective
+    assignment of that role for the case's client, engagement and year. Ten functions change, copied from their
+    current definitions and diffed.
+  - **Unchanged:** managers and administrators, the recorded names, the two-person rule and every stage check.
+  - **Tests:** `caseAssignmentRevocation.db` (6) failed first on four cases; the tax-run approval case was shown
+    separately. It covers revocation, expiry, another year or engagement, reassignment, the case API, earlier
+    notes and the case document, queue, counts and dashboard, managers and administrators, and other clients and
+    tenants.
+  - **Known consequence:** a replacement assignee is not the recorded preparer or reviewer, and cannot act until
+    a reviewed case-team operation exists (next package). A manager can act meanwhile.
+  - **Review:** proposals 20261018020000 to 090000 are consolidated for Codex and the owner in
+    `phase14-proposal-review-dossier.md`, with the Codex handoff and the remaining-gaps inventory.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

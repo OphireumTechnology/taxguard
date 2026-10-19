@@ -4,8 +4,8 @@
 > Do not edit by hand; `src/tests/migrationReadinessAudit.test.ts` fails when this file is stale.
 > Nothing here has been applied to any Supabase project. Every proposal still needs human review and approval.
 
-Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 79 files (13 core, 65 proposals, 1 separate audit proposal);
-148 tables and 356 public functions (277 SECURITY DEFINER) after composition.
+Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 80 files (13 core, 66 proposals, 1 separate audit proposal);
+148 tables and 357 public functions (278 SECURITY DEFINER) after composition.
 
 Functions executable by anon or authenticated after every file, with Supabase default privileges: —;
 without default privileges: —.
@@ -91,7 +91,8 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 | 76 | `20261018060000_taxguard_engagement_scoped_access` | proposal | ok | 0 | 1 | taxguard_collection_scope (from #58), taxguard_doc_authorize_download (from #30), taxguard_doc_begin_upload (from #30), taxguard_doc_detail (from #62), taxguard_doc_list (from #62), taxguard_doc_review (from #30), taxguard_doc_review_queue (from #30), taxguard_doc_upload_targets (from #30), taxguard_doc_verify_extraction (from #30) | 1, 4, 28, 30, 62 | 0 | — | — |
 | 77 | `20261018070000_taxguard_ledger_year_scope` | proposal | ok | 0 | 4 | taxguard_b2t_generate_workpaper (from #32), taxguard_b2t_open_set (from #32), taxguard_b2t_overview (from #32), taxguard_b2t_review_adjustment (from #32), taxguard_b2t_review_set (from #32), taxguard_b2t_review_workpaper (from #32), taxguard_b2t_set_mapping (from #32), taxguard_ledger_categorize_transaction (from #27), taxguard_ledger_close_period (from #27), taxguard_ledger_finalize_reconciliation (from #27), taxguard_ledger_history (from #27), taxguard_ledger_open_period (from #27), taxguard_ledger_read (from #27), taxguard_ledger_reopen_period (from #27), taxguard_ledger_review_entry (from #27), taxguard_ledger_set_cleared (from #27), taxguard_ledger_start_reconciliation (from #27), taxguard_ledger_trial_balance (from #27), taxguard_ledger_work_queue (from #33) | 1, 4, 27, 32 | 0 | — | — |
 | 78 | `20261018080000_taxguard_document_request_scope` | proposal | ok | 0 | 0 | taxguard_docreq_insert (from #34), taxguard_docreq_json (from #34), taxguard_docreq_link (from #34), taxguard_docreq_list (from #34), taxguard_docreq_missing (from #34), taxguard_docreq_remind (from #34), taxguard_docreq_resolve (from #34), taxguard_docreq_review_queue (from #34) | 1, 4, 28, 30, 34, 76 | 0 | — | — |
-| 79 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
+| 79 | `20261018090000_taxguard_case_assignment_liveness` | proposal | ok | 0 | 1 | taxguard_case_actor (from #29), taxguard_case_queue (from #29), taxguard_case_status_report (from #29), taxguard_dash_my_work (from #35), taxguard_tax_run_list (from #36), taxguard_tax_run_record (from #36), taxguard_tax_run_review (from #36) | 1, 4, 27, 28, 29, 32, 34, 36 | 0 | — | — |
+| 80 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
 
 ## Not re-runnable files
 
@@ -105,7 +106,7 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 - #16 `20261012020000_taxguard_staff_acceptance`: constraint "chk_taxguard_invitation_email_normalized" for relation "taxguard_staff_invitations" already exists
 - #21 `20261012070000_taxguard_client_intake_drafts`: relation "taxguard_client_intake_drafts" already exists
 - #24 `20261012100000_taxguard_mfa_recovery_requests`: relation "taxguard_mfa_recovery_requests" already exists
-- #79 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
+- #80 `taxguard-audit-append-only.proposal`: function "taxguard_reject_audit_mutation" already exists with same argument types
 
 ## Constraints added NOT VALID (validate after data review)
 

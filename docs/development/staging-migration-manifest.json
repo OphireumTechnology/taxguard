@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "72f5c36a7633e362744c2af87cca1fd4fa3d13e34b5b3d2234cadb0e70b0ad30",
+  "executionPlanSha256": "89aaec49331d4d481ed70e22dc1c531207decb78fac292bb3c8f0c6abaa0844c",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4112,6 +4112,101 @@
         "-- cross-client missing-documents and review queues. Template request ids are deterministic, so applying a template",
         "-- to an out-of-scope year also replayed that year's existing requests.",
         "-- Each function below is identical to its current definition except for the change named above it. Refusals keep"
+      ]
+    },
+    {
+      "order": 79,
+      "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+      "kind": "proposal",
+      "version": "20261018090000",
+      "sha256": "a089345f7d80254a3b05f8da7205c74f973ae4d02e716f30c99be1ad558534fc",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_slot_live",
+        "taxguard_case_actor",
+        "taxguard_case_queue",
+        "taxguard_case_status_report",
+        "taxguard_dash_my_work",
+        "taxguard_tax_run_list",
+        "taxguard_tax_run_record",
+        "taxguard_tax_run_review"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_actor",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_case_queue",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_case_status_report",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_dash_my_work",
+          "previousFile": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_list",
+          "previousFile": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_record",
+          "previousFile": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_review",
+          "previousFile": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the listed proposals' definitions and drop taxguard_case_slot_live."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_slot_live(text,text,text,integer,text,text,text) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 8,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, case assignment liveness). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012250000 (practice management: staff assignments), 20261012260000 (case workflow),",
+        "-- 20261012320000 (role dashboards) and 20261012330000 (tax engine foundation), which hold the current definitions below.",
+        "--",
+        "-- Defect: a case records its preparer and reviewer when it is created (taxguard_case_create copies the ACTIVE",
+        "-- assignments), and taxguard_case_actor then authorized on those recorded names only. Revoking or expiring the",
+        "-- assignment (taxguard_practice_unassign, effective_to) did not end access: the former preparer or reviewer could",
+        "-- still read the case, add notes, advance stages (including the reviewer's human attestations), return it to an",
+        "-- earlier stage, hold it, and see it in the case queue, status counts and dashboard. The tax calculation runs",
+        "-- (taxguard_tax_run_list, _record, _review) authorized the same way, so a revoked reviewer could still approve a",
+        "-- computed run and a revoked preparer could still record and read runs.",
+        "-- Fix: a named preparer or reviewer must also hold, now, an ACTIVE and effective assignment of that role covering"
       ]
     }
   ]

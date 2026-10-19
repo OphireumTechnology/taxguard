@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 79,
+    "files": 80,
     "core": 13,
-    "proposals": 65,
+    "proposals": 66,
     "tables": 148,
-    "functions": 356,
-    "securityDefinerFunctions": 277,
+    "functions": 357,
+    "securityDefinerFunctions": 278,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3337,6 +3337,67 @@
     },
     {
       "order": 79,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_case_slot_live"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_case_actor",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_case_queue",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_case_status_report",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_dash_my_work",
+          "previous": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+        },
+        {
+          "function": "taxguard_tax_run_list",
+          "previous": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+        },
+        {
+          "function": "taxguard_tax_run_record",
+          "previous": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+        },
+        {
+          "function": "taxguard_tax_run_review",
+          "previous": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        27,
+        28,
+        29,
+        32,
+        34,
+        36
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 80,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
