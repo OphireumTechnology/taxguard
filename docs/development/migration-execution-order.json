@@ -466,6 +466,13 @@
       "dependsOn": [
         "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql"
+      ]
     }
   ]
 }

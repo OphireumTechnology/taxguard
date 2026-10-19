@@ -97,10 +97,12 @@ if (PROVIDER_PROFILE) {
     -- itself is NOT seeded; it is provisioned by the server on its first verified sign-in.
     INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000d1','practice_manager','active'),
       -- Journey B case continuity (suite 14): a durable preparer and an independent durable reviewer.
-      ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a6','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a5','reviewer','active');
+      ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a6','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a5','reviewer','active'),
+      -- Journey B stages 04-08: a durable bookkeeper whose entries await the independent reviewer.
+      ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a7','bookkeeper','active');
     INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,
       'email',uid||'@example.test','name','Synthetic '||role,'mfaEnabled',true,'isVerified',true) FROM taxguard_members
-      WHERE uid IN ('d0000000-0000-4000-8000-0000000000a6','d0000000-0000-4000-8000-0000000000a5');
+      WHERE uid IN ('d0000000-0000-4000-8000-0000000000a6','d0000000-0000-4000-8000-0000000000a5','d0000000-0000-4000-8000-0000000000a7');
     INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000d1',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000d1',
       'tenantId','${E2E.tenant}','role','practice_manager','status','active','email','d0000000-0000-4000-8000-0000000000d1@example.test','name','Synthetic Durable Manager',
       'mfaEnabled',true,'isVerified',true));`);

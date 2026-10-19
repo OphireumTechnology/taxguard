@@ -12,8 +12,8 @@ const EMAIL = `${NEW_UID}@example.test`;
 const PASSWORD = 'Synthetic-new-client-1!';
 const ENGAGEMENT = 'Synthetic new-client 2025 return';
 let clientId = ''; let clientToken = ''; let managerToken = '';
-const PREPARER = 'd0000000-0000-4000-8000-0000000000a6', REVIEWER = 'd0000000-0000-4000-8000-0000000000a5';
-let preparerToken = ''; let reviewerToken = ''; let caseId = ''; let caseVersion = 0;
+const PREPARER = 'd0000000-0000-4000-8000-0000000000a6', REVIEWER = 'd0000000-0000-4000-8000-0000000000a5', BOOKKEEPER = 'd0000000-0000-4000-8000-0000000000a7';
+let preparerToken = ''; let reviewerToken = ''; let bookkeeperToken = ''; let caseId = ''; let caseVersion = 0;
 const tokenOf = (s: Session) => s.page.evaluate(() => localStorage.getItem('artax_session_token'));
 const findClient = async () => (await api(managerToken, 'GET', `/api/practice/clients?q=${encodeURIComponent(EMAIL)}`)).body.items;
 
@@ -23,7 +23,7 @@ beforeAll(async () => {
   const m = await durableSession(await providerToken(MANAGER));
   expect(m.status, m.body?.code).toBe(200);
   managerToken = m.body.token;
-  for (const [uid, set] of [[PREPARER, (t: string) => { preparerToken = t; }], [REVIEWER, (t: string) => { reviewerToken = t; }]] as const) {
+  for (const [uid, set] of [[PREPARER, (t: string) => { preparerToken = t; }], [REVIEWER, (t: string) => { reviewerToken = t; }], [BOOKKEEPER, (t: string) => { bookkeeperToken = t; }]] as const) {
     expect((await providerControl('/e2e/provider-user', { uid, email: `${uid}@example.test`, password: 'Synthetic-durable-staff-1!', withFactor: true })).status).toBe(200);
     const s = await durableSession(await providerToken(uid));
     expect(s.status, s.body?.code).toBe(200);
@@ -199,7 +199,7 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
 
   it('before onboarding is approved, a fully staffed case cannot leave its Onboard stage', async () => {
     const eng = await engagementId();
-    for (const [role, userId] of [['preparer', PREPARER], ['reviewer', REVIEWER]]) {
+    for (const [role, userId] of [['preparer', PREPARER], ['reviewer', REVIEWER], ['bookkeeper', BOOKKEEPER]]) {
       const r = await api(managerToken, 'POST', `/api/practice/clients/${clientId}/engagements/${eng}/team`, { taxYear: 2025, role, userId, reason: 'Synthetic staffing for journey B' }, `journey-b-${role}`);
       expect(r.status, r.body?.code).toBeLessThan(300);
     }
@@ -294,4 +294,133 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     const detail = (await api(managerToken, 'GET', `/api/cases/${caseId}`)).body;
     expect(detail.stages.filter((x: any) => x.status === 'COMPLETED').map((x: any) => x.stage ?? x.stageNumber)).toEqual([1, 2, 3]);
   });
+
+  it('stages 04-08: entries post after independent review, a reconciliation closes, an approved workpaper backs Review, and Stage 09 stays blocked', async () => {
+    const Y = 2025;
+    const ledger = (token: string, method: string, path: string, body: Record<string, unknown> = {}) => method === 'GET'
+      ? api(token, 'GET', `/api/bookkeeping${path}${path.includes('?') ? '&' : '?'}clientId=${clientId}&taxYear=${Y}`)
+      : api(token, 'POST', `/api/bookkeeping${path}`, { clientId, taxYear: Y, ...body });
+    const approveAllPrepared = async () => {
+      const prepared = (await ledger(reviewerToken, 'GET', '/journal-entries?status=PREPARED')).body.entries;
+      for (const e of prepared) expect((await ledger(reviewerToken, 'POST', `/journal-entries/${e.id}/approve`, { version: e.version })).body.entry.status).toBe('POSTED');
+      return prepared.length;
+    };
+    const attest = (confirmed: string[]) => ({ confirmed, statement: 'Synthetic reviewer attestation for E2E testing only.' });
+    const advance = async (token: string, fromStage: number, attestation?: unknown) => {
+      const r = await api(token, 'POST', `/api/cases/${caseId}/advance`, { fromStage, version: caseVersion, attestation });
+      if (r.status === 200) caseVersion = r.body.version;
+      return r;
+    };
+    const blockedOn = async (token: string, stage: number, attestation?: unknown) => {
+      const r = await advance(token, stage, attestation);
+      expect(r.status, JSON.stringify(r.body)).toBe(409);
+      return r.body.failedChecks as string[];
+    };
+
+    // Stage 04 (Record) is system-verified from the ledger: nothing posted yet.
+    expect(await blockedOn(preparerToken, 4)).toContain('postedEntries');
+    const chart = await ledger(bookkeeperToken, 'POST', '/chart-of-accounts/standard');
+    expect(chart.status, JSON.stringify(chart.body)).toBeLessThan(300);
+    const acct: Record<string, string> = Object.fromEntries(chart.body.accounts.map((a: any) => [a.accountNumber, a.id]));
+    const bk = await liveSessionWithToken(bookkeeperToken, '/staff');
+    const { page } = bk;
+    const openLedger = async () => {
+      await page.getByRole('button', { name: 'Ledger Workspace', exact: true }).first().click();
+      await page.getByLabel('Authorized client').selectOption(clientId);
+      await page.getByLabel('Tax year (2022+)').fill(String(Y));
+      await sees(page, `Ledger workspace — ${clientId} / ${Y}`);
+    };
+    await openLedger();
+    const form = page.locator('form', { has: page.getByRole('button', { name: 'Submit entry for review' }) });
+    await form.getByLabel('Posting date').fill(`${Y}-03-15`);
+    await form.getByLabel('Description').fill('Synthetic owner contribution');
+    const lines = form.locator('fieldset');
+    await selectAccount(lines.nth(0).getByLabel('Account'), '1010');
+    await lines.nth(0).getByLabel('Debit', { exact: true }).fill('1000');
+    await selectAccount(lines.nth(1).getByLabel('Account'), '3010');
+    await lines.nth(1).getByLabel('Credit', { exact: true }).fill('1000');
+    await form.getByRole('button', { name: 'Submit entry for review' }).click();
+    await sees(page, 'Entry submitted for review.');
+    // A prepared entry is not evidence: Record waits for the independent reviewer; the bookkeeper cannot approve.
+    expect(await blockedOn(preparerToken, 4)).toEqual(expect.arrayContaining(['postedEntries', 'noEntriesAwaitingReview']));
+    const pending = (await ledger(reviewerToken, 'GET', '/journal-entries?status=PREPARED')).body.entries[0];
+    expect((await ledger(bookkeeperToken, 'POST', `/journal-entries/${pending.id}/approve`, { version: pending.version })).status).toBe(403);
+    expect(await approveAllPrepared()).toBe(1);
+    expect((await advance(preparerToken, 4)).body.activeStage).toBe(5);
+
+    // Stage 05 (Reconcile): a categorized bank transaction and a closed, zero-variance reconciliation.
+    expect(await blockedOn(preparerToken, 5)).toContain('closedReconciliation');
+    await ledger(bookkeeperToken, 'POST', '/transactions/ingest', { accountId: acct['1010'], rawTransactions: [{ transactionDate: `${Y}-03-20`, description: 'Synthetic office supplies', amount: -42.5, externalTransactionId: 'journey-b-txn-1' }] });
+    await page.reload(); await openLedger();
+    await selectAccount(page.getByLabel('Account for Synthetic office supplies'), '6070');
+    await page.getByRole('row', { name: /Synthetic office supplies/ }).getByRole('button', { name: 'Submit' }).click();
+    await sees(page, 'Categorization submitted for review.');
+    expect(await approveAllPrepared()).toBe(1);
+    const recon = page.locator('form', { has: page.getByRole('button', { name: 'Start reconciliation' }) });
+    await selectAccount(recon.getByLabel('Account'), '1010');
+    await recon.getByLabel('Statement start').fill(`${Y}-03-01`);
+    await recon.getByLabel('Statement end').fill(`${Y}-03-31`);
+    await recon.getByLabel('Beginning balance').fill('0');
+    await recon.getByLabel('Ending balance').fill('-42.50');
+    await recon.getByRole('button', { name: 'Start reconciliation' }).click();
+    await sees(page, 'Reconciliation started.');
+    expect(await blockedOn(preparerToken, 5)).toEqual(expect.arrayContaining(['closedReconciliation', 'noReconciliationInProgress']));
+    const r = (await ledger(bookkeeperToken, 'GET', '/reconciliations')).body.reconciliations.find((x: any) => x.status !== 'CLOSED');
+    const txn = (await ledger(bookkeeperToken, 'GET', '/transactions')).body.transactions.find((t: any) => t.description === 'Synthetic office supplies');
+    expect((await ledger(bookkeeperToken, 'POST', `/reconciliations/${r.id}/clear`, { transactionId: txn.id, isCleared: true })).status).toBeLessThan(300);
+    await page.reload(); await openLedger();
+    await page.getByRole('button', { name: 'Finalize' }).click();
+    await sees(page, 'Reconciliation finalized.');
+    expect(realErrors(bk)).toEqual([]);
+    await bk.context.close();
+    expect((await advance(preparerToken, 5)).body.activeStage).toBe(6);
+
+    // Stage 06 (Review): the reviewer's attestation needs an approved book-to-tax workpaper.
+    const review = attest(['workpapers_reviewed', 'no_unresolved_blocking_exceptions']);
+    expect(await blockedOn(reviewerToken, 6, review)).toEqual(['approvedWorkpaperRecorded']);
+    const b2t = (token: string, method: string, path: string, body?: unknown) => api(token, method, '/api/book-to-tax' + path, body);
+    // Firm-wide tax categories are configured by an administrator (as in suite 03); managers are not given that route.
+    const ADMIN = 'd0000000-0000-4000-8000-00000000000c';
+    expect((await providerControl('/e2e/provider-user', { uid: ADMIN, email: `${ADMIN}@example.test`, password: 'Synthetic-durable-admin-1!', withFactor: true })).status).toBe(200);
+    const admin = await durableSession(await providerToken(ADMIN));
+    expect(admin.status, admin.body?.code).toBe(200);
+    expect((await b2t(managerToken, 'POST', '/categories', { returnFamily: '1040', categoryCode: 'CASH', label: 'Cash (synthetic)' })).body.code).toBe('PRACTICE_MANAGER_CAPABILITY_DENIED');
+    for (const [code, label] of [['CASH', 'Cash (synthetic)'], ['OWNER_EQUITY', 'Owner equity (synthetic)'], ['SUPPLIES', 'Supplies (synthetic)']])
+      expect((await b2t(admin.body.token, 'POST', '/categories', { returnFamily: '1040', categoryCode: code, label })).status).toBe(200);
+    const set = (await b2t(preparerToken, 'POST', `/clients/${clientId}/${Y}/1040/mapping-sets`)).body;
+    for (const [num, cat] of [['1010', 'CASH'], ['3010', 'OWNER_EQUITY'], ['6070', 'SUPPLIES']])
+      expect((await b2t(preparerToken, 'POST', `/clients/${clientId}/mapping-sets/${set.setId}/mappings`, { accountId: acct[num], categoryCode: cat })).status).toBeLessThan(300);
+    await b2t(preparerToken, 'POST', `/clients/${clientId}/mapping-sets/${set.setId}/submit`);
+    expect((await b2t(reviewerToken, 'POST', `/clients/${clientId}/mapping-sets/${set.setId}/approve`)).status).toBe(200);
+    const wp = await b2t(preparerToken, 'POST', `/clients/${clientId}/${Y}/1040/workpapers`);
+    expect(wp.body).toMatchObject({ reconciled: true });
+    // A draft workpaper is not enough; its own maker-checker approval is.
+    expect(await blockedOn(reviewerToken, 6, review)).toEqual(['approvedWorkpaperRecorded']);
+    expect((await b2t(preparerToken, 'POST', `/clients/${clientId}/workpapers/${wp.body.workpaperId}/approve`)).status).toBeGreaterThanOrEqual(400);
+    expect((await b2t(reviewerToken, 'POST', `/clients/${clientId}/workpapers/${wp.body.workpaperId}/approve`)).body.status).toBe('APPROVED');
+    expect((await advance(reviewerToken, 6, review)).body.activeStage).toBe(7);
+
+    // Stages 07 (Report) and 08 (Plan): attestations by the independent reviewer only.
+    expect((await advance(preparerToken, 7, attest(['reports_reviewed_for_release']))).body.code).toBe('STAGE_ATTESTATION_REQUIRES_REVIEWER');
+    expect(await blockedOn(reviewerToken, 7, attest([]))).toEqual(['reports_reviewed_for_release']);
+    expect((await advance(reviewerToken, 7, attest(['reports_reviewed_for_release']))).body.activeStage).toBe(8);
+    expect((await advance(reviewerToken, 8, attest(['planning_considerations_documented']))).body.activeStage).toBe(9);
+    // Stage 09 stays blocked until a verified tax engine exists.
+    const nine = await advance(reviewerToken, 9, attest([]));
+    expect([nine.status, nine.body.code]).toEqual([409, 'STAGE_BLOCKED_VERIFIED_TAX_ENGINE_REQUIRED']);
+
+    const detail = (await api(managerToken, 'GET', `/api/cases/${caseId}`)).body;
+    expect(detail.stages.filter((x: any) => x.status === 'COMPLETED').map((x: any) => x.stage ?? x.stageNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    // The client sees stage progress with counts only: no figures, no staff identities, no attestation text.
+    const portal = await api(clientToken, 'GET', `/api/client-portal/clients/${clientId}/case-stages?engagementId=${encodeURIComponent(await engagementId())}&taxYear=${Y}`);
+    expect(portal.status, JSON.stringify(portal.body)).toBe(200);
+    expect(portal.body).toMatchObject({ caseExists: true, activeStage: 9 });
+    expect(JSON.stringify(portal.body)).not.toMatch(/1000|42\.5|d0000000-0000-4000-8000-0000000000a[5-7]|Synthetic reviewer attestation/);
+  });
 });
+
+/** Selects the option whose text contains the account number (the ledger account pickers show "1010 · Cash"). */
+async function selectAccount(select: import('playwright-core').Locator, number: string) {
+  const value = await select.evaluate((el, n) => [...(el as HTMLSelectElement).options].find(o => o.textContent?.includes(n))?.value ?? '', number);
+  await select.selectOption(value);
+}

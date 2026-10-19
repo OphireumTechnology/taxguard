@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "68fc9d820e1a0e1e6b20f93bf45bd047381b3053ad445f44473b13ce24736d69",
+  "executionPlanSha256": "39e6c6880427ff48e08a16b9126c8600e0b4cd36c0627f8a9277bc2529eac189",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3693,6 +3693,57 @@
         "-- staff-only (administrator audit center); the client projection never includes notes or reasons.",
         "-- CREATE OR REPLACE keeps the existing grants (service_role only).",
         "-- Rollback (development): re-run the function definition from proposal 028."
+      ]
+    },
+    {
+      "order": 75,
+      "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
+      "kind": "proposal",
+      "version": "20261018050000",
+      "sha256": "4f7259155265d9e08558ef7d01e2aafccdfb63edd3d6a420bd2c31eb7265ffdf",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_evidence_checks"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_evidence_checks",
+          "previousFile": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261018000000 definition."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_evidence_checks(public.taxguard_cases) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, stages 01-08 evidence). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 026 (case workflow), 029 (book-to-tax workpapers), 031 (document requests) and",
+        "-- 20261018000000 (current definition of taxguard_case_evidence_checks).",
+        "--",
+        "-- Stage 06 (Review) is a professional attestation by the case's independent reviewer (\"workpapers reviewed\",",
+        "-- \"no unresolved blocking exceptions\"). The attestation was accepted even when no book-to-tax workpaper had been",
+        "-- recorded at all, so a case could pass Review with nothing reviewed. Stage 06 now also requires that an APPROVED",
+        "-- book-to-tax workpaper exists for the case's client, tax year and return family. Its approval is itself a",
+        "-- maker-checker decision recorded by proposal 029 (reviewer differs from the preparer). Draft, rejected and",
+        "-- superseded workpapers, and workpapers of another year, return family or client, do not count.",
+        "-- Who may attest, the attestation checklist and every other stage are unchanged. Stages 02 and 03 are",
+        "-- identical to 20261018000000. The check is server-derived; the caller never supplies it."
       ]
     }
   ]

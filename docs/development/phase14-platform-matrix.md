@@ -284,6 +284,41 @@ could mean "the UI claims something the backend cannot deliver".
   4. The preparer cannot attest collection; the independent durable reviewer does.
   5. The reviewer validates Stage 03 and the case reaches Stage 04.
 
+  **Stages 04-08 for the self-registered client (Block 27).** Provider suite 14 (9) now carries journey B to the
+  Stage 09 block on durable staff, refusing each gate before its evidence exists:
+  - **Record (04):** refused with no posted entry, and again while the bookkeeper's browser entry awaits review.
+    The bookkeeper cannot approve; the independent reviewer approves, then Record completes.
+  - **Reconcile (05):** refused with no closed reconciliation, and again while one is in progress. Then a
+    categorized bank transaction is reviewed and a zero-variance reconciliation is finalized in the browser.
+  - **Review (06):** refused without an approved workpaper. The book-to-tax mapping set and workpaper each need
+    the reviewer's approval (the preparer cannot approve the workpaper), then the reviewer attests.
+  - **Report (07) and Plan (08):** the preparer cannot attest, and an empty checklist is refused.
+  - **Stage 09:** stays `STAGE_BLOCKED_VERIFIED_TAX_ENGINE_REQUIRED`.
+  - **Afterwards:** the manager sees stages 1–8 completed. The client's case-stage view shows Stage 09 with no
+    figures, staff identities or attestation text.
+
+  Two defects were fixed along the way, both failing first:
+  1. *Review could be attested with no workpaper at all.* Proposal `20261018050000_taxguard_case_workpaper_evidence`
+     (review only) makes Stage 06 also require an APPROVED book-to-tax workpaper for the case's client, tax year
+     and return family; the extension point is `taxguard_case_evidence_checks`. Who attests is unchanged.
+     `caseWorkpaperEvidence.db` (3) also checks that draft, rejected and other-year, other-family or
+     other-client workpapers are refused. **For owner review:** this adds a recorded-evidence precondition to an
+     existing attestation.
+  2. *Staff staffed per engagement could not use the durable ledger.* Durable sessions built the client list only
+     from client-wide assignments, while practice staffing creates engagement and tax-year assignments. The
+     general ledger path also consulted legacy in-memory bindings, so bookkeepers (`BOOKKEEPER_SCOPE_DENIED`) and
+     reviewers were refused for a durable client. Owner decision (2026-10-19): an active engagement and year
+     assignment grants that client for that tax year only.
+     - Durable sessions now attach separate, non-enumerable, frozen scoped grants (`staffScopedGrants.ts`).
+     - The bookkeeping routes accept a whole-client grant, or a scoped grant for exactly the explicit requested
+       client and tax year. There is no default year.
+     - `authorizedClientIds` is never widened. Other routes are unchanged, and the database re-checks every call.
+     - `staffScopedGrants.test` (6) covers this, including refusals for another year, no year or another client.
+  Not changed, recorded: the practice-manager capability list does not include book-to-tax category setup.
+  Firm-wide categories are configured by an administrator, as in suite 03; the suite asserts the manager is
+  refused. Other durable routes that rely only on `authorizedClientIds` would refuse per-engagement staff in
+  production in the same way. They should adopt `hasClientYearAccess` route by route, with tests.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

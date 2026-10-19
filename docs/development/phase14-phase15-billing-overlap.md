@@ -105,6 +105,30 @@ its database does not have the 7-argument function.
 is how the incompatible table was skipped silently. The unified migration should fail explicitly when
 `taxguard_invoice_refunds` exists without the expected columns, rather than skipping the definition.
 
+## Confirmed requirements for the canonical refund migration (for Codex, 2026-10-19)
+
+Each requirement below is executable through `src/tests-db/refundContract.ts`. Run it with a Phase 15 adapter
+whose `ownerImmutable` and `auditCarriesReason` flags are `true`.
+
+1. **Refund-record immutability.** Rows in `taxguard_invoice_refunds` can never be updated or deleted, by any
+   role including the table owner. Enforce it with a `BEFORE UPDATE OR DELETE` trigger raising
+   `BILLING_REFUND_IMMUTABLE` (as in Phase 14). `service_role` keeps no `UPDATE`, `DELETE` or `TRUNCATE`
+   privilege. Corrections are new compensating records, never edits.
+2. **Audit reason preservation.** Every `BILLING_PAYMENT_REFUNDED` audit entry carries the refund `reason`
+   alongside the refund id and the before/after amounts already in Phase 15. The reason must survive in the
+   append-oriented audit trail and not only in the refund row.
+3. **Incompatible-schema refusal.** The migration must not use a bare `CREATE TABLE IF NOT EXISTS` that silently
+   accepts an existing table of a different shape. When `taxguard_invoice_refunds` already exists it must verify
+   the expected columns, types and constraints (including `result` and the payment foreign key). If anything
+   differs it must stop with an explicit error naming the mismatch, before any function is replaced. The probe
+   above is the regression: composed after Phase 14's `20261018010000`, the migration must fail loudly, never
+   apply and leave refunds broken.
+4. **Kept Phase 15 strengths:** a key matches only the same reason and actor; foreign key to the payment; stored
+   result replay; before/after audit amounts; the 6-argument signature kept and failing closed.
+5. **Caller change on reconciliation:** `BillingStore.refund` calls the 7-argument `taxguard_bill_refund`, and
+   the browser maps `BILLING_IDEMPOTENCY_CONFLICT` to the existing key-reuse message. Phase 14 makes these
+   changes only after the canonical migration is published and validated.
+
 ## Other Phase 15 changes Phase 14 will need to absorb
 
 `addLine` and `requestCredit` become keyed on Phase 15. On reconciliation, the Phase 14 billing workspace (line
