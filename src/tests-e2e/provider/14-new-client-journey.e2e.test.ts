@@ -415,7 +415,11 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     const portal = await api(clientToken, 'GET', `/api/client-portal/clients/${clientId}/case-stages?engagementId=${encodeURIComponent(await engagementId())}&taxYear=${Y}`);
     expect(portal.status, JSON.stringify(portal.body)).toBe(200);
     expect(portal.body).toMatchObject({ caseExists: true, activeStage: 9 });
-    expect(JSON.stringify(portal.body)).not.toMatch(/1000|42\.5|d0000000-0000-4000-8000-0000000000a[5-7]|Synthetic reviewer attestation/);
+    // Timestamps are masked first: their fractional seconds can contain "1000" and are not figures.
+    const portalText = JSON.stringify(portal.body).replace(/"\d{4}-\d{2}-\d{2}T[^"]*"/g, '"<time>"');
+    expect(portalText).not.toMatch(/"\d{4}-\d{2}-\d{2}T/);
+    const leak = /1000|42\.5|d0000000-0000-4000-8000-0000000000a[5-7]|Synthetic reviewer attestation/.exec(portalText);
+    expect(leak ? portalText.slice(Math.max(0, leak.index - 80), leak.index + 80) : null).toBeNull();
   });
 });
 
