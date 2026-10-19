@@ -5368,8 +5368,8 @@
     },
     {
       "file": "docs/development/phase14-proposal-review-dossier.md",
-      "sha256": "cab2def5e834ca02de35c7d0149e43d5d7f20205a3a6d57048b31a7ab03db776",
-      "bytes": 18479,
+      "sha256": "64873589a5755ea9784dd9eac9c4da7120ef4fdbcc96b3b6f3250b5cde32f92c",
+      "bytes": 21047,
       "headings": [
         "# Phase 14 proposal review dossier: 20261018020000 to 20261018100000",
         "## How the copies were made",
@@ -5385,6 +5385,7 @@
         "### 20261018090000: case access follows the live assignment",
         "### 20261018100000: practice client detail confidentiality",
         "## Codex handoff (Phase 15)",
+        "## Integration readiness against Codex's Phase 15 branches (read-only, 2026-10-19)",
         "## Remaining authorization gaps (read-only inventory, 2026-10-19)"
       ]
     },

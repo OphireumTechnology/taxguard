@@ -255,6 +255,41 @@ function from the proposal and from the file named on its `-- Current definition
      every proposal and compares the schema, including function privileges) on the merged order before
      requesting owner approval.
 
+## Integration readiness against Codex's Phase 15 branches (read-only, 2026-10-19)
+
+The ten `origin/codex/taxguard-phase15-*` branches were compared with `origin/main` (`6e31a40`). Nothing on those
+branches was modified.
+
+**Blocker: duplicate migration versions.** Both sides use the same version prefixes, and none of these is on `main`.
+
+| Version | Phase 14 (PR #22) | Phase 15 (Codex) |
+|---|---|---|
+| `20261018000000` | `taxguard_case_validate_replacement_evidence` (`d24120f`, 2026-10-18) | `taxguard_financial_reporting` (`b1ce7d6`, 2026-10-18, on 10 branches) |
+| `20261018010000` | `taxguard_billing_refund_records` (`8d76945`, 2026-10-18) | `taxguard_report_cent_transport` (on 9 branches) |
+
+- `migration-execution-order.json` keys entries by full file name, so the review tooling tolerates the pair.
+- Migration runners that key on the version prefix do not: the Supabase CLI records one row per version, so the
+  second file of a pair would be treated as already applied or refused. One side must renumber before either
+  merges. This is an owner and Codex decision.
+- **Recommendation:** Codex moves its two reporting migrations to free slots after the Phase 14 proposals and
+  before its own `20261019…` series, for example `20261018110000` and `20261018120000`. That keeps every Phase 15
+  dependency order intact and leaves Phase 14's reviewed evidence, manifests and dossier unchanged.
+- **The alternative,** renumbering Phase 14, touches 11 proposals, the manifests, the review bundle, traceability
+  and this dossier, and invalidates their review evidence.
+
+**Function overlap.**
+- `20261019020000_taxguard_refund_idempotency` (5 branches) redefines `taxguard_bill_refund`, which Phase 14's
+  `20261018010000` also defines. This is the documented refund reconciliation (item 3 above): wait for Codex's
+  canonical migration.
+- No other Phase 15 migration redefines a function changed by Phase 14 proposals `20261018000000` to `100000`.
+
+**In-place edit of a shared proposal.** `codex/taxguard-phase15-financial-reporting-integrity` appends
+`taxguard_ledger_general_ledger` to `20261012240000_taxguard_durable_ledger.sql`.
+- The edit is additive: no existing definition changes, so the copies in `20261018070000` remain current.
+- Editing an already-reviewed proposal in place weakens its review record. A new proposal is preferable, and the
+  integrated branch already carries the function in `20261018000000_taxguard_financial_reporting`.
+- The function authorizes with `taxguard_ledger_actor` only, so it needs the year guard (item 2 above).
+
 ## Remaining authorization gaps (read-only inventory, 2026-10-19)
 
 The inventory script resolved the current definition of all 215 functions that take an actor and classified their
