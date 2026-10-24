@@ -23,6 +23,7 @@ status: **staging NO-GO, production NO-GO.**
 | Security event volume in the audit center | `cb1bb29` | run 39294602087 success | `auditSecurityVolume.test` (2) |
 | Rule-set authoring | `bc3ad5d` | run 39300321185 cancelled (superseded); verified by run 39300732135 on `84302a6` | `taxRulesPanel.test` (8), default browser 116/116 |
 | Unreachable code inventory (read-only, nothing deleted) | `84302a6` | run 39300732135 success | `unreachable-code-inventory.md`: 274 modules |
+| Production refusal of the process-local case authority, with Codex's reviewer patches (Block 39) and the removal proposal | `1a30705` | run 40094395819 success | `caseAuthorityProductionDurability.test` (23, 20 failing first); reviewer refusals (3 failing first); default browser 116/116, provider 42/42 |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -48,21 +49,11 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Production refusal of the process-local case authority (Block 39).** `/api/case-authority` is mounted in
-  production over an in-memory adapter.
-  - **Codex's reviewer patches.** `reviewer-workspace-durability.patch`, `reviewer-unauthorized-decision-test.patch`
-    and `reviewer-revoked-assignment-test.patch` were applied after their SHA-256 and preimage blobs were checked,
-    and the result matches Codex's manifest. The workspace and generic-action refusals failed first (3).
-  - **Fix found in this audit.** Every other scoped case operation and the `/cases` list now refuse in production
-    with 503 `DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED`; before, they served and acknowledged volatile state.
-    `caseAuthorityProductionDurability.test` (23): 20 failed first.
-  - **Local validation:** see the commit message.
-- **Next Priority 2 finding (not yet changed).** The Stage 02 accountant document-review routes
-  (`/api/stage-two-three/accountant/review-queue`, `review-item`, `review-action`, `verify-evidence`) read
-  `serverDocumentReviewStore`, an in-memory map that nothing in production populates. The queue therefore
-  answers a false empty 200, and the other routes answer 404. The fix would refuse them in production after the
-  role and scope checks. It changes the existing production expectation of `clientDataIsolationSecurity`
-  (SEC-CLIENT-023, own-client 200), so it is kept as its own reviewed package.
+- **Stage 02 accountant document-review refusal (Block 40).** The review queue, item, action and verify-evidence
+  routes read an in-memory map that nothing in production populates. They now answer 503
+  `DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED` after the role check; the queue answers it after the assignment
+  check too. `stageTwoDocumentReviewProductionDurability.test` (8): 5 failed first. SEC-CLIENT-023's production
+  expectation was changed deliberately from own-client 200 to the refusal; its assignment 403 is kept.
 
 ### Blocked (recorded, not worked around)
 
@@ -85,7 +76,7 @@ Audits completed in this cycle (documents):
 
 ### Next priorities
 
-1. Stage 02 accountant document-review production refusal (above).
+1. Remaining production routers: per-route review of `profile`, `bookkeeping` and `operations` fallbacks (the first pass found explicit refusals).
 2. Engagement-linked messaging, appointment and legal records (no general-record change without the policy).
 3. A re-run of the function inventory for any remaining client-level reads.
 4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`).

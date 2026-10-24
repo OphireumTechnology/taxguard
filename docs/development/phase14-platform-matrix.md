@@ -521,6 +521,26 @@ could mean "the UI claims something the backend cannot deliver".
   - **Still open.** A durable case-authority provider is a `CONTROL-DURABILITY` cutover item. The browser suites
     run the development server and are unaffected.
 
+  **Production refusal of the Stage 02 accountant document-review store (Block 40).** The production-mounted routes
+  below read `serverDocumentReviewStore`, an in-memory map that nothing in production populates:
+  - `/api/stage-two-three/accountant/review-queue`;
+  - `review-item`;
+  - `review-action`;
+  - `verify-evidence`.
+
+  Before the fix, the queue answered a false empty 200 and the other routes answered 404.
+  - **Fix.** They now answer 503 `DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED` with `no-store`. The queue refuses
+    after the role and client-assignment checks. The item, action and verify-evidence routes refuse after the role
+    check and before the store lookup, because the store is their only source for the client.
+  - **Tests.** `stageTwoDocumentReviewProductionDurability.test` (8): 5 failed first. A development case keeps the
+    cross-client 403 for item and action covered.
+  - **Changed expectation (deliberate).** `clientDataIsolationSecurity` SEC-CLIENT-023 asserted that production
+    served the volatile store (own client 200). It now asserts:
+    - the own-client refusal;
+    - the unassigned client's 403, ahead of the refusal;
+    - no client identifier in the item responses;
+    - unchanged store versions.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

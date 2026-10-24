@@ -28,7 +28,7 @@ every router file named below. **No route was added to production.** Staging NO-
 | `/api/ai-governance` | `createAiGovernanceRouter` | Authenticated and governed; every agent is DRAFT | |
 | `/api/case-authority` | `caseAuthorityRouter` | Authenticated | Process-local adapter. In production, the scoped case operations and the `/cases` list answer 503 `DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED`. Onboarding and the reviewer queue, workspace, decision and action paths each answer with their own `DURABLE_*_PROVIDER_REQUIRED` code. Only `/provider-readiness` (administrator) serves data. |
 | `/api/profile`, `/api/profile-amendment` | `profileAmendmentRouter` | Authenticated | |
-| `/api/stage-two-three`, `/api/stage-workflow` | `stageTwoThreeRouter` | Authenticated | |
+| `/api/stage-two-three`, `/api/stage-workflow` | `stageTwoThreeRouter` | Authenticated | Stage 02 collection is durable-only (503 `COLLECTION_UNAVAILABLE` without the store). Reconciliation answers 503 `DURABLE_RECONCILIATION_REQUIRED`. The accountant document-review routes answer 503 `DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED` after the role check, and the queue also after the assignment check. Gate evaluation is stateless. |
 | `/api/bookkeeping` | `bookkeepingRouter` | Authenticated, scoped grants (`staffScopedGrants.ts`) | |
 | `/api/operations` | `practiceOperationsRouter` | Authenticated | |
 | `/api/accountant` | `createAccountantDashboardRouter` | Durable, tenant-scoped, AAL2 staff sessions, read-only | |

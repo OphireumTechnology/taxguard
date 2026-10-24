@@ -494,31 +494,27 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
       `/api/stage-two-three/accountant/review-queue?clientId=${a.body.clientId}`,
       staff.body.token
     );
-    expect(ownQueue.status).toBe(200);
-    expect((await ownQueue.json()).items.map((item: any) => item.documentId)).toEqual(['review-a']);
-    expect((await request(
-      `/api/stage-two-three/accountant/review-item/review-a`,
-      staff.body.token
-    )).status).toBe(200);
-    expect((await request('/api/stage-two-three/accountant/review-action', staff.body.token, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId: 'review-a', expectedVersion: 1, action: 'CLAIM' })
-    })).status).toBe(200);
+    // The review store is process-local: once the assignment check passes, production refuses rather than serve it.
+    expect(ownQueue.status).toBe(503);
+    expect(await ownQueue.json()).toMatchObject({ code: 'DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED' });
 
     expect((await request(
       `/api/stage-two-three/accountant/review-queue?clientId=${b.body.clientId}`,
       staff.body.token
     )).status).toBe(403);
-    expect((await request(
-      '/api/stage-two-three/accountant/review-item/review-b',
-      staff.body.token
-    )).status).toBe(403);
-    expect((await request('/api/stage-two-three/accountant/review-action', staff.body.token, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId: 'review-b', expectedVersion: 1, action: 'CLAIM' })
-    })).status).toBe(403);
+    for (const documentId of ['review-a', 'review-b']) {
+      const item = await request(`/api/stage-two-three/accountant/review-item/${documentId}`, staff.body.token);
+      expect(item.status).toBe(503);
+      expect(await item.text()).not.toContain(documentId === 'review-a' ? a.body.clientId : b.body.clientId);
+      const action = await request('/api/stage-two-three/accountant/review-action', staff.body.token, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId, expectedVersion: 1, action: 'CLAIM' })
+      });
+      expect(action.status).toBe(503);
+    }
+    expect(serverDocumentReviewStore.get('review-a')?.version).toBe(1);
+    expect(serverDocumentReviewStore.get('review-b')?.version).toBe(1);
   });
 
   it.each(['unassigned', 'INACTIVE', 'REASSIGNED', 'cross-tenant'])(

@@ -65,6 +65,18 @@ function resolveTenantId(): string {
   return configured;
 }
 
+// The accountant document-review store (serverDocumentReviewStore) is process-local and nothing in production
+// populates it. Production refuses explicitly rather than report an empty queue or "not found".
+function refuseVolatileDocumentReview(res: Response) {
+  if (process.env.NODE_ENV !== 'production') return false;
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(503).json({ error: 'DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED', code: 'DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED' });
+  return true;
+}
+const requireDurableDocumentReview = (_req: AuthenticatedRequest, res: Response, next: () => void) => {
+  if (!refuseVolatileDocumentReview(res)) next();
+};
+
 function authorizeStageTwoReviewScope(
   req: AuthenticatedRequest,
   res: Response,
@@ -385,6 +397,7 @@ stageTwoThreeRouter.get('/accountant/review-queue', requireRole('accountant', 's
       ? req.query.clientId.trim()
       : undefined;
     if (!authorizeStageTwoReviewScope(req, res, tenantId, clientId)) return;
+    if (refuseVolatileDocumentReview(res)) return;
 
     const items = AccountantDocumentReviewService.getReviewQueue(
       { id: req.user.id, role: req.user.role, tenantId },
@@ -403,7 +416,7 @@ stageTwoThreeRouter.get('/accountant/review-queue', requireRole('accountant', 's
   }
 });
 
-stageTwoThreeRouter.get('/accountant/review-item/:documentId', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), (req: AuthenticatedRequest, res: Response) => {
+stageTwoThreeRouter.get('/accountant/review-item/:documentId', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), requireDurableDocumentReview, (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
@@ -425,7 +438,7 @@ stageTwoThreeRouter.get('/accountant/review-item/:documentId', requireRole('acco
   }
 });
 
-stageTwoThreeRouter.post('/accountant/review-action', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), (req: AuthenticatedRequest, res: Response) => {
+stageTwoThreeRouter.post('/accountant/review-action', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), requireDurableDocumentReview, (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const tenantId = resolveTenantId();
@@ -475,7 +488,7 @@ stageTwoThreeRouter.post('/accountant/review-action', requireRole('accountant', 
   }
 });
 
-stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant', 'senior_reviewer', 'admin', 'super_admin'), requireDurableDocumentReview, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const documentId = typeof req.body?.documentId === 'string' ? req.body.documentId.trim() : '';
