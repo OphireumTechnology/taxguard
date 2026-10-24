@@ -2239,7 +2239,7 @@
       "tests": [
         "src/tests/practiceManagerAuthority.test.ts"
       ],
-      "remaining": "Capacity/SLA/event contracts, durable history and scoped reassignment authority.",
+      "remaining": "Capacity/SLA/event contracts and durable history. Scoped case-team reassignment exists only as review-only proposal 20261018105000 (caseRestaff.db, POST /api/cases/:caseId/team, Case team form); not live until approved and applied.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",

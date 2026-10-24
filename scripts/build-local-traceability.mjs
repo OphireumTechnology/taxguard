@@ -55,7 +55,7 @@ const roleRows = [
   ['ACCOUNTANT', 'src/components/workspace/AccountantWorkspace.tsx', 'src/tests/accountantDashboardMasterplan.test.tsx', 'Durable source lineage/preview/version comparison and filing-readiness telemetry; commissioned AI preparation.'],
   ['REVIEWER', 'src/components/workspace/ReviewerWorkspace.tsx', 'src/tests/reviewerDashboardAuthority.test.ts', 'Durable discovery and artifact hydration/cutover; professional decisions/attestations.'],
   ['BOOKKEEPER', 'src/components/workspace/BookkeeperDashboard.tsx', 'src/tests/bookkeeperDashboardAuthority.test.ts', 'Durable accounting/category/reconciliation/period close/reporting provider and human controls.'],
-  ['PRACTICE-MANAGER', 'src/components/workspace/PracticeManagerDashboard.tsx', 'src/tests/practiceManagerAuthority.test.ts', 'Capacity/SLA/event contracts, durable history and scoped reassignment authority.'],
+  ['PRACTICE-MANAGER', 'src/components/workspace/PracticeManagerDashboard.tsx', 'src/tests/practiceManagerAuthority.test.ts', 'Capacity/SLA/event contracts and durable history. Scoped case-team reassignment exists only as review-only proposal 20261018105000 (caseRestaff.db, POST /api/cases/:caseId/team, Case team form); not live until approved and applied.'],
   ['CLIENT-SERVICE', 'src/components/workspace/ClientServiceDashboard.tsx', 'src/tests/clientServiceAuthority.test.ts', 'Scoped booking/send/read-receipt/escalation contracts and audited durable actions.'],
   ['ADMIN', 'src/components/admin/PracticeAdminWorkspace.tsx', 'src/tests/adminOperationalTruthfulness.test.tsx', 'Durable staff/job/billing/audit/retention views and approved administrative grants.'],
 ];
