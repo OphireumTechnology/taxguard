@@ -5366,8 +5366,8 @@
     },
     {
       "file": "docs/development/phase14-phase15-migration-integration-plan.md",
-      "sha256": "a5ce8039ac786735512fed54b1259ada96e8bfc4b2f235e27b1e014af5cf8954",
-      "bytes": 17166,
+      "sha256": "3a90a6f9906da93dd30ae30ee8c88cfb8aaf8ef24f93db17f0202c1b59d62d29",
+      "bytes": 18088,
       "headings": [
         "# Phase 14 / Phase 15 migration integration plan (for owner approval)",
         "## 1. The collision (verified)",
@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "2a82c1ff773f0ae70ee2583bf450369d04dc9e47c5a531de3691ee622cd45efb",
-      "bytes": 53114,
+      "sha256": "823534eab844aa2f74232749ead153c2a4e2b12ba5b831bc63c0d74a0c1cb6e4",
+      "bytes": 55583,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5472,8 +5472,8 @@
     },
     {
       "file": "docs/development/production-route-parity.md",
-      "sha256": "5e04307e69b06752b3b4132ba2760d137e075e6b67749aad0f308c876f3b8984",
-      "bytes": 9087,
+      "sha256": "6a4ca68db78dae83a9714a3e1935a64445f8dee0769090d89a6df95797cc13a6",
+      "bytes": 9420,
       "headings": [
         "# Production route parity (verified inventory, 2026-10-19)",
         "## How the two entry points relate",
@@ -5597,8 +5597,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "4d8f64a02ebc0a71d8099cc6ebd154494272b8dbc0e3c4f8aa4f58b62f428d65",
-      "bytes": 11351,
+      "sha256": "df906765e95318e8e3d8a920a03fa0fa6c76b310990117119d467c46205c9f21",
+      "bytes": 11594,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "b5eddb753ef9acc83f8fda56f936555d1ea871de1d14294de2bb17c064404bc9",
-      "bytes": 8339,
+      "sha256": "a186a6bca0a172f211a128df1772b827360edc7b0eaa119171890a78176aaf3e",
+      "bytes": 6775,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -5626,14 +5626,14 @@
     },
     {
       "file": "docs/development/unreachable-code-inventory.md",
-      "sha256": "842758b52be97075cf263fe9755adb42f2faf418e4877676531c8c183039c4b8",
-      "bytes": 16317,
+      "sha256": "2f2bbd526f645d912ef68d48111cddc29bd8944ea6d9862684d9fe8326ce9dfc",
+      "bytes": 19252,
       "headings": [
         "# Unreachable frontend code inventory (read-only, 2026-10-20)",
         "## Method",
         "## Counts",
         "## Findings that change recorded decisions",
-        "## Recommendation (owner decision)",
+        "## Removal proposal (owner decision; nothing deleted)",
         "## Appendix: unreachable modules"
       ]
     },
@@ -7359,7 +7359,7 @@
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
-    "src/tests/reviewerDashboardAuthority.test.ts": "c2b533c0685ff9c694d2af64179138a12043c546486b7c3b18fe74a979598de3",
+    "src/tests/reviewerDashboardAuthority.test.ts": "c819ba5e9f38ea2b36659c2d88dfc928c1b173ac1b9b772865b63d79760cb3a7",
     "src/tests/roleDashboardsHttp.test.ts": "2548e0e4af23d96c1f058fcaef9330804c231b2fd64904bad72de5de690434af",
     "src/tests/securityEventRecorder.test.ts": "a0b7301d2d81544dc071f921ee0c435106dfdbb15ced22053ff288e73e1e51a4",
     "src/tests/securityEvents.test.ts": "06bfbde428bf9a9ad48a5b9818a9c68290ffccc1acca7a9f3c8111d0eea9abef",

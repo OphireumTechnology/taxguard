@@ -490,6 +490,37 @@ could mean "the UI claims something the backend cannot deliver".
   approves it in the console. Remaining API-only by design: invoice line removal, which overlaps Codex's Phase 15
   line-removal retries.
 
+  **Production refusal of the process-local case authority (Block 39).** `/api/case-authority` is mounted by
+  `createProductionApp`, but its adapter, `TransactionalDocumentDatabase`, is an in-memory map that never reports
+  durable persistence.
+  - **Reviewer paths (Codex audit, 2026-10-19 to 20).** The reviewer queue and reviewer decisions already
+    refused in production. Codex's `reviewer-workspace-durability.patch` adds refusals for the selected reviewer
+    workspace (503 `DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED`) and for the generic review action (503
+    `DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED`), both before the repository is called.
+  - **Codex's two additive tests:**
+    - an authenticated non-reviewer is refused before the decision repository;
+    - a revoked reviewer assignment is rejected before any decision or audit write.
+  - **Verification.** Each patch was applied after checking its SHA-256 and preimage blobs, and the resulting
+    blobs match Codex's manifest. The workspace and action refusals were independently shown to fail first (3
+    failures against the original route). The two additive tests pass on the existing code, so they are
+    regressions rather than fixes.
+  - **Remaining defect, found in this audit.** Every other scoped case operation still read and acknowledged
+    writes in production against that map:
+    - the case itself, its stages, documents, evidence and workpapers;
+    - returns, reports, signatures, filings (including submit), monitoring, archive and repeat;
+    - the `/cases` list.
+
+    A restart or a second instance would silently lose them.
+  - **Fix.** The route `handler` and the `/cases` list now refuse in production with 503
+    `DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED` (`requiresHumanReview`, `externalSubmissionAllowed: false`),
+    before touching the store. Authentication still comes first. The reviewer decision and legacy `/approvals`
+    routes keep their request validation and the repository's specific `DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED`.
+    Development behaviour is unchanged.
+  - **Tests.** `caseAuthorityProductionDurability.test` (23): 9 reads and 11 writes asserted with no store call
+    and no record change; 20 failed first, including 200 responses for PATCH, activate and archive manifest.
+  - **Still open.** A durable case-authority provider is a `CONTROL-DURABILITY` cutover item. The browser suites
+    run the development server and are unaffected.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

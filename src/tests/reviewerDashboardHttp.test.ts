@@ -54,12 +54,25 @@ it('checks the trusted production tenant before reporting queue provider availab
   expect(await response.json()).toEqual({code:'REVIEWER_TENANT_REQUIRED'});
 });
 it('rejects cross-tenant/client/year selected case requests through actual middleware and repository',async()=>{
+  vi.stubEnv('NODE_ENV','test');
+  vi.spyOn(db,'getClientBindings').mockReturnValue([{accountantId:'reviewer',status:'active',effectiveDate:'2020-01-01'}] as any);
   expect((await get(base.replace(scope.tenantId,'other-tenant')+'/reviewer-workspace')).status).toBe(403);
   expect((await get(base.replace(scope.clientId,'other-client')+'/reviewer-workspace')).status).toBe(403);
   expect((await get(base.replace('/2024','/2023')+'/reviewer-workspace')).status).toBe(403);
 });
+it.each(['populated','empty'])('fails closed before reading the %s local production reviewer workspace',async state=>{
+  if(state==='empty')globalAuthorityDatabase.records=new Map();
+  const read=vi.spyOn(TaxGuardAuthorityRepository.prototype,'getReviewerSnapshot');
+  const response=await get(base+'/reviewer-workspace');
+  expect(response.status).toBe(503);
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(await response.json()).toMatchObject({code:'DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED'});
+  expect(read).not.toHaveBeenCalled();
+});
 it('serves the scoped selected workspace without fallback taxpayer or private URL',async()=>{
-  const response=await get(base+'/reviewer-workspace');expect(response.status).toBe(200);const snapshot=await response.json();expect(snapshot.scope).toEqual(scope);expect(snapshot.independentReviewer).toBe(true);expect(snapshot.decisionsAvailable).toBe(false);
+  vi.stubEnv('NODE_ENV','test');
+  vi.spyOn(db,'getClientBindings').mockReturnValue([{accountantId:'reviewer',status:'active',effectiveDate:'2020-01-01'}] as any);
+  const response=await get(base+'/reviewer-workspace');expect(response.status).toBe(200);const snapshot=await response.json();expect(snapshot.scope).toEqual(scope);expect(snapshot.independentReviewer).toBe(true);expect(snapshot.decisionsAvailable).toBe(true);
 });
 it('requires correction details and confirmation at the HTTP mutation boundary',async()=>{
   const input={version:1,operationId:'http-return',returnId:'return-a',decision:'RETURN',reason:'Independent reviewer found an unreconciled withholding difference.'};
@@ -77,7 +90,25 @@ it('fails closed for production decisions when the existing adapter cannot estab
   expect(response.status).toBe(503);expect((await response.json()).code).toBe('DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED');
   expect(globalAuthorityDatabase.records.get(casePath(scope)).version).toBe(1);
 });
+it('denies an authenticated non-reviewer before invoking the decision repository',async()=>{
+  session.role='accountant';
+  const decide=vi.spyOn(TaxGuardAuthorityRepository.prototype,'decideReviewerReturn');
+  const response=await post({version:1,operationId:'unauthorized-review-decision',returnId:'return-a',decision:'APPROVE',confirmed:true,reason:'Independent human review verified the submitted evidence.'});
+  expect(response.status).toBe(403);
+  expect(decide).not.toHaveBeenCalled();
+  expect(globalAuthorityDatabase.records.get(casePath(scope)).version).toBe(1);
+});
+it('fails closed before recording a generic production review action in the volatile store',async()=>{
+  const root=casePath(scope);
+  globalAuthorityDatabase.records.set(root+'/workpapers/workpaper-a',{id:'workpaper-a',...scope,createdBy:'preparer',status:'IN_REVIEW'});
+  const write=vi.spyOn(TaxGuardAuthorityRepository.prototype,'performReviewAction');
+  const response=await fetch(origin+base+'/reviews/action',{method:'POST',headers:{'x-test-auth':'yes','Content-Type':'application/json'},body:JSON.stringify({version:1,operationId:'production-review-action',target:{type:'workpaper',id:'workpaper-a'},action:'ACCEPT',notes:'Independent review completed.'})});
+  expect(response.status).toBe(503);expect((await response.json()).code).toBe('DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED');
+  expect(write).not.toHaveBeenCalled();expect(globalAuthorityDatabase.records.get(root+'/workpapers/workpaper-a').status).toBe('IN_REVIEW');
+});
 it('cannot bypass reviewer controls through legacy public approval/action routes',async()=>{
+  vi.stubEnv('NODE_ENV','test');
+  vi.spyOn(db,'getClientBindings').mockReturnValue([{accountantId:'reviewer',status:'active',effectiveDate:'2020-01-01'}] as any);
   const input={version:1,operationId:'legacy-approval',returnId:'return-a',rationale:'Independent review of the complete recorded tax return.'};
   const legacy=await fetch(origin+base+'/approvals',{method:'POST',headers:{'x-test-auth':'yes','Content-Type':'application/json'},body:JSON.stringify(input)});
   expect(legacy.status).toBe(400);expect((await legacy.json()).code).toBe('REVIEW_CONFIRMATION_REQUIRED');

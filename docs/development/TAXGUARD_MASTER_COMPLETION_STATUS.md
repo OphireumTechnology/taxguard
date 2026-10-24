@@ -14,6 +14,15 @@ status: **staging NO-GO, production NO-GO.**
 | Phase 15 integration readiness findings | `acb2086` | run 39233897596 success | dossier section; read-only comparison of 10 Codex branches |
 | Trial-balance "as of" bound, base and Phase 15 exact wrapper (`20261018070000` amended) | `8f207c9` | run 39244878809 success | `ledgerYearScope.db` (9, failing-first). Merged-schema wrapper check: 10/10 with the fix, 8/10 without. |
 | Migration integration plan (collision, refund withdrawal, merge steps, reproduction) | `8f207c9` | run 39244878809 success | `phase14-phase15-migration-integration-plan.md` |
+| Production framing and transport headers (`securityHeaders.ts`) | `7c26026` | run 39255408711 success | `productionFrameHeaders.test` (failing-first). GitHub Pages cannot send headers: hosting decision for the owner. |
+| Production route cutover gate (`routeCutover.ts`), AI deny-by-default regression | `092e756` | run 39260819850 success | `routeCutover.test` (8); `aiWorkforceDenyByDefault.test` (61: 58 `UNMAPPED_DENIED`, 3 bounded, none with execution authority) |
+| Manager case-team form; route-allowlist defect fixed | `f5ae250` | run 39269700388 success | failing-first allowlist test; provider browser 41/41 |
+| Tax Rules console (sources, rule sets, maker-checker) | `91fc6a3` | run 39278170178 success | `taxRulesPanel.test` (5), default browser suite 07 |
+| Rule-set tests and calculation runs | `57dab4b` | run 39283183667 success | `taxRulesPanel.test` (6) |
+| Engagement tax years and practice deadlines | `aafb24c` | run 39288880317 success | `practiceClientsPanel.test` (6), provider browser 42/42 |
+| Security event volume in the audit center | `cb1bb29` | run 39294602087 success | `auditSecurityVolume.test` (2) |
+| Rule-set authoring | `bc3ad5d` | run 39300321185 cancelled (superseded); verified by run 39300732135 on `84302a6` | `taxRulesPanel.test` (8), default browser 116/116 |
+| Unreachable code inventory (read-only, nothing deleted) | `84302a6` | run 39300732135 success | `unreachable-code-inventory.md`: 274 modules |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -39,54 +48,21 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Production framing and transport headers:** `src/server/securityHeaders.ts` is used by `createProductionApp`
-  and by `server.ts` in production; `productionFrameHeaders.test` failed first. Local validation passes: PostgreSQL 133, unit 5770, lint,
-  typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 113/113 and provider
-  browser 40/40.
-  **Remaining:** GitHub Pages cannot send headers, so HTML served from Pages stays framable until it moves to a
-  host or CDN that can. This is a hosting decision for the owner.
-
-- **Production route cutover gate:** `src/server/routeCutover.ts` is wired into `createProductionApp`, with the
-  admin-only `GET /api/route-cutover`; `routeCutover.test` (8). It fails closed: no proposal is approved, so nothing
-  is mounted. Local validation passes: PostgreSQL 133, unit 5839 (including
-  `aiWorkforceDenyByDefault.test`, 61 cases: 58 agents `UNMAPPED_DENIED` and 3 bounded, none with execution authority),
-  lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 113/113 and provider
-  browser 40/40. The security-header package was published as `7c26026` (CI run 39255408711 success).
-
-- **Manager case-team form** in Case Workflow: `caseService.restaff`, `restaffCandidates`, Refresh team, specific refusal
-  messages, entries kept on refusal. The browser test found a route-allowlist defect (`practiceManagerAccess.ts` did
-  not list `POST /api/cases/:id/team`), now fixed with a failing-first allowlist test. Local validation passes:
-  PostgreSQL 133, unit 5842, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
-  browser 113/113 and provider browser 41/41 (the new reassignment journey included). The route-cutover gate was
-  published as `092e756` (CI run 39260819850 success).
-
-- **Tax Rules console** (`TaxRulesPanel`, `taxEngineService`; manager and reviewer dashboards; coverage read allowed for
-  managers): `taxRulesPanel.test` (5) and default browser suite 07. The manager case-team UI was published as
-  `f5ae250` (CI run 39269700388 success). Local validation passes: PostgreSQL 133, unit 5847, lint, typecheck, build, release candidate (81 entries), secret
-  scan, diff check, default browser 114/114 and provider browser 41/41.
-
-- **Rule-set tests and calculation runs:** tests and the latest recorded run with a Run tests action in Tax Rules;
-  calculation runs with reviewer decisions in Case Workflow. `taxRulesPanel.test` (6) and local validation passes:
-  PostgreSQL 133, unit 5848, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
-  browser 115/115 and provider browser 41/41. The Tax Rules console was published as `91fc6a3`.
-
-- **Engagement tax years and practice deadlines** in Clients & Engagements: `practiceClientsPanel.test` (6) and local validation passes:
-  PostgreSQL 133, unit 5850, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
-  browser 115/115 and provider browser 42/42. The Tax Rules console (`91fc6a3`, CI run 39278170178) and rule-set tests
-  and calculation runs (`57dab4b`, CI run 39283183667) are published with CI success.
-
-- **Security event volume** in the audit center: `auditSecurityVolume.test` (2) and local validation passes:
-  PostgreSQL 133, unit 5852, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default
-  browser 115/115 and provider browser 42/42. Tax years and deadlines were published as `aafb24c` (CI run 39288880317 success).
-
-- **Rule-set authoring** in the Tax Rules console: `taxRulesPanel.test` (8) and local validation passes: PostgreSQL 133,
-  unit 5854, lint, typecheck, build, release candidate (81 entries), secret scan, diff check, default browser 116/116
-  and provider browser 42/42. The audit security volume was published as `cb1bb29` (CI run 39294602087 success).
-
-- **Unreachable code inventory** (`unreachable-code-inventory.md`, read-only): 274 frontend modules are unreachable from
-  the browser, server and script roots, including all of `src/demo` and 96 of 107 in `src/taxguard`. `/api/documents`
-  no longer has a reachable consumer, contrary to `phase10-reviews.md`. Deletion is an owner decision; nothing was
-  deleted.
+- **Production refusal of the process-local case authority (Block 39).** `/api/case-authority` is mounted in
+  production over an in-memory adapter.
+  - **Codex's reviewer patches.** `reviewer-workspace-durability.patch`, `reviewer-unauthorized-decision-test.patch`
+    and `reviewer-revoked-assignment-test.patch` were applied after their SHA-256 and preimage blobs were checked,
+    and the result matches Codex's manifest. The workspace and generic-action refusals failed first (3).
+  - **Fix found in this audit.** Every other scoped case operation and the `/cases` list now refuse in production
+    with 503 `DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED`; before, they served and acknowledged volatile state.
+    `caseAuthorityProductionDurability.test` (23): 20 failed first.
+  - **Local validation:** see the commit message.
+- **Next Priority 2 finding (not yet changed).** The Stage 02 accountant document-review routes
+  (`/api/stage-two-three/accountant/review-queue`, `review-item`, `review-action`, `verify-evidence`) read
+  `serverDocumentReviewStore`, an in-memory map that nothing in production populates. The queue therefore
+  answers a false empty 200, and the other routes answer 404. The fix would refuse them in production after the
+  role and scope checks. It changes the existing production expectation of `clientDataIsolationSecurity`
+  (SEC-CLIENT-023, own-client 200), so it is kept as its own reviewed package.
 
 ### Blocked (recorded, not worked around)
 
@@ -109,9 +85,7 @@ Audits completed in this cycle (documents):
 
 ### Next priorities
 
-1. Production framing and transport headers (validation and publication).
-2. AI capability reads: verify that `document.read` and `workflow.read` follow the requesting human's engagement and
-   year scope; failing-first if not.
+1. Stage 02 accountant document-review production refusal (above).
 2. Engagement-linked messaging, appointment and legal records (no general-record change without the policy).
 3. A re-run of the function inventory for any remaining client-level reads.
 4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`).

@@ -26,7 +26,7 @@ every router file named below. **No route was added to production.** Staging NO-
 | `/api/provider-readiness`, `/api/operational-metrics`, `/api/readiness` | inline | `authenticateToken` + `requireOperationalAdministrator` | Readiness returns 503 when the database, authentication or schema is not ready |
 | `/api/auth` | `authRouter` | Supabase session bridge; local password and TOTP routes return 410 in production | |
 | `/api/ai-governance` | `createAiGovernanceRouter` | Authenticated and governed; every agent is DRAFT | |
-| `/api/case-authority` | `caseAuthorityRouter` | Authenticated | |
+| `/api/case-authority` | `caseAuthorityRouter` | Authenticated | Process-local adapter. In production, the scoped case operations and the `/cases` list answer 503 `DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED`. Onboarding and the reviewer queue, workspace, decision and action paths each answer with their own `DURABLE_*_PROVIDER_REQUIRED` code. Only `/provider-readiness` (administrator) serves data. |
 | `/api/profile`, `/api/profile-amendment` | `profileAmendmentRouter` | Authenticated | |
 | `/api/stage-two-three`, `/api/stage-workflow` | `stageTwoThreeRouter` | Authenticated | |
 | `/api/bookkeeping` | `bookkeepingRouter` | Authenticated, scoped grants (`staffScopedGrants.ts`) | |

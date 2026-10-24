@@ -177,6 +177,13 @@ requirements:
 | 8 | Prior-year balances | GL opening and trial-balance beginning balances | Owner policy (§7). Never filter balances silently. | Codex `qa/phase15-scope`: 2 cases pending a policy |
 | 9 | Engagement and financial authorization | `taxguard_bill_*`, ledger reports | Owner confirms client-and-year ledger authority or commissions engagement attribution; invoices follow `taxguard_staff_record_scope` once decided | dossier, Codex handoff item 6 |
 | 10 | Case-team reassignment | delivered by Phase 14 as `20261018105000_taxguard_case_restaff` (review only); Codex reviews it with the other proposals | Manager-only, audited, live assignment required, segregation kept | dossier, Codex handoff item 7 |
+| 11 | Reviewer queue production refusals | Codex's `reviewer-workspace-durability.patch` and its two additive test patches, now applied in Phase 14 (Block 39) | Merge them from Phase 14, and do not apply them a second time in Phase 15. The HMAC cursor and `SqlCaseReadPreparation` candidates are still unwired and remain Codex's. | blobs `a09c70d`, `f3e6b94` and `9aaedb4` match Codex's `reviewer-integration-manifest-20261020.json` |
+
+**Note for Codex (location of `20261018105000`).** The restaff proposal is not in `supabase/migrations`. Like every
+Phase 14 proposal it is in `docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql`, listed in
+`docs/development/migration-execution-order.json` (published in `3676f89`). A search limited to
+`supabase/migrations` reports it as missing. It occupies neither `20261018110000` nor `20261018120000`, which stay
+free for the renamed Phase 15 reporting migrations.
 
 ## 9. Remaining approvals (exact)
 

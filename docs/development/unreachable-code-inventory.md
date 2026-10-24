@@ -41,12 +41,34 @@ the owner's deletion decision. This is the evidence for that decision.
 4. **Portal stage views 09–18 (`src/components/portal/views/stages/*`) are unreachable.** No product path imports
    them. The server enforces that Stage 09 onwards stays blocked; that does not depend on these files.
 
-## Recommendation (owner decision)
+## Removal proposal (owner decision; nothing deleted)
 
-Approve deleting the unreachable modules in reviewed batches: `src/demo`, then `src/taxguard` (minus the 11 used),
-then the portal and services leftovers. Retire `/api/documents`, `/api/calendar` and `/api/intake` with their only
-consumers. Each batch is a separate commit, with the full suites and a re-run of this inventory showing no newly
-unreachable live module.
+The batches below come from this appendix (274 modules), produced by a read-only batching script. For each batch
+the script counted the line total, the test files that import a batch module directly (these must be retired or
+retargeted in the same commit), and the imports that cross from one batch to another (which fix the deletion
+order). No reachable module imports any of these, by construction.
+
+| Batch | Modules | Lines | Cross-batch imports | Tests importing it | Proposal |
+|---|---|---|---|---|---|
+| **A** `src/demo` | 93 | 47,515 | B and E | 1: `stageOneOnboarding.test` (only the `INITIAL_DEMO_CLIENTS` fixture) | **Delete first.** Move that fixture inline as synthetic data; the test's assertions are unchanged. |
+| **C** portal stage views 09–18 (`components/portal/views/stages`) | 11 | 1,604 | none | 1: `clientStageActionTruthfulness.test` | **Delete with that test**, or keep both until the stage 09–18 client UI is designed. The server-side stage blocks do not depend on them. |
+| **D** in-memory document consumers (`services/production/*`, `supabase/storage.ts`, `DocumentsView`, `MyDocumentsClientVault`) | 7 | 1,950 | E | 1: `productionDocumentService.test` | **Delete together with E's dependants,** and retire `/api/documents` in the same commit. |
+| **E** other leftovers (components, services, config, `ai`) | 67 | 25,080 | D | 2: `aiRegistryFoundation.test`, `productionAuthConfiguration.test` | Delete with D after a per-file look at those two tests: each may cover a live rule through an unreachable module and need retargeting rather than removal. Retire `/api/calendar` and `/api/intake` here. |
+| **B1** earlier application shell (`TaxGuardApp.tsx`, `views`, `components`, `index.ts`, `services`, `state`) | about 40 | — | none | the shell's own suites, for example `productionSpaCleanRouteFallback.test` | **Delete** after A, since A imports B. |
+| **B2** engines in `src/taxguard` (`calculation`, `knowledge`, `intelligence`, `preparation`, `provenance`, `exceptions`, `document-intelligence`, `workflow`, `production`, `deployment`, `go-live`, `config`, `roleCapabilityMatrix.ts`) | about 56 | — | none | most of the 30 B suites (federal 1040 AGI, income, knowledge pack 2025, rule registry, citation binding, conflict engine, ...) | **Do not delete yet.** These are tested calculation and knowledge engines that no product path calls. The durable tax engine (proposals `20261012330000`, `360000`, `380000`) is the live path. The owner and a tax professional decide whether to port their verified rules into reviewed rule sets or retire them. |
+
+The B1 and B2 split is by directory and is approximate (`B` totals 96 modules, 43,685 lines). The exact file list
+for each will be fixed when that batch's commit is prepared.
+
+**Order:** A, then C, then D with E, then B1. B2 waits for the tax-engine decision.
+
+**Each batch commit must:**
+- delete only the batch's files and the tests listed for it (or retarget those tests, with unchanged assertions);
+- pass the full unit, PostgreSQL, lint, typecheck and build checks and both browser profiles;
+- re-run this inventory and show no newly unreachable live module.
+
+The `/api/documents`, `/api/calendar` and `/api/intake` routes are retired only in the batch that removes their
+last consumer.
 
 ## Appendix: unreachable modules
 
