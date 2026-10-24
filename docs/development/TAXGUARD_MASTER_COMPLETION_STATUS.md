@@ -25,6 +25,8 @@ status: **staging NO-GO, production NO-GO.**
 | Unreachable code inventory (read-only, nothing deleted) | `84302a6` | run 39300732135 success | `unreachable-code-inventory.md`: 274 modules |
 | Production refusal of the process-local case authority, with Codex's reviewer patches (Block 39) and the removal proposal | `1a30705` | run 40094395819 success | `caseAuthorityProductionDurability.test` (23, 20 failing first); reviewer refusals (3 failing first); default browser 116/116, provider 42/42 |
 | Production refusal of the Stage 02 accountant document-review store (Block 40) | `406978b` | run 40098439008 success | `stageTwoDocumentReviewProductionDurability.test` (8, 5 failing first); SEC-CLIENT-023 changed deliberately |
+| Production refusal of the practice-operations services (Block 41); bookkeeping fallthrough regression guard | `ad56f24` | run 40102308061 **cancelled** at the 30-minute job timeout in automated tests (one-off, not reproduced); verified by run 40105263474 success on `2cf2a23`, which contains it | `practiceOperationsProductionDurability.test` (37, 35 failing first); `bookkeepingProductionFallthrough.test` (4) |
+| Payment webhook signature verification: raw bytes, 300-second window, rotation, constant time (Block 42) | `2cf2a23` | run 40105263474 success (automated tests 3 min 45 s) | `stripeWebhookSignature.test` (10, 5 failing first) |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -50,18 +52,7 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Practice-operations production refusal (Block 41), published as `ad56f24`.** Its CI run 40102308061 was **cancelled
-  at the 30-minute job timeout** inside the automated tests step, which took 3.6 minutes on the previous run. No newer push was involved. The log needs authenticated access, and the full suite passes locally (5931) with no hanging handles. It is verified only once a later run passes on a head that contains it.
-  Details: Every `/api/operations` service is in memory. In
-  production all routes now answer 503 `DURABLE_OPERATIONS_STORE_REQUIRED` after authentication and the client
-  check; the payment webhook answers `PAYMENT_PROVIDER_NOT_COMMISSIONED`. `practiceOperationsProductionDurability.test`
-  (37): 35 failed first. SEC-CLIENT-021 and 022a changed deliberately from 200 to the refusal, and their scoping moved
-  to development cases.
-  - **Audit of the remaining routers.** The bookkeeping fallthrough is already refused (regression guard added).
-    Profile, accountant and tax forms were checked, and nothing was changed.
-- **Payment webhook signature verification (Block 42).** The development handler now verifies the raw bytes, bounds
-  the timestamp to 300 seconds, accepts rotated `v1` signatures and compares in constant time.
-  `stripeWebhookSignature.test` (10): 5 failed first. Production still refuses the webhook.
+Nothing in progress: every published package above passed CI on a head that contains it.
 
 ### Blocked (recorded, not worked around)
 

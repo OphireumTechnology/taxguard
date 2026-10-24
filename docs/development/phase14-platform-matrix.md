@@ -571,6 +571,11 @@ could mean "the UI claims something the backend cannot deliver".
     everything else refuses after the client check.
   - `/api/accountant`: durable and read-only.
   - `/api/tax-forms`: a static catalogue.
+  - `/api/ai-governance`: `productionGovernance.ts` uses PostgreSQL over verified TLS (`DATABASE_URL`) or refuses with 503
+    `AI_GOVERNANCE_UNAVAILABLE`; it has no in-memory fallback. `/api/auth` uses the Supabase session bridge, and the
+    local password and TOTP routes answer 410 in production.
+
+  With this, every router that `createProductionApp` mounts has been checked for process-local state.
 
   **Payment webhook signature verification (Block 42).** This is the development handler behind
   `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:
