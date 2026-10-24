@@ -577,6 +577,17 @@ could mean "the UI claims something the backend cannot deliver".
 
   With this, every router that `createProductionApp` mounts has been checked for process-local state.
 
+  **Automated accessibility audit of the newer staff surfaces (Block 43).** Suite 16 audited the module views, but
+  it did not cover the manager's Tax Rules module. Collapsed disclosures and unapplied filters also hid controls
+  from it. It now audits:
+  - the manager's Tax Rules module;
+  - the Register-a-source and Draft-a-rule-set forms, expanded;
+  - the administrator's audit-center security view, applied.
+
+  No defect was found, and no source change was needed. The audit's self-test still proves that each defect class
+  is detected. Its keyboard and viewport billing cases depend on invoices that suite 02 creates (pre-existing): they
+  pass in the full run, and fail when suite 16 runs alone. This automation does not establish WCAG conformance.
+
   **Payment webhook signature verification (Block 42).** This is the development handler behind
   `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:
   - verifies the exact bytes received (`rawBody`, captured by `server.ts`). It refuses with 400

@@ -20,7 +20,7 @@ describe('automated accessibility audit', () => {
   });
 
   const plan: Array<[string, string[]]> = [
-    ['e2e-mgr', ['Clients & Engagements', 'Case Workflow', 'Document Review', 'Document Requests', 'Billing', 'Appointments', 'Consultation Requests', 'Reassignment Requests']],
+    ['e2e-mgr', ['Clients & Engagements', 'Case Workflow', 'Document Review', 'Document Requests', 'Billing', 'Appointments', 'Consultation Requests', 'Reassignment Requests', 'Tax Rules']],
     ['e2e-bk', ['Ledger Workspace', 'Transactions']],
     ['e2e-admin', ['Compliance Audit Log']],
     ['e2e-acct', []],
@@ -38,6 +38,34 @@ describe('automated accessibility audit', () => {
       await s.context.close();
     });
   }
+});
+
+describe('automated accessibility audit of expanded forms and views', () => {
+  // Collapsed disclosures and unapplied filters hide their controls, so the module audit above cannot see them.
+  it('finds no defects in the Tax Rules authoring forms once expanded', async () => {
+    const s = await staffLogin('e2e-mgr');
+    await openModule(s.page, 'Tax Rules');
+    const panel = s.page.locator('section', { has: s.page.getByRole('heading', { name: 'Tax Rules', exact: true }) });
+    for (const summary of ['Register a source', 'Draft a rule set']) {
+      await panel.getByText(summary, { exact: true }).click();
+      await panel.getByRole('form', { name: summary }).waitFor();
+    }
+    expect(await auditAccessibility(s.page), 'manager Tax Rules, forms expanded').toEqual([]);
+    await s.context.close();
+  });
+
+  it('finds no defects in the audit center security view', async () => {
+    const s = await staffLogin('e2e-admin');
+    await openModule(s.page, 'Compliance Audit Log');
+    const center = s.page.getByRole('region', { name: 'Audit center' });
+    const filters = center.getByRole('form', { name: 'Audit filters' });
+    await filters.getByLabel(/Security events only/).check();
+    await filters.getByRole('button', { name: 'Apply filters' }).click();
+    await center.getByRole('region', { name: 'Security event volume' }).waitFor();
+    await s.page.waitForLoadState('networkidle');
+    expect(await auditAccessibility(s.page), 'administrator security view').toEqual([]);
+    await s.context.close();
+  });
 });
 
 describe('keyboard and focus in the staff billing workspace', () => {

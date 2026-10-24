@@ -52,7 +52,8 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-Nothing in progress: every published package above passed CI on a head that contains it.
+- **Accessibility audit of the newer staff surfaces (Block 43).** Suite 16 now covers the manager's Tax Rules module,
+  its expanded authoring forms and the administrator's security view. No defect was found.
 
 ### Blocked (recorded, not worked around)
 
