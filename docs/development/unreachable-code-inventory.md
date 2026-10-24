@@ -60,7 +60,16 @@ order). No reachable module imports any of these, by construction.
 The B1 and B2 split is by directory and is approximate (`B` totals 96 modules, 43,685 lines). The exact file list
 for each will be fixed when that batch's commit is prepared.
 
-**Order:** A, then C, then D with E, then B1. B2 waits for the tax-engine decision.
+**C2: runtime-dead stage views 04–08 (found 2026-10-24; not in the 274).** `StageFourRecordView`,
+`StageFiveReconcileView`, `StageSixReviewView`, `StageSevenReportView` and `StageEightPlanView` are imported by
+`AuthenticatedClientDashboard`, so the import graph counts them as reachable. They can never render: the dashboard
+returns `ClientCaseStageView` first for `stage_04` to `stage_08` and `review`, because `unavailableClientStage` is
+true for all of them. That view is the honest one, with recorded status, Retry and no sample data. The dead views
+are not honest if revived: `StageFourRecordView` hard-codes the tenant `tenantA`, calls a URL shape no route
+serves, and turns every failure into an empty "no records" state. **Proposal:** delete the five views and their
+five dead branches with batch C.
+
+**Order:** A, then C with C2, then D with E, then B1. B2 waits for the tax-engine decision.
 
 **Each batch commit must:**
 - delete only the batch's files and the tests listed for it (or retarget those tests, with unchanged assertions);

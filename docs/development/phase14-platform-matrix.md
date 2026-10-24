@@ -541,6 +541,39 @@ could mean "the UI claims something the backend cannot deliver".
     - no client identifier in the item responses;
     - unchanged store versions.
 
+  **Production refusal of the practice-operations services; audit of the remaining routers (Block 41).**
+
+  *Practice operations.* `/api/operations` is production-mounted, and every service behind it is an in-memory map,
+  despite names such as `globalDurableJobQueueService`. The services cover jobs, tasks, assignments, deadlines,
+  communications, requests, notifications, engagement billing (invoices and payments), search, analytics,
+  retention and legal hold, archive verification and rollover. Only the client-service and practice-manager
+  dashboards, which already refused, have a UI consumer. In production the rest answered: job creation 201,
+  listings 200, invoice and payment operations, legal hold and rollover.
+  - **Fix.** After authentication and the client-context check (a client asking for another client still gets
+    403), production answers 503 `DURABLE_OPERATIONS_STORE_REQUIRED` with `no-store`. No service is called.
+  - **Payment webhook.** The unauthenticated `POST /api/operations/payments/webhook` answers 503
+    `PAYMENT_PROVIDER_NOT_COMMISSIONED` in production; no provider is commissioned.
+  - **Tests.** `practiceOperationsProductionDurability.test` (37): 33 routes plus the webhook and the ordering
+    check failed first (35). Two development cases carry the job-listing and cancellation scoping.
+  - **Changed expectations (deliberate).** `clientDataIsolationSecurity` SEC-CLIENT-021 and 022a asserted that
+    production served the volatile job queue (a 200 listing and a 200 cancellation). They now assert the refusal,
+    with no job content and unchanged job status. Their scoping assertions moved, unchanged, to the development
+    cases. SEC-CLIENT-022 (client widening, 403) is unchanged.
+  - **Finding for when a provider is commissioned (not changed).** The development webhook handler verifies the
+    signature over re-serialised JSON rather than the raw body. It compares with `!==` rather than a
+    constant-time comparison, and it does not bound the timestamp. All three must be fixed before any real
+    payment webhook is accepted.
+
+  *Remaining production routers, audited:*
+  - `/api/bookkeeping`: the ledger dispatch's final catch-all already refuses every handler it does not serve
+    whenever the ledger is not in memory, which is always in production. That covers book-to-tax, document
+    matching and the accounting-sync write authorization and write-back. No defect was found.
+    `bookkeepingProductionFallthrough.test` (4) is a regression guard: removing the catch-all makes it fail.
+  - `/api/profile`: only `/ordinary` is served in production, through the durable Supabase sessions;
+    everything else refuses after the client check.
+  - `/api/accountant`: durable and read-only.
+  - `/api/tax-forms`: a static catalogue.
+
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The
   owner then records the version in `taxguard_onb_consent_versions` through a reviewed change.

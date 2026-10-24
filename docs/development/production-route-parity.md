@@ -30,7 +30,7 @@ every router file named below. **No route was added to production.** Staging NO-
 | `/api/profile`, `/api/profile-amendment` | `profileAmendmentRouter` | Authenticated | |
 | `/api/stage-two-three`, `/api/stage-workflow` | `stageTwoThreeRouter` | Authenticated | Stage 02 collection is durable-only (503 `COLLECTION_UNAVAILABLE` without the store). Reconciliation answers 503 `DURABLE_RECONCILIATION_REQUIRED`. The accountant document-review routes answer 503 `DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED` after the role check, and the queue also after the assignment check. Gate evaluation is stateless. |
 | `/api/bookkeeping` | `bookkeepingRouter` | Authenticated, scoped grants (`staffScopedGrants.ts`) | |
-| `/api/operations` | `practiceOperationsRouter` | Authenticated | |
+| `/api/operations` | `practiceOperationsRouter` | Authenticated | Every service is in memory. In production, after authentication and the client-context check, all routes answer 503 `DURABLE_OPERATIONS_STORE_REQUIRED`. The client-service and manager dashboards answer their own `DURABLE_*` codes. The payment webhook answers 503 `PAYMENT_PROVIDER_NOT_COMMISSIONED`. |
 | `/api/accountant` | `createAccountantDashboardRouter` | Durable, tenant-scoped, AAL2 staff sessions, read-only | |
 | `/api/tax-forms` | `taxFormsRouter` | Authenticated, read-only catalogue | |
 | `/api/*` (other) | inline | — | JSON 404; never falls through to the SPA |

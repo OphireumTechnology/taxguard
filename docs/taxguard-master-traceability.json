@@ -5366,8 +5366,8 @@
     },
     {
       "file": "docs/development/phase14-phase15-migration-integration-plan.md",
-      "sha256": "3a90a6f9906da93dd30ae30ee8c88cfb8aaf8ef24f93db17f0202c1b59d62d29",
-      "bytes": 18088,
+      "sha256": "dc431142cfb4d78efdaafb923b52c7bb5d0807e9cad8be345764ae7b46f86b07",
+      "bytes": 19405,
       "headings": [
         "# Phase 14 / Phase 15 migration integration plan (for owner approval)",
         "## 1. The collision (verified)",
@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "eee182d221a1d0b11eb1a9ba208e559aab2b7f5c644dfba9bd8cf006815fafb2",
-      "bytes": 56834,
+      "sha256": "1ea26272becb0e799aeafa28f044d52a729c4b72e16eb4021d6419066648d95a",
+      "bytes": 59630,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5472,8 +5472,8 @@
     },
     {
       "file": "docs/development/production-route-parity.md",
-      "sha256": "91daaa8367b2a6bc74b58a02f759d9eceffab2d3c76913281298bbbe3383e75c",
-      "bytes": 9760,
+      "sha256": "7047afbe307f6c9a3347ca934145e46e6728c568c06c854a255e4da39ab3a6b4",
+      "bytes": 10060,
       "headings": [
         "# Production route parity (verified inventory, 2026-10-19)",
         "## How the two entry points relate",
@@ -5597,8 +5597,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "d6668a40b2cc3f24adbb8a0eda7a78010ad27a45e4ca91f28f7e67dc3be4f9fd",
-      "bytes": 11603,
+      "sha256": "4a967f667aa35a9311263aba513a8ceb8604069e804029215422c853d7fd7d9f",
+      "bytes": 11652,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "a94aecb2b430d3afe5989543f6576eaf796ccd65d6b5667370739bc545fd0e09",
-      "bytes": 6257,
+      "sha256": "bdcc0cf364e460f720de4bcc947b6eebfa43f4443a1267c3f623dfb3ca80990d",
+      "bytes": 6805,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -5626,8 +5626,8 @@
     },
     {
       "file": "docs/development/unreachable-code-inventory.md",
-      "sha256": "2f2bbd526f645d912ef68d48111cddc29bd8944ea6d9862684d9fe8326ce9dfc",
-      "bytes": 19252,
+      "sha256": "db7c4522d9c16f27b56f38dc7c6d7eb5b99c1b6421238f4cda9d07a204a729a4",
+      "bytes": 20071,
       "headings": [
         "# Unreachable frontend code inventory (read-only, 2026-10-20)",
         "## Method",

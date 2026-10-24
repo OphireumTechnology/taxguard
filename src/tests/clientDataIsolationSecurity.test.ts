@@ -404,7 +404,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     expect(wrongTenantAdmin.res.statusCode).toBe(403);
   });
 
-  it('SEC-CLIENT-021: a client job listing without clientId is scoped to its authenticated client', async () => {
+  it('SEC-CLIENT-021: production refuses a client job listing from the process-local queue without returning any job', async () => {
     const a = await login('valid_sb_token');
     const b = await login('valid_sb_token_b');
     await globalDurableJobQueueService.enqueue({
@@ -420,13 +420,14 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
       payload: { marker: 'client-b-job' }
     });
 
+    // The job queue is process-local: production refuses it once the client context is resolved. The scoping of the
+    // listing itself is covered outside production in practiceOperationsProductionDurability.test.
     const response = await request('/api/operations/jobs', a.body.token);
-    expect(response.status).toBe(200);
-    const result = await response.json();
-    expect(result.total).toBe(1);
-    expect(result.jobs.map((job: any) => job.clientId)).toEqual([a.body.clientId]);
-    expect(JSON.stringify(result)).toContain('client-a-job');
-    expect(JSON.stringify(result)).not.toContain('client-b-job');
+    expect(response.status).toBe(503);
+    const text = await response.text();
+    expect(JSON.parse(text)).toMatchObject({ code: 'DURABLE_OPERATIONS_STORE_REQUIRED' });
+    expect(text).not.toContain('client-a-job');
+    expect(text).not.toContain('client-b-job');
   });
 
   it('SEC-CLIENT-022: a client cannot expand a job listing with a manipulated clientId', async () => {
@@ -450,7 +451,7 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     expect(await response.text()).not.toContain('client-b-job');
   });
 
-  it('SEC-CLIENT-022a: staff cancellation only returns jobs for an active assignment', async () => {
+  it('SEC-CLIENT-022a: production refuses staff job cancellation against the process-local queue, assigned or not', async () => {
     const a = await login('valid_sb_token');
     const assignedJob = await globalDurableJobQueueService.enqueue({
       tenantId: 'tenantA',
@@ -463,8 +464,11 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     const allowed = await request(`/api/operations/jobs/${assignedJob.id}/cancel`, assignedStaff.body.token, {
       method: 'POST'
     });
-    expect(allowed.status).toBe(200);
-    expect(JSON.stringify(await allowed.json())).toContain('assigned-job');
+    // Production refuses the process-local queue; assignment scoping is covered outside production in
+    // practiceOperationsProductionDurability.test.
+    expect(allowed.status).toBe(503);
+    expect(await allowed.text()).not.toContain('assigned-job');
+    expect(globalDurableJobQueueService.getJob(assignedJob.id, 'tenantA')?.status).toBe(assignedJob.status);
 
     const unassignedJob = await globalDurableJobQueueService.enqueue({
       tenantId: 'tenantA',
@@ -478,11 +482,12 @@ describe('SEC-CLIENT-001 through SEC-CLIENT-020: client-data isolation', () => {
     const denied = await request(`/api/operations/jobs/${unassignedJob.id}/cancel`, unassignedStaff.body.token, {
       method: 'POST'
     });
-    expect(denied.status).toBe(403);
+    expect(denied.status).toBe(503);
     expect(await denied.text()).not.toContain('unassigned-job');
+    expect(globalDurableJobQueueService.getJob(unassignedJob.id, 'tenantA')?.status).toBe(unassignedJob.status);
   });
 
-  it('SEC-CLIENT-023: an accountant needs an active assignment for each Stage 02 review client', async () => {
+  it('SEC-CLIENT-023: an accountant needs an active assignment for each Stage 02 review client, then production refuses the process-local store', async () => {
     const a = await login('valid_sb_token');
     const b = await login('valid_sb_token_b');
     seedReviewItem('review-a', a.body.clientId);

@@ -141,6 +141,12 @@ practiceOperationsRouter.get('/manager-dashboard', authenticateToken, async(req:
 // ==============================================================================
 
 practiceOperationsRouter.post('/payments/webhook', async (req, res) => {
+  // No payment provider is commissioned, and the billing service behind this handler is in memory. A production
+  // event is refused rather than applied to state a restart would lose.
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(503).json({ error: 'PAYMENT_PROVIDER_NOT_COMMISSIONED', code: 'PAYMENT_PROVIDER_NOT_COMMISSIONED' });
+  }
   try {
     const signature = req.headers['stripe-signature'] as string;
     const secret = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -165,6 +171,14 @@ practiceOperationsRouter.use((req: AuthenticatedRequest, res: Response, next) =>
   if (!context) return;
   req.authorizedClientContext = context;
   next();
+});
+// Every service below (jobs, tasks, assignments, deadlines, communications, requests, notifications, billing,
+// search, analytics, retention) is an in-memory map. After authentication and the client-context check,
+// production refuses rather than serve or acknowledge state that a restart or a second instance would lose.
+practiceOperationsRouter.use((_req: AuthenticatedRequest, res: Response, next) => {
+  if (process.env.NODE_ENV !== 'production') return next();
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(503).json({ error: 'DURABLE_OPERATIONS_STORE_REQUIRED', code: 'DURABLE_OPERATIONS_STORE_REQUIRED' });
 });
 
 // ==============================================================================

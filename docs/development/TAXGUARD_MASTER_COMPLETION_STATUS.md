@@ -24,6 +24,7 @@ status: **staging NO-GO, production NO-GO.**
 | Rule-set authoring | `bc3ad5d` | run 39300321185 cancelled (superseded); verified by run 39300732135 on `84302a6` | `taxRulesPanel.test` (8), default browser 116/116 |
 | Unreachable code inventory (read-only, nothing deleted) | `84302a6` | run 39300732135 success | `unreachable-code-inventory.md`: 274 modules |
 | Production refusal of the process-local case authority, with Codex's reviewer patches (Block 39) and the removal proposal | `1a30705` | run 40094395819 success | `caseAuthorityProductionDurability.test` (23, 20 failing first); reviewer refusals (3 failing first); default browser 116/116, provider 42/42 |
+| Production refusal of the Stage 02 accountant document-review store (Block 40) | `406978b` | run 40098439008 success | `stageTwoDocumentReviewProductionDurability.test` (8, 5 failing first); SEC-CLIENT-023 changed deliberately |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -49,11 +50,15 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Stage 02 accountant document-review refusal (Block 40).** The review queue, item, action and verify-evidence
-  routes read an in-memory map that nothing in production populates. They now answer 503
-  `DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED` after the role check; the queue answers it after the assignment
-  check too. `stageTwoDocumentReviewProductionDurability.test` (8): 5 failed first. SEC-CLIENT-023's production
-  expectation was changed deliberately from own-client 200 to the refusal; its assignment 403 is kept.
+- **Practice-operations production refusal (Block 41).** Every `/api/operations` service is in memory. In
+  production all routes now answer 503 `DURABLE_OPERATIONS_STORE_REQUIRED` after authentication and the client
+  check; the payment webhook answers `PAYMENT_PROVIDER_NOT_COMMISSIONED`. `practiceOperationsProductionDurability.test`
+  (37): 35 failed first. SEC-CLIENT-021 and 022a changed deliberately from 200 to the refusal, and their scoping moved
+  to development cases.
+  - **Audit of the remaining routers.** The bookkeeping fallthrough is already refused (regression guard added).
+    Profile, accountant and tax forms were checked, and nothing was changed.
+  - **Recorded for provider commissioning.** The payment webhook signature check (raw body, constant time,
+    timestamp bound).
 
 ### Blocked (recorded, not worked around)
 
@@ -76,7 +81,7 @@ Audits completed in this cycle (documents):
 
 ### Next priorities
 
-1. Remaining production routers: per-route review of `profile`, `bookkeeping` and `operations` fallbacks (the first pass found explicit refusals).
+1. Durable providers for the refused production surfaces (case authority, Stage 02 document review, practice operations): `CONTROL-DURABILITY` cutover, after the owner approves the proposals.
 2. Engagement-linked messaging, appointment and legal records (no general-record change without the policy).
 3. A re-run of the function inventory for any remaining client-level reads.
 4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`).

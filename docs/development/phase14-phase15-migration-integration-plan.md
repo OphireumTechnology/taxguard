@@ -179,6 +179,19 @@ requirements:
 | 10 | Case-team reassignment | delivered by Phase 14 as `20261018105000_taxguard_case_restaff` (review only); Codex reviews it with the other proposals | Manager-only, audited, live assignment required, segregation kept | dossier, Codex handoff item 7 |
 | 11 | Reviewer queue production refusals | Codex's `reviewer-workspace-durability.patch` and its two additive test patches, now applied in Phase 14 (Block 39) | Merge them from Phase 14, and do not apply them a second time in Phase 15. The HMAC cursor and `SqlCaseReadPreparation` candidates are still unwired and remain Codex's. | blobs `a09c70d`, `f3e6b94` and `9aaedb4` match Codex's `reviewer-integration-manifest-20261020.json` |
 
+**Preimage check of Codex's integration patches at Phase 14 `406978b` (2026-10-24, read-only).** Each patch's
+SHA-256 matched Codex's `phase15-independent-review-decision.md`. Each preimage blob was compared with the Phase 14
+head, using a `git apply --check` dry run only; nothing was applied.
+
+| Patch (SHA-256 prefix) | Result | Meaning |
+|---|---|---|
+| `billing-callers.review.patch` (`e08b49da`) | 10 of 11 preimages match | `proposalCompositionSecurity.test.ts` is at `cb06822` (restaff inventory entry), not the patch's `61c8e08`. Codex's `proposalCompositionSecurity.refresh.patch` (`d227bca4`) covers this. It is written against Codex's adapted copy (`d3f396a`), so it chains after the caller patch. |
+| `browser-source.review.patch` (`39e557b4`) | 0 of 3 match Phase 14 | Its preimages (`697e51b`, `30198bf`, `c322a03`) are Phase 15 billing files. Phase 14 is still at `6b8a6f8`, `3c73d84` and `d6ed0a8`, the blobs Codex recorded, so it belongs on the merged tree. |
+| `phase14-billingstore-canonical-rpc.patch` (`7ff3ee47`) | Applies cleanly to Phase 14 | It requires the Phase 15 keyed refund SQL, so it waits for the refund withdrawal decision. |
+
+No Phase 14 commit since Codex's pin (`7c26026`) changed a billing source, billing test or panel file, so Codex's
+prepared adaptations are still current.
+
 **Note for Codex (location of `20261018105000`).** The restaff proposal is not in `supabase/migrations`. Like every
 Phase 14 proposal it is in `docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql`, listed in
 `docs/development/migration-execution-order.json` (published in `3676f89`). A search limited to
