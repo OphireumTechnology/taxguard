@@ -47,5 +47,7 @@ export function createCasesRouter(deps: { store?: () => CaseStore; authenticate?
   router.post('/:caseId/return', run(req => store().returnTo(t(req), req.params.caseId, u(req), int(req.body?.toStage) as number, int(req.body?.version) as number, req.body?.reason)));
   router.post('/:caseId/hold', run(req => store().setHold(t(req), req.params.caseId, u(req), req.body?.hold === true, int(req.body?.version) as number, req.body?.reason)));
   router.post('/:caseId/notes', run(req => store().addNote(t(req), req.params.caseId, u(req), req.body?.body), 201));
+  router.post('/:caseId/team', run(req => store().restaff(t(req), req.params.caseId, u(req), { role: String(req.body?.role ?? ''), userId: String(req.body?.userId ?? ''),
+    version: int(req.body?.version) as number, reason: String(req.body?.reason ?? '') })));
   return router;
 }

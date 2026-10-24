@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { billingApi, billingMessage, newBillingKey, type AgingRow, type Invoice } from '../../services/billingApiService';
+import { billingApi, billingMessage, ISSUED_INVOICE_STATUSES, newBillingKey, saveBlob, type AgingRow, type Invoice } from '../../services/billingApiService';
 
 /** Staff billing: AR aging, client invoices, draft / submit / approve / return / void, payments and credits. */
 export function BillingWorkspacePanel() {
@@ -11,9 +11,20 @@ export function BillingWorkspacePanel() {
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
   const [pay, setPay] = useState({ amount: '', method: 'CHECK' });
+  // One idempotency key per refund operation (created when the form opens, reused for retries of that
+  // form). A refused attempt records nothing, so a corrected resubmission is accepted; if a timed-out
+  // attempt was in fact recorded, a changed resubmission is refused as key reuse instead of duplicating.
+  const [refund, setRefund] = useState<{ paymentId: string; amount: string; reason: string; key: string } | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const keys = useRef<Record<string, string>>({});
+  // Focus returns to the payment's "Record refund" trigger when its form closes (cancel or success).
+  const refundReturnFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (refund || !refundReturnFocus.current) return;
+    const id = refundReturnFocus.current; refundReturnFocus.current = null;
+    document.querySelector<HTMLButtonElement>(`button[data-refund-trigger="${CSS.escape(id)}"]`)?.focus();
+  }, [refund]);
   const keyFor = (k: string) => (keys.current[k] ??= newBillingKey());
   const loadAging = useCallback(() => {
     billingApi.aging().then(r => setAging({ status: 'ready', rows: r.clients, pending: r.pendingApproval })).catch(e => setAging({ status: 'error', rows: [], pending: 0, message: billingMessage(e) }));
@@ -21,11 +32,11 @@ export function BillingWorkspacePanel() {
   }, []);
   useEffect(() => { loadAging(); }, [loadAging]);
   const loadInvoices = useCallback((id: string) => { if (!id) return; billingApi.invoices(id).then(r => setInvoices(r.items)).catch(e => { setInvoices([]); setNotice({ error: true, text: billingMessage(e) }); }); }, []);
-  const run = async (k: string, op: () => Promise<unknown>, text: string) => {
-    if (busy) return;
+  const run = async (k: string, op: () => Promise<unknown>, text: string): Promise<boolean> => {
+    if (busy) return false;
     setBusy(true); setNotice(null);
-    try { await op(); delete keys.current[k]; setNotice({ error: false, text }); loadInvoices(clientId); loadAging(); }
-    catch (e) { setNotice({ error: true, text: billingMessage(e) }); }
+    try { await op(); delete keys.current[k]; setNotice({ error: false, text }); loadInvoices(clientId); loadAging(); return true; }
+    catch (e) { setNotice({ error: true, text: billingMessage(e) }); return false; }
     finally { setBusy(false); }
   };
   return <section aria-labelledby="billing-heading" className="tg-manager-card">
@@ -50,6 +61,8 @@ export function BillingWorkspacePanel() {
       {invoices.map(inv => <article key={inv.invoiceId} className="tg-manager-card">
         <h4>{inv.invoiceNumber ?? 'Draft'} · {inv.status} · total ${inv.total} · balance ${inv.balanceDue} · due {inv.dueDate}</h4>
         {inv.reviewNote && <p>Reviewer note: {inv.reviewNote}</p>}
+        {ISSUED_INVOICE_STATUSES.includes(inv.status) && <p><button type="button" disabled={busy} aria-label={`Download client invoice document ${inv.invoiceNumber ?? inv.invoiceId} (PDF)`}
+          onClick={() => { billingApi.document(clientId, inv.invoiceId).then(blob => { saveBlob(blob, `invoice-${(inv.invoiceNumber ?? inv.invoiceId).replace(/[^A-Za-z0-9_-]/g, '_')}.pdf`); setNotice({ error: false, text: 'Client invoice document downloaded (client fields only). Nothing was sent to the client.' }); }).catch(e => setNotice({ error: true, text: billingMessage(e) })); }}>Download client invoice (PDF)</button></p>}
         <ul>{inv.lines.map(l => <li key={l.lineNo}>{l.description} — {l.quantity} × ${l.unitRate} = ${l.amount}{l.rateOverrideReason ? ` (override: ${l.rateOverrideReason})` : ''}</li>)}</ul>
         {inv.status === 'DRAFT' && <form onSubmit={e => { e.preventDefault(); void run('line', () => billingApi.addLine(clientId, inv.invoiceId, { serviceCode: line.serviceCode, quantity: line.quantity,
             ...(line.unitRate ? { unitRate: line.unitRate, overrideReason: line.overrideReason } : {}) }), 'Line added.'); }}>
@@ -76,6 +89,21 @@ export function BillingWorkspacePanel() {
         {inv.credits.filter(cr => cr.status === 'REQUESTED').map(cr => <p key={cr.creditId}>Credit ${cr.amount} requested by {cr.requestedBy}: {cr.reason}
           <button type="button" disabled={busy} onClick={() => run('credit-d', () => billingApi.decideCredit(clientId, cr.creditId, true), 'Credit applied.')}>Apply</button>
           <button type="button" disabled={busy} onClick={() => run('credit-d', () => billingApi.decideCredit(clientId, cr.creditId, false), 'Credit rejected.')}>Reject</button></p>)}
+        {inv.payments.length > 0 && <ul aria-label={`Payments for ${inv.invoiceNumber ?? inv.invoiceId}`}>{inv.payments.map(p => {
+          const refundable = (Math.round(Number(p.amount) * 100) - Math.round(Number(p.refundedAmount) * 100)) / 100;
+          const open = refund?.paymentId === p.paymentId;
+          return <li key={p.paymentId}>Payment ${p.amount} ({p.method.replaceAll('_', ' ').toLowerCase()}, {p.status.toLowerCase()}){Number(p.refundedAmount) > 0 && <> · refunded ${p.refundedAmount}</>}
+            {refundable > 0 && !open && <button type="button" disabled={busy} aria-label={`Record a refund for payment ${p.paymentId}`} data-refund-trigger={p.paymentId} onClick={() => setRefund({ paymentId: p.paymentId, amount: '', reason: '', key: newBillingKey() })}>Record refund</button>}
+            {open && <form aria-label={`Refund for payment ${p.paymentId}`} onSubmit={e => { e.preventDefault(); const r = refund!;
+              void run('refund', () => billingApi.recordRefund(clientId, r.paymentId, r.amount.trim(), r.reason.trim(), r.key),
+                'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.').then(ok => { if (ok) { refundReturnFocus.current = r.paymentId; setRefund(null); } }); }}>
+              <p>Records money already returned to the client outside TaxGuard (up to ${refundable.toFixed(2)}). A practice manager is required; nothing is sent to a payment provider.</p>
+              <label>Refund amount<input autoFocus inputMode="decimal" required value={refund!.amount} onChange={e => setRefund({ ...refund!, amount: e.target.value })} /></label>
+              <label>Refund reason (recorded)<input required minLength={5} maxLength={500} value={refund!.reason} onChange={e => setRefund({ ...refund!, reason: e.target.value })} /></label>
+              <button disabled={busy || !/^\d{1,12}(\.\d{1,2})?$/.test(refund!.amount.trim()) || refund!.reason.trim().length < 5}>Record refund</button>
+              <button type="button" disabled={busy} onClick={() => { refundReturnFocus.current = refund!.paymentId; setRefund(null); }}>Cancel</button>
+            </form>}</li>;
+        })}</ul>}
       </article>)}
     </>}
   </section>;

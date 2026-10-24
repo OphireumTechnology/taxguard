@@ -250,6 +250,8 @@ export const api = {
 
     supabaseSession: async (payload: {
       accessToken: string;
+      /** 'staff' when sent from the staff sign-in page: the server then never creates a client. */
+      portal?: 'staff' | 'client';
       name?: string;
       phone?: string;
       companyName?: string;

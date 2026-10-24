@@ -27,6 +27,26 @@ describe('practice service client', () => {
     transport.mockImplementation(async () => { setStoredToken('b'); return new Response('{"items":[]}', { status: 200 }); });
     await expect(practiceService.listClients()).rejects.toMatchObject({ code: 'SESSION_CHANGED' });
   });
+  it('adds tax years and deadlines and resolves deadlines with only the fields the server needs', async () => {
+    await practiceService.addTaxYear('client/1', 'eng/1', 2026);
+    expect(transport.mock.calls[0][0]).toBe('http://127.0.0.1:3000/api/practice/clients/client%2F1/engagements/eng%2F1/tax-years');
+    expect(JSON.parse(transport.mock.calls[0][1].body)).toEqual({ taxYear: 2026 });
+    await practiceService.addDeadline('client/1', { title: 'Synthetic filing deadline', category: 'filing', dueDate: '2026-04-15T00:00:00.000Z', authorityType: 'STATUTORY',
+      sourceCitation: 'Synthetic citation 1', taxYear: 2025 }, 'pm-ddl-1');
+    expect(transport.mock.calls[1][0]).toBe('http://127.0.0.1:3000/api/practice/clients/client%2F1/deadlines');
+    expect(transport.mock.calls[1][1].headers['Idempotency-Key']).toBe('pm-ddl-1');
+    await practiceService.resolveDeadline('client/1', 'ddl/1', 'MET');
+    expect(transport.mock.calls[2][0]).toBe('http://127.0.0.1:3000/api/practice/clients/client%2F1/deadlines/ddl%2F1/resolve');
+    expect(JSON.parse(transport.mock.calls[2][1].body)).toEqual({ status: 'MET' });
+    await practiceService.resolveDeadline('client/1', 'ddl/1', 'WAIVED', 'Synthetic waiver reason');
+    expect(JSON.parse(transport.mock.calls[3][1].body)).toEqual({ status: 'WAIVED', reason: 'Synthetic waiver reason' });
+  });
+  it('explains tax-year and deadline refusals', () => {
+    expect(practiceMessage(new PracticeRequestError(409, 'TAX_YEAR_EXISTS'))).toMatch(/already part of the engagement/);
+    expect(practiceMessage(new PracticeRequestError(403, 'DEADLINE_WAIVER_NOT_AUTHORIZED'))).toMatch(/statutory deadlines cannot be waived/);
+    expect(practiceMessage(new PracticeRequestError(409, 'DEADLINE_ALREADY_RESOLVED'))).toMatch(/already met or waived/);
+    expect(practiceMessage(new PracticeRequestError(400, 'PRACTICE_INPUT_INVALID'))).toMatch(/source citation/);
+  });
   it('maps refusal codes to guidance and keeps unknown failures generic', () => {
     expect(practiceMessage(new PracticeRequestError(409, 'ASSIGNMENT_SEGREGATION_OF_DUTIES'))).toMatch(/preparer and reviewer/);
     expect(practiceMessage(new PracticeRequestError(500, 'SOMETHING_INTERNAL'))).toBe('The practice service did not confirm this action. Refresh and try again.');

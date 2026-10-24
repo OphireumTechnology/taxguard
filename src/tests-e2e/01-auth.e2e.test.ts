@@ -66,6 +66,22 @@ describe('staff sign-in and MFA', () => {
   });
 });
 
+describe('sign-out destination', () => {
+  // Every account that signs in at the staff portal returns to the staff sign-in page, not the client one.
+  for (const id of ['e2e-mgr', 'e2e-bk', 'e2e-acct', 'e2e-admin']) {
+    it(`returns ${id} to the staff sign-in page and revokes the session`, async () => {
+      const s = await staffLogin(id);
+      const token = await storedToken(s);
+      await s.page.getByRole('button', { name: /^Sign Out$/i }).first().click();
+      await s.page.waitForURL(url => url.pathname.endsWith('/login'));
+      expect(new URL(s.page.url()).pathname).toBe('/staff/login');
+      expect(await storedToken(s)).toBeNull();
+      expect((await api(token!, 'GET', '/api/auth/me')).status).toBe(401);
+      await s.context.close();
+    });
+  }
+});
+
 describe('session boundaries', () => {
   it('keeps anonymous visitors out of the staff workspace and every durable API', async () => {
     const s = await newSession();

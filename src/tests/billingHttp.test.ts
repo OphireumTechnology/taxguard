@@ -21,7 +21,7 @@ const call = (method: 'GET' | 'POST', path: string, body?: unknown, key: string 
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(250000|270000|280000)_/);
+  await applyProposals(fixture.pg, /^20261012(250000|270000|280000)_|^20261018010000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${T}','${C}','bl-client','Synthetic Billing Client'),('${T}','${OTHER}','bl-other','Other Synthetic');
     INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES('${T}','bl-mgr','practice_manager','active',NULL),('${T}','bl-mgr2','admin','active',NULL),
       ('${T}','bl-acct','accountant','active',NULL),('${T}','bl-outsider','accountant','active',NULL),('${T}','bl-client','client','active','${C}'),('${T}','bl-other','client','active','${OTHER}');`);
@@ -133,8 +133,20 @@ describe('billing', () => {
     expect((await call('POST', `/clients/${C}/credits/${own.body.creditId}/apply`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
     const payments = applied.body.payments;
     expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '200.00', reason: 'Too much' })).body.code).toBe('REFUND_EXCEEDS_PAYMENT');
-    const refunded = await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' });
-    expect(refunded.body).toMatchObject({ amountPaid: '124.90', balanceDue: '450.10', status: 'PARTIALLY_PAID' });
+    const refunded = await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' }, 'bl-refund-key-1');
+    expect(refunded.body).toMatchObject({ amountPaid: '124.90', balanceDue: '450.10', status: 'PARTIALLY_PAID', replayed: false });
+    // A retried request with the same key replays the recorded refund instead of recording it twice.
+    const replay = await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' }, 'bl-refund-key-1');
+    expect(replay.body).toMatchObject({ amountPaid: '124.90', balanceDue: '450.10', replayed: true, refundId: refunded.body.refundId });
+    expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.20', reason: 'Synthetic rounding refund' }, 'bl-refund-key-1')).body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+    expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Synthetic rounding refund' }, null)).body.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
+    const rows = (await fixture.pg.query<{ amount: string; reason: string; recorded_by: string }>("SELECT amount, reason, recorded_by FROM taxguard_invoice_refunds WHERE client_id = $1", [C])).rows;
+    expect(rows).toEqual([{ amount: '0.10', reason: 'Synthetic rounding refund', recorded_by: 'bl-mgr' }]);
+    await expect(fixture.pg.query('UPDATE taxguard_invoice_refunds SET amount = 0.05')).rejects.toThrow('BILLING_REFUND_IMMUTABLE');
+    await expect(fixture.pg.query('DELETE FROM taxguard_invoice_refunds')).rejects.toThrow('BILLING_REFUND_IMMUTABLE');
+    as('client');
+    expect((await call('POST', `/clients/${C}/payments/${payments[0].paymentId}/refund`, { amount: '0.10', reason: 'Client attempt' })).status).toBeGreaterThanOrEqual(400);
+    as('mgr');
     as('mgr2');
     expect((await call('POST', `/clients/${C}/invoices/${inv}/void`, { rowVersion: refunded.body.rowVersion, note: 'Cannot void with payments' })).body.code).toBe('INVOICE_STATUS_TRANSITION_INVALID');
   });
@@ -206,5 +218,40 @@ describe('billing', () => {
     expect(() => money('1.005')).toThrow(); expect(() => money(-1)).toThrow(); expect(() => money('1e3')).toThrow();
     const env = process.env.NODE_ENV; process.env.NODE_ENV = 'production';
     try { expect(() => new SandboxPaymentProvider()).toThrow('PAYMENT_PROVIDER_NOT_COMMISSIONED'); } finally { process.env.NODE_ENV = env; }
+  });
+  it('produces an issued-invoice PDF from client-visible fields only, for authorized callers only', async () => {
+    const pdf = (path: string) => fetch(origin + '/billing' + path).then(async r => ({ status: r.status, type: r.headers.get('content-type'), disposition: r.headers.get('content-disposition'),
+      bytes: Buffer.from(await r.arrayBuffer()) }));
+    as('client');
+    const r = await pdf(`/clients/${C}/invoices/${inv}/document`);
+    expect(r.status).toBe(200); expect(r.type).toBe('application/pdf');
+    expect(r.disposition).toMatch(/^attachment; filename="invoice-INV-\d{4}-000001\.pdf"$/);
+    const text = r.bytes.toString('latin1');
+    expect(text.startsWith('%PDF-1.4\n')).toBe(true); expect(text.trimEnd().endsWith('%%EOF')).toBe(true);
+    // Every cross-reference offset points at the start of its object.
+    const xref = Number(/startxref\n(\d+)\n/.exec(text)![1]);
+    expect(text.slice(xref, xref + 4)).toBe('xref');
+    const entries = [...text.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map(m => Number(m[1]));
+    entries.forEach((offset, i) => expect(text.slice(offset, offset + `${i + 1} 0 obj`.length)).toBe(`${i + 1} 0 obj`));
+    const issued = (await call('GET', `/clients/${C}/invoices`, undefined, null)).body.items.find((i: any) => i.invoiceId === inv);
+    expect(text).toContain(issued.invoiceNumber);
+    for (const amount of [issued.total, issued.balanceDue, issued.amountPaid]) expect(text).toContain(amount);
+    expect(text).toContain('This document is not a receipt. It has not been e-mailed or otherwise delivered by TaxGuard.');
+    // Staff receive the same client-facing document: no preparer, approver or internal review note.
+    as('mgr');
+    const staff = (await pdf(`/clients/${C}/invoices/${inv}/document`)).bytes.toString('latin1');
+    for (const secret of ['bl-acct', 'bl-mgr', 'Add the engagement reference', 'Initial staffing']) expect(staff).not.toContain(secret);
+    // Not issued: refused. Unknown or another client's invoice: not found, without a document.
+    const draft = (await call('POST', `/clients/${C}/invoices`, { dueDate: '2026-06-30' })).body.invoiceId;
+    const refused = await pdf(`/clients/${C}/invoices/${draft}/document`);
+    expect(refused.status).toBe(409); expect(JSON.parse(refused.bytes.toString())).toEqual({ code: 'INVOICE_DOCUMENT_NOT_ISSUED' });
+    expect((await pdf(`/clients/${C}/invoices/not-an-invoice/document`)).status).toBe(404);
+    expect((await pdf(`/clients/${C}/invoices/${encodeURIComponent('../x')}/document`)).status).toBe(404);
+    as('other');
+    const foreign = await pdf(`/clients/${C}/invoices/${inv}/document`);
+    expect(foreign.status).toBe(404); expect(foreign.type).not.toBe('application/pdf');
+    expect((await pdf(`/clients/${OTHER}/invoices/${inv}/document`)).status).toBe(404);
+    as('mgr', 'tenantOther');
+    expect((await pdf(`/clients/${C}/invoices/${inv}/document`)).type).not.toBe('application/pdf');
   });
 });

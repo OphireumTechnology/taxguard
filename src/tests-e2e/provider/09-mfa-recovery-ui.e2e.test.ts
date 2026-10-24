@@ -89,8 +89,16 @@ describe('role restrictions and tenant isolation in the browser', () => {
       expect(s.page.url()).toContain('/staff/login');
       expect(await storedToken(s)).toBeNull();
       await s.context.close();
-      expect((await durableSession(await providerToken(uid))).status).toBeGreaterThanOrEqual(400);
+      // A staff sign-in never self-registers: no session, and no client record is created for either account.
+      const refused = await durableSession(await providerToken(uid), 'staff');
+      expect(refused.status).toBeGreaterThanOrEqual(400);
+      expect(refused.body?.token).toBeUndefined();
     }
+    expect((await durableSession(await providerToken(D.nonMember), 'staff')).body.code).toBe('STAFF_MEMBERSHIP_REQUIRED');
+    const admin = await durableSession(await providerToken(D.adminA));
+    expect(admin.status, admin.body?.code).toBe(200);
+    for (const uid of [D.foreignAdmin, D.nonMember])
+      expect((await rawApi(admin.body.token, 'GET', `/api/practice/clients?q=${encodeURIComponent(email(uid))}`)).body.items).toEqual([]);
   });
 });
 

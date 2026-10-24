@@ -41,6 +41,8 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
     ('${E2E.tenant}','${E2E.unassignedClient}','e2e-nobody','Synthetic Unassigned Client'),('${E2E.other}','${E2E.otherTenantClient}','e2e-foreign-owner','Synthetic Foreign Client');
   INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) VALUES ${members};
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT m.tenant_id,m.uid,jsonb_build_object('id',m.uid,'tenantId',m.tenant_id,'role',m.role,'status',m.status,'email',n.email,'name',n.name)
+    -- Seeded clients stand for clients whose Stage 01 onboarding was already completed (Stage 02 suites).
+    || CASE WHEN m.role = 'client' THEN jsonb_build_object('onboardingStatus','COMPLETED','onboardingCompletedAt','2026-01-02T00:00:00.000000Z') ELSE '{}'::jsonb END
     FROM taxguard_members m JOIN (VALUES ${identityNames}) AS n(uid,email,name) ON n.uid = m.uid WHERE m.uid LIKE 'e2e-%';
   -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
   -- created by the tests through /e2e/provider-user; they have no local password.
@@ -79,6 +81,34 @@ const serviceKey = 'e2e-synthetic-service-key-' + Math.random().toString(36).sli
 // Provider-mode profile: the browser gets its own (public, per-run) key that only opens the
 // browser-facing auth endpoints; database, storage, admin and control paths need the service key.
 const PROVIDER_PROFILE = process.env.E2E_PROFILE === 'provider';
+if (PROVIDER_PROFILE) {
+  // Journey N (provider suite 13): one synthetic case assigned to the durable accountant, so governed AI
+  // evaluation reaches the agent and commissioning checks instead of stopping at case access. No agent,
+  // model, prompt, grant or approval policy is created: every agent stays DRAFT and uncommissioned.
+  await q(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name,status) VALUES('${E2E.tenant}','E2EAIC1','e2e-ai-client-owner','Synthetic AI Journey Client','active');
+    INSERT INTO taxguard_engagements(tenant_id,client_id,engagement_id,type,status) VALUES('${E2E.tenant}','E2EAIC1','e2e-ai-engagement','tax_preparation','active');
+    INSERT INTO taxguard_tax_years(tenant_id,client_id,engagement_id,tax_year,status) VALUES('${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,'active');
+    INSERT INTO taxguard_cases(case_id,tenant_id,client_id,engagement_id,tax_year,active_stage,client_uid,preparer_uid,reviewer_uid,created_by,updated_by)
+      VALUES('e2e-ai-case','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,3,'e2e-ai-client-owner','d0000000-0000-4000-8000-000000000002','e2e-ai-reviewer','e2e-seed','e2e-seed');
+    INSERT INTO taxguard_case_assignments(case_id,tenant_id,uid,role) VALUES('e2e-ai-case','${E2E.tenant}','d0000000-0000-4000-8000-000000000002','preparer');
+    INSERT INTO taxguard_staff_assignments(id,tenant_id,client_id,engagement_id,tax_year,role,user_id,assigned_by,status,effective_from)
+      VALUES('e2e-ai-asg-1','${E2E.tenant}','E2EAIC1','e2e-ai-engagement',2025,'preparer','d0000000-0000-4000-8000-000000000002','e2e-seed','ACTIVE',now()-interval '1 day');
+    -- Journey B (provider suite 14): a durable practice manager used by no other suite. The new client
+    -- itself is NOT seeded; it is provisioned by the server on its first verified sign-in.
+    INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000d1','practice_manager','active'),
+      -- Journey B case continuity (suite 14): a durable preparer and an independent durable reviewer.
+      ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a6','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a5','reviewer','active'),
+      -- Journey B stages 04-08: a durable bookkeeper whose entries await the independent reviewer.
+      ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a7','bookkeeper','active'),
+      -- Journey B case-team restaffing: a second independent durable reviewer who takes over the case.
+      ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000a8','reviewer','active');
+    INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,
+      'email',uid||'@example.test','name','Synthetic '||role,'mfaEnabled',true,'isVerified',true) FROM taxguard_members
+      WHERE uid IN ('d0000000-0000-4000-8000-0000000000a6','d0000000-0000-4000-8000-0000000000a5','d0000000-0000-4000-8000-0000000000a7','d0000000-0000-4000-8000-0000000000a8');
+    INSERT INTO taxguard_identities(tenant_id,uid,user_data) VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000d1',jsonb_build_object('id','d0000000-0000-4000-8000-0000000000d1',
+      'tenantId','${E2E.tenant}','role','practice_manager','status','active','email','d0000000-0000-4000-8000-0000000000d1@example.test','name','Synthetic Durable Manager',
+      'mfaEnabled',true,'isVerified',true));`);
+}
 const anonKey = 'e2e-synthetic-anon-key-' + Math.random().toString(36).slice(2);
 const BROWSER_AUTH = /^\/auth\/v1\/(token|logout|user|factors(\/[0-9a-f-]{36}(\/(challenge|verify))?)?)$/;
 const objects = new Map<string, Buffer>();
@@ -124,6 +154,14 @@ const shim = http.createServer((req, res) => {
       objects.set(id, raw);
       return send(200, { Key: id, Id: id });
     }
+    // Journey B (provider suite 14): records a SYNTHETIC consent version as the database owner, the only way
+    // a version can exist (no application role may write it). Test wording only; never real consent text.
+    if (PROVIDER_PROFILE && req.method === 'POST' && path === '/e2e/synthetic-consent-version') {
+      await database.pool.query(`INSERT INTO taxguard_onb_consent_versions(tenant_id,version,consent_text,approved_by,approved_at,status)
+        VALUES($1,'SYNTHETIC-E2E-1',$2,'Synthetic E2E fixture (not approved wording)',now(),'APPROVED') ON CONFLICT DO NOTHING`,
+        [E2E.tenant, 'SYNTHETIC TEST CONSENT. This placeholder exists only in disposable end-to-end tests and is not approved IRC section 7216 wording.']);
+      return send(200, { version: 'SYNTHETIC-E2E-1' });
+    }
     if (req.method === 'POST' && path === '/e2e/scan') {
       const b = json() || {};
       const document=(await database.pool.query('SELECT hash FROM taxguard_documents WHERE tenant_id=$1 AND client_id=$2 AND document_id=$3 AND version=$4',[b.tenant,b.client,b.documentId,b.version])).rows[0];
@@ -151,6 +189,12 @@ if (PROVIDER_PROFILE) {
   process.env.VITE_TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED = 'true';
   // Client authenticator enrolment (C2) is exercised only against the provider emulation.
   process.env.VITE_TAXGUARD_CLIENT_MFA_ENABLED = 'true';
+  // Governed AI evaluation (journey N) against this run's own loopback PostgreSQL: the same SQL store and
+  // durable-session verification as production, with no agent commissioned and no model configured.
+  const g = database.pool.options as { host?: string; port?: number; user?: string; password?: string; database?: string };
+  process.env.TAXGUARD_AI_GOVERNANCE_ENABLED = 'true';
+  process.env.TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL =
+    `postgres://${encodeURIComponent(g.user ?? '')}:${encodeURIComponent(g.password ?? '')}@127.0.0.1:${g.port}/${encodeURIComponent(g.database ?? '')}`;
 }
 process.env.TAXGUARD_MFA_RESET_PROVIDER = 'supabase-admin';
 if (process.env.E2E_CONTROL_FILE) fs.writeFileSync(process.env.E2E_CONTROL_FILE, JSON.stringify({ origin: process.env.SUPABASE_URL, key: serviceKey }), { mode: 0o600 });

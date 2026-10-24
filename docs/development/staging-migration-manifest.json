@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "fd6f832ebb3bbf8c642911e858f978c6836eaafd18ac4e307dadf6fdb146ae79",
+  "executionPlanSha256": "9d6c0d9bc5a2f2e6a78878a45b3e2f2a7a13f8e44d8a55692808a564ef6cffa4",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -3432,6 +3432,915 @@
         "-- in after the actor's status epoch and within taxguard_privileged_max_age_seconds()) in the SAME",
         "-- transaction as the change. taxguard_privileged_session takes FOR SHARE NOWAIT locks on the actor's",
         "-- member, identity and session rows, so a concurrent revocation or suspension either commits first"
+      ]
+    },
+    {
+      "order": 70,
+      "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+      "kind": "proposal",
+      "version": "20261018000000",
+      "sha256": "70cae21a66ee77bab855b9ae8d4c60b985f70f4785c267d875a4b9f6d7207776",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_evidence_checks"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_evidence_checks",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the proposal 031 definition."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_evidence_checks(public.taxguard_cases) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, stages 01-08 evidence). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 026 (case workflow) and 031 (document requests; current definition of",
+        "-- taxguard_case_evidence_checks).",
+        "--",
+        "-- Stage 03 (Validate) could pass while the latest version of a document for the engagement year",
+        "-- was REPLACEMENT_REQUESTED: the reviewer had asked the client for a replacement that had not",
+        "-- arrived, yet the case moved on to Record. Stage 03 now also requires that no document's latest",
+        "-- version (per tenant, client, document) is awaiting a requested replacement. Rejected documents are",
+        "-- final decisions and do not block. Stage 02 is unchanged. The checks stay server-derived; the",
+        "-- caller never supplies them. Everything else is identical to proposal 031.",
+        "-- Re-applying 031 after this proposal restores the previous definition: apply in name order.",
+        "-- Rollback (development): re-apply the proposal 031 definition."
+      ]
+    },
+    {
+      "order": 71,
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "kind": "proposal",
+      "version": "20261018010000",
+      "sha256": "1ab7f87708517728447be53daf6bcfe373704d63d86b70f20eea74deef6ff4ee",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_invoice_refunds",
+        "taxguard_invoice_refunds_immutable",
+        "taxguard_bill_refund_keyed"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the function and table; re-grant taxguard_bill_refund to service_role."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_invoice_refunds FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_invoice_refunds_immutable() FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund_keyed(text,text,text,text,numeric,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_refund_keyed(text,text,text,text,numeric,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, billing). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposal 028 (billing) and the core tenants table.",
+        "--",
+        "-- Refund recording (proposal 028, taxguard_bill_refund) had two defects:",
+        "--   * no idempotency: a retried or double-submitted request recorded the refund twice (bounded only",
+        "--     by the payment amount);",
+        "--   * the required reason was validated and then discarded: neither a record nor the audit kept it.",
+        "-- This proposal adds an immutable refund ledger (one row per recorded refund, with its reason, actor",
+        "-- and idempotency key) and taxguard_bill_refund_keyed, which replays the original result for the same",
+        "-- key and refuses a key reused for a different refund. The unkeyed function is revoked from",
+        "-- service_role so the keyed path is the only entry point. Refunds remain RECORDS of money returned",
+        "-- outside TaxGuard: no payment provider is called and nothing is claimed as processed."
+      ]
+    },
+    {
+      "order": 72,
+      "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
+      "kind": "proposal",
+      "version": "20261018020000",
+      "sha256": "13501313f224d840f8204357d47ff5a5a6ece78b27a02ad2dd48b334e7a551cd",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): none required; the row is the counter the function already expects."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 0,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, client identity). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires the core schema (taxguard_client_id_sequence, taxguard_clients, taxguard_members,",
+        "-- taxguard_identities) and proposal 20261012060000 (atomic client identity).",
+        "--",
+        "-- taxguard_provision_client_identity deliberately refuses to allocate a client ID when the 'primary'",
+        "-- counter row is missing (CLIENT_COUNTER_CORRUPT): recreating a lost counter inside the function could",
+        "-- restart numbering. But no migration ever created that row, so on a freshly migrated database the first",
+        "-- self-registered client was refused and the portal reported the identity store as unavailable",
+        "-- (found by the Phase 14 journey B browser test; unit fixtures inserted the row by hand).",
+        "-- This proposal creates the row once, at migration time, and only ever moves the counter forward to the",
+        "-- highest numeric client ID already issued (3-9 digits), so no existing ID is reissued. The function's",
+        "-- fail-closed behaviour for a row that later goes missing or corrupt is unchanged. Alphabetic-range IDs"
+      ]
+    },
+    {
+      "order": 73,
+      "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+      "kind": "proposal",
+      "version": "20261018030000",
+      "sha256": "03929e4ebdfa7240b67043eb0478d0678bd5339bf7c3fcc8423314d4351a9347",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_onb_consent_versions",
+        "taxguard_client_onboarding",
+        "taxguard_onb_client_owner",
+        "taxguard_onb_duplicates",
+        "taxguard_onb_identity_verified",
+        "taxguard_onb_current_consent",
+        "taxguard_onb_requirements",
+        "taxguard_onb_view",
+        "taxguard_onb_blank",
+        "taxguard_onb_get",
+        "taxguard_onb_text",
+        "taxguard_onb_save",
+        "taxguard_onb_submit",
+        "taxguard_onb_decide",
+        "taxguard_onb_queue",
+        "taxguard_onb_client_ready",
+        "taxguard_case_system_checks"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_system_checks",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): drop the taxguard_onb_* functions and both tables. Identities already marked"
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_onb_consent_versions FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON public.taxguard_client_onboarding FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated, service_role', fn);",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', fn);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', fn);"
+      ],
+      "securityDefinerDeclarations": 14,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, Stage 01 onboarding). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires the core schema, proposal 20261012060000 (atomic client identity), 20261012250000 (practice",
+        "-- management: actor, visibility and audit helpers), 20261012270000 (document vault), 20261012310000",
+        "-- (client notifications, whose kind list this widens) and 20261012260000 (case workflow, whose Stage 1 system",
+        "-- checks gain 'clientOnboardingCompleted').",
+        "--",
+        "-- Durable, server-authoritative Stage 01 onboarding for a client record:",
+        "--   * The client records identity and tax-profile facts (legal name, taxpayer type, address, representative",
+        "--     for entities) and the TIN TYPE plus its LAST FOUR digits only. A full TIN is refused; nothing here can",
+        "--     store one.",
+        "--   * Submission requires every field and an IRC section 7216 consent against an APPROVED consent version of",
+        "--     this tenant. Consent versions are rows in taxguard_onb_consent_versions, which no application role can"
+      ]
+    },
+    {
+      "order": 74,
+      "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
+      "kind": "proposal",
+      "version": "20261018040000",
+      "sha256": "6ae0c34b36a2efe17fed537b8026a1693cbf94a2251a1ce2cbc48d70a9ae0a84",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_transition"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_transition",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-run the function definition from proposal 028."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, billing audit completeness). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposal 028 (20261012280000, billing).",
+        "--",
+        "-- taxguard_bill_transition audited every invoice transition with the invoice id only. A reviewer's return note",
+        "-- is kept on the invoice only until the preparer resubmits (submit clears review_note by design), so the reason",
+        "-- a checker sent an invoice back for rework was lost entirely, and void reasons existed only on the mutable row.",
+        "-- This replacement is identical to proposal 028's function except for the audit call. That call now records",
+        "-- the prior and new status, the note for 'return' and 'void', and the issued invoice number for 'approve'.",
+        "-- Authorization, maker-checker, state rules, numbering and the returned projection are unchanged. Audit rows are",
+        "-- staff-only (administrator audit center); the client projection never includes notes or reasons.",
+        "-- CREATE OR REPLACE keeps the existing grants (service_role only).",
+        "-- Rollback (development): re-run the function definition from proposal 028."
+      ]
+    },
+    {
+      "order": 75,
+      "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
+      "kind": "proposal",
+      "version": "20261018050000",
+      "sha256": "4f7259155265d9e08558ef7d01e2aafccdfb63edd3d6a420bd2c31eb7265ffdf",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_evidence_checks"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_evidence_checks",
+          "previousFile": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261018000000 definition."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_evidence_checks(public.taxguard_cases) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, stages 01-08 evidence). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 026 (case workflow), 029 (book-to-tax workpapers), 031 (document requests) and",
+        "-- 20261018000000 (current definition of taxguard_case_evidence_checks).",
+        "--",
+        "-- Stage 06 (Review) is a professional attestation by the case's independent reviewer (\"workpapers reviewed\",",
+        "-- \"no unresolved blocking exceptions\"). The attestation was accepted even when no book-to-tax workpaper had been",
+        "-- recorded at all, so a case could pass Review with nothing reviewed. Stage 06 now also requires that an APPROVED",
+        "-- book-to-tax workpaper exists for the case's client, tax year and return family. Its approval is itself a",
+        "-- maker-checker decision recorded by proposal 029 (reviewer differs from the preparer). Draft, rejected and",
+        "-- superseded workpapers, and workpapers of another year, return family or client, do not count.",
+        "-- Who may attest, the attestation checklist and every other stage are unchanged. Stages 02 and 03 are",
+        "-- identical to 20261018000000. The check is server-derived; the caller never supplies it."
+      ]
+    },
+    {
+      "order": 76,
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "kind": "proposal",
+      "version": "20261018060000",
+      "sha256": "eaf770b74db8d57304995185127e8938048e5566a58242d8255b4395691d5132",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+        "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_staff_scope",
+        "taxguard_doc_list",
+        "taxguard_doc_detail",
+        "taxguard_doc_authorize_download",
+        "taxguard_doc_review",
+        "taxguard_doc_review_queue",
+        "taxguard_doc_upload_targets",
+        "taxguard_doc_begin_upload",
+        "taxguard_doc_verify_extraction",
+        "taxguard_collection_scope"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_doc_list",
+          "previousFile": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_detail",
+          "previousFile": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_authorize_download",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_review",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_review_queue",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_upload_targets",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_begin_upload",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_doc_verify_extraction",
+          "previousFile": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_collection_scope",
+          "previousFile": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the listed proposals' definitions and drop taxguard_staff_scope."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_staff_scope(text,text,text,text,text,integer) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 10,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, engagement-scoped staff access). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 025 (practice management), 027 (document vault), 20261015020000 (collection questionnaires),",
+        "-- 20261015060000 (audit custody overlay) and 20261015030851 (document client confidentiality), which runs after",
+        "-- 20261015060000 in execution order and holds the current taxguard_doc_list and taxguard_doc_detail.",
+        "--",
+        "-- Owner decision 2026-10-19: a staff member assigned to one engagement and tax year reaches that client's records",
+        "-- for that engagement and year only, unless independently authorized (a client-wide assignment, a practice manager",
+        "-- or an administrator). The document vault and Stage 02 collection checked visibility per client only",
+        "-- (taxguard_practice_can_see: any active assignment to the client), so an engagement-year assignee could list, read,",
+        "-- download, review and upload into every engagement and year of the client, and open another engagement's",
+        "-- collection. Each function below is identical to its current definition except for the added scope check against",
+        "-- the record's own engagement and tax year. Refusals keep the existing \"not found\" / \"access denied\" codes, so a"
+      ]
+    },
+    {
+      "order": 77,
+      "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+      "kind": "proposal",
+      "version": "20261018070000",
+      "sha256": "79b95bbe709418a6228c3e591fcc70067a2ff481f3ad9cda86048368457d36c3",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_ledger_year_scope",
+        "taxguard_ledger_year_guard",
+        "taxguard_ledger_event_year",
+        "taxguard_ledger_year_insert_guard",
+        "taxguard_ledger_read",
+        "taxguard_ledger_trial_balance",
+        "taxguard_ledger_work_queue",
+        "taxguard_ledger_open_period",
+        "taxguard_ledger_close_period",
+        "taxguard_ledger_reopen_period",
+        "taxguard_ledger_review_entry",
+        "taxguard_ledger_categorize_transaction",
+        "taxguard_ledger_start_reconciliation",
+        "taxguard_ledger_set_cleared",
+        "taxguard_ledger_finalize_reconciliation",
+        "taxguard_ledger_history",
+        "taxguard_b2t_open_set",
+        "taxguard_b2t_overview",
+        "taxguard_b2t_generate_workpaper",
+        "taxguard_b2t_set_mapping",
+        "taxguard_b2t_review_set",
+        "taxguard_b2t_review_adjustment",
+        "taxguard_b2t_review_workpaper"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_ledger_read",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_trial_balance",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_work_queue",
+          "previousFile": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_open_period",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_close_period",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_reopen_period",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_review_entry",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_categorize_transaction",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_start_reconciliation",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_set_cleared",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_finalize_reconciliation",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_history",
+          "previousFile": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_open_set",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_overview",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_generate_workpaper",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_set_mapping",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_review_set",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_review_adjustment",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_review_workpaper",
+          "previousFile": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the listed proposals' definitions, drop the two triggers and the four helpers."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_year_scope(text,text,text,text,integer) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_year_guard(text,text,text,text,integer) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_event_year(text,text,jsonb) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_year_insert_guard() FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 23,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, Package B: tax-year scope of the durable ledger and book-to-tax). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012240000 (durable ledger), 20261012250000 (practice management: staff assignments),",
+        "-- 20261012290000 (book-to-tax) and 20261012300000 (bookkeeper work queue), which hold the current definitions below.",
+        "--",
+        "-- Owner decision 2026-10-19: a staff member assigned for one tax year reaches that client's records for that year",
+        "-- only, unless independently authorized (a client-wide assignment, a practice manager or an administrator).",
+        "-- taxguard_ledger_actor admits any staff member with any active assignment to the client, so a bookkeeper or",
+        "-- reviewer assigned for 2025 could read, report on, post into, review, close, reconcile and map every other year of",
+        "-- the client's ledger and book-to-tax. taxguard_ledger_actor itself is unchanged: making it stricter would also",
+        "-- refuse year-scoped staff on Codex's Phase 15 functions, which are not modified here.",
+        "--",
+        "-- What changes:"
+      ]
+    },
+    {
+      "order": 78,
+      "file": "docs/proposed-migrations/20261018080000_taxguard_document_request_scope.sql",
+      "kind": "proposal",
+      "version": "20261018080000",
+      "sha256": "90c0d56bd08da7e2f0563d8cee8a673506a6ae810026a50c89692c04629590f3",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_docreq_insert",
+        "taxguard_docreq_list",
+        "taxguard_docreq_link",
+        "taxguard_docreq_resolve",
+        "taxguard_docreq_remind",
+        "taxguard_docreq_missing",
+        "taxguard_docreq_review_queue",
+        "taxguard_docreq_json"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_docreq_insert",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_list",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_link",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_resolve",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_remind",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_missing",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_review_queue",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_docreq_json",
+          "previousFile": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply proposal 20261012310000's definitions."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 8,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, Package B: engagement-year scope of document requests). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012310000 (document requests), which holds the current definitions below, and",
+        "-- 20261018060000 (engagement-scoped access), which defines taxguard_staff_scope.",
+        "--",
+        "-- Owner decision 2026-10-19: a staff member assigned to one engagement and tax year reaches that client's records",
+        "-- for that engagement and year only, unless independently authorized (a client-wide assignment, a practice manager",
+        "-- or an administrator). Document requests decided staff visibility per client (taxguard_doc_actor and",
+        "-- taxguard_practice_can_see: any active assignment to the client), so an engagement-year assignee could create,",
+        "-- list, attach to, waive, cancel and remind requests of every engagement and year of the client, and saw them in the",
+        "-- cross-client missing-documents and review queues. Template request ids are deterministic, so applying a template",
+        "-- to an out-of-scope year also replayed that year's existing requests.",
+        "-- Each function below is identical to its current definition except for the change named above it. Refusals keep"
+      ]
+    },
+    {
+      "order": 79,
+      "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+      "kind": "proposal",
+      "version": "20261018090000",
+      "sha256": "a089345f7d80254a3b05f8da7205c74f973ae4d02e716f30c99be1ad558534fc",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_slot_live",
+        "taxguard_case_actor",
+        "taxguard_case_queue",
+        "taxguard_case_status_report",
+        "taxguard_dash_my_work",
+        "taxguard_tax_run_list",
+        "taxguard_tax_run_record",
+        "taxguard_tax_run_review"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_actor",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_case_queue",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_case_status_report",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_dash_my_work",
+          "previousFile": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_list",
+          "previousFile": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_record",
+          "previousFile": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_review",
+          "previousFile": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the listed proposals' definitions and drop taxguard_case_slot_live."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_slot_live(text,text,text,integer,text,text,text) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 8,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, case assignment liveness). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012250000 (practice management: staff assignments), 20261012260000 (case workflow),",
+        "-- 20261012320000 (role dashboards) and 20261012330000 (tax engine foundation), which hold the current definitions below.",
+        "--",
+        "-- Defect: a case records its preparer and reviewer when it is created (taxguard_case_create copies the ACTIVE",
+        "-- assignments), and taxguard_case_actor then authorized on those recorded names only. Revoking or expiring the",
+        "-- assignment (taxguard_practice_unassign, effective_to) did not end access: the former preparer or reviewer could",
+        "-- still read the case, add notes, advance stages (including the reviewer's human attestations), return it to an",
+        "-- earlier stage, hold it, and see it in the case queue, status counts and dashboard. The tax calculation runs",
+        "-- (taxguard_tax_run_list, _record, _review) authorized the same way, so a revoked reviewer could still approve a",
+        "-- computed run and a revoked preparer could still record and read runs.",
+        "-- Fix: a named preparer or reviewer must also hold, now, an ACTIVE and effective assignment of that role covering"
+      ]
+    },
+    {
+      "order": 80,
+      "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+      "kind": "proposal",
+      "version": "20261018100000",
+      "sha256": "79a3b7c4b26a7df36cf51ec7fae06c4634db9b1611e08542b97dbb051c30e2f2",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_practice_year",
+        "taxguard_staff_record_scope",
+        "taxguard_practice_item_scope",
+        "taxguard_practice_event_scope",
+        "taxguard_practice_client_detail",
+        "taxguard_practice_add_note",
+        "taxguard_practice_create_task",
+        "taxguard_practice_add_deadline",
+        "taxguard_practice_resolve_deadline"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_practice_client_detail",
+          "previousFile": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_practice_add_note",
+          "previousFile": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_practice_create_task",
+          "previousFile": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_practice_add_deadline",
+          "previousFile": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_practice_resolve_deadline",
+          "previousFile": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply proposal 20261012250000's definitions and drop the four helpers."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_year(text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_staff_record_scope(text,text,text,text,text,integer) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_item_scope(text,text,text,text,text,text,integer) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_event_scope(text,text,text,text,text,text,jsonb) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 8,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, practice client detail confidentiality). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012250000 (practice management), which holds the current definitions below,",
+        "-- 20261012260000 (case workflow) and 20261018070000 (taxguard_ledger_event_year).",
+        "--",
+        "-- Owner decision 2026-10-19: a staff member assigned to one engagement and tax year reaches that client's records",
+        "-- for that engagement and year only, unless independently authorized (a client-wide assignment, a practice manager",
+        "-- or an administrator). The practice client detail and its write paths decided access per client",
+        "-- (taxguard_practice_client_access: any active assignment to the client), so an engagement-year assignee received",
+        "-- every engagement's internal notes, tasks and deadlines, the whole team and assignment history, and the client's",
+        "-- case and ledger activity of every year (the latter bypassing the 20261018070000 ledger history filter); and could",
+        "-- add notes, tasks and deadlines to, and resolve deadlines of, any engagement and year.",
+        "--"
+      ]
+    },
+    {
+      "order": 81,
+      "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
+      "kind": "proposal",
+      "version": "20261018105000",
+      "sha256": "bbdf927c8f47db44ebbd49317fc2f907004882a8a233e5478fc27f87ec1e724b",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_restaff"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop taxguard_case_restaff. Restaffing already performed is a recorded, audited state."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_case_restaff(text,text,text,text,text,integer,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_case_restaff(text,text,text,text,text,integer,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, case-team restaffing). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 20261012250000 (practice management: staff assignments, actor, manager role), 20261012260000",
+        "-- (case workflow: cases, case assignments, case audit), 20261012330000 (tax calculation runs) and 20261018090000",
+        "-- (case access follows the live assignment).",
+        "--",
+        "-- Since 20261018090000 a case's recorded preparer and reviewer count only while they hold the live assignment, so a",
+        "-- replacement assignee could not act on an existing case and only a manager could. taxguard_case_restaff is the",
+        "-- reviewed operation that moves the case's preparer or reviewer to another person:",
+        "--   * practice managers and administrators of the tenant only (PRACTICE_MANAGER_REQUIRED), with a reason (10-500",
+        "--     characters) and the case's current version (CASE_VERSION_CONFLICT); the case must be ACTIVE or ON_HOLD;",
+        "--   * the new person must hold, now, an ACTIVE and effective assignment of that role covering the case's client,",
+        "--     engagement and year (CASE_ASSIGNEE_NOT_ASSIGNED), so restaffing never grants access by itself;"
       ]
     }
   ]

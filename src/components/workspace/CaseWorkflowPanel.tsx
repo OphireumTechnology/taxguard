@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { caseMessage, caseService, dependencyLabel, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
+import { caseMessage, caseService, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
+import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
+import { taxEngineMessage, taxEngineService, type CalculationRun } from '../../services/taxEngineService';
 
 const label = (v: string) => v.replace(/_/g, ' ');
 
@@ -13,6 +15,9 @@ export function CaseWorkflowPanel() {
   const [statement, setStatement] = useState('');
   const [reason, setReason] = useState('');
   const [returnStage, setReturnStage] = useState('');
+  const [teamRole, setTeamRole] = useState<'preparer' | 'reviewer'>('reviewer');
+  const [teamUser, setTeamUser] = useState('');
+  const [team, setTeam] = useState<{ status: 'idle' | 'loading' | 'ready' | 'error'; rows: PracticeClientDetail['team'] }>({ status: 'idle', rows: [] });
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const selectedRef = useRef(selected); selectedRef.current = selected;
@@ -38,6 +43,33 @@ export function CaseWorkflowPanel() {
     finally { setBusy(false); }
   };
   const c = detail?.case; const policy = detail?.stagePolicy;
+  // Visibility only: the server decides who may restaff (managers and administrators) and re-checks every condition.
+  const managing = queue.items.find(q => q.caseId === selected)?.myRole === 'manager';
+  const teamClient = managing ? c?.clientId : undefined;
+  const loadTeam = useCallback((clientId: string) => {
+    setTeam({ status: 'loading', rows: [] });
+    practiceService.clientDetail(clientId).then(d => setTeam({ status: 'ready', rows: d.team })).catch(() => setTeam({ status: 'error', rows: [] }));
+  }, []);
+  useEffect(() => { if (teamClient) loadTeam(teamClient); else setTeam({ status: 'idle', rows: [] }); }, [teamClient, loadTeam]);
+  const candidates = c ? restaffCandidates(team.rows, c, teamRole) : [];
+  // Tax calculation runs recorded for this case (proposal 033). They are advisory records: never used for a return.
+  const [runs, setRuns] = useState<{ status: 'loading' | 'ready' | 'error'; items: CalculationRun[]; message?: string }>({ status: 'loading', items: [] });
+  const [runNotes, setRunNotes] = useState<Record<string, string>>({});
+  const runCase = c?.caseId;
+  const loadRuns = useCallback((caseId: string) => {
+    setRuns({ status: 'loading', items: [] });
+    taxEngineService.caseRuns(caseId).then(items => { if (selectedRef.current === caseId) setRuns({ status: 'ready', items }); })
+      .catch(e => { if (selectedRef.current === caseId) setRuns({ status: 'error', items: [], message: taxEngineMessage(e) }); });
+  }, []);
+  useEffect(() => { if (runCase) loadRuns(runCase); }, [runCase, loadRuns]);
+  const decideRun = async (runId: string, decision: 'approve' | 'reject') => {
+    if (busy || !selected) return;
+    setBusy(true); setNotice(null);
+    try { await taxEngineService.reviewRun(runId, decision, (runNotes[runId] ?? '').trim()); setNotice({ error: false, text: decision === 'approve' ? 'Calculation run approved.' : 'Calculation run rejected.' });
+      setRunNotes(n => ({ ...n, [runId]: '' })); loadRuns(selected); }
+    catch (e) { setNotice({ error: true, text: taxEngineMessage(e) }); }
+    finally { setBusy(false); }
+  };
   return <section aria-labelledby="case-workflow-heading" className="tg-manager-card">
     <h2 id="case-workflow-heading">Case Workflow</h2>
     <div className="tg-manager-controls"><label>Queue<select value={role} onChange={e => setRole(e.target.value)}><option value="">All my cases</option>
@@ -81,6 +113,37 @@ export function CaseWorkflowPanel() {
           <button type="button" disabled={busy || !returnStage || reason.trim().length < 10} onClick={() => run(() => caseService.returnTo(c.caseId, Number(returnStage), c.version, reason), 'Case returned.')}>Return case</button></>}
         <button type="button" disabled={busy || reason.trim().length < 5 || !['ACTIVE', 'ON_HOLD'].includes(c.status)}
           onClick={() => run(() => caseService.hold(c.caseId, c.status === 'ACTIVE', c.version, reason), c.status === 'ACTIVE' ? 'Case placed on hold.' : 'Case resumed.')}>{c.status === 'ON_HOLD' ? 'Resume case' : 'Place on hold'}</button>
+        {managing && <form aria-labelledby="case-team-heading" onSubmit={e => { e.preventDefault(); void run(() => caseService.restaff(c.caseId, teamRole, teamUser, c.version, reason), 'Case team updated.'); }}>
+          <h4 id="case-team-heading">Case team</h4>
+          <p>Engagement {c.engagementId} · tax year {c.taxYear}. Only people already assigned to this engagement and year in that role can take it over; the reason above is recorded.</p>
+          <label>Role<select value={teamRole} onChange={e => { setTeamRole(e.target.value as 'preparer' | 'reviewer'); setTeamUser(''); }}><option value="preparer">Preparer (now {c.preparerUid})</option><option value="reviewer">Reviewer (now {c.reviewerUid})</option></select></label>
+          <button type="button" disabled={team.status === 'loading'} onClick={() => loadTeam(c.clientId)}>Refresh team</button>
+          {team.status === 'loading' && <p role="status">Loading the engagement team…</p>}
+          {team.status === 'error' && <p role="alert">The engagement team could not be loaded. <button type="button" onClick={() => loadTeam(c.clientId)}>Retry</button></p>}
+          {team.status === 'ready' && candidates.length === 0 && <p role="status">No one else holds the {teamRole} assignment for this engagement and year. Assign someone in Client Management first.</p>}
+          {candidates.length > 0 && <label>New {teamRole}<select value={teamUser} onChange={e => setTeamUser(e.target.value)}><option value="">Select a person</option>
+            {candidates.map(u => <option key={u} value={u}>{u}</option>)}</select></label>}
+          <button disabled={busy || !teamUser || reason.trim().length < 10 || !['ACTIVE', 'ON_HOLD'].includes(c.status)}>{busy ? 'Saving…' : 'Change case team'}</button>
+        </form>}
+        <section aria-labelledby="case-runs-heading">
+          <h4 id="case-runs-heading">Tax calculation runs</h4>
+          <p>Calculations from an approved rule set, recorded with their inputs and outputs for review. They are not used to prepare or file a return.</p>
+          {runs.status === 'loading' && <p role="status">Loading calculation runs…</p>}
+          {runs.status === 'error' && <p role="alert">{runs.message}</p>}
+          {runs.status === 'ready' && runs.items.length === 0 && <p role="status">No calculation runs are recorded for this case.</p>}
+          {runs.items.length > 0 && <table><caption className="sr-only">Calculation runs for this case</caption>
+            <thead><tr>{['Recorded', 'Outputs', 'Status', 'Requested / reviewed by', 'Review'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+            <tbody>{runs.items.map(r => <tr key={r.run_id}>
+              <td>{new Date(r.created_at).toLocaleString()}{r.synthetic ? ' (synthetic)' : ''}</td>
+              <td>{Object.entries(r.outputs).map(([k, v]) => k + ' = ' + v).join('; ')}</td>
+              <td>{r.status.replace(/_/g, ' ').toLowerCase()}{r.review_note ? ` · ${r.review_note}` : ''}</td>
+              <td>{r.requested_by}{r.reviewed_by ? ` / ${r.reviewed_by}` : ''}</td>
+              <td>{r.status === 'COMPUTED' && <form aria-label={`Review run ${r.run_id.slice(0, 8)}`} onSubmit={e => e.preventDefault()}>
+                <label>Review note<textarea value={runNotes[r.run_id] ?? ''} maxLength={1000} onChange={e => setRunNotes(n => ({ ...n, [r.run_id]: e.target.value }))} /></label>
+                <button type="button" disabled={busy || (runNotes[r.run_id] ?? '').trim().length < 10} onClick={() => decideRun(r.run_id, 'approve')}>Approve run</button>
+                <button type="button" disabled={busy || (runNotes[r.run_id] ?? '').trim().length < 10} onClick={() => decideRun(r.run_id, 'reject')}>Reject run</button>
+              </form>}</td></tr>)}</tbody></table>}
+        </section>
         <h4>History</h4>
         <ul>{detail!.events.map((ev, i) => <li key={ev.at + i}>{label(ev.action.toLowerCase())} → {stageLabel(ev.toStage)}{ev.evidenceType ? ` · ${label(ev.evidenceType.toLowerCase())}` : ''}{ev.reason ? ` · ${ev.reason}` : ''} · {ev.actorUid} · {new Date(ev.at).toLocaleString()}</li>)}</ul>
       </>}

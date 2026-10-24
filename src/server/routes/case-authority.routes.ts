@@ -420,8 +420,23 @@ caseAuthorityRouter.post('/client-onboarding/stage-1', async (req: Authenticated
 
 const base = '/:tenantId/:clientId/:engagementId/:taxYear';
 
-function handler(action: (repo: TaxGuardAuthorityRepository, scope: CaseScope, uid: string, req: AuthenticatedRequest) => Promise<unknown>) {
+// The authority adapter behind the scoped case operations is process-local (TransactionalDocumentDatabase). A
+// restart or a second instance would lose what it records, so production refuses instead of reading or acknowledging.
+const durableAuthorityAvailable = () =>
+  process.env.NODE_ENV !== 'production' || (globalAuthorityDatabase as { persistenceCapability?: string }).persistenceCapability === 'durable';
+const refuseVolatileAuthority = (res: any) => res.status(503).json({
+  error: 'DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED',
+  code: 'DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED',
+  requiresHumanReview: true,
+  externalSubmissionAllowed: false,
+});
+
+// repositoryEnforcesDurability: the repository validates the request and then refuses with its own provider code
+// (reviewer decisions) before any write, so the route does not pre-empt it.
+function handler(action: (repo: TaxGuardAuthorityRepository, scope: CaseScope, uid: string, req: AuthenticatedRequest) => Promise<unknown>,
+  options: { repositoryEnforcesDurability?: boolean } = {}) {
   return async (req: AuthenticatedRequest, res: any) => {
+    if (!options.repositoryEnforcesDurability && !durableAuthorityAvailable()) return refuseVolatileAuthority(res);
     try {
       const scope = {
         tenantId: req.params.tenantId,
@@ -442,11 +457,19 @@ function handler(action: (repo: TaxGuardAuthorityRepository, scope: CaseScope, u
   };
 }
 
-caseAuthorityRouter.get(base + '/reviewer-workspace', requireRole('reviewer', 'senior_reviewer'), handler((repo, scope, uid) => repo.getReviewerSnapshot(scope, uid)));
-caseAuthorityRouter.post(base + '/reviewer-decision', requireRole('reviewer', 'senior_reviewer'), handler((repo, scope, uid, req) => repo.decideReviewerReturn(scope, uid, req.body || {})));
+caseAuthorityRouter.get(base + '/reviewer-workspace', requireRole('reviewer', 'senior_reviewer'), (req, res, next) => {
+  // The selected-workspace reader still uses the volatile authority adapter. Keep production
+  // fail-closed just like queue discovery until a durable reviewer-read provider is mounted.
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({ error: 'DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED', code: 'DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED' });
+  }
+  next();
+}, handler((repo, scope, uid) => repo.getReviewerSnapshot(scope, uid)));
+caseAuthorityRouter.post(base + '/reviewer-decision', requireRole('reviewer', 'senior_reviewer'), handler((repo, scope, uid, req) => repo.decideReviewerReturn(scope, uid, req.body || {}), { repositoryEnforcesDurability: true }));
 
 // Canonical Tax Case operations (M18.4)
 caseAuthorityRouter.get('/:tenantId/:clientId/:engagementId/cases', async (req: AuthenticatedRequest, res: any) => {
+  if (!durableAuthorityAvailable()) return refuseVolatileAuthority(res);
   try {
     const scope = {
       tenantId: req.params.tenantId,
@@ -585,7 +608,14 @@ caseAuthorityRouter.get(base + '/workpapers', handler((repo, scope, uid) =>
 caseAuthorityRouter.get(base + '/workpapers/:id', handler((repo, scope, uid, req) =>
   repo.getWorkpaper(scope, uid, req.params.id)
 ));
-caseAuthorityRouter.post(base + '/reviews/action', handler((repo, scope, uid, req) => {
+caseAuthorityRouter.post(base + '/reviews/action', (req, res, next) => {
+  // General review actions share the same volatile authority adapter as the workspace.
+  // Never acknowledge them in production until a durable reviewer-action provider is mounted.
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({ error: 'DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED', code: 'DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED', requiresHumanReview: true, externalSubmissionAllowed: false });
+  }
+  next();
+}, handler((repo, scope, uid, req) => {
   if (req.body?.target?.type === 'return') {
     if (req.body?.action !== 'RETURN_FOR_CORRECTION') throw new AuthorityError('RETURN_REVIEW_REQUIRES_DECISION_GATE', 409);
     return repo.decideReviewerReturn(scope, uid, { version: req.body?.version ?? req.body?.revision, operationId: req.body?.operationId,
@@ -641,7 +671,7 @@ caseAuthorityRouter.post(base + '/returns/:id/certify', handler((repo, scope, ui
 // ============================================================================
 caseAuthorityRouter.post(base + '/approvals', handler((repo, scope, uid, req) =>
   repo.decideReviewerReturn(scope, uid, { version: req.body?.version ?? req.body?.revision, operationId: req.body?.operationId,
-    returnId: req.body?.returnId, decision: 'APPROVE', confirmed: req.body?.confirmed, reason: req.body?.rationale })
+    returnId: req.body?.returnId, decision: 'APPROVE', confirmed: req.body?.confirmed, reason: req.body?.rationale }), { repositoryEnforcesDurability: true }
 ));
 caseAuthorityRouter.get(base + '/approvals/:id', handler((repo, scope, uid, req) =>
   repo.getApproval(scope, uid, req.params.id)

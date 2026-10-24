@@ -3,8 +3,12 @@ import { type AuthenticatedRequest } from '../auth';
 import { getSupabaseAdmin } from '../supabase';
 import { practiceStoreConfigured } from '../taxguard/practice/practiceStoreConfig';
 import { CollectionError,CollectionStore } from '../taxguard/collectionStore';
-export function createDurableCollectionRouter(deps:{store?:()=>CollectionStore;enabled?:()=>boolean}={}){
+import { OnboardingStore } from '../taxguard/onboarding/onboardingStore';
+/** Stage 02 opens for a client only after the server recorded Stage 01 onboarding as completed. */
+export const STAGE_ONE_NOT_APPROVED='STAGE_01_NOT_APPROVED';
+export function createDurableCollectionRouter(deps:{store?:()=>CollectionStore;enabled?:()=>boolean;onboardingReady?:(tenant:string,client:string)=>Promise<boolean>}={}){
  const router=Router();const enabled=deps.enabled??practiceStoreConfigured;const store=()=>deps.store?.()??new CollectionStore(getSupabaseAdmin() as any);
+ const onboardingReady=deps.onboardingReady??((tenant:string,client:string)=>new OnboardingStore(getSupabaseAdmin() as any).clientReady(tenant,client));
  const run=(operation:(req:AuthenticatedRequest,client:string,year:number)=>Promise<any>):RequestHandler=>async(req,res,next)=>{
   const durable=enabled();if(!durable&&process.env.NODE_ENV==='test')return next();
   const request=req as AuthenticatedRequest,year=Number(req.params.taxYear),selection=req.method==='GET'?req.query.clientId:req.body?.clientId;
@@ -17,6 +21,9 @@ export function createDurableCollectionRouter(deps:{store?:()=>CollectionStore;e
    ||(isClient&&selection!==undefined&&selection!==client))return res.status(403).json({code:'COLLECTION_ACCESS_DENIED'});
   res.setHeader('Cache-Control','no-store');
   if(!durable)return res.status(503).json({code:'COLLECTION_UNAVAILABLE'});
+  // Browser state never opens Stage 02: a client needs the server-recorded Stage 01 completion. Fails closed.
+  if(isClient){let ok=false;try{ok=await onboardingReady(user.tenantId,client);}catch{return res.status(503).json({code:'COLLECTION_UNAVAILABLE'});}
+   if(!ok)return res.status(403).json({code:STAGE_ONE_NOT_APPROVED});}
   try{return res.json(await operation(request,client,year));}catch(e){return res.status(e instanceof CollectionError?e.status:503).json({code:e instanceof CollectionError?e.code:'COLLECTION_UNAVAILABLE'});}
  };
  const eng=(v:unknown)=>typeof v==='string'?v:undefined;

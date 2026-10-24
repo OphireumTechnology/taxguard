@@ -14,6 +14,22 @@ import { createAccountantDashboardRouter, type AccountantDashboardDeps } from '.
 import { taxFormsRouter } from './routes/taxForms.routes';
 import { ProviderReadinessRegistry } from './taxguard/providerReadiness.service';
 import { createHealthRouter } from './observability/health';
+import { applyFramingPolicy } from './securityHeaders';
+import { mountCutoverRoutes, planCutover } from './routeCutover';
+import { createPracticeRouter } from './routes/practice.routes';
+import { createOnboardingRouter } from './routes/onboarding-durable.routes';
+import { createCasesRouter } from './routes/cases.routes';
+import { createVaultRouter } from './routes/vault.routes';
+import { createBillingRouter } from './routes/billing.routes';
+import { createBookToTaxRouter } from './routes/bookToTax.routes';
+import { createTaxEngineRouter } from './routes/taxEngine.routes';
+import { createCommunicationsRouter } from './routes/communications.routes';
+import { createSchedulingRouter } from './routes/appointments-durable.routes';
+import { createLegalMattersRouter } from './routes/legal-durable.routes';
+import { createAuditCenterRouter } from './routes/audit-center.routes';
+import { createConsultationReviewRouter } from './routes/consultations.routes';
+import { createClientPortalRouter } from './routes/client-portal.routes';
+import { createReassignmentRouter } from './routes/reassignment.routes';
 import { runtimeProbes } from './observability/defaultProbes';
 import {
   protectServerBuildArtifacts,
@@ -42,6 +58,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    applyFramingPolicy(res, true);
     res.vary('Origin');
     const origin = req.headers.origin;
     if (origin && !['https://artaxserv.com', 'https://www.artaxserv.com'].includes(origin)) {
@@ -119,6 +136,18 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   app.use('/api/tax-forms', taxFormsRouter);
   // Deliberately NOT released in production: /api/super-admin (local console) and the local
   // password / TOTP login routes (auth router returns 410 outside the Supabase session bridge).
+
+  // Durable routers: production cutover gate (src/server/routeCutover.ts). Nothing is mounted unless requested,
+  // every required proposal is owner-approved, and the schema is verified; no reviewed schema probe exists yet,
+  // so an eligible route would still answer 503. Today no proposal is approved, so none is mounted.
+  const cutover = mountCutoverRoutes(app, planCutover(process.env.TAXGUARD_PRODUCTION_ROUTE_CUTOVER), {
+    practice: () => createPracticeRouter(), 'stage-one': () => createOnboardingRouter(), cases: () => createCasesRouter(),
+    vault: () => createVaultRouter(), billing: () => createBillingRouter(), 'book-to-tax': () => createBookToTaxRouter(),
+    'tax-engine': () => createTaxEngineRouter(), communications: () => createCommunicationsRouter(), scheduling: () => createSchedulingRouter(),
+    'legal-matters': () => createLegalMattersRouter(), 'audit-center': () => createAuditCenterRouter(), consultations: () => createConsultationReviewRouter(),
+    'client-portal': () => createClientPortalRouter(), reassignment: () => createReassignmentRouter(),
+  }, null);
+  app.get('/api/route-cutover', authenticateToken, requireOperationalAdministrator, (_req, res) => res.json({ routes: cutover.status() }));
 
   // API production boundary: never allow unknown /api or /webhooks routes to reach SPA fallback
   app.use('/api', (_req, res) =>

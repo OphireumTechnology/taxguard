@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 70,
+    "files": 82,
     "core": 13,
-    "proposals": 56,
-    "tables": 145,
-    "functions": 335,
-    "securityDefinerFunctions": 258,
+    "proposals": 68,
+    "tables": 148,
+    "functions": 362,
+    "securityDefinerFunctions": 282,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -2909,6 +2909,576 @@
     },
     {
       "order": 70,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_case_evidence_checks",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        34
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 71,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_invoice_refunds"
+      ],
+      "functionsAdded": [
+        "taxguard_bill_refund_keyed",
+        "taxguard_invoice_refunds_immutable"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 1,
+      "indexesAdded": 3,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        31
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [
+        "taxguard_bill_refund"
+      ],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 72,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 73,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_client_onboarding",
+        "taxguard_onb_consent_versions"
+      ],
+      "functionsAdded": [
+        "taxguard_onb_blank",
+        "taxguard_onb_client_owner",
+        "taxguard_onb_client_ready",
+        "taxguard_onb_current_consent",
+        "taxguard_onb_decide",
+        "taxguard_onb_duplicates",
+        "taxguard_onb_get",
+        "taxguard_onb_identity_verified",
+        "taxguard_onb_queue",
+        "taxguard_onb_requirements",
+        "taxguard_onb_save",
+        "taxguard_onb_submit",
+        "taxguard_onb_text",
+        "taxguard_onb_view"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_case_system_checks",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 2,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        27,
+        28,
+        34
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 74,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_bill_transition",
+          "previous": "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        4,
+        31
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 75,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_case_evidence_checks",
+          "previous": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        32,
+        34
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 76,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_staff_scope"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_collection_scope",
+          "previous": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql"
+        },
+        {
+          "function": "taxguard_doc_authorize_download",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_begin_upload",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_detail",
+          "previous": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql"
+        },
+        {
+          "function": "taxguard_doc_list",
+          "previous": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql"
+        },
+        {
+          "function": "taxguard_doc_review",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_review_queue",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_upload_targets",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        },
+        {
+          "function": "taxguard_doc_verify_extraction",
+          "previous": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        30,
+        62
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 77,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_ledger_event_year",
+        "taxguard_ledger_year_guard",
+        "taxguard_ledger_year_insert_guard",
+        "taxguard_ledger_year_scope"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_b2t_generate_workpaper",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_b2t_open_set",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_b2t_overview",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_b2t_review_adjustment",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_b2t_review_set",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_b2t_review_workpaper",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_b2t_set_mapping",
+          "previous": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+        },
+        {
+          "function": "taxguard_ledger_categorize_transaction",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_close_period",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_finalize_reconciliation",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_history",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_open_period",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_read",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_reopen_period",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_review_entry",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_set_cleared",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_start_reconciliation",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_trial_balance",
+          "previous": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+        },
+        {
+          "function": "taxguard_ledger_work_queue",
+          "previous": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 2,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        27,
+        32
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 78,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018080000_taxguard_document_request_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_docreq_insert",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_json",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_link",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_list",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_missing",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_remind",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_resolve",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        },
+        {
+          "function": "taxguard_docreq_review_queue",
+          "previous": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        30,
+        34,
+        76
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 79,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_case_slot_live"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_case_actor",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_case_queue",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_case_status_report",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_dash_my_work",
+          "previous": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+        },
+        {
+          "function": "taxguard_tax_run_list",
+          "previous": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+        },
+        {
+          "function": "taxguard_tax_run_record",
+          "previous": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+        },
+        {
+          "function": "taxguard_tax_run_review",
+          "previous": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        27,
+        28,
+        29,
+        32,
+        34,
+        36
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 80,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_practice_event_scope",
+        "taxguard_practice_item_scope",
+        "taxguard_practice_year",
+        "taxguard_staff_record_scope"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_practice_add_deadline",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_add_note",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_client_detail",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_create_task",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        },
+        {
+          "function": "taxguard_practice_resolve_deadline",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        77
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 81,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_case_restaff"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        29,
+        36
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 82,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

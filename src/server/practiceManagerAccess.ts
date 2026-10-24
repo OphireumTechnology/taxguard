@@ -6,10 +6,10 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/tests|cases/${ID}/runs)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID}(/room)?)?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/(tests|coverage)|cases/${ID}/runs)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID}(/room)?)?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
-  `cases/?`, `cases/${ID}/(advance|return|hold|notes)`,
+  `cases/?`, `cases/${ID}/(advance|return|hold|notes|team)`,
   `vault/clients/${ID}/documents`, `vault/clients/${ID}/documents/${ID}/versions/\\d{1,6}/(review|download)`, `vault/clients/${ID}/extractions/${ID}/verify`,
   `vault/request-templates`, `vault/clients/${ID}/requests`, `vault/clients/${ID}/requests/apply-template`, `vault/clients/${ID}/requests/${ID}/(link|waive|cancel|remind)`,
   `billing/catalog`, `billing/clients/${ID}/invoices`, `billing/clients/${ID}/invoices/${ID}/(lines|lines/\\d{1,4}/remove|submit|approve|return|void|payments|credits)`,
@@ -38,5 +38,8 @@ export function practiceManagerRequestAllowed(role:string,method:string,url:stri
   if(method==='POST'&&new RegExp(`^/api/stage-two-three/requests/\\d{4}(/${ID}/resolve)?$`).test(path))return practiceStoreConfigured();
   if ((method==='GET' && ['/api/operations/manager-dashboard','/api/auth/me','/api/auth/session'].includes(path)) || (method==='POST' && path==='/api/auth/logout')) return true;
   if (!practiceStoreConfigured()) return false;
+  // Stage 01 onboarding review (proposal 20261018030000): the database re-checks manager authority and scope.
+  if (method === 'GET' && (path === '/api/stage-one/queue' || new RegExp(`^/api/stage-one/clients/${ID}$`).test(path))) return true;
+  if (method === 'POST' && new RegExp(`^/api/stage-one/clients/${ID}/decision$`).test(path)) return true;
   return (method === 'GET' && DURABLE_GET.test(path)) || (method === 'POST' && DURABLE_POST.test(path));
 }

@@ -44,9 +44,30 @@ export const billingApi = {
     request<Invoice>('POST', `${i(clientId, invoiceId)}/${action}`, { rowVersion, note }),
   recordPayment: (clientId: string, invoiceId: string, amount: string, method: string, key: string) => request('POST', i(clientId, invoiceId) + '/payments', { amount, method }, key),
   paySandbox: (clientId: string, invoiceId: string, amount: string, testCard: string, key: string) => request('POST', i(clientId, invoiceId) + '/pay-sandbox', { amount, testCard }, key),
+  /** Records a refund made outside TaxGuard (managers only). The key makes a retry safe. */
+  recordRefund: (clientId: string, paymentId: string, amount: string, reason: string, key: string) =>
+    request<Invoice>('POST', `${c(clientId)}/payments/${encodeURIComponent(paymentId)}/refund`, { amount, reason }, key),
   requestCredit: (clientId: string, invoiceId: string, amount: string, reason: string) => request('POST', i(clientId, invoiceId) + '/credits', { amount, reason }),
   decideCredit: (clientId: string, creditId: string, apply: boolean) => request<Invoice>('POST', `${c(clientId)}/credits/${encodeURIComponent(creditId)}/${apply ? 'apply' : 'reject'}`),
+  /** Issued-invoice PDF for the signed-in user. Generated on request; never stored or delivered by TaxGuard. */
+  document: async (clientId: string, invoiceId: string): Promise<Blob> => {
+    const token = getStoredToken();
+    if (!token) throw new BillingRequestError(401, 'AUTH_REQUIRED');
+    const response = await fetch(apiEndpoint('/api/billing' + i(clientId, invoiceId) + '/document'), { method: 'GET', cache: 'no-store', credentials: 'omit',
+      headers: { Authorization: `Bearer ${token}` } });
+    if (getStoredToken() !== token) throw new BillingRequestError(409, 'SESSION_CHANGED');
+    if (!response.ok) { const data = await response.json().catch(() => null); throw new BillingRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined); }
+    if (!(response.headers.get('content-type') || '').startsWith('application/pdf')) throw new BillingRequestError(503, 'BILLING_RESPONSE_INVALID');
+    return response.blob();
+  },
 };
+export const ISSUED_INVOICE_STATUSES = ['ISSUED', 'PARTIALLY_PAID', 'PAID', 'PAST_DUE', 'VOID'];
+/** Saves a blob through a temporary object URL; the URL is revoked immediately afterwards. */
+export function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  try { const a = document.createElement('a'); a.href = url; a.download = fileName; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
+}
 const MESSAGES: Record<string, string> = {
   MAKER_CHECKER_VIOLATION: 'A different manager must approve this.', BILLING_MANAGER_REQUIRED: 'Only a practice manager or administrator can do this.',
   INVOICE_VERSION_CONFLICT: 'The invoice changed since it was loaded. Refresh and retry.', RATE_OVERRIDE_REASON_REQUIRED: 'Enter a reason for using a rate other than the catalog price.',
@@ -54,6 +75,8 @@ const MESSAGES: Record<string, string> = {
   BILLING_AMOUNT_INVALID: 'Enter an amount with at most two decimals.', PAYMENT_DECLINED: 'The sandbox payment was declined.', DUPLICATE_PAYMENT: 'This payment was already recorded.',
   SANDBOX_TEST_CARD_REQUIRED: 'Use a published sandbox test card number. No real card is ever charged.', BILLING_UNAVAILABLE: 'Billing is not enabled in this environment.',
   INVOICE_NOT_EDITABLE: 'Only draft invoices can be edited.', INVOICE_EMPTY: 'Add at least one line before submitting.',
+  REFUND_EXCEEDS_PAYMENT: 'The refund is larger than the amount still refundable on this payment.', IDEMPOTENCY_KEY_REUSED: 'This request was already used for a different refund. Refresh and enter the refund again.',
+  INVOICE_DOCUMENT_NOT_ISSUED: 'A document is available only after the invoice is issued.', INVOICE_DOCUMENT_DATA_INVALID: 'The invoice document could not be produced from the recorded amounts.',
 };
 export function billingMessage(error: unknown): string {
   if (error instanceof BillingRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];

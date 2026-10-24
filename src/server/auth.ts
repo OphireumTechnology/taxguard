@@ -10,6 +10,7 @@ import { bookkeeperRequestAllowed } from './bookkeeperAccess';
 import { Request, Response, NextFunction } from 'express';
 import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { db } from './db';
+import { attachScopedClientGrants, scopedClientGrants } from './staffScopedGrants';
 import { User, UserRole } from '../types';
 import { isSupabaseServerConfigured } from './supabase';
 import { SupabaseDurableSessions, hasFallbackSupabaseSession } from './supabase-db';
@@ -394,6 +395,8 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
   if(!practiceManagerRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'PRACTICE_MANAGER_CAPABILITY_DENIED'});
   if(!clientServiceRequestAllowed(user.role,req.method,req.originalUrl)) return res.status(403).json({code:'CLIENT_SERVICE_CAPABILITY_DENIED'});
   req.user = {...user};
+  // The spread copies enumerable fields only; carry engagement / tax-year scoped grants explicitly.
+  attachScopedClientGrants(req.user, [...scopedClientGrants(user)]);
   attachSessionAssuranceLevel(req.user,session.verifiedMfa===true?'aal2':'aal1');
   req.token = token;
   next();

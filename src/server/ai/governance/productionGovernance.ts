@@ -11,12 +11,27 @@ let plane:GovernanceControlPlane|null=null;
 let killSwitches:KillSwitchService|null=null;
 let controlCenter:ControlCenterReadService|null=null;
 
-/** No dev/in-memory fallback, model activation or migration execution. */
+const LOOPBACK_HOSTS=['127.0.0.1','localhost','[::1]'];
+/**
+ * Production: DATABASE_URL over verified TLS. Outside production only: an explicitly configured
+ * loopback database (TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL) so a disposable local PostgreSQL can
+ * exercise the same SQL store and session verification. Never both, never a remote host locally.
+ */
+export function governanceDatabaseTarget(env:Readonly<Record<string,string|undefined>>=process.env):{url:string;tls:boolean}|null {
+  if(env.NODE_ENV==='production') return env.DATABASE_URL?{url:env.DATABASE_URL,tls:true}:null;
+  const local=env.TAXGUARD_AI_GOVERNANCE_LOCAL_DATABASE_URL;
+  if(!local) return null;
+  try { const u=new URL(local); return ['postgres:','postgresql:'].includes(u.protocol)&&LOOPBACK_HOSTS.includes(u.hostname)?{url:local,tls:false}:null; }
+  catch { return null; }
+}
+
+/** No in-memory fallback, model activation or migration execution. */
 function productionResources() {
-  if(process.env.NODE_ENV!=='production'||process.env.TAXGUARD_AI_GOVERNANCE_ENABLED!=='true'||
-    !process.env.DATABASE_URL||!process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.TAXGUARD_TENANT_ID)throw new GovernanceError('AI_GOVERNANCE_UNAVAILABLE',503);
+  const target=governanceDatabaseTarget();
+  if(!target||process.env.TAXGUARD_AI_GOVERNANCE_ENABLED!=='true'||
+    !process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.TAXGUARD_TENANT_ID)throw new GovernanceError('AI_GOVERNANCE_UNAVAILABLE',503);
   if(!shared) {
-    const pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:true},max:3,connectionTimeoutMillis:5000,idleTimeoutMillis:10000});
+    const pool=new Pool({connectionString:target.url,...(target.tls?{ssl:{rejectUnauthorized:true}}:{}),max:3,connectionTimeoutMillis:5000,idleTimeoutMillis:10000});
     pool.on('error',()=>console.warn('AI_GOVERNANCE_DATABASE_UNAVAILABLE'));
     const durable=new SupabaseDurableSessions();
     shared={db:new PgGovernanceDatabase(pool),sessions:{verify:async token=>{

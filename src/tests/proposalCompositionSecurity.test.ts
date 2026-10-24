@@ -49,7 +49,13 @@ describe('proposal composition', () => {
       '20261016010000_taxguard_portal_consultations.sql',
       '20261016020000_taxguard_staff_onboarding_status.sql', '20261016030000_taxguard_appointment_rooms.sql',
       '20261016040000_taxguard_notification_preferences.sql', '20261016050000_taxguard_contact_intake.sql',
-      '20261017000000_taxguard_membership_session_proof.sql']));
+      '20261017000000_taxguard_membership_session_proof.sql', '20261018000000_taxguard_case_validate_replacement_evidence.sql',
+      '20261018010000_taxguard_billing_refund_records.sql', '20261018020000_taxguard_client_id_sequence_initialize.sql',
+      '20261018030000_taxguard_client_onboarding.sql', '20261018040000_taxguard_billing_transition_audit.sql',
+      '20261018050000_taxguard_case_workpaper_evidence.sql', '20261018060000_taxguard_engagement_scoped_access.sql',
+      '20261018070000_taxguard_ledger_year_scope.sql', '20261018080000_taxguard_document_request_scope.sql',
+      '20261018090000_taxguard_case_assignment_liveness.sql', '20261018100000_taxguard_practice_client_scope.sql',
+      '20261018105000_taxguard_case_restaff.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
     await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236|^2026101237|^2026101238|^20261013|^20261014|^20261015|^20261016/);
@@ -69,7 +75,7 @@ describe('database-wide security invariants', () => {
   });
   it('no taxguard function added by the Claude proposals is executable by anon or authenticated', async () => {
     const rows = (await fixture.pg.query<{ proname: string }>(`SELECT DISTINCT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public' AND (p.proname LIKE 'taxguard\\_ledger\\_%' OR p.proname LIKE 'taxguard\\_comm\\_%' OR p.proname LIKE 'taxguard\\_apt\\_%' OR p.proname LIKE 'taxguard\\_audit\\_center\\_%' OR p.proname LIKE 'taxguard\\_legal\\_%' OR p.proname LIKE 'taxguard\\_consult\\_%' OR p.proname LIKE 'taxguard\\_rar\\_%' OR p.proname LIKE 'taxguard\\_portal\\_%' OR p.proname LIKE 'taxguard\\_practice\\_%' OR p.proname LIKE 'taxguard\\_case\\_%' OR p.proname LIKE 'taxguard\\_doc\\_%' OR p.proname LIKE 'taxguard\\_bill\\_%' OR p.proname LIKE 'taxguard\\_b2t\\_%' OR p.proname LIKE 'taxguard\\_docreq\\_%' OR p.proname LIKE 'taxguard\\_client\\_notification%' OR p.proname LIKE 'taxguard\\_security\\_event%'
+      WHERE n.nspname = 'public' AND (p.proname LIKE 'taxguard\\_ledger\\_%' OR p.proname LIKE 'taxguard\\_comm\\_%' OR p.proname LIKE 'taxguard\\_apt\\_%' OR p.proname LIKE 'taxguard\\_audit\\_center\\_%' OR p.proname LIKE 'taxguard\\_legal\\_%' OR p.proname LIKE 'taxguard\\_consult\\_%' OR p.proname LIKE 'taxguard\\_rar\\_%' OR p.proname LIKE 'taxguard\\_portal\\_%' OR p.proname LIKE 'taxguard\\_practice\\_%' OR p.proname LIKE 'taxguard\\_case\\_%' OR p.proname LIKE 'taxguard\\_doc\\_%' OR p.proname LIKE 'taxguard\\_bill\\_%' OR p.proname LIKE 'taxguard\\_onb\\_%' OR p.proname LIKE 'taxguard\\_b2t\\_%' OR p.proname LIKE 'taxguard\\_docreq\\_%' OR p.proname LIKE 'taxguard\\_client\\_notification%' OR p.proname LIKE 'taxguard\\_security\\_event%'
         OR p.proname IN ('taxguard_session_actor','taxguard_list_own_sessions','taxguard_revoke_own_session','taxguard_revoke_other_own_sessions',
           'taxguard_admin_revoke_member_sessions','taxguard_list_own_security_events',
           'taxguard_staff_admin_session','taxguard_mfa_recovery_history','taxguard_mfa_recovery_step'))

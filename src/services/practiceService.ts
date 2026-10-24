@@ -17,7 +17,8 @@ export interface PracticeClientDetail {
   team: Array<{ assignmentId: string; role: string; userId: string; engagementId: string; taxYear: number; assignedBy: string; effectiveFrom: string }>;
   assignmentHistory: Array<{ role: string; previousUserId: string | null; newUserId: string; changedBy: string; reason: string; at: string }>;
   tasks: PracticeTask[];
-  deadlines: Array<{ deadlineId: string; title: string; category: string; dueDate: string; authorityType: string; status: string }>;
+  deadlines: Array<{ deadlineId: string; title: string; category: string; dueDate: string; authorityType: string; status: string; taxYear: number | null; caseId: string | null;
+    provenance?: { sourceCitation?: string | null } }>;
   notes: Array<{ noteId: string; body: string; authorUid: string; authorRole: string; createdAt: string; engagementId: string | null }>;
   activity: Array<{ action: string; actorUid: string; actorRole: string | null; at: string }>;
 }
@@ -66,7 +67,17 @@ export const practiceService = {
   createTask: (clientId: string, task: { title: string; assignedUserId?: string; dueDate?: string; engagementId?: string; priority?: string }, key: string) =>
     request('POST', c(clientId) + '/tasks', task, key),
   setTaskStatus: (clientId: string, taskId: string, status: string, version: number) => request('POST', c(clientId) + '/tasks/' + encodeURIComponent(taskId) + '/status', { status, version }),
+  addTaxYear: (clientId: string, engagementId: string, taxYear: number) =>
+    request('POST', c(clientId) + '/engagements/' + encodeURIComponent(engagementId) + '/tax-years', { taxYear }),
+  /** Statutory deadlines must cite their source; TaxGuard never invents a statutory date. */
+  addDeadline: (clientId: string, deadline: { title: string; category: string; dueDate: string; authorityType: string; sourceCitation?: string; taxYear?: number }, key: string) =>
+    request('POST', c(clientId) + '/deadlines', deadline, key),
+  resolveDeadline: (clientId: string, deadlineId: string, status: 'MET' | 'WAIVED', reason?: string) =>
+    request('POST', c(clientId) + '/deadlines/' + encodeURIComponent(deadlineId) + '/resolve', { status, ...(reason ? { reason } : {}) }),
 };
+export const DEADLINE_CATEGORIES = ['client_request', 'internal_prep', 'review', 'signature', 'filing', 'estimated_payment', 'extension', 'notice_response',
+  'bookkeeping_close', 'renewal'] as const;
+export const DEADLINE_AUTHORITIES = ['INTERNAL', 'CLIENT_COMMITMENT', 'PROVIDER', 'ESTIMATED', 'MANUAL', 'STATUTORY'] as const;
 const MESSAGES: Record<string, string> = {
   PRACTICE_MANAGER_REQUIRED: 'Only a practice manager or administrator can make this change.',
   PRACTICE_VERSION_CONFLICT: 'This record changed since it was loaded. Refresh and try again.',
@@ -79,6 +90,14 @@ const MESSAGES: Record<string, string> = {
   CLIENT_NOT_ACTIVE: 'This client is archived. Reactivate it before adding work.',
   PRACTICE_STORE_UNAVAILABLE: 'Client and engagement management is not enabled in this environment.',
   CLIENT_NOT_FOUND: 'That client was not found or is not assigned to you.',
+  TAX_YEAR_EXISTS: 'That tax year is already part of the engagement.',
+  ENGAGEMENT_CLOSED: 'This engagement is closed; tax years can no longer be added.',
+  ENGAGEMENT_NOT_FOUND: 'That engagement was not found or is not assigned to you.',
+  CASE_NOT_FOUND: 'That case was not found or is not assigned to you.',
+  PRACTICE_INPUT_INVALID: 'Check the entries. A statutory deadline needs its source citation; years run from 2000 to 2100.',
+  DEADLINE_ALREADY_RESOLVED: 'This deadline was already met or waived.',
+  DEADLINE_NOT_FOUND: 'That deadline was not found or is not assigned to you.',
+  DEADLINE_WAIVER_NOT_AUTHORIZED: 'Only a practice manager can waive a deadline, and statutory deadlines cannot be waived.',
 };
 export function practiceMessage(error: unknown): string {
   if (error instanceof PracticeRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];

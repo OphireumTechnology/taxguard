@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ENGAGEMENT_TRANSITIONS, newPracticeKey, practiceMessage, practiceService, type PracticeClientDetail, type PracticeClientRow } from '../../services/practiceService';
+import { DEADLINE_AUTHORITIES, DEADLINE_CATEGORIES, ENGAGEMENT_TRANSITIONS, newPracticeKey, practiceMessage, practiceService, type PracticeClientDetail, type PracticeClientRow } from '../../services/practiceService';
 
 import { ConversationPanel } from '../communications/ConversationPanel';
 import { LegalMattersPanel } from '../legal/LegalMattersPanel';
@@ -22,6 +22,10 @@ export function PracticeClientsPanel() {
   const [noteBody, setNoteBody] = useState('');
   const [taskForm, setTaskForm] = useState({ title: '', assignedUserId: '', dueDate: '' });
   const [statusReason, setStatusReason] = useState('');
+  const [yearForms, setYearForms] = useState<Record<string, string>>({});
+  const blankDeadline = { title: '', category: 'internal_prep', dueDate: '', authorityType: 'INTERNAL', sourceCitation: '', taxYear: '' };
+  const [deadlineForm, setDeadlineForm] = useState(blankDeadline);
+  const [deadlineReason, setDeadlineReason] = useState('');
   const keys = useRef<Record<string, string>>({});
   const keyFor = (action: string) => (keys.current[action] ??= newPracticeKey());
   const selectedRef = useRef(selected); selectedRef.current = selected;
@@ -77,7 +81,12 @@ export function PracticeClientsPanel() {
         {d.engagements.length === 0 && <p>No engagements yet.</p>}
         <ul>{d.engagements.map(e => <li key={e.engagementId}><strong>{e.title}</strong> · {label(e.type)} · {e.status} · tax years {e.taxYears.map(y => y.taxYear).join(', ')}
           {(ENGAGEMENT_TRANSITIONS[e.status] || []).map(next => <button key={next} type="button" disabled={busy}
-            onClick={() => run('eng-status', () => practiceService.setEngagementStatus(d.client.clientId, e.engagementId, next, e.version, statusReason || undefined), `Engagement set to ${label(next)}.`)}>Set {label(next)}</button>)}</li>)}</ul>
+            onClick={() => run('eng-status', () => practiceService.setEngagementStatus(d.client.clientId, e.engagementId, next, e.version, statusReason || undefined), `Engagement set to ${label(next)}.`)}>Set {label(next)}</button>)}
+          {e.status in ENGAGEMENT_TRANSITIONS && <form aria-label={`Add tax year to ${e.title}`} onSubmit={ev => { ev.preventDefault();
+              void run('tax-year', () => practiceService.addTaxYear(d.client.clientId, e.engagementId, Number(yearForms[e.engagementId])), 'Tax year added.')
+                .then(ok => { if (ok) setYearForms(f => ({ ...f, [e.engagementId]: '' })); }); }}>
+            <label>Add tax year<input type="number" min={2000} max={2100} value={yearForms[e.engagementId] ?? ''} onChange={ev => setYearForms(f => ({ ...f, [e.engagementId]: ev.target.value }))} /></label>
+            <button disabled={busy || !/^\d{4}$/.test(yearForms[e.engagementId] ?? '')}>Add year</button></form>}</li>)}</ul>
         <label>Reason for hold, cancellation or archive (recorded)<input value={statusReason} maxLength={500} onChange={e => setStatusReason(e.target.value)} /></label>
         <form onSubmit={e => { e.preventDefault(); void run('engagement', () => practiceService.createEngagement(d.client.clientId, { title: engagementForm.title, type: engagementForm.type,
             taxYears: [Number(engagementForm.taxYear)] }, keyFor('engagement')), 'Engagement created as draft.'); }}>
@@ -110,6 +119,30 @@ export function PracticeClientsPanel() {
           <label>Assignee<input maxLength={128} value={taskForm.assignedUserId} onChange={e => setTaskForm({ ...taskForm, assignedUserId: e.target.value })} /></label>
           <label>Due<input type="date" value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} /></label>
           <button disabled={busy}>Add task</button>
+        </form>
+        <h4>Deadlines</h4>
+        {d.deadlines.length === 0 && <p>No deadlines recorded.</p>}
+        {d.deadlines.length > 0 && <table><caption className="sr-only">Client deadlines</caption>
+          <thead><tr>{['Deadline', 'Due', 'Authority', 'Tax year', 'Status', 'Resolve'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+          <tbody>{d.deadlines.map(dl => <tr key={dl.deadlineId}><td>{dl.title}<small> · {label(dl.category)}</small></td><td>{dl.dueDate.slice(0, 10)}</td>
+            <td>{label(dl.authorityType.toLowerCase())}{dl.provenance?.sourceCitation ? ` · ${dl.provenance.sourceCitation}` : ''}</td><td>{dl.taxYear ?? ''}</td><td>{dl.status}</td>
+            <td>{['PENDING', 'OVERDUE'].includes(dl.status) && <>
+              <button type="button" disabled={busy} onClick={() => run('deadline-met', () => practiceService.resolveDeadline(d.client.clientId, dl.deadlineId, 'MET', deadlineReason || undefined), 'Deadline marked met.')}>Mark met</button>
+              {dl.authorityType !== 'STATUTORY' && <button type="button" disabled={busy || deadlineReason.trim().length < 5}
+                onClick={() => run('deadline-waive', () => practiceService.resolveDeadline(d.client.clientId, dl.deadlineId, 'WAIVED', deadlineReason), 'Deadline waived.')}>Waive</button>}
+            </>}</td></tr>)}</tbody></table>}
+        <label>Reason for waiving a deadline (recorded; managers only)<input value={deadlineReason} maxLength={500} onChange={e => setDeadlineReason(e.target.value)} /></label>
+        <form aria-label="Add a deadline" onSubmit={e => { e.preventDefault(); void run('deadline', () => practiceService.addDeadline(d.client.clientId, {
+            title: deadlineForm.title.trim(), category: deadlineForm.category, dueDate: new Date(deadlineForm.dueDate + 'T00:00:00Z').toISOString(), authorityType: deadlineForm.authorityType,
+            ...(deadlineForm.sourceCitation.trim() ? { sourceCitation: deadlineForm.sourceCitation.trim() } : {}), ...(deadlineForm.taxYear ? { taxYear: Number(deadlineForm.taxYear) } : {}) },
+            keyFor('deadline')), 'Deadline recorded.').then(ok => { if (ok) setDeadlineForm(blankDeadline); }); }}>
+          <label>Deadline<input required minLength={3} maxLength={255} value={deadlineForm.title} onChange={e => setDeadlineForm({ ...deadlineForm, title: e.target.value })} /></label>
+          <label>Category<select value={deadlineForm.category} onChange={e => setDeadlineForm({ ...deadlineForm, category: e.target.value })}>{DEADLINE_CATEGORIES.map(x => <option key={x} value={x}>{label(x)}</option>)}</select></label>
+          <label>Due date<input type="date" required value={deadlineForm.dueDate} onChange={e => setDeadlineForm({ ...deadlineForm, dueDate: e.target.value })} /></label>
+          <label>Authority<select value={deadlineForm.authorityType} onChange={e => setDeadlineForm({ ...deadlineForm, authorityType: e.target.value })}>{DEADLINE_AUTHORITIES.map(x => <option key={x} value={x}>{label(x.toLowerCase())}</option>)}</select></label>
+          <label>Source citation{deadlineForm.authorityType === 'STATUTORY' ? ' (required for a statutory deadline)' : ' (optional)'}<input maxLength={300} value={deadlineForm.sourceCitation} onChange={e => setDeadlineForm({ ...deadlineForm, sourceCitation: e.target.value })} /></label>
+          <label>Tax year (optional)<input type="number" min={2000} max={2100} value={deadlineForm.taxYear} onChange={e => setDeadlineForm({ ...deadlineForm, taxYear: e.target.value })} /></label>
+          <button disabled={busy || !deadlineForm.dueDate || (deadlineForm.authorityType === 'STATUTORY' && deadlineForm.sourceCitation.trim().length < 5)}>Add deadline</button>
         </form>
         <h4>Notes</h4>
         <form onSubmit={e => { e.preventDefault(); void run('note', () => practiceService.addNote(d.client.clientId, noteBody), 'Note added.').then(ok => { if (ok) setNoteBody(''); }); }}>

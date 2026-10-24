@@ -28,7 +28,8 @@
     "test:identity": "vitest run staffInvitation staffActivation staffMembership durableMembership staffSessionEpoch staffAccess mfaEnrollment providerOnlyIdentityFlow supabaseStaffMfaClient supabaseProductionInfrastructure productionApiHttp clientDataIsolationSecurity clientOneTimeOnboardingAndProfile finalReleaseGateVerification clientRegistrationAndOnboardingFlow stageTwoReconciliationAuthorization",
     "test:phase10-negative": "vitest run stagingEnvironmentValidator providerValidationTarget billingClientProjection securityEvents malwareScanning healthEndpoints migrationReadinessAudit proposalCompositionSecurity legacyRouteRetirement aiCommissioningMatrix aiGovernedGateway",
     "test:mutation:phase10": "node scripts/mutation/phase10-mutations.mjs",
-    "migrations:manifest": "node scripts/migrations/build-migration-manifest.mjs"
+    "migrations:manifest": "node scripts/migrations/build-migration-manifest.mjs",
+    "staging:not-valid:review": "tsx scripts/staging/not-valid-review-report.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

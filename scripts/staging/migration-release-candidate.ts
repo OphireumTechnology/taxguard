@@ -53,7 +53,7 @@ async function main() {
     // Reapply only the proposal family already proven replay-safe by the real-PostgreSQL suite.
     // Historical proposals remain reviewable but are not represented as universally idempotent.
     const replayEntries = manifest.entries.filter(entry => entry.kind === 'proposal' &&
-      /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017/.test(entry.file.split('/').at(-1)!));
+      /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017|^20261018/.test(entry.file.split('/').at(-1)!));
     for (const entry of replayEntries) await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
     const replayFingerprint = await schemaFingerprint(canonical.pool);
     if (replayFingerprint.sha256 !== initialFingerprint.sha256) throw new Error('MIGRATION_CANDIDATE_REPLAY_DRIFT');

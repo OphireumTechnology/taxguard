@@ -4,6 +4,7 @@
  * brute-force lockout, session validation, and MFA.
  */
 
+import { MAX_PROVIDER_ACCESS_TOKEN_LENGTH, sessionVerificationFailures } from '../authFailureLimiter';
 import { Router, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { db } from '../db';
@@ -59,9 +60,20 @@ authRouter.use((req, res, next) => {
  * supplied by the browser.
  */
 authRouter.post('/supabase-session', async (req: Request, res: Response) => {
-  const { accessToken } = req.body || {};
+  const { accessToken, portal } = req.body || {};
+  // The sign-in page that sent the request. It can only restrict: a staff sign-in never creates a client.
+  if (portal !== undefined && portal !== 'staff' && portal !== 'client') {
+    return res.status(400).json({ error: 'Unknown sign-in portal.', code: 'PORTAL_INVALID' });
+  }
 
-  if (!accessToken || typeof accessToken !== 'string') {
+  const source = req.ip || 'unknown';
+  const retryAfter = sessionVerificationFailures.blockedFor(source);
+  if (retryAfter > 0) {
+    res.setHeader('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'Too many failed sign-in attempts. Try again later.', code: 'SESSION_VERIFICATION_RATE_LIMITED' });
+  }
+  if (!accessToken || typeof accessToken !== 'string' || accessToken.length > MAX_PROVIDER_ACCESS_TOKEN_LENGTH) {
+    sessionVerificationFailures.recordFailure(source);
     return res.status(400).json({ error: 'Supabase access token is required.', code: 'TOKEN_REQUIRED' });
   }
 
@@ -70,6 +82,7 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
   try {
     verifiedUser = await verifySupabaseAccessToken(accessToken);
   } catch (error: any) {
+    sessionVerificationFailures.recordFailure(source);
     console.warn('[Supabase Session] Token verification failed:', error?.message);
     return res.status(401).json({ error: 'Supabase authentication could not be verified.', code: 'INVALID_TOKEN' });
   }
@@ -86,7 +99,7 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
 
   try {
     const sessions = new SupabaseDurableSessions();
-    const session = await sessions.create(verifiedUser);
+    const session = await sessions.create(verifiedUser, { allowClientProvisioning: portal !== 'staff' });
 
     let onboardingBundle = null;
     if (!sessions.usesDurableAuthority && session.user.role === 'client' && session.clientId) {

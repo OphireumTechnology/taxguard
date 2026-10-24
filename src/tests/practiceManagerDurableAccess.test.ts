@@ -10,7 +10,7 @@ afterEach(() => { vi.unstubAllEnvs(); });
 const allowed = (method: string, path: string) => practiceManagerRequestAllowed('practice_manager', method, path);
 const OPEN: Array<[string, string]> = [['GET', '/api/practice/clients'], ['GET', '/api/practice/clients/c1'], ['POST', '/api/practice/clients/c1/engagements'],
   ['POST', '/api/practice/clients/c1/engagements/e1/team'], ['POST', '/api/practice/clients/c1/team/a1/revoke'], ['GET', '/api/cases?role=reviewer'], ['GET', '/api/cases/?role=reviewer'], ['GET', '/api/cases/report'],
-  ['POST', '/api/cases'], ['POST', '/api/cases/k1/advance'], ['GET', '/api/vault/review-queue'], ['POST', '/api/vault/clients/c1/documents/d1/versions/1/review'],
+  ['POST', '/api/cases'], ['POST', '/api/cases/k1/advance'], ['POST', '/api/cases/k1/team'], ['GET', '/api/tax-engine/rule-sets/r1/coverage'], ['GET', '/api/vault/review-queue'], ['POST', '/api/vault/clients/c1/documents/d1/versions/1/review'],
   ['GET', '/api/billing/catalog'], ['POST', '/api/billing/catalog'], ['POST', '/api/billing/clients/c1/invoices/i1/approve'], ['POST', '/api/billing/clients/c1/credits/r1/apply'],
   ['GET', '/api/communications/inbox'], ['GET', '/api/communications/clients/c1/threads'], ['GET', '/api/communications/clients/c1/threads/thr_1'],
   ['POST', '/api/communications/clients/c1/threads'], ['POST', '/api/communications/clients/c1/threads/thr_1/messages'], ['POST', '/api/communications/clients/c1/threads/thr_1/status'],
@@ -18,7 +18,8 @@ const OPEN: Array<[string, string]> = [['GET', '/api/practice/clients'], ['GET',
   ['POST', '/api/scheduling/clients/c1/appointments/apt_1/reschedule'], ['POST', '/api/scheduling/clients/c1/appointments/apt_1/status'],
   ['GET', '/api/legal-matters/clients/c1/matters'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/status'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/documents'],
   ['GET', '/api/consultations/requests'], ['POST', '/api/consultations/requests/csr_1/decision'], ['POST', '/api/consultations/requests/csr_1/convert'],
-  ['GET', '/api/client-portal/clients/c1/engagements'], ['GET', '/api/reassignment/queue'], ['POST', '/api/reassignment/queue/rar_1/review']];
+  ['GET', '/api/client-portal/clients/c1/engagements'], ['GET', '/api/reassignment/queue'], ['POST', '/api/reassignment/queue/rar_1/review'],
+  ['GET', '/api/stage-one/queue'], ['GET', '/api/stage-one/clients/c1'], ['POST', '/api/stage-one/clients/c1/decision']];
 
 describe('practice manager durable capability list', () => {
   it('keeps every durable endpoint closed when the durable store is not configured', () => {
@@ -45,7 +46,10 @@ describe('practice manager durable capability list', () => {
       ['POST', '/api/vault/clients/c1/documents/d1/versions/x/review'], ['GET', '/api/operations/assignments'],
       ['POST', '/api/communications/inbox'], ['GET', '/api/communications/clients/c1/threads/thr_1/messages'], ['POST', '/api/communications/clients/c1/threads/thr_1/delete'],
       ['GET', '/api/audit-center/events'], ['POST', '/api/scheduling/schedule'], ['POST', '/api/scheduling/clients/c1/appointments/apt_1/delete'], ['POST', '/api/legal-matters/clients/c1/matters/lgl_1/sign'],
-      ['POST', '/api/reassignment/clients/c1/requests'], ['POST', '/api/consultations/requests'], ['POST', '/api/public/consultation-requests']] as Array<[string, string]>)
+      ['POST', '/api/reassignment/clients/c1/requests'], ['POST', '/api/consultations/requests'], ['POST', '/api/public/consultation-requests'],
+      // Stage 01: managers review and decide; they never edit or submit a client's onboarding.
+      ['POST', '/api/stage-one/me'], ['POST', '/api/stage-one/me/submit'], ['POST', '/api/stage-one/queue'], ['GET', '/api/stage-one/clients/c1/decision'],
+      ['POST', '/api/stage-one/clients/c1/../../me/submit']] as Array<[string, string]>)
       expect(allowed(m, p), `${m} ${p}`).toBe(false);
     expect(practiceManagerRequestAllowed('accountant', 'POST', '/api/bookkeeping/journal-entries')).toBe(true);
   });

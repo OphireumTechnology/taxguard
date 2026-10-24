@@ -153,6 +153,54 @@ describe('billing: maker-checker approval, numbering and sandbox payment', () =>
     // A second payment of the settled invoice is refused.
     const again = await api(clientToken, 'POST', `/api/billing/clients/${C}/invoices/${invoiceId}/pay-sandbox`, { amount: '1.00', testCard: SANDBOX_SUCCESS_CARD });
     expect(again.status).toBeGreaterThanOrEqual(400);
+    // The issued invoice document downloads as a PDF of the recorded amounts; nothing is delivered.
+    const [download] = await Promise.all([page.waitForEvent('download'),
+      page.getByRole('button', { name: /^Download invoice INV-\d{4}-000001 \(PDF\)$/ }).click()]);
+    expect(download.suggestedFilename()).toMatch(/^invoice-INV-\d{4}-000001\.pdf$/);
+    const fs = await import('node:fs');
+    const pdf = fs.readFileSync((await download.path())!).toString('latin1');
+    expect(pdf.startsWith('%PDF-1.4')).toBe(true);
+    expect(pdf).toContain('Status: PAID');
+    expect(pdf).toMatch(/Balance due\s+0\.00 USD/);
+    await sees(page, 'Invoice document downloaded. It is not a receipt.');
     expect(realErrors(client)).toEqual([]);
+  });
+
+  it('a manager records a refund made outside TaxGuard exactly once; the client never sees its reason', async () => {
+    const paymentId = (await api(mgrToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId).payments[0].paymentId;
+    // Only managers record refunds.
+    expect((await api(acctToken, 'POST', `/api/billing/clients/${C}/payments/${paymentId}/refund`, { amount: '1.00', reason: 'Synthetic accountant attempt' })).body.code).toBe('BILLING_MANAGER_REQUIRED');
+    const { page } = mgr;
+    await page.getByRole('button', { name: 'Open client billing' }).click();
+    await page.getByRole('button', { name: `Record a refund for payment ${paymentId}` }).click();
+    const form = page.getByRole('form', { name: `Refund for payment ${paymentId}` });
+    // A refused request keeps the form and what was entered; nothing is recorded.
+    await form.getByLabel('Refund amount').fill('500.00');
+    await form.getByLabel('Refund reason (recorded)').fill('Synthetic overpayment returned by cheque');
+    await form.getByRole('button', { name: 'Record refund' }).click();
+    await sees(page, 'The refund is larger than the amount still refundable on this payment.');
+    expect(await form.getByLabel('Refund amount').inputValue()).toBe('500.00');
+    expect(await form.getByLabel('Refund reason (recorded)').inputValue()).toBe('Synthetic overpayment returned by cheque');
+    expect((await api(mgrToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId).payments[0].refundedAmount).toBe('0.00');
+    // The corrected request for the same operation is accepted (the refused attempt recorded nothing).
+    await form.getByLabel('Refund amount').fill('10.00');
+    await form.getByRole('button', { name: 'Record refund' }).click();
+    await sees(page, 'Refund recorded. TaxGuard records refunds made outside the system; no money was moved.');
+    const after = (await api(mgrToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId);
+    expect(after).toMatchObject({ amountPaid: '440.00', balanceDue: '10.00', status: 'PARTIALLY_PAID' });
+    expect(after.payments[0].refundedAmount).toBe('10.00');
+    // A deliberately new refund with identical details is a new operation (new key) and is recorded too.
+    await page.getByRole('button', { name: `Record a refund for payment ${paymentId}` }).click();
+    await form.getByLabel('Refund amount').fill('10.00');
+    await form.getByLabel('Refund reason (recorded)').fill('Synthetic overpayment returned by cheque');
+    await form.getByRole('button', { name: 'Record refund' }).click();
+    await page.getByRole('form', { name: `Refund for payment ${paymentId}` }).waitFor({ state: 'detached' });
+    const twice = (await api(mgrToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId);
+    expect(twice).toMatchObject({ amountPaid: '430.00', balanceDue: '20.00' });
+    expect(twice.payments[0].refundedAmount).toBe('20.00');
+    const clientView = (await api(clientToken, 'GET', `/api/billing/clients/${C}/invoices`)).body.items.find((i: any) => i.invoiceId === invoiceId);
+    expect(clientView.payments[0].refundedAmount).toBe('20.00');
+    expect(JSON.stringify(clientView)).not.toMatch(/overpayment returned|e2e-mgr/);
+    expect(realErrors(mgr)).toEqual([]);
   });
 });

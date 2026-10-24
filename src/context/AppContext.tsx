@@ -147,7 +147,7 @@ interface AppContextType {
   onboardingState: OnboardingState | null;
   onboardingProgress: { percentComplete: number; missingRequirements: string[]; nextAction: string } | null;
   securityTestResults: SecurityTestResult[];
-  login: (email: string, password: string, mfaCode?: string) => Promise<{
+  login: (email: string, password: string, mfaCode?: string, options?: { portal?: 'staff' | 'client' }) => Promise<{
     success: boolean;
     mfaRequired?: boolean;
     mfaEnrollmentRequired?: boolean;
@@ -203,6 +203,16 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+/**
+ * Portal intent for a provider session restored without a sign-in form (reload, interrupted sign-in, provider
+ * auth events). On staff pages it is 'staff', so restoring there never self-registers a client; existing
+ * clients still restore. Elsewhere it is left unset (client self-registration, e.g. e-mail verification).
+ */
+export function restoredSessionPortal(pathname: string): 'staff' | undefined {
+  return /^\/staff(\/|$)/i.test(pathname) ? 'staff' : undefined;
+}
+const currentRestorePortal = () => (typeof window === 'undefined' ? undefined : restoredSessionPortal(window.location.pathname || ''));
 
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -626,6 +636,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     options?: {
       navigateIfAuthRoute?: boolean;
       trackRegistrationStates?: boolean;
+      portal?: 'staff' | 'client';
     }
   ): Promise<{ user: User; redirectPage: PageRoute }> => {
     clearTaxpayerState();
@@ -636,7 +647,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRegistrationState('ESTABLISHING_SESSION');
     }
 
-    const liveSession = await api.auth.supabaseSession({ accessToken });
+    const liveSession = await api.auth.supabaseSession({ accessToken, ...(options?.portal ? { portal: options.portal } : {}) });
     if (!liveSession?.token || !liveSession?.user) {
       const err = new Error('A secure TaxGuard server session could not be established.') as Error & {
         code?: ControlledAuthErrorCode;
@@ -825,8 +836,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 'client_onboarding'
               ].includes(currentRoute);
 
+            const restorePortal = currentRestorePortal();
             await establishSupabaseServerSession(sbAccessToken, {
-              navigateIfAuthRoute: isAuthEntryRoute
+              navigateIfAuthRoute: isAuthEntryRoute,
+              ...(restorePortal ? { portal: restorePortal } : {})
             });
             if (active) {
               setAuthLifecycleState('AUTHENTICATED');
@@ -866,9 +879,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!existingToken) {
           try {
             authOperationInProgressRef.current = true;
+            const restorePortal = currentRestorePortal();
             await establishSupabaseServerSession(session.access_token, {
               navigateIfAuthRoute: true,
-              trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED'
+              trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED',
+              ...(restorePortal ? { portal: restorePortal } : {})
             });
           } catch (err) {
             console.warn('[TaxGuard Auth] Failed to bridge Supabase auth event:', err);
@@ -954,7 +969,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = async (
     email: string,
     password: string,
-    mfaCode?: string
+    mfaCode?: string,
+    loginOptions?: { portal?: 'staff' | 'client' }
   ): Promise<{
     success: boolean;
     mfaRequired?: boolean;
@@ -1055,7 +1071,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const { redirectPage } = await establishSupabaseServerSession(accessToken, {
-        navigateIfAuthRoute: true
+        navigateIfAuthRoute: true,
+        ...(loginOptions?.portal ? { portal: loginOptions.portal } : {})
       });
       return { success: true, redirectPage };
     } catch (err: any) {
@@ -1207,7 +1224,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = async () => {
     authOperationInProgressRef.current = true;
     const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('taxguard_environment') === 'demo';
-    const isStaffSession = Boolean(currentUser && ['accountant', 'preparer', 'reviewer', 'senior_reviewer', 'admin', 'super_admin', 'billing', 'compliance', 'operations'].includes(currentUser.role));
+    // Every non-client account signs in at the staff portal (practice managers, bookkeepers and recruiters
+    // included), so it returns there; only client accounts go back to the client sign-in page.
+    const isStaffSession = Boolean(currentUser && !['client', 'prospective_client'].includes(currentUser.role));
     const logoutTargetPage: PageRoute = isStaffSession ? 'staff_login' : 'client_login';
     const logoutTargetPath = isStaffSession ? '/staff/login' : '/portal/login';
 

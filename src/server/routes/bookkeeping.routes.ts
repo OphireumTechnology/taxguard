@@ -19,6 +19,7 @@ import { globalBookkeepingEngine } from '../taxguard/bookkeeping/bookkeeping.eng
 import { globalAccountingSyncService } from '../taxguard/bookkeeping/accountingSync.service';
 import { registerLedgerDispatch } from './ledgerDispatch.routes';
 import { selectLedger } from '../taxguard/bookkeeping/ledgerBackend';
+import { explicitTaxYear, hasClientYearAccess, reachableClientIds } from '../staffScopedGrants';
 
 export const bookkeepingRouter = Router();
 
@@ -27,7 +28,8 @@ bookkeepingRouter.get('/bookkeeper-clients', authenticateToken, (req: Authentica
   res.setHeader('Cache-Control','no-store');
   const user=req.user!;
   if(user.role!=='bookkeeper' || user.status!=='active' || !user.tenantId || (process.env.NODE_ENV==='production' && user.tenantId!==process.env.TAXGUARD_TENANT_ID?.trim()))return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
-  return res.json({tenantId:user.tenantId,clientIds:[...new Set(user.authorizedClientIds||[])]});
+  // Whole-client grants plus clients reachable through an engagement / tax-year scoped grant.
+  return res.json({tenantId:user.tenantId,clientIds:reachableClientIds(user)});
 });
 bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, async (req: AuthenticatedRequest, res) => {
   res.setHeader('Cache-Control','no-store');
@@ -36,7 +38,7 @@ bookkeepingRouter.get('/bookkeeper-dashboard', authenticateToken, async (req: Au
   const tenant=user.tenantId;
   const client=typeof req.query.clientId==='string'?req.query.clientId:'';
   const year=Number(req.query.taxYear);
-  if(!tenant || !client || !user.authorizedClientIds?.includes(client) || (req.query.tenantId && req.query.tenantId!==tenant) || (req.get('x-tenant-id') && req.get('x-tenant-id')!==tenant)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
+  if(!tenant || !client || !hasClientYearAccess(user,client,explicitTaxYear(req)) || (req.query.tenantId && req.query.tenantId!==tenant) || (req.get('x-tenant-id') && req.get('x-tenant-id')!==tenant)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   if(process.env.NODE_ENV==='production' && (!process.env.TAXGUARD_TENANT_ID || tenant!==process.env.TAXGUARD_TENANT_ID.trim())) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
   if(!Number.isInteger(year) || year<2022 || year>9999) return res.status(400).json({code:'EXPLICIT_TAX_YEAR_REQUIRED'});
   const period=typeof req.query.periodId==='string'?req.query.periodId:undefined;
@@ -84,7 +86,8 @@ bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: Aut
     const user = req.user;
     const clientId = typeof req.query.clientId === 'string' ? req.query.clientId : typeof req.body?.clientId === 'string' ? req.body.clientId : '';
     const configured = (process.env.TAXGUARD_TENANT_ID || '').trim();
-    if (user.status !== 'active' || !user.tenantId || !clientId || !user.authorizedClientIds?.includes(clientId)
+    // A whole-client grant, or an engagement / tax-year scoped grant for exactly the requested tax year.
+    if (user.status !== 'active' || !user.tenantId || !clientId || !hasClientYearAccess(user, clientId, explicitTaxYear(req))
       || (process.env.NODE_ENV === 'production' && user.tenantId !== configured)) return res.status(403).json({code:'BOOKKEEPER_SCOPE_DENIED'});
     req.authorizedClientContext = { authUserId: user.id, clientId, tenantId: user.tenantId, role: user.role } as any;
     return next();
@@ -95,6 +98,18 @@ bookkeepingRouter.use(authenticateToken, blockRecruiterFromTaxRecords, (req: Aut
       : typeof req.body?.clientId === 'string'
         ? req.body.clientId
         : undefined;
+  // Durable ledger: staff staffed for one engagement and tax year reach that client for that year only (scoped
+  // grant from the durable session; owner decision 2026-10-19). The database re-checks the assignment on every
+  // call. Everything else (whole-client staff, administrators, local sessions) uses the shared resolver below.
+  const scopedUser = req.user;
+  const scopedYear = explicitTaxYear(req);
+  if (selectLedger().mode === 'durable' && scopedUser && scopedUser.status === 'active' && scopedUser.tenantId && requestedClientId
+      && !['client', 'prospective_client'].includes(scopedUser.role) && scopedYear !== undefined
+      && !scopedUser.authorizedClientIds?.includes(requestedClientId) && hasClientYearAccess(scopedUser, requestedClientId, scopedYear)
+      && (process.env.NODE_ENV !== 'production' || scopedUser.tenantId === (process.env.TAXGUARD_TENANT_ID || '').trim())) {
+    req.authorizedClientContext = { authUserId: scopedUser.id, clientId: requestedClientId, tenantId: scopedUser.tenantId, role: scopedUser.role } as any;
+    return next();
+  }
   const context = resolveAuthorizedClientContext(req, res, 'bookkeeping', requestedClientId);
   if (!context) return;
   const configuredTenant = (process.env.TAXGUARD_TENANT_ID || '').trim();

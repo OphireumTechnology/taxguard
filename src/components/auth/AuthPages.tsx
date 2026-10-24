@@ -931,7 +931,8 @@ export const StaffLoginPage: React.FC = () => {
     setError(null);
     setErrorReference(null);
     try {
-      const result: any = await login(email, password, mfaStep ? mfaCode : undefined);
+      // A staff sign-in never self-registers a client account (the server enforces it).
+      const result: any = await login(email, password, mfaStep ? mfaCode : undefined, { portal: 'staff' });
       if (result === true || (result && result.success)) {
         setMfaCode('');
         setMfaStep(false);

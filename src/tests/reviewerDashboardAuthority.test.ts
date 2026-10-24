@@ -79,6 +79,14 @@ describe('reviewer approval and return transactions',()=>{
     database.records.set(`taxguardTenants/${scope.tenantId}/members/reviewer`,{role:'reviewer',status:'active',credentialVerified:true,credentialType:'CPA',credentialExpiresAt:'2001-01-01'});
     await expect(repo.decideReviewerReturn(scope,'reviewer',decision)).rejects.toThrow('INDEPENDENT_PROFESSIONAL_REQUIRED');
   });
+  it('rejects a revoked reviewer assignment before decision or audit writes',async()=>{
+    const root=casePath(scope),assignmentPath=root+'/assignments/reviewer';
+    database.records.set(assignmentPath,{...database.records.get(assignmentPath),active:false});
+    await expect(repo.decideReviewerReturn(scope,'reviewer',decision)).rejects.toThrow('CASE_ACCESS_DENIED');
+    expect(database.records.get(root).version).toBe(1);
+    expect(database.records.get(root+'/audit/'+decision.operationId)).toBeUndefined();
+    expect(database.records.get(root+'/approvals/'+decision.operationId)).toBeUndefined();
+  });
   it.each([9,11,12,13,14,15])('rejects approval at stage %i without changing authority',async stage=>{
     const root=casePath(scope);database.records.set(root,{...database.records.get(root),activeStage:stage});
     await expect(repo.decideReviewerReturn(scope,'reviewer',decision)).rejects.toThrow('REVIEW_APPROVAL_NOT_PERMITTED');

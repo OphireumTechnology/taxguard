@@ -142,6 +142,18 @@ describe('POST /accountant/verify-evidence authorization', () => {
     expect(verifyEvidence).not.toHaveBeenCalled();
   });
 
+  it('never returns internal error detail to the caller (generic code, server-side log only)', async () => {
+    assign('staff-a', 'client-a');
+    verifyEvidence.mockImplementationOnce(() => { throw new Error('relation "taxguard_synthetic_private" does not exist (host 10.0.0.5)'); });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const result = await post({ documentId: 'document-1', clientId: 'client-a' });
+    expect(result.status).toBe(500);
+    expect(result.body).toEqual({ error: 'STAGE_WORKFLOW_UNAVAILABLE', code: 'STAGE_WORKFLOW_UNAVAILABLE' });
+    expect(JSON.stringify(result.body)).not.toMatch(/relation|taxguard_synthetic_private|10\.0\.0\.5/);
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/taxguard_synthetic_private|10\.0\.0\.5/);
+    log.mockRestore();
+  });
+
   it('uses the persisted document owner and session tenant, ignoring caller tenant and engagement fields', async () => {
     assign('staff-a', 'client-a');
     const result = await post({

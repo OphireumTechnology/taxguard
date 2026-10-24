@@ -32,7 +32,7 @@ const audits = async (action: string) => (await fixture.pg.query<{ metadata: any
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
-  await applyProposals(fixture.pg, /^20261012(240000|250000|260000|270000|310000)_|^20261014500000_|^20261015050000_/);
+  await applyProposals(fixture.pg, /^20261012(240000|250000|260000|270000|310000)_|^20261014500000_|^20261015050000_|^20261018000000_/);
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('${T}','${C}','dr-client','Synthetic Request Client'),('${T}','${OTHER}','dr-other','Other Synthetic');
     INSERT INTO taxguard_members(tenant_id,uid,role,status,client_id) SELECT '${T}', v->>'id', v->>'role', 'active', v->>'clientId' FROM jsonb_array_elements('${JSON.stringify(Object.values(people).filter(p => p.id !== 'dr-foreign'))}'::jsonb) v;
     INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('tenantB','dr-foreign','practice_manager','active');`);
@@ -192,10 +192,25 @@ describe('case stage 2 and 3 integration', () => {
     version = (await cases.advance(T, created.caseId, 'dr-rev', 2, version, attest2)).version;
     as('client'); await upload(engagementId, 2025, 'correspondence');
     const attest3 = { confirmed: ['documents_reviewed_for_completeness', 'discrepancies_recorded_or_resolved'], statement: 'Synthetic reviewer attestation for testing.' };
-    await expect(cases.advance(T, created.caseId, 'dr-rev', 3, version, attest3)).rejects.toMatchObject({ code: 'STAGE_GATE_NOT_MET', failedChecks: ['noDocumentsAwaitingReview'] });
-    const pending = (await fixture.pg.query<{ document_id: string; row_version: number }>(`SELECT document_id, row_version FROM taxguard_documents WHERE client_id = $1 AND status = 'PENDING_REVIEW'`, [C])).rows;
+    // The identity document's replacement (requested earlier) has not arrived: Validate is blocked for that too.
+    await expect(cases.advance(T, created.caseId, 'dr-rev', 3, version, attest3)).rejects.toMatchObject({ code: 'STAGE_GATE_NOT_MET',
+      failedChecks: ['noDocumentsAwaitingReview', 'noOutstandingReplacementRequests'] });
+    const pending = (await fixture.pg.query<{ document_id: string; version: number; row_version: number }>(`SELECT document_id, version, row_version FROM taxguard_documents WHERE client_id = $1 AND status = 'PENDING_REVIEW'`, [C])).rows;
     as('rev');
-    for (const d of pending) await call('POST', `/clients/${C}/documents/${d.document_id}/versions/1/review`, { decision: 'approve', rowVersion: d.row_version });
+    for (const d of pending) await call('POST', `/clients/${C}/documents/${d.document_id}/versions/${d.version}/review`, { decision: 'approve', rowVersion: d.row_version });
+    await expect(cases.advance(T, created.caseId, 'dr-rev', 3, version, attest3)).rejects.toMatchObject({ code: 'STAGE_GATE_NOT_MET', failedChecks: ['noOutstandingReplacementRequests'] });
+    // The client uploads the replacement as a new version; once it is reviewed, Validate can pass.
+    const replaced = (await fixture.pg.query<{ document_id: string; engagement_id: string }>(`SELECT document_id, engagement_id FROM taxguard_documents WHERE client_id = $1 AND status = 'REPLACEMENT_REQUESTED'`, [C])).rows;
+    expect(replaced).toHaveLength(1);
+    as('client');
+    const v2 = await fetch(origin + `/vault/clients/${C}/documents?` + new URLSearchParams({ engagementId: replaced[0].engagement_id, taxYear: '2025', category: 'identity',
+      fileName: 'synthetic-identity-v2.pdf', documentId: replaced[0].document_id }), { method: 'POST', headers: { 'content-type': 'application/pdf', 'idempotency-key': `dr-up-v2-${Date.now()}` },
+      body: Buffer.from('%PDF-1.4\nsynthetic replacement\n%%EOF') }).then(async r => ({ status: r.status, body: await r.json() as any }));
+    expect(v2.status).toBe(201); expect(v2.body.version).toBe(2);
+    await expect(cases.advance(T, created.caseId, 'dr-rev', 3, version, attest3)).rejects.toMatchObject({ code: 'STAGE_GATE_NOT_MET', failedChecks: ['noDocumentsAwaitingReview'] });
+    as('rev');
+    const v2row = (await fixture.pg.query<{ row_version: number }>(`SELECT row_version FROM taxguard_documents WHERE client_id = $1 AND document_id = $2 AND version = 2`, [C, replaced[0].document_id])).rows[0];
+    await call('POST', `/clients/${C}/documents/${replaced[0].document_id}/versions/2/review`, { decision: 'approve', rowVersion: v2row.row_version });
     expect((await cases.advance(T, created.caseId, 'dr-rev', 3, version, attest3)).activeStage).toBe(4);
     detail = await cases.detail(T, created.caseId, 'dr-mgr');
     const stage2 = detail.events.find((e: any) => e.toStage === 3);
