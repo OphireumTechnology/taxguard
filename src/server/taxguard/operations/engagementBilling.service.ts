@@ -5,7 +5,7 @@
  * and Stripe payment provider boundaries with durable webhook idempotency.
  */
 
-import { randomUUID, createHmac } from 'node:crypto';
+import { randomUUID, createHmac, timingSafeEqual } from 'node:crypto';
 import {
   ServiceCatalogItem,
   EngagementDossier,
@@ -18,6 +18,9 @@ import {
   roundCurrency
 } from './types';
 import { globalDurableIdempotencyService } from './durableIdempotency.service';
+
+/** Accepted clock difference between the provider's signature timestamp and this server (replay window). */
+const STRIPE_SIGNATURE_TOLERANCE_SECONDS = 300;
 
 export class EngagementBillingService {
   private catalog = new Map<string, ServiceCatalogItem>();
@@ -358,24 +361,25 @@ export class EngagementBillingService {
       throw new Error('PAYMENT_PROVIDER_NOT_CONFIGURED: Missing STRIPE_WEBHOOK_SECRET');
     }
 
-    // Verify HMAC SHA-256 signature
-    const signatureParts = signatureHeader.split(',').reduce((acc, part) => {
-      const [k, v] = part.trim().split('=');
-      if (k && v) acc[k] = v;
-      return acc;
-    }, {} as Record<string, string>);
+    // Verify the HMAC SHA-256 signature: a bounded timestamp (replay window), any of the v1 signatures (the
+    // provider sends several during secret rotation), compared in constant time.
+    const parts = String(signatureHeader || '').split(',').map(part => part.trim().split('='));
+    const timestamp = parts.find(([k]) => k === 't')?.[1];
+    const signatures = parts.filter(([k, v]) => k === 'v1' && v).map(([, v]) => v);
 
-    const timestamp = signatureParts['t'];
-    const expectedSig = signatureParts['v1'];
-
-    if (!timestamp || !expectedSig) {
+    if (!timestamp || !/^\d{1,12}$/.test(timestamp) || signatures.length === 0) {
       throw new Error('INVALID_STRIPE_SIGNATURE_HEADER');
     }
+    if (Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp)) > STRIPE_SIGNATURE_TOLERANCE_SECONDS) {
+      throw new Error('STRIPE_SIGNATURE_TIMESTAMP_OUT_OF_TOLERANCE');
+    }
 
-    const signedPayload = `${timestamp}.${payloadString}`;
-    const hmac = createHmac('sha256', secret).update(signedPayload).digest('hex');
-
-    if (hmac !== expectedSig) {
+    const expected = createHmac('sha256', secret).update(`${timestamp}.${payloadString}`).digest();
+    const matches = signatures.some(sig => {
+      if (!/^[0-9a-f]{64}$/i.test(sig)) return false;
+      return timingSafeEqual(Buffer.from(sig, 'hex'), expected);
+    });
+    if (!matches) {
       throw new Error('STRIPE_SIGNATURE_VERIFICATION_FAILED');
     }
 

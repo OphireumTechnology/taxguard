@@ -150,7 +150,13 @@ practiceOperationsRouter.post('/payments/webhook', async (req, res) => {
   try {
     const signature = req.headers['stripe-signature'] as string;
     const secret = process.env.STRIPE_WEBHOOK_SECRET || '';
-    const payload = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    // The signature covers the exact bytes received (captured by the JSON parser as rawBody); a re-serialised body
+    // differs from the provider's payload and must never be what is verified.
+    const raw = (req as any).rawBody;
+    if (!Buffer.isBuffer(raw) && typeof req.body !== 'string') {
+      return res.status(400).json({ error: 'WEBHOOK_RAW_BODY_REQUIRED', code: 'WEBHOOK_RAW_BODY_REQUIRED' });
+    }
+    const payload = Buffer.isBuffer(raw) ? raw.toString('utf8') : req.body;
 
     const result = await globalEngagementBillingService.handleStripeWebhook(payload, signature, secret);
     res.status(200).json(result);

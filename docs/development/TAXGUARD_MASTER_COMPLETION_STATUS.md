@@ -50,15 +50,18 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Practice-operations production refusal (Block 41).** Every `/api/operations` service is in memory. In
+- **Practice-operations production refusal (Block 41), published as `ad56f24`.** Its CI run 40102308061 was **cancelled
+  at the 30-minute job timeout** inside the automated tests step, which took 3.6 minutes on the previous run. No newer push was involved. The log needs authenticated access, and the full suite passes locally (5931) with no hanging handles. It is verified only once a later run passes on a head that contains it.
+  Details: Every `/api/operations` service is in memory. In
   production all routes now answer 503 `DURABLE_OPERATIONS_STORE_REQUIRED` after authentication and the client
   check; the payment webhook answers `PAYMENT_PROVIDER_NOT_COMMISSIONED`. `practiceOperationsProductionDurability.test`
   (37): 35 failed first. SEC-CLIENT-021 and 022a changed deliberately from 200 to the refusal, and their scoping moved
   to development cases.
   - **Audit of the remaining routers.** The bookkeeping fallthrough is already refused (regression guard added).
     Profile, accountant and tax forms were checked, and nothing was changed.
-  - **Recorded for provider commissioning.** The payment webhook signature check (raw body, constant time,
-    timestamp bound).
+- **Payment webhook signature verification (Block 42).** The development handler now verifies the raw bytes, bounds
+  the timestamp to 300 seconds, accepts rotated `v1` signatures and compares in constant time.
+  `stripeWebhookSignature.test` (10): 5 failed first. Production still refuses the webhook.
 
 ### Blocked (recorded, not worked around)
 

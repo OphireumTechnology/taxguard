@@ -559,10 +559,8 @@ could mean "the UI claims something the backend cannot deliver".
     production served the volatile job queue (a 200 listing and a 200 cancellation). They now assert the refusal,
     with no job content and unchanged job status. Their scoping assertions moved, unchanged, to the development
     cases. SEC-CLIENT-022 (client widening, 403) is unchanged.
-  - **Finding for when a provider is commissioned (not changed).** The development webhook handler verifies the
-    signature over re-serialised JSON rather than the raw body. It compares with `!==` rather than a
-    constant-time comparison, and it does not bound the timestamp. All three must be fixed before any real
-    payment webhook is accepted.
+  - **Webhook signature finding.** The development handler verified the signature over re-serialised JSON, compared
+    with `!==`, and did not bound the timestamp. Fixed in Block 42.
 
   *Remaining production routers, audited:*
   - `/api/bookkeeping`: the ledger dispatch's final catch-all already refuses every handler it does not serve
@@ -573,6 +571,19 @@ could mean "the UI claims something the backend cannot deliver".
     everything else refuses after the client check.
   - `/api/accountant`: durable and read-only.
   - `/api/tax-forms`: a static catalogue.
+
+  **Payment webhook signature verification (Block 42).** This is the development handler behind
+  `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:
+  - verifies the exact bytes received (`rawBody`, captured by `server.ts`). It refuses with 400
+    `WEBHOOK_RAW_BODY_REQUIRED` rather than verify a re-serialised body.
+  - refuses a timestamp more than 300 seconds from the server clock (`STRIPE_SIGNATURE_TIMESTAMP_OUT_OF_TOLERANCE`).
+  - refuses a non-numeric timestamp (`INVALID_STRIPE_SIGNATURE_HEADER`).
+  - accepts any one of several `v1` signatures, for secret rotation.
+  - compares in constant time on decoded 32-byte digests; malformed signatures are refused as
+    `STRIPE_SIGNATURE_VERIFICATION_FAILED`.
+
+  Tests: `stripeWebhookSignature.test` (10); 5 failed first (stale, future, rotation, non-numeric timestamp and raw
+  bytes). The existing replay and bad-signature cases in `taxGuardPracticeOperations.test` pass unchanged.
 
   **Still blocked:** no consent wording is approved, so no real client can submit. Counsel or a practitioner must
   approve the §7216 wording, purposes, recipients, duration and revocation (`phase11-owner-decisions.md`). The

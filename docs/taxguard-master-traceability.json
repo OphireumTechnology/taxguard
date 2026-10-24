@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "1ea26272becb0e799aeafa28f044d52a729c4b72e16eb4021d6419066648d95a",
-      "bytes": 59630,
+      "sha256": "959900faa69e02888423cc0939ec45e829dca3a92fa80a96c0cd9ee386a9ac85",
+      "bytes": 60450,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "bdcc0cf364e460f720de4bcc947b6eebfa43f4443a1267c3f623dfb3ca80990d",
-      "bytes": 6805,
+      "sha256": "c3666f81e166f3bff049cccaad71d68108a079bf89d991fd48fde7fd9fe92cb9",
+      "bytes": 7365,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7236,7 +7236,7 @@
     "src/server/taxguard/ocrProvider.ts": "7ece0f89567ea15108933b62b02e221a134d553a9ec5a8b3c2dfd3c7d6b0f1d0",
     "src/server/taxguard/operations/durableIdempotency.service.ts": "36e14828cdae5a962a2b21b4fbcbf4742c433d6001393ab707470320d2317645",
     "src/server/taxguard/operations/durableJobQueue.service.ts": "8be77c25efeebce1e8715fbff686023c4c1b5e2df702c0593f9bd35c300b97b2",
-    "src/server/taxguard/operations/engagementBilling.service.ts": "0197e9e564f6a8d8c6e6de1ec1151aa36cd6b0f30c22f3f3aea8ab46ec22433f",
+    "src/server/taxguard/operations/engagementBilling.service.ts": "fa33866e63357f72f5e034bce537cde6b1af7b878d1c8223e64b0ec22a5b4f70",
     "src/server/taxguard/providerReadiness.service.ts": "0cc09977a3ea0c1d076908dc27585a5e349042f35ef5752addb137d6e8e89228",
     "src/server/taxguard/stageEightServerGate.ts": "0df3b99d0c273d94e4181cd1e235936df375259e91a67de340cffaca4886f863",
     "src/server/taxguard/stageEighteenServerGate.ts": "ba92ef08d8c50ebe434bd3f55bf0167ca787a4360e7c842fc5d659983d8ca7fc",
