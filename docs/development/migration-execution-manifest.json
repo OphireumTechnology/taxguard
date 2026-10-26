@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 83,
+    "files": 84,
     "core": 13,
-    "proposals": 69,
-    "tables": 152,
-    "functions": 366,
-    "securityDefinerFunctions": 283,
+    "proposals": 70,
+    "tables": 154,
+    "functions": 374,
+    "securityDefinerFunctions": 290,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3512,6 +3512,43 @@
     },
     {
       "order": 83,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_tax_research_citations",
+        "taxguard_tax_research_memos"
+      ],
+      "functionsAdded": [
+        "taxguard_tax_research_cite",
+        "taxguard_tax_research_guard",
+        "taxguard_tax_research_json",
+        "taxguard_tax_research_list",
+        "taxguard_tax_research_open",
+        "taxguard_tax_research_review",
+        "taxguard_tax_research_scope",
+        "taxguard_tax_research_submit"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 2,
+      "indexesAdded": 2,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        36,
+        79
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 84,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

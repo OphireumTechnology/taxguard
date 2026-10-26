@@ -681,7 +681,34 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Agent evaluation and the activation gate (Block 50).** In the core AI schema an agent version could be set ACTIVE
+  **Tax research memos (Block 51, database layer).** Proposal `20261018150000_taxguard_tax_research` (review only)
+  makes research professional support for one tax case:
+  - **Scope.** A memo is reachable only through the case's existing access rule (`taxguard_case_actor`: a manager,
+    or a member with a live assignment to the case). Another client's, year's or tenant's memo reads as
+    `RESEARCH_MEMO_NOT_FOUND`.
+  - **Authority levels.** Every citation states one:
+    - AUTHORITATIVE: a VERIFIED source that covers the case year;
+    - SECONDARY or INTERNAL_GUIDANCE: a reference;
+    - AI_INFERENCE: no source and no reference.
+
+    Supplying the wrong kind of support is refused (`RESEARCH_INPUT_INVALID`), never silently dropped.
+  - **Approval** needs the case's reviewer, with a live assignment and not the preparer. It needs at least one
+    authoritative citation; AI inference and secondary support never suffice (`RESEARCH_AUTHORITY_REQUIRED`). It
+    changes no return (`returnUse: BLOCKED`).
+  - **Immutability and audit.** Decided memos and their citations are immutable, also to the database owner, and
+    every transition is audited.
+
+  - **Live assignment.** Access ends with it: once the preparer's assignment is revoked, the memo reads as not found
+    to them, while the record stays intact and the case's live reviewer still reaches it.
+
+  Tests: `taxResearch.db.test` (7, real PostgreSQL). Two defects in the first draft were found and fixed:
+  - an AI-inference citation naming a source was accepted with the source dropped;
+  - the migration readiness audit found the trigger function executable by `anon` and `authenticated`.
+
+  Every function is now revoked from `PUBLIC`, `anon` and `authenticated`. Next (Block 52): store, route, the research panel in
+  Case Workflow, and a browser journey.
+
+  **Agent evaluation and the activation gate (Block 50), published as `a94dbcb`.** In the core AI schema an agent version could be set ACTIVE
   with no evaluation at all; the governance fixtures do exactly that. Proposal `20261018140000_taxguard_ai_agent_evaluation`
   (review only) adds:
   - **Ten registered evaluation dimensions:** correctness, evidence grounding, hallucination, authorization, tool use,

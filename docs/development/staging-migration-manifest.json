@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "89e2c3ee593aa92733c3ec84ec87491feedeaee8a1f24ef306a1fbdf8c6751d0",
+  "executionPlanSha256": "f70bd6d2b538c3baee63d77f1f95121fd99a65697a191b36d65deeaaa97f870f",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4387,6 +4387,60 @@
         "-- Case results are append-only: they cannot be edited or deleted, and a completed run cannot be reopened.",
         "-- Nothing here activates an agent. Every A00-A60 deployment stays DRAFT until a separate, authorized change.",
         "-- Results only accumulate while their run is RUNNING, and they are never changed afterwards."
+      ]
+    },
+    {
+      "order": 83,
+      "file": "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+      "kind": "proposal",
+      "version": "20261018150000",
+      "sha256": "87815371cf2dc4832099c58aa7db6bb61a3c3df8facb89ec4f7692774eed8d46",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_research_memos",
+        "taxguard_tax_research_citations",
+        "taxguard_tax_research_guard",
+        "taxguard_tax_research_json",
+        "taxguard_tax_research_scope",
+        "taxguard_tax_research_open",
+        "taxguard_tax_research_cite",
+        "taxguard_tax_research_submit",
+        "taxguard_tax_research_review",
+        "taxguard_tax_research_list"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_research_memos, public.taxguard_tax_research_citations FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', f);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', f);"
+      ],
+      "securityDefinerDeclarations": 7,
+      "notValidConstraints": 0,
+      "header": [
+        "-- REVIEW-ONLY PROPOSAL. Not applied to any hosted database; owner approval and independent SQL review required.",
+        "--",
+        "-- Tax research memos: professional-support research for one tax case, never an authoritative position by itself.",
+        "--",
+        "--   * A memo belongs to one case (tenant, client, engagement, tax year) and is reachable only through the existing case",
+        "--     access rule (taxguard_case_actor: a practice manager, or a member with a live assignment to the case). Another",
+        "--     client's, year's or tenant's memo is indistinguishable from a missing one (RESEARCH_MEMO_NOT_FOUND).",
+        "--   * Every citation states its authority level: AUTHORITATIVE (a VERIFIED source covering the case year),",
+        "--     SECONDARY, INTERNAL_GUIDANCE or AI_INFERENCE. AI inference never cites a source and never counts as support.",
+        "--   * A memo becomes an approved research conclusion only when the case's reviewer, with a live assignment and not",
+        "--     the preparer, approves it, and it has at least one AUTHORITATIVE citation. Approval does not change a return,",
+        "--     a calculation or a tax position: returnUse stays BLOCKED."
       ]
     }
   ]

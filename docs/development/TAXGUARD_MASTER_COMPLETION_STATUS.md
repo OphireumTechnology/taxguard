@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Agent evaluation and the activation gate (Block 50).** Review-only proposal `20261018140000` covers evaluation
+- **Tax research memos (Block 51, database layer).** Review-only proposal `20261018150000`: case-scoped memos with
+  classified citations; approval by the independent case reviewer requires verified authoritative support, never AI
+  inference alone; no return is changed; a revoked assignment ends access. `taxResearch.db.test` (7).
+- **Agent evaluation and the activation gate (Block 50), published as `a94dbcb`.** Review-only proposal `20261018140000` covers evaluation
   suites (independently approved), pinned runs, append-only results and database-derived outcomes. A trigger refuses an
   ACTIVE agent version without a passing evaluation of its exact agent, model and prompt versions.
   `aiAgentEvaluation.test` (9). No agent is activated.
