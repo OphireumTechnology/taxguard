@@ -29,6 +29,7 @@ status: **staging NO-GO, production NO-GO.**
 | Payment webhook signature verification: raw bytes, 300-second window, rotation, constant time (Block 42) | `2cf2a23` | run 40105263474 success (automated tests 3 min 45 s) | `stripeWebhookSignature.test` (10, 5 failing first) |
 | Accessibility audit of the newer staff surfaces: Tax Rules module, expanded forms, audit security view (Block 43) | `98c0277` | run 40144714158 success | suite 16; default browser 118/118, provider 42/42 |
 | Phone-width layout of the newer staff surfaces at 375 px (Block 44) | `634a4e0` | run 40273072871 success | suite 16; default browser 121/121, provider 42/42 (7 files) |
+| Reviewer ledger and book-to-tax review; BookToTaxPanel stale-response fix; reviewer dashboard 375 px overflow (Block 45) | `7d54b5f` | run 40281778638 success | suite 03 (8 browser cases); default browser 125/125, provider 42/42 |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -54,20 +55,23 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Reviewer ledger and book-to-tax review (Block 45).** `ReviewerLedgerReviewPanel` on the reviewer dashboard reuses
-  `LedgerControlsPanel`, `BookToTaxPanel` and `LedgerReportsPanel`. A browser journey (suite 03) covers:
-  - approving, returning and the refused self-approval;
-  - the correction cycle, persistence after a reload, and the audit history in the UI;
-  - book-to-tax approval;
-  - refusals for another client, a foreign client and the unstaffed 2026 year, including the protected mutation;
-  - the 375 px layout.
+- **Architecture implementation register (Block 46).** `architecture-implementation-register.json` maps 42 components of
+  the owner's full-development architecture to repository evidence. `architectureImplementationRegister.test`
+  enforces that cited paths exist, that verified statuses have tests and blocked ones a blocker, and that nothing is
+  production-ready while the release is NO-GO. Counts:
+  - browser-verified (local): 11;
+  - unit-verified: 12;
+  - integration-verified: 1;
+  - partial: 6;
+  - not implemented: 4 (evaluation, tax research, diagnostics, risk and materiality);
+  - blocked by external integration: 6;
+  - blocked by policy: 2;
+  - production-ready: 0.
 
-  Also fixed in this package:
-  - **Stale-response race** in `BookToTaxPanel`. A deterministic regression failed first.
-  - **Pre-existing 96 px overflow** on the reviewer dashboard at phone width (shared table wrappers).
+  The multipage Architecture Overview is not in the repository, so no per-agent responsibility is inferred.
 
   **Recorded for the owner:** ordinary non-bookkeeper journal entries post without independent review under proposal
-  024.
+  024 (Block 45).
 
 ### Blocked (recorded, not worked around)
 
