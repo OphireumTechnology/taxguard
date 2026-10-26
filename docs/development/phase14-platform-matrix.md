@@ -665,6 +665,25 @@ could mean "the UI claims something the backend cannot deliver".
     clears the previous queue, totals, notice, category choices, and the entry and reconciliation drafts, and issues
     a fresh entry idempotency key. A draft can then never be submitted to the newly selected client or year.
 
+  **AI emergency stop through the UI (Block 48).** Journey N (provider profile) proved the kill switch only through the
+  API. It now also covers the UI:
+  - the administrator opens AI Emergency Stop, chooses one agent (A10), enters a recorded reason and engages the stop
+    through the confirmation step, which names the exact target;
+  - the confirmation and the recorded-stops table show it, attributed to the administrator;
+  - the server lists it, and A10's commissioning state becomes STOPPED;
+  - no lift control exists;
+  - the accountant's workspace has no emergency-stop control (the API refusal is covered by the existing case).
+  - **audit:** a CRITICAL `KILL_SWITCH` governance security event attributed to the administrator, with the operation
+    (`ACTIVATE`), scope, target, switch id and a hash of the reason;
+  - a new evaluation for A10 is refused. A10 was already inactive, so the code alone cannot isolate the stop; the
+    recorded stop is the evidence;
+  - nothing is erased: the earlier decisions and the earlier A34 stop are still readable;
+  - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
+    global stop is recorded.
+
+  No source change was needed. The architecture register now records the kill switch as `PROVIDER_VERIFIED` and the AI
+  Control Center as `BROWSER_VERIFIED` (suites 14 and 15 already drove its UI; the register had understated it).
+
   **Payment webhook signature verification (Block 42).** This is the development handler behind
   `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:
   - verifies the exact bytes received (`rawBody`, captured by `server.ts`). It refuses with 400

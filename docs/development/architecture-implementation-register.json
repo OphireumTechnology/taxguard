@@ -3,7 +3,19 @@
   "created": "2026-10-26",
   "authority": "EVIDENCE_REGISTER_ONLY",
   "source": "The architecture components named in the owner's full-development directive (2026-10-26), mapped onto docs/taxguard-ai-canonical-architecture.md. The multipage TaxGuard AI Architecture Overview and its page-9 agent matrix are not in the repository and were not supplied in the session, so no per-agent responsibility is inferred from it.",
-  "statusVocabulary": ["NOT_IMPLEMENTED", "STUB_ONLY", "PARTIAL", "IMPLEMENTED_UNVERIFIED", "UNIT_VERIFIED", "INTEGRATION_VERIFIED", "BROWSER_VERIFIED", "PROVIDER_VERIFIED", "PRODUCTION_READY", "BLOCKED_BY_POLICY", "BLOCKED_BY_EXTERNAL_INTEGRATION"],
+  "statusVocabulary": [
+    "NOT_IMPLEMENTED",
+    "STUB_ONLY",
+    "PARTIAL",
+    "IMPLEMENTED_UNVERIFIED",
+    "UNIT_VERIFIED",
+    "INTEGRATION_VERIFIED",
+    "BROWSER_VERIFIED",
+    "PROVIDER_VERIFIED",
+    "PRODUCTION_READY",
+    "BLOCKED_BY_POLICY",
+    "BLOCKED_BY_EXTERNAL_INTEGRATION"
+  ],
   "statusRules": [
     "UNIT_VERIFIED: unit or PGlite tests; INTEGRATION_VERIFIED: disposable PostgreSQL or real-server HTTP tests; BROWSER_VERIFIED: a local synthetic browser journey drives the UI; PROVIDER_VERIFIED: the provider-emulation profile covers it.",
     "None of these is independent release acceptance. PRODUCTION_READY is not used while staging and production are NO-GO and the underlying proposals are review-only.",
@@ -11,127 +23,615 @@
   ],
   "releaseStatus": "staging NO-GO, production NO-GO",
   "components": [
-    { "id": "IN-PORTAL", "name": "Client portal input", "category": "Input sources", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/components/portal/AuthenticatedClientDashboard.tsx", "src/server/routes/client-portal.routes.ts"], "tests": ["src/tests-e2e/14-phase12b-frontend.e2e.test.ts", "src/tests-e2e/18-client-confidentiality-sweep.e2e.test.ts"],
-      "persistence": "durable proposals, development-only routers", "remainingGap": "Production cutover of the durable routers (owner-approved proposals)." },
-    { "id": "IN-DOCUMENTS", "name": "Document intake with provenance", "category": "Input sources", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/routes/vault.routes.ts", "src/server/taxguard/documents/documentVaultStore.ts", "src/server/taxguard/documents/malwareScanning.ts"], "tests": ["src/tests-e2e/02-practice-documents-billing.e2e.test.ts", "src/tests/documentVaultHttp.test.ts"],
-      "persistence": "durable proposal 20261012270000 family; quarantine until a clean scan", "remainingGap": "A real malware-scanner provider (local fake only)." },
-    { "id": "IN-EMAIL", "name": "Email input", "category": "Input sources", "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
-      "implementation": [], "tests": [], "blocker": "No email provider is commissioned; in-app messaging only.", "remainingGap": "Provider adapter, inbound parsing as untrusted evidence." },
-    { "id": "IN-ACCOUNTING", "name": "Accounting-system input", "category": "Input sources", "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
-      "implementation": ["src/server/taxguard/accountingConnectors.ts"], "tests": [], "blocker": "No accounting provider (QuickBooks, Xero) is commissioned; the sync service is in memory and refused in production.", "remainingGap": "Durable connector state and a commissioned provider." },
-    { "id": "IN-GOVERNMENT", "name": "Government portal input", "category": "Input sources", "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
-      "implementation": [], "tests": [], "blocker": "No transcript or notice integration is authorized.", "remainingGap": "Everything." },
-    { "id": "IN-PAYMENTS", "name": "Payments input", "category": "Input sources", "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
-      "implementation": ["src/server/routes/billing.routes.ts", "src/server/taxguard/operations/engagementBilling.service.ts"], "tests": ["src/tests-e2e/02-practice-documents-billing.e2e.test.ts", "src/tests/stripeWebhookSignature.test.ts"],
-      "blocker": "Sandbox only by design; production refuses the payment webhook (PAYMENT_PROVIDER_NOT_COMMISSIONED).", "remainingGap": "A commissioned payment provider." },
-    { "id": "IN-CALENDAR", "name": "Calendar and appointments input", "category": "Input sources", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/routes/appointments-durable.routes.ts", "src/components/appointments/AppointmentsPanel.tsx"], "tests": ["src/tests-e2e/11-appointments-audit-legal.e2e.test.ts"],
-      "remainingGap": "External calendar or video provider (none commissioned); engagement scope pending the general-record policy." },
-    { "id": "IN-MANUAL", "name": "Manual staff entry", "category": "Input sources", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/components/workspace/BookkeeperLedgerWorkspace.tsx", "src/components/workspace/PracticeClientsPanel.tsx"], "tests": ["src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts", "src/tests-e2e/02-practice-documents-billing.e2e.test.ts"],
-      "remainingGap": "Production cutover." },
-
-    { "id": "AI-A00", "name": "A00 Supervisor / Orchestrator", "category": "Orchestration", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/orchestration/A00Orchestrator.ts", "src/server/ai/orchestration/SqlOrchestrationLedger.ts", "src/server/ai/orchestration/canonicalRouting.ts"], "tests": ["src/tests/aiA00Orchestration.test.ts"],
-      "persistence": "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql", "remainingGap": "Coordinates only the bounded A34 review purposes; DRAFT, not commissioned. Request classification and workflow selection beyond that are unmapped." },
-    { "id": "AI-REGISTRY", "name": "Agent registry A00-A60", "category": "Governance", "status": "UNIT_VERIFIED",
-      "implementation": ["src/ai/registry.ts", "src/ai/architectureMapping.ts", "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"], "tests": ["src/tests/aiRegistryFoundation.test.ts", "src/tests/aiArchitectureMapping.test.ts", "src/tests/aiWorkforceDenyByDefault.test.ts"],
-      "remainingGap": "61 identities, all DRAFT. 58 have no individually proven responsibility (UNMAPPED, denied). Per-agent permissions need the owner's agent matrix and approval." },
-    { "id": "AI-AGENTS-SPECIALISTS", "name": "Specialist agents A01-A60", "category": "Agents", "status": "BLOCKED_BY_POLICY",
-      "implementation": ["src/server/ai/documents/DocumentDuplicateAdvisory.ts"], "tests": ["src/tests/aiDocumentDuplicateAdvisory.test.ts", "src/tests/aiCommissioningMatrix.test.ts"],
-      "blocker": "Commissioning needs the per-agent responsibility matrix and human policy or regulatory approval. Standing instruction: do not activate real AI agents.", "remainingGap": "A10 and A34 have bounded compatibility only; no specialist is built or commissioned." },
-    { "id": "AI-COMMUNICATION", "name": "Controlled agent communication through governance", "category": "Orchestration", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/gateway/GovernedAIGateway.ts", "src/server/ai/capabilities/GovernedCapabilityExecutor.ts", "src/server/ai/ledger/ExecutionLedgerService.ts"], "tests": ["src/tests/aiGovernedGateway.test.ts", "src/tests/aiGovernedCapabilities.test.ts", "src/tests/aiExecutionLedger.test.ts"],
-      "persistence": "supabase/migrations/20261008030000_taxguard_ai_gateway_admission.sql, 20261008040000, 20261008050000", "remainingGap": "No peer-to-peer path exists; handoffs are only the bounded A00 to A34 and A10 routes." },
-    { "id": "AI-RUN-RECORD", "name": "ai_run record and reproducibility", "category": "AI audit", "status": "UNIT_VERIFIED",
-      "implementation": ["supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql", "src/server/ai/ledger/ExecutionLedgerService.ts"], "tests": ["src/tests/aiExecutionLedger.test.ts", "src/tests/aiGovernedGateway.test.ts"],
-      "remainingGap": "Schema covers runs, evidence, transitions, verifications and authoritative actions. Exercised only by isolated synthetic fixtures, because no agent runs." },
-    { "id": "AI-GOV-PLANE", "name": "AI governance control plane (decisions, policy events)", "category": "Governance", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/governance/GovernanceControlPlane.ts", "src/server/ai/governance/SqlGovernanceStore.ts", "src/server/ai/governance/productionGovernance.ts"], "tests": ["src/tests/aiGovernanceControlPlane.test.ts", "src/tests/aiGovernanceHttpAndLegacy.test.ts", "src/tests/governanceDatabaseTarget.test.ts"],
-      "remainingGap": "Production uses PostgreSQL over TLS or refuses (no fallback); not deployed." },
-    { "id": "AI-MODEL-PROMPT-REGISTRY", "name": "Model and prompt registries, versioning", "category": "Governance", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/gateway/ModelPromptResolver.ts", "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"], "tests": ["src/tests/aiGovernedGateway.test.ts"],
-      "remainingGap": "No model or prompt is approved or active." },
-    { "id": "AI-PERMISSIONS", "name": "Tool, data and stage permissions (default deny)", "category": "Governance", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/capabilities/CapabilityRegistry.ts", "src/server/ai/capabilities/ScopedReadRepository.ts", "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql"], "tests": ["src/tests/aiGovernedCapabilities.test.ts", "src/tests/aiGovernedCapabilitiesPersistence.test.ts", "src/tests/aiWorkforceDenyByDefault.test.ts"],
-      "remainingGap": "Reads follow tenant, client, case and year scope and the live assignment. All production grants are DENY." },
-    { "id": "AI-HUMAN-APPROVAL", "name": "Human approval requirements and proposal review", "category": "Human authorization", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/review/HumanProposalReviewService.ts", "src/server/ai/review/MaterialActionPreparation.ts"], "tests": ["src/tests/aiHumanProposalReview.test.ts", "src/tests/aiMaterialActionPreparation.test.ts"],
-      "remainingGap": "No centralized cross-domain human approval queue UI." },
-    { "id": "AI-KILL-SWITCH", "name": "AI kill switch", "category": "Governance", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/governance/KillSwitchService.ts", "src/components/admin/AiEmergencyStopPanel.tsx"], "tests": ["src/tests/aiKillSwitchActivation.test.ts", "src/tests/aiEmergencyStopPanel.test.tsx"],
-      "remainingGap": "Activation only; lifting a stop requires an approved policy. No browser journey." },
-    { "id": "AI-COST", "name": "Token and cost governance", "category": "Governance", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/gateway/usage.ts"], "tests": ["src/tests/aiGovernedGateway.test.ts"],
-      "remainingGap": "Pricing and usage reconciliation tables exist; no budget is configured and no model runs." },
-    { "id": "AI-EVALUATION", "name": "Agent evaluation framework", "category": "Governance", "status": "NOT_IMPLEMENTED",
-      "implementation": [], "tests": [], "remainingGap": "No correctness, hallucination or citation evaluation harness. Verification evidence tables are not an evaluation framework." },
-    { "id": "AI-CONTROL-CENTER", "name": "AI Control Center and agent detail", "category": "AI operations", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/governance/ControlCenterReadService.ts", "src/components/admin/AiControlCenterPanel.tsx", "src/components/admin/AiCommissioningView.tsx", "src/components/admin/AiLiveCommissioningRecords.tsx"], "tests": ["src/tests/aiControlCenterRead.test.ts", "src/tests/aiControlCenterPanel.test.tsx", "src/tests/aiLiveCommissioningUi.test.tsx"],
-      "remainingGap": "Read-only projections of live governance tables, with nothing operational to show. No browser journey for the AI tab." },
-    { "id": "AI-PROMPT-INJECTION", "name": "Untrusted document and evidence boundary", "category": "Security", "status": "UNIT_VERIFIED",
-      "implementation": ["src/server/ai/capabilities/ScopedReadRepository.ts", "src/server/ai/gateway/structuredOutput.ts"], "tests": ["src/tests/aiGovernedGateway.test.ts", "src/tests/aiDocumentDuplicateAdvisory.test.ts"],
-      "remainingGap": "Documents cannot authorize tools or prompts; no live model, so no adversarial model-level evaluation." },
-
-    { "id": "TAX-EVIDENCE", "name": "Evidence layer and provenance", "category": "Tax pipeline", "status": "PARTIAL",
-      "implementation": ["src/server/taxguard/authority.repository.ts", "src/server/taxguard/documents/documentVaultStore.ts"], "tests": ["src/tests/caseAuthorityHttp.test.ts"],
-      "remainingGap": "Case-authority evidence lives in a process-local adapter, refused in production (Block 39); durable evidence-to-conclusion lineage is missing." },
-    { "id": "TAX-DOC-INTELLIGENCE", "name": "OCR, extraction, classification, validation", "category": "Tax pipeline", "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
-      "implementation": ["src/server/taxguard/ocrProvider.ts", "src/server/taxguard/accountingDocumentIntelligence.service.ts"], "tests": ["src/tests/documentVaultHttp.test.ts"],
-      "blocker": "No OCR provider is commissioned; extraction fails safe rather than reporting success.", "remainingGap": "Provider adapter, validated field evidence, human validation queue." },
-    { "id": "TAX-ACCOUNTING", "name": "Durable ledger, review and reconciliation", "category": "Tax pipeline", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/taxguard/bookkeeping/sqlLedgerStore.ts", "src/server/routes/ledgerDispatch.routes.ts", "src/components/workspace/BookkeeperLedgerWorkspace.tsx", "src/components/workspace/ReviewerLedgerReviewPanel.tsx"], "tests": ["src/tests/durableLedgerSql.test.ts", "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"],
-      "remainingGap": "Proposals 024/030 and 20261018070000 are review-only. Owner policy: ordinary non-bookkeeper entries post without review." },
-    { "id": "TAX-BOOK-TO-TAX", "name": "Book-to-tax mappings, adjustments, workpapers", "category": "Tax pipeline", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/routes/bookToTax.routes.ts", "src/components/workspace/BookToTaxPanel.tsx"], "tests": ["src/tests/bookToTaxHttp.test.ts", "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"],
-      "remainingGap": "Proposal 029 review-only; firm categories (H07); preparer steps are API setup in the journey." },
-    { "id": "TAX-RESEARCH", "name": "Tax research agent with authority citations", "category": "Tax pipeline", "status": "NOT_IMPLEMENTED",
-      "implementation": [], "tests": [], "remainingGap": "Only verified source registration exists (Tax Rules console). No research capability; any AI research needs a commissioned agent." },
-    { "id": "TAX-RULE-ENGINE", "name": "Versioned, year-aware tax rule engine", "category": "Tax pipeline", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/taxguard/taxEngine/taxEngineStore.ts", "src/server/taxguard/taxEngine/ruleSetDefinition.ts", "src/components/workspace/TaxRulesPanel.tsx"], "tests": ["src/tests/taxEngineHttp.test.ts", "src/tests-e2e/07-tax-engine.e2e.test.ts"],
-      "remainingGap": "Proposals 033/036/038 review-only; no real rule content (needs professional verification of sources)." },
-    { "id": "TAX-CALCULATION", "name": "Deterministic calculation runs", "category": "Tax pipeline", "status": "INTEGRATION_VERIFIED",
-      "implementation": ["docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql", "src/server/routes/taxEngine.routes.ts"], "tests": ["src/tests/taxEngineHttp.test.ts"],
-      "remainingGap": "Runs are pinned to rule-set id and hash, but only synthetic rule sets exist; no federal or state rule content." },
-    { "id": "TAX-CALC-VERIFICATION", "name": "Independent calculation verification", "category": "Tax pipeline", "status": "PARTIAL",
-      "implementation": ["docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql", "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql"], "tests": ["src/tests/taxEngineHttp.test.ts"],
-      "remainingGap": "Rule-set verification cases and coverage exist; per-return variance and prior-year anomaly checks do not." },
-    { "id": "TAX-RETURN-PREP", "name": "Return preparation (stage 09)", "category": "Tax pipeline", "status": "BLOCKED_BY_POLICY",
-      "implementation": ["src/taxForms/preparationPipeline.ts", "src/server/taxguard/stageNineServerGate.ts"], "tests": ["src/tests/productionStages04Through09.test.ts"],
-      "blocker": "Stage 09 onward is blocked until a verified tax engine and approved rule content exist.", "remainingGap": "Consume approved calculations; controlled rework paths." },
-    { "id": "TAX-FORM-MAPPING", "name": "Deterministic form mapping with lineage", "category": "Tax pipeline", "status": "PARTIAL",
-      "implementation": ["src/taxForms/federalForms.ts", "src/taxForms/registry.ts", "src/server/routes/taxForms.routes.ts"], "tests": ["src/tests/taxFormsLibrary.test.tsx"],
-      "remainingGap": "Form catalogue only; no evidence-to-line lineage." },
-    { "id": "TAX-DIAGNOSTICS", "name": "Return diagnostics (warning vs blocking)", "category": "Tax pipeline", "status": "NOT_IMPLEMENTED",
-      "implementation": [], "tests": [], "remainingGap": "Stage gates block progression, but no return diagnostics exist." },
-    { "id": "TAX-RISK", "name": "Risk and materiality evaluation", "category": "Tax pipeline", "status": "NOT_IMPLEMENTED",
-      "implementation": [], "tests": [], "remainingGap": "Needs owner-defined thresholds; AI confidence alone must never route past review." },
-    { "id": "TAX-REVIEW-QC", "name": "Reviewer and independent QC", "category": "Human authorization", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/components/workspace/ReviewerDashboard.tsx", "src/components/workspace/ReviewerLedgerReviewPanel.tsx", "src/server/routes/case-authority.routes.ts"], "tests": ["src/tests/reviewerDashboardHttp.test.ts", "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"],
-      "remainingGap": "Reviewer queue and decisions refuse in production (process-local adapter); durable reviewer discovery is Codex's package. No separate QC role or agent." },
-    { "id": "TAX-SIGN-FILE", "name": "Signature, filing, government feedback (stages 10-13, 16)", "category": "Tax pipeline", "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
-      "implementation": ["src/server/taxguard/stageElevenServerGate.ts", "src/server/taxguard/stageTwelveServerGate.ts"], "tests": ["src/tests/completeTaxGuardLifecycleStages10Through18.test.ts"],
-      "blocker": "No e-signature or e-file provider; live filing requires explicit approval.", "remainingGap": "Everything beyond the gates." },
-
-    { "id": "REC-AUTHORITATIVE", "name": "Authoritative record (durable, versioned, scoped)", "category": "Records", "status": "PARTIAL",
-      "implementation": ["src/server/routeCutover.ts", "docs/development/production-route-parity.md"], "tests": ["src/tests/routeCutover.test.ts", "src/tests/caseAuthorityProductionDurability.test.ts", "src/tests/practiceOperationsProductionDurability.test.ts"],
-      "remainingGap": "Durable proposals are review-only. Production refuses every process-local authority (Blocks 39-41); no durable router is mounted in production." },
-    { "id": "REC-AUDIT-LEDGER", "name": "Audit ledger and security events", "category": "Records", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/taxguard/audit/auditCenterStore.ts", "src/server/taxguard/audit/securityEventSink.ts"], "tests": ["src/tests-e2e/11-appointments-audit-legal.e2e.test.ts", "src/tests/auditSecurityVolume.test.tsx"],
-      "remainingGap": "Only SECURITY_* rows are append-only in the plan; the full append-only proposal awaits the owner." },
-    { "id": "OPS-MONITORING", "name": "Monitoring, health and alerting", "category": "Operations", "status": "PARTIAL",
-      "implementation": ["src/server/observability/health.ts", "src/server/operationalMetrics.ts"], "tests": ["src/tests/healthEndpoints.test.ts"],
-      "remainingGap": "No log shipping or alerting; AI telemetry has nothing to report." },
-    { "id": "OPS-INTEGRATION-ADAPTERS", "name": "External integration adapters and readiness", "category": "Integrations", "status": "PARTIAL",
-      "implementation": ["src/server/taxguard/providerReadiness.service.ts", "src/server/routes/integrations.routes.ts"], "tests": ["src/tests/integrationsAuthorization.test.ts"],
-      "remainingGap": "Readiness reporting exists; providers (scanner, OCR, email, SMS, payments, e-sign, e-file, accounting) are not commissioned." },
-    { "id": "SEC-ISOLATION", "name": "Client, tenant, engagement and year isolation", "category": "Security", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/server/auth.ts", "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql", "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"], "tests": ["src/tests/clientDataIsolationSecurity.test.ts", "src/tests-e2e/18-client-confidentiality-sweep.e2e.test.ts", "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"],
-      "remainingGap": "Messaging, appointment and legal general records wait on the owner's general-record policy." },
-    { "id": "UX-RESPONSIVE-A11Y", "name": "Responsive (375 px) and automated accessibility", "category": "Experience", "status": "BROWSER_VERIFIED",
-      "implementation": ["src/tests-e2e/a11yAudit.ts"], "tests": ["src/tests-e2e/16-staff-accessibility.e2e.test.ts", "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"],
-      "remainingGap": "Automation only; WCAG conformance needs manual assistive-technology testing." }
+    {
+      "id": "IN-PORTAL",
+      "name": "Client portal input",
+      "category": "Input sources",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/components/portal/AuthenticatedClientDashboard.tsx",
+        "src/server/routes/client-portal.routes.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/14-phase12b-frontend.e2e.test.ts",
+        "src/tests-e2e/18-client-confidentiality-sweep.e2e.test.ts"
+      ],
+      "persistence": "durable proposals, development-only routers",
+      "remainingGap": "Production cutover of the durable routers (owner-approved proposals)."
+    },
+    {
+      "id": "IN-DOCUMENTS",
+      "name": "Document intake with provenance",
+      "category": "Input sources",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/routes/vault.routes.ts",
+        "src/server/taxguard/documents/documentVaultStore.ts",
+        "src/server/taxguard/documents/malwareScanning.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts",
+        "src/tests/documentVaultHttp.test.ts"
+      ],
+      "persistence": "durable proposal 20261012270000 family; quarantine until a clean scan",
+      "remainingGap": "A real malware-scanner provider (local fake only)."
+    },
+    {
+      "id": "IN-EMAIL",
+      "name": "Email input",
+      "category": "Input sources",
+      "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
+      "implementation": [],
+      "tests": [],
+      "blocker": "No email provider is commissioned; in-app messaging only.",
+      "remainingGap": "Provider adapter, inbound parsing as untrusted evidence."
+    },
+    {
+      "id": "IN-ACCOUNTING",
+      "name": "Accounting-system input",
+      "category": "Input sources",
+      "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
+      "implementation": [
+        "src/server/taxguard/accountingConnectors.ts"
+      ],
+      "tests": [],
+      "blocker": "No accounting provider (QuickBooks, Xero) is commissioned; the sync service is in memory and refused in production.",
+      "remainingGap": "Durable connector state and a commissioned provider."
+    },
+    {
+      "id": "IN-GOVERNMENT",
+      "name": "Government portal input",
+      "category": "Input sources",
+      "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
+      "implementation": [],
+      "tests": [],
+      "blocker": "No transcript or notice integration is authorized.",
+      "remainingGap": "Everything."
+    },
+    {
+      "id": "IN-PAYMENTS",
+      "name": "Payments input",
+      "category": "Input sources",
+      "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
+      "implementation": [
+        "src/server/routes/billing.routes.ts",
+        "src/server/taxguard/operations/engagementBilling.service.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts",
+        "src/tests/stripeWebhookSignature.test.ts"
+      ],
+      "blocker": "Sandbox only by design; production refuses the payment webhook (PAYMENT_PROVIDER_NOT_COMMISSIONED).",
+      "remainingGap": "A commissioned payment provider."
+    },
+    {
+      "id": "IN-CALENDAR",
+      "name": "Calendar and appointments input",
+      "category": "Input sources",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/routes/appointments-durable.routes.ts",
+        "src/components/appointments/AppointmentsPanel.tsx"
+      ],
+      "tests": [
+        "src/tests-e2e/11-appointments-audit-legal.e2e.test.ts"
+      ],
+      "remainingGap": "External calendar or video provider (none commissioned); engagement scope pending the general-record policy."
+    },
+    {
+      "id": "IN-MANUAL",
+      "name": "Manual staff entry",
+      "category": "Input sources",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/components/workspace/BookkeeperLedgerWorkspace.tsx",
+        "src/components/workspace/PracticeClientsPanel.tsx"
+      ],
+      "tests": [
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts"
+      ],
+      "remainingGap": "Production cutover."
+    },
+    {
+      "id": "AI-A00",
+      "name": "A00 Supervisor / Orchestrator",
+      "category": "Orchestration",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/orchestration/A00Orchestrator.ts",
+        "src/server/ai/orchestration/SqlOrchestrationLedger.ts",
+        "src/server/ai/orchestration/canonicalRouting.ts"
+      ],
+      "tests": [
+        "src/tests/aiA00Orchestration.test.ts"
+      ],
+      "persistence": "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql",
+      "remainingGap": "Coordinates only the bounded A34 review purposes; DRAFT, not commissioned. Request classification and workflow selection beyond that are unmapped."
+    },
+    {
+      "id": "AI-REGISTRY",
+      "name": "Agent registry A00-A60",
+      "category": "Governance",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/ai/registry.ts",
+        "src/ai/architectureMapping.ts",
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
+      ],
+      "tests": [
+        "src/tests/aiRegistryFoundation.test.ts",
+        "src/tests/aiArchitectureMapping.test.ts",
+        "src/tests/aiWorkforceDenyByDefault.test.ts"
+      ],
+      "remainingGap": "61 identities, all DRAFT. 58 have no individually proven responsibility (UNMAPPED, denied). Per-agent permissions need the owner's agent matrix and approval."
+    },
+    {
+      "id": "AI-AGENTS-SPECIALISTS",
+      "name": "Specialist agents A01-A60",
+      "category": "Agents",
+      "status": "BLOCKED_BY_POLICY",
+      "implementation": [
+        "src/server/ai/documents/DocumentDuplicateAdvisory.ts"
+      ],
+      "tests": [
+        "src/tests/aiDocumentDuplicateAdvisory.test.ts",
+        "src/tests/aiCommissioningMatrix.test.ts"
+      ],
+      "blocker": "Commissioning needs the per-agent responsibility matrix and human policy or regulatory approval. Standing instruction: do not activate real AI agents.",
+      "remainingGap": "A10 and A34 have bounded compatibility only; no specialist is built or commissioned."
+    },
+    {
+      "id": "AI-COMMUNICATION",
+      "name": "Controlled agent communication through governance",
+      "category": "Orchestration",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/gateway/GovernedAIGateway.ts",
+        "src/server/ai/capabilities/GovernedCapabilityExecutor.ts",
+        "src/server/ai/ledger/ExecutionLedgerService.ts"
+      ],
+      "tests": [
+        "src/tests/aiGovernedGateway.test.ts",
+        "src/tests/aiGovernedCapabilities.test.ts",
+        "src/tests/aiExecutionLedger.test.ts"
+      ],
+      "persistence": "supabase/migrations/20261008030000_taxguard_ai_gateway_admission.sql, 20261008040000, 20261008050000",
+      "remainingGap": "No peer-to-peer path exists; handoffs are only the bounded A00 to A34 and A10 routes."
+    },
+    {
+      "id": "AI-RUN-RECORD",
+      "name": "ai_run record and reproducibility",
+      "category": "AI audit",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql",
+        "src/server/ai/ledger/ExecutionLedgerService.ts"
+      ],
+      "tests": [
+        "src/tests/aiExecutionLedger.test.ts",
+        "src/tests/aiGovernedGateway.test.ts"
+      ],
+      "remainingGap": "Schema covers runs, evidence, transitions, verifications and authoritative actions. Exercised only by isolated synthetic fixtures, because no agent runs."
+    },
+    {
+      "id": "AI-GOV-PLANE",
+      "name": "AI governance control plane (decisions, policy events)",
+      "category": "Governance",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/governance/GovernanceControlPlane.ts",
+        "src/server/ai/governance/SqlGovernanceStore.ts",
+        "src/server/ai/governance/productionGovernance.ts"
+      ],
+      "tests": [
+        "src/tests/aiGovernanceControlPlane.test.ts",
+        "src/tests/aiGovernanceHttpAndLegacy.test.ts",
+        "src/tests/governanceDatabaseTarget.test.ts"
+      ],
+      "remainingGap": "Production uses PostgreSQL over TLS or refuses (no fallback); not deployed."
+    },
+    {
+      "id": "AI-MODEL-PROMPT-REGISTRY",
+      "name": "Model and prompt registries, versioning",
+      "category": "Governance",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/gateway/ModelPromptResolver.ts",
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
+      ],
+      "tests": [
+        "src/tests/aiGovernedGateway.test.ts"
+      ],
+      "remainingGap": "No model or prompt is approved or active."
+    },
+    {
+      "id": "AI-PERMISSIONS",
+      "name": "Tool, data and stage permissions (default deny)",
+      "category": "Governance",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/capabilities/CapabilityRegistry.ts",
+        "src/server/ai/capabilities/ScopedReadRepository.ts",
+        "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql"
+      ],
+      "tests": [
+        "src/tests/aiGovernedCapabilities.test.ts",
+        "src/tests/aiGovernedCapabilitiesPersistence.test.ts",
+        "src/tests/aiWorkforceDenyByDefault.test.ts"
+      ],
+      "remainingGap": "Reads follow tenant, client, case and year scope and the live assignment. All production grants are DENY."
+    },
+    {
+      "id": "AI-HUMAN-APPROVAL",
+      "name": "Human approval requirements and proposal review",
+      "category": "Human authorization",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/review/HumanProposalReviewService.ts",
+        "src/server/ai/review/MaterialActionPreparation.ts"
+      ],
+      "tests": [
+        "src/tests/aiHumanProposalReview.test.ts",
+        "src/tests/aiMaterialActionPreparation.test.ts"
+      ],
+      "remainingGap": "No centralized cross-domain human approval queue UI."
+    },
+    {
+      "id": "AI-KILL-SWITCH",
+      "name": "AI kill switch",
+      "category": "Governance",
+      "status": "PROVIDER_VERIFIED",
+      "implementation": [
+        "src/server/ai/governance/KillSwitchService.ts",
+        "src/components/admin/AiEmergencyStopPanel.tsx"
+      ],
+      "tests": [
+        "src/tests/aiKillSwitchActivation.test.ts",
+        "src/tests/aiEmergencyStopPanel.test.tsx",
+        "src/tests-e2e/provider/13-ai-governance-journey.e2e.test.ts"
+      ],
+      "remainingGap": "Activation only; lifting a stop requires an approved policy. Provider journey N covers it: the administrator engages an agent stop through the AI Emergency Stop UI with confirmation, the server records it, and the accountant has no control and is refused by the API (Block 48)."
+    },
+    {
+      "id": "AI-COST",
+      "name": "Token and cost governance",
+      "category": "Governance",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/gateway/usage.ts"
+      ],
+      "tests": [
+        "src/tests/aiGovernedGateway.test.ts"
+      ],
+      "remainingGap": "Pricing and usage reconciliation tables exist; no budget is configured and no model runs."
+    },
+    {
+      "id": "AI-EVALUATION",
+      "name": "Agent evaluation framework",
+      "category": "Governance",
+      "status": "NOT_IMPLEMENTED",
+      "implementation": [],
+      "tests": [],
+      "remainingGap": "No correctness, hallucination or citation evaluation harness. Verification evidence tables are not an evaluation framework."
+    },
+    {
+      "id": "AI-CONTROL-CENTER",
+      "name": "AI Control Center and agent detail",
+      "category": "AI operations",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/ai/governance/ControlCenterReadService.ts",
+        "src/components/admin/AiControlCenterPanel.tsx",
+        "src/components/admin/AiCommissioningView.tsx",
+        "src/components/admin/AiLiveCommissioningRecords.tsx"
+      ],
+      "tests": [
+        "src/tests/aiControlCenterRead.test.ts",
+        "src/tests/aiControlCenterPanel.test.tsx",
+        "src/tests/aiLiveCommissioningUi.test.tsx",
+        "src/tests-e2e/14-phase12b-frontend.e2e.test.ts",
+        "src/tests-e2e/15-phase13a-contracts.e2e.test.ts"
+      ],
+      "remainingGap": "Read-only projections of live governance tables, with nothing operational to show. Browser journeys (suites 14, 15): commissioning readiness, 0 of 61 commissioned, and live records refused outside a governance database. No agent detail view beyond the commissioning rows."
+    },
+    {
+      "id": "AI-PROMPT-INJECTION",
+      "name": "Untrusted document and evidence boundary",
+      "category": "Security",
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "src/server/ai/capabilities/ScopedReadRepository.ts",
+        "src/server/ai/gateway/structuredOutput.ts"
+      ],
+      "tests": [
+        "src/tests/aiGovernedGateway.test.ts",
+        "src/tests/aiDocumentDuplicateAdvisory.test.ts"
+      ],
+      "remainingGap": "Documents cannot authorize tools or prompts; no live model, so no adversarial model-level evaluation."
+    },
+    {
+      "id": "TAX-EVIDENCE",
+      "name": "Evidence layer and provenance",
+      "category": "Tax pipeline",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/server/taxguard/authority.repository.ts",
+        "src/server/taxguard/documents/documentVaultStore.ts"
+      ],
+      "tests": [
+        "src/tests/caseAuthorityHttp.test.ts"
+      ],
+      "remainingGap": "Case-authority evidence lives in a process-local adapter, refused in production (Block 39); durable evidence-to-conclusion lineage is missing."
+    },
+    {
+      "id": "TAX-DOC-INTELLIGENCE",
+      "name": "OCR, extraction, classification, validation",
+      "category": "Tax pipeline",
+      "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
+      "implementation": [
+        "src/server/taxguard/ocrProvider.ts",
+        "src/server/taxguard/accountingDocumentIntelligence.service.ts"
+      ],
+      "tests": [
+        "src/tests/documentVaultHttp.test.ts"
+      ],
+      "blocker": "No OCR provider is commissioned; extraction fails safe rather than reporting success.",
+      "remainingGap": "Provider adapter, validated field evidence, human validation queue."
+    },
+    {
+      "id": "TAX-ACCOUNTING",
+      "name": "Durable ledger, review and reconciliation",
+      "category": "Tax pipeline",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/taxguard/bookkeeping/sqlLedgerStore.ts",
+        "src/server/routes/ledgerDispatch.routes.ts",
+        "src/components/workspace/BookkeeperLedgerWorkspace.tsx",
+        "src/components/workspace/ReviewerLedgerReviewPanel.tsx"
+      ],
+      "tests": [
+        "src/tests/durableLedgerSql.test.ts",
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+      ],
+      "remainingGap": "Proposals 024/030 and 20261018070000 are review-only. Owner policy: ordinary non-bookkeeper entries post without review."
+    },
+    {
+      "id": "TAX-BOOK-TO-TAX",
+      "name": "Book-to-tax mappings, adjustments, workpapers",
+      "category": "Tax pipeline",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/routes/bookToTax.routes.ts",
+        "src/components/workspace/BookToTaxPanel.tsx"
+      ],
+      "tests": [
+        "src/tests/bookToTaxHttp.test.ts",
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+      ],
+      "remainingGap": "Proposal 029 review-only; firm categories (H07); preparer steps are API setup in the journey."
+    },
+    {
+      "id": "TAX-RESEARCH",
+      "name": "Tax research agent with authority citations",
+      "category": "Tax pipeline",
+      "status": "NOT_IMPLEMENTED",
+      "implementation": [],
+      "tests": [],
+      "remainingGap": "Only verified source registration exists (Tax Rules console). No research capability; any AI research needs a commissioned agent."
+    },
+    {
+      "id": "TAX-RULE-ENGINE",
+      "name": "Versioned, year-aware tax rule engine",
+      "category": "Tax pipeline",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/taxguard/taxEngine/taxEngineStore.ts",
+        "src/server/taxguard/taxEngine/ruleSetDefinition.ts",
+        "src/components/workspace/TaxRulesPanel.tsx"
+      ],
+      "tests": [
+        "src/tests/taxEngineHttp.test.ts",
+        "src/tests-e2e/07-tax-engine.e2e.test.ts"
+      ],
+      "remainingGap": "Proposals 033/036/038 review-only; no real rule content (needs professional verification of sources)."
+    },
+    {
+      "id": "TAX-CALCULATION",
+      "name": "Deterministic calculation runs",
+      "category": "Tax pipeline",
+      "status": "INTEGRATION_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "src/server/routes/taxEngine.routes.ts"
+      ],
+      "tests": [
+        "src/tests/taxEngineHttp.test.ts"
+      ],
+      "remainingGap": "Runs are pinned to rule-set id and hash, but only synthetic rule sets exist; no federal or state rule content."
+    },
+    {
+      "id": "TAX-CALC-VERIFICATION",
+      "name": "Independent calculation verification",
+      "category": "Tax pipeline",
+      "status": "PARTIAL",
+      "implementation": [
+        "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql",
+        "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql"
+      ],
+      "tests": [
+        "src/tests/taxEngineHttp.test.ts"
+      ],
+      "remainingGap": "Rule-set verification cases and coverage exist; per-return variance and prior-year anomaly checks do not."
+    },
+    {
+      "id": "TAX-RETURN-PREP",
+      "name": "Return preparation (stage 09)",
+      "category": "Tax pipeline",
+      "status": "BLOCKED_BY_POLICY",
+      "implementation": [
+        "src/taxForms/preparationPipeline.ts",
+        "src/server/taxguard/stageNineServerGate.ts"
+      ],
+      "tests": [
+        "src/tests/productionStages04Through09.test.ts"
+      ],
+      "blocker": "Stage 09 onward is blocked until a verified tax engine and approved rule content exist.",
+      "remainingGap": "Consume approved calculations; controlled rework paths."
+    },
+    {
+      "id": "TAX-FORM-MAPPING",
+      "name": "Deterministic form mapping with lineage",
+      "category": "Tax pipeline",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/taxForms/federalForms.ts",
+        "src/taxForms/registry.ts",
+        "src/server/routes/taxForms.routes.ts"
+      ],
+      "tests": [
+        "src/tests/taxFormsLibrary.test.tsx"
+      ],
+      "remainingGap": "Form catalogue only; no evidence-to-line lineage."
+    },
+    {
+      "id": "TAX-DIAGNOSTICS",
+      "name": "Return diagnostics (warning vs blocking)",
+      "category": "Tax pipeline",
+      "status": "NOT_IMPLEMENTED",
+      "implementation": [],
+      "tests": [],
+      "remainingGap": "Stage gates block progression, but no return diagnostics exist."
+    },
+    {
+      "id": "TAX-RISK",
+      "name": "Risk and materiality evaluation",
+      "category": "Tax pipeline",
+      "status": "NOT_IMPLEMENTED",
+      "implementation": [],
+      "tests": [],
+      "remainingGap": "Needs owner-defined thresholds; AI confidence alone must never route past review."
+    },
+    {
+      "id": "TAX-REVIEW-QC",
+      "name": "Reviewer and independent QC",
+      "category": "Human authorization",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/components/workspace/ReviewerDashboard.tsx",
+        "src/components/workspace/ReviewerLedgerReviewPanel.tsx",
+        "src/server/routes/case-authority.routes.ts"
+      ],
+      "tests": [
+        "src/tests/reviewerDashboardHttp.test.ts",
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+      ],
+      "remainingGap": "Reviewer queue and decisions refuse in production (process-local adapter); durable reviewer discovery is Codex's package. No separate QC role or agent."
+    },
+    {
+      "id": "TAX-SIGN-FILE",
+      "name": "Signature, filing, government feedback (stages 10-13, 16)",
+      "category": "Tax pipeline",
+      "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
+      "implementation": [
+        "src/server/taxguard/stageElevenServerGate.ts",
+        "src/server/taxguard/stageTwelveServerGate.ts"
+      ],
+      "tests": [
+        "src/tests/completeTaxGuardLifecycleStages10Through18.test.ts"
+      ],
+      "blocker": "No e-signature or e-file provider; live filing requires explicit approval.",
+      "remainingGap": "Everything beyond the gates."
+    },
+    {
+      "id": "REC-AUTHORITATIVE",
+      "name": "Authoritative record (durable, versioned, scoped)",
+      "category": "Records",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/server/routeCutover.ts",
+        "docs/development/production-route-parity.md"
+      ],
+      "tests": [
+        "src/tests/routeCutover.test.ts",
+        "src/tests/caseAuthorityProductionDurability.test.ts",
+        "src/tests/practiceOperationsProductionDurability.test.ts"
+      ],
+      "remainingGap": "Durable proposals are review-only. Production refuses every process-local authority (Blocks 39-41); no durable router is mounted in production."
+    },
+    {
+      "id": "REC-AUDIT-LEDGER",
+      "name": "Audit ledger and security events",
+      "category": "Records",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/taxguard/audit/auditCenterStore.ts",
+        "src/server/taxguard/audit/securityEventSink.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/11-appointments-audit-legal.e2e.test.ts",
+        "src/tests/auditSecurityVolume.test.tsx"
+      ],
+      "remainingGap": "Only SECURITY_* rows are append-only in the plan; the full append-only proposal awaits the owner."
+    },
+    {
+      "id": "OPS-MONITORING",
+      "name": "Monitoring, health and alerting",
+      "category": "Operations",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/server/observability/health.ts",
+        "src/server/operationalMetrics.ts"
+      ],
+      "tests": [
+        "src/tests/healthEndpoints.test.ts"
+      ],
+      "remainingGap": "No log shipping or alerting; AI telemetry has nothing to report."
+    },
+    {
+      "id": "OPS-INTEGRATION-ADAPTERS",
+      "name": "External integration adapters and readiness",
+      "category": "Integrations",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/server/taxguard/providerReadiness.service.ts",
+        "src/server/routes/integrations.routes.ts"
+      ],
+      "tests": [
+        "src/tests/integrationsAuthorization.test.ts"
+      ],
+      "remainingGap": "Readiness reporting exists; providers (scanner, OCR, email, SMS, payments, e-sign, e-file, accounting) are not commissioned."
+    },
+    {
+      "id": "SEC-ISOLATION",
+      "name": "Client, tenant, engagement and year isolation",
+      "category": "Security",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/server/auth.ts",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
+      ],
+      "tests": [
+        "src/tests/clientDataIsolationSecurity.test.ts",
+        "src/tests-e2e/18-client-confidentiality-sweep.e2e.test.ts",
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+      ],
+      "remainingGap": "Messaging, appointment and legal general records wait on the owner's general-record policy."
+    },
+    {
+      "id": "UX-RESPONSIVE-A11Y",
+      "name": "Responsive (375 px) and automated accessibility",
+      "category": "Experience",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/tests-e2e/a11yAudit.ts"
+      ],
+      "tests": [
+        "src/tests-e2e/16-staff-accessibility.e2e.test.ts",
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+      ],
+      "remainingGap": "Automation only; WCAG conformance needs manual assistive-technology testing."
+    }
   ]
 }

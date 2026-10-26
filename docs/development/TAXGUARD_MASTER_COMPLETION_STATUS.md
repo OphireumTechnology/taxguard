@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Bookkeeper ledger workspace scope isolation (Block 47).** A slower response for the previously selected tax year
+- **AI emergency stop through the UI (Block 48).** Provider journey N: the administrator engages an agent stop with
+  confirmation in the UI, the server records it, the agent shows as STOPPED, and the accountant has no control. Register
+  corrected: kill switch `PROVIDER_VERIFIED`, AI Control Center `BROWSER_VERIFIED`.
+- **Bookkeeper ledger workspace scope isolation (Block 47), published as `f5c095a`.** A slower response for the previously selected tax year
   appeared under the new year's heading, demonstrated deterministically in suite 03. Responses are now tagged with
   client and year and stale ones discarded, and a scope change clears the previous queue, totals and drafts.
 - **Architecture implementation register (Block 46), published as `5967545` (CI run 40283021034 success).** `architecture-implementation-register.json` maps 42 components of

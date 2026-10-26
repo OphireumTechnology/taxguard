@@ -21,6 +21,7 @@ describe('architecture implementation register', () => {
     for (const c of components) {
       if (/_VERIFIED$/.test(c.status)) expect(c.tests.length, c.id).toBeGreaterThan(0);
       if (c.status === 'BROWSER_VERIFIED') expect(c.tests.some(t => t.startsWith('src/tests-e2e/')), c.id).toBe(true);
+      if (c.status === 'PROVIDER_VERIFIED') expect(c.tests.some(t => t.startsWith('src/tests-e2e/provider/')), c.id).toBe(true);
       if (c.status.startsWith('BLOCKED_')) expect(c.blocker?.trim().length, c.id).toBeGreaterThan(10);
       expect(c.remainingGap.trim().length, c.id).toBeGreaterThan(5);
     }

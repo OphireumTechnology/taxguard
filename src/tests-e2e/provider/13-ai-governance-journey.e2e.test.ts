@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ORIGIN, closeBrowser, durableSession, providerControl, providerToken } from '../helpers';
+import { ORIGIN, closeBrowser, durableSession, liveSessionWithToken, providerControl, providerToken } from '../helpers';
 
 // Journey N on the real server with the governance store composed on this run's loopback PostgreSQL
 // (provider profile). The accountant is the assigned preparer of one synthetic case (seeded by the E2E
@@ -90,5 +90,55 @@ describe('journey N: governed AI evaluation on the real server', () => {
     expect(new Set(commissioning.body.agents.map((a: any) => a.commissioning_state))).toEqual(new Set(['DRAFT', 'STOPPED']));
     expect(commissioning.body.agents.find((a: any) => a.agent_id === 'A34').commissioning_state).toBe('STOPPED');
     expect((await read(tokens[ACCOUNTANT], '/control-center/decisions')).status).toBeGreaterThanOrEqual(400);
+  });
+  it('an administrator engages an agent stop through the AI Emergency Stop UI; it is recorded; the accountant has no such control', async () => {
+    const s = await liveSessionWithToken(tokens[ADMIN], '/staff');
+    await s.page.getByRole('button', { name: /AI Emergency Stop/ }).first().click();
+    const panel = s.page.locator('section', { has: s.page.getByRole('heading', { name: 'AI Emergency Stop' }) });
+    await panel.getByRole('heading', { name: 'Recorded stops' }).waitFor();
+    await panel.getByLabel('One agent').check();
+    await panel.getByLabel('Agent', { exact: true }).selectOption('A10');
+    await panel.getByLabel(/^Reason \(recorded/).fill('Synthetic journey N stop through the UI');
+    await panel.getByRole('button', { name: 'Engage emergency stop…' }).click();
+    // A confirmation step names the exact target before anything is sent.
+    const confirm = panel.getByRole('alertdialog');
+    await confirm.getByText(/Stop agent A10 for this tenant\?/).waitFor();
+    await confirm.getByRole('button', { name: 'Confirm emergency stop' }).click();
+    await panel.getByRole('status').filter({ hasText: 'Emergency stop engaged for A10.' }).waitFor();
+    await panel.getByRole('row').filter({ hasText: 'A10' }).filter({ hasText: 'ENGAGED' }).filter({ hasText: ADMIN }).waitFor();
+    // The server recorded it: the stop is durable, attributed to the administrator, and A10 is now stopped.
+    const list = await read(tokens[ADMIN], '/kill-switches');
+    expect(list.body.kill_switches.filter((k: any) => k.enabled && k.target === 'A10' && k.activated_by === ADMIN)).toHaveLength(1);
+    const commissioning = await read(tokens[ADMIN], '/control-center/commissioning');
+    expect(commissioning.body.agents.find((a: any) => a.agent_id === 'A10').commissioning_state).toBe('STOPPED');
+    // Lifting a stop is not offered in the workspace.
+    expect(await panel.getByRole('button', { name: /lift|disable|release|resume/i }).count()).toBe(0);
+    // Audit: the stop is a CRITICAL governance security event attributed to the administrator.
+    const events = await read(tokens[ADMIN], '/control-center/security-events');
+    expect(events.status).toBe(200);
+    const stopEvent = events.body.items.find((e: any) => e.event_type === 'KILL_SWITCH' && e.details?.target === 'A10');
+    expect(stopEvent, JSON.stringify(events.body.items.map((e: any) => [e.event_type, e.details?.target]))).toMatchObject({ actor_uid: ADMIN, severity: 'CRITICAL' });
+    expect(stopEvent.details).toMatchObject({ operation: 'ACTIVATE', scope: 'AGENT', target: 'A10' });
+    expect(typeof stopEvent.details.switch_id).toBe('string');
+    expect(stopEvent.details.reason_sha256).toMatch(/^[a-f0-9]{64}$/);
+    // New governed execution for the stopped agent is refused. A10 was already inactive (nothing is commissioned), so
+    // the refusal code alone cannot isolate the stop; the recorded stop above is the evidence that it is in force.
+    refusedByPolicy(await evaluate(tokens[ACCOUNTANT], request({ agent_id: 'A10' })));
+    // Nothing is erased: the earlier decisions and the earlier A34 stop are still recorded and readable.
+    const decisionsAfter = await read(tokens[ADMIN], '/control-center/decisions');
+    expect(decisionsAfter.body.items.length).toBeGreaterThanOrEqual(7);
+    expect(list.body.kill_switches.filter((k: any) => k.enabled && k.target === 'A34')).toHaveLength(1);
+    // Negative: a non-administrator cannot engage a global stop through the server, whatever the UI shows.
+    const globalAttempt = await fetch(ORIGIN + '/api/ai-governance/kill-switches', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${tokens[ACCOUNTANT]}` },
+      body: JSON.stringify({ scope: 'GLOBAL', reason: 'Synthetic unauthorised global stop' }) }).then(async r => ({ status: r.status, body: await r.json() as any }));
+    expect(globalAttempt.status).toBe(403); expect(globalAttempt.body.code).toBe('AI_KILL_SWITCH_ROLE_DENIED');
+    expect((await read(tokens[ADMIN], '/kill-switches')).body.kill_switches.filter((k: any) => k.scope === 'GLOBAL')).toHaveLength(0);
+    await s.context.close();
+
+    const a = await liveSessionWithToken(tokens[ACCOUNTANT], '/staff');
+    await a.page.waitForLoadState('networkidle');
+    expect(await a.page.getByRole('button', { name: /AI Emergency Stop/ }).count()).toBe(0);
+    expect(await a.page.getByRole('heading', { name: 'AI Emergency Stop' }).count()).toBe(0);
+    await a.context.close();
   });
 });
