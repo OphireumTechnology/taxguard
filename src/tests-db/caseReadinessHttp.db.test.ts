@@ -117,7 +117,7 @@ describe('scope', () => {
     expect((await call('POST', `/cases/${caseId}/diagnostics/run`)).status).toBe(200);
     expect((await call('POST', `/cases/${caseId}/risk`, { amountCents: 10 })).status).toBe(201);
     const audits = (await db.pool.query(`SELECT action, count(*)::int AS n FROM taxguard_audit_log WHERE tenant_id = $1
-      AND action IN ('CASE_DIAGNOSTICS_RUN','CASE_DIAGNOSTIC_ACKNOWLEDGED','CASE_RISK_ASSESSED') GROUP BY action ORDER BY action`, [T])).rows;
-    expect(audits).toEqual([{ action: 'CASE_DIAGNOSTIC_ACKNOWLEDGED', n: 1 }, { action: 'CASE_DIAGNOSTICS_RUN', n: 3 }, { action: 'CASE_RISK_ASSESSED', n: 3 }]);
+      AND action IN ('CASE_DIAGNOSTICS_RUN','CASE_DIAGNOSTIC_ACKNOWLEDGED','CASE_RISK_ASSESSED') GROUP BY action ORDER BY action COLLATE "C"`, [T])).rows;
+    expect(audits).toEqual([{ action: 'CASE_DIAGNOSTICS_RUN', n: 3 }, { action: 'CASE_DIAGNOSTIC_ACKNOWLEDGED', n: 1 }, { action: 'CASE_RISK_ASSESSED', n: 3 }]);
   });
 });
