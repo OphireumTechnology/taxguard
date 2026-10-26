@@ -54,6 +54,8 @@ Audits completed in this cycle (documents):
 
 - **Accessibility audit of the newer staff surfaces (Block 43).** Suite 16 now covers the manager's Tax Rules module,
   its expanded authoring forms and the administrator's security view. No defect was found.
+- **Phone-width layout (Block 44).** The Tax Rules console (forms expanded), Case Workflow, Clients & Engagements and
+  the audit center (event list and security view) stay within 375 px without page scroll.
 
 ### Blocked (recorded, not worked around)
 

@@ -112,4 +112,45 @@ describe('keyboard and focus in the staff billing workspace', () => {
     expect(overflow).toBeLessThanOrEqual(0);
     await s.context.close();
   });
+  // Phone width for the newer staff surfaces: the page itself must not scroll sideways. Wide tables belong in their
+  // own horizontally scrollable region.
+  const pageOverflow = (page: import('playwright-core').Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const openAtPhoneWidth = async (who: string, module: string) => {
+    const s = await staffLogin(who);
+    await s.page.setViewportSize({ width: 375, height: 812 });
+    await s.page.getByRole('button', { name: 'Open navigation' }).click();
+    await s.page.getByRole('dialog', { name: 'Workspace navigation' }).getByRole('button', { name: module, exact: true }).click();
+    await s.page.waitForLoadState('networkidle');
+    return s;
+  };
+  it('keeps the Tax Rules console, with its forms expanded, within a 375 px viewport', async () => {
+    const s = await openAtPhoneWidth('e2e-mgr', 'Tax Rules');
+    const panel = s.page.locator('section', { has: s.page.getByRole('heading', { name: 'Tax Rules', exact: true }) });
+    await panel.waitFor();
+    for (const summary of ['Register a source', 'Draft a rule set']) {
+      await panel.getByText(summary, { exact: true }).click();
+      await panel.getByRole('form', { name: summary }).waitFor();
+    }
+    expect(await pageOverflow(s.page)).toBeLessThanOrEqual(0);
+    await s.context.close();
+  });
+  it('keeps Case Workflow and Clients & Engagements within a 375 px viewport', async () => {
+    for (const module of ['Case Workflow', 'Clients & Engagements']) {
+      const s = await openAtPhoneWidth('e2e-mgr', module);
+      expect(await pageOverflow(s.page), module).toBeLessThanOrEqual(0);
+      await s.context.close();
+    }
+  });
+  it('keeps the audit center, including the security view, within a 375 px viewport', async () => {
+    const s = await openAtPhoneWidth('e2e-admin', 'Compliance Audit Log');
+    const center = s.page.getByRole('region', { name: 'Audit center' });
+    await center.getByRole('cell').first().waitFor();
+    expect(await pageOverflow(s.page), 'event list').toBeLessThanOrEqual(0);
+    const filters = center.getByRole('form', { name: 'Audit filters' });
+    await filters.getByLabel(/Security events only/).check();
+    await filters.getByRole('button', { name: 'Apply filters' }).click();
+    await center.getByRole('region', { name: 'Security event volume' }).waitFor();
+    expect(await pageOverflow(s.page), 'security view').toBeLessThanOrEqual(0);
+    await s.context.close();
+  });
 });

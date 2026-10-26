@@ -588,6 +588,15 @@ could mean "the UI claims something the backend cannot deliver".
   is detected. Its keyboard and viewport billing cases depend on invoices that suite 02 creates (pre-existing): they
   pass in the full run, and fail when suite 16 runs alone. This automation does not establish WCAG conformance.
 
+  **Phone-width layout of the newer staff surfaces (Block 44).** The 375 px no-horizontal-page-scroll check covered
+  only billing. It now also covers, reached through the phone navigation drawer:
+  - the Tax Rules console, with both authoring forms expanded;
+  - Case Workflow;
+  - Clients & Engagements;
+  - the audit center's event list and security view.
+
+  All fit, and no source change was needed.
+
   **Payment webhook signature verification (Block 42).** This is the development handler behind
   `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:
   - verifies the exact bytes received (`rawBody`, captured by `server.ts`). It refuses with 400
