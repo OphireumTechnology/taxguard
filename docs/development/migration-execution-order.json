@@ -525,6 +525,12 @@
         "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql",
+      "dependsOn": [
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
+      ]
     }
   ]
 }

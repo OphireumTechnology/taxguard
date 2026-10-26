@@ -310,10 +310,16 @@
       "id": "AI-EVALUATION",
       "name": "Agent evaluation framework",
       "category": "Governance",
-      "status": "NOT_IMPLEMENTED",
-      "implementation": [],
-      "tests": [],
-      "remainingGap": "No correctness, hallucination or citation evaluation harness. Verification evidence tables are not an evaluation framework."
+      "status": "UNIT_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql"
+      ],
+      "tests": [
+        "src/tests/aiAgentEvaluation.test.ts",
+        "src/tests/proposalCompositionSecurity.test.ts"
+      ],
+      "remainingGap": "Activation gate and evaluation records exist (review-only proposal; not applied anywhere). No evaluation runner executes real agent cases, because no model is commissioned; no Control Center view of evaluations; dimension thresholds beyond per-case pass or fail are owner policy.",
+      "persistence": "review-only proposal 20261018140000: suites, pinned runs, append-only case results; outcomes derived by the database"
     },
     {
       "id": "AI-CONTROL-CENTER",

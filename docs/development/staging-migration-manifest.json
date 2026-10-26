@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "9d6c0d9bc5a2f2e6a78878a45b3e2f2a7a13f8e44d8a55692808a564ef6cffa4",
+  "executionPlanSha256": "89e2c3ee593aa92733c3ec84ec87491feedeaee8a1f24ef306a1fbdf8c6751d0",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4341,6 +4341,52 @@
         "--     characters) and the case's current version (CASE_VERSION_CONFLICT); the case must be ACTIVE or ON_HOLD;",
         "--   * the new person must hold, now, an ACTIVE and effective assignment of that role covering the case's client,",
         "--     engagement and year (CASE_ASSIGNEE_NOT_ASSIGNED), so restaffing never grants access by itself;"
+      ]
+    },
+    {
+      "order": 82,
+      "file": "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql",
+      "kind": "proposal",
+      "version": "20261018140000",
+      "sha256": "380cf9253a5865d6c046d14bf19cab81c8668cdaa2a8e7b1f8adccb309e05e7e",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
+      ],
+      "referencedDependencies": [],
+      "declaredObjects": [
+        "ai_evaluation_dimensions",
+        "ai_evaluation_suites",
+        "ai_evaluation_runs",
+        "ai_evaluation_results",
+        "ai_evaluation_results_guard",
+        "ai_evaluation_runs_guard",
+        "ai_evaluation_complete",
+        "ai_agent_version_activation_gate"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON ai_evaluation_dimensions, ai_evaluation_suites, ai_evaluation_runs, ai_evaluation_results FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION ai_evaluation_complete(uuid), ai_evaluation_results_guard(), ai_evaluation_runs_guard(),"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- REVIEW-ONLY PROPOSAL. Not applied to any hosted database; owner approval and independent SQL review required.",
+        "--",
+        "-- AI agent evaluation and the activation gate.",
+        "--",
+        "-- An agent version may not become ACTIVE merely because it runs. It needs a completed evaluation run that:",
+        "--   * targets that exact agent version, model version and prompt version;",
+        "--   * uses an evaluation suite approved by a governance member other than the suite's author;",
+        "--   * covers every dimension the suite requires, each with a recorded case result and no failure;",
+        "--   * finishes as PASS. The outcome is computed here from the case results; no caller can supply a score.",
+        "-- Case results are append-only: they cannot be edited or deleted, and a completed run cannot be reopened.",
+        "-- Nothing here activates an agent. Every A00-A60 deployment stays DRAFT until a separate, authorized change.",
+        "-- Results only accumulate while their run is RUNNING, and they are never changed afterwards."
       ]
     }
   ]

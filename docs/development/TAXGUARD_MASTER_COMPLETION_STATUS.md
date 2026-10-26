@@ -55,7 +55,11 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Book-to-tax maker-checker coverage (Block 49).** Self-approval of an adjustment and of a workpaper is refused,
+- **Agent evaluation and the activation gate (Block 50).** Review-only proposal `20261018140000` covers evaluation
+  suites (independently approved), pinned runs, append-only results and database-derived outcomes. A trigger refuses an
+  ACTIVE agent version without a passing evaluation of its exact agent, model and prompt versions.
+  `aiAgentEvaluation.test` (9). No agent is activated.
+- **Book-to-tax maker-checker coverage (Block 49), published as `56cbdbf`.** Self-approval of an adjustment and of a workpaper is refused,
   with no approval audit row. The current execution-order definitions keep the refusal. Each case failed when its
   check was removed.
 - **AI emergency stop through the UI (Block 48), published as `bb386f3`.** Provider journey N: the administrator engages an agent stop with

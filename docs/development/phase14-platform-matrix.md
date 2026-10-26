@@ -681,7 +681,28 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Book-to-tax maker-checker coverage (Block 49).** All three book-to-tax approvals refuse self-approval in SQL, but
+  **Agent evaluation and the activation gate (Block 50).** In the core AI schema an agent version could be set ACTIVE
+  with no evaluation at all; the governance fixtures do exactly that. Proposal `20261018140000_taxguard_ai_agent_evaluation`
+  (review only) adds:
+  - **Ten registered evaluation dimensions:** correctness, evidence grounding, hallucination, authorization, tool use,
+    stage compliance, prompt-injection resistance, deterministic boundary, structured output and failure behaviour.
+  - **Suites** per agent, listing the required dimensions and a minimum number of cases. A suite takes effect only
+    once approved by a member other than its author.
+  - **Runs** pinned to the exact agent, model and prompt versions.
+  - **Append-only case results**, each with an evidence hash and latency.
+  - **Derived outcomes.** A run's PASS or FAIL is computed only by `ai_evaluation_complete` from the recorded
+    results: any failure fails the run, and too few cases fail it. No caller can create or update a run as passed.
+  - **The activation gate.** A trigger on `ai_agent_versions` refuses ACTIVE (`AI_EVALUATION_REQUIRED`) unless a
+    passing run exists for those exact versions, against an approved suite that requires every registered dimension.
+    A model or prompt change on an active version needs a new evaluation.
+
+  Tests: `aiAgentEvaluation.test` (9, PGlite over every core migration), including that the fixtures' direct
+  activation shortcut is now refused and that applying the proposal changes no agent's status. Every A00-A60 version
+  stays DRAFT, no model is commissioned, and no evaluation runner executes real agent cases.
+  The existing migration readiness audit caught the first draft: its three trigger functions were executable by `anon`
+  and `authenticated`. Every function and table is now revoked from `PUBLIC`, `anon` and `authenticated`.
+
+  **Book-to-tax maker-checker coverage (Block 49), published as `56cbdbf`.** All three book-to-tax approvals refuse self-approval in SQL, but
   only the mapping set was tested. Two cases are added to `bookToTaxHttp.test`:
   - a reviewer who prepared an adjustment is refused approving it (`MAKER_CHECKER_VIOLATION`);
   - a reviewer who generated a workpaper is refused approving it.
