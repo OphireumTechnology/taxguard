@@ -3,13 +3,16 @@ import { PGlite } from '@electric-sql/pglite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { GovernanceControlPlane } from '../server/ai/governance/GovernanceControlPlane';
+import { GovernanceControlPlane, roleCategories } from '../server/ai/governance/GovernanceControlPlane';
+import { CANONICAL_AGENTS } from '../ai/registry';
 import { SqlGovernanceStore, type TransactionalSql } from '../server/ai/governance/SqlGovernanceStore';
 import type { GovernanceRequest, SessionAuthority } from '../server/ai/governance/contracts';
 import { getProductionGovernance } from '../server/ai/governance/productionGovernance';
+import { CANONICAL_ARCHITECTURE } from '../ai/architectureMapping';
 
 const cid='11111111-1111-4111-8111-111111111111',did='22222222-2222-4222-8222-222222222222',eid='33333333-3333-4333-8333-333333333333';
 const hash='a'.repeat(64);
+const UNMAPPED=CANONICAL_ARCHITECTURE.filter(r=>r.mapping_state==='UNMAPPED_DENIED').map(r=>r.agent_id);
 let pg:PGlite,plane:GovernanceControlPlane,store:SqlGovernanceStore;
 const authority:SessionAuthority={verify:async token=>token==='valid'?{uid:'preparer',tenant_id:'tenantA'}:token==='reviewer'?{uid:'reviewer',tenant_id:'tenantA'}:null};
 const request=(patch:Partial<GovernanceRequest>={}):GovernanceRequest=>({request_id:randomUUID(),agent_id:'A34',scope:{tenant_id:'tenantA',client_id:'clientA',tax_case_id:'caseA',tax_year:2025},workflow_stage:3,intent:'ADVISORY',purpose:'IDENTIFY_REVIEW_QUESTIONS',capabilities:[{tool_id:'workflow.read',action:'READ'}],data_classes:['INTERNAL'],evidence_source_ids:[eid],confidence:0.99,financial_amount:0,risk_level:'LOW',...patch});
@@ -81,19 +84,49 @@ describe('AI-2 authenticated scope and lifecycle',()=>{
 });
 
 describe('AI-2 capabilities, tools, data and policy',()=>{
- it.each(['A01','A02','A03','A04','A12','A13','A14','A15','A16','A32','A33','A35',...Array.from({length:15},(_,i)=>`A${i+17}`)])('refuses unmapped %s even with synthetic ACTIVE and SQL ALLOW grants',async agentId=>{
+ it('derives the unmapped population from the architecture register: all 58 agents outside A00, A10 and A34',()=>{
+  expect(UNMAPPED).toHaveLength(58);
+  expect(UNMAPPED.some(id=>['A00','A10','A34'].includes(id))).toBe(false);
+ });
+ // Every unmapped agent, not a sample: UNMAPPED = DENY must hold even when every SQL grant says ALLOW. The caller holds
+ // a staff role whose categories include the agent's, so the role check passes and the mapping check is what refuses.
+ // Categories no role covers (signing/filing and platform security) stop at the role check and are asserted as such.
+ it.each(UNMAPPED)('refuses unmapped %s even with synthetic ACTIVE and SQL ALLOW grants',async agentId=>{
+  const category=CANONICAL_AGENTS.find(a=>a.agent_id===agentId)!.category;
+  const role=['accountant',...Object.keys(roleCategories)].find(k=>roleCategories[k].includes(category));
+  const expected=role?'AI_AGENT_AUTHORITY_UNMAPPED':'AI_ROLE_DENIED';
   await pg.query("UPDATE ai_agents SET status='ACTIVE' WHERE agent_id=$1",[agentId]);
   await pg.query("UPDATE ai_agent_versions SET status='ACTIVE' WHERE agent_id=$1",[agentId]);
   await pg.query("UPDATE ai_agent_permissions SET permission_state='ALLOW' WHERE agent_id=$1",[agentId]);
   await pg.query("UPDATE ai_stage_permissions SET permission_state='ALLOW' WHERE agent_id=$1",[agentId]);
-  const r=request({agent_id:agentId,purpose:'CLIENT_ONBOARDING'});
-  const before=(await pg.query('SELECT count(*)::int AS n FROM ai_runs')).rows;
-  await fail(r,'AI_AGENT_AUTHORITY_UNMAPPED');
-  expect((await pg.query('SELECT count(*)::int AS n FROM ai_runs')).rows).toEqual(before);
-  const audit=await pg.query<{reason_code:string;action_executed:boolean}>('SELECT reason_code,action_executed FROM ai_governance_decisions WHERE request_key=$1',[createHash('sha256').update(r.request_id).digest('hex')]);
-  expect(audit.rows).toEqual([{reason_code:'AI_AGENT_AUTHORITY_UNMAPPED',action_executed:false}]);
-  await pg.query("UPDATE ai_agents SET status='DRAFT' WHERE agent_id=$1",[agentId]);
-  await pg.query("UPDATE ai_agent_versions SET status='DRAFT' WHERE agent_id=$1",[agentId]);
+  await pg.query("UPDATE ai_agent_data_permissions SET permission_state='ALLOW' WHERE agent_id=$1 AND data_classification NOT IN ('SYSTEM_SECRET','AUTHENTICATION_DATA')",[agentId]);
+  const caseRole=!role||role==='accountant'?'preparer':['reviewer','senior_reviewer'].includes(role)?'reviewer':role;
+  if(role&&role!=='accountant'){
+   await pg.query("UPDATE taxguard_members SET role=$1 WHERE uid='preparer'",[role]);
+   await pg.query("UPDATE taxguard_case_assignments SET role=$1 WHERE uid='preparer'",[caseRole]);
+   await pg.query("UPDATE taxguard_staff_assignments SET role=$1 WHERE user_id='preparer'",[caseRole]);
+   if(caseRole==='reviewer')await pg.query(`UPDATE taxguard_cases SET reviewer_uid='preparer',preparer_uid='other' WHERE id='${cid}'`);
+  }
+  try {
+   const r=request({agent_id:agentId,purpose:'CLIENT_ONBOARDING'});
+   const before=(await pg.query('SELECT count(*)::int AS n FROM ai_runs')).rows;
+   await fail(r,expected);
+   expect((await pg.query('SELECT count(*)::int AS n FROM ai_runs')).rows).toEqual(before);
+   const audit=await pg.query<{reason_code:string;action_executed:boolean}>('SELECT reason_code,action_executed FROM ai_governance_decisions WHERE request_key=$1',[createHash('sha256').update(r.request_id).digest('hex')]);
+   expect(audit.rows).toEqual([{reason_code:expected,action_executed:false}]);
+  } finally {
+   await pg.query("UPDATE taxguard_members SET role='accountant' WHERE uid='preparer'");
+   await pg.query("UPDATE taxguard_case_assignments SET role='preparer' WHERE uid='preparer'");
+   await pg.query("UPDATE taxguard_staff_assignments SET role='preparer' WHERE user_id='preparer'");
+   await pg.query(`UPDATE taxguard_cases SET preparer_uid='preparer',reviewer_uid='reviewer' WHERE id='${cid}'`);
+   await pg.query("UPDATE ai_agents SET status='DRAFT' WHERE agent_id=$1",[agentId]);
+   await pg.query("UPDATE ai_agent_versions SET status='DRAFT' WHERE agent_id=$1",[agentId]);
+  }
+ });
+ it('leaves exactly the signing/filing and platform-security categories unreachable by any staff role',()=>{
+  const covered=new Set(Object.values(roleCategories).flat());
+  const unreachable=[...new Set(CANONICAL_AGENTS.map(a=>a.category))].filter(c=>c!=='SUPERVISOR'&&!covered.has(c)).sort();
+  expect(unreachable).toEqual(['GOVERNANCE_SECURITY_PLATFORM','SIGN_FILE_RESOLVE']);
  });
  it.each(['APPROVE_TAX_RETURN','SUPPRESS_EXCEPTION','IMPERSONATE_REVIEWER'])('A34 cannot gain unmapped purpose %s from trusted-model ALLOW configuration',async purpose=>{
   await pg.query('UPDATE ai_models SET approved_use_cases=array_append(approved_use_cases,$1)',[purpose]);

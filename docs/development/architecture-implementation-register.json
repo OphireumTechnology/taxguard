@@ -251,18 +251,22 @@
       "id": "AI-PERMISSIONS",
       "name": "Tool, data and stage permissions (default deny)",
       "category": "Governance",
-      "status": "UNIT_VERIFIED",
+      "status": "INTEGRATION_VERIFIED",
       "implementation": [
         "src/server/ai/capabilities/CapabilityRegistry.ts",
         "src/server/ai/capabilities/ScopedReadRepository.ts",
-        "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql"
+        "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql",
+        "src/server/ai/governance/GovernanceControlPlane.ts",
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
       ],
       "tests": [
         "src/tests/aiGovernedCapabilities.test.ts",
         "src/tests/aiGovernedCapabilitiesPersistence.test.ts",
-        "src/tests/aiWorkforceDenyByDefault.test.ts"
+        "src/tests/aiWorkforceDenyByDefault.test.ts",
+        "src/tests/aiGovernanceControlPlane.test.ts",
+        "src/tests-db/aiPermissionComposition.db.test.ts"
       ],
-      "remainingGap": "Reads follow tenant, client, case and year scope and the live assignment. All production grants are DENY."
+      "remainingGap": "Reads follow tenant, client, case and year scope and the live assignment. On the composed schema (every migration and review-only proposal, real PostgreSQL) no tool, data or stage permission is granted and every agent has an explicit DENY row for every tool action, data classification and stage. All 58 unmapped agents are refused at runtime even with ACTIVE status and every SQL grant set to ALLOW: 41 by the mapping check, 17 (signing/filing and platform-security categories, which no staff role may invoke) by the role check. Per-agent grants are owner decisions; none is proposed."
     },
     {
       "id": "AI-HUMAN-APPROVAL",

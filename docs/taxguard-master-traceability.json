@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "0aabb60b9770ab55fdf705950d58ef91c7889153fe3c22265597ebf7fdccbdc0",
-      "bytes": 84762,
+      "sha256": "858d3aa12bef998cefba666590b4353967b3a6bb3d30f2d2bd5bd748a390a5ea",
+      "bytes": 86149,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "5883ccbac4dd0f7b32a77be701e044cc8d294c7f1cf3af6145bc22d7a6f84fed",
-      "bytes": 12321,
+      "sha256": "a25d97efc4825079f2ea53bfe990d85fb560bb101fddc50da8123172b1349887",
+      "bytes": 12714,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7231,7 +7231,7 @@
     "src/server/ai/gateway/GovernedAIGateway.ts": "7b4d0f1dcdee39b54f8ca8f91d058a99812b7edf71ef2c9d87c133483aeb0a81",
     "src/server/ai/gateway/structuredOutput.ts": "843474d91d33fd46c35f5611db6238857609e79a4460345c3bd052a71d5e3efa",
     "src/server/ai/governance/ControlCenterReadService.ts": "9c7000cbbe6a32fff6160357e36f52ff8756b96f9b44ef952836c7a40e7f3a29",
-    "src/server/ai/governance/GovernanceControlPlane.ts": "88633b42fd9e1b7bfe0834e40334cc457da29ebf80cbf9bf78963a3553d23117",
+    "src/server/ai/governance/GovernanceControlPlane.ts": "54a1b29d3cefc5010d5d65a80aa1e7ac9e8a959f2c9d5c79deec0b849a10114a",
     "src/server/ai/ledger/ExecutionLedgerService.ts": "877c96b3c13a85f487aa0e065a3920e54df3b6774e3d42435c36c4690def3305",
     "src/server/ai/orchestration/A00Orchestrator.ts": "9d63b273e979e7efbd9d4ed2a517599eeb8d0513ffbbe49a2b8b3f59cb85cf7f",
     "src/server/ai/review/HumanProposalReviewService.ts": "44146fdbbb0cd421e7afb2ad50a9a415ed803fdd4ee7f2d96b787cf2b2fc102b",
@@ -7304,7 +7304,7 @@
     "src/tests/aiCommissioningRecords.test.ts": "376c0929fa834ad18715e79d7e7fb1974b8c081629ee7bf119d275c3596373f1",
     "src/tests/aiDocumentDuplicateAdvisory.test.ts": "39db91d3ffbd7e07c432f55410062331061c4ce61032fcd83d89c20633508f87",
     "src/tests/aiExecutionLedger.test.ts": "4e95d651201bc761f290042ac6f3b5c205aa709a31ef41d578b40ab88dff511a",
-    "src/tests/aiGovernanceControlPlane.test.ts": "81ea6ef0a9caa8ad6fdf52b8f0852520fef73b9e260a93a1dfcce06601eed3ab",
+    "src/tests/aiGovernanceControlPlane.test.ts": "f1aaaf548e805975841b625c5e04680dc73e78a3177cb7bca0b02f1060d1c388",
     "src/tests/aiGovernedCapabilities.test.ts": "771aaadd2bd039309b306951a9fc5558ed55b6bef19f746799d58b1af41f7465",
     "src/tests/aiGovernedCapabilitiesPersistence.test.ts": "3047c25b70af16a8bf9c3bb1a84bacbd3a123daea135727848878bb1e766a537",
     "src/tests/aiGovernedGateway.test.ts": "f5092e50f4a9c02aac7867b9ad657b0bd8613ddc663133999df6d3a53b24f7cc",

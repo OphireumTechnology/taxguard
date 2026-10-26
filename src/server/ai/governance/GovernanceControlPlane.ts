@@ -9,7 +9,8 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const actions: AIAction[] = ['READ','CREATE','UPDATE','DELETE','EXECUTE','APPROVE','EXPORT','TRANSMIT'];
 const data: DataClassification[] = ['PUBLIC','INTERNAL','CLIENT_PII','TAX_DATA','FINANCIAL_DATA','DOCUMENT_CONTENT','AUTHENTICATION_DATA','AUDIT_DATA','SYSTEM_SECRET'];
 const risks: RiskLevel[] = ['LOW','MATERIAL','HIGH','CRITICAL'];
-const roleCategories: Record<string, readonly string[]> = {
+/** Agent categories each staff role may invoke. Exported read-only for tests; a category no role covers is never reachable. */
+export const roleCategories: Readonly<Record<string, readonly string[]>> = {
   accountant: ['CLIENT_SERVICES','DOCUMENT_INTELLIGENCE','ACCOUNTING','TAX_INTELLIGENCE','RISK_QC'],
   reviewer: ['DOCUMENT_INTELLIGENCE','TAX_INTELLIGENCE','RISK_QC'],
   senior_reviewer: ['DOCUMENT_INTELLIGENCE','TAX_INTELLIGENCE','RISK_QC'],

@@ -681,7 +681,21 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **A00 and the case readiness gate (Block 57).** A00 now reads the case's readiness through an injected
+  **Agent permission completeness (Block 58, tests only).** UNMAPPED = DENY is now proven for the whole workforce, not a
+  sample:
+  - **Runtime, all 58 unmapped agents.** The control-plane test derives the population from the architecture register
+    (previously a hand-written list of 27, which missed A05-A09, A11 and A36-A60). Each agent is made ACTIVE with every
+    tool, stage and non-secret data grant set to ALLOW, and the caller holds a staff role that covers the agent's category,
+    so the mapping check itself must refuse: 41 agents are refused with `AI_AGENT_AUTHORITY_UNMAPPED`. The 17 agents in
+    the signing/filing and platform-security categories cannot be invoked by any staff role and are refused earlier with
+    `AI_ROLE_DENIED`; a separate test pins that exactly those two categories are unreachable. Each refusal is audited as a
+    denied decision and creates no run.
+  - **Composed schema.** `aiPermissionComposition.db.test` (4, real PostgreSQL with every migration and review-only
+    proposal): 61 agents, all DRAFT; no non-DENY tool, data or stage permission; an explicit DENY row for every agent and
+    tool action, data classification and stage; secret classes cannot be allowed; every permission column defaults to DENY.
+  - `roleCategories` is exported read-only so the test uses the production role map instead of a copy.
+
+  **A00 and the case readiness gate (Block 57), published as `d44c503`.** A00 now reads the case's readiness through an injected
   `CaseReadinessGate` (`SqlCaseReadinessGate` over `taxguard_case_diagnostics_gate`):
   - **Mapping verified.** The AI governance case key `(tenant_id, tax_case_id)` is `taxguard_cases.case_id` within the
     tenant; `ai_validate_case_scope` refuses any AI record whose `case_record_id` disagrees (`AI_CASE_SCOPE_MISMATCH`),

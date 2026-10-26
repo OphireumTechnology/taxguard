@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **A00 and the case readiness gate (Block 57).** A00 reads the diagnostics gate for the verified tenant, records and reports
+- **Agent permission completeness (Block 58, tests only).** All 58 unmapped agents refused at runtime under full synthetic
+  grants (41 by the mapping check, 17 by the role check); the composed schema grants nothing and has explicit DENY rows for
+  every agent, tool action, data class and stage. `aiGovernanceControlPlane.test`, `aiPermissionComposition.db.test` (4).
+- **A00 and the case readiness gate (Block 57), published as `d44c503`.** A00 reads the diagnostics gate for the verified tenant, records and reports
   it, and never acts on it; anything unreadable is UNAVAILABLE. Case-key mapping verified on PostgreSQL.
   `aiA00Orchestration.test` (12 new), `a00CaseReadiness.db.test` (3).
 - **Readiness and risk in Case Workflow (Block 56), published as `d3f0f69`.** Store, routes and `CaseReadinessPanel` over the diagnostics and risk
