@@ -103,7 +103,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_te
     'caseId', p_case,
     'blocking', count(*) FILTER (WHERE d.severity = 'BLOCKING' AND d.status <> 'CLEARED'),
     'errors', count(*) FILTER (WHERE d.severity = 'ERROR' AND d.status <> 'CLEARED'),
-    'ready', count(*) FILTER (WHERE d.severity IN ('BLOCKING','ERROR') AND d.status <> 'CLEARED') = 0,
+    -- A case that was never diagnosed is not ready, even though it has no findings.
+    'diagnosedAt', (SELECT max(r.run_at) FROM public.taxguard_case_diagnostic_runs r WHERE r.tenant_id = p_tenant AND r.case_id = p_case),
+    'ready', count(*) FILTER (WHERE d.severity IN ('BLOCKING','ERROR') AND d.status <> 'CLEARED') = 0
+      AND EXISTS (SELECT 1 FROM public.taxguard_case_diagnostic_runs r WHERE r.tenant_id = p_tenant AND r.case_id = p_case),
     'returnUse', 'BLOCKED',
     'diagnostics', COALESCE(jsonb_agg((to_jsonb(d) - 'tenant_id') ORDER BY array_position(ARRAY['BLOCKING','ERROR','WARNING','INFO'], d.severity::text), d.detected_at)
       FILTER (WHERE d.status <> 'CLEARED'), '[]'::jsonb))

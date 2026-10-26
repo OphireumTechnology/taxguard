@@ -19,7 +19,9 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_RULE_SET_COVERAGE_INCOMPLETE: 409,
   // Tax research memos (proposal 20261018150000).
   RESEARCH_REVIEWER_REQUIRED: 403, RESEARCH_MEMO_NOT_EDITABLE: 409, RESEARCH_MEMO_NOT_SUBMITTED: 409, RESEARCH_VERSION_CONFLICT: 409,
-  RESEARCH_AUTHORITY_REQUIRED: 409, RESEARCH_SOURCE_NOT_VERIFIED: 409, RESEARCH_MEMO_IMMUTABLE: 409 };
+  RESEARCH_AUTHORITY_REQUIRED: 409, RESEARCH_SOURCE_NOT_VERIFIED: 409, RESEARCH_MEMO_IMMUTABLE: 409,
+  // Case readiness diagnostics and risk assessments (proposals 20261018160000 and 20261018170000).
+  DIAGNOSTIC_REVIEWER_REQUIRED: 403, DIAGNOSTIC_NOT_WAIVABLE: 409, DIAGNOSTIC_NOT_OPEN: 409, DIAGNOSTIC_HISTORY_IMMUTABLE: 409, RISK_ASSESSMENT_IMMUTABLE: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -129,5 +131,23 @@ export class TaxEngineStore {
   }
   reviewResearch(tenant: string, actor: string, memoId: string, decision: 'approve' | 'reject', note: string, version: number) {
     return this.call('taxguard_tax_research_review', { p_tenant: tenant, p_actor: actor, p_memo: this.memo(memoId), p_decision: decision, p_note: note, p_version: version });
+  }
+
+  // Case readiness diagnostics: deterministic checks over the case's durable records. Severities come from the governed
+  // rule table; only INFO and WARNING can be acknowledged, by the case reviewer or a manager. A malformed id reads as not found.
+  diagnostics(tenant: string, actor: string, caseId: string) { return this.call('taxguard_case_diagnostics_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+  runDiagnostics(tenant: string, actor: string, caseId: string) { return this.call('taxguard_case_diagnostics_run', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+  acknowledgeDiagnostic(tenant: string, actor: string, diagnosticId: string, note: string) {
+    if (!UUID.test(diagnosticId)) throw new TaxEngineStoreError('DIAGNOSTIC_NOT_FOUND', 404);
+    return this.call('taxguard_case_diagnostic_acknowledge', { p_tenant: tenant, p_actor: actor, p_diagnostic: diagnosticId, p_note: note });
+  }
+
+  // Risk and materiality: thresholds come only from an approved practice policy. A person states the amount at stake and
+  // whether a position lacks support; AI confidence is never taken from a request, because it may only come from a
+  // governed AI run, and no agent runs.
+  riskAssessments(tenant: string, actor: string, caseId: string) { return this.call<any[]>('taxguard_case_risk_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+  assessRisk(tenant: string, actor: string, caseId: string, signals: { amountCents?: unknown; unsupportedPosition?: unknown }) {
+    return this.call('taxguard_case_risk_assess', { p_tenant: tenant, p_actor: actor, p_case: caseId, p_signals: {
+      amountCents: signals.amountCents ?? null, ...(signals.unsupportedPosition === undefined ? {} : { unsupportedPosition: signals.unsupportedPosition }) } });
   }
 }

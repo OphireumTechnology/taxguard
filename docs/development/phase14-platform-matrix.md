@@ -681,7 +681,34 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **AI run reconstructability (Block 55, test only).** An executed governed run (test-only A34 capability, synthetic
+  **Readiness and risk in Case Workflow (Block 56).** The diagnostics and risk proposals are now reachable by staff:
+  - **Server.** `TaxEngineStore` and `/api/tax-engine` gain `GET /cases/:caseId/diagnostics`,
+    `POST /cases/:caseId/diagnostics/run`, `POST /diagnostics/:diagnosticId/acknowledge`, `GET` and `POST /cases/:caseId/risk`.
+    The database decides scope (live assignment), severity, who may acknowledge and the risk outcome. Practice managers
+    may call all five; the database lets them acknowledge INFO and WARNING findings.
+  - **No AI confidence from a request.** The risk route forwards only the stated amount and the unsupported-position flag.
+    AI confidence may only come from a governed AI run, and no agent runs; the HTTP test sends one and shows it is not
+    recorded.
+  - **Proposal change (review only).** `taxguard_case_diagnostics_json` now reports `diagnosedAt`, and `ready` requires a
+    recorded run: a case never diagnosed showed as ready with no findings.
+  - **UI.** `CaseReadinessPanel`, mounted per case in Case Workflow under Tax research: a summary (not diagnosed, not
+    ready with counts, or no blocking or error findings), run diagnostics, open findings with severity, rule and version,
+    acknowledgement with a note for INFO and WARNING only, a plain statement that blocking and error findings need the
+    record fixed, the risk form (amount in dollars and cents, unsupported position) and the assessment history with
+    reasons in plain language. Stale responses from a previous case are discarded.
+
+  Tests:
+  - `caseReadinessHttp.db.test` (6, real PostgreSQL through the router): run and list, acknowledgement rules and status
+    codes, request confidence ignored, malformed input, scope (outside the case team, other tenant, bookkeeper), manager
+    access and audit counts.
+  - `caseReadinessPanel.test` (4): request shapes, dollar parsing, messages, no confidence input.
+  - `practiceManagerDurableAccess.test`: the five routes open to managers, near-miss paths closed.
+  - Suite 07 e2e (3 new): on a fresh 2027 case the preparer runs diagnostics, sees the blocking and error findings that
+    cannot be acknowledged, is refused acknowledging an INFO finding, and records a risk assessment (BLOCKED, no approved
+    policy, the four reasons); the case reviewer acknowledges the INFO finding; it persists across a reload and readiness
+    is unchanged; API read-back and the audit center confirm it. Bookkeepers are refused on the real server; 375 px holds.
+
+  **AI run reconstructability (Block 55, test only), published as `92df2b6`.** An executed governed run (test-only A34 capability, synthetic
   fixture) is reconstructed in one query from its recorded links, with nothing invented:
   - identity: agent and version, model provider, id and version, prompt id and version;
   - policy: the hash of the gateway's own admission decision (re-evaluated at admission, so it differs from the

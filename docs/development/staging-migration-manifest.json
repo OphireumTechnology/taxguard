@@ -4448,7 +4448,7 @@
       "file": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
       "kind": "proposal",
       "version": "20261018160000",
-      "sha256": "eb93bba446fb4cfb4daab26c13b2c655f9518bcf84c1f7f603ac58849200d587",
+      "sha256": "d9f4b2299809d9bc37c19ccd3bbc5a89c5b97e8322ea37c191edd9e832cf1d60",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",

@@ -55,7 +55,39 @@ export const taxEngineService = {
   submitResearch: (memoId: string, conclusion: string, version: number) => request<ResearchMemo>('POST', '/research' + id(memoId) + '/submit', { conclusion, version }),
   reviewResearch: (memoId: string, decision: 'approve' | 'reject', note: string, version: number) =>
     request<ResearchMemo>('POST', '/research' + id(memoId) + '/' + decision, { note, version }),
+  /** Readiness diagnostics for one case. The server runs the governed checks and decides who may acknowledge a finding. */
+  caseDiagnostics: (caseId: string) => request<CaseDiagnostics>('GET', '/cases' + id(caseId) + '/diagnostics'),
+  runDiagnostics: (caseId: string) => request<CaseDiagnostics>('POST', '/cases' + id(caseId) + '/diagnostics/run', {}),
+  acknowledgeDiagnostic: (diagnosticId: string, note: string) => request<CaseDiagnostics>('POST', '/diagnostics' + id(diagnosticId) + '/acknowledge', { note }),
+  /** Risk assessments for one case. A person states the amount at stake; thresholds come only from an approved practice policy. */
+  caseRisk: (caseId: string) => request<{ items: RiskAssessment[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/risk').then(r => r.items),
+  assessRisk: (caseId: string, amountCents: number, unsupportedPosition: boolean) =>
+    request<RiskAssessment>('POST', '/cases' + id(caseId) + '/risk', { amountCents, unsupportedPosition }),
 };
+export type DiagnosticSeverity = 'BLOCKING' | 'ERROR' | 'WARNING' | 'INFO';
+export interface CaseDiagnostic { diagnostic_id: string; rule_code: string; rule_version: number; severity: DiagnosticSeverity; status: 'OPEN' | 'ACKNOWLEDGED';
+  message: string; affected_type: string; affected_id: string; detected_at: string; acknowledged_by: string | null; acknowledged_at: string | null; acknowledgement_note: string | null }
+export interface CaseDiagnostics { caseId: string; blocking: number; errors: number; ready: boolean; diagnosedAt: string | null; diagnostics: CaseDiagnostic[]; returnUse: 'BLOCKED' }
+export type RiskOutcome = 'BLOCKED' | 'HUMAN_REVIEW_REQUIRED' | 'CONTINUE';
+export interface RiskAssessment { assessment_id: string; case_id: string; tax_year: number; policy_version: number | null; amount_cents: number; unsupported_position: boolean;
+  ai_confidence: number | null; materiality: 'IMMATERIAL' | 'MATERIAL' | 'UNKNOWN'; risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN'; outcome: RiskOutcome;
+  reason_codes: string[]; assessed_by: string; assessed_at: string }
+export const RISK_OUTCOME_LABELS: Record<RiskOutcome, string> = { BLOCKED: 'Blocked', HUMAN_REVIEW_REQUIRED: 'Human review required', CONTINUE: 'May continue under policy' };
+export const RISK_REASON_LABELS: Record<string, string> = {
+  DIAGNOSTICS_NOT_RUN: 'Readiness diagnostics have not been run.',
+  DIAGNOSTIC_BLOCKING: 'A blocking readiness finding is open.',
+  DIAGNOSTIC_ERRORS: 'Readiness errors are open.',
+  NO_APPROVED_MATERIALITY_POLICY: 'The practice has no approved materiality policy, so a person reviews.',
+  AMOUNT_MATERIAL: 'The amount is material under the practice policy.',
+  AI_CONFIDENCE_BELOW_POLICY: 'AI confidence is below the practice minimum.',
+  POLICY_REQUIRES_HUMAN_REVIEW: 'The practice policy requires human review.',
+  UNSUPPORTED_POSITION: 'A position lacks support.',
+};
+/** Whole dollars and cents as entered by a person, to integer cents; anything else is null. */
+export function dollarsToCents(text: string): number | null {
+  const m = /^\s*(\d{1,13})(?:\.(\d{1,2}))?\s*$/.exec(text);
+  return m ? Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0')) : null;
+}
 export const AUTHORITY_LEVELS = ['AUTHORITATIVE', 'SECONDARY', 'INTERNAL_GUIDANCE', 'AI_INFERENCE'] as const;
 export type AuthorityLevel = typeof AUTHORITY_LEVELS[number];
 /** How each authority level is shown. AI inference is never presented as tax authority. */
@@ -127,6 +159,12 @@ export function taxEngineMessage(error: unknown): string {
     RESEARCH_MEMO_NOT_EDITABLE: 'Only the preparer can change a draft memo.',
     RESEARCH_MEMO_NOT_SUBMITTED: 'Only a submitted memo can be approved or rejected.',
     RESEARCH_VERSION_CONFLICT: 'This memo changed since it was loaded. Refresh and try again.',
+    DIAGNOSTIC_NOT_FOUND: 'This finding is not available to you. Access follows your live assignment to the case.',
+    DIAGNOSTIC_REVIEWER_REQUIRED: 'Only the case\'s reviewer or a practice manager can acknowledge a finding.',
+    DIAGNOSTIC_NOT_WAIVABLE: 'Blocking and error findings cannot be acknowledged; fix the underlying record and run the diagnostics again.',
+    DIAGNOSTIC_NOT_OPEN: 'This finding is no longer open. Refresh to see its current state.',
+    DIAGNOSTIC_INPUT_INVALID: 'Enter an acknowledgement note of 10 to 1000 characters.',
+    RISK_INPUT_INVALID: 'Enter the amount at stake in dollars and cents (zero or more).',
     CASE_NOT_FOUND: 'This case is not available to you.',
     TAX_ENGINE_UNAVAILABLE: 'The tax rules service is not enabled in this environment.',
     TAX_ENGINE_STORE_UNAVAILABLE: 'The tax rules service is not enabled in this environment.',

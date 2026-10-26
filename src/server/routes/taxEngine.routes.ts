@@ -64,5 +64,13 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.post('/research/:memoId/submit', run(req => store().submitResearch(t(req), u(req), req.params.memoId, textOf(req.body?.conclusion, 8000), versionOf(req.body?.version))));
   router.post('/research/:memoId/:decision(approve|reject)', run(req => store().reviewResearch(t(req), u(req), req.params.memoId,
     req.params.decision as 'approve' | 'reject', textOf(req.body?.note, 2000), versionOf(req.body?.version))));
+  // Case readiness diagnostics and risk assessments (proposals 20261018160000 and 20261018170000). The database decides
+  // severity, scope, who may acknowledge and the risk outcome; neither makes a return usable.
+  router.get('/cases/:caseId/diagnostics', run(req => store().diagnostics(t(req), u(req), req.params.caseId)));
+  router.post('/cases/:caseId/diagnostics/run', run(req => store().runDiagnostics(t(req), u(req), req.params.caseId)));
+  router.post('/diagnostics/:diagnosticId/acknowledge', run(req => store().acknowledgeDiagnostic(t(req), u(req), req.params.diagnosticId, textOf(req.body?.note, 1000))));
+  router.get('/cases/:caseId/risk', run(async req => ({ items: await store().riskAssessments(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
+  router.post('/cases/:caseId/risk', run(req => store().assessRisk(t(req), u(req), req.params.caseId,
+    { amountCents: req.body?.amountCents, unsupportedPosition: req.body?.unsupportedPosition }), 201));
   return router;
 }

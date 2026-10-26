@@ -306,3 +306,111 @@ describe('tax research in Case Workflow', () => {
     await rev.context.close();
   });
 });
+
+describe('readiness and risk in Case Workflow', () => {
+  // A fresh 2027 engagement and case, so the findings are known and other suites keep their staffing. The preparer runs
+  // diagnostics and records a risk assessment through the UI; the case reviewer acknowledges an INFO finding there.
+  const readiness = (s: Awaited<ReturnType<typeof staffLogin>>) => s.page.locator('section', { has: s.page.getByRole('heading', { name: 'Readiness and risk', exact: true }) });
+  const openCase = async (s: Awaited<ReturnType<typeof staffLogin>>, caseId: string) => {
+    await s.page.getByRole('button', { name: caseId.slice(0, 16) }).first().click();
+    await readiness(s).getByRole('heading', { name: 'Readiness and risk', exact: true }).waitFor();
+  };
+  let caseId = '';
+
+  it('the preparer runs diagnostics and records a risk assessment; blocking findings cannot be waived; the case reviewer acknowledges an INFO finding; it persists and is audited', async () => {
+    const mgr = await apiLogin('e2e-mgr');
+    const engagement = await api(mgr, 'POST', `/api/practice/clients/${C}/engagements`, { title: 'Synthetic 2027 readiness engagement', type: 'tax_preparation', taxYears: [2027] }, 'e2e-readiness-eng-2027');
+    expect(engagement.status, JSON.stringify(engagement.body)).toBeLessThan(300);
+    const engagementId = engagement.body.engagementId;
+    await api(mgr, 'POST', `/api/practice/clients/${C}/engagements/${engagementId}/status`, { status: 'active', version: engagement.body.version ?? 1 });
+    for (const [role, userId] of [['preparer', 'e2e-acct'], ['reviewer', 'e2e-rev']])
+      expect((await api(mgr, 'POST', `/api/practice/clients/${C}/engagements/${engagementId}/team`, { taxYear: 2027, role, userId, reason: 'Synthetic readiness staffing' }, `e2e-readiness-${role}-2027`)).status).toBeLessThan(300);
+    const created = await api(mgr, 'POST', '/api/cases', { clientId: C, engagementId, taxYear: 2027, returnFamily: '1040' }, 'e2e-readiness-case-2027');
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    caseId = created.body.caseId;
+
+    const prep = await staffLogin('e2e-acct');
+    await openCase(prep, caseId);
+    const panel = readiness(prep);
+    await panel.getByText('Not diagnosed yet: run the diagnostics to check readiness.').waitFor();
+    // A draft research memo gives the case an INFO finding.
+    const research = prep.page.locator('section', { has: prep.page.getByRole('heading', { name: 'Tax research', exact: true }) });
+    await research.getByLabel('Research question').fill('Synthetic 2027 question left as a draft for readiness.');
+    await research.getByRole('button', { name: 'Open research memo' }).click();
+    await research.getByText('Research memo opened.').waitFor();
+    await panel.getByRole('button', { name: 'Run diagnostics' }).click();
+    await panel.getByText('Diagnostics run recorded.').waitFor();
+    await panel.getByText(/^Not ready: 1 blocking, 1 error as of /).waitFor();
+    const blocking = panel.getByRole('listitem', { name: 'BLOCKING finding: CALC_NO_APPROVED_RUN' });
+    await blocking.getByText('No approved calculation run for this case.').waitFor();
+    await blocking.getByText('Fix the underlying record and run the diagnostics again; this finding cannot be acknowledged.').waitFor();
+    expect(await blocking.getByRole('button', { name: 'Acknowledge finding' }).count()).toBe(0);
+    await panel.getByRole('listitem', { name: 'ERROR finding: B2T_NO_APPROVED_WORKPAPER' }).waitFor();
+    // The preparer is not the case reviewer: the server refuses the acknowledgement and the finding stays open.
+    const info = panel.getByRole('listitem', { name: 'INFO finding: RESEARCH_DRAFT_OPEN' });
+    await info.getByLabel('Acknowledgement note').fill('Synthetic preparer acknowledgement attempt.');
+    await info.getByRole('button', { name: 'Acknowledge finding' }).click();
+    await panel.getByRole('alert').filter({ hasText: "Only the case's reviewer or a practice manager can acknowledge a finding." }).waitFor();
+    await info.getByText(/RESEARCH_DRAFT_OPEN v1 · open/).waitFor();
+    // Risk: a malformed amount cannot be sent; a stated amount is recorded against the (absent) practice policy.
+    await panel.getByLabel('Amount at stake (USD)').fill('12,000');
+    expect(await panel.getByRole('button', { name: 'Record risk assessment' }).isDisabled()).toBe(true);
+    await panel.getByLabel('Amount at stake (USD)').fill('1250.50');
+    await panel.getByLabel('A position lacks support').check();
+    await panel.getByRole('button', { name: 'Record risk assessment' }).click();
+    await panel.getByText('Risk assessment recorded.').waitFor();
+    const assessment = panel.getByRole('listitem', { name: /^Risk assessment / }).first();
+    await assessment.getByText(/Blocked/).first().waitFor();
+    expect(await assessment.innerText()).toMatch(/Blocked · \$1250\.50 · materiality unknown · risk unknown · no approved policy · e2e-acct/);
+    for (const reason of ['A blocking readiness finding is open.', 'Readiness errors are open.', 'The practice has no approved materiality policy, so a person reviews.', 'A position lacks support.'])
+      await assessment.getByText(reason, { exact: true }).waitFor();
+    expect(realErrors(prep)).toEqual([]);
+    await prep.context.close();
+
+    const rev = await staffLogin('e2e-rev');
+    await openCase(rev, caseId);
+    const revInfo = readiness(rev).getByRole('listitem', { name: 'INFO finding: RESEARCH_DRAFT_OPEN' });
+    await revInfo.getByLabel('Acknowledgement note').fill('Synthetic reviewer acknowledgement: the draft is intentional.');
+    await revInfo.getByRole('button', { name: 'Acknowledge finding' }).click();
+    await readiness(rev).getByText('Finding acknowledged.').waitFor();
+    await rev.page.reload();
+    await openCase(rev, caseId);
+    const reloaded = readiness(rev).getByRole('listitem', { name: 'INFO finding: RESEARCH_DRAFT_OPEN' });
+    await reloaded.getByText(/RESEARCH_DRAFT_OPEN v1 · acknowledged/).waitFor();
+    await reloaded.getByText('Acknowledged by e2e-rev: Synthetic reviewer acknowledgement: the draft is intentional.').waitFor();
+    expect(await reloaded.getByRole('button', { name: 'Acknowledge finding' }).count()).toBe(0);
+    // Acknowledging changes nothing about readiness.
+    await readiness(rev).getByText(/^Not ready: 1 blocking, 1 error as of /).waitFor();
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+
+    const diagnostics = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/diagnostics`)).body;
+    expect(diagnostics).toMatchObject({ blocking: 1, errors: 1, ready: false, returnUse: 'BLOCKED' });
+    const risk = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/risk`)).body;
+    expect(risk.returnUse).toBe('BLOCKED');
+    expect(risk.items).toHaveLength(1);
+    expect(risk.items[0]).toMatchObject({ outcome: 'BLOCKED', amount_cents: 125050, unsupported_position: true, ai_confidence: null, policy_version: null, assessed_by: 'e2e-acct' });
+
+    const admin = await staffLogin('e2e-admin');
+    await openModule(admin.page, 'Compliance Audit Log');
+    const audit = admin.page.getByRole('region', { name: 'Audit center' });
+    for (const action of ['CASE_DIAGNOSTICS_RUN', 'CASE_DIAGNOSTIC_ACKNOWLEDGED', 'CASE_RISK_ASSESSED']) await audit.getByRole('cell', { name: action }).first().waitFor();
+    await admin.context.close();
+  });
+
+  it('closes the readiness routes to a bookkeeper on the real server', async () => {
+    const bk = await apiLogin('e2e-bk');
+    expect((await api(bk, 'GET', `/api/tax-engine/cases/${caseId}/diagnostics`)).status).toBe(403);
+    expect((await api(bk, 'POST', `/api/tax-engine/cases/${caseId}/risk`, { amountCents: 1 })).status).toBe(403);
+  });
+
+  it('keeps the readiness panel within a 375 px viewport', async () => {
+    const rev = await staffLogin('e2e-rev');
+    await rev.page.setViewportSize({ width: 375, height: 812 });
+    await openCase(rev, caseId);
+    await readiness(rev).getByRole('listitem', { name: 'BLOCKING finding: CALC_NO_APPROVED_RUN' }).waitFor();
+    await readiness(rev).getByRole('list', { name: 'Risk assessments' }).waitFor();
+    expect(await rev.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await rev.context.close();
+  });
+});
