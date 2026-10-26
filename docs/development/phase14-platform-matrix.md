@@ -681,7 +681,23 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Agent permission completeness (Block 58, tests only).** UNMAPPED = DENY is now proven for the whole workforce, not a
+  **Prompt-injection regression (Block 59, tests only).** No document text reaches a model, so the corpus targets the
+  channels that remain:
+  - **Stored records to provider.** Injection text planted in the client name, the document record and the evidence
+    reference never appears in the provider request, whose input stays `{purpose, taxYear, evidenceCount}`.
+  - **Prompt registry.** An approved prompt that tells the model to ignore instructions, call tools, cite authority and set
+    verified confidence cannot displace the enforced boundary: it is always appended last, no tools are sent, and the
+    reply is still validated (confidence stays UNVERIFIED).
+  - **Model reply.** `aiPromptInjectionRegression.test` (31): 29 adversarial replies are rejected (trailing instructions,
+    markdown fences, prose, approval, look-alike and zero-width characters, verified or numeric confidence, tool and
+    function calls, authority and instruction fields, `__proto__` and `constructor` keys, injected, padded, nested or
+    object finding codes, empty or eleven codes, missing fields, arrays, nested JSON strings, null, empty, over 4096
+    characters, non-string). Only the parsed value is used, so a duplicated key resolves to its last value; any schema
+    other than the trusted one is refused.
+  - **End to end.** Three injected replies through the gateway leave no output hash, no tool call, no authoritative
+    action and no accepted run status.
+
+  **Agent permission completeness (Block 58, tests only), published as `c5ff7bc`.** UNMAPPED = DENY is now proven for the whole workforce, not a
   sample:
   - **Runtime, all 58 unmapped agents.** The control-plane test derives the population from the architecture register
     (previously a hand-written list of 27, which missed A05-A09, A11 and A36-A60). Each agent is made ACTIVE with every

@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Agent permission completeness (Block 58, tests only).** All 58 unmapped agents refused at runtime under full synthetic
+- **Prompt-injection regression (Block 59, tests only).** Stored injection text never reaches the provider; an approved
+  prompt cannot displace the enforced boundary; 29 adversarial replies are rejected and an injected reply leaves no
+  result or action. `aiPromptInjectionRegression.test` (31), `aiGovernedGateway.test` (5 new).
+- **Agent permission completeness (Block 58, tests only), published as `c5ff7bc`.** All 58 unmapped agents refused at runtime under full synthetic
   grants (41 by the mapping check, 17 by the role check); the composed schema grants nothing and has explicit DENY rows for
   every agent, tool action, data class and stage. `aiGovernanceControlPlane.test`, `aiPermissionComposition.db.test` (4).
 - **A00 and the case readiness gate (Block 57), published as `d44c503`.** A00 reads the diagnostics gate for the verified tenant, records and reports

@@ -354,13 +354,15 @@
       "status": "UNIT_VERIFIED",
       "implementation": [
         "src/server/ai/capabilities/ScopedReadRepository.ts",
-        "src/server/ai/gateway/structuredOutput.ts"
+        "src/server/ai/gateway/structuredOutput.ts",
+        "src/server/ai/gateway/ModelPromptResolver.ts"
       ],
       "tests": [
         "src/tests/aiGovernedGateway.test.ts",
-        "src/tests/aiDocumentDuplicateAdvisory.test.ts"
+        "src/tests/aiDocumentDuplicateAdvisory.test.ts",
+        "src/tests/aiPromptInjectionRegression.test.ts"
       ],
-      "remainingGap": "Documents cannot authorize tools or prompts; no live model, so no adversarial model-level evaluation."
+      "remainingGap": "Documents cannot authorize tools or prompts. Model input is counts only: injection text stored in client, document and evidence records never reaches the provider request. An approved prompt cannot displace the enforced boundary, which is always last. A 29-item reply corpus (trailing instructions, fences, look-alike and zero-width characters, tool and function calls, authority fields, prototype-pollution keys, injected codes, size) is rejected, and an injected reply leaves no output, no tool call and no authoritative action. No live model, so no adversarial model-level evaluation; certification of a live model belongs to the evaluation framework, which no agent has passed."
     },
     {
       "id": "TAX-EVIDENCE",
