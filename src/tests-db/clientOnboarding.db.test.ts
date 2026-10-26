@@ -12,6 +12,19 @@ const call = async (fn: string, args: Record<string, unknown>) => {
   return r.data as any;
 };
 const code = (p: Promise<unknown>) => p.then(() => 'OK', (e: any) => e.code);
+// The stored onboarding row keeps only the TIN type and last four. Checked field by field: the full TIN (either form)
+// appears in no value, and the rejected last four (6789) appears in no value other than timestamps, whose microseconds
+// can contain any digits.
+const expectOnlyMaskedTin = (row: Record<string, unknown>) => {
+  expect(row.tin_type).toBe('SSN');
+  expect(row.tin_last4).toBe('4321');
+  for (const [key, value] of Object.entries(row)) {
+    if (value === null || value === undefined) continue;
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    expect(text, key).not.toMatch(/123456789|123-45-6789/);
+    if (!key.endsWith('_at')) expect(text, key).not.toMatch(/6789/);
+  }
+};
 const get = (client: string, actor: string, tenant = T) => call('taxguard_onb_get', { p_tenant: tenant, p_client: client, p_actor: actor });
 const save = (client: string, actor: string, revision: number, fields: Record<string, unknown>) =>
   call('taxguard_onb_save', { p_tenant: T, p_client: client, p_actor: actor, p_revision: revision, p_fields: fields });
@@ -67,8 +80,20 @@ describe('client draft and submission', () => {
     expect(await code(save(C, 'onb-client', 0, { city: 'Columbia' }))).toBe('ONBOARDING_VERSION_CONFLICT');
     const second = await save(C, 'onb-client', 1, { street: '1 Synthetic Way', city: 'Columbia', state: 'sc', postalCode: '29201', tinType: 'SSN', tinLast4: '4321' });
     expect(second).toMatchObject({ revision: 2, tinMasked: '***-**-4321', address: { state: 'SC' }, requirements: { profile: true, tin: true, address: true, representative: true } });
-    const stored = (await db.pool.query('SELECT row_to_json(o)::text AS t FROM taxguard_client_onboarding o WHERE client_id = $1', [C])).rows[0].t;
-    expect(stored).not.toMatch(/123456789|6789/);
+    const stored = (await db.pool.query('SELECT row_to_json(o) AS r FROM taxguard_client_onboarding o WHERE client_id = $1', [C])).rows[0].r;
+    expectOnlyMaskedTin(stored);
+  });
+
+  it('checks the stored row precisely: an unrelated timestamp containing 6789 is not a TIN leak', async () => {
+    // The whole-row regex this replaced failed on CI when a microsecond timestamp happened to contain 6789.
+    await db.pool.query(`UPDATE taxguard_client_onboarding SET updated_at = '2026-01-01 12:00:00.456789+00' WHERE client_id = $1`, [C]);
+    const stored = (await db.pool.query('SELECT row_to_json(o) AS r FROM taxguard_client_onboarding o WHERE client_id = $1', [C])).rows[0].r;
+    expect(JSON.stringify(stored)).toMatch(/6789/);
+    expectOnlyMaskedTin(stored);
+    // And a genuine leak in any field is still caught.
+    expect(() => expectOnlyMaskedTin({ ...stored, internal_note: 'TIN 123-45-6789' })).toThrow();
+    expect(() => expectOnlyMaskedTin({ ...stored, legal_name: 'Person 123456789' })).toThrow();
+    expect(() => expectOnlyMaskedTin({ ...stored, tin_last4: '6789' })).toThrow();
   });
 
   it('cannot submit without an approved consent version (the state of this proposal) or with missing fields', async () => {
