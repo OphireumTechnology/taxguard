@@ -128,6 +128,34 @@ describe('durable book-to-tax', () => {
     expect((await call('POST', `/clients/${C}/mapping-sets/${own.setId}/approve`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
   });
 
+  const approvalAudits = async (action: string, idKey: string, id: string) => Number((await fixture.pg.query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM taxguard_audit_log WHERE action = $1 AND metadata->>'${idKey}' = $2`, [action, id])).rows[0].n);
+
+  it('does not let a reviewer approve an adjustment they prepared, and records no approval', async () => {
+    as('rev');
+    const own = await call('POST', `/clients/${C}/adjustments`, { taxYear: 2025, returnFamily: '1040', categoryCode: 'MEALS', amount: '-10.00',
+      adjustmentType: 'PERMANENT', description: 'Synthetic reviewer-prepared adjustment' });
+    expect(own.status, JSON.stringify(own.body)).toBeLessThan(300);
+    const refused = await call('POST', `/clients/${C}/adjustments/${own.body.adjustmentId}/approve`);
+    expect(refused.body.code).toBe('MAKER_CHECKER_VIOLATION');
+    const stored = (await call('GET', `/clients/${C}/2025/1040`)).body.adjustments.find((a: any) => a.adjustmentId === own.body.adjustmentId);
+    expect(stored).toMatchObject({ status: 'PREPARED', preparedBy: 'b2t-rev' });
+    expect(await approvalAudits('B2T_ADJUSTMENT_APPROVED', 'adjustmentId', own.body.adjustmentId)).toBe(0);
+    // An independent reviewer is still needed: the preparer's own role does not make it approvable.
+    as('acct');
+    expect((await call('POST', `/clients/${C}/adjustments/${own.body.adjustmentId}/approve`)).body.code).toBe('B2T_REVIEWER_REQUIRED');
+  });
+
+  it('does not let a reviewer approve a workpaper they generated, and records no approval', async () => {
+    as('rev');
+    const own = await call('POST', `/clients/${C}/2025/1040/workpapers`);
+    expect(own.status, JSON.stringify(own.body)).toBeLessThan(300);
+    expect((await call('POST', `/clients/${C}/workpapers/${own.body.workpaperId}/approve`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
+    const stored = (await call('GET', `/clients/${C}/2025/1040`)).body.workpapers.find((w: any) => w.workpaperId === own.body.workpaperId);
+    expect(stored).toMatchObject({ status: 'DRAFT', generatedBy: 'b2t-rev' });
+    expect(await approvalAudits('B2T_WORKPAPER_APPROVED', 'workpaperId', own.body.workpaperId)).toBe(0);
+  });
+
   it('refuses clients, unassigned staff and other tenants', async () => {
     as('client');
     expect((await call('GET', `/clients/${C}/2025/1040`)).status).toBe(403);

@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **AI emergency stop through the UI (Block 48).** Provider journey N: the administrator engages an agent stop with
+- **Book-to-tax maker-checker coverage (Block 49).** Self-approval of an adjustment and of a workpaper is refused,
+  with no approval audit row. The current execution-order definitions keep the refusal. Each case failed when its
+  check was removed.
+- **AI emergency stop through the UI (Block 48), published as `bb386f3`.** Provider journey N: the administrator engages an agent stop with
   confirmation in the UI, the server records it, the agent shows as STOPPED, and the accountant has no control. Register
   corrected: kill switch `PROVIDER_VERIFIED`, AI Control Center `BROWSER_VERIFIED`.
 - **Bookkeeper ledger workspace scope isolation (Block 47), published as `f5c095a`.** A slower response for the previously selected tax year

@@ -681,6 +681,18 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
+  **Book-to-tax maker-checker coverage (Block 49).** All three book-to-tax approvals refuse self-approval in SQL, but
+  only the mapping set was tested. Two cases are added to `bookToTaxHttp.test`:
+  - a reviewer who prepared an adjustment is refused approving it (`MAKER_CHECKER_VIOLATION`);
+  - a reviewer who generated a workpaper is refused approving it.
+
+  In both, the record stays unapproved with its preparer recorded, no approval audit row is written, and an
+  accountant is still refused for role. Removing either SQL check makes its case fail.
+
+  `bookToTaxMakerCheckerDefinitions.test` locates the current definition of each review function in the manifest's
+  execution order, today in `20261018070000`, and requires both the self-approval refusal and the reviewer-role
+  check. Removing the check from that proposal alone fails it. No proposal was changed.
+
   No source change was needed. The architecture register now records the kill switch as `PROVIDER_VERIFIED` and the AI
   Control Center as `BROWSER_VERIFIED` (suites 14 and 15 already drove its UI; the register had understated it).
 

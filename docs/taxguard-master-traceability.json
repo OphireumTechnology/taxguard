@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "5b207476960eba4f645aeb69cf51ad0ca1dace843f0b48208e5b1570f6722105",
-      "bytes": 68960,
+      "sha256": "4d01ba9a127f889b5e165d8ece7aca3d21c0cec1fd04d8d31ba2c30060f0bd93",
+      "bytes": 69832,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "253db68b5ecaa69d618089a425a82d9a7e7f1a01cbffc0c59cb6cce2e678f32c",
-      "bytes": 8930,
+      "sha256": "558d57a15b0942bc619a96a32bcf05fa1b801073e612ede9319217f951019c80",
+      "bytes": 9204,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7296,7 +7296,7 @@
     "src/tests/authenticatedScanner.test.ts": "5454d6da8c3d16f3470c96c1e5e2ff97081527fa8afe1c107d517f6616667e0c",
     "src/tests/billingClientProjection.test.ts": "99a26dafb8e73e46744cd8fad4b1fa72b0cc14588f2814c5113bf5e0aeacd295",
     "src/tests/billingHttp.test.ts": "5ae1f24923b3a2637db5a823aae57c0153b7fdf1b7b3cb1457a10504da28e247",
-    "src/tests/bookToTaxHttp.test.ts": "97eadc3446c41f631daa8c371a516ea2d41483b98e7242b68112b21074877764",
+    "src/tests/bookToTaxHttp.test.ts": "857f60a00e89b5c56d6e0190cefa7e60dc28c327f6f6906da592ab35d7efda4e",
     "src/tests/bookkeeperDashboardAuthority.test.ts": "4aa194ff0ed219176ec735ae5747fcc861fc749456bb28000a1df5ace35f5ddd",
     "src/tests/bookkeeperDurableHttp.test.ts": "0225e02509de2193a7e917566a124e4aa72a7dce6cd364b78c240795d7b866e3",
     "src/tests/caseAuthorityHttp.test.ts": "041dcce15b7f86c40a5fae80d99b79b6e153e50672b65cbbdb68b33b1c42358e",

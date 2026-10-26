@@ -407,9 +407,10 @@
       ],
       "tests": [
         "src/tests/bookToTaxHttp.test.ts",
-        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
+        "src/tests/bookToTaxMakerCheckerDefinitions.test.ts"
       ],
-      "remainingGap": "Proposal 029 review-only; firm categories (H07); preparer steps are API setup in the journey."
+      "remainingGap": "Proposal 029 review-only; firm categories (H07); preparer steps are API setup in the browser journey. Maker-checker for mapping, adjustment and workpaper approvals is tested over the HTTP route and in the current SQL definitions."
     },
     {
       "id": "TAX-RESEARCH",
