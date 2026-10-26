@@ -55,7 +55,12 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Tax research memos (Block 51, database layer).** Review-only proposal `20261018150000`: case-scoped memos with
+- **Tax research workspace (Block 52).** `CaseResearchPanel` in Case Workflow over the development-only tax-engine router. Browser
+  journey (suite 07): draft, cite and submit; the preparer's approval is refused; the reviewer approves; persistence after a
+  reload; audit; a revoked assignment is refused on the open page; 375 px.
+- **Block 51 CI repair, published as `d6b6222` (CI run 40318291470 success).** Run 40300291410 failed on `clientOnboarding.db`:
+  a whole-row regex matched a microsecond timestamp. The stored TIN is now checked field by field, with a regression.
+- **Tax research memos (Block 51, database layer), published as `e21b4d0`; verified by run 40318291470.** Review-only proposal `20261018150000`: case-scoped memos with
   classified citations; approval by the independent case reviewer requires verified authoritative support, never AI
   inference alone; no return is changed; a revoked assignment ends access. `taxResearch.db.test` (7).
 - **Agent evaluation and the activation gate (Block 50), published as `a94dbcb`.** Review-only proposal `20261018140000` covers evaluation

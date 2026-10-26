@@ -185,3 +185,124 @@ describe('tax engine foundation on the real server', () => {
     await rev.context.close();
   });
 });
+
+describe('tax research in Case Workflow', () => {
+  // The preparer drafts, cites and submits through the UI; the case's reviewer decides there. API calls only set up a
+  // second engagement year and revoke an assignment, and read back what the UI did.
+  const research = (s: Awaited<ReturnType<typeof staffLogin>>) => s.page.locator('section', { has: s.page.getByRole('heading', { name: 'Tax research', exact: true }) });
+  const openCase = async (s: Awaited<ReturnType<typeof staffLogin>>, caseId: string) => {
+    await s.page.getByRole('button', { name: caseId.slice(0, 16) }).first().click();
+    await research(s).getByRole('heading', { name: 'Tax research', exact: true }).waitFor();
+  };
+  const QUESTION = 'Synthetic question: does the fixture source support the synthetic deduction?';
+
+  it('the preparer drafts and submits cited research; the case reviewer approves it; it stays approved and audited, and return use stays blocked', async () => {
+    const mgr = await apiLogin('e2e-mgr');
+    const caseId = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025).caseId;
+    const prep = await staffLogin('e2e-acct');
+    await openCase(prep, caseId);
+    const panel = research(prep);
+    await panel.getByLabel('Research question').fill(QUESTION);
+    await panel.getByRole('button', { name: 'Open research memo' }).click();
+    await panel.getByText('Research memo opened.').waitFor();
+    const memo = panel.getByRole('article', { name: `Research memo: ${QUESTION.slice(0, 60)}` });
+    await memo.getByLabel('Verified source for 2025').selectOption(SYNTHETIC_SOURCE_ID);
+    await memo.getByLabel('Note').fill('Synthetic fixture provision read in full.');
+    await memo.getByRole('button', { name: 'Add citation' }).click();
+    await panel.getByText('Citation added.').waitFor();
+    await memo.getByLabel('Authority level').selectOption('AI_INFERENCE');
+    await memo.getByText('AI inference is recorded as reasoning only. It cites no source and never supports an approval.').waitFor();
+    await memo.getByLabel('Note').fill('Assistant suggested checking the synthetic threshold.');
+    await memo.getByRole('button', { name: 'Add citation' }).click();
+    await memo.getByText('[AI inference — not tax authority]').waitFor();
+    await memo.getByText('[Authoritative (verified source)]').waitFor();
+    await memo.getByLabel('Conclusion').fill('Synthetic conclusion supported by the verified fixture source.');
+    await memo.getByRole('button', { name: 'Submit for review' }).click();
+    await panel.getByText('Memo submitted for review.').waitFor();
+    await memo.getByText(/Status: submitted/).waitFor();
+    // The preparer is not the case's reviewer: the server refuses the decision and the memo stays submitted.
+    await memo.getByLabel('Review note').fill('Synthetic self-review attempt by the preparer.');
+    await memo.getByRole('button', { name: 'Approve research' }).click();
+    await panel.getByRole('alert').filter({ hasText: "Only the case's independent reviewer can decide on research." }).waitFor();
+    expect(realErrors(prep)).toEqual([]);
+    await prep.context.close();
+
+    const rev = await staffLogin('e2e-rev');
+    await openCase(rev, caseId);
+    const revMemo = research(rev).getByRole('article', { name: `Research memo: ${QUESTION.slice(0, 60)}` });
+    await revMemo.getByText('[Authoritative (verified source)]').waitFor();
+    await revMemo.getByText('[AI inference — not tax authority]').waitFor();
+    await revMemo.getByLabel('Review note').fill('Synthetic independent review of the cited fixture source.');
+    await revMemo.getByRole('button', { name: 'Approve research' }).click();
+    await research(rev).getByText('Research approved.').waitFor();
+    await rev.page.reload();
+    await openCase(rev, caseId);
+    const reloaded = research(rev).getByRole('article', { name: `Research memo: ${QUESTION.slice(0, 60)}` });
+    await reloaded.getByText(/Status: approved · prepared by e2e-acct · reviewed by e2e-rev/).waitFor();
+    await reloaded.getByText(/Return use: BLOCKED/).waitFor();
+    expect(await reloaded.getByRole('button', { name: /Approve research|Reject research|Add citation/ }).count()).toBe(0);
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+
+    const stored = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/research`)).body;
+    expect(stored.returnUse).toBe('BLOCKED');
+    const approved = stored.items.find((m: any) => m.question === QUESTION);
+    expect(approved).toMatchObject({ status: 'APPROVED', prepared_by: 'e2e-acct', reviewed_by: 'e2e-rev', returnUse: 'BLOCKED' });
+    expect(approved.citations.map((c: any) => c.authority_level)).toEqual(['AUTHORITATIVE', 'AI_INFERENCE']);
+
+    // Audit: the decision is recorded in the audit center.
+    const admin = await staffLogin('e2e-admin');
+    await openModule(admin.page, 'Compliance Audit Log');
+    await admin.page.getByRole('region', { name: 'Audit center' }).getByRole('cell', { name: 'TAX_RESEARCH_APPROVED' }).first().waitFor();
+    await admin.context.close();
+  });
+
+  it('access ends with the live assignment: after revocation the open page cannot extend the memo, and nothing changes', async () => {
+    const mgr = await apiLogin('e2e-mgr');
+    // A separate 2026 engagement, so the 2025 work above and other suites keep their staffing.
+    const engagement = await api(mgr, 'POST', `/api/practice/clients/${C}/engagements`, { title: 'Synthetic 2026 research engagement', type: 'tax_preparation', taxYears: [2026] }, 'e2e-research-eng-2026');
+    expect(engagement.status, JSON.stringify(engagement.body)).toBeLessThan(300);
+    const engagementId = engagement.body.engagementId;
+    await api(mgr, 'POST', `/api/practice/clients/${C}/engagements/${engagementId}/status`, { status: 'active', version: engagement.body.version ?? 1 });
+    for (const [role, userId] of [['preparer', 'e2e-acct'], ['reviewer', 'e2e-rev']])
+      expect((await api(mgr, 'POST', `/api/practice/clients/${C}/engagements/${engagementId}/team`, { taxYear: 2026, role, userId, reason: 'Synthetic research staffing' }, `e2e-research-${role}-2026`)).status).toBeLessThan(300);
+    const created = await api(mgr, 'POST', '/api/cases', { clientId: C, engagementId, taxYear: 2026, returnFamily: '1040' }, 'e2e-research-case-2026');
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const caseId = created.body.caseId;
+
+    const prep = await staffLogin('e2e-acct');
+    await openCase(prep, caseId);
+    const panel = research(prep);
+    const question = 'Synthetic 2026 question opened before the assignment ends.';
+    await panel.getByLabel('Research question').fill(question);
+    await panel.getByRole('button', { name: 'Open research memo' }).click();
+    await panel.getByText('Research memo opened.').waitFor();
+    const memo = panel.getByRole('article', { name: `Research memo: ${question.slice(0, 60)}` });
+
+    const team = (await api(mgr, 'GET', `/api/practice/clients/${C}`)).body.team;
+    const assignment = team.find((t: any) => t.userId === 'e2e-acct' && t.role === 'preparer' && t.taxYear === 2026);
+    expect((await api(mgr, 'POST', `/api/practice/clients/${C}/team/${assignment.assignmentId}/revoke`, { reason: 'Synthetic revocation for E2E' })).status).toBeLessThan(300);
+
+    // The page is still open and still shows the memo; the server refuses the next action.
+    await memo.getByLabel('Authority level').selectOption('AI_INFERENCE');
+    await memo.getByLabel('Note').fill('Attempt after the assignment ended.');
+    await memo.getByRole('button', { name: 'Add citation' }).click();
+    await panel.getByRole('alert').filter({ hasText: 'This research memo is not available to you.' }).waitFor();
+    expect((await api(await apiLogin('e2e-acct'), 'GET', `/api/tax-engine/cases/${caseId}/research`)).body.code).toBe('CASE_NOT_FOUND');
+    const asReviewer = (await api(await apiLogin('e2e-rev'), 'GET', `/api/tax-engine/cases/${caseId}/research`)).body.items.find((m: any) => m.question === question);
+    expect(asReviewer).toMatchObject({ status: 'DRAFT', prepared_by: 'e2e-acct', citations: [] });
+    expect(realErrors(prep)).toEqual([]);
+    await prep.context.close();
+  });
+
+  it('keeps the research panel within a 375 px viewport', async () => {
+    const mgr = await apiLogin('e2e-mgr');
+    const caseId = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025).caseId;
+    const rev = await staffLogin('e2e-rev');
+    await rev.page.setViewportSize({ width: 375, height: 812 });
+    await openCase(rev, caseId);
+    await research(rev).getByRole('article', { name: `Research memo: ${QUESTION.slice(0, 60)}` }).waitFor();
+    expect(await rev.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await rev.context.close();
+  });
+});

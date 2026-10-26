@@ -54,5 +54,15 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.post('/cases/:caseId/runs', run(req => store().calculate(t(req), u(req), req.params.caseId, String(req.body?.ruleSetId ?? ''),
     { filingStatus: typeof req.body?.filingStatus === 'string' ? req.body.filingStatus : undefined, inputs: Array.isArray(req.body?.inputs) ? req.body.inputs : [] }), 201));
   router.post('/runs/:runId/:decision(approve|reject)', run(req => store().reviewRun(t(req), u(req), req.params.runId, req.params.decision as 'approve' | 'reject', note(req.body?.note) ?? '')));
+  // Tax research memos for a case (proposal 20261018150000). Scope, authority levels and maker-checker are enforced by
+  // the database; nothing here makes research authoritative for a return.
+  const textOf = (v: unknown, max: number) => typeof v === 'string' && v.length <= max ? v : '';
+  const versionOf = (v: unknown) => Number.isSafeInteger(v) ? v as number : -1;
+  router.get('/cases/:caseId/research', run(async req => ({ items: await store().research(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
+  router.post('/cases/:caseId/research', run(req => store().openResearch(t(req), u(req), req.params.caseId, textOf(req.body?.question, 2000)), 201));
+  router.post('/research/:memoId/citations', run(req => store().citeResearch(t(req), u(req), req.params.memoId, req.body ?? {}), 201));
+  router.post('/research/:memoId/submit', run(req => store().submitResearch(t(req), u(req), req.params.memoId, textOf(req.body?.conclusion, 8000), versionOf(req.body?.version))));
+  router.post('/research/:memoId/:decision(approve|reject)', run(req => store().reviewResearch(t(req), u(req), req.params.memoId,
+    req.params.decision as 'approve' | 'reject', textOf(req.body?.note, 2000), versionOf(req.body?.version))));
   return router;
 }

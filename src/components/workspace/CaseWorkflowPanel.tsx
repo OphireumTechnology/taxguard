@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { CaseResearchPanel } from './CaseResearchPanel';
 import { caseMessage, caseService, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
 import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
 import { taxEngineMessage, taxEngineService, type CalculationRun } from '../../services/taxEngineService';
@@ -144,6 +145,8 @@ export function CaseWorkflowPanel() {
                 <button type="button" disabled={busy || (runNotes[r.run_id] ?? '').trim().length < 10} onClick={() => decideRun(r.run_id, 'reject')}>Reject run</button>
               </form>}</td></tr>)}</tbody></table>}
         </section>
+        {/* Mounted per case: no research state carries over from another case. */}
+        <CaseResearchPanel key={c.caseId} caseId={c.caseId} taxYear={c.taxYear} />
         <h4>History</h4>
         <ul>{detail!.events.map((ev, i) => <li key={ev.at + i}>{label(ev.action.toLowerCase())} → {stageLabel(ev.toStage)}{ev.evidenceType ? ` · ${label(ev.evidenceType.toLowerCase())}` : ''}{ev.reason ? ` · ${ev.reason}` : ''} · {ev.actorUid} · {new Date(ev.at).toLocaleString()}</li>)}</ul>
       </>}

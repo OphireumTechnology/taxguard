@@ -681,7 +681,29 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Tax research memos (Block 51, database layer).** Proposal `20261018150000_taxguard_tax_research` (review only)
+  **Tax research workspace (Block 52).** `CaseResearchPanel` is mounted per case, keyed by case id, in Case Workflow for the
+  preparer, the reviewer and the manager. It sits on the existing development-only tax-engine router (`/cases/:caseId/research`,
+  `/research/:memoId/(citations|submit|approve|reject)`) and `TaxEngineStore`, with structured codes mapped to statuses.
+  Managers may open, cite and submit; research decisions stay closed to them in the route allowlist.
+  - **What the panel shows.** Each citation shows its authority level as text: authoritative citations with the
+    registry's citation, title, authority type, jurisdiction, years and verification state, and AI inference labelled
+    "AI inference — not tax authority". Only verified sources covering the case year are offered as authoritative.
+  - **Return use** is shown as BLOCKED on every memo.
+  - **Browser evidence (suite 07):**
+    - the preparer opens a memo, cites a verified source and an AI inference, and submits;
+    - the preparer's own approval attempt is refused by the server (case reviewer required), and the memo stays
+      submitted;
+    - the case reviewer approves; after a reload the memo is approved, attributed to both people, return use BLOCKED,
+      and no action remains;
+    - the decision appears in the audit center (`TAX_RESEARCH_APPROVED`);
+    - on a separate 2026 engagement the preparer opens a memo, the manager revokes the assignment, and the still-open
+      page's next action is refused ("not available to you") with the memo unchanged;
+    - the panel fits 375 px.
+  - **Corrected in the proposal:** a comment claimed synthetic sources were excluded from authoritative support; they
+    are not. That is now stated as a point for SQL review.
+  - **No correction-request state** exists in the research domain: a rejected memo is final, and a new memo is opened.
+
+  **Tax research memos (Block 51, database layer), published as `e21b4d0`, CI green from `d6b6222`.** Proposal `20261018150000_taxguard_tax_research` (review only)
   makes research professional support for one tax case:
   - **Scope.** A memo is reachable only through the case's existing access rule (`taxguard_case_actor`: a manager,
     or a member with a live assignment to the case). Another client's, year's or tenant's memo reads as

@@ -125,7 +125,8 @@ BEGIN
   END IF;
   IF level = 'AUTHORITATIVE' THEN
     SELECT * INTO src_row FROM public.taxguard_tax_sources WHERE tenant_id = p_tenant AND source_id = src;
-    -- Authoritative support must be a verified, non-synthetic source that covers the case year.
+    -- Authoritative support must be a VERIFIED source that covers the case year. Synthetic test sources are not excluded
+    -- here (only synthetic sources exist in development); whether they may support research is a point for SQL review.
     IF NOT FOUND OR src_row.status <> 'VERIFIED' OR NOT ((s.m).tax_year = ANY (src_row.tax_years)) THEN
       RAISE EXCEPTION 'RESEARCH_SOURCE_NOT_VERIFIED' USING ERRCODE = 'P0001';
     END IF;

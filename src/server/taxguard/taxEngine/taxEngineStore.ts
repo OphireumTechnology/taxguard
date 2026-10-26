@@ -16,7 +16,10 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_RULE_SET_NOT_APPROVED: 409, TAX_SOURCE_NOT_VERIFIED: 409, TAX_CALC_ALREADY_REVIEWED: 409, TAX_CALC_TAX_YEAR_MISMATCH: 409, TAX_ENGINE_NONDETERMINISM: 409,
   TAX_RULE_SET_INTEGRITY: 409, TAX_RULE_SET_IMMUTABLE: 409, TAX_CALC_RUN_IMMUTABLE: 409,
   TAX_RULE_SET_TESTS_REQUIRED: 409, TAX_RULE_SET_TESTS_NOT_RUN: 409, TAX_RULE_SET_TESTS_FAILING: 409, TAX_RULE_TESTS_CHANGED: 409, TAX_RULE_TEST_IMMUTABLE: 409,
-  TAX_RULE_SET_COVERAGE_INCOMPLETE: 409 };
+  TAX_RULE_SET_COVERAGE_INCOMPLETE: 409,
+  // Tax research memos (proposal 20261018150000).
+  RESEARCH_REVIEWER_REQUIRED: 403, RESEARCH_MEMO_NOT_EDITABLE: 409, RESEARCH_MEMO_NOT_SUBMITTED: 409, RESEARCH_VERSION_CONFLICT: 409,
+  RESEARCH_AUTHORITY_REQUIRED: 409, RESEARCH_SOURCE_NOT_VERIFIED: 409, RESEARCH_MEMO_IMMUTABLE: 409 };
 const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -108,4 +111,23 @@ export class TaxEngineStore {
       testsSha256, engineVersion: TAX_ENGINE_VERSION, testCount: tests.length, passedCount: results.filter((r: any) => r.passed).length, results } });
   }
   runs(tenant: string, actor: string, caseId: string) { return this.call<any[]>('taxguard_tax_run_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+
+  // Tax research memos: case-scoped professional support. The database enforces scope, authority levels, maker-checker
+  // and immutability; every memo states returnUse BLOCKED. A malformed memo id reads as not found.
+  private memo(v: string) { if (!UUID.test(v)) throw new TaxEngineStoreError('RESEARCH_MEMO_NOT_FOUND', 404); return v; }
+  research(tenant: string, actor: string, caseId: string) { return this.call<any[]>('taxguard_tax_research_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+  openResearch(tenant: string, actor: string, caseId: string, question: string) {
+    return this.call('taxguard_tax_research_open', { p_tenant: tenant, p_actor: actor, p_case: caseId, p_question: question });
+  }
+  citeResearch(tenant: string, actor: string, memoId: string, citation: { authorityLevel?: unknown; sourceId?: unknown; reference?: unknown; note?: unknown }) {
+    const text = (v: unknown) => typeof v === 'string' ? v : undefined;
+    return this.call('taxguard_tax_research_cite', { p_tenant: tenant, p_actor: actor, p_memo: this.memo(memoId), p_citation: {
+      authorityLevel: text(citation.authorityLevel), sourceId: text(citation.sourceId), reference: text(citation.reference), note: text(citation.note) } });
+  }
+  submitResearch(tenant: string, actor: string, memoId: string, conclusion: string, version: number) {
+    return this.call('taxguard_tax_research_submit', { p_tenant: tenant, p_actor: actor, p_memo: this.memo(memoId), p_conclusion: conclusion, p_version: version });
+  }
+  reviewResearch(tenant: string, actor: string, memoId: string, decision: 'approve' | 'reject', note: string, version: number) {
+    return this.call('taxguard_tax_research_review', { p_tenant: tenant, p_actor: actor, p_memo: this.memo(memoId), p_decision: decision, p_note: note, p_version: version });
+  }
 }

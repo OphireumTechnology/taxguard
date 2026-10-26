@@ -4394,7 +4394,7 @@
       "file": "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
       "kind": "proposal",
       "version": "20261018150000",
-      "sha256": "87815371cf2dc4832099c58aa7db6bb61a3c3df8facb89ec4f7692774eed8d46",
+      "sha256": "1b5a08a8de616749bbbfa39c6fa75d88c0974f10cd30685bc472e66b63a0ff8b",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",

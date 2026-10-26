@@ -422,15 +422,20 @@
       "id": "TAX-RESEARCH",
       "name": "Tax research agent with authority citations",
       "category": "Tax pipeline",
-      "status": "INTEGRATION_VERIFIED",
+      "status": "BROWSER_VERIFIED",
       "implementation": [
-        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql"
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "src/server/taxguard/taxEngine/taxEngineStore.ts",
+        "src/server/routes/taxEngine.routes.ts",
+        "src/components/workspace/CaseResearchPanel.tsx"
       ],
       "tests": [
         "src/tests-db/taxResearch.db.test.ts",
-        "src/tests/proposalCompositionSecurity.test.ts"
+        "src/tests/caseResearchPanel.test.tsx",
+        "src/tests/proposalCompositionSecurity.test.ts",
+        "src/tests-e2e/07-tax-engine.e2e.test.ts"
       ],
-      "remainingGap": "Database layer only (review-only proposal; 7 PostgreSQL cases including scope, revoked assignment, maker-checker and immutability): no store, route or UI yet, so no browser evidence. No AI research agent; AI_INFERENCE citations are recorded and labelled, never produced by a commissioned agent and never counted as support.",
+      "remainingGap": "Review-only proposal; the tax-engine router (and so research) is development-only and refused in production. Synthetic test sources currently count as verified authority (SQL review point). No AI research agent: AI_INFERENCE citations are recorded and labelled by people, never produced by a commissioned agent, and never count as support. No correction-request state: a rejected memo is final and a new memo is opened.",
       "persistence": "review-only proposal 20261018150000: case-scoped memos and citations; decided memos immutable; audited"
     },
     {

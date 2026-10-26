@@ -10,7 +10,8 @@ afterEach(() => { vi.unstubAllEnvs(); });
 const allowed = (method: string, path: string) => practiceManagerRequestAllowed('practice_manager', method, path);
 const OPEN: Array<[string, string]> = [['GET', '/api/practice/clients'], ['GET', '/api/practice/clients/c1'], ['POST', '/api/practice/clients/c1/engagements'],
   ['POST', '/api/practice/clients/c1/engagements/e1/team'], ['POST', '/api/practice/clients/c1/team/a1/revoke'], ['GET', '/api/cases?role=reviewer'], ['GET', '/api/cases/?role=reviewer'], ['GET', '/api/cases/report'],
-  ['POST', '/api/cases'], ['POST', '/api/cases/k1/advance'], ['POST', '/api/cases/k1/team'], ['GET', '/api/tax-engine/rule-sets/r1/coverage'], ['GET', '/api/vault/review-queue'], ['POST', '/api/vault/clients/c1/documents/d1/versions/1/review'],
+  ['POST', '/api/cases'], ['POST', '/api/cases/k1/advance'], ['POST', '/api/cases/k1/team'], ['GET', '/api/tax-engine/rule-sets/r1/coverage'], ['GET', '/api/tax-engine/cases/k1/research'], ['POST', '/api/tax-engine/cases/k1/research'],
+  ['POST', '/api/tax-engine/research/m1/citations'], ['POST', '/api/tax-engine/research/m1/submit'], ['GET', '/api/vault/review-queue'], ['POST', '/api/vault/clients/c1/documents/d1/versions/1/review'],
   ['GET', '/api/billing/catalog'], ['POST', '/api/billing/catalog'], ['POST', '/api/billing/clients/c1/invoices/i1/approve'], ['POST', '/api/billing/clients/c1/credits/r1/apply'],
   ['GET', '/api/communications/inbox'], ['GET', '/api/communications/clients/c1/threads'], ['GET', '/api/communications/clients/c1/threads/thr_1'],
   ['POST', '/api/communications/clients/c1/threads'], ['POST', '/api/communications/clients/c1/threads/thr_1/messages'], ['POST', '/api/communications/clients/c1/threads/thr_1/status'],
@@ -41,7 +42,7 @@ describe('practice manager durable capability list', () => {
   it('never opens the ledger, administration, card payment, method mismatches or traversal', () => {
     configure();
     for (const [m, p] of [['POST', '/api/bookkeeping/journal-entries'], ['GET', '/api/bookkeeping/work-queue'], ['POST', '/api/billing/clients/c1/invoices/i1/pay-sandbox'],
-      ['POST', '/api/admin/users'], ['POST', '/api/efile/submit'], ['POST', '/api/book-to-tax/categories'], ['GET', '/api/practice/clients/c1/../../admin'],
+      ['POST', '/api/admin/users'], ['POST', '/api/efile/submit'], ['POST', '/api/book-to-tax/categories'], ['POST', '/api/tax-engine/research/m1/approve'], ['POST', '/api/tax-engine/research/m1/reject'], ['GET', '/api/practice/clients/c1/../../admin'],
       ['GET', '/api/practice/clients/c1/engagements'], ['POST', '/api/practice/clients'], ['DELETE', '/api/practice/clients/c1'], ['POST', '/api/cases/report'],
       ['POST', '/api/vault/clients/c1/documents/d1/versions/x/review'], ['GET', '/api/operations/assignments'],
       ['POST', '/api/communications/inbox'], ['GET', '/api/communications/clients/c1/threads/thr_1/messages'], ['POST', '/api/communications/clients/c1/threads/thr_1/delete'],
