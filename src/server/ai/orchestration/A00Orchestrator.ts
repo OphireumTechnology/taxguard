@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { GovernanceError, type GovernanceRequest } from '../governance/contracts';
 import { GovernanceControlPlane } from '../governance/GovernanceControlPlane';
 import { parseOrchestrationRequest, routeTask } from './canonicalRouting';
-import type { AdvisoryHandler, AdvisoryResult, ChildContext, OperationEvent, OrchestrationLedger, OrchestrationResult, RootRecord, ReviewTask } from './contracts';
+import type { AdvisoryHandler, AdvisoryResult, CaseReadiness, CaseReadinessGate, ChildContext, OperationEvent, OrchestrationLedger, OrchestrationResult, RootRecord, ReviewTask } from './contracts';
 
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 /** Only explicit transient failures from read-only, idempotent handlers may be retried. */
@@ -19,9 +19,21 @@ function validateResult(raw:unknown,c:ChildContext):AdvisoryResult {
   return structuredClone(r);
 }
 
+const UNAVAILABLE:CaseReadiness={status:'UNAVAILABLE',blocking:null,errors:null,diagnosed_at:null};
+/** Reads the case's readiness gate; a missing gate, a failure or an unexpected shape is UNAVAILABLE, never READY. */
+export async function readCaseReadiness(gate:CaseReadinessGate|undefined,tenantId:string,taxCaseId:string):Promise<CaseReadiness> {
+  if(!gate)return UNAVAILABLE;
+  let g:any;
+  try { g=await gate.read(tenantId,taxCaseId); } catch { return UNAVAILABLE; }
+  const count=(v:unknown)=>Number.isSafeInteger(v)&&(v as number)>=0;
+  if(!g||typeof g!=='object'||!count(g.blocking)||!count(g.errors)||!(g.diagnosedAt===null||(typeof g.diagnosedAt==='string'&&!Number.isNaN(Date.parse(g.diagnosedAt)))))return UNAVAILABLE;
+  const status=g.diagnosedAt===null?'NOT_DIAGNOSED':g.blocking+g.errors>0?'NOT_READY':'READY';
+  return {status,blocking:g.blocking,errors:g.errors,diagnosed_at:g.diagnosedAt};
+}
+
 export class A00Orchestrator {
   /** Default has no handler path. Tests must opt into the explicit, runtime-checked boundary. */
-  constructor(private readonly governance:GovernanceControlPlane,private readonly ledger:OrchestrationLedger,private readonly testExecution?:TestExecution) {
+  constructor(private readonly governance:GovernanceControlPlane,private readonly ledger:OrchestrationLedger,private readonly testExecution?:TestExecution,private readonly readiness?:CaseReadinessGate) {
     if(testExecution&&process.env.NODE_ENV!=='test')throw new GovernanceError('AI_TEST_EXECUTION_FORBIDDEN');
     if(testExecution&&(!Number.isInteger(testExecution.timeout_ms)||testExecution.timeout_ms<1||testExecution.timeout_ms>5000||!Number.isInteger(testExecution.maximum_retries)||testExecution.maximum_retries<0||testExecution.maximum_retries>2))throw new GovernanceError('AI_INVALID_EXECUTION_POLICY');
     if(testExecution)this.testExecution={...testExecution,handlers:{...testExecution.handlers}};
@@ -40,6 +52,10 @@ export class A00Orchestrator {
     const rootEvent=(status:OperationEvent['status'],reason_code:string):OperationEvent=>({operation_id:null,agent_id:'A00',attempt:0,status,purpose:null,decision_id:null,reason_code,output_hash:null});
     try {
       await record(rootEvent('PLANNED','AI_PLAN_CREATED'));
+      // The case's readiness, read for the verified tenant after the coordinator is authorized, is recorded and reported.
+      // It informs the human reviewer; it never unlocks an action, and advisory review of an unready case is still useful.
+      const caseReadiness=await readCaseReadiness(this.readiness,resolved.identity.tenant_id,request.scope.tax_case_id);
+      await record(rootEvent('PLANNED',`AI_CASE_READINESS_${caseReadiness.status}`));
       const children:OrchestrationResult['children']=[];
       for(const task of request.tasks) {
         const route=routeTask(task),operationId=randomUUID();
@@ -92,7 +108,7 @@ export class A00Orchestrator {
       }
       if(signal?.aborted)throw new GovernanceError('AI_OPERATION_CANCELLED',409);
       await record(rootEvent('COMPLETED','AI_TEST_ORCHESTRATION_COMPLETED'));
-      return {root_id:rootId,status:'COMPLETED',children,human_review_required:true,action_executed:false,external_submission_allowed:false};
+      return {root_id:rootId,status:'COMPLETED',children,human_review_required:true,action_executed:false,external_submission_allowed:false,case_readiness:caseReadiness};
     } catch(error) {
       const failure=error instanceof GovernanceError?error:new GovernanceError('AI_ORCHESTRATION_FAILED',503);
       await record(rootEvent('FAILED',failure.code));throw failure;

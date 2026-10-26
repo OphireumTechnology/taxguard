@@ -8,7 +8,8 @@ import { SqlOrchestrationLedger } from '../server/ai/orchestration/SqlOrchestrat
 import { routeTask } from '../server/ai/orchestration/canonicalRouting';
 import { GovernanceControlPlane } from '../server/ai/governance/GovernanceControlPlane';
 import { SqlGovernanceStore, type TransactionalSql } from '../server/ai/governance/SqlGovernanceStore';
-import type { AdvisoryHandler, ChildContext, OrchestrationLedger, OrchestrationRequest } from '../server/ai/orchestration/contracts';
+import type { AdvisoryHandler, CaseReadinessGate, ChildContext, OrchestrationLedger, OrchestrationRequest } from '../server/ai/orchestration/contracts';
+import { SqlCaseReadinessGate } from '../server/ai/orchestration/SqlCaseReadinessGate';
 
 const cid='11111111-1111-4111-8111-111111111111',did='22222222-2222-4222-8222-222222222222',eid='33333333-3333-4333-8333-333333333333',hash='a'.repeat(64);
 let pg:PGlite,plane:GovernanceControlPlane,ledger:SqlOrchestrationLedger;
@@ -194,7 +195,9 @@ describe('A00 orchestration and reliability',()=>{
 describe('A00 real SQL audit and release boundaries',()=>{
   it('stores immutable correlation/history without provider runs',async()=>{
     const out=await runner().coordinate('valid',request());const root=await pg.query('SELECT * FROM ai_orchestration_roots WHERE root_id=$1',[out.root_id]);expect(root.rows[0]).toMatchObject({tenant_id:'tenantA',actor_uid:'preparer',workflow_stage:3,human_review_required:true,action_executed:false});
-    const events=await pg.query<{status:string}>('SELECT status FROM ai_orchestration_events WHERE root_id=$1',[out.root_id]);expect(events.rows.map(e=>e.status)).toEqual(['PLANNED','AUTHORIZED','RUNNING','RESULT_RECORDED','COMPLETED']);
+    const events=await pg.query<{status:string;reason_code:string}>('SELECT status,reason_code FROM ai_orchestration_events WHERE root_id=$1',[out.root_id]);
+    expect(events.rows.map(e=>e.status)).toEqual(['PLANNED','PLANNED','AUTHORIZED','RUNNING','RESULT_RECORDED','COMPLETED']);
+    expect(events.rows.slice(0,2).map(e=>e.reason_code)).toEqual(['AI_PLAN_CREATED','AI_CASE_READINESS_UNAVAILABLE']);
     await expect(pg.query('DELETE FROM ai_orchestration_roots WHERE root_id=$1',[out.root_id])).rejects.toThrow();await expect(pg.query("UPDATE ai_orchestration_events SET reason_code='AI_CHANGED' WHERE root_id=$1",[out.root_id])).rejects.toThrow();
     expect((await pg.query<{n:number}>('SELECT count(*)::int AS n FROM ai_runs')).rows[0].n).toBe(0);
   });
@@ -220,5 +223,45 @@ describe('A00 real SQL audit and release boundaries',()=>{
     await expect(runner().coordinate('valid',{...request(),tasks:[task]})).rejects.toThrow('AI_ROUTING_UNAVAILABLE');
     expect(handler).not.toHaveBeenCalled();
     expect((await pg.query<{n:number}>('SELECT count(*)::int AS n FROM ai_runs')).rows[0].n).toBe(0);
+  });
+});
+
+describe('A00 reports case readiness without acting on it',()=>{
+  const withGate=(gate:CaseReadinessGate)=>new A00Orchestrator(plane,ledger,{handlers:{IDENTIFY_REVIEW_QUESTIONS:handler},timeout_ms:1000,maximum_retries:0},gate);
+  const rootReasons=async(rootId:string)=>(await pg.query<{reason_code:string}>(`SELECT reason_code FROM ai_orchestration_events WHERE root_id=$1 AND operation_id IS NULL ORDER BY created_at,reason_code`,[rootId])).rows.map(r=>r.reason_code);
+  it.each([
+    [{blocking:1,errors:1,diagnosedAt:'2026-10-26T10:00:00Z'},{status:'NOT_READY',blocking:1,errors:1,diagnosed_at:'2026-10-26T10:00:00Z'}],
+    [{blocking:0,errors:0,diagnosedAt:null},{status:'NOT_DIAGNOSED',blocking:0,errors:0,diagnosed_at:null}],
+    [{blocking:0,errors:0,diagnosedAt:'2026-10-26T10:00:00Z'},{status:'READY',blocking:0,errors:0,diagnosed_at:'2026-10-26T10:00:00Z'}],
+  ])('reads the gate for the verified tenant and case, records it and still requires human review: %j',async(gate,expected)=>{
+    const read=vi.fn(async()=>gate);
+    const out=await withGate({read}).coordinate('valid',request());
+    expect(read).toHaveBeenCalledWith('tenantA','caseA');
+    expect(out).toMatchObject({case_readiness:expected,human_review_required:true,action_executed:false,external_submission_allowed:false});
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(await rootReasons(out.root_id)).toContain(`AI_CASE_READINESS_${expected.status}`);
+  });
+  it.each([
+    ['a failing gate',async()=>{throw new Error('down');}],
+    ['a negative count',async()=>({blocking:-1,errors:0,diagnosedAt:null})],
+    ['a fractional count',async()=>({blocking:0.5,errors:0,diagnosedAt:null})],
+    ['a string count',async()=>({blocking:'0',errors:0,diagnosedAt:null})],
+    ['an invalid timestamp',async()=>({blocking:0,errors:0,diagnosedAt:'yesterday'})],
+    ['a missing field',async()=>({blocking:0,errors:0})],
+    ['no result',async()=>undefined],
+  ])('reports %s as UNAVAILABLE, never READY',async(_label,read)=>{
+    const out=await withGate({read}).coordinate('valid',request());
+    expect(out.case_readiness).toEqual({status:'UNAVAILABLE',blocking:null,errors:null,diagnosed_at:null});
+    expect(await rootReasons(out.root_id)).toContain('AI_CASE_READINESS_UNAVAILABLE');
+  });
+  it('reports UNAVAILABLE without a gate, and through the SQL gate where the review-only diagnostics proposal is not applied',async()=>{
+    expect((await runner().coordinate('valid',request())).case_readiness.status).toBe('UNAVAILABLE');
+    const db:TransactionalSql={transaction:callback=>pg.transaction(async tx=>callback({query:async(sql,params)=>({rows:JSON.parse(JSON.stringify((await tx.query(sql,params)).rows))})}))};
+    expect((await withGate(new SqlCaseReadinessGate(db)).coordinate('valid',request())).case_readiness.status).toBe('UNAVAILABLE');
+  });
+  it('does not read readiness when the coordinator is refused',async()=>{
+    const read=vi.fn(async()=>({blocking:0,errors:0,diagnosedAt:null}));
+    await expect(withGate({read}).coordinate('invalid',request())).rejects.toThrow('AI_AUTH_REQUIRED');
+    expect(read).not.toHaveBeenCalled();
   });
 });

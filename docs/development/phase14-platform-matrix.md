@@ -681,7 +681,25 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Readiness and risk in Case Workflow (Block 56).** The diagnostics and risk proposals are now reachable by staff:
+  **A00 and the case readiness gate (Block 57).** A00 now reads the case's readiness through an injected
+  `CaseReadinessGate` (`SqlCaseReadinessGate` over `taxguard_case_diagnostics_gate`):
+  - **Mapping verified.** The AI governance case key `(tenant_id, tax_case_id)` is `taxguard_cases.case_id` within the
+    tenant; `ai_validate_case_scope` refuses any AI record whose `case_record_id` disagrees (`AI_CASE_SCOPE_MISMATCH`),
+    shown on real PostgreSQL.
+  - **When and for whom.** Read once, after the coordinator is authorized, for the verified identity's tenant (never the
+    request's), and recorded as a root `PLANNED` event `AI_CASE_READINESS_<STATUS>`.
+  - **Reported, never acted on.** The result carries `case_readiness` (READY, NOT_READY, NOT_DIAGNOSED or UNAVAILABLE with
+    counts). Advisory review of an unready case still runs; every result still requires human review, executes nothing
+    and allows no external submission.
+  - **Fail closed.** No gate, a failing gate (for example the proposal is not applied), or any unexpected shape (negative,
+    fractional or string counts, an invalid timestamp, a missing field) is UNAVAILABLE, never READY.
+  - **Risk.** A00 produces no confidence or amount, so it does not call the risk assessment; nothing is invented to feed it.
+
+  Tests: `aiA00Orchestration.test` (12 new; the event-sequence test now expects the readiness event),
+  `a00CaseReadiness.db.test` (3, real PostgreSQL: mapping and mismatch refusal, NOT_DIAGNOSED then NOT_READY with
+  counts and no writes, another tenant never ready).
+
+  **Readiness and risk in Case Workflow (Block 56), published as `d3f0f69` (CI fix `1c1ae37`: collation-independent ordering).** The diagnostics and risk proposals are now reachable by staff:
   - **Server.** `TaxEngineStore` and `/api/tax-engine` gain `GET /cases/:caseId/diagnostics`,
     `POST /cases/:caseId/diagnostics/run`, `POST /diagnostics/:diagnosticId/acknowledge`, `GET` and `POST /cases/:caseId/risk`.
     The database decides scope (live assignment), severity, who may acknowledge and the risk outcome. Practice managers

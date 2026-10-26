@@ -34,8 +34,14 @@ export interface AdvisoryResult {
   evidence_source_ids: string[]; finding_codes: string[];
 }
 export type AdvisoryHandler = (context: Readonly<ChildContext>, signal: AbortSignal) => Promise<unknown>;
+/**
+ * The case's readiness as the review-only diagnostics gate (proposal 20261018160000) reports it. A00 reports it to the
+ * reviewer and never acts on it; anything it cannot read reliably is UNAVAILABLE, never READY.
+ */
+export interface CaseReadiness { status: 'READY' | 'NOT_READY' | 'NOT_DIAGNOSED' | 'UNAVAILABLE'; blocking: number | null; errors: number | null; diagnosed_at: string | null }
+export interface CaseReadinessGate { read(tenant_id: string, tax_case_id: string): Promise<unknown> }
 export interface OrchestrationResult {
   root_id: string; status: 'COMPLETED'; human_review_required: true;
-  action_executed: false; external_submission_allowed: false;
+  action_executed: false; external_submission_allowed: false; case_readiness: CaseReadiness;
   children: { operation_id: string; decision: GovernanceDecision; result: AdvisoryResult }[];
 }

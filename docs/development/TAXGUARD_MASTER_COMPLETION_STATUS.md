@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Readiness and risk in Case Workflow (Block 56).** Store, routes and `CaseReadinessPanel` over the diagnostics and risk
+- **A00 and the case readiness gate (Block 57).** A00 reads the diagnostics gate for the verified tenant, records and reports
+  it, and never acts on it; anything unreadable is UNAVAILABLE. Case-key mapping verified on PostgreSQL.
+  `aiA00Orchestration.test` (12 new), `a00CaseReadiness.db.test` (3).
+- **Readiness and risk in Case Workflow (Block 56), published as `d3f0f69`.** Store, routes and `CaseReadinessPanel` over the diagnostics and risk
   proposals; AI confidence is never taken from a request; a never-diagnosed case is not ready (proposal change, review only).
   `caseReadinessHttp.db.test` (6), `caseReadinessPanel.test` (4), suite 07 e2e (3).
 - **AI run reconstructability (Block 55, test only), published as `92df2b6`.** One query reconstructs every architecture field of an executed

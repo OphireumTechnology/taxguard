@@ -141,13 +141,15 @@
       "implementation": [
         "src/server/ai/orchestration/A00Orchestrator.ts",
         "src/server/ai/orchestration/SqlOrchestrationLedger.ts",
-        "src/server/ai/orchestration/canonicalRouting.ts"
+        "src/server/ai/orchestration/canonicalRouting.ts",
+        "src/server/ai/orchestration/SqlCaseReadinessGate.ts"
       ],
       "tests": [
-        "src/tests/aiA00Orchestration.test.ts"
+        "src/tests/aiA00Orchestration.test.ts",
+        "src/tests-db/a00CaseReadiness.db.test.ts"
       ],
       "persistence": "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql",
-      "remainingGap": "Coordinates only the bounded A34 review purposes; DRAFT, not commissioned. Request classification and workflow selection beyond that are unmapped."
+      "remainingGap": "Coordinates only the bounded A34 review purposes; DRAFT, not commissioned. Reads the case readiness gate (review-only diagnostics proposal) for the verified tenant after coordinator authorization, records it as a root event and reports it to the reviewer; a missing gate or unexpected shape is UNAVAILABLE, never READY. Readiness never unlocks an action and every result still requires human review. A00 produces no confidence or amount, so it does not call the risk assessment. Request classification and workflow selection beyond that are unmapped."
     },
     {
       "id": "AI-REGISTRY",
