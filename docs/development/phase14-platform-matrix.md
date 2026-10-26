@@ -597,6 +597,67 @@ could mean "the UI claims something the backend cannot deliver".
 
   All fit, and no source change was needed.
 
+  **Reviewer ledger and book-to-tax review (Block 45).**
+
+  *Gap.* The reviewer is the checker for prepared journal entries and for book-to-tax mappings, adjustments and
+  workpapers, and the database enforces that. Yet no reviewer screen offered any of it: `LedgerControlsPanel` (approve,
+  return for correction, reject) was mounted only in the unreachable `AccountantBookkeepingSection`. The browser
+  journeys therefore approved through the API.
+
+  *Correction.* `ReviewerLedgerReviewPanel` on the reviewer dashboard. The reviewer enters a client identifier and a tax
+  year, and the panel reuses `LedgerControlsPanel`, `BookToTaxPanel` and `LedgerReportsPanel` (journal search, general
+  ledger and financial audit history). No business logic is duplicated, and the server enforces role, assignment,
+  year scope and maker-checker on every request. The panel keeps its controls mounted while it refreshes the same
+  client and year, so confirmations and refusals stay visible, and it never shows a previous scope's entries.
+
+  *Defects found and fixed along the way:*
+  - **`BookToTaxPanel` stale responses.** The overview and categories had no guard, so a slower response for a
+    previously selected family could overwrite the family now in the selector. Its approve and reject buttons would
+    then act on that family's records. Each response is now tagged with client, year and family, and a stale one is
+    discarded. A deterministic browser regression delays the 1040 response past the switch to 1065; it failed with
+    the original panel and passes now.
+  - **Phone-width overflow on the reviewer dashboard (pre-existing).** At 375 px the page scrolled 96 px sideways.
+    - Shared panels relied on `tg-manager-scroll`, a class whose rule lives only in the practice-manager stylesheet.
+    - Four tables in `BookToTaxPanel` and `LedgerReportsPanel` had no scroll container at all.
+    - `reviewerDashboard.css` forced every table under `.tg-reviewer` to `min-width:420px` at phone width.
+
+    The shared wrappers are now self-contained (`max-w-full overflow-x-auto`) in `CaseWorkflowPanel`,
+    `PracticeClientsPanel`, `TaxRulesPanel`, `DurableMyWorkPanel`, `BookToTaxPanel` and `LedgerReportsPanel`. The
+    420 px rule is scoped to `.tg-review-scroll`, the reviewer's own queue table it was written for. The wrappers
+    are what removes the page overflow; the overflow check still passes with the original 420 px rule, which is
+    scoped for correctness, not to make the check pass.
+
+  *Browser evidence (suite 03, real UI; API used only for maker-side setup):*
+  - **The reviewer, in their own dashboard:**
+    - approves a bookkeeper's entry, which posts with `reviewerUid`;
+    - returns another for correction with a recorded note;
+    - is refused approving an adjusting entry they prepared themselves (`MAKER_CHECKER_VIOLATION` shown, entry stays
+      `PREPARED`).
+  - **The correction cycle.** The bookkeeper prepares the replacement; after a reload the reviewer sees the server's
+    state and approves it.
+  - **Audit evidence in the UI.** The financial audit history lists "Entry posted" and "Entry correction required"
+    by `e2e-rev (senior_reviewer)` and "Entry created" by `e2e-bk (bookkeeper)`.
+  - **Repeated approval.** Approving the same version again is refused, and the entry posts once.
+  - **Book-to-tax.**
+    - The preparer is refused approval (`B2T_REVIEWER_REQUIRED`) for both the mapping and the workpaper.
+    - The reviewer approves the submitted mapping in the UI.
+    - The workpaper is generated in `DRAFT`, and the reviewer approves it in the UI.
+    - After reloading, it shows as approved and reconciled, and no approve control remains.
+  - **Refusals.** The reviewer is refused another client (`UNASSIGNED_CLIENT`), a foreign tenant's client and the
+    unstaffed 2026 ledger: an alert, no entries and no approve controls. A direct approval attempt with the
+    reviewer's own token through each of those scopes is refused, and the entry is unchanged.
+  - **Phone width.** At 375 px the reviewer dashboard, ledger review, workpapers and history do not scroll the page,
+    and the approve control is within the viewport.
+
+  *Recorded for the owner (not changed).* Under proposal 024 an ordinary journal entry by a non-bookkeeper member,
+  including a reviewer, posts immediately. Only bookkeeper, adjusting, reversing and replacement entries wait for
+  independent review. Whether professional staff entries should also require a second person is a maker-checker
+  policy decision.
+
+  *Next (Block 46 candidate).* `BookkeeperLedgerWorkspace.load()` (work queue, chart, trial balance) has the same
+  unguarded pattern. It is re-rendered with new client and year props without remounting, so a slower response for
+  a previous client could replace the current one.
+
   **Payment webhook signature verification (Block 42).** This is the development handler behind
   `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:
   - verifies the exact bytes received (`rawBody`, captured by `server.ts`). It refuses with 400

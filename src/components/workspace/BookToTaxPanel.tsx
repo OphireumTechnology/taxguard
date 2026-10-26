@@ -8,17 +8,23 @@ const input = 'rounded-lg border border-slate-600 bg-[#06182B] px-2 py-1 text-xs
 /** Durable book-to-tax workpapers: mappings, adjustments and reconciled snapshots for professional review. No tax is computed. */
 export function BookToTaxPanel({ clientId, taxYear, accounts }: { clientId: string; taxYear: number; accounts: Array<{ id: string; accountNumber: string; accountName: string }> }) {
   const [family, setFamily] = useState('1040');
-  const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error' | 'disabled'; data?: B2tOverview; message?: string }>({ status: 'loading' });
+  // key: the client, year and family the state belongs to. A slower response for a previous selection is discarded, so
+  // the screen (and every approve or reject on it) always belongs to the family shown in the selector.
+  const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error' | 'disabled'; data?: B2tOverview; message?: string; key?: string }>({ status: 'loading' });
   const [categories, setCategories] = useState<Array<{ categoryCode: string; label: string }>>([]);
   const [adj, setAdj] = useState({ categoryCode: '', amount: '', adjustmentType: 'PERMANENT', description: '' });
   const [note, setNote] = useState('');
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const adjKey = useRef(newB2tKey());
+  const latest = useRef('');
   const load = useCallback(() => {
-    bookToTaxApi.overview(clientId, taxYear, family).then(data => setState({ status: 'ready', data }))
-      .catch(e => setState(e instanceof BookToTaxRequestError && e.code === 'B2T_UNAVAILABLE' ? { status: 'disabled' } : { status: 'error', message: bookToTaxMessage(e) }));
-    bookToTaxApi.categories(family).then(r => setCategories(r.items)).catch(() => setCategories([]));
+    const key = clientId + '|' + taxYear + '|' + family;
+    latest.current = key;
+    setState(s => s.key === key ? s : { status: 'loading', key });
+    bookToTaxApi.overview(clientId, taxYear, family).then(data => { if (latest.current === key) setState({ status: 'ready', data, key }); })
+      .catch(e => { if (latest.current === key) setState(e instanceof BookToTaxRequestError && e.code === 'B2T_UNAVAILABLE' ? { status: 'disabled', key } : { status: 'error', message: bookToTaxMessage(e), key }); });
+    bookToTaxApi.categories(family).then(r => { if (latest.current === key) setCategories(r.items); }).catch(() => { if (latest.current === key) setCategories([]); });
   }, [clientId, taxYear, family]);
   useEffect(() => { load(); }, [load]);
   if (state.status === 'disabled') return <p role="status" className="text-xs text-slate-400">Durable book-to-tax workpapers are not enabled in this environment.</p>;
@@ -43,12 +49,12 @@ export function BookToTaxPanel({ clientId, taxYear, accounts }: { clientId: stri
       <h4 className="font-bold text-white">Account mapping {current ? `v${current.version} (${current.status.toLowerCase().replace('_', ' ')})` : '(none)'}</h4>
       {categories.length === 0 && <p>No categories are defined for {family}. A practice manager must define the firm's categories first.</p>}
       {!open && <button type="button" className={button} disabled={busy} onClick={() => run(() => bookToTaxApi.openSet(clientId, taxYear, family), 'Draft mapping version opened.')}>Start new mapping version</button>}
-      {current && <table className="w-full text-left"><caption className="sr-only">Account to category mapping</caption><thead><tr><th scope="col">Account</th><th scope="col">Category</th></tr></thead>
+      {current && <div className="max-w-full overflow-x-auto"><table className="w-full text-left"><caption className="sr-only">Account to category mapping</caption><thead><tr><th scope="col">Account</th><th scope="col">Category</th></tr></thead>
         <tbody>{accounts.map(a => <tr key={a.id}><td>{a.accountNumber} · {a.accountName}</td><td>{open?.status === 'DRAFT'
           ? <select aria-label={`Category for ${a.accountNumber}`} className={input} value={mapped.get(a.id) ?? ''} disabled={busy}
               onChange={e => run(() => bookToTaxApi.setMapping(clientId, open.setId, a.id, e.target.value || null), 'Mapping saved.')}>
               <option value="">Unmapped</option>{categories.map(c => <option key={c.categoryCode} value={c.categoryCode}>{c.label}</option>)}</select>
-          : (mapped.get(a.id) ?? 'Unmapped')}</td></tr>)}</tbody></table>}
+          : (mapped.get(a.id) ?? 'Unmapped')}</td></tr>)}</tbody></table></div>}
       {open?.status === 'DRAFT' && <button type="button" className={button} disabled={busy} onClick={() => run(() => bookToTaxApi.reviewSet(clientId, open.setId, 'submit'), 'Submitted for review.')}>Submit mapping for review</button>}
       {open?.status === 'PENDING_REVIEW' && <div className="flex flex-wrap gap-2">
         <button type="button" className={button} disabled={busy} onClick={() => run(() => bookToTaxApi.reviewSet(clientId, open.setId, 'approve'), 'Mapping approved.')}>Approve mapping</button>
@@ -72,8 +78,8 @@ export function BookToTaxPanel({ clientId, taxYear, accounts }: { clientId: stri
       <button type="button" className={button} disabled={busy || !approved} onClick={() => run(() => bookToTaxApi.generateWorkpaper(clientId, taxYear, family), 'Workpaper generated.')}>Generate workpaper from approved mapping</button>
       {d.workpapers.map(w => <article key={w.workpaperId} className="space-y-1 rounded-xl border border-slate-800 p-2">
         <p>{new Date(w.createdAt).toLocaleString()} · {w.status.toLowerCase()} · {w.reconciled && w.unmappedAccounts === 0 ? 'reconciled' : `${w.unmappedAccounts} unmapped account(s)`} · by {w.generatedBy}</p>
-        <table className="w-full text-left"><caption className="sr-only">Workpaper categories</caption><thead><tr>{['Category', 'Book', 'Adjustments', 'Book + adjustments'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
-          <tbody>{w.snapshot.categories.map(c => <tr key={c.categoryCode}><td>{c.label}</td><td>{centsText(c.bookCents)}</td><td>{centsText(c.adjustmentCents)}</td><td>{centsText(c.taxBasisCents)}</td></tr>)}</tbody></table>
+        <div className="max-w-full overflow-x-auto"><table className="w-full text-left"><caption className="sr-only">Workpaper categories</caption><thead><tr>{['Category', 'Book', 'Adjustments', 'Book + adjustments'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+          <tbody>{w.snapshot.categories.map(c => <tr key={c.categoryCode}><td>{c.label}</td><td>{centsText(c.bookCents)}</td><td>{centsText(c.adjustmentCents)}</td><td>{centsText(c.taxBasisCents)}</td></tr>)}</tbody></table></div>
         {w.snapshot.unmapped.length > 0 && <p role="status">Unmapped: {w.snapshot.unmapped.map(u => `${u.accountNumber} ${centsText(u.netCents)}`).join(', ')}</p>}
         {w.status === 'DRAFT' && <><button type="button" className={button} disabled={busy} onClick={() => run(() => bookToTaxApi.reviewWorkpaper(clientId, w.workpaperId, true), 'Workpaper approved.')}>Approve workpaper</button>
           <button type="button" className={button} disabled={busy || note.trim().length < 5} onClick={() => run(() => bookToTaxApi.reviewWorkpaper(clientId, w.workpaperId, false, note), 'Workpaper rejected.')}>Reject</button></>}

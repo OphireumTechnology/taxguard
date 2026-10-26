@@ -27,6 +27,8 @@ status: **staging NO-GO, production NO-GO.**
 | Production refusal of the Stage 02 accountant document-review store (Block 40) | `406978b` | run 40098439008 success | `stageTwoDocumentReviewProductionDurability.test` (8, 5 failing first); SEC-CLIENT-023 changed deliberately |
 | Production refusal of the practice-operations services (Block 41); bookkeeping fallthrough regression guard | `ad56f24` | run 40102308061 **cancelled** at the 30-minute job timeout in automated tests (one-off, not reproduced); verified by run 40105263474 success on `2cf2a23`, which contains it | `practiceOperationsProductionDurability.test` (37, 35 failing first); `bookkeepingProductionFallthrough.test` (4) |
 | Payment webhook signature verification: raw bytes, 300-second window, rotation, constant time (Block 42) | `2cf2a23` | run 40105263474 success (automated tests 3 min 45 s) | `stripeWebhookSignature.test` (10, 5 failing first) |
+| Accessibility audit of the newer staff surfaces: Tax Rules module, expanded forms, audit security view (Block 43) | `98c0277` | run 40144714158 success | suite 16; default browser 118/118, provider 42/42 |
+| Phone-width layout of the newer staff surfaces at 375 px (Block 44) | `634a4e0` | run 40273072871 success | suite 16; default browser 121/121, provider 42/42 (7 files) |
 
 Local validation at the start of this cycle:
 - unit 5764 (352 files);
@@ -52,10 +54,20 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Accessibility audit of the newer staff surfaces (Block 43).** Suite 16 now covers the manager's Tax Rules module,
-  its expanded authoring forms and the administrator's security view. No defect was found.
-- **Phone-width layout (Block 44).** The Tax Rules console (forms expanded), Case Workflow, Clients & Engagements and
-  the audit center (event list and security view) stay within 375 px without page scroll.
+- **Reviewer ledger and book-to-tax review (Block 45).** `ReviewerLedgerReviewPanel` on the reviewer dashboard reuses
+  `LedgerControlsPanel`, `BookToTaxPanel` and `LedgerReportsPanel`. A browser journey (suite 03) covers:
+  - approving, returning and the refused self-approval;
+  - the correction cycle, persistence after a reload, and the audit history in the UI;
+  - book-to-tax approval;
+  - refusals for another client, a foreign client and the unstaffed 2026 year, including the protected mutation;
+  - the 375 px layout.
+
+  Also fixed in this package:
+  - **Stale-response race** in `BookToTaxPanel`. A deterministic regression failed first.
+  - **Pre-existing 96 px overflow** on the reviewer dashboard at phone width (shared table wrappers).
+
+  **Recorded for the owner:** ordinary non-bookkeeper journal entries post without independent review under proposal
+  024.
 
 ### Blocked (recorded, not worked around)
 

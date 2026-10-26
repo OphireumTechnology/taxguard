@@ -34,10 +34,10 @@ export function DurableMyWorkPanel({ heading = 'My durable work queue' }: { head
     {state.status === 'error' && <p role="alert">Your work queue could not be loaded. Nothing is shown in its place.</p>}
     {d && <>
       <ul className="tg-acct-kpis" aria-label="Work queue counts">{tiles.map(([label, value, definition]) => <li key={label} title={definition}><span>{label}</span> <strong>{value}</strong></li>)}</ul>
-      {d.cases.length === 0 ? <p>No active cases are assigned to you.</p> : <table><caption>My cases</caption>
+      {d.cases.length === 0 ? <p>No active cases are assigned to you.</p> : <div className="max-w-full overflow-x-auto"><table><caption>My cases</caption>
         <thead><tr>{['Client', 'Tax year', 'Stage', 'My role', 'Next step'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
         <tbody>{d.cases.map(c => <tr key={c.caseId}><td>{c.clientName || c.clientId}</td><td>{c.taxYear}</td><td>{stageName(c.activeStage)}{c.status === 'ON_HOLD' ? ' (on hold)' : ''}</td><td>{c.myRole}</td>
-          <td>{c.evidence === 'BLOCKED' ? 'Blocked until a verified tax engine exists' : c.awaitingMe ? (c.evidence === 'HUMAN_ATTESTED' ? 'Your attestation' : 'Your verification') : 'Waiting on another role'}</td></tr>)}</tbody></table>}
+          <td>{c.evidence === 'BLOCKED' ? 'Blocked until a verified tax engine exists' : c.awaitingMe ? (c.evidence === 'HUMAN_ATTESTED' ? 'Your attestation' : 'Your verification') : 'Waiting on another role'}</td></tr>)}</tbody></table></div>}
       {d.documentsToReview.length > 0 && <><h3>Documents awaiting review</h3><ul>{d.documentsToReview.map(x => <li key={x.documentId + x.version}>{x.fileName} — {x.clientId} {x.taxYear}</li>)}</ul></>}
       {d.requestsOutstanding.length > 0 && <><h3>Document requests outstanding</h3><ul>{d.requestsOutstanding.map(q => <li key={q.requestId}>{q.title} — {q.clientId} {q.taxYear}{q.overdue ? ' (overdue)' : ''}</li>)}</ul></>}
       {d.entriesReturnedToMe.length > 0 && <><h3>Entries returned to me</h3><ul>{d.entriesReturnedToMe.map(e => <li key={e.entryId}>{e.entryNumber} {e.description} — {e.clientId}</li>)}</ul></>}

@@ -41,10 +41,10 @@ export function LedgerReportsPanel({ clientId, taxYear, accounts }: { clientId: 
       <button className={button}>Search journal</button>
     </form>
     {state(search.status, 'journal search')}
-    {search.status === 'ready' && (search.data.length === 0 ? <p role="status">No journal entries match.</p> : <table className="w-full text-left"><caption className="sr-only">Journal search results</caption>
+    {search.status === 'ready' && (search.data.length === 0 ? <p role="status">No journal entries match.</p> : <div className="max-w-full overflow-x-auto"><table className="w-full text-left"><caption className="sr-only">Journal search results</caption>
       <thead><tr>{['Entry', 'Date', 'Description', 'Status', 'Amount'].map(h => <th key={h} scope="col" className="p-1">{h}</th>)}</tr></thead>
       <tbody>{search.data.map(e => <tr key={e.id} className="border-t border-slate-800"><td className="p-1 font-mono">{e.entryNumber}</td><td className="p-1">{e.postingDate}</td>
-        <td className="p-1">{e.description}</td><td className="p-1">{e.status}</td><td className="p-1">{money(e.totalDebit)}</td></tr>)}</tbody></table>)}
+        <td className="p-1">{e.description}</td><td className="p-1">{e.status}</td><td className="p-1">{money(e.totalDebit)}</td></tr>)}</tbody></table></div>)}
 
     <form className="flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); load(setLedger, [], () => bookkeepingService.getGeneralLedger(clientId, taxYear, accountId || undefined).then(r => r.accounts)); }}>
       <label className="flex flex-col">Account<select className={input} value={accountId} onChange={e => setAccountId(e.target.value)}>
@@ -54,10 +54,10 @@ export function LedgerReportsPanel({ clientId, taxYear, accounts }: { clientId: 
     {state(ledger.status, 'general ledger')}
     {ledger.status === 'ready' && (ledger.data.length === 0 ? <p role="status">No posted activity for this selection.</p> : ledger.data.map(a => <div key={a.accountId} className="space-y-1">
       <h4 className="font-bold text-white">{a.accountNumber} · {a.accountName} — ending balance {money(a.endingBalance)}</h4>
-      <table className="w-full text-left"><caption className="sr-only">General ledger for {a.accountName}</caption>
+      <div className="max-w-full overflow-x-auto"><table className="w-full text-left"><caption className="sr-only">General ledger for {a.accountName}</caption>
         <thead><tr>{['Date', 'Entry', 'Description', 'Debit', 'Credit', 'Balance'].map(h => <th key={h} scope="col" className="p-1">{h}</th>)}</tr></thead>
         <tbody>{a.lines.map((l, i) => <tr key={l.entryId + i} className="border-t border-slate-800"><td className="p-1">{l.postingDate}</td><td className="p-1 font-mono">{l.entryNumber}</td>
-          <td className="p-1">{l.description}</td><td className="p-1">{l.debit ? money(l.debit) : ''}</td><td className="p-1">{l.credit ? money(l.credit) : ''}</td><td className="p-1">{money(l.runningBalance)}</td></tr>)}</tbody></table>
+          <td className="p-1">{l.description}</td><td className="p-1">{l.debit ? money(l.debit) : ''}</td><td className="p-1">{l.credit ? money(l.credit) : ''}</td><td className="p-1">{money(l.runningBalance)}</td></tr>)}</tbody></table></div>
     </div>))}
 
     <button type="button" className={button} onClick={() => load(setHistory, [], () => bookkeepingService.getLedgerHistory(clientId, taxYear).then(r => r.events))}>Show financial audit history</button>

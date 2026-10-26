@@ -73,7 +73,7 @@ export function TaxRulesPanel() {
     {sources.status === 'loading' && <p role="status">Loading sources…</p>}
     {sources.status === 'error' && <p role="alert">{sources.message}</p>}
     {sources.status === 'ready' && sources.value.length === 0 && <p role="status">No sources are registered.</p>}
-    {sources.value.length > 0 && <div className="tg-manager-scroll"><table><caption className="sr-only">Registered sources of law</caption>
+    {sources.value.length > 0 && <div className="tg-manager-scroll max-w-full overflow-x-auto"><table><caption className="sr-only">Registered sources of law</caption>
       <thead><tr>{['Source', 'Title and citation', 'Authority', 'Years', 'Status', 'Registered / verified by', 'Verify'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
       <tbody>{sources.value.map(s => <tr key={s.source_id}>
         <td>{s.source_id}{s.synthetic ? ' (synthetic test)' : ''}</td>
@@ -121,7 +121,7 @@ export function TaxRulesPanel() {
     {ruleSets.status === 'loading' && <p role="status">Loading rule sets…</p>}
     {ruleSets.status === 'error' && <p role="alert">{ruleSets.message}</p>}
     {ruleSets.status === 'ready' && ruleSets.value.length === 0 && <p role="status">No rule sets for this selection.</p>}
-    {ruleSets.value.length > 0 && <div className="tg-manager-scroll"><table><caption className="sr-only">Versioned rule sets</caption>
+    {ruleSets.value.length > 0 && <div className="tg-manager-scroll max-w-full overflow-x-auto"><table><caption className="sr-only">Versioned rule sets</caption>
       <thead><tr>{['Rule set', 'Year', 'Version', 'Status', 'Prepared / reviewed by'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
       <tbody>{ruleSets.value.map(r => <tr key={r.ruleSetId}>
         <td><button type="button" aria-pressed={selected === r.ruleSetId} onClick={() => { setSelected(r.ruleSetId); setNotice(null); setNote(''); }}>

@@ -77,7 +77,7 @@ export function CaseWorkflowPanel() {
     {queue.status === 'loading' && <p role="status">Loading cases…</p>}
     {queue.status === 'error' && <p role="alert">{queue.message}</p>}
     {queue.status === 'ready' && queue.items.length === 0 && <p role="status">No cases in this queue.</p>}
-    {queue.items.length > 0 && <div className="tg-manager-scroll"><table><caption className="sr-only">Case work queue</caption>
+    {queue.items.length > 0 && <div className="tg-manager-scroll max-w-full overflow-x-auto"><table><caption className="sr-only">Case work queue</caption>
       <thead><tr>{['Case', 'Client / year', 'Return', 'Stage', 'Status', 'My role', 'Next action', 'Next deadline'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
       <tbody>{queue.items.map(q => <tr key={q.caseId}><td><button type="button" aria-pressed={selected === q.caseId} onClick={() => { setSelected(q.caseId); setNotice(null); }}>{q.caseId.slice(0, 16)}</button></td>
         <td>{q.clientName || q.clientId} / {q.taxYear}</td><td>{q.returnFamily ?? 'Not set'}</td><td>{stageLabel(q.activeStage)}</td><td>{q.status}</td><td>{q.myRole}</td>

@@ -63,7 +63,7 @@ export function PracticeClientsPanel() {
     {list.status === 'loading' && <p role="status">Loading clients…</p>}
     {list.status === 'error' && <p role="alert">{list.message}</p>}
     {list.status === 'ready' && list.items.length === 0 && <p role="status">No clients match, or none are assigned to you.</p>}
-    {list.items.length > 0 && <div className="tg-manager-scroll"><table><caption className="sr-only">Authorized clients</caption>
+    {list.items.length > 0 && <div className="tg-manager-scroll max-w-full overflow-x-auto"><table><caption className="sr-only">Authorized clients</caption>
       <thead><tr>{['Client', 'Type', 'Status', 'Open engagements', 'Team', 'Open tasks', 'Next deadline'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
       <tbody>{list.items.map(c => <tr key={c.clientId}><td><button type="button" aria-pressed={selected === c.clientId} onClick={() => { setSelected(c.clientId); setNotice(null); }}>{c.name || c.clientId}</button><small>{c.clientId}</small></td>
         <td>{label(c.clientType)}</td><td>{c.status}</td><td>{c.engagements}</td><td>{c.team.map(t => `${label(t.role)}: ${t.userId}`).join(', ') || 'Unassigned'}</td><td>{c.openTasks}</td>

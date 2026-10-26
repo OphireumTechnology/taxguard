@@ -3515,7 +3515,7 @@
       "tests": [
         "src/tests/bookkeeperDurableHttp.test.ts"
       ],
-      "remaining": "Proposals 024/030 unapplied; legacy bookkeeper modules still read the in-memory projection; browser NOT VERIFIED.",
+      "remaining": "Proposals 024/030 unapplied; legacy bookkeeper modules still read the in-memory projection. Local synthetic browser journeys (suite 03, durable ledger): the bookkeeper prepares and reconciles in the UI; the senior reviewer approves, returns for correction and is refused self-approval in the reviewer Ledger review UI, with the audit history shown there. Independent browser acceptance NOT VERIFIED. Ordinary non-bookkeeper entries post without review under proposal 024 (owner policy question).",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3534,7 +3534,7 @@
       "tests": [
         "src/tests/bookToTaxHttp.test.ts"
       ],
-      "remaining": "Proposal 029 unapplied; firm categories required (H07); browser NOT VERIFIED.",
+      "remaining": "Proposal 029 unapplied; firm categories required (H07). Local synthetic browser journey (suite 03): the senior reviewer approves the mapping and workpaper in the reviewer UI, the preparer is refused (B2T_REVIEWER_REQUIRED), and a stale-family response is discarded. Preparer mapping and adjustment steps are API setup in that journey. Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3629,7 +3629,7 @@
       "tests": [
         "src/tests/practiceManagementHttp.test.ts"
       ],
-      "remaining": "Proposal 025 unapplied; development-only API; staff client creation and representatives blocked; browser NOT VERIFIED.",
+      "remaining": "Proposal 025 unapplied; development-only API; staff client creation and representatives blocked. Local synthetic browser journeys: suite 02 (the manager creates, activates and staffs an engagement in the UI) and the provider suite (tax years and deadlines). Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "72ff0c7f4b518fd3510bec6bb3b091d6888affc16f53052baa8be971b39fad50",
-      "bytes": 62019,
+      "sha256": "13b962005cf7c1be9b678dd55705e56f45f8895b302ec89aad8fde5d224e944f",
+      "bytes": 66841,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5597,8 +5597,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "4a967f667aa35a9311263aba513a8ceb8604069e804029215422c853d7fd7d9f",
-      "bytes": 11652,
+      "sha256": "2fbab0275e08c92b0e5b2fcbc52d90b4046ffad6d00cce9f2891e5e0dc96c46b",
+      "bytes": 11737,
       "headings": [
         "# TaxGuard AI master completion plan",
         "## How status is assigned",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "ece13c72401b95190e12051b40eeb246bded710b3ce59823533008d2fc782053",
-      "bytes": 7068,
+      "sha256": "873796ff356d4bcb90274ef2d0175f8fce04d3d73f4c267783ce61539d43b91f",
+      "bytes": 7907,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",

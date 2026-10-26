@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, selectByText, staffLogin, type Session } from './helpers';
+import { ORIGIN, api, apiLogin, C, FOREIGN_CLIENT, UNASSIGNED_CLIENT, closeBrowser, control, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, selectByText, staffLogin, type Session } from './helpers';
 
 // Bookkeeping and reconciliation in the bookkeeper's Ledger Workspace with independent review,
 // book-to-tax mapping and workpapers, and the case workflow through stages 1-8 (9-18 blocked).
@@ -178,5 +178,176 @@ describe('case workflow stages 1-8 (stages 9-18 blocked)', () => {
     await sees(mgr.page, /· ACTIVE/);
     expect(await mgr.page.locator('body').innerText()).toMatch(/9/);
     expect(realErrors(mgr)).toEqual([]);
+  });
+});
+
+describe('independent ledger and book-to-tax review in the reviewer workspace', () => {
+  // Maker steps go through the API as controlled setup (the bookkeeper's own UI for them is proven above). Every
+  // checker step, every refusal claimed here and the persistence and audit evidence go through the reviewer's UI.
+  const prepare = (who: string, description: string, amount: number, extra: Record<string, unknown> = {}) =>
+    ledger(who, 'POST', '/journal-entries', { postingDate: `${Y}-04-02`, description, ...extra,
+      lines: [{ accountId: acct['6070'], debit: amount, credit: 0 }, { accountId: acct['1010'], debit: 0, credit: amount }] });
+  const entryByNumber = async (n: string) => (await ledger('rev', 'GET', '/journal-entries')).body.entries.find((e: any) => e.entryNumber === n);
+  const reviewPanel = (page: Session['page']) => page.locator('section', { has: page.getByRole('heading', { name: 'Ledger review', exact: true }) });
+  const openLedger = async (page: Session['page'], client: string, year: number) => {
+    const open = reviewPanel(page).getByRole('form', { name: 'Open a client ledger for review' });
+    await open.getByLabel('Client identifier').fill(client);
+    await open.getByLabel('Ledger tax year').fill(String(year));
+    await open.getByRole('button', { name: 'Open ledger' }).click();
+  };
+  const FAM = '1065';
+  let approveNo = '', returnNo = '', ownNo = '';
+
+  it('the reviewer approves, returns and is refused self-approval in the UI; the preparer corrects; state and audit persist', async () => {
+    const toApprove = await prepare('bk', 'Synthetic supplies accrual for review', 25);
+    const toReturn = await prepare('bk', 'Synthetic misclassified supplies', 12);
+    // Adjusting entries always await independent review (proposal 024), whoever prepares them. The reviewer prepares
+    // one, so approving it would be self-approval.
+    const own = await prepare('rev', 'Synthetic adjusting entry prepared by the reviewer', 7, { isAdjusting: true, adjustingType: 'ACCRUAL' });
+    for (const r of [toApprove, toReturn, own]) expect(r.status).toBeLessThan(300);
+    for (const r of [toApprove, toReturn, own]) expect(r.body.entry.status).toBe('PREPARED');
+    [approveNo, returnNo, ownNo] = [toApprove, toReturn, own].map(r => r.body.entry.entryNumber);
+
+    const rev = await staffLogin('e2e-rev');
+    const { page } = rev;
+    const review = reviewPanel(page);
+    await openLedger(page, C, Y);
+    await review.getByRole('heading', { name: `${C} · ${Y}` }).waitFor();
+
+    // Approve: the entry posts with the reviewer recorded.
+    await review.getByRole('button', { name: `Approve ${approveNo}` }).click();
+    await review.getByText(`${approveNo} approved and posted.`).waitFor();
+    expect(await entryByNumber(approveNo)).toMatchObject({ status: 'POSTED', reviewerUid: 'e2e-rev' });
+    // A repeated approval of the same version (a retry or a second tab) is refused and posts nothing twice.
+    const posted = await entryByNumber(approveNo);
+    expect((await ledger('rev', 'POST', `/journal-entries/${posted.id}/approve`, { version: toApprove.body.entry.version })).status).toBeGreaterThanOrEqual(400);
+    expect((await ledger('rev', 'GET', '/journal-entries')).body.entries.filter((e: any) => e.entryNumber === approveNo)).toHaveLength(1);
+
+    // Return for correction with a recorded note.
+    await review.getByRole('button', { name: `Return ${returnNo} for correction` }).click();
+    await review.getByLabel('Correction requested (recorded)').fill('Synthetic: post this to the correct expense account.');
+    await review.getByRole('button', { name: 'Confirm' }).click();
+    await review.getByText(`${returnNo} returned to the preparer.`).waitFor();
+    expect(await entryByNumber(returnNo)).toMatchObject({ status: 'CORRECTION_REQUIRED' });
+
+    // Self-approval: the reviewer prepared this entry, so the server refuses its approval and nothing posts.
+    await review.getByRole('button', { name: `Approve ${ownNo}` }).click();
+    await review.getByRole('alert').filter({ hasText: 'An independent reviewer must perform this action' }).waitFor();
+    expect(await entryByNumber(ownNo)).toMatchObject({ status: 'PREPARED' });
+
+    // The preparer responds to the correction with a replacement entry; the reviewer gives the final disposition.
+    const replacement = await prepare('bk', 'Synthetic corrected supplies entry', 12, { replacesEntryId: (await entryByNumber(returnNo)).id });
+    expect(replacement.status).toBeLessThan(300);
+    const replacementNo = replacement.body.entry.entryNumber;
+
+    // Persistence: a fresh load shows the server's state, not React memory.
+    await page.reload();
+    await openLedger(page, C, Y);
+    await review.getByRole('heading', { name: `${C} · ${Y}` }).waitFor();
+    await review.getByRole('button', { name: `Approve ${replacementNo}` }).waitFor();
+    expect(await review.getByRole('button', { name: `Approve ${approveNo}` }).count()).toBe(0);
+    await review.getByRole('button', { name: `Approve ${ownNo}` }).waitFor();
+    await review.getByRole('button', { name: `Approve ${replacementNo}` }).click();
+    await review.getByText(`${replacementNo} approved and posted.`).waitFor();
+
+    // Audit evidence through the UI: who did what, recorded by the database.
+    await review.getByRole('button', { name: 'Show financial audit history' }).click();
+    await review.getByText(/^Entry posted · e2e-rev \(senior_reviewer\) · /).first().waitFor();
+    await review.getByText(/^Entry correction required · e2e-rev \(senior_reviewer\) · /).first().waitFor();
+    await review.getByText(/^Entry created · e2e-bk \(bookkeeper\) · /).first().waitFor();
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+  });
+
+  it('book-to-tax: the reviewer approves the mapping and the workpaper in the UI; the preparer cannot; state persists', async () => {
+    for (const [code, label] of [['CASH', 'Cash (synthetic)'], ['OWNER_EQUITY', 'Owner equity (synthetic)'], ['SUPPLIES', 'Supplies (synthetic)']])
+      expect((await api(tokens.admin, 'POST', '/api/book-to-tax/categories', { returnFamily: FAM, categoryCode: code, label })).status).toBe(200);
+    const b2t = (who: string, method: string, path: string, body?: unknown) => api(tokens[who], method, '/api/book-to-tax' + path, body);
+    const set = (await b2t('acct', 'POST', `/clients/${C}/${Y}/${FAM}/mapping-sets`)).body;
+    for (const [num, cat] of [['1010', 'CASH'], ['3010', 'OWNER_EQUITY'], ['6070', 'SUPPLIES']])
+      expect((await b2t('acct', 'POST', `/clients/${C}/mapping-sets/${set.setId}/mappings`, { accountId: acct[num], categoryCode: cat })).status).toBeLessThan(300);
+    expect((await b2t('acct', 'POST', `/clients/${C}/mapping-sets/${set.setId}/submit`)).status).toBeLessThan(300);
+    expect((await b2t('acct', 'POST', `/clients/${C}/mapping-sets/${set.setId}/approve`)).body.code).toBe('B2T_REVIEWER_REQUIRED');
+
+    const rev = await staffLogin('e2e-rev');
+    const { page } = rev;
+    const review = reviewPanel(page);
+    // The first family's overview is delayed past the switch to FAM. The stale response must be discarded, so the
+    // screen (and the approve buttons on it) stays on the family in the selector.
+    const firstFamily = `**/api/book-to-tax/clients/${C}/${Y}/1040`;
+    await page.route(firstFamily, async route => { await new Promise(r => setTimeout(r, 2500)); await route.continue(); });
+    await openLedger(page, C, Y);
+    await review.getByLabel('Return family').selectOption(FAM);
+    await review.getByText(/Account mapping v\d+ \(pending review\)/).waitFor();
+    await page.waitForTimeout(3500);
+    await review.getByText(/Account mapping v\d+ \(pending review\)/).waitFor({ timeout: 1000 });
+    await page.unroute(firstFamily);
+    await review.getByRole('button', { name: 'Approve mapping' }).click();
+    await review.getByText('Mapping approved.').waitFor();
+
+    const wp = await b2t('acct', 'POST', `/clients/${C}/${Y}/${FAM}/workpapers`);
+    expect(wp.body).toMatchObject({ reconciled: true });
+    expect((await b2t('acct', 'POST', `/clients/${C}/workpapers/${wp.body.workpaperId}/approve`)).body.code).toBe('B2T_REVIEWER_REQUIRED');
+
+    await page.reload();
+    await openLedger(page, C, Y);
+    await review.getByLabel('Return family').selectOption(FAM);
+    await review.getByText(/Account mapping v\d+ \(approved\)/).waitFor();
+    await review.getByRole('button', { name: 'Approve workpaper' }).click();
+    await review.getByText('Workpaper approved.').waitFor();
+    await page.reload();
+    await openLedger(page, C, Y);
+    await review.getByLabel('Return family').selectOption(FAM);
+    await review.getByText(/· approved · reconciled ·/).waitFor();
+    expect(await review.getByRole('button', { name: 'Approve workpaper' }).count()).toBe(0);
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+  });
+
+  it('refuses the reviewer another client, a foreign client and an unstaffed tax year: no entries, no controls, no mutation', async () => {
+    const rev = await staffLogin('e2e-rev');
+    const { page } = rev;
+    const review = reviewPanel(page);
+    for (const [client, year] of [[UNASSIGNED_CLIENT, Y], [FOREIGN_CLIENT, Y], [C, Y + 1]] as const) {
+      await openLedger(page, client, year);
+      await review.getByRole('alert').first().waitFor();
+      expect(await review.getByRole('button', { name: /^Approve / }).count(), `${client}/${year}`).toBe(0);
+      expect(await review.innerText(), `${client}/${year}`).not.toMatch(/Synthetic (supplies|entry|misclassified|corrected)/);
+    }
+    // The protected operation itself, attempted against the reviewer's own pending entry through another scope.
+    const own = await entryByNumber(ownNo);
+    for (const scope of [{ clientId: UNASSIGNED_CLIENT, taxYear: Y }, { clientId: FOREIGN_CLIENT, taxYear: Y }, { clientId: C, taxYear: Y + 1 }]) {
+      const attempt = await api(tokens.rev, 'POST', `/api/bookkeeping/journal-entries/${own.id}/approve`, { ...scope, version: own.version });
+      expect(attempt.status, `${JSON.stringify(scope)} -> ${attempt.status} ${JSON.stringify(attempt.body)}`).toBeGreaterThanOrEqual(400);
+      expect(await entryByNumber(ownNo), `after ${JSON.stringify(scope)}`).toMatchObject({ status: 'PREPARED', version: own.version });
+    }
+    await rev.context.close();
+  });
+
+  it('keeps the reviewer dashboard and its ledger review within a 375 px viewport', async () => {
+    const rev = await staffLogin('e2e-rev');
+    const { page } = rev;
+    const pageOverflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    await page.setViewportSize({ width: 375, height: 812 });
+    // The dashboard's own tables (My cases, Case work queue) scroll inside their containers, not the page.
+    await page.getByRole('table', { name: 'My cases' }).waitFor();
+    await page.getByRole('table', { name: 'Case work queue' }).waitFor();
+    expect(await pageOverflow(), 'dashboard').toBeLessThanOrEqual(0);
+    await openLedger(page, C, Y);
+    const review = reviewPanel(page);
+    await review.getByRole('heading', { name: `${C} · ${Y}` }).waitFor();
+    await review.getByRole('button', { name: `Approve ${ownNo}` }).waitFor();
+    await review.getByLabel('Return family').selectOption(FAM);
+    await review.getByText(/Account mapping v\d+/).waitFor();
+    await review.getByRole('table', { name: 'Workpaper categories' }).first().waitFor();
+    await review.getByRole('button', { name: 'Show financial audit history' }).click();
+    await review.getByText(/^Entry posted · e2e-rev \(senior_reviewer\) · /).first().waitFor();
+    expect(await pageOverflow(), 'ledger review, workpapers and history').toBeLessThanOrEqual(0);
+    // Review controls stay reachable at phone width.
+    const approve = review.getByRole('button', { name: `Approve ${ownNo}` });
+    await approve.scrollIntoViewIfNeeded();
+    const box = await approve.boundingBox();
+    expect(box && box.x >= 0 && box.x + box.width <= 375, 'approve control within the viewport').toBe(true);
+    await rev.context.close();
   });
 });

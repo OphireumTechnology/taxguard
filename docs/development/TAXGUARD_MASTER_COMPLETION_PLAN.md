@@ -102,7 +102,7 @@ it; otherwise it maps to REVIEW REQUIRED.
 | Stages 10–13, 16 (filing, provider and payment dependent) | BLOCKED | `REQUIRES EXTERNAL INFRASTRUCTURE` / human policy |
 | Process-local domain stores replaced by durable adapters | PARTIAL | `CONTROL-DURABILITY`; retained in-memory routes are listed in `phase10-reviews.md`. `unreachable-code-inventory.md` shows that `/api/documents`, `/api/calendar` and `/api/intake` now have no reachable consumer; retiring them with 274 unreachable modules awaits the owner's deletion decision. The production-mounted
 `/api/case-authority` now refuses every scoped case operation (503 `DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED`)
-rather than serve its in-memory adapter (Block 39). So do the Stage 02 accountant document-review routes (Block 40) and every practice-operations service (Block 41). |
+rather than serve its in-memory adapter (Block 39). So do the Stage 02 accountant document-review routes (Block 40) and every practice-operations service (Block 41). Reviewers now approve ledger and book-to-tax work in their own dashboard (Block 45). |
 | Tax engine: sources of law, versioned rule sets, tests and coverage, calculation runs | PARTIAL | API and database validated (`20261012330000`, `360000`, `380000`; `taxEngineHttp`, default browser suite 07). Tax Rules console added (`TaxRulesPanel`: sources, rule sets, tests and recorded test runs) and calculation runs with reviewer decisions in Case Workflow. Drafting rule sets and adding or removing tests are in the console too. Real rule content needs approved, verified sources (professional input). |
 | Public website, honest public content | REVIEW REQUIRED | `CONTROL-FRONTEND-HONEST-PUBLIC`; accessibility and SEO not independently audited |
 
