@@ -681,7 +681,36 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Tax research workspace (Block 52).** `CaseResearchPanel` is mounted per case, keyed by case id, in Case Workflow for the
+  **Case readiness diagnostics (Block 53, database layer).** No return exists yet (stages 9-18 are blocked), so diagnostics
+  start from what does exist. Proposal `20261018160000_taxguard_return_diagnostics` (review only) runs deterministic
+  checks over a case's durable records:
+  - **Rules and severities.** Severities come from a governed, versioned rule table; no RPC writes it, so changing a
+    severity is a reviewed database change:
+    - BLOCKING: case on hold; no approved calculation run;
+    - ERROR: journal entries awaiting review; no approved book-to-tax workpaper for the case year and return family;
+    - WARNING: calculation run awaiting review; the ledger changed after the latest approved run (stale); research
+      awaiting review;
+    - INFO: draft research.
+  - **History.** Each run records its detections. A finding stays OPEN while detected and is CLEARED by the run that no
+    longer detects it. Diagnostics and runs are immutable, also to the database owner. Runs and acknowledgements are
+    audited.
+  - **Waivers.** Only INFO and WARNING may be acknowledged, by the case reviewer or a manager, with a note. ERROR and
+    BLOCKING are not waivable (`DIAGNOSTIC_NOT_WAIVABLE`) and clear only when the data changes.
+  - **Gate.** `taxguard_case_diagnostics_gate` reports blocking and error counts for future finalization steps; it is
+    granted to no client role.
+  - **Access** follows the case's live assignment.
+
+  Tests: `caseDiagnostics.db.test` (5, real PostgreSQL). It covers a new case's findings, an unreviewed entry clearing
+  once approved with its history kept, waiver limits, a hold, access refusals and immutability. Writing it found three
+  defects in the first draft, all fixed:
+  - a rule-code check that rejected digits (`B2T_`);
+  - a loop variable named `found` that shadowed PL/pgSQL's `FOUND`;
+  - a `NOT ... = ANY` clause, rewritten as `<> ALL`.
+
+  The calculation-run review and staleness rules are not yet exercised (they need an approved rule set). No store,
+  route or UI yet.
+
+  **Tax research workspace (Block 52), published as `5536e68`.** `CaseResearchPanel` is mounted per case, keyed by case id, in Case Workflow for the
   preparer, the reviewer and the manager. It sits on the existing development-only tax-engine router (`/cases/:caseId/research`,
   `/research/:memoId/(citations|submit|approve|reject)`) and `TaxEngineStore`, with structured codes mapped to statuses.
   Managers may open, cite and submit; research decisions stay closed to them in the route allowlist.

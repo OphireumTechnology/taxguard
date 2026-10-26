@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "f70bd6d2b538c3baee63d77f1f95121fd99a65697a191b36d65deeaaa97f870f",
+  "executionPlanSha256": "e2b296d2589bd954a86767b9432e0d9e9cf184e0ad131256a9019949d6423fb1",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4441,6 +4441,66 @@
         "--   * A memo becomes an approved research conclusion only when the case's reviewer, with a live assignment and not",
         "--     the preparer, approves it, and it has at least one AUTHORITATIVE citation. Approval does not change a return,",
         "--     a calculation or a tax position: returnUse stays BLOCKED."
+      ]
+    },
+    {
+      "order": 84,
+      "file": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+      "kind": "proposal",
+      "version": "20261018160000",
+      "sha256": "eb93bba446fb4cfb4daab26c13b2c655f9518bcf84c1f7f603ac58849200d587",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_diagnostic_rules",
+        "taxguard_case_diagnostic_runs",
+        "taxguard_case_diagnostics",
+        "taxguard_case_diagnostics_guard",
+        "taxguard_case_diagnostics_json",
+        "taxguard_case_diagnostics_run",
+        "taxguard_case_diagnostics_list",
+        "taxguard_case_diagnostic_acknowledge",
+        "taxguard_case_diagnostics_gate"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_diagnostic_rules, public.taxguard_case_diagnostic_runs, public.taxguard_case_diagnostics FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', f);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', f);"
+      ],
+      "securityDefinerDeclarations": 5,
+      "notValidConstraints": 0,
+      "header": [
+        "-- REVIEW-ONLY PROPOSAL. Not applied to any hosted database; owner approval and independent SQL review required.",
+        "--",
+        "-- Case readiness diagnostics: deterministic checks over the durable records of one tax case, persisted with the rule",
+        "-- and rule version that produced them. No return exists yet (stages 9-18 are blocked), so these diagnose a case's",
+        "-- readiness for return preparation from the records that do exist: case status, calculation runs, ledger review,",
+        "-- book-to-tax workpapers and research.",
+        "--",
+        "--   * Severity comes from the governed rule table (INFO, WARNING, ERROR, BLOCKING), never from the caller or a model.",
+        "--     Changing a rule's severity is a reviewed database change: no RPC writes the rule table.",
+        "--   * A run records every detection. A diagnostic stays OPEN while it is detected and becomes CLEARED, with the run that",
+        "--     cleared it, when the underlying record no longer triggers it. History is never deleted.",
+        "--   * Only INFO and WARNING may be acknowledged by a person, with a recorded note. ERROR and BLOCKING clear only when"
       ]
     }
   ]

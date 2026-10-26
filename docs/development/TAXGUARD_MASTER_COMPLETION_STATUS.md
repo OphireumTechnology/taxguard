@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Tax research workspace (Block 52).** `CaseResearchPanel` in Case Workflow over the development-only tax-engine router. Browser
+- **Case readiness diagnostics (Block 53, database layer).** Review-only proposal `20261018160000`: governed, versioned rule
+  severities; persisted, immutable diagnostics that clear when the data changes; only INFO and WARNING waivable; a gate for
+  future finalization. `caseDiagnostics.db.test` (5).
+- **Tax research workspace (Block 52), published as `5536e68`.** `CaseResearchPanel` in Case Workflow over the development-only tax-engine router. Browser
   journey (suite 07): draft, cite and submit; the preparer's approval is refused; the reviewer approves; persistence after a
   reload; audit; a revoked assignment is refused on the open page; 375 px.
 - **Block 51 CI repair, published as `d6b6222` (CI run 40318291470 success).** Run 40300291410 failed on `clientOnboarding.db`:
