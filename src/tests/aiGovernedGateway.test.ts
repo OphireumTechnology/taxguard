@@ -107,6 +107,29 @@ describe('AI-4 execution, accounting and reliability',()=>{
     expect(out.provenance).toMatchObject({model:modelId,model_version:'1',prompt_version:'1',evidence_source_ids:[eid]});
     const sent=provider.mock.calls[0][0] as any;expect(sent.model).toBe(modelId);expect(sent.input).toEqual({purpose:c.purpose,taxYear:2025,evidenceCount:1});expect(sent).not.toHaveProperty('tools');expect(JSON.stringify(sent)).not.toContain(eid);expect(JSON.stringify(sent)).not.toContain('clientA');expect(tools).not.toHaveBeenCalled();
   });
+  it('reconstructs every architecture field of an executed run from recorded links, with nothing invented',async()=>{
+    const c=await context();await gateway().execute('valid',c);
+    const run=(await pg.query<any>(`SELECT r.run_id,r.agent_id,r.agent_version,r.model_provider,r.model_id,r.model_version,r.prompt_id,r.prompt_version,
+        d.policy_hash,d.decision_id,d.agent_id AS decision_agent,d.tenant_id AS decision_tenant,r.tenant_id,r.client_id,cs.engagement_id,r.tax_case_id,r.tax_year,r.workflow_version,r.workflow_stage,r.input_hash,r.output_hash,
+        r.confidence,r.risk_level,r.proposed_action,r.human_review_required,r.reviewer,r.review_decision,r.status,r.created_at,r.completed_at,r.request_id,
+        a.root_id,a.operation_id,a.prompt_hash,a.schema_hash,
+        (SELECT count(*)::int FROM ai_authoritative_actions x WHERE x.run_id=r.run_id) AS authoritative_actions
+      FROM ai_runs r JOIN ai_gateway_admissions a ON a.run_id=r.run_id JOIN ai_governance_decisions d ON d.decision_id=a.decision_id
+      JOIN taxguard_cases cs ON cs.id=r.case_record_id WHERE r.request_id=$1`,[`gateway_${c.operation_id}`])).rows;
+    expect(run).toHaveLength(1);
+    const r=run[0],sha=/^[a-f0-9]{64}$/;
+    // Identity, versions and governance: agent, model, prompt and the policy that admitted the run.
+    expect(r).toMatchObject({agent_id:'A34',agent_version:version,model_provider:'TEST',model_id:modelId,model_version:'1',prompt_id:`test-A34-${index}`,prompt_version:'1',
+      decision_agent:'A34',decision_tenant:'tenantA',root_id:c.root_id,operation_id:c.operation_id});
+    // The gateway re-evaluates governance at admission and records its own decision, not the orchestration child's.
+    expect(r.decision_id).not.toBe(c.decision_id);
+    for(const k of ['policy_hash','input_hash','output_hash','prompt_hash','schema_hash'])expect(r[k],k).toMatch(sha);
+    // Scope down to the engagement and year, and the workflow stage.
+    expect(r).toMatchObject({tenant_id:'tenantA',client_id:'clientA',engagement_id:'engA',tax_case_id:'caseA',tax_year:2025,workflow_version:'LEGACY_18_V1',workflow_stage:3});
+    // Outcome: always a human review, nothing authoritative, and unknowns kept unknown rather than invented.
+    expect(r).toMatchObject({human_review_required:true,status:'REVIEW_REQUIRED',risk_level:'MATERIAL',confidence:null,proposed_action:null,reviewer:null,review_decision:null,authoritative_actions:0});
+    expect(new Date(r.completed_at).getTime()).toBeGreaterThanOrEqual(new Date(r.created_at).getTime());
+  });
   it('preserves all unknown fields as NULL and blocks further budget admission',async()=>{
     const c=await context(),second=await context();provider.mockImplementation(async()=>({...response(),usage:null}));await expect(gateway().execute('valid',c)).rejects.toThrow('AI_USAGE_UNKNOWN');
     const run=await pg.query<{token_usage:number|null;estimated_cost:string|null}>('SELECT token_usage,estimated_cost FROM ai_runs WHERE request_id=$1',[`gateway_${c.operation_id}`]);expect(run.rows[0]).toEqual({token_usage:null,estimated_cost:null});

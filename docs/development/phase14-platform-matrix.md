@@ -681,7 +681,20 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Risk, materiality and the decision gate (Block 54, database layer).** Proposal `20261018170000_taxguard_risk_materiality`
+  **AI run reconstructability (Block 55, test only).** An executed governed run (test-only A34 capability, synthetic
+  fixture) is reconstructed in one query from its recorded links, with nothing invented:
+  - identity: agent and version, model provider, id and version, prompt id and version;
+  - policy: the hash of the gateway's own admission decision (re-evaluated at admission, so it differs from the
+    orchestration child decision), which names the same agent and tenant;
+  - scope: tenant, client, engagement (through the case record), case, tax year, workflow version and stage;
+  - integrity: input, output, prompt and schema hashes (SHA-256), request, root and operation identifiers;
+  - outcome: status REVIEW_REQUIRED, human review required, risk MATERIAL, no authoritative action, completed after
+    creation.
+
+  Confidence, proposed action, reviewer and review decision are NULL until a person or a later stage sets them; the
+  test asserts that they are not filled in. Test: `aiGovernedGateway.test` (one new case). No production code changed.
+
+  **Risk, materiality and the decision gate (Block 54, database layer), published as `272bd2f`.** Proposal `20261018170000_taxguard_risk_materiality`
   (review only):
   - **Materiality policies** are versioned and approved by someone other than their author. None is seeded and no RPC
     writes them: thresholds are owner policy and a reviewed database change.

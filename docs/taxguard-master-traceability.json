@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "bdaa3496883952e185f61f9d207790fdcdd92ff359dc02e202cbeb048f179668",
-      "bytes": 79489,
+      "sha256": "acf258c3e0324d0e50138afd4caa858c8f7ec6f816f002362627bcd881a59a6a",
+      "bytes": 80576,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "8afdd94e324eb8607ac4fd5871119c2cbf9e77e7c949ac8d52bdc2ac2a0375e9",
-      "bytes": 11380,
+      "sha256": "e94d54f451ab21b14070cf5a9af0c911fe7c1e75c8aee4ddb9f25bec0f4268e7",
+      "bytes": 11639,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7307,7 +7307,7 @@
     "src/tests/aiGovernanceControlPlane.test.ts": "81ea6ef0a9caa8ad6fdf52b8f0852520fef73b9e260a93a1dfcce06601eed3ab",
     "src/tests/aiGovernedCapabilities.test.ts": "771aaadd2bd039309b306951a9fc5558ed55b6bef19f746799d58b1af41f7465",
     "src/tests/aiGovernedCapabilitiesPersistence.test.ts": "3047c25b70af16a8bf9c3bb1a84bacbd3a123daea135727848878bb1e766a537",
-    "src/tests/aiGovernedGateway.test.ts": "b8f48e93225b3215cf164271faa47f1941af896f570cc60e1dfba7a57655b665",
+    "src/tests/aiGovernedGateway.test.ts": "f5092e50f4a9c02aac7867b9ad657b0bd8613ddc663133999df6d3a53b24f7cc",
     "src/tests/aiHumanProposalReview.test.ts": "f6f0e96ae27f05409c177e9f49211c3e22c1ebcba0fbd0e3517724c55f007858",
     "src/tests/aiLegacyProductionBoundary.test.ts": "7c0a5d3629e21e8951e2622c8e35e8fd89f1d8ca54b95cff2232e00ccd400180",
     "src/tests/aiMaterialActionPreparation.test.ts": "3eb2692f81a4297085daa12b719c87af609c76e4e7c7b6528df60e4ebeeb9eef",

@@ -55,7 +55,9 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Risk, materiality and the decision gate (Block 54, database layer).** Review-only proposal `20261018170000`: versioned,
+- **AI run reconstructability (Block 55, test only).** One query reconstructs every architecture field of an executed
+  governed test run from recorded links; confidence and review fields stay NULL until set. `aiGovernedGateway.test`.
+- **Risk, materiality and the decision gate (Block 54, database layer), published as `272bd2f`.** Review-only proposal `20261018170000`: versioned,
   independently approved materiality policies (none seeded) and immutable, audited assessments. BLOCKED, human review or
   CONTINUE only under an approved policy that allows it; AI confidence never removes a reason. `caseRiskMateriality.db.test` (6).
   **Owner decision:** the materiality thresholds.

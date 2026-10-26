@@ -212,7 +212,7 @@
         "src/tests/aiExecutionLedger.test.ts",
         "src/tests/aiGovernedGateway.test.ts"
       ],
-      "remainingGap": "Schema covers runs, evidence, transitions, verifications and authoritative actions. Exercised only by isolated synthetic fixtures, because no agent runs."
+      "remainingGap": "Schema covers runs, evidence, transitions, verifications and authoritative actions. A governed test execution reconstructs every architecture field in one query through recorded links (policy hash via the admission decision, engagement via the case record); confidence, proposed action and review fields stay NULL until set, never invented. Exercised only by isolated synthetic fixtures, because no agent runs."
     },
     {
       "id": "AI-GOV-PLANE",
