@@ -5093,8 +5093,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "3ecb01caf80327a5ed0c108571aa09e2c0134684457e9a687c3933f2c07679d4",
-      "bytes": 18813,
+      "sha256": "bf19e87836a51cce2a6412ba45aede90d48fd6ff7b3cd7ef7704d8e1c423fbb1",
+      "bytes": 18927,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "066ab957c2dc202bf71ce46c9eae9015eab9d09815f3f73c66717fc7cd1e2da7",
-      "bytes": 77590,
+      "sha256": "bdaa3496883952e185f61f9d207790fdcdd92ff359dc02e202cbeb048f179668",
+      "bytes": 79489,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5613,8 +5613,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "1dff396f07f9502e542d7677781a8fcfa15b3f99c6e8ed87e5e156bd8abd4485",
-      "bytes": 10931,
+      "sha256": "8afdd94e324eb8607ac4fd5871119c2cbf9e77e7c949ac8d52bdc2ac2a0375e9",
+      "bytes": 11380,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6142,6 +6142,12 @@
       "file": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
       "sha256": "eb93bba446fb4cfb4daab26c13b2c655f9518bcf84c1f7f603ac58849200d587",
       "bytes": 16188,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
+      "sha256": "03de3f05694be8a39e7d04cc3f55de803cc2d45f985421788a6f379fb5cd2cd0",
+      "bytes": 10079,
       "headings": []
     },
     {
@@ -7373,7 +7379,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "a2806b88b064b21a2d2d2e1b45e859cc12f49ce15bb0721902b7adefb335a089",
+    "src/tests/proposalCompositionSecurity.test.ts": "b8be34b06ca767eb67d2174ad0a49621d6b360c68ab8dd70ca04120427470c89",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

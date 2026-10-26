@@ -681,7 +681,35 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Case readiness diagnostics (Block 53, database layer).** No return exists yet (stages 9-18 are blocked), so diagnostics
+  **Risk, materiality and the decision gate (Block 54, database layer).** Proposal `20261018170000_taxguard_risk_materiality`
+  (review only):
+  - **Materiality policies** are versioned and approved by someone other than their author. None is seeded and no RPC
+    writes them: thresholds are owner policy and a reviewed database change.
+  - **An assessment** of a case is deterministic. It combines:
+    - the diagnostics gate (evidence);
+    - the approved policy's thresholds (materiality and risk level);
+    - a declared unsupported-position flag;
+    - an optional AI confidence.
+
+    It is persisted immutably with its inputs, the policy version and its reason codes, and audited.
+  - **Outcomes:**
+    - BLOCKED when a blocking diagnostic exists;
+    - HUMAN_REVIEW_REQUIRED for any reason: no approved policy, not diagnosed, error diagnostics, a material amount,
+      an unsupported position, confidence below the policy minimum, or a policy that requires review;
+    - CONTINUE only when an approved policy explicitly allows automated continuation and no reason exists.
+  - **AI confidence** can add a reason, never remove one.
+
+  Tests: `caseRiskMateriality.db.test` (6, real PostgreSQL). They show that a confidence of 0.99 still goes to a
+  person without a policy, a blocking diagnostic is not lifted by amount or confidence, draft and self-approved
+  policies are ignored or refused, and the material, high-risk, low-confidence and unsupported paths behave as above.
+  CONTINUE appears only under an approved policy that allows it. Input validation, scope, immutability and audit are
+  covered too. Two first-draft defects were fixed: an untyped `text[] || literal` (now `array_append`), and a test
+  parameter of conflicting type.
+
+  **Owner decision:** no materiality policy exists, so every case goes to a person until the practice approves
+  thresholds.
+
+  **Case readiness diagnostics (Block 53, database layer), published as `1ac5a95`.** No return exists yet (stages 9-18 are blocked), so diagnostics
   start from what does exist. Proposal `20261018160000_taxguard_return_diagnostics` (review only) runs deterministic
   checks over a case's durable records:
   - **Rules and severities.** Severities come from a governed, versioned rule table; no RPC writes it, so changing a

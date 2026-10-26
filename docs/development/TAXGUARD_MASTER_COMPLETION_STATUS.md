@@ -55,7 +55,11 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Case readiness diagnostics (Block 53, database layer).** Review-only proposal `20261018160000`: governed, versioned rule
+- **Risk, materiality and the decision gate (Block 54, database layer).** Review-only proposal `20261018170000`: versioned,
+  independently approved materiality policies (none seeded) and immutable, audited assessments. BLOCKED, human review or
+  CONTINUE only under an approved policy that allows it; AI confidence never removes a reason. `caseRiskMateriality.db.test` (6).
+  **Owner decision:** the materiality thresholds.
+- **Case readiness diagnostics (Block 53, database layer), published as `1ac5a95`.** Review-only proposal `20261018160000`: governed, versioned rule
   severities; persisted, immutable diagnostics that clear when the data changes; only INFO and WARNING waivable; a gate for
   future finalization. `caseDiagnostics.db.test` (5).
 - **Tax research workspace (Block 52), published as `5536e68`.** `CaseResearchPanel` in Case Workflow over the development-only tax-engine router. Browser

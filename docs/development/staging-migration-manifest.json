@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "e2b296d2589bd954a86767b9432e0d9e9cf184e0ad131256a9019949d6423fb1",
+  "executionPlanSha256": "141490e90c6817db3bfa8d22f0f1a4cb988b838144a234bf276354ecf0f6e619",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4501,6 +4501,56 @@
         "--   * A run records every detection. A diagnostic stays OPEN while it is detected and becomes CLEARED, with the run that",
         "--     cleared it, when the underlying record no longer triggers it. History is never deleted.",
         "--   * Only INFO and WARNING may be acknowledged by a person, with a recorded note. ERROR and BLOCKING clear only when"
+      ]
+    },
+    {
+      "order": 85,
+      "file": "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
+      "kind": "proposal",
+      "version": "20261018170000",
+      "sha256": "03de3f05694be8a39e7d04cc3f55de803cc2d45f985421788a6f379fb5cd2cd0",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_materiality_policies",
+        "taxguard_case_risk_assessments",
+        "taxguard_risk_guard",
+        "taxguard_case_risk_assess",
+        "taxguard_case_risk_list"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_materiality_policies, public.taxguard_case_risk_assessments FROM PUBLIC, anon, authenticated;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', f);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', f);"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- REVIEW-ONLY PROPOSAL. Not applied to any hosted database; owner approval and independent SQL review required.",
+        "--",
+        "-- Risk and materiality, and the confidence + evidence + risk decision gate for one tax case.",
+        "--",
+        "--   * Materiality thresholds are practice policy. They live in versioned policies approved by someone other than their",
+        "--     author; none is seeded, and no RPC writes them (a reviewed database change, like the diagnostic rules).",
+        "--   * An assessment is deterministic: it combines the case's readiness diagnostics (evidence), the approved policy's",
+        "--     thresholds (materiality), declared position characteristics, and an optional AI confidence. It is persisted with",
+        "--     its inputs, the policy version and its reason codes, immutably, and audited.",
+        "--   * Outcomes: BLOCKED when a blocking diagnostic exists; HUMAN_REVIEW_REQUIRED for any reason (no approved policy,",
+        "--     case not diagnosed, error diagnostics, material amount, unsupported position, confidence below the policy",
+        "--     minimum); CONTINUE only when an approved policy explicitly allows automated continuation and no reason exists."
       ]
     }
   ]

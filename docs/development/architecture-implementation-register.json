@@ -531,10 +531,16 @@
       "id": "TAX-RISK",
       "name": "Risk and materiality evaluation",
       "category": "Tax pipeline",
-      "status": "NOT_IMPLEMENTED",
-      "implementation": [],
-      "tests": [],
-      "remainingGap": "Needs owner-defined thresholds; AI confidence alone must never route past review."
+      "status": "INTEGRATION_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql"
+      ],
+      "tests": [
+        "src/tests-db/caseRiskMateriality.db.test.ts",
+        "src/tests/proposalCompositionSecurity.test.ts"
+      ],
+      "remainingGap": "No materiality policy exists: thresholds, minimum confidence and whether automated continuation is ever allowed are owner policy, so every assessment today routes to a person. Signals are the declared amount, unsupported-position flag and optional AI confidence; prior-year variance and anomaly signals are not modelled. No store, route or UI yet.",
+      "persistence": "review-only proposal 20261018170000: versioned materiality policies (independently approved, none seeded) and immutable case risk assessments"
     },
     {
       "id": "TAX-REVIEW-QC",

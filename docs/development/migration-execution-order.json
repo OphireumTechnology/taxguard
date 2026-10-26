@@ -548,6 +548,13 @@
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
         "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql"
+      ]
     }
   ]
 }
