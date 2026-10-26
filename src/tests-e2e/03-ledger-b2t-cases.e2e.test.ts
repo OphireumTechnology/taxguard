@@ -181,6 +181,30 @@ describe('case workflow stages 1-8 (stages 9-18 blocked)', () => {
   });
 });
 
+describe('the bookkeeper ledger workspace never shows a previous scope', () => {
+  it('discards slower responses for the previously selected tax year', async () => {
+    // The bookkeeper is staffed for 2025 only. Every 2025 ledger request is delayed past the switch to 2026, which the
+    // server refuses at once; the late 2025 responses must not appear under the 2026 heading.
+    const s = await staffLogin('e2e-bk');
+    const { page } = s;
+    const slow2025 = (url: URL) => url.pathname.startsWith('/api/bookkeeping/') && url.searchParams.get('taxYear') === String(Y);
+    await page.route(slow2025, async route => { await new Promise(r => setTimeout(r, 2500)); await route.continue(); });
+    await openModule(page, 'Ledger Workspace');
+    await page.getByLabel('Authorized client').selectOption(C);
+    await page.getByLabel('Tax year (2022+)').fill(String(Y));
+    await sees(page, `Ledger workspace — ${C} / ${Y}`);
+    await page.getByLabel('Tax year (2022+)').fill(String(Y + 1));
+    await sees(page, `Ledger workspace — ${C} / ${Y + 1}`);
+    const workspace = page.locator('section', { has: page.getByRole('heading', { name: `Ledger workspace — ${C} / ${Y + 1}` }) });
+    await workspace.getByRole('alert').first().waitFor();
+    await page.waitForTimeout(4000); // every delayed 2025 response has now arrived
+    expect(await workspace.getByRole('heading', { name: 'Work queue' }).count()).toBe(0);
+    expect(await workspace.innerText()).not.toMatch(/Trial balance (balanced|NOT balanced)/);
+    await page.unroute(slow2025);
+    await s.context.close();
+  });
+});
+
 describe('independent ledger and book-to-tax review in the reviewer workspace', () => {
   // Maker steps go through the API as controlled setup (the bookkeeper's own UI for them is proven above). Every
   // checker step, every refusal claimed here and the persistence and audit evidence go through the reviewer's UI.

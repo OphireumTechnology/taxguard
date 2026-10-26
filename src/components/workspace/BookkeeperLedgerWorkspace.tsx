@@ -19,13 +19,27 @@ export function BookkeeperLedgerWorkspace({ clientId, taxYear }: { clientId: str
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const entryKey = useRef(bookkeepingService.newIdempotencyKey());
+  // The client and year every response belongs to. The dashboard re-renders this workspace with a new client or year
+  // without remounting it, so a slower response for the previous scope is discarded instead of shown under the new one.
+  const latest = useRef('');
+  const loadedScope = useRef('');
   const load = useCallback(() => {
-    bookkeepingService.getWorkQueue(clientId, taxYear).then(data => setQueue({ status: 'ready', data }))
-      .catch(e => setQueue(e instanceof BookkeepingRequestError && (e.status === 503 || e.code === 'BOOKKEEPER_CAPABILITY_DENIED') ? { status: 'disabled' } : { status: 'error', message: ledgerMessage(e) }));
-    bookkeepingService.getChartOfAccounts(clientId, taxYear).then(r => setAccounts(r.accounts.filter(a => a.isActive !== false))).catch(() => setAccounts([]));
+    const key = clientId + '|' + taxYear;
+    latest.current = key;
+    if (loadedScope.current !== key) {
+      // A new scope starts clean: no previous queue, totals or notice, and no draft that could be submitted to the
+      // newly selected client or year by mistake.
+      loadedScope.current = key; setQueue({ status: 'loading' }); setAccounts([]); setSummary(null); setNotice(null);
+      setCategories({}); setEntry({ postingDate: '', description: '', lines: emptyLines() }); entryKey.current = bookkeepingService.newIdempotencyKey();
+      setRecon({ accountId: '', statementPeriodStart: '', statementPeriodEnd: '', statementBeginningBalance: '', statementEndingBalance: '' });
+    }
+    const current = () => latest.current === key;
+    bookkeepingService.getWorkQueue(clientId, taxYear).then(data => { if (current()) setQueue({ status: 'ready', data }); })
+      .catch(e => { if (current()) setQueue(e instanceof BookkeepingRequestError && (e.status === 503 || e.code === 'BOOKKEEPER_CAPABILITY_DENIED') ? { status: 'disabled' } : { status: 'error', message: ledgerMessage(e) }); });
+    bookkeepingService.getChartOfAccounts(clientId, taxYear).then(r => { if (current()) setAccounts(r.accounts.filter(a => a.isActive !== false)); }).catch(() => { if (current()) setAccounts([]); });
     Promise.all([bookkeepingService.getTrialBalance(clientId, taxYear), bookkeepingService.getFinancialStatements(clientId, taxYear)])
-      .then(([tb, fs]) => setSummary({ balanced: tb.trialBalance.isBalanced, netIncome: Math.round(fs.statements.profitAndLoss.netIncome * 100), assets: Math.round(fs.statements.balanceSheet.assets.totalAssets * 100) }))
-      .catch(() => setSummary(null));
+      .then(([tb, fs]) => { if (current()) setSummary({ balanced: tb.trialBalance.isBalanced, netIncome: Math.round(fs.statements.profitAndLoss.netIncome * 100), assets: Math.round(fs.statements.balanceSheet.assets.totalAssets * 100) }); })
+      .catch(() => { if (current()) setSummary(null); });
   }, [clientId, taxYear]);
   useEffect(() => { load(); }, [load]);
   if (queue.status === 'disabled') return <p role="status" className="tg-book-empty">The durable ledger workspace is not enabled in this environment. The read-only views remain available.</p>;

@@ -654,9 +654,16 @@ could mean "the UI claims something the backend cannot deliver".
   independent review. Whether professional staff entries should also require a second person is a maker-checker
   policy decision.
 
-  *Next (Block 46 candidate).* `BookkeeperLedgerWorkspace.load()` (work queue, chart, trial balance) has the same
-  unguarded pattern. It is re-rendered with new client and year props without remounting, so a slower response for
-  a previous client could replace the current one.
+  *Next (Block 47).* `BookkeeperLedgerWorkspace` had the same unguarded pattern; it is fixed in Block 47.
+
+  **Bookkeeper ledger workspace scope isolation (Block 47).** The dashboard re-renders `BookkeeperLedgerWorkspace` with a
+  new client or year without remounting it. Its work queue, chart of accounts and trial-balance reads had no guard.
+  - **The defect, demonstrated.** A deterministic browser regression (suite 03) delays every 2025 ledger request past
+    a switch to 2026, which the server refuses for the 2025-only bookkeeper. The late 2025 work queue then appeared
+    under the 2026 heading.
+  - **The fix.** Each response is tagged with client and year, and a stale one is discarded. A change of scope also
+    clears the previous queue, totals, notice, category choices, and the entry and reconciliation drafts, and issues
+    a fresh entry idempotency key. A draft can then never be submitted to the newly selected client or year.
 
   **Payment webhook signature verification (Block 42).** This is the development handler behind
   `/api/operations/payments/webhook`; production refuses it, and no provider is commissioned. It now:

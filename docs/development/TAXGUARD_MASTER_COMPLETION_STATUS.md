@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Architecture implementation register (Block 46).** `architecture-implementation-register.json` maps 42 components of
+- **Bookkeeper ledger workspace scope isolation (Block 47).** A slower response for the previously selected tax year
+  appeared under the new year's heading, demonstrated deterministically in suite 03. Responses are now tagged with
+  client and year and stale ones discarded, and a scope change clears the previous queue, totals and drafts.
+- **Architecture implementation register (Block 46), published as `5967545` (CI run 40283021034 success).** `architecture-implementation-register.json` maps 42 components of
   the owner's full-development architecture to repository evidence. `architectureImplementationRegister.test`
   enforces that cited paths exist, that verified statuses have tests and blocked ones a blocker, and that nothing is
   production-ready while the release is NO-GO. Counts:
