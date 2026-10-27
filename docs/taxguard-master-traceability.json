@@ -5533,6 +5533,24 @@
       ]
     },
     {
+      "file": "docs/development/phase15-integration-20261027.md",
+      "sha256": "284d41c14adc7a62cf40aecb464dffd3c112f686dbb55ade4e9f237c843c64b2",
+      "bytes": 11359,
+      "headings": [
+        "# Phase 15 integration (2026-10-27)",
+        "## Packages",
+        "### Published Phase 15 stack (PRs #24-#34)",
+        "### Refund architecture decision",
+        "### Migration renames",
+        "### Codex unpublished and uncommitted work",
+        "## Open decisions (not made by this integration)",
+        "## Fixture cleanup",
+        "## Contamination scan (2026-10-27)",
+        "## Local inventory (refreshed 2026-10-27, read-only)",
+        "## Validation (integration branch, before the fixture commit; affected checks re-run after it)"
+      ]
+    },
+    {
       "file": "docs/development/phase15-invoice-idempotency-results.md",
       "sha256": "8eeb633778e21fdf8e6bb4d79db2423bc0bd2e303ed938b854da6dc53bb7743c",
       "bytes": 4302,
@@ -5810,8 +5828,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "a6956ea22abafa971a608bd126e387871b572b1a697e4125fcefc598e79486c1",
-      "bytes": 15006,
+      "sha256": "6cb1fe7d344845328a203d5fd81895f00768d7eb32df6dd3a615f03abe4dbdb0",
+      "bytes": 15573,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",

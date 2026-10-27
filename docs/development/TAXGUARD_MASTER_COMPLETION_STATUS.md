@@ -55,6 +55,11 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **Phase 15 integration (2026-10-27).** All published Phase 15 work (PRs #25-#34; #24 superseded) plus reviewed Codex
+  unpublished and uncommitted packages, on `integration/taxguard-phase15`. One canonical refund function (Phase 15
+  capabilities ported into `taxguard_bill_refund_keyed`); colliding migrations renamed to `20261018110000`/`120000`;
+  three security fixes (general-ledger year guard, replay year scope, onboarding re-check after lock wait). Unit 6,193,
+  PostgreSQL 258, browser 133 + 44. Record: `docs/development/phase15-integration-20261027.md`.
 - **Calculation inputs cite durable evidence (Block 65).** Review-only proposal `20261018190000`: each input of a
   calculation run must cite a decided extracted value (value-checked) or a reviewed document of the case; recording and
   approval refuse unresolved citations, and approval records an immutable lineage snapshot shown per run in Case

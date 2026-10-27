@@ -418,9 +418,11 @@
       ],
       "tests": [
         "src/tests/durableLedgerSql.test.ts",
-        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
+        "src/tests-db/phase15Reporting.db.test.ts",
+        "src/tests-db/ledgerWriteRetries.db.test.ts"
       ],
-      "remainingGap": "Proposals 024/030 and 20261018070000 are review-only. Owner policy: ordinary non-bookkeeper entries post without review."
+      "remainingGap": "Proposals 024/030 and 20261018070000 are review-only. Owner policy: ordinary non-bookkeeper entries post without review. Phase 15 (2026-10-27): complete general-ledger reporting, exact cents and keyed retries integrated; prior-year opening balances in year-scoped reports await an owner decision."
     },
     {
       "id": "TAX-BOOK-TO-TAX",
@@ -634,7 +636,8 @@
       ],
       "tests": [
         "src/tests-e2e/11-appointments-audit-legal.e2e.test.ts",
-        "src/tests/auditSecurityVolume.test.tsx"
+        "src/tests/auditSecurityVolume.test.tsx",
+        "src/tests-db/refundIdempotency.db.test.ts"
       ],
       "remainingGap": "Only SECURITY_* rows are append-only in the plan; the full append-only proposal awaits the owner."
     },
@@ -679,9 +682,11 @@
       "tests": [
         "src/tests/clientDataIsolationSecurity.test.ts",
         "src/tests-e2e/18-client-confidentiality-sweep.e2e.test.ts",
-        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
+        "src/tests-db/ledgerYearScope.db.test.ts",
+        "src/tests-db/onboardingAuthorizationWait.db.test.ts"
       ],
-      "remainingGap": "Messaging, appointment and legal general records wait on the owner's general-record policy."
+      "remainingGap": "Messaging, appointment and legal general records wait on the owner's general-record policy. Phase 15 integration closed three year/authority gaps (general-ledger year guard, replay year scope, onboarding re-check after lock wait)."
     },
     {
       "id": "UX-RESPONSIVE-A11Y",
