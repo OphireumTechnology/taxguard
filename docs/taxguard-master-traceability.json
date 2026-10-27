@@ -5386,8 +5386,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "64caae60f84750eb2f3eb3006da76abd4e27b81c41c4a0937283f19489b4dfe0",
-      "bytes": 88993,
+      "sha256": "b79791b4a476eb579fa55ec0ead06e609b57340fa0888043695ce30e45dd338f",
+      "bytes": 90376,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5631,8 +5631,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "e0ee0b8b9a89cf7635f3f835c3b581791dfa10bbf3822f464e5ce20996588c1f",
-      "bytes": 13728,
+      "sha256": "ec8f2e3c9c87dd20084c5777d326e79ea7b327a5371be9d436524fe1c020dd74",
+      "bytes": 14040,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7205,7 +7205,7 @@
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/backup/logical-backup.mjs": "d43b32114ecd5ea781df3100ebaf1ae1b436b46a274f0bc7008d32a8ae005163",
-    "scripts/e2e/e2e-server.ts": "7c8cadf8c9486e64cffd29b03757219587458aaf6fa35e642fad0185b9d4412a",
+    "scripts/e2e/e2e-server.ts": "ed32b72d4d342bc60e949f81752bb910be2be4c25bfef2f73f477ad3e6af25b1",
     "scripts/frontend/reachability-audit.mjs": "a4f32a935ecb879bc774d3b4a8d35c9466da08b33d1abad566591e0f7bae6481",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/migrations/migration-audit.mjs": "0fdde903233b5fd7c836b45da7e80e7d86aba205796d0e7de97032d92816df22",
@@ -7309,7 +7309,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "3fc341f559d9a6e0675fa46df88999374dcfffd60cc015b73692351bba7c42b2",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ddc367dfb4903abf22ba8cba895167c950f28f040015ff2c0ed10db3650af478",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "6c7e692720994f07c2ecf5b2e5831493c3af0cf455b7ed97373ef5bcf15039f8",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
     "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",

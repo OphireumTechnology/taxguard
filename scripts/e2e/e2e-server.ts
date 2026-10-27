@@ -170,6 +170,14 @@ const shim = http.createServer((req, res) => {
       const r = await rpc.rpc('taxguard_doc_scan_complete', {p_tenant:b.tenant,p_scan_id:job.data.scanId,p_provider:'e2e-synthetic-scanner',p_verdict:b.result});
       return r.error ? send(400, { code: r.error.message }) : send(200, r.data);
     }
+    // Stand-in for an external OCR provider's output: SYNTHETIC field proposals recorded through the same RPC the vault
+    // uses after a clean scan. The database refuses documents that are not clean; proposals are never verified values.
+    if (req.method === 'POST' && path === '/e2e/ocr') {
+      const b = json() || {};
+      const r = await rpc.rpc('taxguard_doc_propose_extraction', { p_tenant: b.tenant, p_client: b.client, p_document_id: b.documentId, p_version: b.version,
+        p_provider: 'e2e-synthetic-ocr', p_fields: b.fields });
+      return r.error ? send(400, { code: r.error.message }) : send(200, r.data);
+    }
     send(404, { code: 'E2E_NOT_AVAILABLE', message: 'Not served in E2E.' });
   });
 });

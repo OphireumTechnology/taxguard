@@ -681,7 +681,21 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Full-pipeline certification (Block 60, tests only).** Provider suite 14 (journey B) already takes a brand-new client
+  **OCR human validation in the browser (Block 63).** The durable validation queue (vault proposal `20261012270000` functions, the
+  `extractions/:fieldId/verify` route and the Document Review panel) had HTTP coverage but no browser journey, because
+  the e2e server had no source of proposals:
+  - **E2E harness.** `/e2e/ocr` stands in for an external OCR provider's output, as `/e2e/scan` does for the scanner. It
+    records SYNTHETIC proposals through the same `taxguard_doc_propose_extraction` RPC the vault uses after a clean scan.
+  - **Journey (suite 02).** The database refuses proposals for a quarantined document. After a clean scan, three
+    proposals appear in Document Review with their confidence and provider. A manager accepts one, corrects one and
+    rejects one. The decisions persist across a reload, no decision control remains, and a second decision is refused
+    (`EXTRACTION_ALREADY_VERIFIED`). Only accepted and corrected fields carry a verified value. The client is refused the
+    decision and sees neither proposals nor values.
+  - **Defect fixed.** After a field decision the panel reloaded the document through `open()`, which cleared the notice.
+    The confirmation ("Value accepted.") was therefore never shown. The fields now reload without clearing it, and a
+    response for a document no longer selected is discarded.
+
+  **Full-pipeline certification (Block 60, tests only), published as `93a0210`.** Provider suite 14 (journey B) already takes a brand-new client
   from a first portal sign-in through identity provisioning, an engagement, Stage 01 onboarding with approved (synthetic)
   consent, document verification and manager approval, and stages 02-08 with independent review at every step (posted
   entries, a closed reconciliation, an approved mapping set and workpaper, reviewer-only attestations), ending with

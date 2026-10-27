@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { documentStatusText, vaultMessage, vaultService, type VaultDocument, type VaultExtraction } from '../../services/vaultService';
 
 /** Staff review queue: approve / reject / request replacement, and field-by-field verification of OCR proposals. */
@@ -11,19 +11,26 @@ export function StaffDocumentReviewPanel() {
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // The document whose fields are shown; a response for any other document is discarded.
+  const shown = useRef('');
   const load = useCallback(() => {
     setQueue(q => ({ ...q, status: 'loading' }));
     vaultService.reviewQueue().then(r => setQueue({ status: 'ready', items: r.items })).catch(e => setQueue({ status: 'error', items: [], message: vaultMessage(e) }));
   }, []);
   useEffect(() => { load(); }, [load]);
+  const loadFields = (d: VaultDocument) => {
+    const key = shown.current = `${d.clientId}/${d.documentId}/${d.version}`;
+    vaultService.detail(d.clientId, d.documentId).then(r => { if (shown.current === key) setFields(r.extractions.filter(x => x.version === d.version)); })
+      .catch(e => { if (shown.current === key) setNotice({ error: true, text: vaultMessage(e) }); });
+  };
   const open = (d: VaultDocument) => {
     setSelected(d); setNote(''); setClientReason(''); setNotice(null); setFields([]);
-    vaultService.detail(d.clientId, d.documentId).then(r => setFields(r.extractions.filter(x => x.version === d.version))).catch(e => setNotice({ error: true, text: vaultMessage(e) }));
+    loadFields(d);
   };
   const act = async (op: () => Promise<unknown>, text: string, refreshQueue = true) => {
     if (busy) return;
     setBusy(true); setNotice(null);
-    try { await op(); setNotice({ error: false, text }); if (refreshQueue) { setSelected(null); load(); } else if (selected) open(selected); }
+    try { await op(); setNotice({ error: false, text }); if (refreshQueue) { shown.current = ''; setSelected(null); load(); } else if (selected) loadFields(selected); }
     catch (e) { setNotice({ error: true, text: vaultMessage(e) }); }
     finally { setBusy(false); }
   };

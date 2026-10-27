@@ -115,6 +115,65 @@ describe('documents: upload, quarantine, scan and independent review', () => {
     await client.page.reload(); await sees(client.page, reason);
     expect(await client.page.getByText('C9 PRIVATE', { exact: false }).count()).toBe(0);
   });
+
+  it('OCR proposals are never values until a staff member accepts, corrects or rejects each one in Document Review; the client sees none of it', async () => {
+    const query = new URLSearchParams({ engagementId: (await api(mgrToken, 'GET', `/api/vault/clients/${C}/documents/${documentId}`)).body.versions[0].engagementId,
+      taxYear: '2025', category: 'income', fileName: 'synthetic-ocr-w2.pdf' });
+    const uploaded = await fetch(ORIGIN + `/api/vault/clients/${C}/documents?` + query, { method: 'POST',
+      headers: { Authorization: `Bearer ${clientToken}`, 'Content-Type': 'application/pdf', 'Idempotency-Key': 'ocr-validation-upload' },
+      body: '%PDF-1.4\nSynthetic OCR W-2 for E2E only\n%%EOF' });
+    expect(uploaded.status).toBe(201); const id = (await uploaded.json()).documentId;
+    const c = control();
+    const ocr = (fields: unknown) => fetch(c.origin + '/e2e/ocr', { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' },
+      body: JSON.stringify({ tenant: 'tenantE2E', client: C, documentId: id, version: 1, fields }) }).then(async r => ({ status: r.status, body: await r.json() as any }));
+    const fields = [{ fieldKey: 'w2.box1_wages', value: '51234.00', confidence: 0.91, page: 1 }, { fieldKey: 'w2.box2_federal_withholding', value: '6120.00', confidence: 0.62, page: 1 },
+      { fieldKey: 'w2.employer_name', value: 'Synthetic Employer LLC', confidence: 0.45, page: 1 }];
+    // A quarantined document cannot receive proposals.
+    expect(await ocr(fields)).toMatchObject({ status: 400, body: { code: 'DOCUMENT_NOT_AVAILABLE' } });
+    expect((await fetch(c.origin + '/e2e/scan', { method: 'POST', headers: { apikey: c.key, 'content-type': 'application/json' },
+      body: JSON.stringify({ tenant: 'tenantE2E', client: C, documentId: id, version: 1, result: 'CLEAN' }) })).status).toBe(200);
+    expect(await ocr(fields)).toMatchObject({ status: 200, body: { proposed: 3 } });
+
+    const { page } = mgr;
+    await page.reload();
+    await openModule(page, 'Document Review');
+    await page.getByRole('row', { name: /synthetic-ocr-w2\.pdf/ }).getByRole('button', { name: 'Review' }).click();
+    await sees(page, 'Proposed extracted values (not used until verified)');
+    const field = (key: string) => page.getByRole('listitem').filter({ has: page.locator('strong', { hasText: new RegExp(`^${key.replace('.', '\\.')}$`) }) });
+    await field('w2.box1_wages').getByText(/confidence 91%, e2e-synthetic-ocr/).waitFor();
+    await field('w2.box1_wages').getByRole('button', { name: 'Accept' }).click();
+    await sees(page, 'Value accepted.');
+    await field('w2.box2_federal_withholding').getByLabel('Corrected value').fill('6210.00');
+    await field('w2.box2_federal_withholding').getByRole('button', { name: 'Save correction' }).click();
+    await sees(page, 'Corrected value recorded.');
+    await field('w2.employer_name').getByRole('button', { name: 'Reject value' }).click();
+    await sees(page, 'Value rejected.');
+    // Decisions persist across a reload; no field can be decided twice.
+    await page.reload();
+    await openModule(page, 'Document Review');
+    await page.getByRole('row', { name: /synthetic-ocr-w2\.pdf/ }).getByRole('button', { name: 'Review' }).click();
+    await field('w2.box1_wages').getByText(/— accepted/).waitFor();
+    await field('w2.box2_federal_withholding').getByText(/— corrected: "6210\.00"/).waitFor();
+    await field('w2.employer_name').getByText(/— rejected/).waitFor();
+    expect(await page.getByRole('button', { name: /^(Accept|Save correction|Reject value)$/ }).count()).toBe(0);
+    // The reviewer completes the document review, so the engagement year has no document awaiting review (the
+    // Stage 03 gate later suites rely on).
+    await page.getByRole('button', { name: 'Accept document' }).click();
+    await sees(page, 'Document accepted.');
+    expect(realErrors(mgr)).toEqual([]);
+
+    const detail = (await api(mgrToken, 'GET', `/api/vault/clients/${C}/documents/${id}`)).body;
+    const byKey = Object.fromEntries(detail.extractions.map((x: any) => [x.fieldKey, x]));
+    expect(byKey['w2.box1_wages']).toMatchObject({ decision: 'ACCEPTED', verifiedValue: '51234.00' });
+    expect(byKey['w2.box2_federal_withholding']).toMatchObject({ decision: 'CORRECTED', proposedValue: '6120.00', verifiedValue: '6210.00' });
+    expect(byKey['w2.employer_name']).toMatchObject({ decision: 'REJECTED', verifiedValue: null });
+    expect((await api(mgrToken, 'POST', `/api/vault/clients/${C}/extractions/${byKey['w2.box1_wages'].fieldId}/verify`, { decision: 'REJECTED' })).body.code).toBe('EXTRACTION_ALREADY_VERIFIED');
+    // The client is refused the decision and sees no proposals or values.
+    expect((await api(clientToken, 'POST', `/api/vault/clients/${C}/extractions/${byKey['w2.employer_name'].fieldId}/verify`, { decision: 'ACCEPTED' })).status).toBe(403);
+    const clientView = (await api(clientToken, 'GET', `/api/vault/clients/${C}/documents/${id}`)).body;
+    expect(clientView.extractions).toEqual([]);
+    expect(JSON.stringify(clientView)).not.toMatch(/51234|6120|6210|Synthetic Employer/);
+  });
 });
 
 describe('billing: maker-checker approval, numbering and sandbox payment', () => {

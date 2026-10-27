@@ -55,6 +55,9 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **OCR human validation in the browser (Block 63).** Suite 02 drives accept, correct and reject of synthetic OCR proposals in
+  Document Review; the client sees none of it. The panel no longer clears its confirmation after a field decision.
+- **Release checklist rewritten (Block 62),** published as `e041e5e`.
 - **Production-readiness assessment (Block 61).** `docs/development/production-readiness-assessment.md`: staging and production NO-GO, with the evidence counts, the release blockers grouped by who decides, the stale release checklist, and the recommended path to a staging GO.
 - **Full-pipeline certification (Block 60, tests only).** Provider journey B (first sign-in through Stage 08, Stage 09
   blocked) now ends with diagnostics and risk on the same case: only the missing approved calculation blocks, risk is

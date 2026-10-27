@@ -385,13 +385,17 @@
       "status": "BLOCKED_BY_EXTERNAL_INTEGRATION",
       "implementation": [
         "src/server/taxguard/ocrProvider.ts",
-        "src/server/taxguard/accountingDocumentIntelligence.service.ts"
+        "src/server/taxguard/accountingDocumentIntelligence.service.ts",
+        "src/components/documents/StaffDocumentReviewPanel.tsx",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
       ],
       "tests": [
-        "src/tests/documentVaultHttp.test.ts"
+        "src/tests/documentVaultHttp.test.ts",
+        "src/tests/documentVaultHttp.test.ts",
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts"
       ],
       "blocker": "No OCR provider is commissioned; extraction fails safe rather than reporting success.",
-      "remainingGap": "Provider adapter, validated field evidence, human validation queue."
+      "remainingGap": "Provider adapter commissioning only. The human validation queue is browser-verified on the real server with a synthetic stand-in for the provider output: proposals are refused for a quarantined document, and each proposed field is accepted, corrected or rejected by staff in Document Review (decisions persist, cannot be repeated, and only accepted or corrected values carry a verified value). The client is refused the decision and sees no proposals or values. Downstream use of verified values (Stage 03 validation, form lines) is not wired."
     },
     {
       "id": "TAX-ACCOUNTING",
