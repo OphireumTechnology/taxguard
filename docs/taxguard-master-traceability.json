@@ -4825,6 +4825,53 @@
       ]
     },
     {
+      "file": "docs/development/block66-browser-verification.md",
+      "sha256": "2b0eeec78f23c3d083f39cc5d411df416a372b72163524539c2cbc16794c167b",
+      "bytes": 1488,
+      "headings": [
+        "# Block 66: browser verification"
+      ]
+    },
+    {
+      "file": "docs/development/block66-evidence-conclusion-traceability-report.md",
+      "sha256": "99120d491cac50ea11c0e5b7a769fbb6edeae5dff0d622c5079a09b6ee10e40d",
+      "bytes": 5129,
+      "headings": [
+        "# Block 66: durable evidence-to-conclusion traceability",
+        "## Chain",
+        "## Schema (new)",
+        "## Staleness",
+        "## API (`/api/tax-engine`, staff only; managers read only)",
+        "## UI",
+        "## Tests",
+        "## Known gaps and dependencies"
+      ]
+    },
+    {
+      "file": "docs/development/block66-existing-traceability-inventory.md",
+      "sha256": "4436f7236115560ba7b9e162118ae0ce4dcb7e727c2fce6fb9be2fd213ad91f3",
+      "bytes": 3226,
+      "headings": [
+        "# Block 66: existing traceability inventory"
+      ]
+    },
+    {
+      "file": "docs/development/block66-production-readiness.md",
+      "sha256": "13bacd7f89a9f41480a393dac1c0e96319af0cd18568d24934cba1922924b9fb",
+      "bytes": 954,
+      "headings": [
+        "# Block 66: production readiness"
+      ]
+    },
+    {
+      "file": "docs/development/block66-security-verification.md",
+      "sha256": "17f04c2914a3cf2d19f181dbbbd567c86316f54ee94386f8e68197d8f4f1592f",
+      "bytes": 2331,
+      "headings": [
+        "# Block 66: security verification"
+      ]
+    },
+    {
       "file": "docs/development/book-to-tax.md",
       "sha256": "6bec5c83472722d27c47348b1304f1f280105969d2815053bd8655af946025c8",
       "bytes": 2813,
@@ -5411,8 +5458,8 @@
     },
     {
       "file": "docs/development/phase14-platform-matrix.md",
-      "sha256": "89ff18b0438000f3d5c864b4097b4975e44afe119b841edf477c44241e04f2ba",
-      "bytes": 96183,
+      "sha256": "7ab272fb26c07038b87ef13e46b21e39257679ea5114e3734ec9d519dfb07798",
+      "bytes": 96536,
       "headings": [
         "# Phase 14 — platform matrix and release-candidate status",
         "## 1. Audit method",
@@ -5828,8 +5875,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "6cb1fe7d344845328a203d5fd81895f00768d7eb32df6dd3a615f03abe4dbdb0",
-      "bytes": 15573,
+      "sha256": "93664f3083c2ba3b434560374b5de0a150ebce7bb204803926678241acb72c49",
+      "bytes": 16098,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
