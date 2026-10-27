@@ -4996,6 +4996,18 @@
       ]
     },
     {
+      "file": "docs/development/local-consolidation-20261027.md",
+      "sha256": "9d7664230235781e889d049812d0c50148d0dde0dd31503270005a85ec2cba5c",
+      "bytes": 6461,
+      "headings": [
+        "# Local development consolidation manifest (2026-10-27)",
+        "## Locations inspected",
+        "## Packages",
+        "## Preservation",
+        "## Blockers to merging package 6 (Phase 15)"
+      ]
+    },
+    {
       "file": "docs/development/main-reconciliation-20261013.md",
       "sha256": "f6e5d98cb5fd7e344c914e5f734b0fe0fa50d0463456126be383a1a09dace1e0",
       "bytes": 5704,
