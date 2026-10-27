@@ -41,7 +41,7 @@ it('isolates dead-letter inspection and failure return values', async () => {
 });
 it('binds cancelled request keys to the original scope while allowing an identical requeue', async () => {
   const queue = new DurableJobQueueService(); const job = await queue.enqueue(params());
-  await queue.cancelJob(job.id, 'synthetic_operator');
+  await queue.cancelJob(job.id, 'synthetic_operator', 'synthetic_tenant');
   await expect(queue.enqueue({ ...params(), clientId: 'different' })).rejects.toThrow('JOB_IDEMPOTENCY_CONFLICT');
   const requeued = await queue.enqueue(params());
   expect(requeued.id).not.toBe(job.id); expect(requeued.status).toBe('PENDING');
@@ -68,6 +68,15 @@ it('does not let a new worker shorten or extend the originally granted lease', a
   expect(await queue.claimNextJob('synthetic_tenant', 'second_worker', 1)).toBeNull();
   vi.advanceTimersByTime(58000);
   expect((await queue.claimNextJob('synthetic_tenant', 'second_worker', 300))?.id).toBe(job.id);
+});
+it('bounds job query pagination and rejects unknown status/type filters', async () => {
+  const queue = new DurableJobQueueService();
+  for (let i = 0; i < 3; i++) await queue.enqueue({ ...params(), idempotencyKey: `query-${i}` });
+  expect(queue.queryJobs({ tenantId: 'synthetic_tenant', limit: 2, offset: 1 }).jobs).toHaveLength(2);
+  expect(() => queue.queryJobs({ tenantId: 'synthetic_tenant', limit: 101 })).toThrow('JOB_QUERY_INVALID');
+  expect(() => queue.queryJobs({ tenantId: 'synthetic_tenant', offset: -1 })).toThrow('JOB_QUERY_INVALID');
+  expect(() => queue.queryJobs({ tenantId: 'synthetic_tenant', status: 'UNKNOWN' as any })).toThrow('JOB_QUERY_INVALID');
+  expect(() => queue.queryJobs({ tenantId: 'synthetic_tenant', jobType: 'UNKNOWN' as any })).toThrow('JOB_QUERY_INVALID');
 });
 it('refuses completion/failure from an expired lease before another worker reclaims it', async () => {
   vi.useFakeTimers(); const queue = new DurableJobQueueService(); const job = await queue.enqueue(params());

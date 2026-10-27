@@ -208,14 +208,29 @@ practiceOperationsRouter.get('/jobs', (req: AuthenticatedRequest, res: Response)
   if (!isClient && !requestedClientId && !isAdministrator) {
     return res.status(403).json({ error: 'Explicit assigned-client selection is required.', code: 'CLIENT_ACCESS_DENIED' });
   }
+  const statuses = new Set(['PENDING', 'CLAIMED', 'RUNNING', 'RETRY_SCHEDULED', 'COMPLETED', 'FAILED', 'DEAD_LETTER', 'CANCELLED']);
+  const types = new Set(['DOCUMENT_PROCESSING', 'OCR_REQUEST', 'AI_PROPOSAL', 'NOTIFICATION_DISPATCH', 'PROVIDER_SYNCHRONIZATION', 'ACCOUNTING_IMPORT', 'REPORT_GENERATION', 'ARCHIVE_GENERATION', 'SCHEDULED_COMPLIANCE_CHECK', 'RENEWAL_GENERATION', 'RETRYABLE_PROVIDER_OPERATION']);
+  const parseInteger = (value: unknown, fallback: number): number | null => {
+    if (value === undefined) return fallback;
+    if (typeof value !== 'string' || !/^(0|[1-9]\d*)$/.test(value)) return null;
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  };
+  const limit = parseInteger(req.query.limit, 50);
+  const offset = parseInteger(req.query.offset, 0);
+  if (limit === null || limit < 1 || limit > 100 || offset === null || offset > 10_000 ||
+      (req.query.status !== undefined && (typeof req.query.status !== 'string' || !statuses.has(req.query.status))) ||
+      (req.query.jobType !== undefined && (typeof req.query.jobType !== 'string' || !types.has(req.query.jobType)))) {
+    return res.status(400).json({ error: 'JOB_QUERY_INVALID', code: 'JOB_QUERY_INVALID' });
+  }
   const tenantId = getTenantId(req);
   const result = globalDurableJobQueueService.queryJobs({
     tenantId,
     clientId: context?.clientId,
     status: req.query.status as any,
     jobType: req.query.jobType as any,
-    limit: Number(req.query.limit) || 50,
-    offset: Number(req.query.offset) || 0,
+    limit,
+    offset,
   });
   res.json(result);
 });
@@ -253,9 +268,14 @@ practiceOperationsRouter.post('/jobs', async (req: AuthenticatedRequest, res: Re
 
 practiceOperationsRouter.post('/jobs/:id/retry', requireRole('admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const job = await globalDurableJobQueueService.retryDeadLetterJob(req.params.id, req.user!.id);
+    const tenantId = getTenantId(req);
+    const visible = globalDurableJobQueueService.getJob(req.params.id, tenantId);
+    if (!visible) return res.status(404).json({ error: 'JOB_NOT_FOUND' });
+    if (visible.clientId && !resolveRouteClientContext(req, res, 'job_retry', visible.clientId)) return;
+    const job = await globalDurableJobQueueService.retryDeadLetterJob(req.params.id, req.user!.id, tenantId);
     res.json({ job, message: 'Job successfully re-queued for execution.' });
   } catch (err: any) {
+    if (String(err?.message || '').startsWith('JOB_NOT_FOUND:')) return res.status(404).json({ error: 'JOB_NOT_FOUND' });
     res.status(400).json({ error: err?.message || 'RETRY_FAILED' });
   }
 });
@@ -273,9 +293,10 @@ practiceOperationsRouter.post('/jobs/:id/cancel', requireRole('admin', 'super_ad
       return res.status(403).json({ error: 'Explicit authorized tenant scope is required.', code: 'CLIENT_ACCESS_DENIED' });
     }
 
-    const job = await globalDurableJobQueueService.cancelJob(req.params.id, req.user!.id);
+    const job = await globalDurableJobQueueService.cancelJob(req.params.id, req.user!.id, tenantId);
     res.json({ job });
   } catch (err: any) {
+    if (String(err?.message || '').startsWith('JOB_NOT_FOUND:')) return res.status(404).json({ error: 'JOB_NOT_FOUND' });
     res.status(400).json({ error: err?.message || 'CANCEL_FAILED' });
   }
 });
