@@ -524,7 +524,7 @@
       "id": "TAX-DIAGNOSTICS",
       "name": "Return diagnostics (warning vs blocking)",
       "category": "Tax pipeline",
-      "status": "BROWSER_VERIFIED",
+      "status": "PROVIDER_VERIFIED",
       "implementation": [
         "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
         "src/server/taxguard/taxEngine/taxEngineStore.ts",
@@ -536,16 +536,17 @@
         "src/tests/proposalCompositionSecurity.test.ts",
         "src/tests-db/caseReadinessHttp.db.test.ts",
         "src/tests/caseReadinessPanel.test.tsx",
-        "src/tests-e2e/07-tax-engine.e2e.test.ts"
+        "src/tests-e2e/07-tax-engine.e2e.test.ts",
+        "src/tests-e2e/provider/14-new-client-journey.e2e.test.ts"
       ],
-      "remainingGap": "Case-readiness diagnostics only: no return, forms or field-level checks exist yet (stages 9-18 blocked). Calculation-run review and staleness rules are implemented but not exercised by the PostgreSQL suite (they need an approved rule set). Store, routes and the Case Workflow panel are browser-verified on the real server (run, persisted findings, reviewer-only acknowledgement of INFO and WARNING, blocking not waivable, reload, audit, 375 px). The gate function is ready for finalization steps that do not exist yet.",
+      "remainingGap": "Case-readiness diagnostics only: no return, forms or field-level checks exist yet (stages 9-18 blocked). Calculation-run review and staleness rules are implemented but not exercised by the PostgreSQL suite (they need an approved rule set). Store, routes and the Case Workflow panel are browser-verified on the real server (run, persisted findings, reviewer-only acknowledgement of INFO and WARNING, blocking not waivable, reload, audit, 375 px). The gate function is ready for finalization steps that do not exist yet. Provider profile: on the journey-B case built through stages 01-08 with durable staff sessions, diagnostics find only the missing approved calculation and risk is BLOCKED for exactly that and the absent policy; the client is refused.",
       "persistence": "review-only proposal 20261018160000: governed rule table with versions, diagnostic runs and diagnostics with append-only history"
     },
     {
       "id": "TAX-RISK",
       "name": "Risk and materiality evaluation",
       "category": "Tax pipeline",
-      "status": "BROWSER_VERIFIED",
+      "status": "PROVIDER_VERIFIED",
       "implementation": [
         "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
         "src/server/taxguard/taxEngine/taxEngineStore.ts",
@@ -557,9 +558,10 @@
         "src/tests/proposalCompositionSecurity.test.ts",
         "src/tests-db/caseReadinessHttp.db.test.ts",
         "src/tests/caseReadinessPanel.test.tsx",
-        "src/tests-e2e/07-tax-engine.e2e.test.ts"
+        "src/tests-e2e/07-tax-engine.e2e.test.ts",
+        "src/tests-e2e/provider/14-new-client-journey.e2e.test.ts"
       ],
-      "remainingGap": "No materiality policy exists: thresholds, minimum confidence and whether automated continuation is ever allowed are owner policy, so every assessment today routes to a person. A person states the amount and an unsupported-position flag in the Case Workflow panel (browser-verified); AI confidence is never accepted from a request and will come only from a governed AI run, which does not run. Prior-year variance and anomaly signals are not modelled.",
+      "remainingGap": "No materiality policy exists: thresholds, minimum confidence and whether automated continuation is ever allowed are owner policy, so every assessment today routes to a person. A person states the amount and an unsupported-position flag in the Case Workflow panel (browser-verified); AI confidence is never accepted from a request and will come only from a governed AI run, which does not run. Prior-year variance and anomaly signals are not modelled. Provider profile: on the journey-B case built through stages 01-08 with durable staff sessions, diagnostics find only the missing approved calculation and risk is BLOCKED for exactly that and the absent policy; the client is refused.",
       "persistence": "review-only proposal 20261018170000: versioned materiality policies (independently approved, none seeded) and immutable case risk assessments"
     },
     {

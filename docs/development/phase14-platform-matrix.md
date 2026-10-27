@@ -681,7 +681,22 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **Prompt-injection regression (Block 59, tests only).** No document text reaches a model, so the corpus targets the
+  **Full-pipeline certification (Block 60, tests only).** Provider suite 14 (journey B) already takes a brand-new client
+  from a first portal sign-in through identity provisioning, an engagement, Stage 01 onboarding with approved (synthetic)
+  consent, document verification and manager approval, and stages 02-08 with independent review at every step (posted
+  entries, a closed reconciliation, an approved mapping set and workpaper, reviewer-only attestations), ending with
+  Stage 09 refused (`STAGE_BLOCKED_VERIFIED_TAX_ENGINE_REQUIRED`) and a counts-only client view. It now ends with the
+  readiness layer on that same case, with nothing arranged:
+  - diagnostics report exactly one finding, `BLOCKING:CALC_NO_APPROVED_RUN`; the ledger and book-to-tax checks are clear
+    because stages 04-06 recorded posted entries and an approved workpaper;
+  - a risk assessment is BLOCKED for exactly `DIAGNOSTIC_BLOCKING` and `NO_APPROVED_MATERIALITY_POLICY`, with no AI
+    confidence and no policy version;
+  - Stage 09 is still refused, and the client is refused every diagnostics and risk route.
+
+  This is the furthest the pipeline can be certified today: stages 09-18 need a verified tax engine with approved rule
+  content, signing and filing providers, and owner approvals. TAX-DIAGNOSTICS and TAX-RISK are now PROVIDER_VERIFIED.
+
+  **Prompt-injection regression (Block 59, tests only), published as `4df4fab`.** No document text reaches a model, so the corpus targets the
   channels that remain:
   - **Stored records to provider.** Injection text planted in the client name, the document record and the evidence
     reference never appears in the provider request, whose input stays `{purpose, taxYear, evidenceCount}`.

@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **Prompt-injection regression (Block 59, tests only).** Stored injection text never reaches the provider; an approved
+- **Full-pipeline certification (Block 60, tests only).** Provider journey B (first sign-in through Stage 08, Stage 09
+  blocked) now ends with diagnostics and risk on the same case: only the missing approved calculation blocks, risk is
+  BLOCKED for exactly that and the absent policy, the client is refused. TAX-DIAGNOSTICS and TAX-RISK PROVIDER_VERIFIED.
+- **Prompt-injection regression (Block 59, tests only), published as `4df4fab`.** Stored injection text never reaches the provider; an approved
   prompt cannot displace the enforced boundary; 29 adversarial replies are rejected and an injected reply leaves no
   result or action. `aiPromptInjectionRegression.test` (31), `aiGovernedGateway.test` (5 new).
 - **Agent permission completeness (Block 58, tests only), published as `c5ff7bc`.** All 58 unmapped agents refused at runtime under full synthetic

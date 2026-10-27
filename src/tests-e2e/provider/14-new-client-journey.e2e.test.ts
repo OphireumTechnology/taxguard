@@ -422,6 +422,24 @@ describe('journey B: durable Stage 01 onboarding to Stage 02', () => {
     expect(leak ? portalText.slice(Math.max(0, leak.index - 80), leak.index + 80) : null).toBeNull();
   });
 
+  it('at Stage 09 readiness reflects the pipeline: the ledger and workpaper findings are clear, only the missing approved calculation blocks, and risk is BLOCKED', async () => {
+    // Full-pipeline certification on the same case: nothing is arranged here; the findings come from what stages 01-08
+    // recorded. Diagnostics and risk are the review-only proposals 20261018160000 and 20261018170000.
+    const run = await api(preparerToken, 'POST', `/api/tax-engine/cases/${caseId}/diagnostics/run`);
+    expect(run.status, JSON.stringify(run.body)).toBe(200);
+    expect(run.body.diagnostics.map((d: any) => `${d.severity}:${d.rule_code}`)).toEqual(['BLOCKING:CALC_NO_APPROVED_RUN']);
+    expect(run.body).toMatchObject({ blocking: 1, errors: 0, ready: false, returnUse: 'BLOCKED' });
+    const risk = await api(reviewerToken, 'POST', `/api/tax-engine/cases/${caseId}/risk`, { amountCents: 104250, unsupportedPosition: false });
+    expect(risk.status, JSON.stringify(risk.body)).toBe(201);
+    expect(risk.body).toMatchObject({ outcome: 'BLOCKED', ai_confidence: null, policy_version: null, returnUse: 'BLOCKED' });
+    expect(risk.body.reason_codes).toEqual(['DIAGNOSTIC_BLOCKING', 'NO_APPROVED_MATERIALITY_POLICY']);
+    // The case still cannot leave Stage 09, and the client reaches none of the professional checks.
+    const nine = await api(reviewerToken, 'POST', `/api/cases/${caseId}/advance`, { fromStage: 9, version: caseVersion, attestation: { confirmed: [], statement: 'Synthetic reviewer attestation for E2E testing only.' } });
+    expect([nine.status, nine.body.code]).toEqual([409, 'STAGE_BLOCKED_VERIFIED_TAX_ENGINE_REQUIRED']);
+    for (const [method, path] of [['GET', `/api/tax-engine/cases/${caseId}/diagnostics`], ['GET', `/api/tax-engine/cases/${caseId}/risk`], ['POST', `/api/tax-engine/cases/${caseId}/diagnostics/run`]])
+      expect((await api(clientToken, method, path)).status, `${method} ${path}`).toBe(403);
+  });
+
   it('the manager moves the case reviewer from the case workflow; a refused change keeps what was entered', async () => {
     const NEW_REVIEWER = 'd0000000-0000-4000-8000-0000000000a8';
     const eng = await engagementId();
