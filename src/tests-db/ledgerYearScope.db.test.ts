@@ -161,6 +161,19 @@ describe('a staff member assigned for one tax year reaches only that year of the
 });
 
 describe('independent authorization is preserved and everything else fails closed', () => {
+  it('the Phase 15 general ledger and its exact wrapper: the assigned year only (20261018130000)', async () => {
+    for (const fn of ['taxguard_ledger_general_ledger', 'taxguard_ledger_general_ledger_exact']) {
+      const gl = (who: string, year: number) => b2t(fn, who, { p_tax_year: year, p_account: null, p_filter: {} });
+      const lines = (rows: any[]) => rows.flatMap(r => r.lines.map((l: any) => l.entryId)).sort();
+      expect(lines(await gl('ly-bk', 2025)), fn).toEqual([entry[2025], entry[2025]]);
+      expect(await code(gl('ly-bk', 2024)), fn).toBe('LEDGER_ACCESS_DENIED');
+      expect(lines(await gl('ly-bk24', 2024)), fn).toEqual([entry[2024], entry[2024]]);
+      expect(await code(gl('ly-bk24', 2025)), fn).toBe('LEDGER_ACCESS_DENIED');
+      for (const who of ['ly-mgr', 'ly-admin', 'ly-wbk']) expect(lines(await gl(who, 2024)), `${fn} ${who}`).toEqual([entry[2024], entry[2024]]);
+      expect(await code(gl('ly-stale', 2025)), fn).not.toBe('OK');
+    }
+  });
+
   it('managers, administrators and client-wide staff reach every year', async () => {
     for (const who of ['ly-mgr', 'ly-admin', 'ly-wbk', 'ly-wrev']) {
       expect(await code(ledger.read(S, who, 2024)), who).toBe('OK');

@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "20f05daf02bacf899652a7bb2fa896acd629de16df7c9ce3194cd8565c0e75ae",
-      "bytes": 19546,
+      "sha256": "2c91dc528e48e839f84ba302a2540e3282c102fba22ad03ad410a0f927558ded",
+      "bytes": 19699,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6205,6 +6205,12 @@
       "file": "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql",
       "sha256": "06490e4f5adb47834b4c390c528b288096d9a0071b8ba97c80551ec3bb757185",
       "bytes": 2349,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261018130000_taxguard_ledger_report_year_guard.sql",
+      "sha256": "8d34fc2c56ba93c0a362608f4647b5e580d4e2d00e7ff6d1a949f0070981368f",
+      "bytes": 4666,
       "headings": []
     },
     {

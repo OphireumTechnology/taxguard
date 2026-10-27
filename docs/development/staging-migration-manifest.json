@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "b45ff8b29b7120c7288fd34794b7004e7c4bd24e7a6cf38bf6c330c7ae82c6a2",
+  "executionPlanSha256": "629722e70c1869783abf5209e5a813c32c1c624c244519d8535e81649575b517",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4761,6 +4761,56 @@
         "-- Phase 15 exact report transport. Development proposal; no hosted execution authorized.",
         "-- Keep historical RPCs unchanged. Cast numeric aggregates to text BEFORE a JSON client parses them.",
         "-- Invoker wrappers retain the existing underlying RPC actor/tenant/client authorization."
+      ]
+    },
+    {
+      "order": 90,
+      "file": "docs/proposed-migrations/20261018130000_taxguard_ledger_report_year_guard.sql",
+      "kind": "proposal",
+      "version": "20261018130000",
+      "sha256": "8d34fc2c56ba93c0a362608f4647b5e580d4e2d00e7ff6d1a949f0070981368f",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+        "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_ledger_general_ledger"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_ledger_general_ledger",
+          "previousFile": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261018110000 definition."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_general_ledger(text,text,text,integer,text,jsonb) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_general_ledger(text,text,text,integer,text,jsonb) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14/15 integration, ledger reports). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018070000 (taxguard_ledger_year_guard), 20261018110000 (current definition of",
+        "-- taxguard_ledger_general_ledger) and 20261018120000 (taxguard_ledger_general_ledger_exact, which delegates to it).",
+        "--",
+        "-- The Phase 15 general ledger authorized with taxguard_ledger_actor only, so a staff member assigned for one tax year",
+        "-- could read another year's lines and balances (integration plan, Codex handoff item 6, reproduced in Codex's",
+        "-- qa/phase15-scope). It now applies the same year guard as every other ledger read (LEDGER_ACCESS_DENIED). The exact",
+        "-- wrapper is SECURITY INVOKER and calls this function, so it inherits the guard unchanged. Body otherwise identical",
+        "-- to 20261018110000. Prior-year opening balances remain an open owner policy (integration plan section 7).",
+        "-- Rollback (development): re-apply the 20261018110000 definition."
       ]
     }
   ]
