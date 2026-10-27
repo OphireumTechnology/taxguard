@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f9686d999d3d9749a4faec5e227257431eae1d7f1f3c74985baf725c0d719c93",
-      "bytes": 21590,
+      "sha256": "bc7a4ff03504ed3b1b47ab363d9b502c4361fdb9f3870e8ff454e8292c881015",
+      "bytes": 21754,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6450,6 +6450,12 @@
       "headings": []
     },
     {
+      "file": "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+      "sha256": "0d5d4fbb2cb1ed4e3109d49dd50009b9cb4e23c896437a614c9b68818fb5b066",
+      "bytes": 38741,
+      "headings": []
+    },
+    {
       "file": "docs/proposed-migrations/rollback/20261014470000_taxguard_billing_client_projection.rollback.sql",
       "sha256": "2847cea1e7e1c6dc3856875e27174564aa99dab0942afbcaa280c3be4bc3bc64",
       "bytes": 4253,
@@ -7678,7 +7684,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "e0893e2f8908fccc34a1db995b119cb11f377d6c2f1f8d15a34517d2ee82f8c9",
+    "src/tests/proposalCompositionSecurity.test.ts": "781598577e329335a46c41f0146a2647fae2cb0dd3512bcebdf469fcf439e882",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
