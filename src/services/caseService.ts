@@ -57,9 +57,22 @@ const DEPENDENCIES: Record<string, string> = {
   FILING_NOT_AUTHORIZED: 'Blocked: electronic filing is not authorized.', UPSTREAM_STAGES_BLOCKED: 'Blocked until earlier stages are available.',
 };
 export const dependencyLabel = (code?: string | null) => (code && DEPENDENCIES[code]) || 'Blocked by an external dependency.';
+// Server-derived gate checks (taxguard_case_system_checks and taxguard_case_evidence_checks), in plain language.
+// Attestation items are snake_case and read as written.
+const CHECKS: Record<string, string> = {
+  clientActive: 'the client is active', engagementActive: 'the engagement is active', taxYearActive: 'the tax year is active',
+  preparerAssigned: 'a preparer is assigned', reviewerAssigned: 'a reviewer is assigned', independentReviewer: 'the reviewer is not the preparer',
+  clientOnboardingCompleted: 'client onboarding is approved', postedEntries: 'journal entries are posted', ledgerBalanced: 'the ledger balances',
+  noEntriesAwaitingReview: 'no journal entry is awaiting review', allBankTransactionsPosted: 'every bank transaction is posted',
+  closedReconciliation: 'a reconciliation is closed', noReconciliationInProgress: 'no reconciliation is in progress',
+  approvedWorkpaperRecorded: 'an approved book-to-tax workpaper is recorded', requiredDocumentRequestsResolved: 'required document requests are resolved',
+  noDocumentsAwaitingScan: 'no document is awaiting its scan', noDocumentsAwaitingReview: 'no document is awaiting review',
+  noOutstandingReplacementRequests: 'no requested replacement is outstanding', noUndecidedExtractionProposals: 'every proposed extracted value is accepted, corrected or rejected',
+};
+export const checkLabel = (check: string) => CHECKS[check] ?? check.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase();
 export function caseMessage(error: unknown): string {
   if (!(error instanceof CaseRequestError)) return 'The case service did not confirm this action. Refresh and try again.';
-  if (error.code === 'STAGE_GATE_NOT_MET') return 'Stage requirements are not met: ' + (error.failedChecks.map(c => c.replace(/_/g, ' ')).join(', ') || 'see the case detail') + '.';
+  if (error.code === 'STAGE_GATE_NOT_MET') return 'Stage requirements are not met: ' + (error.failedChecks.map(checkLabel).join('; ') || 'see the case detail') + '.';
   if (error.code?.startsWith('STAGE_BLOCKED_')) return dependencyLabel(error.code.slice('STAGE_BLOCKED_'.length));
   const known: Record<string, string> = {
     STAGE_ATTESTATION_REQUIRES_REVIEWER: 'Only the case reviewer can attest this stage.', STAGE_RETURN_REQUIRES_REVIEWER: 'Only the reviewer or a manager can return a case.',

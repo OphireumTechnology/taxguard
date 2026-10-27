@@ -47,6 +47,7 @@ describe('case workflow client', () => {
   });
   it('explains failed checks and external blockers', () => {
     expect(caseMessage(new CaseRequestError(409, 'STAGE_GATE_NOT_MET', ['documents_in_private_storage']))).toBe('Stage requirements are not met: documents in private storage.');
+    expect(caseMessage(new CaseRequestError(409, 'STAGE_GATE_NOT_MET', ['noUndecidedExtractionProposals', 'noDocumentsAwaitingReview']))).toBe('Stage requirements are not met: every proposed extracted value is accepted, corrected or rejected; no document is awaiting review.');
     expect(caseMessage(new CaseRequestError(409, 'STAGE_BLOCKED_FILING_NOT_AUTHORIZED'))).toMatch(/filing is not authorized/);
     expect(caseMessage(new CaseRequestError(403, 'STAGE_ATTESTATION_REQUIRES_REVIEWER'))).toMatch(/case reviewer/);
   });

@@ -57,7 +57,7 @@ describe('proposal composition', () => {
       '20261018090000_taxguard_case_assignment_liveness.sql', '20261018100000_taxguard_practice_client_scope.sql',
       '20261018105000_taxguard_case_restaff.sql', '20261018140000_taxguard_ai_agent_evaluation.sql',
       '20261018150000_taxguard_tax_research.sql', '20261018160000_taxguard_return_diagnostics.sql',
-      '20261018170000_taxguard_risk_materiality.sql']));
+      '20261018170000_taxguard_risk_materiality.sql', '20261018180000_taxguard_case_validate_extraction_evidence.sql']));
   });
   it('re-applies cleanly (idempotent DDL)', async () => {
     await applyProposals(fixture.pg, /^202610122[3-9]|^2026101230|^2026101231|^2026101232|^2026101233|^2026101234|^2026101235|^2026101236|^2026101237|^2026101238|^20261013|^20261014|^20261015|^20261016/);

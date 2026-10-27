@@ -43,13 +43,15 @@ export function StaffDocumentReviewPanel() {
     {queue.items.length > 0 && <div className="tg-manager-scroll"><table><caption className="sr-only">Documents awaiting review</caption>
       <thead><tr>{['Client', 'File', 'Year', 'Category', 'Uploaded by', 'Received', ''].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
       <tbody>{queue.items.map(d => <tr key={d.documentId + d.version}><td>{d.clientName || d.clientId}</td><td>{d.fileName} (v{d.version})</td><td>{d.taxYear}</td><td>{d.category}</td>
-        <td>{d.uploaderRole === 'client' ? 'Client' : d.uploadedBy}</td><td>{d.createdAt.slice(0, 10)}</td>
+        <td>{d.uploaderRole === 'client' ? 'Client' : d.uploadedBy}</td><td>{d.createdAt.slice(0, 10)}{d.status !== 'PENDING_REVIEW' && d.undecidedProposals
+          ? <> · {d.undecidedProposals} proposed {d.undecidedProposals === 1 ? 'value' : 'values'} awaiting a decision</> : null}</td>
         <td><button type="button" aria-pressed={selected?.documentId === d.documentId} onClick={() => open(d)}>Review</button></td></tr>)}</tbody></table></div>}
     {selected && <div aria-live="polite">
       <h3>{selected.fileName} — {documentStatusText(selected.status)}</h3>
       <button type="button" onClick={() => vaultService.download(selected.clientId, selected.documentId, selected.version).then(r => window.open(r.url, '_blank', 'noopener,noreferrer'))
         .catch(e => setNotice({ error: true, text: vaultMessage(e) }))}>Open (short-lived link)</button>
-      {!selected.canReview && <p role="status">You uploaded this document; a different staff member must review it.</p>}
+      {selected.status === 'PENDING_REVIEW' && !selected.canReview && <p role="status">You uploaded this document; a different staff member must review it.</p>}
+      {selected.status !== 'PENDING_REVIEW' && <p role="status">This document is already reviewed. Its proposed values still need a decision before the case can be validated.</p>}
       <h4>Proposed extracted values (not used until verified)</h4>
       {fields.length === 0 ? <p>No OCR proposals for this version.</p> : <ul>{fields.map(f => <li key={f.fieldId}>
         <strong>{f.fieldKey}</strong>: {JSON.stringify(f.proposedValue)} <small>(confidence {Math.round(f.confidence * 100)}%, {f.provider})</small>
@@ -59,11 +61,13 @@ export function StaffDocumentReviewPanel() {
           <button type="button" disabled={busy || !(corrections[f.fieldId] ?? '').trim()} onClick={() => act(() => vaultService.verifyField(selected.clientId, f.fieldId, 'CORRECTED', corrections[f.fieldId].trim()), 'Corrected value recorded.', false)}>Save correction</button>
           <button type="button" disabled={busy} onClick={() => act(() => vaultService.verifyField(selected.clientId, f.fieldId, 'REJECTED'), 'Value rejected.', false)}>Reject value</button></>}
       </li>)}</ul>}
+      {selected.status === 'PENDING_REVIEW' && <>
       <label>Internal review note (staff only)<input maxLength={500} value={note} onChange={e => setNote(e.target.value)} /></label>
       <label>Reason shown to client (required to reject or request a replacement)<input maxLength={500} value={clientReason} onChange={e => setClientReason(e.target.value)} /></label>
       <button type="button" disabled={busy || !selected.canReview} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'approve', selected.rowVersion, note || undefined), 'Document accepted.')}>Accept document</button>
       <button type="button" disabled={busy || !selected.canReview || clientReason.trim().length < 5} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'request_replacement', selected.rowVersion, note, clientReason), 'Replacement requested.')}>Request replacement</button>
       <button type="button" disabled={busy || !selected.canReview || clientReason.trim().length < 5} onClick={() => act(() => vaultService.review(selected.clientId, selected.documentId, selected.version, 'reject', selected.rowVersion, note, clientReason), 'Document rejected.')}>Reject</button>
+      </>}
     </div>}
   </section>;
 }

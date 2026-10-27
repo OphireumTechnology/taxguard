@@ -387,15 +387,19 @@
         "src/server/taxguard/ocrProvider.ts",
         "src/server/taxguard/accountingDocumentIntelligence.service.ts",
         "src/components/documents/StaffDocumentReviewPanel.tsx",
-        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261018180000_taxguard_case_validate_extraction_evidence.sql"
       ],
       "tests": [
         "src/tests/documentVaultHttp.test.ts",
         "src/tests/documentVaultHttp.test.ts",
-        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts"
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts",
+        "src/tests/caseValidateExtractionEvidence.test.ts",
+        "src/tests-db/caseValidateExtractionEvidence.db.test.ts",
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
       ],
       "blocker": "No OCR provider is commissioned; extraction fails safe rather than reporting success.",
-      "remainingGap": "Provider adapter commissioning only. The human validation queue is browser-verified on the real server with a synthetic stand-in for the provider output: proposals are refused for a quarantined document, and each proposed field is accepted, corrected or rejected by staff in Document Review (decisions persist, cannot be repeated, and only accepted or corrected values carry a verified value). The client is refused the decision and sees no proposals or values. Downstream use of verified values (Stage 03 validation, form lines) is not wired."
+      "remainingGap": "Provider adapter commissioning only. The human validation queue is browser-verified on the real server with a synthetic stand-in for the provider output: proposals are refused for a quarantined document, and each proposed field is accepted, corrected or rejected by staff in Document Review (decisions persist, cannot be repeated, and only accepted or corrected values carry a verified value). The client is refused the decision and sees no proposals or values. Stage 03 (Validate) now refuses while any proposal on a current, usable document of the engagement year is undecided (review-only proposal 20261018180000; real server, suite 03). Verified values do not yet feed form lines; that needs form mapping with evidence lineage (TAX-FORM-MAPPING)."
     },
     {
       "id": "TAX-ACCOUNTING",

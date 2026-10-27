@@ -681,7 +681,39 @@ could mean "the UI claims something the backend cannot deliver".
   - an accountant's attempt to engage a **global** stop is refused by the server (`AI_KILL_SWITCH_ROLE_DENIED`), and no
     global stop is recorded.
 
-  **OCR human validation in the browser (Block 63).** The durable validation queue (vault proposal `20261012270000` functions, the
+  **Stage 03 requires decided extraction proposals (Block 64).** Review-only proposal
+  `20261018180000_taxguard_case_validate_extraction_evidence` redefines `taxguard_case_evidence_checks` from its current
+  definition (`20261018050000`):
+  - **New Validate check.** Stage 03 also returns `noUndecidedExtractionProposals`. It is false while an OCR proposal on
+    the current version of a document of the case's client, engagement and year has no staff decision.
+  - **What does not count.** Superseded versions and rejected documents do not count. A rejected proposal settles it as
+    much as an accepted one. Decisions on another client's documents do not.
+  - **Unchanged.** Stages 02 and 06 and who may attest.
+  - **Owner review point.** The Stage 02 workspace says AI extractions must be decided "before Gate 2 clearance"; the
+    proposal places the requirement at Validate, where review completeness is already checked. Confirm the stage.
+  - **No unreachable proposals.** The staff review queue listed only documents awaiting review, so a document accepted
+    while a proposal was undecided left no screen on which to decide it. The same proposal redefines
+    `taxguard_doc_review_queue` (current definition `20261018060000`) to also list the current version of a reviewed
+    document that still has undecided proposals, with their count. Document Review then offers only the field decisions
+    for it, with a note that the document is already reviewed.
+  - **Readable refusals.** The case screen named failed checks by their raw keys ("noDocumentsAwaitingReview"). Every
+    server-derived gate check now has a plain label, for example "every proposed extracted value is accepted, corrected
+    or rejected", both in the refusal and in the list of gate checks; attestation items read as before.
+
+  Tests:
+  - `caseValidateExtractionEvidence.test` (6, PGlite): undecided, decided, rejected, superseded, rejected documents, other
+    scopes, stage boundaries, API roles refused.
+  - `caseValidateExtractionEvidence.db.test` (real PostgreSQL, all proposals, through the case transition): Validate is
+    refused with the new check, still refused after one of two decisions, and accepted after both; the reviewed document
+    is in the review queue with 2, then 1, undecided proposals, then leaves it.
+  - Suite 03 e2e, in the browser on the real server: a fresh document is uploaded, scanned clean and reviewed, and a
+    proposal on it is left undecided. The reviewer attests Validate in Case Workflow; the server refuses it ("Stage
+    requirements are not met: every proposed extracted value is accepted, corrected or rejected.") and the case stays at
+    Stage 03. Document Review lists the document with "1 proposed value awaiting a decision" and offers no document
+    action. The reviewer accepts the value, attests again and Validate completes.
+  - `caseWorkflowPanel.test`: plain labels.
+
+  **OCR human validation in the browser (Block 63), published as `b160af5`.** The durable validation queue (vault proposal `20261012270000` functions, the
   `extractions/:fieldId/verify` route and the Document Review panel) had HTTP coverage but no browser journey, because
   the e2e server had no source of proposals:
   - **E2E harness.** `/e2e/ocr` stands in for an external OCR provider's output, as `/e2e/scan` does for the scanner. It

@@ -4,9 +4,9 @@
   "executionAllowed": false,
   "supabaseCliValidated": false,
   "externalApplicationStatus": "NOT_APPLIED",
-  "executionPlanSha256": "141490e90c6817db3bfa8d22f0f1a4cb988b838144a234bf276354ecf0f6e619",
-  "packetId": "9cc724555de22bddaf33ee47b0bd6aaf1ae36d45ac520577c560d11dc29b2b43",
-  "outputDirectory": "qa/migration-review/9cc724555de22bddaf33ee47b0bd6aaf1ae36d45ac520577c560d11dc29b2b43",
+  "executionPlanSha256": "9ccf86af6b35a71052a07129e63fd46b495de3b71ded368fd92c0d18bffca4d3",
+  "packetId": "74e43f1820c91ee1b5811cfa7992f54d48bf6081a8a0fc35e85e2b9eac90893f",
+  "outputDirectory": "qa/migration-review/74e43f1820c91ee1b5811cfa7992f54d48bf6081a8a0fc35e85e2b9eac90893f",
   "note": "Core versions preserved; proposed files mapped to a reserved valid review namespace. Owner approves final versions and bundle before any external application. Source SQL content is copied without rewriting history.",
   "entries": [
     {
@@ -518,6 +518,12 @@
       "source": "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
       "sourceSha256": "03de3f05694be8a39e7d04cc3f55de803cc2d45f985421788a6f379fb5cd2cd0",
       "version": "20261016000112"
+    },
+    {
+      "file": "20261016000113_review_taxguard_case_validate_extraction_evidence.sql",
+      "source": "docs/proposed-migrations/20261018180000_taxguard_case_validate_extraction_evidence.sql",
+      "sourceSha256": "fc948b7fa5c610d6af9cafa62e326bcc2d0b0fbae0a1ec31b48d1d58cc72f53e",
+      "version": "20261016000113"
     }
   ]
 }

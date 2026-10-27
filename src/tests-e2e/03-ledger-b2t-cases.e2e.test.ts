@@ -161,7 +161,53 @@ describe('case workflow stages 1-8 (stages 9-18 blocked)', () => {
       for (const d of outstanding) await supplyReplacement(d);
       expect(await requestedReplacements()).toEqual([]);
     }
-    expect((await validate()).body.activeStage).toBe(4);
+    // Validate also requires every OCR proposal on a current document of the engagement year to be decided by staff
+    // (proposal 20261018180000): a reviewed document with an undecided proposal blocks it until the proposal is decided.
+    const query = new URLSearchParams({ engagementId, taxYear: String(Y), category: 'income', fileName: 'synthetic-validate-ocr.pdf' });
+    const uploaded = await fetch(ORIGIN + `/api/vault/clients/${C}/documents?` + query, { method: 'POST',
+      headers: { Authorization: `Bearer ${tokens.client}`, 'Content-Type': 'application/pdf', 'Idempotency-Key': 'e2e-validate-ocr-upload' },
+      body: '%PDF-1.4\nSynthetic validation OCR document only\n%%EOF' }).then(async r => ({ status: r.status, body: await r.json() as any }));
+    expect(uploaded.status).toBe(201);
+    const ctl = control(), doc = uploaded.body.documentId;
+    const harness = (path: string, body: unknown) => fetch(ctl.origin + path, { method: 'POST', headers: { apikey: ctl.key, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    expect((await harness('/e2e/scan', { tenant: 'tenantE2E', client: C, documentId: doc, version: 1, result: 'CLEAN' })).status).toBe(200);
+    expect((await harness('/e2e/ocr', { tenant: 'tenantE2E', client: C, documentId: doc, version: 1, fields: [{ fieldKey: 'w2.box1_wages', value: '100.00', confidence: 0.8 }] })).status).toBe(200);
+    const pending = (await api(tokens.mgr, 'GET', `/api/vault/clients/${C}/documents/${doc}`)).body;
+    expect((await api(tokens.mgr, 'POST', `/api/vault/clients/${C}/documents/${doc}/versions/1/review`, { decision: 'approve', rowVersion: pending.versions[0].rowVersion })).body.status).toBe('VERIFIED');
+    // In the browser: the reviewer attests Validate and the server refuses it in plain language; the reviewed document
+    // stays in Document Review for its undecided value; once decided, the same attestation completes Validate.
+    const rev = await staffLogin('e2e-rev');
+    const openCase = async () => {
+      // The Review Center shows Case Workflow and Document Review on one page.
+      await rev.page.reload();
+      await rev.page.getByRole('button', { name: caseId.slice(0, 16) }).first().click();
+      await rev.page.getByRole('button', { name: 'Attest and complete' }).waitFor();
+    };
+    const attestValidate = async () => {
+      for (const item of ['documents reviewed for completeness', 'discrepancies recorded or resolved']) await rev.page.getByLabel(item).check();
+      await rev.page.getByLabel('Attestation statement').fill('Synthetic reviewer attestation for E2E testing only.');
+      await rev.page.getByRole('button', { name: 'Attest and complete' }).click();
+    };
+    await openCase();
+    await attestValidate();
+    await rev.page.getByRole('alert').filter({ hasText: 'Stage requirements are not met: every proposed extracted value is accepted, corrected or rejected.' }).waitFor();
+    expect((await cases('mgr', 'GET', '/' + caseId)).body.case.activeStage).toBe(3);
+    await rev.page.reload();
+    const row = rev.page.getByRole('row', { name: /synthetic-validate-ocr\.pdf/ });
+    await row.getByText('1 proposed value awaiting a decision').waitFor();
+    await row.getByRole('button', { name: 'Review' }).click();
+    await sees(rev.page, 'This document is already reviewed. Its proposed values still need a decision before the case can be validated.');
+    expect(await rev.page.getByRole('button', { name: 'Accept document' }).count()).toBe(0);
+    await rev.page.getByRole('listitem').filter({ has: rev.page.locator('strong', { hasText: /^w2\.box1_wages$/ }) }).getByRole('button', { name: 'Accept' }).click();
+    await sees(rev.page, 'Value accepted.');
+    await openCase();
+    await attestValidate();
+    await sees(rev.page, 'Stage attested and completed.');
+    expect(realErrors(rev)).toEqual([]);
+    await rev.context.close();
+    const afterValidate = (await cases('mgr', 'GET', '/' + caseId)).body.case;
+    expect(afterValidate.activeStage).toBe(4);
+    version = afterValidate.version;
     expect((await advance('acct', 4)).body.activeStage).toBe(5); // posted entries, none awaiting review
     expect((await advance('acct', 5)).body.activeStage).toBe(6); // closed reconciliation, every bank transaction posted
     expect((await advance('rev', 6, attest(['workpapers_reviewed', 'no_unresolved_blocking_exceptions']))).body.activeStage).toBe(7);

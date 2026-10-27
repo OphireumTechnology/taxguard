@@ -7,7 +7,7 @@ export class VaultRequestError extends Error {
 }
 export interface VaultDocument { documentId: string; version: number; clientId: string; engagementId: string; taxYear: number; caseId: string | null; category: string;
   fileName: string; mimeType: string; sizeBytes: number; status: string; quarantineStatus: string; uploadedBy: string; uploaderRole: string; reviewedBy: string | null;
-  reviewNote: string | null; clientReason?: string | null; createdAt: string; rowVersion: number; clientName?: string; canReview?: boolean }
+  reviewNote: string | null; clientReason?: string | null; createdAt: string; rowVersion: number; clientName?: string; canReview?: boolean; undecidedProposals?: number }
 export interface VaultExtraction { fieldId: string; version: number; fieldKey: string; proposedValue: unknown; confidence: number; provider: string; decision: string | null; verifiedValue: unknown }
 export const DOCUMENT_CATEGORIES = ['income', 'deductions', 'identity', 'prior_return', 'business_records', 'bank_statement', 'correspondence', 'engagement', 'other'] as const;
 export const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv'];

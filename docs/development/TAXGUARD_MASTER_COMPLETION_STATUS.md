@@ -55,7 +55,10 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
-- **OCR human validation in the browser (Block 63).** Suite 02 drives accept, correct and reject of synthetic OCR proposals in
+- **Stage 03 requires decided extraction proposals (Block 64).** Review-only proposal `20261018180000`: Validate is refused
+  while an OCR proposal on a current document is undecided; reviewed documents with undecided proposals stay in the
+  review queue; failed gate checks read in plain language. PGlite (6), PostgreSQL transition test, suite 03 browser journey. **Owner review point:** confirm Validate (not Collect) is the right stage.
+- **OCR human validation in the browser (Block 63),** published as `b160af5`. Suite 02 drives accept, correct and reject of synthetic OCR proposals in
   Document Review; the client sees none of it. The panel no longer clears its confirmation after a field decision.
 - **Release checklist rewritten (Block 62),** published as `e041e5e`.
 - **Production-readiness assessment (Block 61).** `docs/development/production-readiness-assessment.md`: staging and production NO-GO, with the evidence counts, the release blockers grouped by who decides, the stale release checklist, and the recommended path to a staging GO.

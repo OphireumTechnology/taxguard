@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CaseResearchPanel } from './CaseResearchPanel';
 import { CaseReadinessPanel } from './CaseReadinessPanel';
-import { caseMessage, caseService, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
+import { caseMessage, caseService, checkLabel, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
 import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
 import { taxEngineMessage, taxEngineService, type CalculationRun } from '../../services/taxEngineService';
 
@@ -97,7 +97,7 @@ export function CaseWorkflowPanel() {
         {policy.evidence === 'BLOCKED' && <p role="status">{dependencyLabel(policy.dependency)}</p>}
         {policy.evidence === 'SYSTEM_VERIFIED' && <>
           <h4>Gate checks (computed from durable records)</h4>
-          <ul>{Object.entries(detail!.pendingChecks || {}).map(([k, v]) => <li key={k}>{v ? 'Met' : 'Not met'}: {label(k.replace(/([A-Z])/g, ' $1').toLowerCase())}</li>)}</ul>
+          <ul>{Object.entries(detail!.pendingChecks || {}).map(([k, v]) => <li key={k}>{v ? 'Met' : 'Not met'}: {checkLabel(k)}</li>)}</ul>
           <button type="button" disabled={busy || c.status !== 'ACTIVE'} onClick={() => run(() => caseService.advance(c.caseId, c.activeStage, c.version), 'Stage completed.')}>Complete {stageLabel(c.activeStage)}</button>
         </>}
         {policy.evidence === 'HUMAN_ATTESTED' && <form onSubmit={e => { e.preventDefault(); void run(() => caseService.advance(c.caseId, c.activeStage, c.version, { confirmed, statement }), 'Stage attested and completed.'); }}>
