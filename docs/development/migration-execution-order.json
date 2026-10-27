@@ -639,6 +639,14 @@
       "dependsOn": [
         "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+        "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
+      ]
     }
   ]
 }

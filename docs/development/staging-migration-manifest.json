@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "24b042951771541932340886d8b4ee58b2405f16eb016571a601d4bfa10d891f",
+  "executionPlanSha256": "54b359e1b53d809ad571b65a7816e661a7fd4f160d6929316726a1c201b1bcc2",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5130,6 +5130,79 @@
         "-- Serialize natural catalog identity before the original missing-row lookup. Preserve prices,",
         "-- reason requirements and history logic; do not infer financial intent from equal amounts.",
         "-- Rollback: disable catalog writes pending review; preserve price history."
+      ]
+    },
+    {
+      "order": 98,
+      "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
+      "kind": "proposal",
+      "version": "20261019080000",
+      "sha256": "5482ae6bbbef7078377217832c1b12a2155bb89fe7795f28d878d3f8ad61e26a",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+        "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_ledger_replay_year_guard",
+        "taxguard_ledger_post_entry_once",
+        "taxguard_ledger_reverse_entry_once",
+        "taxguard_b2t_prepare_adjustment"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_ledger_post_entry_once",
+          "previousFile": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_ledger_reverse_entry_once",
+          "previousFile": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_b2t_prepare_adjustment",
+          "previousFile": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261019040000 and 20261019010000 definitions."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_replay_year_guard(text,text,text,text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_post_entry_once(text,text,text,text,text,jsonb,uuid) FROM PUBLIC,anon,authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_ledger_reverse_entry_once(text,text,text,text,text,uuid,date,text,text) FROM PUBLIC,anon,authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_b2t_prepare_adjustment(text,text,text,text,jsonb) FROM PUBLIC,anon,authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_post_entry_once(text,text,text,text,text,jsonb,uuid) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_ledger_reverse_entry_once(text,text,text,text,text,uuid,date,text,text) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_b2t_prepare_adjustment(text,text,text,text,jsonb) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14/15 integration, ledger and book-to-tax replay). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018070000 (taxguard_ledger_year_scope), 20261019010000 (current definition of",
+        "-- taxguard_b2t_prepare_adjustment) and 20261019040000 (current definitions of the ledger *_once entry points).",
+        "--",
+        "-- Integration plan, Codex handoff item 5. A retried posting, reversal or adjustment returns the record already stored",
+        "-- under its key. New records are year-checked by the insert triggers of 20261018070000, but a replay inserts nothing,",
+        "-- so a member whose year assignment had changed could still read a stored record of a year it no longer reaches by",
+        "-- replaying the original request. After the per-key lock and actor re-check, a replay of a record outside the",
+        "-- member's current year scope is now refused as not found (ENTRY_NOT_FOUND, ADJUSTMENT_NOT_FOUND), the same answer",
+        "-- as for a record that does not exist. Everything else is unchanged.",
+        "-- Rollback (development): re-apply the 20261019040000 and 20261019010000 definitions.",
+        "-- Current definitions: 20261019040000."
       ]
     }
   ]

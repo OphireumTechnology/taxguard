@@ -105,6 +105,27 @@ describe('a staff member assigned for one tax year reaches only that year of the
     expect(await code(adjust('ly-wbk', 2024))).toBe('OK');
   });
 
+  it('a retried posting or adjustment of a year the member no longer reaches is refused as not found (20261019080000)', async () => {
+    await db.pool.query(`INSERT INTO taxguard_members(tenant_id, uid, role, status) VALUES ('${T}', 'ly-narrow', 'bookkeeper', 'active');
+      INSERT INTO taxguard_staff_assignments(id, tenant_id, client_id, engagement_id, tax_year, role, user_id, assigned_by, status, effective_from, effective_to)
+        SELECT 'ly-narrow-1', '${T}', '${C}', engagement_id, 2024, 'bookkeeper_assistant', 'ly-narrow', 'ly-mgr', 'ACTIVE', now() - interval '1 day', NULL
+        FROM taxguard_staff_assignments WHERE id = 'ly-bk24-1';`);
+    const posting = { idempotencyKey: 'ly-narrow-entry', taxYear: 2024, periodId: period[2024], postingDate: '2024-02-20', description: 'Synthetic narrowed entry',
+      lines: [{ accountId: acct.cash, debit: 7 }, { accountId: acct.equity, credit: 7 }] } as any;
+    const adjustment = { p_key: 'ly-narrow-adjust', p_body: { returnFamily: '1040', taxYear: 2024, categoryCode: 'LY_SUPPLIES', amountCents: 700,
+      adjustmentType: 'PERMANENT', description: 'Synthetic narrowed adjustment' } };
+    const stored = (await ledger.postEntry(S, 'ly-narrow', posting)).id;
+    const adjusted = (await b2t('taxguard_b2t_prepare_adjustment', 'ly-narrow', adjustment)).adjustmentId;
+    // While in scope, a retry replays the stored records.
+    expect((await ledger.postEntry(S, 'ly-narrow', posting)).id).toBe(stored);
+    expect(await b2t('taxguard_b2t_prepare_adjustment', 'ly-narrow', adjustment)).toEqual({ adjustmentId: adjusted, replayed: true });
+    // The assignment moves to 2025: the same retries no longer reveal the 2024 records.
+    await db.pool.query(`UPDATE taxguard_staff_assignments SET tax_year = 2025 WHERE id = 'ly-narrow-1'`);
+    expect(await code(ledger.postEntry(S, 'ly-narrow', posting))).toBe('ENTRY_NOT_FOUND');
+    expect(await code(b2t('taxguard_b2t_prepare_adjustment', 'ly-narrow', adjustment))).toBe('ADJUSTMENT_NOT_FOUND');
+    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_ledger_entries WHERE tenant_id = $1 AND idempotency_key = 'ly-narrow-entry'`, [T])).rows[0].n).toBe(1);
+  });
+
   it('book-to-tax: overview, mapping sets and their review in the assigned year only', async () => {
     for (const who of ['ly-bk', 'ly-rev']) {
       expect(await code(b2t('taxguard_b2t_overview', who, { p_year: 2024, p_family: '1040' })), who).toBe('LEDGER_ACCESS_DENIED');

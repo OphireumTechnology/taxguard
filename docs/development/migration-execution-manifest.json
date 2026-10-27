@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 98,
+    "files": 99,
     "core": 13,
-    "proposals": 84,
+    "proposals": 85,
     "tables": 161,
-    "functions": 400,
-    "securityDefinerFunctions": 311,
+    "functions": 401,
+    "securityDefinerFunctions": 312,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -4009,6 +4009,48 @@
     },
     {
       "order": 98,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_ledger_replay_year_guard"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_b2t_prepare_adjustment",
+          "previous": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql"
+        },
+        {
+          "function": "taxguard_ledger_post_entry_once",
+          "previous": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
+        },
+        {
+          "function": "taxguard_ledger_reverse_entry_once",
+          "previous": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        27,
+        32,
+        77,
+        95
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 99,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
