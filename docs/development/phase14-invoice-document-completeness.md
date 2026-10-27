@@ -2,7 +2,7 @@
 
 
 > Integrated 2026-10-27 on `integration/taxguard-phase15` from Codex's uncommitted work in the Phase 14 continuation
-> worktree; the code and tests are unchanged from that work and were validated there.
+> worktree. The code and tests are unchanged from that work; they were validated on the integration branch.
 Development branch: `claude/taxguard-phase14-full-platform-development`; baseline `545115a`.
 Workspace: `D:\TaxGuard\Development\123-codex-phase14-continuation`, a separate worktree. The original
 Phase 15 workspace, its three untracked paths and all Codex/Copilot branches were preserved.
