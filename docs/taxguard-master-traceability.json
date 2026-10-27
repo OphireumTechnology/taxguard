@@ -6427,8 +6427,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
-      "sha256": "8f2b69ab2813f99cb8fd1e5812a5baa447088d2139ad03eb5c94ae2c128ff985",
-      "bytes": 12671,
+      "sha256": "e9ce3623936e487b2bd1218225d2bb1b172941448e10d7f6f5de04e1dda11ef9",
+      "bytes": 12670,
       "headings": []
     },
     {

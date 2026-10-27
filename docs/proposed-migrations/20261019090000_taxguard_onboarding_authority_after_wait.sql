@@ -133,4 +133,3 @@ BEGIN
     VALUES (p_tenant, p_client, 'ONBOARDING_APPROVED', NULL, 'Your onboarding was approved', p_actor);
   RETURN public.taxguard_onb_view(o, true);
 END $$;
-
