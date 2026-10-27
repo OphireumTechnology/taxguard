@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "54b359e1b53d809ad571b65a7816e661a7fd4f160d6929316726a1c201b1bcc2",
+  "executionPlanSha256": "aa891956a36b9070e46892a5b9c9704fd1f70b16c07677683424825ed257eec2",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5203,6 +5203,65 @@
         "-- as for a record that does not exist. Everything else is unchanged.",
         "-- Rollback (development): re-apply the 20261019040000 and 20261019010000 definitions.",
         "-- Current definitions: 20261019040000."
+      ]
+    },
+    {
+      "order": 99,
+      "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
+      "kind": "proposal",
+      "version": "20261019090000",
+      "sha256": "8f2b69ab2813f99cb8fd1e5812a5baa447088d2139ad03eb5c94ae2c128ff985",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_onb_save",
+        "taxguard_onb_submit",
+        "taxguard_onb_decide"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_onb_save",
+          "previousFile": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_onb_submit",
+          "previousFile": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_onb_decide",
+          "previousFile": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261018030000 definitions."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14 continuation, client onboarding). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018030000 (client onboarding; the current definitions of the three functions replaced here).",
+        "--",
+        "-- Save, submit and decide checked the actor's authority, then waited on the per-client onboarding lock. A client or",
+        "-- manager suspended (or whose access ended) while the request waited still completed the write, its audit and the",
+        "-- client notification. Found by Codex's uncommitted onboardingAuthorizationWait test (Phase 14 continuation",
+        "-- worktree); reproduced on the integration branch. Each function now repeats its own authority check after the",
+        "-- lock, with the same refusal codes (ONBOARDING_CLIENT_REQUIRED; PRACTICE_ACCESS_DENIED from",
+        "-- taxguard_practice_client_access). Bodies are otherwise identical to 20261018030000.",
+        "-- Rollback (development): re-apply the 20261018030000 definitions."
       ]
     }
   ]

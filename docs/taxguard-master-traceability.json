@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "0efd65e2bac57c1abe3b7c4dbd792e9877b335399b363494df46a89aeb60bf7d",
-      "bytes": 21369,
+      "sha256": "f9686d999d3d9749a4faec5e227257431eae1d7f1f3c74985baf725c0d719c93",
+      "bytes": 21590,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5358,6 +5358,19 @@
         "## 3. Live staff sign-in — source analysis (no production access)",
         "## 4. Remaining blockers",
         "## 5. Validation (2026-10-17, clean `npm ci`)"
+      ]
+    },
+    {
+      "file": "docs/development/phase14-invoice-document-completeness.md",
+      "sha256": "565359a4be732dff66e214c305f80dd3b74be0f54723790c45f2d660ddc272e5",
+      "bytes": 6477,
+      "headings": [
+        "# Phase 14 invoice-document completeness",
+        "## Reproduced defects",
+        "## Minimum correction",
+        "## Validation commands and actual results",
+        "## Recovery regression routing",
+        "## Limits and next package"
       ]
     },
     {
@@ -6410,6 +6423,12 @@
       "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
       "sha256": "5482ae6bbbef7078377217832c1b12a2155bb89fe7795f28d878d3f8ad61e26a",
       "bytes": 7458,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
+      "sha256": "8f2b69ab2813f99cb8fd1e5812a5baa447088d2139ad03eb5c94ae2c128ff985",
+      "bytes": 12671,
       "headings": []
     },
     {
@@ -7641,7 +7660,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "984c341d85e933d9a622d6145d97ed0edd695da4c1e90fa7866b36893c409ac5",
+    "src/tests/proposalCompositionSecurity.test.ts": "e0893e2f8908fccc34a1db995b119cb11f377d6c2f1f8d15a34517d2ee82f8c9",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

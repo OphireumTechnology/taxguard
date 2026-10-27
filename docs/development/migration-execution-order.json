@@ -647,6 +647,12 @@
         "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
         "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql"
+      ]
     }
   ]
 }
