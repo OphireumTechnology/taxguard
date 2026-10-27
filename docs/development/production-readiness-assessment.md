@@ -82,12 +82,12 @@ No durable router is mounted in production: `createProductionApp` refuses every 
 development-only durable routers answer 503 unless explicitly configured against a non-production project
 (REC-AUTHORITATIVE is PARTIAL). Cutover is a reviewed change after the proposals are applied.
 
-## 3. Stale documents found
+## 3. Release checklist
 
-`docs/RELEASE_CHECKLIST.md` (1.0.0-RC1) cites 78 test files and at least 1,065 tests, lists only the first four
-migrations and refers to an AI Studio sandbox without Git. It does not describe this release candidate, so it should not
-be signed. It needs to be rewritten from `staging-readiness.md` and this assessment before any sign-off. This is a
-documentation task and was not done here, because the sign-off roles on it are the owner's.
+`docs/RELEASE_CHECKLIST.md` (1.0.0-RC1) cited 78 test files and at least 1,065 tests, listed only the first four
+migrations and referred to an AI Studio sandbox without Git. It was rewritten on 2026-10-27 from `staging-readiness.md` and
+this assessment: every gate names the command, report or approver that closes it, and every box is open. The sign-off
+block (roles and names) is unchanged; filling it is the owner's.
 
 ## 4. Recommended path to a staging GO (each step needs the owner's go-ahead)
 
@@ -98,7 +98,7 @@ documentation task and was not done here, because the sign-off roles on it are t
 5. Run the e2e and provider suites against staging with synthetic users; the real-provider MFA validation.
 6. Choose and commission the malware scanner; leave every other provider uncommissioned until its own decision.
 7. Monitoring, backup and rollback rehearsal on staging.
-8. A rewritten release checklist, signed by the owner's named roles.
+8. Every gate in `docs/RELEASE_CHECKLIST.md` closed with a recorded result, and the checklist signed by the owner's named roles.
 
 Production stays NO-GO until staging is accepted, approved tax content exists for the stages the practice intends to
 use, and the owner signs the release. Live payments, live filing, live AI agents, production data changes and

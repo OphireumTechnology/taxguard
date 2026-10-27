@@ -5472,8 +5472,8 @@
     },
     {
       "file": "docs/development/production-readiness-assessment.md",
-      "sha256": "b91bbc458d36e966c8c978e3553fd0c6613ae420c54ce9c7d87d094731f5a182",
-      "bytes": 7759,
+      "sha256": "e52575c41924cf6d9937dda64c17983761576367d81c06ff4f74a1158f16cc54",
+      "bytes": 7795,
       "headings": [
         "# Production readiness assessment (2026-10-27, Phase 14, local and offline only)",
         "## 1. What the evidence shows",
@@ -5484,7 +5484,7 @@
         "### 2.4 Tax content (licensed sources, professional review)",
         "### 2.5 AI workforce (policy)",
         "### 2.6 Production cutover",
-        "## 3. Stale documents found",
+        "## 3. Release checklist",
         "## 4. Recommended path to a staging GO (each step needs the owner's go-ahead)"
       ]
     },
@@ -6212,17 +6212,17 @@
     },
     {
       "file": "docs/RELEASE_CHECKLIST.md",
-      "sha256": "161dc36ef23aedcc7f105368e42ef37832f3ea3409c74fa2b8fba6ed2e143196",
-      "bytes": 3128,
+      "sha256": "26b362a8fe68bb17612bf8fe72f32f60f3a4f440a7af8304b81a98e836aefea3",
+      "bytes": 5287,
       "headings": [
         "# TaxGuard AI — Master Production Release Gate Checklist",
-        "## 1. Source & Repository Checkpoint",
-        "## 2. Database & Migration List Verification",
-        "## 3. Environment & Configuration Audit",
-        "## 4. Automated Code & Test Verification Gates",
-        "## 5. Security & Isolation Controls",
-        "## 6. Operational & Provider Readiness",
-        "## 7. Non-Destructive Smoke Test",
+        "## 1. Source and repository",
+        "## 2. Database and migrations",
+        "## 3. Environment and configuration",
+        "## 4. Automated verification for the release commit",
+        "## 5. Security and isolation",
+        "## 6. Professional, legal and policy approvals",
+        "## 7. Operations",
         "## 8. Human Release Authorization Sign-Off"
       ]
     },

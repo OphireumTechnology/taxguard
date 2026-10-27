@@ -1,74 +1,72 @@
 # TaxGuard AI — Master Production Release Gate Checklist
 **Firm:** A/R Tax Services, LLC  
 **Application:** TaxGuard AI Operations Engine  
-**Release Version:** 1.0.0-RC1  
 **Classification:** Authoritative Release Sign-Off  
+**Revised:** 2026-10-27 (Phase 14). Supersedes the 1.0.0-RC1 checklist, which no longer described the code.
+
+**Current status: staging NO-GO, production NO-GO.** Every box below is open. Evidence and blockers:
+`docs/development/production-readiness-assessment.md`; the staging order of work: `docs/development/staging-readiness.md`.
+A box is ticked only with a recorded result (command output, report file or a named approver and date), never on the
+basis of a local synthetic test alone. Staging is accepted before any production box is attempted.
 
 ---
 
-## 1. Source & Repository Checkpoint
-- [ ] Working tree clean of uncommitted prototype or test scratch files.
-- [ ] No `.env` files or active secrets committed to source control.
-- [ ] Git presence checked (Git absent in ephemeral AI Studio sandbox; release package prepared via final transfer archive).
+## 1. Source and repository
+- [ ] The release commit is on `main`, reached through a reviewed pull request; the working tree is clean.
+- [ ] `npm run security:secrets` reports `PASS` with no findings; no `.env` file is tracked.
+- [ ] `docs/development/architecture-implementation-register.json` and `docs/taxguard-master-traceability.json` are
+  rebuilt for the release commit (`node scripts/build-local-traceability.mjs`) and their tests pass.
 
----
+## 2. Database and migrations
+- [ ] The owner has approved every file in `docs/development/migration-execution-manifest.json` (13 core migrations,
+  72 proposals and the separate append-only audit proposal), in manifest order, with Codex review of the Phase 14
+  scoping proposals (`phase14-proposal-review-dossier.md`).
+- [ ] `npm run staging:migration:release-candidate` reports `PASS` on disposable loopback PostgreSQL for the release commit.
+- [ ] `npm run staging:not-valid:review -- --check` passes, and the owner has set a validation window for each of the
+  13 NOT VALID constraints (`not-valid-constraint-review.md`).
+- [ ] Migrations were applied to staging first, restore-first and one transaction per file, and the staging schema
+  fingerprint matches the release candidate.
+- [ ] The protected production project `cvrlhixxczerytiocxid` is changed only after staging acceptance and with the
+  owner's explicit approval for that step.
 
-## 2. Database & Migration List Verification
-- [ ] `20260928000000_taxguard_core_schema.sql` (Verified)
-- [ ] `20260929000000_taxguard_complete_lifecycle_schema.sql` (Verified)
-- [ ] `20260930000000_taxguard_bookkeeping_schema.sql` (Verified)
-- [ ] `20261001000000_taxguard_practice_operations_schema.sql` (Verified)
-- [ ] Database Schema Readiness check confirms `DATABASE_READY` via `ProviderReadinessRegistry`.
+## 3. Environment and configuration
+- [ ] `scripts/staging/check-staging-config.ts --config-file <file>` reports `READY_FOR_OWNER_REVIEW` for the target
+  environment, and the owner confirmed its MANUAL areas (storage, monitoring, backup).
+- [ ] Secrets live in a managed store per environment; no value is shared between staging and production.
+- [ ] No development shortcut is active: no in-memory authority, no local AI-governance database, no test handlers,
+  no sandbox-only setting outside sandbox.
 
----
+## 4. Automated verification for the release commit
+- [ ] `npm run typecheck` and `npm run lint`: 0 errors.
+- [ ] `npx vitest run`: every file passes, nothing skipped (6051 tests in 369 files at the Phase 14 checkpoint).
+- [ ] `npm run test:db`: every file passes on disposable PostgreSQL.
+- [ ] `npm run test:e2e` with `E2E_PROFILES=default` and `E2E_PROFILES=provider`: every suite passes.
+- [ ] `npm run build` produces `dist/` and `build/server.cjs`.
+- [ ] CI is green on the release commit.
 
-## 3. Environment & Configuration Audit
-- [ ] Required production variables present in host configuration:
-  - `NODE_ENV=production`
-  - `PORT=3000`
-  - `JWT_SECRET`
-  - `SUPABASE_URL`
-  - `SUPABASE_SERVICE_ROLE_KEY`
-  - `SUPABASE_ANON_KEY`
-  - `TAXGUARD_TENANT_ID=ar-tax-services`
-- [ ] No dummy, mock, or development fallbacks active in production mode.
-- [ ] Secret scan confirms 0 plaintext API keys, passwords, or tokens in client bundles.
+## 5. Security and isolation
+- [ ] Tenant, client, engagement and tax-year isolation is re-run against staging with a second synthetic tenant.
+- [ ] Staff MFA (AAL2), recovery and recent sign-in are validated against the real identity provider in staging.
+- [ ] A header-capable edge sends HSTS and framing protection (open item in `production-route-parity.md`).
+- [ ] A malware scanner is commissioned; an EICAR sample stays quarantined; nothing is released unscanned.
+- [ ] Staff-access rate limits and the reverse-proxy hop count are set by owner decision.
 
----
+## 6. Professional, legal and policy approvals
+- [ ] IRC § 7216 consent wording approved by counsel or a qualified practitioner; the approved version is recorded.
+- [ ] A materiality policy is approved by someone other than its author, or the owner confirms that every case goes to
+  human review.
+- [ ] Approved federal and state rule content exists, with practitioner verification cases, for each stage the practice
+  will use (stages 09-18 stay blocked otherwise).
+- [ ] Retention schedules (consultation, security events, audit custody) are approved.
+- [ ] Live payments, e-signature, e-filing and each AI agent stay disabled unless separately approved; no agent is
+  commissioned without a per-agent responsibility matrix and a passed evaluation.
 
-## 4. Automated Code & Test Verification Gates
-- [ ] **TypeScript Check:** `npm run typecheck` (`tsc --noEmit`) -> 0 errors.
-- [ ] **Vitest Test Suite:** `npx vitest run` -> 78 test files, >= 1,065 tests passed, 0 failures, 0 skipped.
-- [ ] **Production Build:** `npm run build` -> Clean `dist/` and `build/server.cjs` artifacts produced.
-
----
-
-## 5. Security & Isolation Controls
-- [ ] Multi-tenant isolation verified; cross-tenant data leaks impossible.
-- [ ] Server sessions cryptographically hashed with SHA-256 in storage.
-- [ ] IDOR / BOLA defenses verified across all 18 lifecycle stages.
-- [ ] Double-entry General Ledger debits strictly equal credits.
-- [ ] Legal hold unconditionally overrides automated document purging.
-- [ ] Centralized PII and log redaction active.
-- [ ] Production API errors sanitized with unique correlation IDs.
-
----
-
-## 6. Operational & Provider Readiness
-- [ ] `GET /api/health` verified operational.
-- [ ] `GET /api/readiness` reports `DATABASE_READY` when connected.
-- [ ] `GET /api/provider-readiness` accurately identifies uncommissioned external services.
-- [ ] Backup PITR procedure verified and documented.
-- [ ] Rollback procedures documented in `docs/PRODUCTION_DEPLOYMENT.md`.
-
----
-
-## 7. Non-Destructive Smoke Test
-- [ ] Smoke test executed against target deployment:
-  ```bash
-  node scripts/production-smoke-test.mjs <TARGET_URL>
-  ```
-- [ ] All 6 non-destructive checks passed.
+## 7. Operations
+- [ ] `GET /api/health` liveness and readiness respond; administrator diagnostics require authentication.
+- [ ] Log shipping and alerts (5xx, refused-access spikes, kill-switch changes) are live and tested.
+- [ ] Provider backups with point-in-time recovery are on; the RPO and RTO are approved; a restore and the rollback of
+  the latest migration were rehearsed on staging (`backup-restore-runbook.md`).
+- [ ] The non-destructive smoke test passes against the target: `node scripts/production-smoke-test.mjs <TARGET_URL>`.
 
 ---
 
