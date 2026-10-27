@@ -8,6 +8,9 @@ import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { DurableJob, JobStatus, JobType, RetryAttempt } from './types';
 
+const JOB_STATUSES: readonly JobStatus[] = ['PENDING', 'CLAIMED', 'RUNNING', 'RETRY_SCHEDULED', 'COMPLETED', 'FAILED', 'DEAD_LETTER', 'CANCELLED'];
+const JOB_TYPES: readonly JobType[] = ['DOCUMENT_PROCESSING', 'OCR_REQUEST', 'AI_PROPOSAL', 'NOTIFICATION_DISPATCH', 'PROVIDER_SYNCHRONIZATION', 'ACCOUNTING_IMPORT', 'REPORT_GENERATION', 'ARCHIVE_GENERATION', 'SCHEDULED_COMPLIANCE_CHECK', 'RENEWAL_GENERATION', 'RETRYABLE_PROVIDER_OPERATION'];
+
 export class DurableJobQueueService {
   private jobs = new Map<string, DurableJob>();
   private leaseDeadlines = new Map<string, number>();
@@ -226,9 +229,12 @@ export class DurableJobQueueService {
   /**
    * Re-queue a dead-letter job for authorized retry
    */
-  async retryDeadLetterJob(jobId: string, authorizedAdminId: string): Promise<DurableJob> {
+  async retryDeadLetterJob(jobId: string, authorizedAdminId: string, tenantId: string): Promise<DurableJob> {
     const job = this.jobs.get(jobId);
-    if (!job) throw new Error(`JOB_NOT_FOUND: ${jobId}`);
+    // IDs are not authority. A tenant-scoped caller must not retry or learn about
+    // another tenant's job even when it has obtained the job identifier.
+    if (!job || !tenantId || job.tenantId !== tenantId) throw new Error(`JOB_NOT_FOUND: ${jobId}`);
+    if (!authorizedAdminId || typeof authorizedAdminId !== 'string') throw new Error('JOB_ADMIN_REQUIRED');
     if (job.status !== 'DEAD_LETTER' && job.status !== 'FAILED') {
       throw new Error(`INVALID_JOB_STATE: Only DEAD_LETTER or FAILED jobs can be re-queued, current: ${job.status}`);
     }
@@ -249,9 +255,11 @@ export class DurableJobQueueService {
   /**
    * Cancel an enqueued or pending job
    */
-  async cancelJob(jobId: string, authorizedUserId: string): Promise<DurableJob> {
+  async cancelJob(jobId: string, authorizedUserId: string, tenantId: string): Promise<DurableJob> {
     const job = this.jobs.get(jobId);
-    if (!job) throw new Error(`JOB_NOT_FOUND: ${jobId}`);
+    // Keep service-level scope checks even when callers also check the tenant.
+    if (!job || !tenantId || job.tenantId !== tenantId) throw new Error(`JOB_NOT_FOUND: ${jobId}`);
+    if (!authorizedUserId || typeof authorizedUserId !== 'string') throw new Error('JOB_ACTOR_REQUIRED');
     if (job.status === 'COMPLETED') {
       throw new Error('CANNOT_CANCEL_COMPLETED_JOB');
     }
@@ -284,6 +292,12 @@ export class DurableJobQueueService {
     limit?: number;
     offset?: number;
   }): { jobs: DurableJob[]; total: number } {
+    const limit = params.limit ?? 50;
+    const offset = params.offset ?? 0;
+    if (typeof params.tenantId !== 'string' || !params.tenantId.trim() || !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
+        !Number.isSafeInteger(offset) || offset < 0 || offset > 10_000 ||
+        (params.status !== undefined && !JOB_STATUSES.includes(params.status)) ||
+        (params.jobType !== undefined && !JOB_TYPES.includes(params.jobType))) throw new Error('JOB_QUERY_INVALID');
     let list = Array.from(this.jobs.values()).filter((j) => j.tenantId === params.tenantId);
 
     if (params.clientId) list = list.filter((j) => j.clientId === params.clientId);
@@ -293,9 +307,6 @@ export class DurableJobQueueService {
 
     list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const total = list.length;
-    const offset = params.offset ?? 0;
-    const limit = params.limit ?? 50;
-
     return {
       jobs: structuredClone(list.slice(offset, offset + limit)),
       total,

@@ -4,9 +4,10 @@ import path from 'node:path';
  * Never installs a package, reads a backup, starts a service or logs environment values. */
 export function discoverBackupTools(env=process.env, platform=process.platform) {
   const suffix=platform==='win32'?'.exe':'';
-  const roots=[...(env.PATH||'').split(path.delimiter).filter(Boolean)];
+  // Never execute worktree-local binaries selected through relative PATH entries.
+  const roots=[...(env.PATH||'').split(path.delimiter).filter(root=>path.isAbsolute(root))];
   const base=platform==='win32'?path.join(env.ProgramFiles||'C:/Program Files','PostgreSQL'):null;
-  if (base && fs.existsSync(base)) for (const version of fs.readdirSync(base).filter(n=>/^\d+$/.test(n)).sort((a,b)=>+b-+a)) roots.push(path.join(base,version,'bin'));
+  if (base && path.isAbsolute(base) && fs.existsSync(base)) for (const version of fs.readdirSync(base).filter(n=>/^\d+$/.test(n)).sort((a,b)=>+b-+a)) roots.push(path.join(base,version,'bin'));
   const find=(explicit,name)=> {
     if (explicit) return path.isAbsolute(explicit)&&fs.existsSync(explicit)&&fs.statSync(explicit).isFile()?fs.realpathSync(explicit):null;
     for (const root of roots) { const file=path.resolve(root,name+suffix); if (fs.existsSync(file)&&fs.statSync(file).isFile()) return fs.realpathSync(file); }

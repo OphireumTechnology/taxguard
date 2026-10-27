@@ -13,7 +13,7 @@ const auditRows = async (action: string, invoiceId: string) => (await db.pool.qu
   `SELECT actor_uid, actor_role, metadata FROM taxguard_audit_log WHERE tenant_id = $1 AND action = $2 AND metadata->>'invoiceId' = $3 ORDER BY "timestamp"`, [T, action, invoiceId])).rows;
 async function draftInvoice(key: string) {
   const id = (await store.createInvoice(T, C, 'ta-acct', key, { dueDate: '2026-04-30' }) as any).invoiceId as string;
-  const lined: any = await store.addLine(T, C, 'ta-acct', id, { serviceCode: 'TA-1040', quantity: 1 });
+  const lined: any = await store.addLine(T, C, 'ta-acct', id, { serviceCode: 'TA-1040', quantity: 1 }, 'ta-line-' + key);
   return { id, rowVersion: lined.rowVersion as number };
 }
 

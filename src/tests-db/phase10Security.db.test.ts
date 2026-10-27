@@ -22,10 +22,10 @@ describe('Phase 10 security on disposable real PostgreSQL', () => {
       const store = new BillingStore(pgRpc(client), new SandboxPaymentProvider());
       await store.upsertService('tenantA', 'p10-preparer', { serviceCode: 'P10', name: 'Synthetic service', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '100.00' });
       const invoice = await store.createInvoice('tenantA', 'p10Client', 'p10-preparer', 'p10-invoice-key', { dueDate: '2026-12-01' });
-      let state = await store.addLine('tenantA', 'p10Client', 'p10-preparer', invoice.invoiceId, { serviceCode: 'P10', quantity: '1', unitRate: '90.00', overrideReason: 'Confidential discount rationale' });
+      let state = await store.addLine('tenantA', 'p10Client', 'p10-preparer', invoice.invoiceId, { serviceCode: 'P10', quantity: '1', unitRate: '90.00', overrideReason: 'Confidential discount rationale' }, 'phase10-line-key');
       state = await store.transition('tenantA', 'p10Client', 'p10-preparer', invoice.invoiceId, 'submit', state.rowVersion);
       await store.transition('tenantA', 'p10Client', 'p10-reviewer', invoice.invoiceId, 'approve', state.rowVersion);
-      const credit = await store.requestCredit('tenantA', 'p10Client', 'p10-preparer', invoice.invoiceId, '1.00', 'Confidential credit rationale');
+      const credit = await store.requestCredit('tenantA', 'p10Client', 'p10-preparer', invoice.invoiceId, '1.00', 'Confidential credit rationale', 'phase10-credit-key');
       await store.decideCredit('tenantA', 'p10Client', 'p10-reviewer', credit.creditId, true);
       const paid = await store.paySandbox('tenantA', 'p10Client', 'p10-client', invoice.invoiceId, { amount: '2.00', idempotencyKey: 'p10-payment-key', testCard: SANDBOX_SUCCESS_CARD });
       expect(paid.invoice.balanceDue).toBe('87.00');

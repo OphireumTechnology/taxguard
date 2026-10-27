@@ -5,7 +5,8 @@
  */
 import { createHash } from 'node:crypto';
 import type { AccountingPeriod, BankReconciliation, BankTransaction, ChartOfAccount, JournalEntry, TrialBalanceReport, FinancialStatements } from './types';
-import { financialStatements, generalLedger, trialBalanceReport, type GeneralLedgerAccount, type TrialBalanceRow } from './ledgerReports';
+import { financialStatements, trialBalanceReport, type GeneralLedgerAccount, type TrialBalanceRow } from './ledgerReports';
+import { exactReportCents, reportDollars } from './reportMoney';
 
 export interface LedgerRpcClient { rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: any; error: { code?: string; message?: string } | null }> }
 export interface LedgerScope { tenantId: string; clientId: string }
@@ -132,7 +133,7 @@ export class SqlLedgerStore {
       description: input.description, reference: input.reference || null, source: input.source || 'MANUAL', isAdjusting: Boolean(input.isAdjusting),
       adjustingType: input.adjustingType || null, documentIds: input.documentIds || [],
       lines: input.lines.map(l => ({ accountId: l.accountId, debitCents: toCents(l.debit ?? 0), creditCents: toCents(l.credit ?? 0), memo: l.memo || null, taxCategory: l.taxCategory || null })) };
-    const data = await this.call('taxguard_ledger_post_entry', { ...this.base(scope, actor), p_key: input.idempotencyKey,
+    const data = await this.call('taxguard_ledger_post_entry_once', { ...this.base(scope, actor), p_key: input.idempotencyKey,
       p_hash: requestHash({ body, replaces: input.replacesEntryId || null }), p_entry: body, p_replaces: input.replacesEntryId || null });
     return this.entry(scope, data);
   }
@@ -140,7 +141,7 @@ export class SqlLedgerStore {
     return this.entry(scope, await this.call('taxguard_ledger_review_entry', { ...this.base(scope, actor), p_entry: entryId, p_decision: decision, p_note: note ?? null, p_version: expectedVersion }));
   }
   async reverseEntry(scope: LedgerScope, actor: string, input: { idempotencyKey: string; entryId: string; postingDate: string; reason: string; periodId?: string }) {
-    return this.entry(scope, await this.call('taxguard_ledger_reverse_entry', { ...this.base(scope, actor), p_key: input.idempotencyKey,
+    return this.entry(scope, await this.call('taxguard_ledger_reverse_entry_once', { ...this.base(scope, actor), p_key: input.idempotencyKey,
       p_hash: requestHash({ entryId: input.entryId, postingDate: input.postingDate, reason: input.reason, periodId: input.periodId || null }),
       p_entry: input.entryId, p_posting_date: input.postingDate, p_period: input.periodId || null, p_reason: input.reason }));
   }
@@ -177,9 +178,10 @@ export class SqlLedgerStore {
       reconciliations: (data.reconciliations as any[]).map(r => this.reconciliation(scope, r)), rawEntries: data.entries as any[] };
   }
   private async trialBalanceRows(scope: LedgerScope, actor: string, taxYear: number, asOf?: string): Promise<TrialBalanceRow[]> {
-    const rows = await this.call<any[]>('taxguard_ledger_trial_balance', { ...this.base(scope, actor), p_tax_year: taxYear, p_as_of: asOf || null });
+    const rows = await this.call<any[]>('taxguard_ledger_trial_balance_exact', { ...this.base(scope, actor), p_tax_year: taxYear, p_as_of: asOf || null });
     return rows.map(r => ({ accountId: r.accountId, accountNumber: r.accountNumber, accountName: r.accountName, accountType: r.accountType,
-      beginningDebitCents: Number(r.beginningDebitCents), beginningCreditCents: Number(r.beginningCreditCents), periodDebitCents: Number(r.periodDebitCents), periodCreditCents: Number(r.periodCreditCents) }));
+      beginningDebitCents: exactReportCents(r.beginningDebitCents), beginningCreditCents: exactReportCents(r.beginningCreditCents),
+      periodDebitCents: exactReportCents(r.periodDebitCents), periodCreditCents: exactReportCents(r.periodCreditCents) }));
   }
   async trialBalance(scope: LedgerScope, actor: string, taxYear: number, asOf?: string): Promise<TrialBalanceReport> {
     return trialBalanceReport(scope.tenantId, scope.clientId, taxYear, await this.trialBalanceRows(scope, actor, taxYear, asOf));
@@ -187,11 +189,19 @@ export class SqlLedgerStore {
   async financialStatements(scope: LedgerScope, actor: string, taxYear: number, asOf?: string): Promise<FinancialStatements> {
     return financialStatements(await this.trialBalanceRows(scope, actor, taxYear, asOf));
   }
-  async generalLedger(scope: LedgerScope, actor: string, taxYear: number, accountId?: string): Promise<GeneralLedgerAccount[]> {
-    const data = await this.read(scope, actor, taxYear, { status: 'POSTED', limit: 500, ...(accountId ? { accountId } : {}) });
-    return generalLedger(data.accounts.map(a => ({ accountId: a.id, accountNumber: a.accountNumber, accountName: a.accountName, accountType: a.accountType })),
-      data.rawEntries.map(e => ({ entryId: e.entryId, entryNumber: e.entryNumber, postingDate: date(e.postingDate), description: e.description, status: e.status,
-        lines: e.lines.map((l: any) => ({ accountId: l.accountId, debitCents: Number(l.debitCents), creditCents: Number(l.creditCents) })) })), accountId);
+  async generalLedger(scope: LedgerScope, actor: string, taxYear: number, accountId?: string,
+    filter: { fromDate?: string; toDate?: string; limit?: number } = {}): Promise<GeneralLedgerAccount[]> {
+    const rows = await this.call<any[]>('taxguard_ledger_general_ledger_exact', { ...this.base(scope, actor), p_tax_year: taxYear,
+      p_account: accountId ?? null, p_filter: filter });
+    return rows.map(r => {
+      const sign = ['ASSET', 'EXPENSE', 'COGS', 'OTHER_EXPENSE'].includes(r.accountType) ? 1n : -1n;
+      return { accountId: r.accountId, accountNumber: r.accountNumber, accountName: r.accountName, accountType: r.accountType,
+        openingBalance: reportDollars(sign * exactReportCents(r.openingCents)), endingBalance: reportDollars(sign * exactReportCents(r.endingCents)),
+        totalLineCount: Number(r.totalLineCount), detailTruncated: Number(r.totalLineCount) > r.lines.length,
+        lines: r.lines.map((l: any) => ({ entryId: l.entryId, entryNumber: l.entryNumber, postingDate: date(l.postingDate),
+          description: l.description, debit: reportDollars(l.debitCents), credit: reportDollars(l.creditCents),
+          runningBalance: reportDollars(sign * exactReportCents(l.runningCents)) })) };
+    });
   }
   /** Bookkeeper work queue (proposal 030): uncategorized and duplicate bank items, entries awaiting review, returned entries, open reconciliations, periods. */
   workQueue(scope: LedgerScope, actor: string, taxYear: number) {

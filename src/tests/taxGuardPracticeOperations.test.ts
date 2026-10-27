@@ -113,7 +113,7 @@ describe('TaxGuard Production Practice Operations Suite', () => {
       expect(deadLetters[0].id).toBe(job.id);
 
       // Admin retry
-      const retried = await globalDurableJobQueueService.retryDeadLetterJob(job.id, 'admin_user');
+      const retried = await globalDurableJobQueueService.retryDeadLetterJob(job.id, 'admin_user', 'tenantA');
       expect(retried.status).toBe('PENDING');
       expect(retried.maxAttempts).toBeGreaterThan(2);
     });

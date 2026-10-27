@@ -40,7 +40,7 @@ describe('client billing projection on a real PostgreSQL server', () => {
     await practice.setEngagementStatus(T, C, 'db-sec-mgr', eng, 'active', 1);
     await store.upsertService(T, 'db-sec-mgr', { serviceCode: 'SYN-1', name: 'Synthetic service', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '100.00' });
     const inv = (await store.createInvoice(T, C, 'db-sec-mgr', 'db-sec-invoice', { dueDate: '2026-12-31' })).invoiceId;
-    let r: any = await store.addLine(T, C, 'db-sec-mgr', inv, { serviceCode: 'SYN-1', quantity: 1, unitRate: '90.00', overrideReason: 'Synthetic override reason' });
+    let r: any = await store.addLine(T, C, 'db-sec-mgr', inv, { serviceCode: 'SYN-1', quantity: 1, unitRate: '90.00', overrideReason: 'Synthetic override reason' }, 'security-line-key');
     r = await store.transition(T, C, 'db-sec-mgr', inv, 'submit', r.rowVersion);
     await store.transition(T, C, 'db-sec-mgr2', inv, 'approve', r.rowVersion);
     const [client] = await store.list(T, C, 'db-sec-client');

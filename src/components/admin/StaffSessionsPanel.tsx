@@ -35,6 +35,14 @@ export function sessionActionMessage(code: unknown): string {
   if (code === 'SESSION_STORE_BUSY') return 'Another access change for this account is in progress. Retry in a moment.';
   return 'The server did not confirm this session action. Refresh before retrying.';
 }
+export function sessionAssuranceLabel(level: unknown): string {
+  return level === 'aal2' ? 'MFA verified' : 'MFA not verified';
+}
+export function accountSecurityStatus(state: 'loading' | 'ready' | 'error'): string {
+  if (state === 'ready') return 'Account status: Active';
+  if (state === 'error') return 'Account status could not be verified';
+  return 'Checking account status…';
+}
 const formatted = (value: string) => new Date(value).toLocaleString();
 
 export function StaffSessionsPanel({ user, authStatus, members = [], refresh = 0 }: { user: User | null; authStatus: string; members?: StaffMemberRecord[]; refresh?: number }) {
@@ -86,14 +94,17 @@ export function StaffSessionsPanel({ user, authStatus, members = [], refresh = 0
   const form = target.key === key ? target : { uid: '', reason: '' as const };
   const eligible = members.filter(m => m.uid !== user?.id && !['super_admin', 'super_administrator'].includes(m.role));
   return <section aria-labelledby="staff-sessions-heading" className="space-y-4 rounded-xl border border-slate-600 bg-[#071A2E] p-4 text-sm text-slate-200">
-    <header><h3 id="staff-sessions-heading" className="font-bold text-amber-200">Signed-in sessions</h3>
-      <p className="mt-1 text-slate-400">Durable TaxGuard sessions for your account. Device and location details are not recorded.</p></header>
+    <header className="flex flex-wrap items-center justify-between gap-2"><div><h3 id="staff-sessions-heading" className="font-bold text-amber-200">Signed-in sessions</h3>
+      <p className="mt-1 text-slate-400">Durable TaxGuard sessions for your account. Device and location details are not recorded.</p></div>
+      <button type="button" className={buttonClass} onClick={load} disabled={sessions.status === 'loading' || busy !== null}>Refresh sessions</button></header>
+    <p role="status">{accountSecurityStatus(sessions.status)}</p>
     {notice?.key === key && <p role={notice.error ? 'alert' : 'status'} className={notice.error ? 'text-red-300' : 'text-emerald-300'}>{notice.text}</p>}
     {sessions.status === 'loading' && <p role="status">Loading sessions…</p>}
     {sessions.status === 'error' && <p role="alert">Your sessions could not be loaded. <button type="button" className="underline" onClick={load}>Retry</button></p>}
     {sessions.status === 'ready' && <>
+      {sessions.items.filter(s => s.current).map(s => <p key={`current-assurance-${s.sessionId}`} role="status">Current session assurance: {sessionAssuranceLabel(s.assuranceLevel)}</p>)}
       <ul className="space-y-2">{sessions.items.map(s => <li key={s.sessionId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700 p-3">
-        <span>{s.current ? <strong className="text-white">This session</strong> : 'Other session'} · signed in {formatted(s.authenticatedAt)} · expires {formatted(s.expiresAt)} · {s.assuranceLevel === 'aal2' ? 'MFA verified' : 'Password only'}</span>
+        <span>{s.current ? <strong className="text-white">This session</strong> : 'Other session'} · created {formatted(s.createdAt)} · signed in {formatted(s.authenticatedAt)} · expires {formatted(s.expiresAt)} · {sessionAssuranceLabel(s.assuranceLevel)}</span>
         {!s.current && <button type="button" className={buttonClass} disabled={busy !== null} aria-label={'Revoke session signed in ' + formatted(s.authenticatedAt)}
           onClick={() => run(s.sessionId, signal => api.staffAccess.revokeSession(s.sessionId, signal), v => { if (typeof v?.revoked !== 'boolean') throw new Error('Unconfirmed'); return v.revoked ? 'Session revoked.' : 'That session had already ended.'; })}>Revoke</button>}
       </li>)}</ul>

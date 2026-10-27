@@ -1,8 +1,8 @@
 /**
- * Implementation-neutral refund regression contract (owner decision 2026-10-19: the Phase 15 refund design is
- * the canonical target). The same cases run against the Phase 14 keyed function today and are meant to run
- * against the unified Phase 15 contract once it is reconciled, by supplying a different adapter. Only the
- * function names, error codes and result shape differ between implementations; the guarantees do not.
+ * Implementation-neutral refund regression contract. Owner instruction 2026-10-27 (superseding the 2026-10-19
+ * decision): taxguard_bill_refund_keyed is the one canonical refund function; Phase 15's missing capabilities were
+ * ported into it by 20261019020000. The adapter shape stays so another implementation could be checked against the
+ * same guarantees.
  * Synthetic data only.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -69,7 +69,7 @@ export function defineRefundContract(adapter: RefundAdapter) {
       const store = new BillingStore(pgRpc(db.pool), new SandboxPaymentProvider());
       await store.upsertService(T, 'rf-mgr', { serviceCode: 'RF-1040', name: 'Synthetic return', category: 'INDIVIDUAL_TAX', billingMethod: 'FLAT_FEE', baseFee: '100.00' });
       invoiceId = (await store.createInvoice(T, C, 'rf-acct', 'rf-invoice-key', { dueDate: '2026-04-30' }) as any).invoiceId;
-      const lined: any = await store.addLine(T, C, 'rf-acct', invoiceId, { serviceCode: 'RF-1040', quantity: 1 });
+      const lined: any = await store.addLine(T, C, 'rf-acct', invoiceId, { serviceCode: 'RF-1040', quantity: 1 }, 'rf-line-key');
       const submitted: any = await store.transition(T, C, 'rf-acct', invoiceId, 'submit', lined.rowVersion);
       await store.transition(T, C, 'rf-mgr', invoiceId, 'approve', submitted.rowVersion);
       const paid: any = await store.recordManualPayment(T, C, 'rf-mgr', invoiceId, { amount: '100.00', method: 'CHECK', idempotencyKey: 'rf-payment-key' });

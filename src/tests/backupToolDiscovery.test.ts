@@ -9,6 +9,8 @@ it('discovers only existing compatible-tool candidates and refuses missing expli
     for (const name of ['pg_dump.exe','pg_restore.exe']) fs.writeFileSync(path.join(root,name),'synthetic fixture; never executed');
     expect(discoverBackupTools({PATH:root,ProgramFiles:root},'win32')).toEqual({dump:fs.realpathSync(path.join(root,'pg_dump.exe')),restore:fs.realpathSync(path.join(root,'pg_restore.exe'))});
     expect(discoverBackupTools({PATH:root,TAXGUARD_PG_DUMP_BIN:'relative.exe',ProgramFiles:root},'win32').dump).toBeNull();
+    // A relative PATH entry must not select an executable from the current worktree.
+    expect(discoverBackupTools({PATH:path.relative(process.cwd(),root),ProgramFiles:root},'win32')).toEqual({dump:null,restore:null});
     expect(backupToolMajor('pg_dump (PostgreSQL) 17.10')).toBe(17);
     expect(backupToolMajor('unknown')).toBeNull();
   } finally { const absolute=path.resolve(root); if (!absolute.startsWith(path.resolve(os.tmpdir())+path.sep)||!path.basename(absolute).startsWith('taxguard-backup-tools-test-')) throw new Error('TEST_CLEANUP_PATH_DENIED'); fs.rmSync(absolute,{recursive:true,force:true}); }

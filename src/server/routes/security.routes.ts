@@ -24,7 +24,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
 
   // Setup test session tokens
   const tokenClientA = createSession('user_client_1', 'client'); // Michael Perotti
-  const tokenClientB = createSession('user_client_2', 'client'); // Comfort Dondo
+  const tokenClientB = createSession('user_client_2', 'client'); // Taylor Example
   const tokenAccountantA = createSession('user_accountant_desmond', 'accountant'); // Assigned to Client 1
   const tokenAccountantB = createSession('user_accountant_marcus', 'accountant'); // Assigned to Client 2
   const tokenRecruiter = createSession('user_recruiter_sarah', 'recruiter');

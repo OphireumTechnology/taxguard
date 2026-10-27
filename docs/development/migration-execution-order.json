@@ -575,6 +575,84 @@
         "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261018130000_taxguard_ledger_report_year_guard.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+        "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+        "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql"
+      ]
     }
   ]
 }

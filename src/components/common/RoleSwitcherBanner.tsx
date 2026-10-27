@@ -9,7 +9,7 @@ export const RoleSwitcherBanner: React.FC = () => {
   const roleOptions: { role: UserRole | 'guest'; label: string; sub: string }[] = [
     { role: 'guest', label: 'Guest / Public', sub: 'Prospective Client View' },
     { role: 'client', label: 'Michael Perotti', sub: 'Individual Client Portal' },
-    { role: 'client', label: 'Comfort Dondo', sub: 'Business Client (LLC)' },
+    { role: 'client', label: 'Taylor Example', sub: 'Business Client (LLC)' },
     { role: 'accountant', label: 'Desmond Hinds', sub: 'Founder / Senior Tax Strategist' },
     { role: 'senior_reviewer', label: 'Elena Rostova, CPA', sub: 'Senior Compliance Reviewer' },
     { role: 'admin', label: 'Operations Admin', sub: 'Firm Administrator' },
@@ -66,7 +66,7 @@ export const RoleSwitcherBanner: React.FC = () => {
             >
               <option value="guest">Guest / Public Visitor View</option>
               <option value="client">Client: Michael Perotti (Individual 1040)</option>
-              <option value="business_client">Client: Comfort Dondo (LLC)</option>
+              <option value="business_client">Client: Taylor Example (LLC)</option>
               <option value="accountant">Staff: Desmond Hinds (Founder)</option>
               <option value="senior_reviewer">Reviewer: Elena Rostova, CPA</option>
               <option value="admin">Admin: Executive Operations</option>

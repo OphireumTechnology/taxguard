@@ -25,9 +25,20 @@ export function pgliteRpc(pg: () => PGlite, calls?: Array<{ name: string; args: 
 export async function applyProposals(pg: PGlite, pattern: RegExp) {
   const plan=buildMigrationManifest().entries;const selected=new Set(plan.filter(e=>e.kind==='proposal'&&pattern.test(e.file.split('/').at(-1)!)).map(e=>e.file));
   // Narrow historical fixtures exercise the current additive security overlays, never edited history.
+  if([...selected].some(file=>/20261012240000_/.test(file))){
+    selected.add('docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql');
+    selected.add('docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql');
+    selected.add('docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql');
+  }
   if([...selected].some(file=>/20261012270000_|20261014460000_/.test(file)))selected.add('docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql');
   if([...selected].some(file=>/20261012270000_/.test(file)))selected.add('docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql');
   if([...selected].some(file=>/20261012280000_/.test(file))){selected.add('docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql');selected.add('docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql');}
+  if([...selected].some(file=>/20261012280000_/.test(file)))selected.add('docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql');
+  if([...selected].some(file=>/20261012290000_/.test(file)))selected.add('docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql');
+  if([...selected].some(file=>/20261012280000_/.test(file))){selected.add('docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql');selected.add('docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql');}
+  if([...selected].some(file=>/20261012280000_/.test(file)))selected.add('docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql');
+  if([...selected].some(file=>/20261012280000_/.test(file)))selected.add('docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql');
+  if([...selected].some(file=>/20261012280000_/.test(file)))selected.add('docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql');
   for (const entry of plan.filter(e=>selected.has(e.file)))
     await pg.exec(readFileSync(entry.file, 'utf8'));
 }

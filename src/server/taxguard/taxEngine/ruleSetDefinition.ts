@@ -30,6 +30,8 @@ export class TaxEngineError extends Error {
   constructor(public readonly code: string, public readonly detail?: string) { super(code); }
 }
 const KEY = /^[a-z][a-z0-9_.]{0,79}$/;
+const record = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+const validKey = (v: unknown): v is string => typeof v === 'string' && KEY.test(v);
 const DECIMAL = /^[+-]?\d{1,15}(?:\.\d{1,8})?$/;
 
 /** Deterministic JSON: object keys sorted recursively; arrays keep their order. */
@@ -50,7 +52,7 @@ export const definitionHash = (d: RuleSetDefinition) => sha256(canonicalJson({ .
 /** Structural validation. Returns the set of source IDs the definition cites. */
 export function validateRuleSet(d: RuleSetDefinition): string[] {
   const fail = (detail: string): never => { throw new TaxEngineError('TAX_ENGINE_DEFINITION_INVALID', detail); };
-  if (!d || typeof d !== 'object') fail('definition');
+  if (!record(d)) fail('definition');
   if (!['federal', 'state'].includes(d.jurisdiction)) fail('jurisdiction');
   if (!/^[A-Z]{2}$/.test(d.jurisdictionCode || '')) fail('jurisdictionCode');
   if (!/^[A-Z0-9-]{2,16}$/.test(d.returnFamily || '')) fail('returnFamily');
@@ -60,8 +62,9 @@ export function validateRuleSet(d: RuleSetDefinition): string[] {
   if (d.steps.length === 0 || d.outputs.length === 0) fail('steps/outputs required');
   const params = new Set<string>(); const sources = new Set<string>();
   for (const p of d.parameters) {
+    if (!record(p)) fail('parameter record');
     const id = p.key + '|' + (p.filingStatus ?? '');
-    if (!KEY.test(p.key) || params.has(id)) fail('parameter key ' + p.key);
+    if (!validKey(p.key) || params.has(id)) fail('parameter key');
     if (typeof p.value !== 'string' || !DECIMAL.test(p.value)) fail('parameter value ' + p.key);
     if (!['USD', 'RATE', 'COUNT'].includes(p.unit)) fail('parameter unit ' + p.key);
     if (typeof p.sourceId !== 'string' || !/^[A-Za-z0-9_.:-]{3,80}$/.test(p.sourceId)) fail('parameter source ' + p.key);
@@ -71,10 +74,10 @@ export function validateRuleSet(d: RuleSetDefinition): string[] {
   }
   const paramKeys = new Set(d.parameters.map(p => p.key));
   const inputs = new Set<string>();
-  for (const i of d.inputs) { if (!KEY.test(i.factPath) || inputs.has(i.factPath) || !['USD', 'COUNT'].includes(i.unit) || typeof i.required !== 'boolean') fail('input ' + i.factPath); inputs.add(i.factPath); }
+  for (const i of d.inputs) { if (!record(i) || !validKey(i.factPath) || inputs.has(i.factPath) || !['USD', 'COUNT'].includes(i.unit) || typeof i.required !== 'boolean') fail('input'); inputs.add(i.factPath); }
   const steps = new Set<string>();
   for (const s of d.steps) {
-    if (!KEY.test(s.id) || steps.has(s.id) || inputs.has(s.id)) fail('step id ' + s.id);
+    if (!record(s) || !validKey(s.id) || steps.has(s.id) || inputs.has(s.id)) fail('step id');
     if (!STEP_OPS.includes(s.op)) fail('step op ' + s.id);
     if (!Array.isArray(s.args) || s.args.length < 1 || s.args.length > 50) fail('step args ' + s.id);
     const arity: Record<StepOp, [number, number]> = { sum: [1, 50], subtract: [2, 2], multiply: [2, 2], min: [2, 50], max: [2, 50], floor_zero: [1, 1], round: [1, 1] };
@@ -83,6 +86,7 @@ export function validateRuleSet(d: RuleSetDefinition): string[] {
     if (s.rounding !== undefined && !ROUNDING_MODES.includes(s.rounding)) fail('step rounding ' + s.id);
     if (typeof s.explanation !== 'string' || s.explanation.trim().length < 3 || s.explanation.length > 500) fail('step explanation ' + s.id);
     for (const a of s.args) {
+      if (typeof a !== 'string') fail('step reference');
       const [kind, ref] = [a.slice(0, a.indexOf(':')), a.slice(a.indexOf(':') + 1)];
       const ok = kind === 'input' ? inputs.has(ref) : kind === 'param' ? paramKeys.has(ref) : kind === 'step' ? steps.has(ref) : kind === 'const' ? DECIMAL.test(ref) : false;
       if (!ok) fail(`step ${s.id} reference ${a}`); // only earlier steps: `steps` holds predecessors only
@@ -90,7 +94,7 @@ export function validateRuleSet(d: RuleSetDefinition): string[] {
     steps.add(s.id);
   }
   const outKeys = new Set<string>();
-  for (const o of d.outputs) { if (!KEY.test(o.key) || outKeys.has(o.key) || !steps.has(o.step)) fail('output ' + o.key); outKeys.add(o.key); }
+  for (const o of d.outputs) { if (!record(o) || !validKey(o.key) || outKeys.has(o.key) || !steps.has(o.step)) fail('output'); outKeys.add(o.key); }
   return [...sources].sort();
 }
 
@@ -104,6 +108,8 @@ export function evaluateRuleSet(d: RuleSetDefinition, request: CalculationReques
   validateRuleSet(d);
   if (!request || !Array.isArray(request.inputs) || request.inputs.length > 500) throw new TaxEngineError('TAX_ENGINE_INPUT_INVALID', 'inputs');
   if (request.filingStatus !== undefined && !/^[a-z_]{2,40}$/.test(request.filingStatus)) throw new TaxEngineError('TAX_ENGINE_INPUT_INVALID', 'filingStatus');
+  // Check untrusted records before the sorting comparator dereferences their fact paths.
+  if (request.inputs.some(i => !record(i) || !validKey(i.factPath))) throw new TaxEngineError('TAX_ENGINE_INPUT_INVALID', 'input record');
   const declared = new Map(d.inputs.map(i => [i.factPath, i]));
   const given = new Map<string, TaxDecimal>();
   const normalizedInputs = [...request.inputs].sort((a, b) => a.factPath.localeCompare(b.factPath)).map(i => {

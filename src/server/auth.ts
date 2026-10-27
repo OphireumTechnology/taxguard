@@ -211,7 +211,7 @@ export function initSeedPasswords() {
   if (clientSeed) {
     const clientHash = hashPassword(clientSeed);
     db.userPasswords.set('m.perotti@example.com', clientHash);
-    db.userPasswords.set('comfort.d@example.com', clientHash);
+    db.userPasswords.set('taylor.example@example.com', clientHash);
     db.userPasswords.set('suspended.test@example.com', clientHash);
   }
 

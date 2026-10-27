@@ -185,6 +185,16 @@ describe('AI-4 kills, persistence and A00 boundary',()=>{
     const out=await gateway(switching).execute('valid',c);expect(out.status).toBe('ADVISORY');expect(provider.mock.calls[0][0].input.purpose).toBe('IDENTIFY_REVIEW_QUESTIONS');expect(tools).not.toHaveBeenCalled();
   });
   it('blocks output acceptance on kill-switch change during transport',async()=>{provider.mockImplementation(async()=>{await kill('GLOBAL');return response();});await expect(gateway().execute('valid',await context())).rejects.toThrow('AI_KILL_SWITCH_ACTIVE');expect(provider).toHaveBeenCalledTimes(1);expect(tools).not.toHaveBeenCalled();});
+  it('blocks output acceptance when case assignment is revoked during transport',async()=>{
+    provider.mockImplementation(async()=>{await pg.exec("UPDATE taxguard_case_assignments SET active=false WHERE uid='preparer'");return response();});
+    const c=await context();
+    await expect(gateway().execute('valid',c)).rejects.toThrow('AI_CASE_ACCESS_DENIED');
+    expect(provider).toHaveBeenCalledTimes(1);
+    expect(tools).not.toHaveBeenCalled();
+    const run=await pg.query<{status:string}>('SELECT status FROM ai_runs WHERE request_id=$1',[`gateway_${c.operation_id}`]);
+    expect(run.rows).toEqual([{status:'FAILED'}]);
+    expect((await pg.query('SELECT * FROM ai_authoritative_actions')).rows).toEqual([]);
+  });
   it('rechecks switches before a safe retry',async()=>{provider.mockImplementation(async()=>{await kill('GLOBAL');throw new ProviderNotSentError();});await expect(gateway().execute('valid',await context())).rejects.toThrow('AI_KILL_SWITCH_ACTIVE');expect(provider).toHaveBeenCalledTimes(1);expect(tools).not.toHaveBeenCalled();});
   it.each(['admit','reserveAttempt'])('fails closed on %s audit outage',async method=>{
     const c=await context();const broken:GatewayStore={admit:(...args)=>store.admit(...args),reserveAttempt:(...args)=>store.reserveAttempt(...args),finish:(...args)=>store.finish(...args),[method]:async()=>{throw new Error('private audit failure');}};

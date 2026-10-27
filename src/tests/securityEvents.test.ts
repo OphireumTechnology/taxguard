@@ -62,9 +62,18 @@ describe('proposal 048: recording', () => {
   it('bounds the tenant as a whole, so rotating sources cannot grow the log without limit', async () => {
     await fixture.pg.exec(`DELETE FROM taxguard_security_event_windows WHERE tenant_id = 'tenantB'`);
     const before = (await rows()).length; let recorded = 0;
-    for (let i = 0; i < 640; i++) if (await record({ p_fingerprint: i.toString(16).padStart(32, '0'), p_tenant: 'tenantB', p_category: 'AUTH' }) === 'RECORDED') recorded++;
-    expect(recorded).toBe(600);
-    expect((await rows()).length - before).toBe(600);
+    // Keep now() fixed for the whole burst. The cap is per minute, so a wall-clock minute
+    // rollover during 640 local RPCs must not split this single acceptance scenario in two.
+    await fixture.pg.exec('BEGIN');
+    try {
+      for (let i = 0; i < 640; i++) if (await record({ p_fingerprint: i.toString(16).padStart(32, '0'), p_tenant: 'tenantB', p_category: 'AUTH' }) === 'RECORDED') recorded++;
+      expect(recorded).toBe(600);
+      expect((await rows()).length - before).toBe(600);
+      await fixture.pg.exec('COMMIT');
+    } catch (error) {
+      await fixture.pg.exec('ROLLBACK');
+      throw error;
+    }
     // Another tenant still records.
     expect(await record({ p_fingerprint: '12'.repeat(16) })).toBe('RECORDED');
   }, 60000);
