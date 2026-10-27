@@ -55,6 +55,11 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **Calculation inputs cite durable evidence (Block 65).** Review-only proposal `20261018190000`: each input of a
+  calculation run must cite a decided extracted value (value-checked) or a reviewed document of the case; recording and
+  approval refuse unresolved citations, and approval records an immutable lineage snapshot shown per run in Case
+  Workflow. PostgreSQL HTTP test, unit test, suite 07 browser journey. **Owner review point:** whether document-level
+  citations are acceptable evidence.
 - **Stage 03 requires decided extraction proposals (Block 64).** Review-only proposal `20261018180000`: Validate is refused
   while an OCR proposal on a current document is undecided; reviewed documents with undecided proposals stay in the
   review queue; failed gate checks read in plain language. PGlite (6), PostgreSQL transition test, suite 03 browser journey. **Owner review point:** confirm Validate (not Collect) is the right stage.

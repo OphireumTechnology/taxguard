@@ -48,6 +48,7 @@ export const taxEngineService = {
   runTests: (ruleSetId: string) => request<{ testCount: number; passedCount: number; allPassed: boolean }>('POST', '/rule-sets' + id(ruleSetId) + '/run-tests', {}),
   caseRuns: (caseId: string) => request<{ items: CalculationRun[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/runs').then(r => r.items),
   reviewRun: (runId: string, decision: 'approve' | 'reject', note: string) => request<CalculationRun>('POST', '/runs' + id(runId) + '/' + decision, { note }),
+  runLineage: (runId: string) => request<RunLineage>('GET', '/runs' + id(runId) + '/lineage'),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -120,6 +121,27 @@ export interface CalculationRun { run_id: string; rule_set_id: string; tax_year:
   engine_version: string; outputs: Record<string, string>; requested_by: string; created_at: string; reviewed_by: string | null; reviewed_at: string | null;
   review_note: string | null; returnUse: 'BLOCKED' }
 export const isSha256 = (v: string) => /^[a-f0-9]{64}$/.test(v.trim());
+/** What a cited evidence id resolved to (proposal 20261018190000): a decided extracted value, a reviewed document, or why not. */
+export type EvidenceResolution = { unresolved: string } | { kind: 'DOCUMENT'; documentId: string; documentVersion: number; documentSha256: string }
+  | { kind: 'EXTRACTION'; fieldId: string; fieldKey: string; decision: 'ACCEPTED' | 'CORRECTED'; decidedValue: string; decidedBy: string | null;
+    documentId: string; documentVersion: number; documentSha256: string };
+export interface RunLineage { runId: string; status: CalculationRun['status']; recorded: boolean; complete: boolean; returnUse: 'BLOCKED';
+  citations: Array<{ factPath: string; value: string | null; ref: string; resolution: EvidenceResolution; recordedBy?: string; recordedAt?: string }> }
+export const EVIDENCE_REASON_LABELS: Record<string, string> = {
+  NOT_FOUND: 'no such evidence for this client', OUT_OF_SCOPE: 'belongs to another engagement or tax year', NOT_DECIDED: 'the extracted value is not decided yet',
+  VALUE_REJECTED: 'the extracted value was rejected', DOCUMENT_SUPERSEDED: 'a newer version of the document replaced it',
+  DOCUMENT_NOT_REVIEWED: 'the document is not reviewed', VALUE_MISMATCH: 'the decided value differs from the input',
+  UNRECOGNISED_REFERENCE: 'cite extraction:<field id> or document:<document id>',
+};
+/** The server's detail for TAX_CALC_EVIDENCE_UNRESOLVED: comma-separated factPath|ref|reason. */
+export function unresolvedCitations(detail?: string): Array<{ factPath: string; ref: string; reason: string }> {
+  return (detail ?? '').split(',').map(s => s.split('|')).filter(p => p.length === 3).map(([factPath, ref, reason]) => ({ factPath, ref, reason }));
+}
+export function evidenceText(r: EvidenceResolution): string {
+  if ('unresolved' in r) return 'Unresolved: ' + (EVIDENCE_REASON_LABELS[r.unresolved] ?? r.unresolved);
+  const doc = `document ${r.documentId} v${r.documentVersion} (sha256 ${r.documentSha256.slice(0, 12)}…)`;
+  return r.kind === 'DOCUMENT' ? 'Reviewed ' + doc : `${r.fieldKey} = ${r.decidedValue}, ${r.decision.toLowerCase()}${r.decidedBy ? ' by ' + r.decidedBy : ''}, from ${doc}`;
+}
 
 export function taxEngineMessage(error: unknown): string {
   if (!(error instanceof TaxEngineRequestError)) return 'The tax rules service did not confirm this action. Refresh and try again.';
@@ -170,5 +192,7 @@ export function taxEngineMessage(error: unknown): string {
     TAX_ENGINE_STORE_UNAVAILABLE: 'The tax rules service is not enabled in this environment.',
   };
   if (error.code === 'TAX_SOURCE_NOT_VERIFIED') return `Submit refused: source ${error.detail ?? ''} is not verified yet.`.replace('  ', ' ');
+  if (error.code === 'TAX_CALC_EVIDENCE_UNRESOLVED') return 'Refused: every input must cite a reviewed document or a decided extracted value of this case. '
+    + (unresolvedCitations(error.detail).map(u => `${u.factPath} (${u.ref}): ${EVIDENCE_REASON_LABELS[u.reason] ?? u.reason}`).join('; ') || 'No input cites evidence.');
   return (error.code && known[error.code]) || (error.status === 403 ? 'Your role is not authorized for this action.' : 'The tax rules service did not confirm this action.');
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "9ccf86af6b35a71052a07129e63fd46b495de3b71ded368fd92c0d18bffca4d3",
+  "executionPlanSha256": "23421df494e30a51a803f74a2b5c83d786ab32f86ccd7c2359f573e081a49d54",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4615,6 +4615,83 @@
         "-- for the case's client, engagement and tax year is undecided. Superseded versions and rejected documents do not",
         "-- count: their proposals can no longer be used. The check is server-derived; the caller never supplies it.",
         "-- Stages 02 and 06 and every other stage are identical to 20261018050000; who may attest is unchanged."
+      ]
+    },
+    {
+      "order": 87,
+      "file": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+      "kind": "proposal",
+      "version": "20261018190000",
+      "sha256": "0867b12a58af92fded4b3913c8fa62dbc85e8ab03180791bc5f3e1b33fc755e4",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_calc_input_lineage",
+        "taxguard_tax_lineage_immutable",
+        "taxguard_tax_evidence_resolve",
+        "taxguard_tax_run_citations",
+        "taxguard_tax_unresolved_citations",
+        "taxguard_tax_run_record",
+        "taxguard_tax_run_review",
+        "taxguard_tax_run_lineage"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_tax_run_record",
+          "previousFile": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_review",
+          "previousFile": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 033 definition of taxguard_tax_run_record and the 20261018090000 definition of"
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_calc_input_lineage FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_evidence_resolve(public.taxguard_cases, text, text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_run_citations(public.taxguard_cases, jsonb) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_unresolved_citations(jsonb) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_lineage_immutable() FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_run_record(text, text, text, jsonb) FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_run_review(text, text, uuid, text, text) FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_run_lineage(text, text, uuid) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_tax_run_record(text, text, text, jsonb) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_tax_run_review(text, text, uuid, text, text) TO service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_tax_run_lineage(text, text, uuid) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 5,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14, evidence-to-conclusion lineage for calculation runs). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposals 026 (case workflow), 027 (document vault: taxguard_documents, taxguard_extracted_data and its decision",
+        "-- columns), 033 (tax engine foundation: taxguard_tax_calc_runs and the current definition of taxguard_tax_run_record),",
+        "-- 20261018060000 (engagement-scoped access) and 20261018090000 (current definition of taxguard_tax_run_review).",
+        "--",
+        "-- Every calculation input carries evidenceIds, but the database stored them as free text: nothing tied an input to the",
+        "-- document or reviewed value it came from, so a reviewer could approve a run whose cited evidence did not exist. Each",
+        "-- citation must now name durable evidence of the case's client, engagement and tax year:",
+        "--   extraction:<field uuid>  an extracted value staff ACCEPTED or CORRECTED, on the current version of a reviewed",
+        "--                            (VERIFIED) document; its decided value must equal the input exactly (numerically).",
+        "--   document:<document id>   the current version of a reviewed (VERIFIED), clean document. The value is the preparer's",
+        "--                            reading of it and is confirmed by the reviewer's approval, not by the database."
       ]
     }
   ]

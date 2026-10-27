@@ -7,6 +7,16 @@ import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEng
 // review, and stage 9 still blocked. SYNTHETIC values only — nothing here is tax law.
 afterEach(async ctx => { if (ctx.task.result?.state === 'fail') await dumpOnFailure(ctx.task.name); });
 afterAll(closeBrowser);
+// Calculation inputs cite durable evidence (proposal 20261018190000): the current version of a reviewed document of the
+// case's engagement year, accepted in suite 02.
+async function reviewedDocument(token: string, engagementId: string) {
+  const docs = (await api(token, 'GET', `/api/vault/clients/${C}/documents`)).body.items as any[];
+  const latest = new Map<string, any>();
+  for (const d of docs) if (!latest.has(d.documentId) || latest.get(d.documentId).version < d.version) latest.set(d.documentId, d);
+  const found = [...latest.values()].find(d => d.engagementId === engagementId && d.taxYear === 2025 && d.status === 'VERIFIED' && d.quarantineStatus === 'CLEAN');
+  expect(found, 'a reviewed document of the engagement year').toBeTruthy();
+  return 'document:' + found.documentId;
+}
 
 describe('tax engine foundation on the real server', () => {
   it('runs end to end with maker-checker at every step and returns stay blocked', async () => {
@@ -40,13 +50,20 @@ describe('tax engine foundation on the real server', () => {
     // A case for the engagement year (created in earlier files when run in order; created here otherwise).
     let caseId = (await api(mgr, 'GET', '/api/cases')).body.items?.find((c: any) => c.clientId === C && c.taxYear === 2025)?.caseId;
     if (!caseId) caseId = (await api(mgr, 'POST', '/api/cases', { clientId: C, engagementId, taxYear: 2025, returnFamily: '1040' }, 'e2e-tax-engine-case')).body.caseId;
-    const inputs = [{ factPath: 'synthetic.income_a', value: '5000.00', evidenceIds: ['doc:e2e-synthetic'] }];
+    // Evidence that resolves to nothing is refused before a run is recorded.
+    expect((await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/runs`, { ruleSetId: draft.body.ruleSetId,
+      inputs: [{ factPath: 'synthetic.income_a', value: '5000.00', evidenceIds: ['doc:e2e-synthetic'] }] })).body)
+      .toEqual({ code: 'TAX_CALC_EVIDENCE_UNRESOLVED', detail: 'synthetic.income_a|doc:e2e-synthetic|UNRECOGNISED_REFERENCE' });
+    const inputs = [{ factPath: 'synthetic.income_a', value: '5000.00', evidenceIds: [await reviewedDocument(mgr, engagementId)] }];
     const run = await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/runs`, { ruleSetId: draft.body.ruleSetId, inputs });
     expect(run.status).toBe(201);
     expect(run.body).toMatchObject({ status: 'COMPUTED', synthetic: true, returnUse: 'BLOCKED', outputs: { synthetic_base: '4000.00', synthetic_amount: '290.00' } });
     expect((await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/runs`, { ruleSetId: draft.body.ruleSetId, inputs })).body).toMatchObject({ run_id: run.body.run_id, replayed: true });
     expect((await api(acct, 'POST', `/api/tax-engine/runs/${run.body.run_id}/approve`, { note: 'Self review attempt' })).status).toBe(403);
-    expect((await api(rev, 'POST', `/api/tax-engine/runs/${run.body.run_id}/approve`, { note: 'Synthetic inputs traced to evidence' })).body).toMatchObject({ status: 'REVIEW_APPROVED', returnUse: 'BLOCKED' });
+    expect((await api(rev, 'POST', `/api/tax-engine/runs/${run.body.run_id}/approve`, { note: 'Synthetic inputs traced to evidence' })).body)
+      .toMatchObject({ status: 'REVIEW_APPROVED', returnUse: 'BLOCKED', lineageRecorded: 1 });
+    expect((await api(mgr, 'GET', `/api/tax-engine/runs/${run.body.run_id}/lineage`)).body).toMatchObject({ recorded: true, complete: true,
+      citations: [{ factPath: 'synthetic.income_a', ref: inputs[0].evidenceIds[0], resolution: { kind: 'DOCUMENT', documentId: inputs[0].evidenceIds[0].slice('document:'.length) } }] });
     // Stage 9 remains blocked regardless of reviewed foundation runs.
     const detail = (await api(mgr, 'GET', `/api/cases/${caseId}`)).body;
     if (detail.case.activeStage === 9) expect(detail.stagePolicy).toMatchObject({ evidence: 'BLOCKED', dependency: 'VERIFIED_TAX_ENGINE_REQUIRED' });
@@ -102,11 +119,13 @@ describe('tax engine foundation on the real server', () => {
     await rev.context.close();
   });
 
-  it('calculation runs in Case Workflow: the preparer cannot review their own run; the independent reviewer approves it', async () => {
+  it('calculation runs in Case Workflow: the preparer cannot review their own run; the reviewer checks its evidence and approves it', async () => {
     const [mgr, acct] = [await apiLogin('e2e-mgr'), await apiLogin('e2e-acct')];
-    const caseId = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025).caseId;
+    const target = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025);
+    const caseId = target.caseId;
     const ruleSetId = (await api(mgr, 'GET', '/api/tax-engine/rule-sets?taxYear=2025')).body.items.find((r: any) => r.returnFamily === 'SYN-1' && r.status === 'APPROVED').ruleSetId;
-    const run = await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/runs`, { ruleSetId, inputs: [{ factPath: 'synthetic.income_a', value: '6000.00', evidenceIds: ['doc:e2e-console'] }] });
+    const evidence = await reviewedDocument(mgr, target.engagementId);
+    const run = await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/runs`, { ruleSetId, inputs: [{ factPath: 'synthetic.income_a', value: '6000.00', evidenceIds: [evidence] }] });
     expect(run.status, run.body?.code).toBe(201);
     const runLabel = `Review run ${run.body.run_id.slice(0, 8)}`;
     const NOTE = 'Synthetic inputs traced to the source document';
@@ -127,10 +146,18 @@ describe('tax engine foundation on the real server', () => {
     // The independent reviewer approves it in the same view.
     const rev = await staffLogin('e2e-rev');
     await openCase(rev);
+    // The reviewer reads what each input cites before deciding: resolved now, recorded on approval.
+    const short = run.body.run_id.slice(0, 8);
+    await rev.page.getByRole('button', { name: `Show evidence for run ${short}` }).click();
+    const evidenceView = rev.page.getByRole('region', { name: `Evidence for run ${short}` });
+    await evidenceView.getByText('Every input cites resolved evidence. It is recorded when the run is approved.').waitFor();
+    expect(await evidenceView.innerText()).toContain(`synthetic.income_a = 6000.00 · ${evidence} · Reviewed document ${evidence.slice('document:'.length)} v`);
     const revForm = rev.page.getByRole('form', { name: runLabel });
     await revForm.getByLabel('Review note').fill(NOTE);
     await revForm.getByRole('button', { name: 'Approve run' }).click();
     await sees(rev.page, 'Calculation run approved.');
+    await rev.page.getByRole('button', { name: `Show evidence for run ${short}` }).click();
+    await rev.page.getByRole('region', { name: `Evidence for run ${short}` }).getByText('Evidence recorded when the run was approved.').waitFor();
     const after = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/runs`)).body.items.find((r: any) => r.run_id === run.body.run_id);
     expect(after).toMatchObject({ status: 'REVIEW_APPROVED', review_note: NOTE, returnUse: 'BLOCKED' });
     expect(realErrors(rev)).toEqual([]);

@@ -368,15 +368,19 @@
       "id": "TAX-EVIDENCE",
       "name": "Evidence layer and provenance",
       "category": "Tax pipeline",
-      "status": "PARTIAL",
+      "status": "BROWSER_VERIFIED",
       "implementation": [
-        "src/server/taxguard/authority.repository.ts",
-        "src/server/taxguard/documents/documentVaultStore.ts"
+        "src/server/taxguard/documents/documentVaultStore.ts",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+        "src/server/taxguard/taxEngine/taxEngineStore.ts",
+        "src/components/workspace/RunEvidence.tsx"
       ],
       "tests": [
-        "src/tests/caseAuthorityHttp.test.ts"
+        "src/tests-db/taxCalcInputLineage.db.test.ts",
+        "src/tests/runEvidence.test.tsx",
+        "src/tests-e2e/07-tax-engine.e2e.test.ts"
       ],
-      "remainingGap": "Case-authority evidence lives in a process-local adapter, refused in production (Block 39); durable evidence-to-conclusion lineage is missing."
+      "remainingGap": "Calculation inputs cite decided extracted values or reviewed documents, and approval records an immutable lineage snapshot (Block 65); the proposal is review-only, document-level citations await an owner decision, and lineage ends at the calculation run: nothing yet links runs to return lines (TAX-FORM-MAPPING). The process-local case-authority evidence adapter stays refused in production (Block 39)."
     },
     {
       "id": "TAX-DOC-INTELLIGENCE",

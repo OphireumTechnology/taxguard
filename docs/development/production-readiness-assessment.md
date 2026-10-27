@@ -47,7 +47,7 @@ Each blocker below is outside what development can close on its own. The owner c
 ### 2.1 Approvals of existing work (owner, reviewers)
 | Blocker | Evidence | Decides |
 |---|---|---|
-| 13 core migrations, 73 review-only SQL proposals and the separate append-only audit proposal, applied in manifest order | `migration-execution-manifest.json`, release-candidate check | Owner, with Codex review; the six Phase 14 scoping proposals per `phase14-proposal-review-dossier.md` |
+| 13 core migrations, 74 review-only SQL proposals and the separate append-only audit proposal, applied in manifest order | `migration-execution-manifest.json`, release-candidate check | Owner, with Codex review; the six Phase 14 scoping proposals per `phase14-proposal-review-dossier.md` |
 | 13 NOT VALID constraints need a validation window | `not-valid-constraint-review.md` | Owner |
 | IRC § 7216 consent wording (purposes, recipients, duration, revocation) | Stage 01 is consent-gated; no approved version exists | Counsel or a qualified practitioner, then the owner |
 | Materiality policy (thresholds, minimum AI confidence, whether automated continuation is ever allowed) | none seeded; every case goes to a person | Owner |
@@ -68,8 +68,9 @@ approval); AI provider, models, prompts and budgets.
 ### 2.4 Tax content (licensed sources, professional review)
 Stages 09-18 need approved federal and state rule content with year and jurisdiction provenance and practitioner test
 cases. TaxGuard ships no tax rules; every calculation, research memo, diagnostic and risk result states
-`returnUse: BLOCKED`. Form mapping has no evidence-to-line lineage; durable evidence-to-conclusion lineage is missing
-(TAX-EVIDENCE, TAX-FORM-MAPPING are PARTIAL).
+`returnUse: BLOCKED`. Calculation inputs must cite a decided extracted value or a reviewed document of the case, and
+approval records an immutable lineage snapshot (Block 65, review-only proposal `20261018190000`; TAX-EVIDENCE is
+BROWSER_VERIFIED). Form mapping still has no evidence-to-line lineage (TAX-FORM-MAPPING is PARTIAL).
 
 ### 2.5 AI workforce (policy)
 All 61 agents are DRAFT, with no model, prompt or budget. A00, A10 and A34 have bounded, test-only compatibility.

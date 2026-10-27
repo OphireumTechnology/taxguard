@@ -4,6 +4,7 @@ import { CaseReadinessPanel } from './CaseReadinessPanel';
 import { caseMessage, caseService, checkLabel, dependencyLabel, restaffCandidates, stageLabel, type CaseDetail, type CaseQueueItem } from '../../services/caseService';
 import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
 import { taxEngineMessage, taxEngineService, type CalculationRun } from '../../services/taxEngineService';
+import { RunEvidence } from './RunEvidence';
 
 const label = (v: string) => v.replace(/_/g, ' ');
 
@@ -134,12 +135,13 @@ export function CaseWorkflowPanel() {
           {runs.status === 'error' && <p role="alert">{runs.message}</p>}
           {runs.status === 'ready' && runs.items.length === 0 && <p role="status">No calculation runs are recorded for this case.</p>}
           {runs.items.length > 0 && <table><caption className="sr-only">Calculation runs for this case</caption>
-            <thead><tr>{['Recorded', 'Outputs', 'Status', 'Requested / reviewed by', 'Review'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+            <thead><tr>{['Recorded', 'Outputs', 'Status', 'Requested / reviewed by', 'Evidence', 'Review'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>{runs.items.map(r => <tr key={r.run_id}>
               <td>{new Date(r.created_at).toLocaleString()}{r.synthetic ? ' (synthetic)' : ''}</td>
               <td>{Object.entries(r.outputs).map(([k, v]) => k + ' = ' + v).join('; ')}</td>
               <td>{r.status.replace(/_/g, ' ').toLowerCase()}{r.review_note ? ` · ${r.review_note}` : ''}</td>
               <td>{r.requested_by}{r.reviewed_by ? ` / ${r.reviewed_by}` : ''}</td>
+              <td><RunEvidence key={r.run_id} runId={r.run_id} refreshKey={r.status} /></td>
               <td>{r.status === 'COMPUTED' && <form aria-label={`Review run ${r.run_id.slice(0, 8)}`} onSubmit={e => e.preventDefault()}>
                 <label>Review note<textarea value={runNotes[r.run_id] ?? ''} maxLength={1000} onChange={e => setRunNotes(n => ({ ...n, [r.run_id]: e.target.value }))} /></label>
                 <button type="button" disabled={busy || (runNotes[r.run_id] ?? '').trim().length < 10} onClick={() => decideRun(r.run_id, 'approve')}>Approve run</button>

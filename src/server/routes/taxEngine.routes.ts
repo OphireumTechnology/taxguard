@@ -53,6 +53,7 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/cases/:caseId/runs', run(async req => ({ items: await store().runs(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
   router.post('/cases/:caseId/runs', run(req => store().calculate(t(req), u(req), req.params.caseId, String(req.body?.ruleSetId ?? ''),
     { filingStatus: typeof req.body?.filingStatus === 'string' ? req.body.filingStatus : undefined, inputs: Array.isArray(req.body?.inputs) ? req.body.inputs : [] }), 201));
+  router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));
   router.post('/runs/:runId/:decision(approve|reject)', run(req => store().reviewRun(t(req), u(req), req.params.runId, req.params.decision as 'approve' | 'reject', note(req.body?.note) ?? '')));
   // Tax research memos for a case (proposal 20261018150000). Scope, authority levels and maker-checker are enforced by
   // the database; nothing here makes research authoritative for a return.

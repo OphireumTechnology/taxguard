@@ -19,7 +19,7 @@ basis of a local synthetic test alone. Staging is accepted before any production
 
 ## 2. Database and migrations
 - [ ] The owner has approved every file in `docs/development/migration-execution-manifest.json` (13 core migrations,
-  73 proposals and the separate append-only audit proposal), in manifest order, with Codex review of the Phase 14
+  74 proposals and the separate append-only audit proposal), in manifest order, with Codex review of the Phase 14
   scoping proposals (`phase14-proposal-review-dossier.md`).
 - [ ] `npm run staging:migration:release-candidate` reports `PASS` on disposable loopback PostgreSQL for the release commit.
 - [ ] `npm run staging:not-valid:review -- --check` passes, and the owner has set a validation window for each of the

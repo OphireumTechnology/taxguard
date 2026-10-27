@@ -713,6 +713,36 @@ could mean "the UI claims something the backend cannot deliver".
     action. The reviewer accepts the value, attests again and Validate completes.
   - `caseWorkflowPanel.test`: plain labels.
 
+  **Calculation inputs cite durable evidence (Block 65).** Review-only proposal
+  `20261018190000_taxguard_tax_calc_input_lineage`. Every calculation input already carried `evidenceIds`, but they were
+  free text that nothing checked, so a reviewer could approve a run whose cited evidence did not exist.
+  - **What a citation must name.** `extraction:<field id>`: an extracted value staff accepted or corrected, on the current
+    version of a reviewed document of the case's client, engagement and year, whose decided value equals the input
+    (numerically). `document:<document id>`: the current version of a reviewed, clean document of that scope; the value is
+    the preparer's reading of it, confirmed by the reviewer's approval, not by the database.
+  - **Recording a run** (`taxguard_tax_run_record`, current definition `20261012330000`) refuses unresolved citations with
+    `TAX_CALC_EVIDENCE_UNRESOLVED` and a detail of input, citation and reason (not found, other scope, not decided,
+    rejected value, superseded document, document not reviewed, value mismatch, unrecognised reference). A replay is
+    returned unchanged, as before.
+  - **Approval** (`taxguard_tax_run_review`, current definition `20261018090000`) resolves every citation again, since a
+    document can be replaced after the run, and records what each resolved to in `taxguard_tax_calc_input_lineage`, in
+    the same transaction. The lineage never changes (update and delete refused). Rejection needs and records none. Who may
+    review, maker-checker and the note rule are unchanged and checked first.
+  - **Reading it.** `GET /api/tax-engine/runs/:runId/lineage` (the case's preparer and reviewer, and practice managers)
+    returns the recorded lineage for an approved run and the live resolution otherwise. Case Workflow shows it per run.
+  - **Owner review point.** Whether document-level citations, whose value the database cannot check, are acceptable
+    evidence, or only decided extracted values should be.
+
+  Tests:
+  - `taxCalcInputLineage.db.test` (real PostgreSQL, all proposals, over HTTP): each refusal reason by input and citation;
+    a run citing an accepted value records and shows complete live lineage; approval is refused after the document is
+    replaced and records nothing; a document-cited run is approved with one lineage row, which a later version does not
+    change and which cannot be updated or deleted; the helpers are not executable by API roles.
+  - `runEvidence.test` (client route, plain-language reasons and refusal, manager read access).
+  - Suite 07 e2e on the real server: a free-text citation is refused; runs cite a reviewed document from suite 02; in Case
+    Workflow the reviewer opens a run's evidence ("Every input cites resolved evidence…"), approves, and the evidence then
+    reads "Evidence recorded when the run was approved."
+
   **OCR human validation in the browser (Block 63), published as `b160af5`.** The durable validation queue (vault proposal `20261012270000` functions, the
   `extractions/:fieldId/verify` route and the Document Review panel) had HTTP coverage but no browser journey, because
   the e2e server had no source of proposals:

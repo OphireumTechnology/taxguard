@@ -17,6 +17,8 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_RULE_SET_INTEGRITY: 409, TAX_RULE_SET_IMMUTABLE: 409, TAX_CALC_RUN_IMMUTABLE: 409,
   TAX_RULE_SET_TESTS_REQUIRED: 409, TAX_RULE_SET_TESTS_NOT_RUN: 409, TAX_RULE_SET_TESTS_FAILING: 409, TAX_RULE_TESTS_CHANGED: 409, TAX_RULE_TEST_IMMUTABLE: 409,
   TAX_RULE_SET_COVERAGE_INCOMPLETE: 409,
+  // Evidence lineage of calculation inputs (proposal 20261018190000).
+  TAX_CALC_EVIDENCE_UNRESOLVED: 409, TAX_CALC_LINEAGE_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
   RESEARCH_REVIEWER_REQUIRED: 403, RESEARCH_MEMO_NOT_EDITABLE: 409, RESEARCH_MEMO_NOT_SUBMITTED: 409, RESEARCH_VERSION_CONFLICT: 409,
   RESEARCH_AUTHORITY_REQUIRED: 409, RESEARCH_SOURCE_NOT_VERIFIED: 409, RESEARCH_MEMO_IMMUTABLE: 409,
@@ -75,6 +77,11 @@ export class TaxEngineStore {
   reviewRun(tenant: string, actor: string, runId: string, decision: 'approve' | 'reject', note: string) {
     if (!UUID.test(runId)) throw new TaxEngineStoreError('TAX_CALC_RUN_NOT_FOUND', 404);
     return this.call('taxguard_tax_run_review', { p_tenant: tenant, p_actor: actor, p_run: runId, p_decision: decision, p_note: note ?? null });
+  }
+  /** The evidence behind each input: recorded at approval, otherwise resolved now (proposal 20261018190000). */
+  runLineage(tenant: string, actor: string, runId: string) {
+    if (!UUID.test(runId)) throw new TaxEngineStoreError('TAX_CALC_RUN_NOT_FOUND', 404);
+    return this.call('taxguard_tax_run_lineage', { p_tenant: tenant, p_actor: actor, p_run: runId });
   }
   // ---- Source-cited verification cases (proposal 036) -----------------------------------------
   addTest(tenant: string, actor: string, ruleSetId: string, test: Record<string, unknown>) {

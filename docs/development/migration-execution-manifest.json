@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 87,
+    "files": 88,
     "core": 13,
-    "proposals": 73,
-    "tables": 159,
-    "functions": 383,
-    "securityDefinerFunctions": 297,
+    "proposals": 74,
+    "tables": 160,
+    "functions": 388,
+    "securityDefinerFunctions": 300,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -3659,6 +3659,49 @@
     },
     {
       "order": 87,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_tax_calc_input_lineage"
+      ],
+      "functionsAdded": [
+        "taxguard_tax_evidence_resolve",
+        "taxguard_tax_lineage_immutable",
+        "taxguard_tax_run_citations",
+        "taxguard_tax_run_lineage",
+        "taxguard_tax_unresolved_citations"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_tax_run_record",
+          "previous": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+        },
+        {
+          "function": "taxguard_tax_run_review",
+          "previous": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 1,
+      "indexesAdded": 1,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        28,
+        36,
+        79
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 88,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
