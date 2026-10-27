@@ -12,6 +12,30 @@ const offsetsValid = (pdf: string) => {
 };
 
 describe('invoice document renderer', () => {
+  it.each([499, 500, 501, 1001])('includes all %i invoice lines and their full identifiers', count => {
+    const many = Array.from({ length: count }, (_, i) => ({ lineNo: i + 1, description: `Boundary item ${i + 1}`, quantity: '1', unitRate: '1.00', amount: '1.00' }));
+    const view = { ...base, subtotal: `${count}.00`, creditsApplied: '0.00', total: `${count}.00`, amountPaid: '0.00', balanceDue: `${count}.00`, lines: many };
+    const lines = invoiceDocumentText(view, at).filter(line => line.includes('Boundary item'));
+    expect(lines).toHaveLength(count);
+    many.forEach((line, i) => expect(lines[i]).toMatch(new RegExp(`^${line.lineNo}\\s+Boundary item ${line.lineNo}\\s`)));
+    const pdf = renderInvoicePdf(view, at).toString('latin1');
+    expect(pdf.match(/Boundary item /g)).toHaveLength(count);
+    expect(offsetsValid(pdf)).toBe(true);
+  });
+  it('validates amounts after line 500 instead of silently omitting invalid detail', () => {
+    const many = Array.from({ length: 501 }, (_, i) => ({ lineNo: i + 1, description: `Item ${i + 1}`, quantity: '1', unitRate: '1.00', amount: i === 500 ? '1.001' : '1.00' }));
+    expect(() => renderInvoicePdf({ ...base, lines: many }, at)).toThrow('INVOICE_DOCUMENT_DATA_INVALID');
+  });
+  it('preserves sparse database line identifiers through the PostgreSQL integer range', () => {
+    const lines = invoiceDocumentText({ ...base, lines: [1001, 2147483647].map(lineNo => ({ lineNo, description: 'Sparse item', quantity: '1', unitRate: '1.00', amount: '1.00' })) }, at);
+    expect(lines.find(line => line.includes('Sparse item'))).toMatch(/^1001\s+Sparse item/);
+    expect(lines.find(line => line.startsWith('2147483647'))).toMatch(/^2147483647\s+Sparse item/);
+    expect(lines.filter(line => line.includes('Sparse item')).every(line => line.length === 86)).toBe(true);
+  });
+  it('preserves the full maximum supported quantity in its existing column', () => {
+    const lines = invoiceDocumentText({ ...base, lines: [{ lineNo: 1, description: 'Quantity boundary', quantity: '10000.00', unitRate: '1.00', amount: '10000.00' }] }, at);
+    expect(lines.find(line => line.includes('Quantity boundary'))).toMatch(/10000\.00\s+1\.00\s+10000\.00$/);
+  });
   it('lays out exact amounts and the delivery disclaimer', () => {
     const lines = invoiceDocumentText(base, at);
     expect(lines[1]).toBe('INVOICE INV-2026-000007');

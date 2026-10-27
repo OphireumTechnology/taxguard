@@ -33,6 +33,11 @@ const right = (value: string, width: number) => value.length >= width ? value : 
 export function invoiceDocumentText(view: InvoiceDocumentView, generatedAt: Date): string[] {
   if (!view || !ISSUED_DOCUMENT_STATUSES.includes(view.status as typeof ISSUED_DOCUMENT_STATUSES[number])) throw new BillingError('INVOICE_DOCUMENT_NOT_ISSUED', 409);
   const currency = text(view.currency || 'USD', 3);
+  const invoiceLines = Array.isArray(view.lines) ? view.lines : [];
+  // PostgreSQL line identifiers can have ten digits. Keep the existing table width
+  // while allowing the identifier column to grow for long or sparsely numbered invoices.
+  const numberWidth = invoiceLines.reduce((width, line) => Math.max(width, text(line.lineNo, 10).length + 1), 4);
+  const descriptionWidth = 48 - numberWidth;
   const out = [
     INVOICE_DOCUMENT_PRACTICE,
     `INVOICE ${text(view.invoiceNumber || view.invoiceId, 40)}${view.status === 'VOID' ? '   ** VOID - NOT PAYABLE **' : ''}`,
@@ -40,11 +45,11 @@ export function invoiceDocumentText(view: InvoiceDocumentView, generatedAt: Date
     `Client: ${text(view.clientId, 64)}`,
     `Issued: ${text(view.issueDate, 32) || 'not recorded'}    Due: ${text(view.dueDate, 32) || 'not recorded'}    Status: ${text(view.status, 20).replace(/_/g, ' ')}`,
     '',
-    `${pad('#', 4)}${pad('Description', 44)}${right('Qty', 8)}${right('Rate', 14)}${right('Amount', 16)}`,
+    `${pad('#', numberWidth)}${pad('Description', descriptionWidth)}${right('Qty', 8)}${right('Rate', 14)}${right('Amount', 16)}`,
     '-'.repeat(86),
   ];
-  for (const line of Array.isArray(view.lines) ? view.lines.slice(0, 500) : []) {
-    out.push(`${pad(text(line.lineNo, 3), 4)}${pad(text(line.description, 43), 44)}${right(text(line.quantity, 7), 8)}${right(money(line.unitRate), 14)}${right(money(line.amount), 16)}`);
+  for (const line of invoiceLines) {
+    out.push(`${pad(text(line.lineNo, 10), numberWidth)}${pad(text(line.description, descriptionWidth - 1), descriptionWidth)}${right(text(line.quantity, 8), 8)}${right(money(line.unitRate), 14)}${right(money(line.amount), 16)}`);
   }
   out.push('-'.repeat(86));
   for (const [label, value] of [['Subtotal', view.subtotal], ['Credits applied', view.creditsApplied], ['Total', view.total], ['Amount paid', view.amountPaid], ['Balance due', view.balanceDue]] as const)
