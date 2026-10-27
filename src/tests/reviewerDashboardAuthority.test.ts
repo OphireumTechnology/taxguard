@@ -107,6 +107,18 @@ describe('reviewer approval and return transactions',()=>{
     await expect(repo.decideReviewerReturn(scope,'reviewer',{...decision,reason:'A different review reason after the signed audit decision.'})).rejects.toThrow('IDEMPOTENCY_CONFLICT');
     expect((await repo.decideReviewerReturn(scope,'reviewer',decision)).replayed).toBe(true);
   });
+  it('serializes concurrent same-operation decisions to one durable-shaped audit and approval in the test adapter',async()=>{
+    const results=await Promise.all([
+      repo.decideReviewerReturn(scope,'reviewer',decision),
+      repo.decideReviewerReturn(scope,'reviewer',decision),
+    ]);
+    expect(results.filter(result=>result.replayed===true)).toHaveLength(1);
+    expect(results.filter(result=>result.replayed!==true)).toHaveLength(1);
+    const root=casePath(scope);
+    expect([...database.records.keys()].filter(key=>key.startsWith(root+'/approvals/'))).toHaveLength(1);
+    expect([...database.records.keys()].filter(key=>key===root+'/audit/'+decision.operationId)).toHaveLength(1);
+    expect(database.records.get(root).version).toBe(2);
+  });
   it('rolls back all decision/audit writes on transaction failure',async()=>{
     database.failCommit=true;await expect(repo.decideReviewerReturn(scope,'reviewer',decision)).rejects.toThrow('Commit unavailable');
     expect(database.records.get(casePath(scope)).version).toBe(1);expect(database.records.get(casePath(scope)+'/audit/'+decision.operationId)).toBeUndefined();

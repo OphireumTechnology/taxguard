@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_AGENTS } from '../ai/registry';
-import { CANONICAL_ARCHITECTURE, findArchitectureMapping, hasUnmappedClientServiceAuthority } from '../ai/architectureMapping';
+import { CANONICAL_ARCHITECTURE, findArchitectureMapping, hasUnmappedAgentAuthority, hasUnmappedClientServiceAuthority } from '../ai/architectureMapping';
 
 describe('canonical architecture authority', () => {
   it('preserves exactly 61 canonical identities and names without activation', () => {
@@ -12,6 +12,22 @@ describe('canonical architecture authority', () => {
       expect(mapping.category).toBe(agent.category);
       expect(agent.status).toBe('DRAFT');
       expect(Object.isFrozen(mapping)).toBe(true);
+      expect(mapping.allowed_execution_capabilities).toEqual([]);
+    }
+  });
+  it('keeps every non-commissioned canonical identity unmapped and denied', () => {
+    const boundedCompatibility = new Set(['A00', 'A10', 'A34']);
+    for (const agent of CANONICAL_AGENTS) {
+      const mapping = findArchitectureMapping(agent.agent_id);
+      if (boundedCompatibility.has(agent.agent_id)) {
+        expect(mapping.mapping_state).toBe('BOUNDED_COMPATIBILITY');
+        continue;
+      }
+      expect(mapping.mapping_state).toBe('UNMAPPED_DENIED');
+      expect(hasUnmappedAgentAuthority(agent.agent_id)).toBe(true);
+      expect(mapping.allowed_workflow_stages).toEqual([]);
+      expect(mapping.allowed_read_capabilities).toEqual([]);
+      expect(mapping.allowed_proposal_capabilities).toEqual([]);
       expect(mapping.allowed_execution_capabilities).toEqual([]);
     }
   });
