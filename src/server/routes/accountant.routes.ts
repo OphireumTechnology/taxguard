@@ -131,8 +131,8 @@ accountantRouter.get('/overview', (req: AuthenticatedRequest, res) => {
   // Upcoming filing deadlines queue
   const urgentDeadlines = [
     { title: 'Form 1120-S Extended Filing Deadline', entity: 'Perotti Financial Consulting', dueDate: '2026-09-15', form: '1120-S', status: 'In Final Review', daysRemaining: 7 },
-    { title: 'Form 1065 Partnership Return Sign-off', entity: 'Dondo Enterprise Holdings LLC', dueDate: '2026-09-15', form: '1065', status: 'Reconciliation Underway', daysRemaining: 7 },
-    { title: 'SC Sales & Use Tax Monthly Remittance', entity: 'Dondo Enterprise Holdings LLC', dueDate: '2026-09-20', form: 'SC DOR-ST3', status: 'Awaiting Client Record', daysRemaining: 12 },
+    { title: 'Form 1065 Partnership Return Sign-off', entity: 'Example Enterprise Holdings LLC', dueDate: '2026-09-15', form: '1065', status: 'Reconciliation Underway', daysRemaining: 7 },
+    { title: 'SC Sales & Use Tax Monthly Remittance', entity: 'Example Enterprise Holdings LLC', dueDate: '2026-09-20', form: 'SC DOR-ST3', status: 'Awaiting Client Record', daysRemaining: 12 },
     { title: 'Q3 Estimated Tax Vouchers (Form 1040-ES)', entity: 'Michael Perotti', dueDate: '2026-09-15', form: '1040-ES', status: 'Calculation Drafted', daysRemaining: 7 }
   ];
 
