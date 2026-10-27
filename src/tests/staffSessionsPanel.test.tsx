@@ -6,7 +6,7 @@ const config = vi.hoisted(() => ({ enabled: true, base: 'http://127.0.0.1:3000' 
 vi.mock('../supabase/config', () => ({ isStaffIdentityDevelopmentConfigured: () => config.enabled }));
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => config.base + path }));
 import { api, setStoredToken, clearStoredToken } from '../services/api';
-import { StaffSessionsPanel, parseSessionList, sessionActionMessage } from '../components/admin/StaffSessionsPanel';
+import { StaffSessionsPanel, parseSessionList, sessionActionMessage, sessionAssuranceLabel, accountSecurityStatus } from '../components/admin/StaffSessionsPanel';
 
 const transport = vi.fn();
 const row = (over: Record<string, unknown> = {}) => ({ sessionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', createdAt: '2026-10-12T00:00:00+00:00',
@@ -58,6 +58,15 @@ describe('session list parsing and messages', () => {
     expect(sessionActionMessage('STAFF_REAUTHENTICATION_REQUIRED')).toMatch(/sign in again/i);
     expect(sessionActionMessage('private database detail')).toBe('The server did not confirm this session action. Refresh before retrying.');
   });
+  it('describes session assurance without claiming AAL1 means password-only', () => {
+    expect(sessionAssuranceLabel('aal2')).toBe('MFA verified');
+    expect(sessionAssuranceLabel('aal1')).toBe('MFA not verified');
+  });
+  it('derives account status from the durable session read and fails closed on read errors', () => {
+    expect(accountSecurityStatus('loading')).toMatch(/Checking/);
+    expect(accountSecurityStatus('ready')).toBe('Account status: Active');
+    expect(accountSecurityStatus('error')).toBe('Account status could not be verified');
+  });
 });
 
 describe('sessions panel rendering', () => {
@@ -72,6 +81,8 @@ describe('sessions panel rendering', () => {
     const members = [member('me', 'admin'), member('staff-1'), member('root', 'super_administrator')] as any;
     const html = renderToStaticMarkup(<StaffSessionsPanel user={user('admin')} authStatus="AUTHENTICATED" members={members} />);
     expect(html).toContain('Signed-in sessions');
+    expect(html).toContain('Refresh sessions');
+    expect(html).toContain('Checking account status…');
     expect(html).toContain('Revoke a staff member');
     expect(html).toContain('value="staff-1"');
     expect(html).not.toContain('value="me"'); expect(html).not.toContain('value="root"');

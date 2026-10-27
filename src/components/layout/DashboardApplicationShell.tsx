@@ -109,7 +109,10 @@ function DashboardShellSession({
         <div className="tg-shell-brand"><ShieldCheck size={34} aria-hidden="true" /><div><strong>TAXGUARD <span>AI</span></strong><small>A/R TAX SERVICES, LLC</small></div></div>
         <div className="tg-shell-heading"><span>{title}</span><small>{DASHBOARD_EXPERIENCES[workspace]}</small></div>
         <button className="tg-shell-search" onClick={openSearch} aria-label={onSearch ? 'Search documents, messages, tax years' : 'Search authorized workspace navigation'}><Search size={16} /><span>{onSearch ? 'Search documents, messages, tax years...' : 'Search workspace navigation...'}</span></button>
-        <div className="tg-shell-tools">{headerTools}{notifications ?? <NotificationBell size="sm" />}
+        <div className="tg-shell-tools">{headerTools}
+          {currentUser && !['client', 'prospective_client'].includes(currentUser.role) &&
+            <a className="tg-shell-icon" href="/staff/account-security" aria-label="Account security and sessions" title="Account security"><ShieldCheck size={18} /></a>}
+          {notifications ?? <NotificationBell size="sm" />}
           <button className="tg-shell-icon" onClick={() => setPanel('help')} aria-label="Help and support"><HelpCircle size={19} /></button>
           <button className="tg-shell-profile" onClick={onProfile ?? (() => setPanel('profile'))} aria-label="View profile"><span className="tg-avatar">{currentUser?.name?.charAt(0).toUpperCase() || <User size={16} />}</span><span className="tg-profile-name">{currentUser?.name}</span></button>
           <button className="tg-shell-icon" onClick={() => void logout()} aria-label="Sign Out" title="Sign Out"><LogOut size={18} /></button>

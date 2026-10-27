@@ -31,6 +31,8 @@ describe('shared live application chrome', () => {
     expect(html).toContain('Search authorized workspace navigation');
     expect(html).toContain('Help and support');
     expect(html).toContain('Sign Out');
+    expect(html).toContain('href="/staff/account-security"');
+    expect(html).toContain('Account security');
     expect(html).toContain('--dashboard-workspace:#F0F5FA');
   });
 
@@ -55,6 +57,16 @@ describe('shared live application chrome', () => {
     expect(closed).toContain('Open case');
   });
 
+  it.each([
+    ['reviewer', 'reviewer'], ['senior_reviewer', 'reviewer'], ['practice_manager', 'practice_manager'],
+    ['bookkeeper', 'bookkeeper'], ['operations', 'operations'], ['admin', 'admin'], ['super_admin', 'admin'],
+  ] as const)('offers account security to active %s staff', (role, workspace) => {
+    session.user.role = role;
+    const html = renderToStaticMarkup(<DashboardApplicationShell workspace={workspace} navigation={null}><main>Workspace</main></DashboardApplicationShell>);
+    expect(html).toContain('href="/staff/account-security"');
+    expect(html).toContain('aria-label="Account security and sessions"');
+  });
+
   it('denies content and navigation to a client requesting staff chrome', () => {
     session.user.role = 'client';
     const html = renderToStaticMarkup(<DashboardApplicationShell workspace="accountant" navigation={<button>Staff-only module</button>}>
@@ -64,6 +76,7 @@ describe('shared live application chrome', () => {
     expect(html).not.toContain('Staff-only module');
     expect(html).not.toContain('Restricted taxpayer record');
     expect(html).not.toContain('staff@example.test');
+    expect(html).not.toContain('href="/staff/account-security"');
   });
 
   it('retains client-specific search and notification integration without staff search', () => {
@@ -76,6 +89,7 @@ describe('shared live application chrome', () => {
     expect(html).toContain('Client notifications');
     expect(html).not.toContain('Search authorized workspace navigation');
     expect(html).not.toContain('Switch role');
+    expect(html).not.toContain('href="/staff/account-security"');
   });
 
   it('fails closed when a staff session is suspended or initializing', () => {
