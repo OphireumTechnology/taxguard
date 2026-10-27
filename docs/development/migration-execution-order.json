@@ -607,6 +607,14 @@
       "dependsOn": [
         "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql"
+      ]
     }
   ]
 }

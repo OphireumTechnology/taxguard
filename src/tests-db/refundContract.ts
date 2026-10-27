@@ -1,8 +1,8 @@
 /**
- * Implementation-neutral refund regression contract (owner decision 2026-10-19: the Phase 15 refund design is
- * the canonical target). The same cases run against the Phase 14 keyed function today and are meant to run
- * against the unified Phase 15 contract once it is reconciled, by supplying a different adapter. Only the
- * function names, error codes and result shape differ between implementations; the guarantees do not.
+ * Implementation-neutral refund regression contract. Owner instruction 2026-10-27 (superseding the 2026-10-19
+ * decision): taxguard_bill_refund_keyed is the one canonical refund function; Phase 15's missing capabilities were
+ * ported into it by 20261019020000. The adapter shape stays so another implementation could be checked against the
+ * same guarantees.
  * Synthetic data only.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

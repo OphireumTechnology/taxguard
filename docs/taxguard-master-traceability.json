@@ -5105,8 +5105,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "2f7cb5777815c07e6c1f9f1fbf832bb68331d8f975fca429c0115c2d113c8425",
-      "bytes": 20002,
+      "sha256": "d5d283fc05c4200fd780fce211cee12414a994048c7e4eb585e42ca67a62b5ab",
+      "bytes": 20181,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5485,8 +5485,8 @@
     },
     {
       "file": "docs/development/phase15-financial-write-review.md",
-      "sha256": "918021041fd0e27afd6cfdb8be1afa76b7b54e08a942c33659fbb4102f4ef28c",
-      "bytes": 9011,
+      "sha256": "c36f020f3eb2c2d81de3b5a8475c28e8a910faf10b3d256a80edc50c45ed47e0",
+      "bytes": 9135,
       "headings": [
         "# Phase 15 financial write and audit review",
         "## Evidence classification",
@@ -5518,6 +5518,18 @@
         "## Regression evidence",
         "## Commands and results",
         "## Limits and gates"
+      ]
+    },
+    {
+      "file": "docs/development/phase15-refund-idempotency-results.md",
+      "sha256": "51e02dd010330acbb223b46136e641bcb732453c7a6534eb8de3792fe5cbdb4f",
+      "bytes": 6000,
+      "headings": [
+        "# Phase 15 refund recording idempotency",
+        "## Measured defect",
+        "## Implementation",
+        "## Validation",
+        "## Remaining risk and next work"
       ]
     },
     {
@@ -6306,6 +6318,12 @@
       "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
       "sha256": "0d5764f100fca5927026374ee470d45de4a0254fd564fdf83b9358c3a29cce8a",
       "bytes": 3937,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "sha256": "be8aebf26decc7a40b83f46722a8a77089cec613f2e47237f09e12c55fe48d10",
+      "bytes": 8428,
       "headings": []
     },
     {

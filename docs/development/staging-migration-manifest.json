@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "f841a17f517fd7a5f344735aab697c38dc3a5228639c88cb5927deaa3bb65427",
+  "executionPlanSha256": "e9b2c2f972bb1a1327df2994cee5d0bd07851f32d37636480487d3ec2a10a353",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -4894,6 +4894,66 @@
         "-- DEVELOPMENT PROPOSAL ONLY. NOT APPLIED. Depends on book-to-tax proposal 029.",
         "-- Preserve scoped uniqueness, exact integer cents, evidence verification and maker-checker.",
         "-- Rollback: disable adjustment creation pending review; do not restore unbound retries."
+      ]
+    },
+    {
+      "order": 93,
+      "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "kind": "proposal",
+      "version": "20261019020000",
+      "sha256": "be8aebf26decc7a40b83f46722a8a77089cec613f2e47237f09e12c55fe48d10",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_bill_refund_keyed",
+        "taxguard_bill_refund"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_bill_refund_keyed",
+          "previousFile": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_bill_refund",
+          "previousFile": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261018010000 definitions; the result column and constraint may remain."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund_keyed(text,text,text,text,numeric,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_bill_refund_keyed(text,text,text,text,numeric,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_bill_refund(text,text,text,text,numeric,text) FROM PUBLIC, anon, authenticated, service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Phase 14/15 integration, billing refunds). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires proposal 028 (billing), 20261015070000 (billing access overlay) and 20261018010000 (the canonical refund",
+        "-- records table and taxguard_bill_refund_keyed, whose current definition this replaces).",
+        "--",
+        "-- One refund architecture. Phase 15 (Codex, af34972) proposed a second design under this version: its own",
+        "-- taxguard_invoice_refunds shape and a seven-argument taxguard_bill_refund. Composed with 20261018010000, whichever ran",
+        "-- first silently defined the table. Owner instruction (2026-10-27): the Phase 14 keyed function stays canonical and",
+        "-- Phase 15's missing capabilities are ported into it. This file replaces Codex's version; nothing defines a second",
+        "-- refund function or table.",
+        "--",
+        "-- Ported from Phase 15:",
+        "--   * Stable replay: the original result is stored with the refund and returned for a retry, instead of the"
       ]
     }
   ]
