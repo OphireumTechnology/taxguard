@@ -55,6 +55,7 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **Production-readiness assessment (Block 61).** `docs/development/production-readiness-assessment.md`: staging and production NO-GO, with the evidence counts, the release blockers grouped by who decides, the stale release checklist, and the recommended path to a staging GO.
 - **Full-pipeline certification (Block 60, tests only).** Provider journey B (first sign-in through Stage 08, Stage 09
   blocked) now ends with diagnostics and risk on the same case: only the missing approved calculation blocks, risk is
   BLOCKED for exactly that and the absent policy, the client is refused. TAX-DIAGNOSTICS and TAX-RISK PROVIDER_VERIFIED.

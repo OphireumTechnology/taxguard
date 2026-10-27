@@ -5471,6 +5471,24 @@
       ]
     },
     {
+      "file": "docs/development/production-readiness-assessment.md",
+      "sha256": "b91bbc458d36e966c8c978e3553fd0c6613ae420c54ce9c7d87d094731f5a182",
+      "bytes": 7759,
+      "headings": [
+        "# Production readiness assessment (2026-10-27, Phase 14, local and offline only)",
+        "## 1. What the evidence shows",
+        "## 2. Why it is not ready: release blockers",
+        "### 2.1 Approvals of existing work (owner, reviewers)",
+        "### 2.2 Infrastructure (owner provisions; each step needs explicit go-ahead)",
+        "### 2.3 Providers (owner chooses and commissions)",
+        "### 2.4 Tax content (licensed sources, professional review)",
+        "### 2.5 AI workforce (policy)",
+        "### 2.6 Production cutover",
+        "## 3. Stale documents found",
+        "## 4. Recommended path to a staging GO (each step needs the owner's go-ahead)"
+      ]
+    },
+    {
       "file": "docs/development/production-route-parity.md",
       "sha256": "7047afbe307f6c9a3347ca934145e46e6728c568c06c854a255e4da39ab3a6b4",
       "bytes": 10060,
@@ -5613,8 +5631,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "11dd267235f4a1f875ee88b4a8a8a78721f385c55ee5dff17b946d4d929152af",
-      "bytes": 13451,
+      "sha256": "e0ee0b8b9a89cf7635f3f835c3b581791dfa10bbf3822f464e5ce20996588c1f",
+      "bytes": 13728,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
