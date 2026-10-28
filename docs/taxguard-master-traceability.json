@@ -4934,6 +4934,19 @@
       ]
     },
     {
+      "file": "docs/development/blocks-69-72-design.md",
+      "sha256": "26dc280933c473d6bd049bf6cd9c64927004c16c6b69c90f552b93c27be264fa",
+      "bytes": 5167,
+      "headings": [
+        "# Blocks 69-72: verification, diagnostics, risk and independent QC on the draft return (design)",
+        "## Block 69: independent calculation verification of a return version",
+        "## Block 70: return diagnostics",
+        "## Block 71: risk and materiality on the return",
+        "## Block 72: independent quality control",
+        "## Common acceptance for each block"
+      ]
+    },
+    {
       "file": "docs/development/book-to-tax.md",
       "sha256": "6bec5c83472722d27c47348b1304f1f280105969d2815053bd8655af946025c8",
       "bytes": 2813,
