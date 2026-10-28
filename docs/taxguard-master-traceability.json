@@ -4779,8 +4779,8 @@
     },
     {
       "file": "docs/development/ai-architecture-requirements-classification.md",
-      "sha256": "d1ff9bfbd350f220cc6d2d0d0c17a19ce410822bb4339647458475214d6cc8f1",
-      "bytes": 10982,
+      "sha256": "262f124e65528ec7b64adab07471f49eac6937e4fe6a8713ce1e99e349de8eb5",
+      "bytes": 11087,
       "headings": [
         "# TaxGuard AI architecture: requirement classification (2026-10-28)",
         "## Section 3: agent architecture (pages 1-3)",
@@ -5927,6 +5927,22 @@
         "## What is deliberately not here",
         "## Source-cited verification cases (proposal 036, added 2026-10-13)",
         "## Verification-case coverage (proposal 038, added 2026-10-13)"
+      ]
+    },
+    {
+      "file": "docs/development/TAXGUARD_ARCHITECTURE_RECONCILIATION_REPORT.md",
+      "sha256": "5f3afd793601b223abc78a8ff537208fa076c8ca73ef15698dff44cecce6fddd",
+      "bytes": 9231,
+      "headings": [
+        "# TaxGuard architecture reconciliation report",
+        "## 1. The 18-stage operating cycle (LEGACY_18_V1)",
+        "## 2. Agents A00-A60 (pages 1-3, 9)",
+        "## 3. AI governance and permissions (pages 7, 9)",
+        "## 4. The fourteen-step AI execution process (page 4)",
+        "## 5. Deterministic tax calculation and evidence traceability (pages 5-6)",
+        "## 6. Portals and AI Control Center (pages 10-11)",
+        "## 7. Durable audit and execution records (page 8)",
+        "## 8. Owner decisions blocking further architecture work"
       ]
     },
     {

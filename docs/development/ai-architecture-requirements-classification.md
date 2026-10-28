@@ -14,7 +14,7 @@ states of the Development Execution Directive (2026-10-28). Source of truth for 
 | BLOCKED_POLICY | Held by a standing instruction or policy (for example no live filing, Stage 09 not authorized). |
 | REQUIRES_APPROVAL | Built as far as allowed; the next step is an owner, legal or professional decision. |
 
-No component is production-ready. Block 66 is merged (`b0e0dca`); Block 67 is synced and validating, not merged.
+No component is production-ready. Block 66 (PR #37) and Block 67 (PRs #38, #41) are merged; `main` restored by PR #42.
 
 ## Section 3: agent architecture (pages 1-3)
 
@@ -57,7 +57,7 @@ No component is production-ready. Block 66 is merged (`b0e0dca`); Block 67 is sy
 | Evidence creation, reviewer identity and decision, audit | IMPLEMENTED | [TAX-EVIDENCE BROWSER_VERIFIED]; Block 66 conclusions |
 | Federal / state analysis | PARTIAL | Conclusions recorded by people; no rule content or agent [TAX-RULE-ENGINE] |
 | Deterministic calculation and verification | PARTIAL | Pinned runs, verification cases [TAX-CALCULATION, TAX-CALC-VERIFICATION PARTIAL]; synthetic rules only |
-| Form mapping | PARTIAL | Block 67 (synced, not merged): deterministic mapping with lineage, synthetic form only |
+| Form mapping | PARTIAL | Block 67 (merged): deterministic mapping with lineage, jurisdiction and effective dates; synthetic form only |
 | Diagnostics, professional review | PARTIAL | Case-readiness diagnostics and reviewer queue; no return-level diagnostics |
 
 ## Section 6: tax return pipeline (page 6)
@@ -119,8 +119,8 @@ No component is production-ready. Block 66 is merged (`b0e0dca`); Block 67 is sy
 | Block | Requirement | Current state |
 |---|---|---|
 | 66 | Evidence-to-conclusion traceability | Merged (`b0e0dca`) |
-| 67 | Deterministic form mapping | Synced with main; jurisdiction and effective dates added; final matrix running; push and PR authorized on a pass |
-| 68 | Return preparation | NOT_STARTED; waits for Block 67 to merge |
+| 67 | Deterministic form mapping | Merged (PR #38, follow-up PR #41); jurisdiction and effective dates; synthetic form only |
+| 68 | Return preparation | NOT_STARTED; Block 67 merged; starts after the CI baseline (whitespace PR) and `main` protection |
 | 69-72 | Calculation verification, diagnostics, risk, review and QC | PARTIAL foundations (above) |
 | 73-77 | A00 orchestration, specialists, evaluation, provenance, AI security | PARTIAL foundations; specialists REQUIRE APPROVAL |
 | 78 | Authoritative records | PARTIAL |
@@ -128,5 +128,5 @@ No component is production-ready. Block 66 is merged (`b0e0dca`); Block 67 is sy
 | 84-86 | Monitoring, recovery, security | PARTIAL |
 | 87-91 | Acceptance and production readiness | NOT_STARTED; production NO-GO |
 
-**Next authorized step:** finish Block 67 validation, push and open its PR; validate and commit this reconciliation
-branch separately. Block 68 starts only after Block 67 merges.
+**Next authorized step:** merge the whitespace-correction PR (first fully green CI on the restored `main`), protect
+`main`, then validate and open this reconciliation branch as its own PR. Block 68 starts after those gates.
