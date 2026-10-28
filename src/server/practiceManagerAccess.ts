@@ -6,7 +6,7 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/(tests|coverage)|cases/${ID}/(runs|research|diagnostics|risk)|runs/${ID}/lineage)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID}(/room)?)?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/(tests|coverage)|form-rules(/${ID})?|cases/${ID}/(runs|research|diagnostics|risk|conclusions|conclusions/readiness|evidence-trace|form-mappings)|runs/${ID}/lineage|conclusions/${ID}/trace|form-mappings/${ID})|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID}(/room)?)?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
   `cases/?`, `cases/${ID}/(advance|return|hold|notes|team)`,
@@ -17,6 +17,8 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
   // Managers may register sources and draft / submit rule sets; verification and approval need a reviewer.
   `tax-engine/sources`, `tax-engine/rule-sets`, `tax-engine/rule-sets/${ID}/submit`,
   `tax-engine/rule-sets/${ID}/(tests|run-tests)`, `tax-engine/rule-sets/${ID}/tests/${ID}/remove`,
+  // Managers may draft and submit form-mapping rules (Block 67); approval needs a reviewer and only the case preparer maps.
+  `tax-engine/form-rules`, `tax-engine/form-rules/${ID}/submit`,
   // Managers may open, cite and submit case research; only the case's reviewer decides it.
   `tax-engine/cases/${ID}/research`, `tax-engine/research/${ID}/(citations|submit)`,
   // Case diagnostics and risk: the database lets a manager run, acknowledge INFO or WARNING findings and assess.

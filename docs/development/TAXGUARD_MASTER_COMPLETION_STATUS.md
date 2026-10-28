@@ -63,6 +63,17 @@ Audits completed in this cycle (documents):
   stay with people, always human review, "Staff" gate means REVIEWER, A10/A39 left unassigned. **Owner review point:**
   the ten open decisions in `docs/development/ai-architecture-overview-reconciliation.md`, then approval of any
   per-agent mapping.
+- **Durable evidence-to-conclusion traceability (Block 66).** Review-only proposal `20261019100000`: versioned tax
+  conclusions linked to verified evidence, calculation runs, approved research and workpapers with per-link snapshots;
+  derived staleness blocks submission, approval and readiness; backward and forward traces; reviewer lineage panel;
+  form-line foundation for Block 67. PostgreSQL (6), unit, production refusal, suite 07 browser journey through source
+  replacement and re-approval. Reports: `block66-*.md`.
+- **Deterministic form mapping (Block 67, stacked on Block 66).** Review-only proposal `20261019110000`: versioned,
+  maker-checker mapping rules on a verified source; per-case mappings derived only from approved, current conclusions
+  with an approved calculation run, refused with reasons when ambiguous, stale, uncalculated, mistyped or incomplete;
+  every value stores conclusion, calculation, rule set, evidence, mapping rule and time; derived staleness and
+  versioned re-mapping; Form mapping panel with a provenance table. Synthetic form only. PostgreSQL (7), unit,
+  production refusal, suite 07 browser journey. Reports: `block67-*.md`.
 - **Phase 15 integration (2026-10-27).** All published Phase 15 work (PRs #25-#34; #24 superseded) plus reviewed Codex
   unpublished and uncommitted packages, on `integration/taxguard-phase15`. One canonical refund function (Phase 15
   capabilities ported into `taxguard_bill_refund_keyed`); colliding migrations renamed to `20261018110000`/`120000`;

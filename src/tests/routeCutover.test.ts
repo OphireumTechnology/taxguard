@@ -92,6 +92,34 @@ describe('production app', () => {
       expect({ status: r.status, body: await r.json() }, route.path).toEqual({ status: 503, body: { code: 'API_NOT_RELEASED', error: 'This service is not available for production use yet.' } });
     }
   });
+  it('the Block 66 conclusion and trace routes are refused in production, never served from memory', async () => {
+    for (const path of ['/api/tax-engine/cases/case-1/conclusions', '/api/tax-engine/conclusions/0123abcd-0000-4000-8000-000000000001/trace',
+      '/api/tax-engine/cases/case-1/evidence-trace?ref=document:d1', '/api/tax-engine/cases/case-1/conclusions/readiness']) {
+      const r = await fetch(origin + path, { headers: { Accept: 'application/json' } });
+      expect({ status: r.status, body: await r.json() }, path).toEqual({ status: 503, body: { code: 'API_NOT_RELEASED', error: 'This service is not available for production use yet.' } });
+    }
+    const conclusions = await fetch(origin + '/api/tax-engine/cases/case-1/conclusions', { method: 'POST', headers: { Accept: 'application/json', 'content-type': 'application/json' }, body: '{}' });
+    expect(conclusions.status).toBe(503);
+  });
+  it('the tax-engine cutover requires the research, diagnostics, risk, lineage and conclusion proposals', () => {
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
+    expect(route.proposals).toEqual(expect.arrayContaining(['20261018150000', '20261018160000', '20261018170000', '20261018190000', '20261019100000']));
+    expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019100000')).refused)
+      .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019100000'] });
+  });
+  it('the Block 67 form-mapping routes are refused in production and the cutover requires the form-mapping proposal', async () => {
+    for (const path of ['/api/tax-engine/form-rules', '/api/tax-engine/cases/case-1/form-mappings', '/api/tax-engine/form-mappings/0123abcd-0000-4000-8000-000000000001']) {
+      const r = await fetch(origin + path, { headers: { Accept: 'application/json' } });
+      expect({ status: r.status, body: await r.json() }, path).toEqual({ status: 503, body: { code: 'API_NOT_RELEASED', error: 'This service is not available for production use yet.' } });
+    }
+    expect((await fetch(origin + '/api/tax-engine/cases/case-1/form-mappings', { method: 'POST', headers: { Accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify({ ruleId: '0123abcd-0000-4000-8000-000000000001' }) })).status).toBe(503);
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
+    expect(route.proposals).toContain('20261019110000');
+    expect(route.sentinelRpcs).toContain('taxguard_tax_form_mapping_list');
+    expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019110000')).refused)
+      .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019110000'] });
+  });
   it('the cutover status report is for operational administrators only', async () => {
     expect((await fetch(origin + '/api/route-cutover')).status).toBe(401);
   });

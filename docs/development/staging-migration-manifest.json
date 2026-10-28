@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "aa891956a36b9070e46892a5b9c9704fd1f70b16c07677683424825ed257eec2",
+  "executionPlanSha256": "140b84e5c7780e0ddfa876d7fc669cd46f04830ec26835135488c373d2fba659",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5262,6 +5262,156 @@
         "-- lock, with the same refusal codes (ONBOARDING_CLIENT_REQUIRED; PRACTICE_ACCESS_DENIED from",
         "-- taxguard_practice_client_access). Bodies are otherwise identical to 20261018030000.",
         "-- Rollback (development): re-apply the 20261018030000 definitions."
+      ]
+    },
+    {
+      "order": 100,
+      "file": "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+      "kind": "proposal",
+      "version": "20261019100000",
+      "sha256": "0d5d4fbb2cb1ed4e3109d49dd50009b9cb4e23c896437a614c9b68818fb5b066",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_evidence_resolve",
+        "taxguard_tax_conclusions",
+        "taxguard_tax_conclusion_links",
+        "taxguard_tax_form_line_sources",
+        "taxguard_tax_conclusion_guard",
+        "taxguard_tax_conclusion_source",
+        "taxguard_tax_conclusion_identity",
+        "taxguard_tax_conclusion_stale",
+        "taxguard_tax_conclusion_json",
+        "taxguard_tax_conclusion_scope",
+        "taxguard_tax_conclusion_link_all",
+        "taxguard_tax_conclusion_propose",
+        "taxguard_tax_conclusion_revise",
+        "taxguard_tax_conclusion_submit",
+        "taxguard_tax_conclusion_review",
+        "taxguard_tax_conclusion_list",
+        "taxguard_tax_conclusion_trace",
+        "taxguard_tax_evidence_trace",
+        "taxguard_tax_conclusion_readiness"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_tax_evidence_resolve",
+          "previousFile": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): drop the functions and the three tables; re-apply the 20261018190000 evidence resolver."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_evidence_resolve(public.taxguard_cases, text, text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON public.taxguard_tax_conclusions, public.taxguard_tax_conclusion_links, public.taxguard_tax_form_line_sources FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 14,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 66, evidence-to-conclusion traceability). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 026 (case workflow and taxguard_case_audit), 027 (document vault), 029 (book-to-tax workpapers),",
+        "-- 033 (calculation runs), 20261018090000 (live case actor), 20261018150000 (tax research memos and citations) and",
+        "-- 20261018190000 (evidence resolver and calculation-input lineage; current definition of taxguard_tax_evidence_resolve).",
+        "--",
+        "-- A tax conclusion is a governed determination for a case (an income inclusion, a deduction, a credit, a filing",
+        "-- status...), prepared by the case's preparer and decided by its independent reviewer. It is never model output: an",
+        "-- AI proposal can only be the preparer's draft. Each conclusion links, many-to-many, to what supports it:",
+        "--   EVIDENCE  extraction:<field id> (a staff-decided extracted value) or document:<id> (a reviewed document)",
+        "--   CALCULATION  a calculation run of the same case (rule set and hash pinned in the run)",
+        "--   RESEARCH  an approved research memo of the same case (its citations carry the authority levels)",
+        "--   WORKPAPER  an approved book-to-tax workpaper of the same client and tax year"
+      ]
+    },
+    {
+      "order": 101,
+      "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+      "kind": "proposal",
+      "version": "20261019110000",
+      "sha256": "a057a6c26c592668f9311a01e90e1b37b54ca0ab1524dec170898aee0ad43542",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_form_jurisdiction_supported",
+        "taxguard_tax_form_rules",
+        "taxguard_tax_form_mappings",
+        "taxguard_tax_form_values",
+        "taxguard_tax_form_guard",
+        "taxguard_tax_form_rule_invalid",
+        "taxguard_tax_form_rule_json",
+        "taxguard_tax_form_rule_draft",
+        "taxguard_tax_form_rule_transition",
+        "taxguard_tax_form_rule_get",
+        "taxguard_tax_form_rule_list",
+        "taxguard_tax_form_derive",
+        "taxguard_tax_form_values_sha",
+        "taxguard_tax_form_stored",
+        "taxguard_tax_form_mapping_stale",
+        "taxguard_tax_form_mapping_json",
+        "taxguard_tax_form_map",
+        "taxguard_tax_form_mapping_list",
+        "taxguard_tax_form_mapping_get"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the functions and the three tables."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_form_rules, public.taxguard_tax_form_mappings, public.taxguard_tax_form_values FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 12,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 67, deterministic form mapping). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 033 (tax sources, rule sets, calculation runs, taxguard_tax_actor), 20261018090000 (live case actor) and",
+        "-- 20261019100000 (tax conclusions, their links and staleness, taxguard_tax_form_line_sources).",
+        "--",
+        "-- A form mapping writes values onto a form deterministically, never by model judgement:",
+        "--   APPROVED TAX CONCLUSION -> FORM (id, version) -> SCHEDULE -> LINE -> FIELD",
+        "-- through a versioned mapping rule. A mapping rule is tax content: it cites a verified source (the form instructions),",
+        "-- is drafted by a content maintainer, approved by a different reviewer (maker-checker), frozen once submitted, and a",
+        "-- newer approval supersedes it. Each rule line names the conclusion type it takes, whether the value is the",
+        "-- conclusion's amount or one output of its calculation run, the value type (MONEY or INTEGER), whether the line is",
+        "-- required, and how several conclusions combine: SINGLE (exactly one) or SUM. A rule names a supported jurisdiction",
+        "-- (federal: US; state: one of the 50 states or DC) and the dates it is in effect; it maps only while in effect."
       ]
     }
   ]

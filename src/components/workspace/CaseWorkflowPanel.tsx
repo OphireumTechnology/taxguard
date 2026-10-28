@@ -5,6 +5,8 @@ import { caseMessage, caseService, checkLabel, dependencyLabel, restaffCandidate
 import { practiceService, type PracticeClientDetail } from '../../services/practiceService';
 import { taxEngineMessage, taxEngineService, type CalculationRun } from '../../services/taxEngineService';
 import { RunEvidence } from './RunEvidence';
+import { CaseConclusionsPanel } from './CaseConclusionsPanel';
+import { CaseFormMappingPanel } from './CaseFormMappingPanel';
 
 const label = (v: string) => v.replace(/_/g, ' ');
 
@@ -151,6 +153,8 @@ export function CaseWorkflowPanel() {
         {/* Mounted per case: no research state carries over from another case. */}
         <CaseResearchPanel key={c.caseId} caseId={c.caseId} taxYear={c.taxYear} />
         <CaseReadinessPanel key={'readiness-' + c.caseId} caseId={c.caseId} taxYear={c.taxYear} />
+        <CaseConclusionsPanel key={'conclusions-' + c.caseId} caseId={c.caseId} />
+        <CaseFormMappingPanel key={'form-mapping-' + c.caseId} caseId={c.caseId} taxYear={c.taxYear} returnFamily={c.returnFamily ?? null} />
         <h4>History</h4>
         <ul>{detail!.events.map((ev, i) => <li key={ev.at + i}>{label(ev.action.toLowerCase())} → {stageLabel(ev.toStage)}{ev.evidenceType ? ` · ${label(ev.evidenceType.toLowerCase())}` : ''}{ev.reason ? ` · ${ev.reason}` : ''} · {ev.actorUid} · {new Date(ev.at).toLocaleString()}</li>)}</ul>
       </>}
