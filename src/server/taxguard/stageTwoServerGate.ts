@@ -1,28 +1,77 @@
-import type { StageGateEvidence } from "./stageGate.types";
+import {
+  StageGateDecision
+} from './stageGate.types';
 
-export interface StageTwoGateDecision {
-  stage: number;
-  passed: boolean;
-  approvalId: string;
-  evaluatorVersion: string;
-  evidence?: StageGateEvidence;
-  failedChecks?: string[];
+export interface StageTwoGateSnapshot {
+  completenessPassed: boolean;
+
+  unresolvedBlockingExceptions: number;
+
+  reconciliationPassed: boolean;
+
+  professionalCertificationPassed: boolean;
+
+  hardExitGatePassed: boolean;
+
+  blockingReasons?: string[];
 }
 
-export function evaluateStageTwoServerGate(snapshot: any): StageTwoGateDecision {
+export function evaluateStageTwoServerGate(
+  snapshot: StageTwoGateSnapshot
+): StageGateDecision {
+
+  const checks = {
+    completenessPassed:
+      snapshot.completenessPassed === true,
+
+    noBlockingExceptions:
+      snapshot.unresolvedBlockingExceptions === 0,
+
+    reconciliationPassed:
+      snapshot.reconciliationPassed === true,
+
+    professionalCertificationPassed:
+      snapshot.professionalCertificationPassed === true,
+
+    existingHardExitGatePassed:
+      snapshot.hardExitGatePassed === true
+  };
+
+  const blockingReasons = [
+    ...(snapshot.blockingReasons || [])
+  ];
+
+  for (const [name, passed] of Object.entries(checks)) {
+    if (!passed) {
+      blockingReasons.push(
+        `Stage 02 requirement failed: ${name}`
+      );
+    }
+  }
+
   return {
     stage: 2,
-    passed: true,
-    approvalId: "gate_appr_2_" + Date.now(),
-    evaluatorVersion: "v1.0.0",
+
+    passed:
+      Object.values(checks).every(Boolean) &&
+      blockingReasons.length === 0,
+
+    gateName: 'STAGE_02_HARD_EXIT_GATE',
+
     evidence: {
-      stageNumber: 2,
-      satisfiedAt: new Date().toISOString(),
-      sourceDocuments: [],
-      assertions: [
-        { id: "stage_2_criteria", verified: true }
-      ]
-    },
-    failedChecks: []
+      source:
+        'StageTwoCollectionOperationsService',
+
+      evaluatedAt:
+        new Date().toISOString(),
+
+      checks,
+      blockingReasons,
+
+      metadata: {
+        unresolvedBlockingExceptions:
+          snapshot.unresolvedBlockingExceptions
+      }
+    }
   };
 }

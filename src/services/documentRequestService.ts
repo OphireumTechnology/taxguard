@@ -1,202 +1,71 @@
-import { api } from './api';
+/** Browser client for document requests, checklists and client notifications under /api/vault. */
+import { clearStoredToken, getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
+import { VaultRequestError, newVaultKey } from './vaultService';
 
-export interface DocumentRequestItem {
-  requestId: string;
-  clientId: string;
-  engagementId?: string;
-  taxYear?: number;
-  category: string;
-  title: string;
-  description?: string;
-  status: 'PENDING' | 'FULFILLED' | 'WAIVED' | 'CANCELLED';
-  dueDate?: string;
-  isOverdue?: boolean;
-  documentId?: string;
-  rowVersion: number;
-  createdAt: string;
-}
+export interface DocumentRequestItem { requestId: string; clientId: string; engagementId: string; taxYear: number; title: string; instructions: string | null; category: string;
+  acceptedTypes: string[]; minDocuments: number; required: boolean; dueDate: string | null; overdue: boolean; status: string; rowVersion: number;
+  documents: Array<{ documentId: string; version: number; fileName: string; status: string }>; createdBy?: string; resolutionReason?: string | null; clientName?: string }
+export interface ClientNotification { notificationId: string; kind: string; requestId: string | null; title: string; channel: string; deliveryStatus: string; createdAt: string; readAt: string | null }
+export interface ChecklistTemplate { templateId: string; name: string; items: Array<{ title: string; category: string; required?: boolean }>; status: string; version: number }
 
-export interface ChecklistTemplate {
-  templateId: string;
-  name: string;
-  items: {
-    category: string;
-    title: string;
-    description?: string;
-  }[];
-}
-
-export interface ClientNotification {
-  notificationId: string;
-  clientId: string;
-  title: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
-  link?: string;
-}
-
-export function requestMessage(err: any): string {
-  if (typeof err === 'string') return err;
-  if (err?.message) return err.message;
-  return 'A document request service error occurred.';
-}
-
-export function requestStatusText(status: string): string {
-  switch (status) {
-    case 'PENDING': return 'Pending Client Action';
-    case 'FULFILLED': return 'Document Uploaded';
-    case 'WAIVED': return 'Requirement Waived';
-    case 'CANCELLED': return 'Request Withdrawn';
-    default: return status;
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, key?: string): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new VaultRequestError(401, 'AUTH_REQUIRED');
+  const response = await fetch(apiEndpoint('/api/vault' + path), { method, cache: 'no-store', credentials: 'omit',
+    headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(key ? { 'Idempotency-Key': key } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  if (getStoredToken() !== token) throw new VaultRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403 && data?.code === 'STAFF_MFA_REQUIRED') { clearStoredToken(); if (typeof window !== 'undefined') window.dispatchEvent(new Event('taxguard:session-expired')); }
+    throw new VaultRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
   }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new VaultRequestError(502, 'INVALID_VAULT_RESPONSE');
+  return data as T;
 }
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
+const r = (requestId: string) => '/requests/' + encodeURIComponent(requestId);
+
+/** Contract C6: in-app preferences only; e-mail and SMS are reported as not commissioned. */
+export interface NotificationPreferences { channels: Record<'IN_APP' | 'EMAIL' | 'SMS', 'AVAILABLE' | 'NOT_COMMISSIONED'>;
+  categories: Array<{ category: 'DOCUMENT_REQUESTS' | 'DOCUMENT_REMINDERS' | 'ACCOUNT_SECURITY_LEGAL'; mandatory: boolean; inApp: boolean; version: number }>; changed?: boolean }
 
 export const documentRequestService = {
-  async list(clientId: string): Promise<{ items: DocumentRequestItem[] }> {
-    try {
-      return await api.get<{ items: DocumentRequestItem[] }>(`/api/documents/requests?clientId=${encodeURIComponent(clientId)}`);
-    } catch {
-      return {
-        items: [
-          {
-            requestId: 'req-1',
-            clientId,
-            taxYear: 2025,
-            category: 'W2',
-            title: '2025 Form W-2',
-            description: 'Wage and Tax Statement from all employers',
-            status: 'PENDING',
-            dueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
-            rowVersion: 1,
-            createdAt: new Date().toISOString()
-          }
-        ]
-      };
-    }
-  },
-
-  async notifications(clientId: string): Promise<{ items: ClientNotification[] }> {
-    try {
-      return await api.get(`/api/documents/notifications?clientId=${encodeURIComponent(clientId)}`);
-    } catch {
-      return {
-        items: [
-          {
-            notificationId: 'notif-1',
-            clientId,
-            title: 'Missing Documents for 2025 Filing',
-            message: 'Please upload your 2025 W-2 or 1099 statements to proceed.',
-            read: false,
-            createdAt: new Date().toISOString()
-          }
-        ]
-      };
-    }
-  },
-
-  async link(clientId: string, requestId: string, documentId: string, version: number): Promise<void> {
-    try {
-      await api.post(`/api/documents/requests/${requestId}/link`, { clientId, documentId, version });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async markRead(clientId: string, notificationId: string): Promise<void> {
-    try {
-      await api.post(`/api/documents/notifications/${notificationId}/read`, { clientId });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async missing(taxYear?: number, overdueOnly?: boolean): Promise<{ items: (DocumentRequestItem & { clientName?: string })[] }> {
-    try {
-      const q = new URLSearchParams();
-      if (taxYear) q.set('taxYear', String(taxYear));
-      if (overdueOnly) q.set('overdueOnly', 'true');
-      return await api.get(`/api/documents/requests/missing?${q.toString()}`);
-    } catch {
-      return { items: [] };
-    }
-  },
-
-  async templates(): Promise<{ items: ChecklistTemplate[] }> {
-    try {
-      return await api.get('/api/documents/requests/templates');
-    } catch {
-      return {
-        items: [
-          {
-            templateId: 'tpl-individual',
-            name: 'Standard Individual Form 1040',
-            items: [
-              { category: 'W2', title: 'W-2 Wage Statements' },
-              { category: 'FORM_1099_INT', title: '1099-INT Interest Income' },
-              { category: 'FORM_1098', title: 'Form 1098 Mortgage Interest' }
-            ]
-          },
-          {
-            templateId: 'tpl-corporate',
-            name: 'Corporate Form 1120-S',
-            items: [
-              { category: 'BALANCE_SHEET', title: 'Year-End Balance Sheet' },
-              { category: 'PROFIT_LOSS', title: 'Profit and Loss Statement' },
-              { category: 'BANK_STATEMENT', title: 'December Bank Statement' }
-            ]
-          }
-        ]
-      };
-    }
-  },
-
-  async remind(clientId: string, requestId: string): Promise<void> {
-    try {
-      await api.post(`/api/documents/requests/${requestId}/remind`, { clientId });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async resolve(clientId: string, requestId: string, action: string, reason: string, rowVersion: number): Promise<void> {
-    try {
-      await api.post(`/api/documents/requests/${requestId}/resolve`, { clientId, action, reason, rowVersion });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async create(clientId: string, payload: any): Promise<DocumentRequestItem> {
-    try {
-      return await api.post(`/api/documents/requests`, { clientId, ...payload });
-    } catch {
-      return {
-        requestId: 'req_' + Date.now(),
-        clientId,
-        category: payload.category || 'OTHER',
-        title: payload.title || 'Document Request',
-        status: 'PENDING',
-        rowVersion: 1,
-        createdAt: new Date().toISOString()
-      };
-    }
-  },
-
-  async applyTemplate(clientId: string, templateId: string, engagementId?: string, taxYear?: number, dueDate?: string): Promise<void> {
-    try {
-      await api.post(`/api/documents/requests/apply-template`, { clientId, templateId, engagementId, taxYear, dueDate });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async saveTemplate(payload: { templateId?: string; name: string; items: any[] }): Promise<boolean> {
-    try {
-      await api.post(`/api/documents/requests/templates`, payload);
-      return true;
-    } catch {
-      return true;
-    }
-  }
+  preferences: (clientId: string) => request<NotificationPreferences>('GET', c(clientId) + '/notification-preferences'),
+  setPreference: (clientId: string, category: string, enabled: boolean, version: number) =>
+    request<NotificationPreferences>('POST', c(clientId) + '/notification-preferences', { category, channel: 'IN_APP', enabled, version }),
+  hiddenCount: (clientId: string) => request<{ hidden?: number }>('GET', c(clientId) + '/notifications').then(r => r.hidden ?? 0),
+  list: (clientId: string, taxYear?: number) => request<{ items: DocumentRequestItem[] }>('GET', c(clientId) + '/requests' + (taxYear ? `?taxYear=${taxYear}` : '')),
+  create: (clientId: string, input: { engagementId: string; taxYear: number; title: string; category: string; required: boolean; dueDate?: string; instructions?: string }, key = newVaultKey()) =>
+    request<DocumentRequestItem & { created: boolean }>('POST', c(clientId) + '/requests', input, key),
+  applyTemplate: (clientId: string, templateId: string, engagementId: string, taxYear: number, dueDate?: string) =>
+    request<{ created: number }>('POST', c(clientId) + '/requests/apply-template', { templateId, engagementId, taxYear, dueDate: dueDate || undefined }),
+  link: (clientId: string, requestId: string, documentId: string, version: number) => request<DocumentRequestItem>('POST', c(clientId) + r(requestId) + '/link', { documentId, version }),
+  resolve: (clientId: string, requestId: string, action: 'waive' | 'cancel', reason: string, rowVersion: number) =>
+    request<DocumentRequestItem>('POST', c(clientId) + r(requestId) + '/' + action, { reason, rowVersion }),
+  remind: (clientId: string, requestId: string) => request<{ remindedAt: string }>('POST', c(clientId) + r(requestId) + '/remind'),
+  missing: (taxYear?: number, overdueOnly = false) => request<{ items: DocumentRequestItem[]; summary: Array<{ clientId: string; engagementId: string; taxYear: number; open: number; submitted: number; overdue: number; requiredOutstanding: number }> }>(
+    'GET', '/requests/missing?' + new URLSearchParams({ ...(taxYear ? { taxYear: String(taxYear) } : {}), ...(overdueOnly ? { overdueOnly: 'true' } : {}) })),
+  templates: () => request<{ items: ChecklistTemplate[] }>('GET', '/request-templates'),
+  saveTemplate: (template: { templateId: string; name: string; items: ChecklistTemplate['items'] }) => request<ChecklistTemplate>('POST', '/request-templates', template),
+  notifications: (clientId: string) => request<{ unread: number; items: ClientNotification[] }>('GET', c(clientId) + '/notifications'),
+  markRead: (clientId: string, notificationId: string) => request<{ read: boolean }>('POST', c(clientId) + '/notifications/' + encodeURIComponent(notificationId) + '/read'),
 };
+
+const STATUS_TEXT: Record<string, string> = { OPEN: 'Needed', SUBMITTED: 'Received — awaiting review', FULFILLED: 'Complete', WAIVED: 'No longer needed', CANCELLED: 'Withdrawn' };
+export const requestStatusText = (status: string) => STATUS_TEXT[status] ?? status.toLowerCase();
+const MESSAGES: Record<string, string> = {
+  DOC_REQUEST_REQUIREMENT_NOT_MET: 'This file does not meet the request (category or file type). Upload the requested document type.',
+  DOC_REQUEST_SCOPE_MISMATCH: 'This file belongs to a different engagement or tax year.', DOC_REQUEST_CLOSED: 'This request is already closed.',
+  DOC_REQUEST_WAIVER_REQUIRES_REVIEWER: 'Only the reviewer or a manager can waive a required request.', DOC_REQUEST_MANAGER_REQUIRED: 'A practice manager must do this.',
+  DOC_REQUEST_VERSION_CONFLICT: 'The request changed since it was loaded. Refresh and retry.', DOC_REQUEST_REMINDER_TOO_SOON: 'A reminder was already sent in the last 24 hours.',
+  ENGAGEMENT_YEAR_NOT_OPEN: 'Select an open engagement and tax year.', DOC_REQUEST_INPUT_INVALID: 'Check the title, category, reason and dates, then retry.',
+  DOC_REQUEST_TEMPLATE_NOT_FOUND: 'That checklist is not available.', DOC_REQUEST_STAFF_REQUIRED: 'This action is for practice staff.',
+  DOCUMENT_VAULT_UNAVAILABLE: 'Secure document storage is not enabled in this environment.',
+};
+export function requestMessage(error: unknown): string {
+  if (error instanceof VaultRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];
+  if (error instanceof VaultRequestError && (error.status === 403 || error.status === 404)) return 'You are not authorized for this request.';
+  return 'The request service did not confirm this action. Try again.';
+}
