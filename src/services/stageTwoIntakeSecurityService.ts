@@ -680,7 +680,7 @@ export class StageTwoIntakeSecurityService {
         existingDoc.provenance.supersededByDocId = documentId;
         existingDoc.provenance.isCurrentActiveVersion = false;
         existingDoc.provenance.supersededReason = payload.supersedeReason || 'Corrected document uploaded by client';
-        
+
         // Log supersession audit
         TaxGuardAuditService.logEvent({
           tenantId: 'tenant_ar_tax_demo',
@@ -980,7 +980,7 @@ export class StageTwoIntakeSecurityService {
     if (computedStoredHash !== originalHash) {
       stagedDoc.integrityRecord.integrityVerificationStatus = 'MISMATCH_DETECTED';
       stagedDoc.integrityRecord.exceptionDetails = `Hash mismatch: Stored=${computedStoredHash} vs Original=${originalHash}`;
-      
+
       TaxGuardAuditService.logEvent({
         tenantId: 'tenant_ar_tax_demo',
         userId: payload.clientId,

@@ -217,10 +217,10 @@ export interface FullClientIntakeDossier {
   percentComplete: number;
   currentSectionStep: number;
   status: 'draft' | 'in_progress' | 'submitted_pending_review' | 'corrections_requested' | 'approved_and_active';
-  
+
   // High-level Setup Areas Table
   setupAreas: SetupAreaItem[];
-  
+
   // Section 1: Business Information
   businessProfile: {
     legalBusinessName: string;

@@ -5,13 +5,13 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  Coins, 
-  ShieldCheck, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Lock, 
+import {
+  Sparkles,
+  Coins,
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  Lock,
   RefreshCw,
   Clock,
   ArrowRight

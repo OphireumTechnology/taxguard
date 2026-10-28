@@ -4,13 +4,13 @@
  */
 
 import React from 'react';
-import { 
-  FileSpreadsheet, 
-  ShieldAlert, 
-  CheckCircle2, 
-  Download, 
-  QrCode, 
-  Lock, 
+import {
+  FileSpreadsheet,
+  ShieldAlert,
+  CheckCircle2,
+  Download,
+  QrCode,
+  Lock,
   DollarSign,
   AlertCircle
 } from 'lucide-react';

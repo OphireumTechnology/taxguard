@@ -6,27 +6,27 @@
 
 export type TaxGuardTenantId = string;
 
-export type TaxReturnFormType = 
-  | '1040' 
+export type TaxReturnFormType =
+  | '1040'
   | '1040-SR'
-  | '1065' 
-  | '1120' 
-  | '1120-S' 
-  | '990' 
-  | '1041' 
-  | 'SC-1040' 
+  | '1065'
+  | '1120'
+  | '1120-S'
+  | '990'
+  | '1041'
+  | 'SC-1040'
   | 'SC-1120';
 
-export type TaxFilingStatus = 
-  | 'Single' 
-  | 'Married Filing Jointly' 
-  | 'Married Filing Separately' 
-  | 'Head of Household' 
+export type TaxFilingStatus =
+  | 'Single'
+  | 'Married Filing Jointly'
+  | 'Married Filing Separately'
+  | 'Head of Household'
   | 'Qualifying Surviving Spouse'
   | 'Entity Corporate'
   | 'Entity Partnership';
 
-export type DocumentCategory = 
+export type DocumentCategory =
   | 'W-2'
   | '1099-NEC'
   | '1099-MISC'
@@ -53,20 +53,20 @@ export type DocumentCategory =
   | 'Engagement Document'
   | 'Unclassified';
 
-export type MalwareScanStatus = 
-  | 'not_configured' 
-  | 'pending_scan' 
-  | 'quarantined' 
-  | 'clean' 
+export type MalwareScanStatus =
+  | 'not_configured'
+  | 'pending_scan'
+  | 'quarantined'
+  | 'clean'
   | 'infected';
 
-export type DocumentReviewStatus = 
-  | 'pending_classification' 
-  | 'pending_ocr' 
-  | 'in_review' 
-  | 'verified' 
-  | 'rejected' 
-  | 'quarantined' 
+export type DocumentReviewStatus =
+  | 'pending_classification'
+  | 'pending_ocr'
+  | 'in_review'
+  | 'verified'
+  | 'rejected'
+  | 'quarantined'
   | 'archived';
 
 export interface ChainOfCustodyEntry {

@@ -18,7 +18,7 @@
 // 1. DURABLE JOBS
 // ==============================================================================
 
-export type JobStatus = 
+export type JobStatus =
   | 'PENDING'
   | 'CLAIMED'
   | 'RUNNING'
@@ -145,7 +145,7 @@ export interface PracticeTask {
 // 4. STAFF ASSIGNMENTS & WORKLOAD
 // ==============================================================================
 
-export type StaffRole = 
+export type StaffRole =
   | 'preparer'
   | 'accountant'
   | 'reviewer'

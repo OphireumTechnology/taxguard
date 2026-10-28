@@ -149,8 +149,8 @@ describe('Stage 02 — Storage & Staff Assignment Governance Suite', () => {
 
     it('enforces RLS on storage.buckets and storage.objects', async () => {
       const res = await pg.query<{ tablename: string; rowsecurity: boolean }>(`
-        SELECT tablename, rowsecurity 
-        FROM pg_tables 
+        SELECT tablename, rowsecurity
+        FROM pg_tables
         WHERE schemaname = 'storage' AND tablename IN ('buckets', 'objects');
       `);
       expect(res.rows.length).toBe(2);
@@ -293,7 +293,7 @@ describe('Stage 02 — Storage & Staff Assignment Governance Suite', () => {
         p7: string;
         file: string;
       }>(`
-        SELECT 
+        SELECT
           split_part('${testPath}', '/', 1) as p1,
           split_part('${testPath}', '/', 2) as tenant,
           split_part('${testPath}', '/', 3) as p3,
