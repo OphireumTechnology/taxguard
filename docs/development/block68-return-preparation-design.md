@@ -1,8 +1,7 @@
 # Block 68: authoritative draft return preparation (design)
 
-Status: **design, not implemented.** Implementation starts on this branch
-(`claude/taxguard-block68-return-preparation`, from `main` `58aeef8`) after the CI baseline (whitespace-correction
-PR) is merged and `main` is protected. Owner decisions are marked **[OWNER]**.
+Status: **implementation in progress** on `claude/taxguard-block68-return-preparation` (from `main` `58aeef8`).
+PostgreSQL and browser validation are pending; the branch is not pushed. Owner decisions are marked **[OWNER]**.
 
 ## 1. Purpose and boundary
 
@@ -100,8 +99,17 @@ production fail-closed; no AI-produced values; no external transmission.
 - Full matrix: unit, lint, typecheck, PostgreSQL, both browser profiles, build, release candidate, constraint review,
   secrets, diff check, contamination.
 
-## 9. Owner decisions before implementation completes
+## 9. Policy baseline (proposed 2026-10-28, pending formal owner and tax-professional approval)
 
-1. Template content source and professional verification process (synthetic only until then).
-2. Stage 09 approval: reviewer alone, or reviewer then CPA/EA at Stage 10 (recommended: reviewer at 09, CPA/EA at 10).
-3. Supported states for templates (jurisdiction codes are validated; which states are offered is a product decision).
+1. **Templates**: versioned, source-verified, and approved by a designated qualified tax professional. Implemented
+   as maker-checker on a verified source; which reviewers count as "qualified tax professional" is not yet encoded
+   (any reviewer role can approve today) and needs the owner's designation.
+2. **Stage 09 / Stage 10**: Stage 09 requires independent draft review (implemented: the case's live reviewer, never
+   the preparer, approves the return version). Stage 10 requires separate final authorization by an appropriately
+   authorized tax professional (not part of this block).
+3. **Scope**: federal Form 1040 first; a state only once its authoritative rules, templates and test fixtures are
+   verified. Implemented as jurisdiction validation plus approved templates; no real federal or state template is
+   encoded yet (synthetic only).
+
+Draft output is not authoritative: every version reads `returnUse: BLOCKED`, production refuses the routes, and the
+proposal stays review-only until approved.

@@ -4917,8 +4917,8 @@
     },
     {
       "file": "docs/development/block68-return-preparation-design.md",
-      "sha256": "ce4223d6fd22246a6e1c9bf70d6cb690226a50ec1bca9a06e9d3fa68e4338e9e",
-      "bytes": 7491,
+      "sha256": "2c359b6b54d7ce0fd4d3646f09dad77f9d8bd57212ba4fe8efaf82a776f6202c",
+      "bytes": 8174,
       "headings": [
         "# Block 68: authoritative draft return preparation (design)",
         "## 1. Purpose and boundary",
@@ -4929,7 +4929,7 @@
         "## 6. Interface",
         "## 7. Security controls",
         "## 8. Acceptance tests",
-        "## 9. Owner decisions before implementation completes"
+        "## 9. Policy baseline (proposed 2026-10-28, pending formal owner and tax-professional approval)"
       ]
     },
     {
