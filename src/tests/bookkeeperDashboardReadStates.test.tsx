@@ -1,0 +1,14 @@
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {beforeEach,it,expect,vi} from 'vitest';
+const state=vi.hoisted(()=>({status:'ready',eligible:true,allowed:true,data:null as any}));
+vi.mock('../context/AppContext',()=>({useApp:()=>({currentUser:{id:'bookkeeper',role:'bookkeeper',status:'active',tenantId:'tenant',authorizedClientIds:['client'],name:'Bookkeeper'},authLifecycleState:'AUTHENTICATED',notifications:[],logout:vi.fn()})}));
+vi.mock('../hooks/useBookkeeperDashboardData',()=>({useBookkeeperClientGrants:()=>({clients:['client'],error:false}),useBookkeeperDashboardData:()=>state}));
+import {BookkeeperDashboard} from '../components/workspace/BookkeeperDashboard';
+beforeEach(()=>{state.status='ready';state.eligible=true;state.allowed=true;state.data=null;});
+it('requires explicit scope selection rather than substituting taxpayers',()=>{state.eligible=false;const html=renderToStaticMarkup(<BookkeeperDashboard/>);expect(html).toContain('Select an explicitly authorized client');expect(html).not.toContain('John Doe');expect(html).toContain('Unavailable');});
+it('renders loading without claiming verified zero counts',()=>{state.status='loading';const html=renderToStaticMarkup(<BookkeeperDashboard/>);expect(html).toContain('Loading authorized accounting records');expect(html).not.toContain('<strong>0</strong>');});
+it('renders failure without fake transactions or period close success',()=>{state.status='error';const html=renderToStaticMarkup(<BookkeeperDashboard/>);expect(html).toContain('role="alert"');expect(html).toContain('durable accounting provider');expect(html).not.toContain('Period closed');});
+it('rejects unauthorized dashboard role before shell/workspace rendering',()=>{state.allowed=false;const html=renderToStaticMarkup(<BookkeeperDashboard/>);expect(html).toContain('Authenticated Bookkeeper access');expect(html).not.toContain('Transaction Workspace');});
+it('renders authoritative empty data and all six modules without invented results',()=>{state.data={scope:{tenantId:'tenant',clientId:'client',taxYear:2024},transactions:[],accounts:[],journals:[],reconciliations:[],periods:[],capabilities:{mutations:false,periodClose:false,privateDocumentPreview:false}};const html=renderToStaticMarkup(<BookkeeperDashboard/>);expect(html).toContain('No recorded transactions');expect(html).toContain('No verified reconciliation records');expect(html).toContain('Chart of Accounts');expect(html).toContain('Audit Trail');expect(html).toContain('Close readiness is not certified');expect(html).not.toContain('href="https://');});
+it('workflow presentation preserves persisted stage names and does not grant tax privileges',()=>{const html=renderToStaticMarkup(<BookkeeperDashboard/>);expect(html).toContain('Reconcile 05');expect(html).toContain('Prepare Taxes 09');});

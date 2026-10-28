@@ -1,155 +1,48 @@
-import { api } from './api';
+/** Browser client for /api/book-to-tax (durable workpapers; no tax computation). */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export class BookToTaxRequestError extends Error {
-  code: string;
-  constructor(message: string, code = 'B2T_ERROR') {
-    super(message);
-    this.name = 'BookToTaxRequestError';
-    this.code = code;
-  }
+  constructor(public readonly status: number, public readonly code?: string) { super(code || 'B2T_REQUEST_FAILED'); }
 }
-
+export interface B2tCategoryRow { categoryCode: string; label: string; bookCents: number; adjustmentCents: number; taxBasisCents: number; referenceText: string | null }
 export interface B2tOverview {
-  clientId: string;
-  taxYear: number;
-  returnFamily: string;
-  accounts: {
-    id: string;
-    accountNumber: string;
-    name: string;
-    balanceCents: number;
-    targetCategory?: string;
-  }[];
-  mappingSets: {
-    setId: string;
-    status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-    version: number;
-  }[];
-  adjustments: {
-    adjustmentId: string;
-    description: string;
-    amountCents: number;
-    type: 'M1' | 'M3' | 'TIMING' | 'PERMANENT';
-    status: 'PREPARED' | 'APPROVED' | 'REJECTED';
-  }[];
-  workpapers: {
-    workpaperId: string;
-    title: string;
-    status: 'DRAFT' | 'APPROVED' | 'REJECTED';
-  }[];
+  mappingSets: Array<{ setId: string; version: number; status: string; preparedBy: string; reviewedBy: string | null; reviewNote: string | null; mappings: Array<{ accountId: string; accountNumber: string; accountName: string; categoryCode: string }> }>;
+  adjustments: Array<{ adjustmentId: string; categoryCode: string; amountCents: number; adjustmentType: string; description: string; status: string; preparedBy: string }>;
+  workpapers: Array<{ workpaperId: string; status: string; reconciled: boolean; unmappedAccounts: number; generatedBy: string; snapshotSha256: string; createdAt: string;
+    snapshot: { categories: B2tCategoryRow[]; unmapped: Array<{ accountNumber: string; accountName: string; netCents: number }>; reconciliation: { differenceCents: number }; notice: string } }>;
 }
-
-export function bookToTaxMessage(err: any): string {
-  if (typeof err === 'string') return err;
-  if (err?.message) return err.message;
-  return 'A book-to-tax service error occurred.';
+export const newB2tKey = () => 'b2t-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, key?: string): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new BookToTaxRequestError(401, 'AUTH_REQUIRED');
+  const response = await fetch(apiEndpoint('/api/book-to-tax' + path), { method, cache: 'no-store', credentials: 'omit',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  if (getStoredToken() !== token) throw new BookToTaxRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new BookToTaxRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  return data as T;
 }
-
-export function centsText(cents: number): string {
-  return (cents / 100).toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  });
-}
-
-export function newB2tKey(): string {
-  return 'b2t_' + Math.random().toString(36).substring(2, 10);
-}
-
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
 export const bookToTaxApi = {
-  async overview(clientId: string, taxYear: number, family: string): Promise<B2tOverview> {
-    try {
-      return await api.get<B2tOverview>(`/api/b2t/overview?clientId=${encodeURIComponent(clientId)}&taxYear=${taxYear}&family=${family}`);
-    } catch {
-      return {
-        clientId,
-        taxYear,
-        returnFamily: family,
-        accounts: [
-          { id: 'acc-1', accountNumber: '1010', name: 'Operating Cash', balanceCents: 4500000 },
-          { id: 'acc-2', accountNumber: '4000', name: 'Gross Receipts', balanceCents: 12500000 }
-        ],
-        mappingSets: [
-          { setId: 'set-1', status: 'DRAFT', version: 1 }
-        ],
-        adjustments: [],
-        workpapers: []
-      };
-    }
-  },
-
-  async categories(family: string): Promise<{ items: { id: string; label: string }[] }> {
-    try {
-      return await api.get(`/api/b2t/categories?family=${family}`);
-    } catch {
-      return {
-        items: [
-          { id: 'GROSS_RECEIPTS', label: 'Form 1120-S Line 1a Gross Receipts' },
-          { id: 'OFFICER_COMP', label: 'Form 1120-S Line 7 Compensation of Officers' },
-          { id: 'SALARIES_WAGES', label: 'Form 1120-S Line 8 Salaries and Wages' },
-          { id: 'TAXES_LICENSES', label: 'Form 1120-S Line 12 Taxes and Licenses' },
-          { id: 'DEPRECIATION', label: 'Form 1120-S Line 14 Depreciation (Form 4562)' },
-          { id: 'OTHER_DEDUCTIONS', label: 'Form 1120-S Line 19 Other Deductions' }
-        ]
-      };
-    }
-  },
-
-  async openSet(clientId: string, taxYear: number, family: string): Promise<void> {
-    try {
-      await api.post('/api/b2t/mapping-set/open', { clientId, taxYear, family });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async setMapping(clientId: string, setId: string, accountId: string, category: string | null): Promise<void> {
-    try {
-      await api.post(`/api/b2t/mapping-set/${setId}/map`, { clientId, accountId, category });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async reviewSet(clientId: string, setId: string, action: string, note?: string): Promise<void> {
-    try {
-      await api.post(`/api/b2t/mapping-set/${setId}/review`, { clientId, action, note });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async prepareAdjustment(clientId: string, payload: any, idempotencyKey?: string): Promise<void> {
-    try {
-      await api.post('/api/b2t/adjustments', { clientId, ...payload }, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined
-      });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async reviewAdjustment(clientId: string, adjustmentId: string, approve: boolean, note?: string): Promise<void> {
-    try {
-      await api.post(`/api/b2t/adjustments/${adjustmentId}/review`, { clientId, approve, note });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async generateWorkpaper(clientId: string, taxYear: number, family: string): Promise<void> {
-    try {
-      await api.post('/api/b2t/workpapers/generate', { clientId, taxYear, family });
-    } catch {
-      // Mock success
-    }
-  },
-
-  async reviewWorkpaper(clientId: string, workpaperId: string, approve: boolean, note?: string): Promise<void> {
-    try {
-      await api.post(`/api/b2t/workpapers/${workpaperId}/review`, { clientId, approve, note });
-    } catch {
-      // Mock success
-    }
-  }
+  categories: (family: string) => request<{ items: Array<{ categoryCode: string; label: string }> }>('GET', '/categories/' + encodeURIComponent(family)),
+  overview: (clientId: string, year: number, family: string) => request<B2tOverview>('GET', `${c(clientId)}/${year}/${encodeURIComponent(family)}`),
+  openSet: (clientId: string, year: number, family: string) => request('POST', `${c(clientId)}/${year}/${encodeURIComponent(family)}/mapping-sets`),
+  setMapping: (clientId: string, setId: string, accountId: string, categoryCode: string | null) => request('POST', `${c(clientId)}/mapping-sets/${encodeURIComponent(setId)}/mappings`, { accountId, categoryCode }),
+  reviewSet: (clientId: string, setId: string, action: 'submit' | 'approve' | 'reject', note?: string) => request('POST', `${c(clientId)}/mapping-sets/${encodeURIComponent(setId)}/${action}`, { note }),
+  prepareAdjustment: (clientId: string, a: { taxYear: number; returnFamily: string; categoryCode: string; amount: string; adjustmentType: string; description: string }, key: string) =>
+    request('POST', `${c(clientId)}/adjustments`, a, key),
+  reviewAdjustment: (clientId: string, id: string, approve: boolean, note?: string) => request('POST', `${c(clientId)}/adjustments/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { note }),
+  generateWorkpaper: (clientId: string, year: number, family: string) => request('POST', `${c(clientId)}/${year}/${encodeURIComponent(family)}/workpapers`, {}),
+  reviewWorkpaper: (clientId: string, id: string, approve: boolean, note?: string) => request('POST', `${c(clientId)}/workpapers/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { note }),
 };
+export const centsText = (cents: number) => (cents < 0 ? '-' : '') + '$' + (Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const MESSAGES: Record<string, string> = { MAKER_CHECKER_VIOLATION: 'A different reviewer must approve this.', B2T_REVIEWER_REQUIRED: 'Only a reviewer can approve or reject.',
+  WORKPAPER_NOT_RECONCILED: 'Map every account with activity before approving the workpaper.', WORKPAPER_STALE: 'A newer mapping version was approved; generate a new workpaper.',
+  APPROVED_MAPPING_REQUIRED: 'Approve a mapping set before generating a workpaper.', MAPPING_SET_NOT_EDITABLE: 'Only draft mapping sets can be changed.',
+  EVIDENCE_DOCUMENT_NOT_VERIFIED: 'Evidence must be a verified document of this client.', B2T_UNAVAILABLE: 'Durable book-to-tax is not enabled in this environment.' };
+export function bookToTaxMessage(error: unknown): string {
+  if (error instanceof BookToTaxRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];
+  if (error instanceof BookToTaxRequestError && error.status === 403) return 'You are not assigned to this client.';
+  return 'The book-to-tax service did not confirm this action. Refresh and retry.';
+}

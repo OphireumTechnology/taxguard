@@ -55,6 +55,11 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **Durable evidence-to-conclusion traceability (Block 66).** Review-only proposal `20261019100000`: versioned tax
+  conclusions linked to verified evidence, calculation runs, approved research and workpapers with per-link snapshots;
+  derived staleness blocks submission, approval and readiness; backward and forward traces; reviewer lineage panel;
+  form-line foundation for Block 67. PostgreSQL (6), unit, production refusal, suite 07 browser journey through source
+  replacement and re-approval. Reports: `block66-*.md`.
 - **Phase 15 integration (2026-10-27).** All published Phase 15 work (PRs #25-#34; #24 superseded) plus reviewed Codex
   unpublished and uncommitted packages, on `integration/taxguard-phase15`. One canonical refund function (Phase 15
   capabilities ported into `taxguard_bill_refund_keyed`); colliding migrations renamed to `20261018110000`/`120000`;

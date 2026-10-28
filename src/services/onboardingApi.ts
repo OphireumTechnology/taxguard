@@ -1,142 +1,65 @@
-import { api } from './api';
+/** Browser client for /api/stage-one (durable Stage 01 onboarding). The server derives every requirement. */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
-export interface OnboardingFields {
-  legalName?: string;
-  dba?: string;
-  tin?: string;
-  entityType?: string;
-  phone?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  city?: string;
-  state?: string;
-  postalCode?: string;
-  country?: string;
-  taxYear?: number;
-  filingStatus?: string;
-  notes?: string;
+export class OnboardingRequestError extends Error {
+  constructor(public readonly status: number, public readonly code?: string) { super(code || 'ONBOARDING_REQUEST_FAILED'); }
 }
-
-export interface OnboardingConsent {
-  version: string;
-  text: string;
-  signedAt?: string;
-  signerName?: string;
-}
-
+export type OnboardingStatus = 'DRAFT' | 'SUBMITTED' | 'CHANGES_REQUESTED' | 'APPROVED';
+export interface OnboardingRequirements { profile: boolean; tin: boolean; address: boolean; representative: boolean; identityDocument: boolean; consentAvailable: boolean }
 export interface OnboardingView {
-  clientId: string;
-  revision: number;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED' | 'REJECTED';
-  fields: OnboardingFields;
-  consent: OnboardingConsent;
-  decisionNote?: string;
-  submittedAt?: string;
-  reviewedAt?: string;
+  clientId: string; status: OnboardingStatus; revision: number; taxpayerType: 'individual' | 'entity' | null; legalName: string | null;
+  address: { street: string | null; city: string | null; state: string | null; postalCode: string | null };
+  representative: { fullName: string; title: string } | null; tinType: 'SSN' | 'ITIN' | 'EIN' | null; tinMasked: string | null;
+  consentVersion: string | null; consentSigner: string | null; consentAt: string | null; submittedAt: string | null; decidedAt: string | null;
+  clientReason: string | null; requirements: OnboardingRequirements; consent: { version: string; text: string } | null;
+  // Staff view only.
+  ownerUid?: string; decidedBy?: string | null; internalNote?: string | null; duplicateDecision?: string | null; possibleDuplicates?: string[]; consentTextSha256?: string | null;
 }
-
-export interface OnboardingQueueItem {
-  clientId: string;
-  clientName: string;
-  entityType?: string;
-  revision: number;
-  status: string;
-  submittedAt: string;
+export interface OnboardingFields {
+  taxpayerType?: string; legalName?: string; street?: string; city?: string; state?: string; postalCode?: string; repName?: string; repTitle?: string; tinType?: string; tinLast4?: string;
 }
+export interface OnboardingQueueItem { clientId: string; legalName: string | null; submittedAt: string; revision: number; possibleDuplicates: number; identityDocument: boolean }
 
-export function onboardingMessage(err: any): string {
-  if (typeof err === 'string') return err;
-  if (err?.message) return err.message;
-  return 'An onboarding service error occurred.';
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new OnboardingRequestError(401, 'AUTH_REQUIRED');
+  const response = await fetch(apiEndpoint('/api/stage-one' + path), { method, cache: 'no-store', credentials: 'omit',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  // A response for a previous session must never be applied to the current one.
+  if (getStoredToken() !== token) throw new OnboardingRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new OnboardingRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  return data as T;
 }
-
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
 export const onboardingApi = {
-  async mine(): Promise<OnboardingView> {
-    try {
-      return await api.get<OnboardingView>('/api/onboarding/mine');
-    } catch {
-      return {
-        clientId: 'client-current',
-        revision: 1,
-        status: 'APPROVED',
-        fields: {
-          legalName: 'Apex Holdings LLC',
-          entityType: 'S_CORPORATION',
-          tin: 'XX-XXX1234',
-          taxYear: 2025,
-          phone: '(555) 234-5678',
-          addressLine1: '100 Financial Way',
-          city: 'San Francisco',
-          state: 'CA',
-          postalCode: '94105',
-          country: 'US'
-        },
-        consent: {
-          version: '1.0',
-          text: 'Consent to tax representation and electronic records.'
-        }
-      };
-    }
-  },
-
-  async save(revision: number, fields: OnboardingFields): Promise<OnboardingView> {
-    try {
-      return await api.post<OnboardingView>('/api/onboarding/save', { revision, fields });
-    } catch {
-      const current = await this.mine();
-      return { ...current, revision: revision + 1, fields: { ...current.fields, ...fields } };
-    }
-  },
-
-  async submit(revision: number, consentVersion: string, signer: string): Promise<OnboardingView> {
-    try {
-      return await api.post<OnboardingView>('/api/onboarding/submit', { revision, consentVersion, signer });
-    } catch {
-      const current = await this.mine();
-      return {
-        ...current,
-        revision: revision + 1,
-        status: 'SUBMITTED',
-        submittedAt: new Date().toISOString(),
-        consent: { ...current.consent, version: consentVersion, signerName: signer, signedAt: new Date().toISOString() }
-      };
-    }
-  },
-
-  async queue(): Promise<{ items: OnboardingQueueItem[] }> {
-    try {
-      return await api.get<{ items: OnboardingQueueItem[] }>('/api/onboarding/queue');
-    } catch {
-      return { items: [] };
-    }
-  },
-
-  async client(clientId: string): Promise<OnboardingView> {
-    try {
-      return await api.get<OnboardingView>(`/api/onboarding/client/${clientId}`);
-    } catch {
-      return {
-        clientId,
-        revision: 1,
-        status: 'SUBMITTED',
-        fields: { legalName: 'Client Review Dossier', entityType: 'INDIVIDUAL' },
-        consent: { version: '1.0', text: 'Consent agreement' }
-      };
-    }
-  },
-
-  async decide(clientId: string, revision: number, decision: 'APPROVED' | 'RETURNED' | 'REJECTED', note?: string): Promise<OnboardingView> {
-    try {
-      return await api.post<OnboardingView>(`/api/onboarding/client/${clientId}/decision`, { revision, decision, note });
-    } catch {
-      const current = await this.client(clientId);
-      return {
-        ...current,
-        revision: revision + 1,
-        status: decision,
-        decisionNote: note,
-        reviewedAt: new Date().toISOString()
-      };
-    }
-  }
+  mine: () => request<OnboardingView>('GET', '/me'),
+  save: (revision: number, fields: OnboardingFields) => request<OnboardingView>('POST', '/me', { revision, fields }),
+  submit: (revision: number, consentVersion: string, signer: string) => request<OnboardingView>('POST', '/me/submit', { revision, consentVersion, signer }),
+  queue: () => request<{ items: OnboardingQueueItem[] }>('GET', '/queue'),
+  client: (clientId: string) => request<OnboardingView>('GET', c(clientId)),
+  decide: (clientId: string, revision: number, decision: 'approve' | 'request_changes', input: { clientReason?: string; internalNote?: string; duplicateOverride?: boolean }) =>
+    request<OnboardingView>('POST', c(clientId) + '/decision', { revision, decision, ...input }),
 };
+
+const MESSAGES: Record<string, string> = {
+  ONBOARDING_VERSION_CONFLICT: 'This onboarding record changed since it was loaded. Refresh and try again.',
+  ONBOARDING_NOT_EDITABLE: 'This onboarding record is with the practice and cannot be edited now.',
+  ONBOARDING_INCOMPLETE: 'Complete every section before submitting.',
+  ONBOARDING_CONSENT_NOT_APPROVED: 'The consent wording is not approved for use yet, so onboarding cannot be submitted or approved.',
+  ONBOARDING_FULL_TIN_REFUSED: 'Enter only the last four digits of the identification number.',
+  ONBOARDING_INPUT_INVALID: 'Check the highlighted information and try again.',
+  ONBOARDING_IDENTITY_DOCUMENT_REQUIRED: 'An identification document must be verified by the practice before approval.',
+  ONBOARDING_DUPLICATE_REVIEW_REQUIRED: 'A possible duplicate client was found. Confirm the override and record a reason of at least 10 characters.',
+  ONBOARDING_REASON_REQUIRED: 'Enter a reason for the client (at least 5 characters).',
+  ONBOARDING_NOT_SUBMITTED: 'This onboarding record is not awaiting a decision.',
+  PRACTICE_MANAGER_REQUIRED: 'Only a practice manager or administrator can decide onboarding.',
+  ONBOARDING_STORE_UNAVAILABLE: 'Online onboarding is not available in this environment.',
+  SESSION_CHANGED: 'Your session changed. Reload the page.',
+};
+export function onboardingMessage(error: unknown): string {
+  if (error instanceof OnboardingRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];
+  if (error instanceof OnboardingRequestError && (error.status === 403 || error.status === 404)) return 'You are not authorized for this onboarding record.';
+  return 'The onboarding service did not confirm this action. Refresh and try again.';
+}
