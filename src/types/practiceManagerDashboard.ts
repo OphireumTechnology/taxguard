@@ -1,10 +1,21 @@
 export interface PracticeManagerCase {
- id:string; clientId:string; engagementId:string; taxYear:number; stage:number; status:string; updatedAt?:string;
- owners:string[]; waiting:boolean; review:boolean; dueDates:string[];
+  id: string;
+  status: string;
+  stage: number;
+  dueDates: string[];
+  waiting: boolean;
+  review: boolean;
+  owners: string[];
 }
+
+export interface PracticeManagerStaff {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export interface PracticeManagerSnapshot {
- tenantId:string; cases:PracticeManagerCase[];
- deadlines:Array<{id:string;caseId:string;clientId:string;taxYear:number;dueDate:string;category:string;authority:string;status:string;escalation:number;createdAt?:string;owner?:string}>;
- staff:Array<{id:string;role:string}>;
- capabilities:{managementMutations:false;capacity:false;slaPolicy:false;completionTrends:false;aiAnalysis:false};
+  cases: PracticeManagerCase[];
+  deadlines: Array<{ status: string; escalation: number }>;
+  staff: PracticeManagerStaff[];
 }
