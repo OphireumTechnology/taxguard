@@ -4874,6 +4874,47 @@
       ]
     },
     {
+      "file": "docs/development/block67-browser-verification.md",
+      "sha256": "4a0bc3cc36dbe7506283cc3bef8ac87d2563db28e7cb7367f67d5c2e973ff2e9",
+      "bytes": 1929,
+      "headings": [
+        "# Block 67: browser verification"
+      ]
+    },
+    {
+      "file": "docs/development/block67-deterministic-form-mapping-report.md",
+      "sha256": "6f6d6f6bc8d6a1d65cabc868aff555841cbca09c1561370c9e6ba940e8955260",
+      "bytes": 7716,
+      "headings": [
+        "# Block 67: deterministic form mapping",
+        "## Chain",
+        "## Schema (new)",
+        "## Mapping rule definition",
+        "## Derivation (deterministic, refuses instead of guessing)",
+        "## Staleness",
+        "## API (`/api/tax-engine`, staff only)",
+        "## UI",
+        "## Tests",
+        "## Known gaps and dependencies"
+      ]
+    },
+    {
+      "file": "docs/development/block67-production-readiness.md",
+      "sha256": "8323b2f4166953e50d7bba22a7f014231fefcb2d7dd509859e60efa907cbe81b",
+      "bytes": 928,
+      "headings": [
+        "# Block 67: production readiness"
+      ]
+    },
+    {
+      "file": "docs/development/block67-security-verification.md",
+      "sha256": "5a8f1c14dd708a4466b831547f4ff9f7796ce19dca5dbbe1605ac7dfa9977215",
+      "bytes": 2889,
+      "headings": [
+        "# Block 67: security verification"
+      ]
+    },
+    {
       "file": "docs/development/book-to-tax.md",
       "sha256": "6bec5c83472722d27c47348b1304f1f280105969d2815053bd8655af946025c8",
       "bytes": 2813,
@@ -5154,8 +5195,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "bc7a4ff03504ed3b1b47ab363d9b502c4361fdb9f3870e8ff454e8292c881015",
-      "bytes": 21754,
+      "sha256": "a4d229ac0764e04be7c6145c258231ab50a63342bc576a5c771b2802fb9e1148",
+      "bytes": 21879,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5877,8 +5918,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "93664f3083c2ba3b434560374b5de0a150ebce7bb204803926678241acb72c49",
-      "bytes": 16098,
+      "sha256": "9300c2cad7ac56a9ef4929cac970a47deeb8ba005bc8d1bc316e817c66b184fc",
+      "bytes": 16745,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6502,6 +6543,12 @@
       "file": "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
       "sha256": "0d5d4fbb2cb1ed4e3109d49dd50009b9cb4e23c896437a614c9b68818fb5b066",
       "bytes": 38741,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+      "sha256": "a057a6c26c592668f9311a01e90e1b37b54ca0ab1524dec170898aee0ad43542",
+      "bytes": 37243,
       "headings": []
     },
     {
@@ -7733,7 +7780,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "781598577e329335a46c41f0146a2647fae2cb0dd3512bcebdf469fcf439e882",
+    "src/tests/proposalCompositionSecurity.test.ts": "41691ccc9850647c6a7e5e148f18af3437ac3b036af5f2c40a1d6b1c8d82e948",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

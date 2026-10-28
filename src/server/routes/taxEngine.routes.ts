@@ -64,6 +64,16 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.post('/conclusions/:conclusionId/submit', run(req => store().submitConclusion(t(req), u(req), req.params.conclusionId)));
   router.post('/conclusions/:conclusionId/:decision(approve|return|reject)', run(req => store().reviewConclusion(t(req), u(req), req.params.conclusionId,
     req.params.decision as 'approve' | 'return' | 'reject', note(req.body?.note) ?? '')));
+  // Deterministic form mapping (proposal 20261019110000): versioned mapping rules under maker-checker, and per-case
+  // mappings derived by the database from approved, current conclusions. No value can be supplied by the request.
+  router.get('/form-rules', run(async req => ({ items: await store().formRules(t(req), u(req), year(req.query.taxYear)) })));
+  router.get('/form-rules/:ruleId', run(req => store().formRuleDetail(t(req), u(req), req.params.ruleId)));
+  router.post('/form-rules', run(req => store().draftFormRule(t(req), u(req), req.body?.definition), 201));
+  router.post('/form-rules/:ruleId/:action(submit|approve|reject)', run(req => store().transitionFormRule(t(req), u(req), req.params.ruleId,
+    req.params.action as 'submit' | 'approve' | 'reject', note(req.body?.note))));
+  router.get('/cases/:caseId/form-mappings', run(async req => ({ items: await store().formMappings(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
+  router.post('/cases/:caseId/form-mappings', run(req => store().mapForm(t(req), u(req), req.params.caseId, String(req.body?.ruleId ?? '')), 201));
+  router.get('/form-mappings/:mappingId', run(req => store().formMappingDetail(t(req), u(req), req.params.mappingId)));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));
   router.post('/runs/:runId/:decision(approve|reject)', run(req => store().reviewRun(t(req), u(req), req.params.runId, req.params.decision as 'approve' | 'reject', note(req.body?.note) ?? '')));
   // Tax research memos for a case (proposal 20261018150000). Scope, authority levels and maker-checker are enforced by
