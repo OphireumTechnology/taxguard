@@ -4875,16 +4875,16 @@
     },
     {
       "file": "docs/development/block67-browser-verification.md",
-      "sha256": "4a0bc3cc36dbe7506283cc3bef8ac87d2563db28e7cb7367f67d5c2e973ff2e9",
-      "bytes": 1929,
+      "sha256": "de1462f222e665cc238fb6a7a7022b47f56c6c9aff99ce31541cdb4222d66084",
+      "bytes": 1992,
       "headings": [
         "# Block 67: browser verification"
       ]
     },
     {
       "file": "docs/development/block67-deterministic-form-mapping-report.md",
-      "sha256": "6f6d6f6bc8d6a1d65cabc868aff555841cbca09c1561370c9e6ba940e8955260",
-      "bytes": 7716,
+      "sha256": "a3e7106affb3362aff389fc5ae4ded0d0b9febfcc8a0670dd2607ec462a48668",
+      "bytes": 7832,
       "headings": [
         "# Block 67: deterministic form mapping",
         "## Chain",

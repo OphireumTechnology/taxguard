@@ -94,7 +94,8 @@ rules are authored through the API in this block; there is no rule editor.
 ## Tests
 
 - `taxFormMapping.db.test.ts` (8, PostgreSQL, HTTP): rule governance; supported jurisdictions and effective dates
-  (validation, CHECK, frozen); every refusal above, including a rule not yet in effect and an expired rule; provenance of every value;
+  (validation, CHECK, frozen); every refusal above, including a rule not yet in effect, an expired rule, a rejected
+  rule and an unknown rule; the evidence of a mapped value names the source document's version and SHA-256; provenance of every value;
   idempotent re-mapping; the conclusion trace reaches the form lines; no injection, edit or removal (CHECK, triggers,
   privileges); isolation by tenant, client, case assignment, tax year and role; revised conclusion → STALE → version 2
   with version 1 kept; stale document and superseded rule → STALE, mapping refused.
