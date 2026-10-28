@@ -159,14 +159,16 @@
       "implementation": [
         "src/ai/registry.ts",
         "src/ai/architectureMapping.ts",
+        "src/ai/architectureOverview.ts",
         "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
       ],
       "tests": [
         "src/tests/aiRegistryFoundation.test.ts",
         "src/tests/aiArchitectureMapping.test.ts",
+        "src/tests/aiArchitectureOverview.test.ts",
         "src/tests/aiWorkforceDenyByDefault.test.ts"
       ],
-      "remainingGap": "61 identities, all DRAFT. 58 have no individually proven responsibility (UNMAPPED, denied). Per-agent permissions need the owner's agent matrix and approval."
+      "remainingGap": "61 identities, all DRAFT. 58 have no approved responsibility (UNMAPPED, denied). The owner-supplied Architecture Overview (2026-10-28) is recorded for review with names, responsibilities and gates for 59 agents and a 13-agent example permission matrix; it grants nothing. Thirteen owner decisions (four answered on 2026-10-28) (docs/development/ai-architecture-overview-reconciliation.md) and the owner approval of a mapping remain."
     },
     {
       "id": "AI-AGENTS-SPECIALISTS",
@@ -336,16 +338,18 @@
         "src/server/ai/governance/ControlCenterReadService.ts",
         "src/components/admin/AiControlCenterPanel.tsx",
         "src/components/admin/AiCommissioningView.tsx",
+        "src/components/admin/AiArchitectureOverviewView.tsx",
         "src/components/admin/AiLiveCommissioningRecords.tsx"
       ],
       "tests": [
         "src/tests/aiControlCenterRead.test.ts",
         "src/tests/aiControlCenterPanel.test.tsx",
         "src/tests/aiLiveCommissioningUi.test.tsx",
+        "src/tests/aiArchitectureOverviewView.test.tsx",
         "src/tests-e2e/14-phase12b-frontend.e2e.test.ts",
         "src/tests-e2e/15-phase13a-contracts.e2e.test.ts"
       ],
-      "remainingGap": "Read-only projections of live governance tables, with nothing operational to show. Browser journeys (suites 14, 15): commissioning readiness, 0 of 61 commissioned, and live records refused outside a governance database. No agent detail view beyond the commissioning rows."
+      "remainingGap": "Read-only projections of live governance tables, with nothing operational to show. Browser journeys (suites 14, 15): commissioning readiness, 0 of 61 commissioned, and live records refused outside a governance database. An Architecture overview tab shows the owner-supplied overview as reference only, with its open decisions (suite 14). No agent detail view beyond the commissioning and overview rows."
     },
     {
       "id": "AI-PROMPT-INJECTION",

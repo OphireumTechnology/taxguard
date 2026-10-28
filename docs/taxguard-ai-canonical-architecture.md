@@ -6,7 +6,7 @@ Version 1.0.0, 2026-10-08. This is the canonical architecture index for future a
 
 No applicable AGENTS.md was found. Repository-wide searches excluded the protected backup, dependencies, build outputs and Git internals. Sources reconciled: src/ai/registry.ts and AI foundation migration; AI-0 through AI-6 reports/implementation; taxguard-ai-legacy-mapping.md; persistence.types.ts STAGE_NAMES; governance/SqlGovernanceStore and GovernanceControlPlane; capabilities/CapabilityRegistry and ScopedReadRepository; gateway/ModelPromptResolver; orchestration/canonicalRouting; current assignment/RLS tests; dashboard gate reports and supplied architecture-workflow/masterplan references.
 
-The multipage Architecture Overview and its page-9 matrix are absent. No evidence assigns the six client-service functions to four individual IDs. The user's mapping-resolution instruction authorizes explicit denial rather than inventing that assignment. The earlier AI-7 request for another mapping approval is superseded.
+2026-10-28: the owner supplied the multipage Architecture Overview, including the page-9 matrix. It is recorded for review in src/ai/architectureOverview.ts and docs/development/ai-architecture-overview-reconciliation.md, with thirteen owner decisions; it changes no mapping state, name, category or grant below until the owner approves a mapping. Before that date the overview was absent. No evidence assigns the six client-service functions to four individual IDs. The user's mapping-resolution instruction authorizes explicit denial rather than inventing that assignment. The earlier AI-7 request for another mapping approval is superseded.
 
 ## Common controlling boundary
 
