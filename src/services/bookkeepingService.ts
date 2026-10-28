@@ -132,7 +132,7 @@ export const bookkeepingService = {
   async searchJournal(clientId: string, taxYear?: number, filter?: any): Promise<{ entries: JournalEntryItem[] }> {
     try {
       const q = taxYear ? `?taxYear=${taxYear}&clientId=${encodeURIComponent(clientId)}` : `?clientId=${encodeURIComponent(clientId)}`;
-      return await api.get(`/api/bookkeeping/journal/search${q}`, { params: filter });
+      return await api.get(`/api/bookkeeping/journal/search${q}`);
     } catch {
       return { entries: [] };
     }

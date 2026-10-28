@@ -196,7 +196,7 @@ let securityRecorder:SecurityEventRecorder|undefined;
 
 const productionApi = createProductionApp();
 
-const PORT = Number(process.env.PORT) || Number(process.env.APP_PORT) || 3000;
+const PORT = (process.env.PORT && process.env.PORT !== '8080' ? Number(process.env.PORT) : null) || Number(process.env.APP_PORT) || 3000;
 
 /**
  * ============================================================
