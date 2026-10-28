@@ -56,6 +56,16 @@ describe('tax conclusions in the browser client', () => {
       expect(html).toContain(text);
   });
 
+  it('keeps its live regions mounted and explains why saving is disabled (accessibility review, Block 66)', () => {
+    const html = renderToStaticMarkup(<CaseConclusionsPanel caseId="case-1" />);
+    // Announced regions exist before any text arrives, so later changes are read out.
+    expect(html).toContain('<div role="status" aria-label="Conclusion readiness"></div>');
+    expect(html).toContain('<div role="status" aria-label="Conclusion action result"></div>');
+    expect(html).toContain('<h4 id="case-conclusions-heading" tabindex="-1">Tax conclusions</h4>');
+    expect(html).toMatch(/<p id="case-conclusion-save-hint">A statement of at least 10 characters and at least one verified evidence reference are required\.<\/p><button disabled="" aria-describedby="case-conclusion-save-hint">Propose conclusion<\/button>/);
+    expect(html).not.toContain('aria-label="Conclusion status"'); // a name on <strong> would hide the status word itself
+  });
+
   it('lets practice managers read conclusions, traces and readiness, and nothing more', () => {
     vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
     vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');

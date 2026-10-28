@@ -46,8 +46,7 @@ const propose = (body: unknown) => { as('tc-prep'); return call('POST', `/cases/
 const BODY = { type: 'INCOME_INCLUSION', statement: 'Synthetic wages are included in income for the year.', amount: '5000.00' };
 
 beforeAll(async () => {
-  db = await startDatabase();
-  await db.pool.query(`INSERT INTO taxguard_tenants(id, name) VALUES ('${T}', 'Synthetic conclusions practice'), ('${T2}', 'Other synthetic practice');
+  db = await startDatabase();  await db.pool.query(`INSERT INTO taxguard_tenants(id, name) VALUES ('${T}', 'Synthetic conclusions practice'), ('${T2}', 'Other synthetic practice');
     INSERT INTO taxguard_clients(tenant_id, client_id, owner_uid, name) VALUES ('${T}', '${C}', 'tc-client', 'Synthetic Conclusion Client'), ('${T}', '${C2}', 'tc-client-2', 'Other Client');
     INSERT INTO taxguard_members(tenant_id, uid, role, status, client_id) VALUES ('${T}', 'tc-mgr', 'practice_manager', 'active', NULL), ('${T}', 'tc-prep', 'accountant', 'active', NULL),
       ('${T}', 'tc-rev', 'reviewer', 'active', NULL), ('${T}', 'tc-out', 'accountant', 'active', NULL), ('${T}', 'tc-client', 'client', 'active', '${C}'),
@@ -199,5 +198,157 @@ describe('tax conclusions are built only on verified, scoped sources', () => {
         expect((await db.pool.query(`SELECT has_table_privilege($1, $2, 'SELECT') OR has_table_privilege($1, $2, 'INSERT') AS ok`, [role, 'public.' + table])).rows[0].ok, `${role} ${table}`).toBe(false);
     for (const fn of ['taxguard_tax_conclusion_stale(text,uuid)', 'taxguard_tax_conclusion_source(taxguard_cases,text,text)', 'taxguard_tax_conclusion_link_all(taxguard_cases,uuid,jsonb)'])
       expect((await db.pool.query(`SELECT has_function_privilege('service_role', $1, 'EXECUTE') AS ok`, ['public.' + fn])).rows[0].ok, fn).toBe(false);
+  });
+});
+
+// Book-to-tax workpapers through their own maker-checker workflow (20261012290000, 20261018070000): approving a newer
+// workpaper for the same client, year and return family supersedes the approved one.
+const b2t = (fn: string, actor: string, extra: Record<string, unknown>) => rpc(fn, { p_tenant: T, p_client: C, p_actor: actor, ...extra });
+async function approvedWorkpaper() {
+  const id = (await b2t('taxguard_b2t_generate_workpaper', 'tc-prep', { p_year: 2025, p_family: '1040', p_case: caseId })).workpaperId as string;
+  expect((await b2t('taxguard_b2t_review_workpaper', 'tc-rev', { p_workpaper: id, p_approve: true, p_note: null })).status).toBe('APPROVED');
+  return id;
+}
+let currentWorkpaper = '';
+const workpaperStatus = async (id: string) => (await db.pool.query(`SELECT status FROM taxguard_b2t_workpapers WHERE tenant_id = $1 AND workpaper_id = $2`, [T, id])).rows[0].status;
+
+describe('a superseded workpaper makes the conclusions built on it stale', () => {
+  it('approved on a workpaper, stale once a newer workpaper is approved; revised on the new one and re-approved; history kept', async () => {
+    const set = (await b2t('taxguard_b2t_open_set', 'tc-prep', { p_year: 2025, p_family: '1040' })).setId;
+    await b2t('taxguard_b2t_review_set', 'tc-prep', { p_set: set, p_action: 'submit', p_note: null });
+    await b2t('taxguard_b2t_review_set', 'tc-rev', { p_set: set, p_action: 'approve', p_note: null });
+    const wp1 = await approvedWorkpaper();
+    await doc('tc-wp-doc', 1, 'VERIFIED');
+    const wpLinks = (wp: string) => [{ type: 'EVIDENCE', ref: 'document:tc-wp-doc' }, { type: 'WORKPAPER', ref: wp }];
+    const make = async () => { const k = (await propose({ type: 'OTHER', statement: 'Synthetic book-to-tax groupings are carried to the return.', links: wpLinks(wp1) })).body;
+      expect(k, k.code).toMatchObject({ status: 'DRAFT', stale: [] }); return k.conclusionId as string; };
+    // One approved, one awaiting review and one draft, all on workpaper 1.
+    const approved = await make(), pending = await make(), draft = await make();
+    as('tc-prep'); for (const id of [approved, pending]) expect((await call('POST', `/conclusions/${id}/submit`)).body.status).toBe('READY_FOR_REVIEW');
+    as('tc-rev'); expect((await call('POST', `/conclusions/${approved}/approve`, {})).body).toMatchObject({ status: 'APPROVED', stale: [] });
+    const snapshot = (await call('GET', `/conclusions/${approved}/trace`)).body.sources.find((s: any) => s.type === 'WORKPAPER');
+    expect(snapshot).toMatchObject({ ref: wp1, snapshot: { workpaperId: wp1, status: 'APPROVED', returnFamily: '1040' }, current: { workpaperId: wp1, status: 'APPROVED' } });
+
+    // The normal workflow replaces workpaper 1: a newer workpaper is generated and approved by the independent reviewer.
+    const wp2 = await approvedWorkpaper(); currentWorkpaper = wp2;
+    expect(await workpaperStatus(wp1)).toBe('SUPERSEDED');
+    as('tc-rev');
+    const reloaded = (await call('GET', `/conclusions/${approved}/trace`)).body;
+    expect(reloaded.conclusion.status).toBe('APPROVED'); // nothing is changed silently
+    expect(reloaded.conclusion.stale).toEqual([{ type: 'WORKPAPER', ref: wp1, reason: 'WORKPAPER_SUPERSEDED' }]);
+    expect((await call('GET', `/cases/${caseId}/conclusions/readiness`)).body.blockers).toEqual(expect.arrayContaining([
+      { conclusionId: approved, version: 1, status: 'APPROVED', reasons: ['STALE'] }]));
+    // Approval, submission and a new conclusion on the superseded workpaper are all refused.
+    const approval = await call('POST', `/conclusions/${pending}/approve`, {});
+    expect(approval.body.code).toBe('TAX_CONCLUSION_STALE');
+    expect(JSON.parse(approval.body.detail)).toEqual([{ type: 'WORKPAPER', ref: wp1, reason: 'WORKPAPER_SUPERSEDED' }]);
+    as('tc-prep'); expect((await call('POST', `/conclusions/${draft}/submit`)).body.code).toBe('TAX_CONCLUSION_STALE');
+    expect((await propose({ type: 'OTHER', statement: 'Synthetic book-to-tax groupings are carried to the return.', links: wpLinks(wp1) })).body)
+      .toEqual({ code: 'TAX_CONCLUSION_SOURCE_UNRESOLVED', detail: `WORKPAPER|${wp1}|WORKPAPER_SUPERSEDED` });
+    expect((await call('POST', `/conclusions/${approved}/revise`, { links: wpLinks(wp1) })).body.code).toBe('TAX_CONCLUSION_SOURCE_UNRESOLVED');
+    expect((await db.pool.query(`SELECT status FROM taxguard_tax_conclusions WHERE tenant_id = $1 AND conclusion_id = ANY($2::uuid[]) ORDER BY created_at`,
+      [T, [approved, pending, draft]])).rows.map(r => r.status)).toEqual(['APPROVED', 'READY_FOR_REVIEW', 'DRAFT']);
+
+    // Controlled revision on the current workpaper, then independent review.
+    const revised = await call('POST', `/conclusions/${approved}/revise`, { links: wpLinks(wp2) });
+    expect(revised.status, revised.body?.code).toBe(201);
+    expect(revised.body).toMatchObject({ version: 2, supersedesId: approved, status: 'DRAFT', stale: [] });
+    expect((await call('POST', `/conclusions/${revised.body.conclusionId}/submit`)).body.status).toBe('READY_FOR_REVIEW');
+    expect((await call('POST', `/conclusions/${revised.body.conclusionId}/approve`, {})).body.code).toBe('TAX_CONCLUSION_REVIEWER_REQUIRED');
+    as('tc-rev'); expect((await call('POST', `/conclusions/${revised.body.conclusionId}/approve`, {})).body).toMatchObject({ status: 'APPROVED', stale: [] });
+    const history = (await call('GET', `/conclusions/${revised.body.conclusionId}/trace`)).body;
+    expect(history.versions.map((v: any) => [v.version, v.status])).toEqual([[1, 'SUPERSEDED'], [2, 'APPROVED']]);
+    expect(history.sources.find((s: any) => s.type === 'WORKPAPER')).toMatchObject({ ref: wp2, current: { workpaperId: wp2, status: 'APPROVED' } });
+    // Version 1 keeps the workpaper it was approved on, and that workpaper is kept as SUPERSEDED.
+    const v1 = (await call('GET', `/conclusions/${approved}/trace`)).body;
+    expect(v1.conclusion.links.find((l: any) => l.type === 'WORKPAPER')).toMatchObject({ ref: wp1, snapshot: { workpaperId: wp1, status: 'APPROVED' } });
+    expect(v1.sources.find((s: any) => s.type === 'WORKPAPER').current).toEqual({ unresolved: 'WORKPAPER_SUPERSEDED' });
+    expect(await workpaperStatus(wp1)).toBe('SUPERSEDED');
+    expect(v1.audit.map((a: any) => a.action)).toEqual(['TAX_CONCLUSION_PROPOSED', 'TAX_CONCLUSION_SUBMITTED', 'TAX_CONCLUSION_APPROVED',
+      'TAX_CONCLUSION_REVISED', 'TAX_CONCLUSION_SUBMITTED', 'TAX_CONCLUSION_APPROVED']);
+  });
+});
+
+describe('the full chain, backward from a form line and forward from the evidence', () => {
+  it('form line → conclusion → calculation → rule → research → workpaper → evidence → extraction → document version', async () => {
+    await doc('tc-chain-doc', 1, 'VERIFIED');
+    const field = await decidedField('tc-chain-doc', 1, '6100.00');
+    const run = await approvedRun('6100.00', `extraction:${field}`);
+    const chainLinks = [{ type: 'EVIDENCE', ref: `extraction:${field}` }, { type: 'CALCULATION', ref: run }, { type: 'RESEARCH', ref: memo }, { type: 'WORKPAPER', ref: currentWorkpaper }];
+    const k = (await propose({ ...BODY, amount: '6100.00', links: chainLinks })).body;
+    expect(k, k.code).toMatchObject({ status: 'DRAFT', stale: [] });
+    as('tc-prep'); await call('POST', `/conclusions/${k.conclusionId}/submit`);
+    as('tc-rev'); expect((await call('POST', `/conclusions/${k.conclusionId}/approve`, {})).body.status).toBe('APPROVED');
+    // Block 67 will write form lines; this proposal only stores them. A synthetic mapping row stands in for that writer.
+    await db.pool.query(`INSERT INTO taxguard_tax_form_line_sources(tenant_id, case_id, form_id, form_version, line, conclusion_id, mapped_by)
+      VALUES ($1, $2, 'SYN-1040', '2025.0', '1a', $3, 'tc-prep')`, [T, caseId, k.conclusionId]);
+    const fromLine = (await db.pool.query(`SELECT conclusion_id FROM taxguard_tax_form_line_sources WHERE tenant_id = $1 AND case_id = $2 AND form_id = 'SYN-1040' AND line = '1a'`,
+      [T, caseId])).rows.map(r => r.conclusion_id);
+    expect(fromLine).toEqual([k.conclusionId]);
+    const t = (await call('GET', `/conclusions/${fromLine[0]}/trace`)).body;
+    const by = (type: string) => t.sources.find((s: any) => s.type === type);
+    expect(t.formLines).toEqual([{ formId: 'SYN-1040', formVersion: '2025.0', line: '1a' }]);
+    expect(by('CALCULATION')).toMatchObject({ ref: run, current: { status: 'REVIEW_APPROVED', ruleSetId }, detail: { inputs: [{ ref: `extraction:${field}`,
+      resolution: { kind: 'EXTRACTION', documentId: 'tc-chain-doc', documentVersion: 1, documentSha256: '1'.repeat(64) } }] } });
+    expect(by('CALCULATION').current.ruleSetSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(by('RESEARCH')).toMatchObject({ ref: memo, current: { status: 'APPROVED', authorityLevels: ['AUTHORITATIVE'] },
+      detail: { citations: [{ authorityLevel: 'AUTHORITATIVE', sourceId: SYNTHETIC_SOURCE_ID }] } });
+    expect(by('WORKPAPER')).toMatchObject({ ref: currentWorkpaper, current: { workpaperId: currentWorkpaper, status: 'APPROVED' } });
+    expect(by('EVIDENCE')).toMatchObject({ ref: `extraction:${field}`, current: { kind: 'EXTRACTION', documentId: 'tc-chain-doc', documentVersion: 1, documentSha256: '1'.repeat(64) } });
+    expect(t.versions).toEqual([expect.objectContaining({ version: 1, status: 'APPROVED', reviewedBy: 'tc-rev' })]);
+    expect(t.audit.map((a: any) => [a.action, a.actorUid])).toEqual([['TAX_CONCLUSION_PROPOSED', 'tc-prep'], ['TAX_CONCLUSION_SUBMITTED', 'tc-prep'], ['TAX_CONCLUSION_APPROVED', 'tc-rev']]);
+    // Forward: the evidence and the document lead to the run and this conclusion; replacing the document makes it stale.
+    const forward = (await call('GET', `/cases/${caseId}/evidence-trace?ref=extraction:${field}`)).body;
+    expect(forward.calculationRuns).toEqual([run]);
+    expect(forward.conclusions).toEqual([expect.objectContaining({ conclusionId: k.conclusionId, via: 'EVIDENCE', stale: [] })]);
+    await doc('tc-chain-doc', 2, 'PENDING_REVIEW');
+    const after = (await call('GET', `/cases/${caseId}/evidence-trace?ref=extraction:${field}`)).body.conclusions[0];
+    expect(after.stale.map((s: any) => [s.type, s.reason])).toEqual([['CALCULATION', 'CALCULATION_EVIDENCE_STALE'], ['EVIDENCE', 'DOCUMENT_SUPERSEDED']]);
+    expect((await call('GET', `/cases/${caseId}/conclusions/readiness`)).body.blockers).toEqual(expect.arrayContaining([
+      { conclusionId: k.conclusionId, version: 1, status: 'APPROVED', reasons: ['STALE'] }]));
+  });
+});
+
+describe('staff authorized for the client in another tax year are refused', () => {
+  it('2025 staff cannot read, trace or act on a 2026 conclusion of the same client; a named member moved to another year loses it', async () => {
+    // A 2026 engagement and case of the same client, staffed for 2026 only; tc-prep and tc-rev hold 2025 assignments.
+    await db.pool.query(`INSERT INTO taxguard_members(tenant_id, uid, role, status, client_id) VALUES ('${T}', 'tc-prep26', 'accountant', 'active', NULL), ('${T}', 'tc-rev26', 'reviewer', 'active', NULL)`);
+    const practice = new PracticeStore(pgRpc(db.pool));
+    const eng26 = (await practice.createEngagement(T, C, 'tc-mgr', 'tc-engagement-2026', { title: 'Synthetic 2026 return', type: 'tax_preparation', taxYears: [2026] })).engagementId;
+    await practice.setEngagementStatus(T, C, 'tc-mgr', eng26, 'active', 1);
+    for (const [role, userId] of [['preparer', 'tc-prep26'], ['reviewer', 'tc-rev26']])
+      await practice.assign(T, C, 'tc-mgr', `tc-assign-2026-${role}`, { engagementId: eng26, taxYear: 2026, role, userId, reason: 'Synthetic staffing' });
+    const case26 = (await new CaseStore(pgRpc(db.pool)).create(T, C, 'tc-mgr', 'tc-case-key-2026', { engagementId: eng26, taxYear: 2026, returnFamily: '1040' }) as any).caseId as string;
+    await db.pool.query(`INSERT INTO taxguard_documents(document_id, tenant_id, client_id, engagement_id, tax_year, case_id, version, hash, mime_type, status, quarantine_status, created_by)
+      VALUES ('tc-2026-doc', $1, $2, $3, 2026, $4, 1, repeat('6', 64), 'application/pdf', 'VERIFIED', 'CLEAN', 'tc-client')`, [T, C, eng26, case26]);
+    const body = { type: 'OTHER', statement: 'Synthetic 2026 interest is reported for the year.', links: [{ type: 'EVIDENCE', ref: 'document:tc-2026-doc' }] };
+    as('tc-prep26');
+    const k26 = (await call('POST', `/cases/${case26}/conclusions`, body)).body;
+    expect(k26, k26.code).toMatchObject({ status: 'DRAFT', taxYear: 2026 });
+    const pending26 = (await call('POST', `/cases/${case26}/conclusions`, body)).body.conclusionId as string;
+    for (const id of [k26.conclusionId, pending26]) expect((await call('POST', `/conclusions/${id}/submit`)).body.status).toBe('READY_FOR_REVIEW');
+    as('tc-rev26'); expect((await call('POST', `/conclusions/${k26.conclusionId}/approve`, {})).body.status).toBe('APPROVED');
+
+    const refusedEverywhere = async (uid: string) => {
+      as(uid);
+      expect((await call('GET', `/conclusions/${k26.conclusionId}/trace`)).body, uid).toEqual({ code: 'TAX_CONCLUSION_NOT_FOUND' });
+      for (const path of [`/cases/${case26}/conclusions`, `/cases/${case26}/conclusions/readiness`, `/cases/${case26}/evidence-trace?ref=document:tc-2026-doc`])
+        expect((await call('GET', path)).status, `${uid} ${path}`).toBe(404);
+      expect((await call('POST', `/cases/${case26}/conclusions`, body)).status, uid).toBe(404);
+      for (const [path, payload] of [[`/conclusions/${pending26}/approve`, {}], [`/conclusions/${pending26}/return`, { note: 'Synthetic return note for tests' }],
+        [`/conclusions/${pending26}/reject`, { note: 'Synthetic reject note for tests' }], [`/conclusions/${k26.conclusionId}/revise`, { links: body.links }]] as const)
+        expect((await call('POST', path, payload)).body, `${uid} ${path}`).toEqual({ code: 'TAX_CONCLUSION_NOT_FOUND' });
+    };
+    await refusedEverywhere('tc-prep'); // 2025 preparer of the same client
+    await refusedEverywhere('tc-rev');  // 2025 reviewer of the same client
+    // The 2025 staff still reach their own year.
+    as('tc-rev'); expect((await call('GET', `/conclusions/${conclusion1}/trace`)).body.conclusion.taxYear).toBe(2025);
+
+    // The named 2026 reviewer's assignment is moved to 2025: they no longer reach the 2026 conclusion, server-side.
+    await db.pool.query(`UPDATE taxguard_staff_assignments SET tax_year = 2025 WHERE tenant_id = $1 AND user_id = 'tc-rev26'`, [T]);
+    await refusedEverywhere('tc-rev26');
+    expect((await db.pool.query(`SELECT status, reviewed_by FROM taxguard_tax_conclusions WHERE tenant_id = $1 AND conclusion_id = $2`, [T, pending26])).rows[0])
+      .toEqual({ status: 'READY_FOR_REVIEW', reviewed_by: null });
+    as('tc-mgr'); expect((await call('GET', `/conclusions/${k26.conclusionId}/trace`)).body.conclusion.conclusionId).toBe(k26.conclusionId);
   });
 });

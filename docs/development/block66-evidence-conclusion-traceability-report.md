@@ -59,16 +59,34 @@ workpaper, verified evidence and original document, review history, audit, form 
 
 ## Tests
 
-- `taxConclusions.db.test.ts` (6, PostgreSQL, HTTP) and `taxCalcInputLineage.db.test.ts` (Block 65, resolver change).
-- `caseConclusionsPanel.test.tsx`, `routeCutover.test.ts` (production refusal, cutover requirement).
-- Suite 07 browser journey (see `block66-browser-verification.md`).
+- `taxConclusions.db.test.ts` (9, PostgreSQL, HTTP) and `taxCalcInputLineage.db.test.ts` (Block 65, resolver change).
+  Three cases close the pre-PR gaps: a conclusion approved on a book-to-tax workpaper goes stale when a newer
+  workpaper is approved through the normal maker-checker workflow; the full chain is followed backward from a form-line
+  row (form line → conclusion → calculation run → rule set and hash → research and authority → workpaper → evidence →
+  extraction → document version and hash, plus versions and audit) and forward from the extraction (run and conclusion
+  found; replacing the document makes the conclusion stale and blocks readiness); staff of the same client in another
+  tax year are refused (see `block66-security-verification.md`, cases 15 and 16). The form-line row is written by the
+  test, standing in for the Block 67 writer that does not exist yet.
+- `caseConclusionsPanel.test.tsx` (5), `routeCutover.test.ts` (production refusal, cutover requirement).
+- Suite 07 browser journey, with keyboard, focus, heading and announcement checks (see `block66-browser-verification.md`).
+
+## Final verification (pre-PR)
+
+On the commit that adds this section (parent `ac659d4`): unit 6,200 / 378 files, PostgreSQL 267 / 50 files, browser
+default 134, browser provider 44, lint, typecheck, production build, release candidate (ordering, clean replay,
+composition), constraint review, secrets scan, `git diff --check` and contamination scan all pass. The commit SHA is
+reported with the PR checkpoint (a commit cannot name itself).
 
 ## Known gaps and dependencies
+
+- Authoritative action: the reviewer's approval of a conclusion version is the audited human decision; it is not yet
+  linked to the separate authoritative-action records.
 
 - Form mapping (Block 67) writes `taxguard_tax_form_line_sources`; Stage 09 return preparation (Block 68) will require
   readiness.
 - Diagnostics (Block 70) and risk (Block 71) do not yet read conclusion staleness.
-- Workpaper links are accepted for the same client and year; book-to-tax workpapers are not case-bound in 029.
+- Workpaper links are accepted for the same client and year (and the case, when the workpaper names one). The trace
+  shows a workpaper's id, status, snapshot hash and return family, not its category totals.
 - Materiality of a conclusion is not decided here (no threshold is configured; owner policy).
 - Owner review points: whether document-level evidence is acceptable for conclusions (as for calculation inputs);
   whether a returned conclusion should be revisable by anyone but the original preparer (today: the case preparer).

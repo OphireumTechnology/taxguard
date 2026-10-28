@@ -4826,16 +4826,17 @@
     },
     {
       "file": "docs/development/block66-browser-verification.md",
-      "sha256": "2b0eeec78f23c3d083f39cc5d411df416a372b72163524539c2cbc16794c167b",
-      "bytes": 1488,
+      "sha256": "ad307b48eb32dd93751c67254d05f76fd5a2c57e3fc23a449b44417b59ca8c80",
+      "bytes": 5744,
       "headings": [
-        "# Block 66: browser verification"
+        "# Block 66: browser verification",
+        "## Accessibility review (before the PR)"
       ]
     },
     {
       "file": "docs/development/block66-evidence-conclusion-traceability-report.md",
-      "sha256": "99120d491cac50ea11c0e5b7a769fbb6edeae5dff0d622c5079a09b6ee10e40d",
-      "bytes": 5129,
+      "sha256": "038a9a3fdee5f09994d776ccb1cbcbd7397e3e4275c0091712a6f80569610d71",
+      "bytes": 6687,
       "headings": [
         "# Block 66: durable evidence-to-conclusion traceability",
         "## Chain",
@@ -4844,6 +4845,7 @@
         "## API (`/api/tax-engine`, staff only; managers read only)",
         "## UI",
         "## Tests",
+        "## Final verification (pre-PR)",
         "## Known gaps and dependencies"
       ]
     },
@@ -4857,16 +4859,16 @@
     },
     {
       "file": "docs/development/block66-production-readiness.md",
-      "sha256": "13bacd7f89a9f41480a393dac1c0e96319af0cd18568d24934cba1922924b9fb",
-      "bytes": 954,
+      "sha256": "c815ed457712c6b625f3abafe10d6209ed4dbe5abb6719279cb8a76e07288383",
+      "bytes": 1197,
       "headings": [
         "# Block 66: production readiness"
       ]
     },
     {
       "file": "docs/development/block66-security-verification.md",
-      "sha256": "17f04c2914a3cf2d19f181dbbbd567c86316f54ee94386f8e68197d8f4f1592f",
-      "bytes": 2331,
+      "sha256": "7d032a1985078ecb5fab993b754a7250856f9446d329f5fbe0d5c938ab4d26be",
+      "bytes": 3990,
       "headings": [
         "# Block 66: security verification"
       ]

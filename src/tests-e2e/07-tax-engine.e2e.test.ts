@@ -465,12 +465,21 @@ describe('tax conclusions with evidence-to-conclusion lineage on the real server
       await s.page.getByRole('heading', { name: 'Tax conclusions' }).waitFor();
     };
     const article = (s: S, id: string) => s.page.getByRole('article', { name: `Conclusion ${id.slice(0, 8)}` });
-    const badge = (s: S, id: string) => article(s, id).locator('strong[aria-label="Conclusion status"]').innerText();
+    const badge = (s: S, id: string) => article(s, id).locator('strong[data-conclusion-status]').innerText();
+    const focused = (s: S) => s.page.evaluate(() => { const e = document.activeElement as HTMLElement | null;
+      return e ? { tag: e.tagName, text: (e.textContent ?? '').trim(), label: e.closest('label')?.firstChild?.textContent ?? null, outline: getComputedStyle(e).outlineStyle } : null; });
     const latest = async () => (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items[0];
     // The preparer proposes the conclusion on verified evidence and the approved calculation, and submits it.
     const prep = await staffLogin('e2e-acct');
     await openCase(prep);
     const form = prep.page.getByRole('form', { name: 'Propose a conclusion' });
+    // Accessibility: the disabled save button says why; a refusal is announced as an alert, in words.
+    expect(await form.getByRole('button', { name: 'Propose conclusion' }).getAttribute('aria-describedby')).toBe('case-conclusion-save-hint');
+    await prep.page.getByText('A statement of at least 10 characters and at least one verified evidence reference are required.').waitFor();
+    await form.getByLabel('Statement').fill('Synthetic statement citing a document that does not exist.');
+    await form.getByLabel(/^Verified evidence/).fill('document:e2e-no-such-document');
+    await form.getByRole('button', { name: 'Propose conclusion' }).click();
+    expect(await prep.page.getByRole('alert').filter({ hasText: 'Refused: a cited source does not resolve' }).innerText()).toMatch(/document:e2e-no-such-document/);
     await form.getByLabel('Conclusion type').selectOption('INCOME_INCLUSION');
     await form.getByLabel('Statement').fill('Synthetic wages are included in income for 2025.');
     await form.getByLabel('Amount (optional)').fill('7000.00');
@@ -479,20 +488,48 @@ describe('tax conclusions with evidence-to-conclusion lineage on the real server
     await form.getByRole('button', { name: 'Propose conclusion' }).click();
     await sees(prep.page, 'Conclusion recorded as a draft.');
     const v1 = (await latest()).conclusionId as string;
-    await article(prep, v1).getByRole('button', { name: 'Submit for review' }).click();
-    await sees(prep.page, 'Conclusion submitted for review.');
+    await article(prep, v1).getByRole('button', { name: `Submit conclusion ${v1.slice(0, 8)} for review` }).click();
+    await prep.page.getByRole('status', { name: 'Conclusion action result' }).getByText('Conclusion submitted for review.').waitFor();
     // The reviewer traces it back to the calculation, its rule set and the original document, approves, and reloads.
     const reviewer = await staffLogin('e2e-rev');
     await openCase(reviewer);
-    await article(reviewer, v1).getByRole('button', { name: `Show lineage of conclusion ${v1.slice(0, 8)}` }).click();
+    // Keyboard only: the lineage toggle, the review note and the decision buttons, in that order, with a visible focus ring.
+    const toggle = article(reviewer, v1).getByRole('button', { name: new RegExp(`^(Show|Hide) lineage of conclusion ${v1.slice(0, 8)}$`) });
+    expect(await toggle.innerText()).toBe(`Show lineage of conclusion ${v1.slice(0, 8)}`);
+    await toggle.focus(); await reviewer.page.keyboard.press('Enter');
     const lineage = article(reviewer, v1).getByRole('region', { name: 'Conclusion lineage' });
     await lineage.getByText('Calculation and rule').waitFor();
+    expect(await toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(await reviewer.page.locator(`#${await toggle.getAttribute('aria-controls')}`).getByRole('region', { name: 'Conclusion lineage' }).count()).toBe(1);
+    expect((await focused(reviewer))?.text).toBe(`Hide lineage of conclusion ${v1.slice(0, 8)}`);
+    // Reading order: the opened lineage comes before the decision it informs.
+    expect(await article(reviewer, v1).evaluate(a => {
+      const lineageRegion = a.querySelector('[aria-label="Conclusion lineage"]'), review = a.querySelector('form[aria-label^="Review conclusion"]');
+      return !!lineageRegion && !!review && !!(lineageRegion.compareDocumentPosition(review) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })).toBe(true);
+    await reviewer.page.keyboard.press('Tab');
+    expect(await focused(reviewer)).toMatchObject({ tag: 'TEXTAREA', label: 'Review note' });
+    await reviewer.page.keyboard.press('Tab');
+    expect(await focused(reviewer)).toMatchObject({ tag: 'BUTTON', text: `Approve conclusion ${v1.slice(0, 8)}` });
+    expect((await focused(reviewer))?.outline).not.toBe('none');
+    // Headings never skip a level: Case Workflow h2, stage h3, Tax conclusions h4, conclusion h5, lineage sections h6.
+    const levels = await reviewer.page.locator('section[aria-labelledby="case-workflow-heading"]').evaluate(root =>
+      [...root.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(h => Number(h.tagName[1])));
+    expect(levels[0]).toBe(2);
+    levels.forEach((l, n) => { if (n > 0) expect(l - levels[n - 1], `heading ${n}`).toBeLessThanOrEqual(1); });
+    expect(await article(reviewer, v1).getByRole('heading', { level: 5 }).innerText()).toMatch(/version 1 · status REVIEW REQUIRED$/);
+    for (const name of ['Calculation and rule', 'Research and authority', 'Workpaper', 'Verified evidence and original documents', 'Review history', 'Audit'])
+      await lineage.getByRole('heading', { level: 6, name, exact: true }).waitFor();
+    if (process.env.E2E_A11Y_SNAPSHOT_DIR) (await import('node:fs')).writeFileSync(process.env.E2E_A11Y_SNAPSHOT_DIR + '/conclusions-review.aria.yml',
+      await reviewer.page.getByRole('region', { name: 'Tax conclusions' }).ariaSnapshot());
     const traced = await lineage.innerText();
     expect(traced).toContain(`Run ${run1.slice(0, 8)}`);
     expect(traced).toContain(`${evidence} · linked: Reviewed document ${documentId} v`);
     expect(traced).toContain('VERIFIED');
-    await article(reviewer, v1).getByRole('button', { name: 'Approve conclusion' }).click();
-    await sees(reviewer.page, 'Conclusion approved.');
+    await reviewer.page.keyboard.press('Enter');
+    await reviewer.page.getByRole('status', { name: 'Conclusion action result' }).getByText('Conclusion approved.').waitFor();
+    // The used control is gone once approved; focus stays in the panel, on its heading.
+    await expect.poll(async () => (await focused(reviewer))?.text).toBe('Tax conclusions');
     await reviewer.page.reload(); await openCase(reviewer);
     expect(await badge(reviewer, v1)).toBe('APPROVED');
     await reviewer.page.getByText('All current conclusions are approved and current.').waitFor();
@@ -511,7 +548,10 @@ describe('tax conclusions with evidence-to-conclusion lineage on the real server
     await reviewer.page.reload(); await openCase(reviewer);
     expect(await badge(reviewer, v1)).toBe('STALE');
     await article(reviewer, v1).getByRole('list', { name: 'Stale sources' }).waitFor();
-    await reviewer.page.getByText(/^Finalization blocked: version 1 stale/).waitFor();
+    await reviewer.page.getByRole('status', { name: 'Conclusion readiness' }).getByText(/^Finalization blocked: version 1 stale/).waitFor();
+    expect(await article(reviewer, v1).getByRole('heading', { level: 5 }).innerText()).toMatch(/status STALE$/);
+    if (process.env.E2E_A11Y_SNAPSHOT_DIR) (await import('node:fs')).writeFileSync(process.env.E2E_A11Y_SNAPSHOT_DIR + '/conclusions-stale.aria.yml',
+      await reviewer.page.getByRole('region', { name: 'Tax conclusions' }).ariaSnapshot());
     // Revalidation: staff review the new version, the calculation is rerun and approved, the preparer revises.
     const next = (await api(mgr, 'GET', `/api/vault/clients/${C}/documents/${documentId}`)).body.versions.find((v: any) => v.version === uploaded.body.version);
     expect((await api(mgr, 'POST', `/api/vault/clients/${C}/documents/${documentId}/versions/${next.version}/review`, { decision: 'approve', rowVersion: next.rowVersion })).body.status).toBe('VERIFIED');
@@ -519,6 +559,7 @@ describe('tax conclusions with evidence-to-conclusion lineage on the real server
     await prep.page.reload(); await openCase(prep);
     await article(prep, v1).getByRole('button', { name: `Revise conclusion ${v1.slice(0, 8)}` }).click();
     const revise = prep.page.getByRole('form', { name: 'Revise the conclusion' });
+    await expect.poll(async () => (await focused(prep))?.label).toBe('Statement'); // focus moves to the form being filled
     await revise.getByLabel('Amount (optional)').fill('7100.00');
     await revise.getByLabel(/^Verified evidence/).fill(evidence);
     await revise.getByLabel('Calculation run ids (optional)').fill(run2);
@@ -526,10 +567,10 @@ describe('tax conclusions with evidence-to-conclusion lineage on the real server
     await sees(prep.page, 'New conclusion version recorded as a draft.');
     const v2 = (await latest()).conclusionId as string;
     expect(v2).not.toBe(v1);
-    await article(prep, v2).getByRole('button', { name: 'Submit for review' }).click();
+    await article(prep, v2).getByRole('button', { name: `Submit conclusion ${v2.slice(0, 8)} for review` }).click();
     await sees(prep.page, 'Conclusion submitted for review.');
     await reviewer.page.reload(); await openCase(reviewer);
-    await article(reviewer, v2).getByRole('button', { name: 'Approve conclusion' }).click();
+    await article(reviewer, v2).getByRole('button', { name: `Approve conclusion ${v2.slice(0, 8)}` }).click();
     await sees(reviewer.page, 'Conclusion approved.');
     await reviewer.page.reload(); await openCase(reviewer);
     expect(await badge(reviewer, v2)).toBe('APPROVED');

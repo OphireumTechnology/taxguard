@@ -12,6 +12,8 @@
 | Return use | BLOCKED: stages 09-18 remain blocked; conclusions do not feed a return until form mapping and Stage 09 exist |
 | AI | No agent proposes conclusions; all agents remain DRAFT |
 | Monitoring | No conclusion-specific alerting (OPS-MONITORING is PARTIAL) |
+| Accessibility | Structural review passed after fixes; no screen-reader test has been performed (NOT AVAILABLE here) |
+| Authoritative action | The reviewer's approval is the audited decision; not yet linked to authoritative-action records |
 
 Remaining dependencies: Blocks 67 (form mapping), 68 (Stage 09), 70-72 (diagnostics, risk and QC reading conclusions),
 owner decisions listed in the main report.

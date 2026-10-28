@@ -27,13 +27,17 @@ export function CaseConclusionsPanel({ caseId }: { caseId: string }) {
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const current = useRef(caseId); current.current = caseId;
+  const heading = useRef<HTMLHeadingElement>(null);
+  const statement = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(() => {
     const key = caseId;
     setItems(i => ({ ...i, status: 'loading' }));
-    taxEngineService.caseConclusions(caseId).then(list => { if (current.current === key) setItems({ status: 'ready', list }); })
-      .catch(e => { if (current.current === key) setItems({ status: 'error', list: [], message: taxEngineMessage(e) }); });
-    taxEngineService.conclusionReadiness(caseId).then(r => { if (current.current === key) setReadiness(r); }).catch(() => { if (current.current === key) setReadiness(null); });
+    return Promise.all([
+      taxEngineService.caseConclusions(caseId).then(list => { if (current.current === key) setItems({ status: 'ready', list }); })
+        .catch(e => { if (current.current === key) setItems({ status: 'error', list: [], message: taxEngineMessage(e) }); }),
+      taxEngineService.conclusionReadiness(caseId).then(r => { if (current.current === key) setReadiness(r); }).catch(() => { if (current.current === key) setReadiness(null); }),
+    ]);
   }, [caseId]);
   useEffect(() => { load(); }, [load]);
 
@@ -48,7 +52,13 @@ export function CaseConclusionsPanel({ caseId }: { caseId: string }) {
     if (busy) return;
     const key = caseId;
     setBusy(true); setNotice(null);
-    try { await op(); if (current.current !== key) return; setNotice({ error: false, text: success }); after?.(); setTrace(null); load(); }
+    try {
+      await op(); if (current.current !== key) return;
+      setNotice({ error: false, text: success }); after?.(); setTrace(null);
+      // The control that was used is often gone after the reload (a submitted draft has no Submit button): keep keyboard
+      // focus in the panel instead of losing it to the page.
+      void load().then(() => setTimeout(() => { if (current.current === key && (!document.activeElement || document.activeElement === document.body)) heading.current?.focus(); }, 0));
+    }
     catch (e) { if (current.current === key) setNotice({ error: true, text: taxEngineMessage(e) }); }
     finally { if (current.current === key) setBusy(false); }
   };
@@ -57,24 +67,32 @@ export function CaseConclusionsPanel({ caseId }: { caseId: string }) {
   const set = (patch: Partial<Draft>) => setDraft(d => ({ ...d, ...patch }));
   const current_ = items.list.filter(k => k.status !== 'SUPERSEDED');
 
+  const startRevision = (k: TaxConclusion) => {
+    setRevising(k.conclusionId); setDraft({ ...EMPTY, type: k.type, statement: k.statement, amount: k.amount ?? '' });
+    setTimeout(() => statement.current?.focus(), 0); // the form being filled is above the list
+  };
+
   return <section aria-labelledby="case-conclusions-heading">
-    <h4 id="case-conclusions-heading">Tax conclusions</h4>
+    <h4 id="case-conclusions-heading" ref={heading} tabIndex={-1}>Tax conclusions</h4>
     <p>Each conclusion cites verified evidence and, where used, its calculation run, approved research and workpaper. The reviewer can trace it back to the original document. Return use: BLOCKED.</p>
-    {readiness && <p role="status" aria-label="Conclusion readiness">{readiness.ready ? 'All current conclusions are approved and current.'
+    {/* Live regions stay mounted so that changes to their text are announced. */}
+    <div role="status" aria-label="Conclusion readiness">{readiness && <p>{readiness.ready ? 'All current conclusions are approved and current.'
       : readiness.conclusions === 0 ? 'No conclusions are recorded yet.'
-      : `Finalization blocked: ${readiness.blockers.map(b => `version ${b.version} ${b.reasons.map(r => r === 'STALE' ? 'stale' : 'not approved').join(' and ')}`).join('; ')}.`}</p>}
-    {notice && <p role={notice.error ? 'alert' : 'status'}>{notice.text}</p>}
+      : `Finalization blocked: ${readiness.blockers.map(b => `version ${b.version} ${b.reasons.map(r => r === 'STALE' ? 'stale' : 'not approved').join(' and ')}`).join('; ')}.`}</p>}</div>
+    <div role="status" aria-label="Conclusion action result">{notice && !notice.error && <p>{notice.text}</p>}</div>
+    {notice?.error && <p role="alert">{notice.text}</p>}
     <form aria-label={revising ? 'Revise the conclusion' : 'Propose a conclusion'} onSubmit={e => { e.preventDefault();
       void (revising ? run(() => taxEngineService.reviseConclusion(revising, body()), 'New conclusion version recorded as a draft.', () => { setDraft(EMPTY); setRevising(null); })
         : run(() => taxEngineService.proposeConclusion(caseId, body()), 'Conclusion recorded as a draft.', () => setDraft(EMPTY))); }}>
       <label>Conclusion type<select value={draft.type} onChange={e => set({ type: e.target.value })}>{CONCLUSION_TYPES.map(t => <option key={t} value={t}>{label(t)}</option>)}</select></label>
-      <label>Statement<textarea required minLength={10} maxLength={4000} value={draft.statement} onChange={e => set({ statement: e.target.value })} /></label>
+      <label>Statement<textarea ref={statement} required minLength={10} maxLength={4000} value={draft.statement} onChange={e => set({ statement: e.target.value })} /></label>
       <label>Amount (optional)<input inputMode="decimal" value={draft.amount} onChange={e => set({ amount: e.target.value })} /></label>
       <label>Verified evidence (extraction:&lt;id&gt; or document:&lt;id&gt;)<input value={draft.evidence} onChange={e => set({ evidence: e.target.value })} /></label>
       <label>Calculation run ids (optional)<input value={draft.calculation} onChange={e => set({ calculation: e.target.value })} /></label>
       <label>Research memo ids (optional)<input value={draft.research} onChange={e => set({ research: e.target.value })} /></label>
       <label>Workpaper ids (optional)<input value={draft.workpaper} onChange={e => set({ workpaper: e.target.value })} /></label>
-      <button disabled={busy || !canSave}>{revising ? 'Record new version' : 'Propose conclusion'}</button>
+      <p id="case-conclusion-save-hint">A statement of at least 10 characters and at least one verified evidence reference are required.</p>
+      <button disabled={busy || !canSave} aria-describedby="case-conclusion-save-hint">{revising ? 'Record new version' : 'Propose conclusion'}</button>
       {revising && <button type="button" disabled={busy} onClick={() => { setRevising(null); setDraft(EMPTY); }}>Cancel revision</button>}
     </form>
     {items.status === 'loading' && items.list.length === 0 && <p role="status">Loading conclusions…</p>}
@@ -83,23 +101,25 @@ export function CaseConclusionsPanel({ caseId }: { caseId: string }) {
     {current_.map(k => {
       const badge = conclusionBadge(k); const short = k.conclusionId.slice(0, 8);
       return <article key={k.conclusionId} aria-label={`Conclusion ${short}`} className="tg-conclusion">
-        <h5>{label(k.type)} · version {k.version} · <strong aria-label="Conclusion status">{badge}</strong></h5>
+        <h5>{label(k.type)} · version {k.version} · status <strong data-conclusion-status>{badge}</strong></h5>
         <p>{k.statement}{k.amount ? ` · ${k.amount}` : ''}</p>
         <p>Prepared by {k.preparedBy}{k.reviewedBy ? ` · ${label(k.status)} by ${k.reviewedBy}` : ''}{k.reviewNote ? ` · ${k.reviewNote}` : ''}</p>
         {k.stale.length > 0 && <ul aria-label="Stale sources">{k.stale.map(s => <li key={s.type + s.ref}>{label(s.type)} {s.ref}: {staleReason(s.reason)}</li>)}</ul>}
         <div className="tg-conclusion-actions">
-          <button type="button" aria-expanded={trace?.id === k.conclusionId} onClick={() => openTrace(k.conclusionId)}>{trace?.id === k.conclusionId ? 'Hide' : 'Show'} lineage of conclusion {short}</button>
-          {k.status === 'DRAFT' && <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.submitConclusion(k.conclusionId), 'Conclusion submitted for review.')}>Submit for review</button>}
+          <button type="button" aria-expanded={trace?.id === k.conclusionId} aria-controls={`conclusion-lineage-${k.conclusionId}`} onClick={() => openTrace(k.conclusionId)}>{trace?.id === k.conclusionId ? 'Hide' : 'Show'} lineage of conclusion {short}</button>
+          {k.status === 'DRAFT' && <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.submitConclusion(k.conclusionId), 'Conclusion submitted for review.')}>Submit conclusion {short} for review</button>}
           {['DRAFT', 'RETURNED', 'REJECTED', 'APPROVED'].includes(k.status) && <button type="button" disabled={busy}
-            onClick={() => { setRevising(k.conclusionId); setDraft({ ...EMPTY, type: k.type, statement: k.statement, amount: k.amount ?? '' }); }}>Revise conclusion {short}</button>}
+            onClick={() => startRevision(k)}>Revise conclusion {short}</button>}
         </div>
+        {/* The lineage follows its toggle and precedes the decision, in reading and focus order. */}
+        <div id={`conclusion-lineage-${k.conclusionId}`}>{trace?.id === k.conclusionId && <ConclusionLineage trace={trace} />}</div>
         {k.status === 'READY_FOR_REVIEW' && <form aria-label={`Review conclusion ${short}`} onSubmit={e => e.preventDefault()}>
-          <label>Review note<textarea maxLength={2000} value={notes[k.conclusionId] ?? ''} onChange={e => setNotes(n => ({ ...n, [k.conclusionId]: e.target.value }))} /></label>
-          <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.reviewConclusion(k.conclusionId, 'approve', (notes[k.conclusionId] ?? '').trim()), 'Conclusion approved.')}>Approve conclusion</button>
-          <button type="button" disabled={busy || (notes[k.conclusionId] ?? '').trim().length < 10} onClick={() => run(() => taxEngineService.reviewConclusion(k.conclusionId, 'return', notes[k.conclusionId].trim()), 'Conclusion returned to the preparer.')}>Return for correction</button>
-          <button type="button" disabled={busy || (notes[k.conclusionId] ?? '').trim().length < 10} onClick={() => run(() => taxEngineService.reviewConclusion(k.conclusionId, 'reject', notes[k.conclusionId].trim()), 'Conclusion rejected.')}>Reject conclusion</button>
+          <label>Review note<textarea maxLength={2000} aria-describedby={`conclusion-note-hint-${k.conclusionId}`} value={notes[k.conclusionId] ?? ''} onChange={e => setNotes(n => ({ ...n, [k.conclusionId]: e.target.value }))} /></label>
+          <button type="button" disabled={busy} onClick={() => run(() => taxEngineService.reviewConclusion(k.conclusionId, 'approve', (notes[k.conclusionId] ?? '').trim()), 'Conclusion approved.')}>Approve conclusion {short}</button>
+          <button type="button" disabled={busy || (notes[k.conclusionId] ?? '').trim().length < 10} aria-describedby={`conclusion-note-hint-${k.conclusionId}`} onClick={() => run(() => taxEngineService.reviewConclusion(k.conclusionId, 'return', notes[k.conclusionId].trim()), 'Conclusion returned to the preparer.')}>Return conclusion {short} for correction</button>
+          <button type="button" disabled={busy || (notes[k.conclusionId] ?? '').trim().length < 10} aria-describedby={`conclusion-note-hint-${k.conclusionId}`} onClick={() => run(() => taxEngineService.reviewConclusion(k.conclusionId, 'reject', notes[k.conclusionId].trim()), 'Conclusion rejected.')}>Reject conclusion {short}</button>
+          <p id={`conclusion-note-hint-${k.conclusionId}`}>Returning or rejecting needs a note of at least 10 characters.</p>
         </form>}
-        {trace?.id === k.conclusionId && <ConclusionLineage trace={trace} />}
       </article>;
     })}
   </section>;
