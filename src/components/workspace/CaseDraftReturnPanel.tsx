@@ -51,9 +51,12 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
     try {
       const v = await work();
       if (current.current !== key) return;
-      setNotice({ error: false, text: done(v) });
       setOpen(null);
-      void load().then(() => focusHeading(key));
+      // Refresh first, then announce: the result is never read out while the list still shows the previous status.
+      await load();
+      if (current.current !== key) return;
+      setNotice({ error: false, text: done(v) });
+      focusHeading(key);
     } catch (e) { if (current.current === key) setNotice({ error: true, text: taxEngineMessage(e) }); }
     finally { if (current.current === key) setBusy(false); }
   };
