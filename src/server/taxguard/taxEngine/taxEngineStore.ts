@@ -25,7 +25,12 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_CONCLUSION_NOT_REVISABLE: 409, TAX_CONCLUSION_HISTORY_IMMUTABLE: 409,
   // Deterministic form mapping (proposal 20261019110000).
   TAX_FORM_RULE_DUPLICATE: 409, TAX_FORM_RULE_NOT_DRAFT: 409, TAX_FORM_RULE_NOT_PENDING: 409, TAX_FORM_RULE_NOT_APPROVED: 409, TAX_FORM_RULE_SCOPE_MISMATCH: 409,
-  TAX_FORM_RULE_NOT_EFFECTIVE: 409, TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
+  TAX_FORM_RULE_NOT_EFFECTIVE: 409,
+  // Draft return preparation (proposal 20261019120000).
+  TAX_RETURN_TEMPLATE_DUPLICATE: 409, TAX_RETURN_TEMPLATE_NOT_DRAFT: 409, TAX_RETURN_TEMPLATE_NOT_PENDING: 409, TAX_RETURN_TEMPLATE_NOT_APPROVED: 409,
+  TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 409, TAX_RETURN_SCOPE_MISMATCH: 409, TAX_RETURN_PREPARER_REQUIRED: 403, TAX_RETURN_REVIEWER_REQUIRED: 403,
+  TAX_RETURN_PREPARATION_REFUSED: 409, TAX_RETURN_NOT_DRAFT: 409, TAX_RETURN_NOT_SUBMITTED: 409, TAX_RETURN_STALE: 409, TAX_RETURN_IMMUTABLE: 409,
+  TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
   RESEARCH_REVIEWER_REQUIRED: 403, RESEARCH_MEMO_NOT_EDITABLE: 409, RESEARCH_MEMO_NOT_SUBMITTED: 409, RESEARCH_VERSION_CONFLICT: 409,
   RESEARCH_AUTHORITY_REQUIRED: 409, RESEARCH_SOURCE_NOT_VERIFIED: 409, RESEARCH_MEMO_IMMUTABLE: 409,
@@ -206,6 +211,33 @@ export class TaxEngineStore {
   formMappingDetail(tenant: string, actor: string, mappingId: string) {
     return this.call('taxguard_tax_form_mapping_get', { p_tenant: tenant, p_actor: actor, p_mapping: this.formMapping(mappingId) });
   }
+
+  // Draft return preparation (proposal 20261019120000). The database assembles a return only from current, non-stale
+  // form mappings through an approved template, enforces preparer submit and independent reviewer approval and
+  // derives staleness; nothing here computes a value.
+  private returnTemplate(v: string) { if (!UUID.test(v)) throw new TaxEngineStoreError('TAX_RETURN_TEMPLATE_NOT_FOUND', 404); return v; }
+  private returnVersion(v: string) { if (!UUID.test(v)) throw new TaxEngineStoreError('TAX_RETURN_NOT_FOUND', 404); return v; }
+  returnTemplates(tenant: string, actor: string, taxYear?: number) { return this.call<any[]>('taxguard_tax_return_template_list', { p_tenant: tenant, p_actor: actor, p_tax_year: taxYear ?? null }); }
+  returnTemplateDetail(tenant: string, actor: string, templateRuleId: string) {
+    return this.call('taxguard_tax_return_template_get', { p_tenant: tenant, p_actor: actor, p_template: this.returnTemplate(templateRuleId) });
+  }
+  draftReturnTemplate(tenant: string, actor: string, definition: unknown) {
+    return this.call('taxguard_tax_return_template_draft', { p_tenant: tenant, p_actor: actor, p_definition: definition && typeof definition === 'object' && !Array.isArray(definition) ? definition : null });
+  }
+  transitionReturnTemplate(tenant: string, actor: string, templateRuleId: string, action: 'submit' | 'approve' | 'reject', note?: string) {
+    return this.call('taxguard_tax_return_template_transition', { p_tenant: tenant, p_actor: actor, p_template: this.returnTemplate(templateRuleId), p_action: action, p_note: note ?? null });
+  }
+  caseReturns(tenant: string, actor: string, caseId: string) { return this.call<any[]>('taxguard_tax_return_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+  prepareReturn(tenant: string, actor: string, caseId: string, templateRuleId: string) {
+    return this.call('taxguard_tax_return_prepare', { p_tenant: tenant, p_actor: actor, p_case: caseId, p_template: this.returnTemplate(templateRuleId) });
+  }
+  returnDetail(tenant: string, actor: string, returnVersionId: string) {
+    return this.call('taxguard_tax_return_get', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+  transitionReturn(tenant: string, actor: string, returnVersionId: string, action: 'submit' | 'approve' | 'return', note?: string) {
+    return this.call('taxguard_tax_return_transition', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId), p_action: action, p_note: note ?? null });
+  }
+  returnStageFacts(tenant: string, actor: string, caseId: string) { return this.call('taxguard_tax_return_stage_facts', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
 }
 
 /** Only the documented fields reach the database; links are type and reference pairs. */

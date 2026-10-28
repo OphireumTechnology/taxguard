@@ -681,3 +681,91 @@ describe('deterministic form mapping on the real server', () => {
     await prep.context.close(); await reviewer.context.close();
   });
 });
+
+describe('draft return preparation on the real server', () => {
+  it('Case Workflow → Draft return: prepared from the current mapping, reviewed independently, stale after a revision, prepared again', async () => {
+    const [mgr, acct, rev] = [await apiLogin('e2e-mgr'), await apiLogin('e2e-acct'), await apiLogin('e2e-rev')];
+    const target = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025);
+    const caseId = target.caseId;
+    // Left by the Block 67 journey: a current, non-stale mapping of SYN-1040 2025.0.
+    const mapping = (await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/form-mappings`)).body.items.find((m: any) => m.status === 'CURRENT' && m.formId === 'SYN-1040');
+    expect(mapping?.stale).toEqual([]);
+    const definition = { templateId: 'SYN-1040-RETURN', jurisdiction: 'federal', jurisdictionCode: 'US', returnFamily: target.returnFamily, taxYear: 2025,
+      effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, forms: [{ formId: 'SYN-1040', formVersion: '2025.0', required: true }] };
+    const tpl = await api(acct, 'POST', '/api/tax-engine/return-templates', { definition });
+    expect(tpl.status, JSON.stringify(tpl.body)).toBe(201);
+    expect((await api(acct, 'POST', `/api/tax-engine/return-templates/${tpl.body.templateRuleId}/approve`, {})).status).toBe(403); // maker-checker
+    expect((await api(acct, 'POST', `/api/tax-engine/return-templates/${tpl.body.templateRuleId}/submit`, {})).body.status).toBe('PENDING_REVIEW');
+    expect((await api(rev, 'POST', `/api/tax-engine/return-templates/${tpl.body.templateRuleId}/approve`, {})).body.status).toBe('APPROVED');
+    type S = Awaited<ReturnType<typeof staffLogin>>;
+    const openCase = async (s: S) => {
+      await s.page.getByRole('button', { name: caseId.slice(0, 16) }).first().click();
+      await s.page.getByRole('heading', { name: 'Draft return' }).waitFor();
+    };
+    const panel = (s: S) => s.page.getByRole('region', { name: 'Draft return' });
+    const article = (s: S, version: number) => panel(s).getByRole('article', { name: `Draft return SYN-1040-RETURN version ${version}` });
+    const badge = (s: S, version: number) => article(s, version).locator('strong[data-return-status]').innerText();
+    const result = (s: S) => panel(s).getByRole('status', { name: 'Draft return result' });
+    // The reviewer cannot prepare: the refusal is announced as an alert.
+    const reviewer = await staffLogin('e2e-rev');
+    await openCase(reviewer);
+    await panel(reviewer).getByLabel('Approved return template').selectOption(tpl.body.templateRuleId);
+    expect(await panel(reviewer).locator('#case-draft-return-template').innerText()).toBe('federal US · in effect 2025-01-01 to open');
+    await panel(reviewer).getByRole('button', { name: 'Prepare draft return' }).click();
+    await panel(reviewer).getByRole('alert').getByText("Only the case's preparer can prepare or submit the draft return.").waitFor();
+    // The preparer prepares and submits.
+    const prep = await staffLogin('e2e-acct');
+    await openCase(prep);
+    await panel(prep).getByLabel('Approved return template').selectOption(tpl.body.templateRuleId);
+    await panel(prep).getByRole('button', { name: 'Prepare draft return' }).click();
+    await result(prep).getByText('Prepared SYN-1040-RETURN as version 1.').waitFor();
+    expect(await badge(prep, 1)).toBe('DRAFT');
+    await article(prep, 1).getByRole('list', { name: 'Forms of SYN-1040-RETURN version 1' })
+      .getByText(`SYN-1040 (2025.0): form mapping ${mapping.mappingId.slice(0, 8)} version ${mapping.version}`).waitFor();
+    await article(prep, 1).getByRole('button', { name: 'Submit SYN-1040-RETURN version 1 for review' }).click();
+    await result(prep).getByText('Version 1 of SYN-1040-RETURN: submitted.').waitFor();
+    // The reviewer reads the lineage with the keyboard and approves.
+    await reviewer.page.reload(); await openCase(reviewer);
+    const show = article(reviewer, 1).getByRole('button', { name: /^(Show|Hide) lineage of SYN-1040-RETURN version 1$/ });
+    await show.focus(); await reviewer.page.keyboard.press('Enter');
+    const table = article(reviewer, 1).getByRole('table', { name: `SYN-1040 2025.0, form mapping version ${mapping.version}: lines with provenance` });
+    await table.waitFor();
+    expect(await show.getAttribute('aria-expanded')).toBe('true');
+    expect(await table.getByRole('row').filter({ has: reviewer.page.getByRole('rowheader', { name: '1a', exact: true }) }).innerText())
+      .toMatch(/Conclusion [0-9a-f]{8} version \d+ · run [0-9a-f]{8}/);
+    await article(reviewer, 1).getByRole('button', { name: 'Approve SYN-1040-RETURN version 1' }).click();
+    await result(reviewer).getByText('Version 1 of SYN-1040-RETURN: approved.').waitFor();
+    expect(await badge(reviewer, 1)).toBe('APPROVED');
+    expect((await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns/stage-facts`)).body)
+      .toMatchObject({ draftReturnGenerated: true, preparerReviewComplete: true, provenanceComplete: true, returnUse: 'BLOCKED' });
+    // A revised conclusion makes the mapping and then the approved return STALE; nothing is replaced silently.
+    const k = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
+    const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7300.00', links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });
+    expect(revised.status, JSON.stringify(revised.body)).toBe(201);
+    expect((await api(acct, 'POST', `/api/tax-engine/conclusions/${revised.body.conclusionId}/submit`)).body.status).toBe('READY_FOR_REVIEW');
+    expect((await api(rev, 'POST', `/api/tax-engine/conclusions/${revised.body.conclusionId}/approve`, {})).body.status).toBe('APPROVED');
+    await prep.page.reload(); await openCase(prep);
+    expect(await badge(prep, 1)).toBe('STALE');
+    await article(prep, 1).getByRole('list', { name: 'Stale reasons' }).getByText('SYN-1040 2025.0: the form mapping is stale; map the form again').waitFor();
+    expect((await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns/stage-facts`)).body).toMatchObject({ draftReturnGenerated: false });
+    // The preparer maps the form again and prepares a new version; version 1 is kept, superseded.
+    const formRule = (await api(rev, 'GET', `/api/tax-engine/form-mappings/${mapping.mappingId}`)).body.ruleId;
+    expect((await api(acct, 'POST', `/api/tax-engine/cases/${caseId}/form-mappings`, { ruleId: formRule })).status).toBe(201);
+    await prep.page.reload(); await openCase(prep);
+    await panel(prep).getByLabel('Approved return template').selectOption(tpl.body.templateRuleId);
+    await panel(prep).getByRole('button', { name: 'Prepare draft return' }).click();
+    await result(prep).getByText('Prepared SYN-1040-RETURN as version 2.').waitFor();
+    expect(await badge(prep, 2)).toBe('DRAFT');
+    expect(await badge(prep, 1)).toBe('SUPERSEDED');
+    await expect.poll(async () => prep.page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Draft return'); // focus stays in the panel
+    // Clients have no access to draft returns.
+    const clientToken = await apiLogin('e2e-client');
+    const v1 = (await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns`)).body.items.find((v: any) => v.version === 1);
+    expect((await api(clientToken, 'GET', `/api/tax-engine/returns/${v1.returnVersionId}`)).status).toBe(403);
+    await prep.page.setViewportSize({ width: 375, height: 812 });
+    await prep.page.getByRole('heading', { name: 'Draft return' }).waitFor();
+    expect(await prep.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    for (const s of [prep, reviewer]) expect(realErrors(s)).toEqual([]);
+    await prep.context.close(); await reviewer.context.close();
+  });
+});

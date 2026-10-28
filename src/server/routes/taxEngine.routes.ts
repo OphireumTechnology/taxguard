@@ -74,6 +74,19 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/cases/:caseId/form-mappings', run(async req => ({ items: await store().formMappings(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
   router.post('/cases/:caseId/form-mappings', run(req => store().mapForm(t(req), u(req), req.params.caseId, String(req.body?.ruleId ?? '')), 201));
   router.get('/form-mappings/:mappingId', run(req => store().formMappingDetail(t(req), u(req), req.params.mappingId)));
+  // Draft return preparation (proposal 20261019120000): versioned return templates under maker-checker, and per-case
+  // return versions assembled by the database from current form mappings. The request only names the template.
+  router.get('/return-templates', run(async req => ({ items: await store().returnTemplates(t(req), u(req), year(req.query.taxYear)) })));
+  router.get('/return-templates/:templateRuleId', run(req => store().returnTemplateDetail(t(req), u(req), req.params.templateRuleId)));
+  router.post('/return-templates', run(req => store().draftReturnTemplate(t(req), u(req), req.body?.definition), 201));
+  router.post('/return-templates/:templateRuleId/:action(submit|approve|reject)', run(req => store().transitionReturnTemplate(t(req), u(req),
+    req.params.templateRuleId, req.params.action as 'submit' | 'approve' | 'reject', note(req.body?.note))));
+  router.get('/cases/:caseId/returns', run(async req => ({ items: await store().caseReturns(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
+  router.post('/cases/:caseId/returns', run(req => store().prepareReturn(t(req), u(req), req.params.caseId, String(req.body?.templateRuleId ?? '')), 201));
+  router.get('/cases/:caseId/returns/stage-facts', run(req => store().returnStageFacts(t(req), u(req), req.params.caseId)));
+  router.get('/returns/:returnVersionId', run(req => store().returnDetail(t(req), u(req), req.params.returnVersionId)));
+  router.post('/returns/:returnVersionId/:action(submit|approve|return)', run(req => store().transitionReturn(t(req), u(req), req.params.returnVersionId,
+    req.params.action as 'submit' | 'approve' | 'return', note(req.body?.note))));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));
   router.post('/runs/:runId/:decision(approve|reject)', run(req => store().reviewRun(t(req), u(req), req.params.runId, req.params.decision as 'approve' | 'reject', note(req.body?.note) ?? '')));
   // Tax research memos for a case (proposal 20261018150000). Scope, authority levels and maker-checker are enforced by

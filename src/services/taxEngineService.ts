@@ -62,6 +62,12 @@ export const taxEngineService = {
   caseFormMappings: (caseId: string) => request<{ items: FormMapping[] }>('GET', '/cases' + id(caseId) + '/form-mappings').then(r => r.items),
   mapForm: (caseId: string, ruleId: string) => request<FormMapping>('POST', '/cases' + id(caseId) + '/form-mappings', { ruleId }),
   formMapping: (mappingId: string) => request<FormMapping>('GET', '/form-mappings' + id(mappingId)),
+  returnTemplates: (taxYear?: number) => request<{ items: ReturnTemplate[] }>('GET', '/return-templates' + (taxYear ? '?taxYear=' + taxYear : '')).then(r => r.items),
+  caseReturns: (caseId: string) => request<{ items: ReturnVersion[] }>('GET', '/cases' + id(caseId) + '/returns').then(r => r.items),
+  prepareReturn: (caseId: string, templateRuleId: string) => request<ReturnVersion>('POST', '/cases' + id(caseId) + '/returns', { templateRuleId }),
+  returnVersion: (returnVersionId: string) => request<ReturnVersion>('GET', '/returns' + id(returnVersionId)),
+  transitionReturn: (returnVersionId: string, action: 'submit' | 'approve' | 'return', note?: string) =>
+    request<ReturnVersion>('POST', '/returns' + id(returnVersionId) + '/' + action, note === undefined ? {} : { note }),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -198,6 +204,34 @@ export interface FormMappingProblem { reason: string; schedule?: string; line?: 
 export interface FormMapping { mappingId: string; caseId: string; taxYear: number; formId: string; formVersion: string; version: number; status: 'CURRENT' | 'SUPERSEDED';
   ruleId: string; ruleVersion: number; ruleSha256: string; valuesSha256: string; missing: Array<{ schedule: string; line: string; field: string }>; mappedBy: string;
   createdAt: string; stale: FormMappingProblem[]; values?: FormValue[]; replayed?: boolean; returnUse: 'BLOCKED' }
+export interface ReturnTemplate { templateRuleId: string; templateId: string; jurisdiction: string; jurisdictionCode: string; effectiveFrom: string;
+  effectiveTo: string | null; returnFamily: string; taxYear: number; version: number; contentSha256: string; sourceId: string;
+  status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED'; forms: number }
+export interface ReturnForm { formId: string; formVersion: string; mappingId: string; mappingVersion: number; valuesSha256: string }
+export interface ReturnProblem { reason: string; formId?: string; formVersion?: string; mappingId?: string; blocking?: number }
+export interface ReturnVersion { returnVersionId: string; caseId: string; taxYear: number; templateId: string; version: number;
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED' | 'SUPERSEDED'; templateRuleId: string; templateVersion: number; templateSha256: string;
+  forms: ReturnForm[]; formsSha256: string; missing: Array<{ formId: string; formVersion: string }>; preparedBy: string; createdAt: string;
+  submittedAt: string | null; reviewedBy: string | null; reviewedAt: string | null; reviewNote: string | null; stale: ReturnProblem[];
+  lineage?: FormMapping[]; replayed?: boolean; returnUse: 'BLOCKED' }
+export const RETURN_PROBLEM_LABELS: Record<string, string> = {
+  RETURN_FORM_MISSING: 'no current form mapping',
+  RETURN_MAPPING_STALE: 'the form mapping is stale; map the form again',
+  RETURN_MAPPING_RULE_NOT_APPROVED: 'the form mapping uses a rule that is no longer approved',
+  RETURN_BLOCKING_DIAGNOSTICS: 'the case has blocking diagnostics',
+  RETURN_MAPPING_CHANGED: 'the form was mapped again since this version',
+  RETURN_FORM_WITHDRAWN: 'the form mapping is no longer current',
+  RETURN_FORM_ADDED: 'an optional form now has a mapping',
+  RETURN_TEMPLATE_SUPERSEDED: 'a newer return template was approved',
+};
+export function returnProblemText(p: ReturnProblem): string {
+  const where = p.formId ? `${p.formId} ${p.formVersion ?? ''}`.trim() + ': ' : '';
+  const label = RETURN_PROBLEM_LABELS[p.reason] ?? (p.reason.startsWith('RETURN_TEMPLATE_') ? 'the return template is ' + p.reason.slice(16).toLowerCase() : p.reason);
+  return where + label + (p.reason === 'RETURN_BLOCKING_DIAGNOSTICS' && p.blocking ? ` (${p.blocking})` : '');
+}
+export function returnProblems(detail?: string): ReturnProblem[] {
+  try { const parsed = JSON.parse(detail ?? ''); return Array.isArray(parsed) ? parsed.filter(p => p && typeof p.reason === 'string') : []; } catch { return []; }
+}
 export const FORM_PROBLEM_LABELS: Record<string, string> = {
   SOURCE_MISSING: 'no approved conclusion of the required type',
   AMBIGUOUS_SOURCE: 'more than one approved conclusion could fill this line',
@@ -257,6 +291,16 @@ export function taxEngineMessage(error: unknown): string {
     TAX_FORM_RULE_NOT_APPROVED: 'Only an approved mapping rule can be used. A newer approval may have superseded this one.',
     TAX_FORM_RULE_SCOPE_MISMATCH: 'This mapping rule is for another tax year or return family than the case.',
     TAX_FORM_RULE_NOT_EFFECTIVE: 'This mapping rule is not in effect today (outside its effective dates). Nothing was written.',
+    TAX_RETURN_PREPARER_REQUIRED: 'Only the case\'s preparer can prepare or submit the draft return.',
+    TAX_RETURN_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can approve or return the draft return.',
+    TAX_RETURN_NOT_FOUND: 'This draft return is not available to you. Access follows your live assignment to the case.',
+    TAX_RETURN_TEMPLATE_NOT_FOUND: 'This return template no longer exists or is not visible to you.',
+    TAX_RETURN_TEMPLATE_NOT_APPROVED: 'Only an approved return template can be used. A newer approval may have superseded this one.',
+    TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 'This return template is not in effect today (outside its effective dates). Nothing was written.',
+    TAX_RETURN_SCOPE_MISMATCH: 'This return template is for another tax year or return family than the case.',
+    TAX_RETURN_NOT_DRAFT: 'Only a draft version can be submitted.',
+    TAX_RETURN_NOT_SUBMITTED: 'Only a submitted version can be approved or returned.',
+    TAX_RETURN_INPUT_INVALID: 'Enter a note of at least 10 characters to return the draft.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
     TAX_CALC_ALREADY_REVIEWED: 'This calculation run has already been reviewed.',
     TAX_CALC_INPUT_INVALID: 'Enter a review note of at least 10 characters.',
@@ -289,6 +333,14 @@ export function taxEngineMessage(error: unknown): string {
   if (error.code === 'TAX_FORM_MAPPING_REFUSED') {
     const problems = formProblems(error.detail);
     return 'Mapping refused: nothing was written. ' + (problems.map(formProblemText).join('; ') || 'A line cannot be filled deterministically.') + '.';
+  }
+  if (error.code === 'TAX_RETURN_PREPARATION_REFUSED') {
+    const problems = returnProblems(error.detail);
+    return 'Preparation refused: nothing was written. ' + (problems.map(returnProblemText).join('; ') || 'A required form cannot be assembled.') + '.';
+  }
+  if (error.code === 'TAX_RETURN_STALE') {
+    const problems = returnProblems(error.detail);
+    return 'Refused: this version is stale. ' + (problems.map(returnProblemText).join('; ') || 'Its inputs changed.') + '. Prepare the return again.';
   }
   if (error.code === 'TAX_CONCLUSION_STALE') return 'Refused: a source changed after it was linked. Revise the conclusion on the current, reviewed sources.';
   if (error.code === 'TAX_CONCLUSION_SOURCES_NOT_APPROVED') return 'Approval refused: every linked calculation run, research memo and workpaper must be approved first (' + (error.detail ?? '').replace(/,/g, ', ') + ').';

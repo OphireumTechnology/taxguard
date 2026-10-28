@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "140b84e5c7780e0ddfa876d7fc669cd46f04830ec26835135488c373d2fba659",
+  "executionPlanSha256": "94a8fb5ecc1984126084ecd056f626ed877483a9b7c1e20fba8954f8a87fcbd0",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5412,6 +5412,77 @@
         "-- conclusion's amount or one output of its calculation run, the value type (MONEY or INTEGER), whether the line is",
         "-- required, and how several conclusions combine: SINGLE (exactly one) or SUM. A rule names a supported jurisdiction",
         "-- (federal: US; state: one of the 50 states or DC) and the dates it is in effect; it maps only while in effect."
+      ]
+    },
+    {
+      "order": 102,
+      "file": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+      "kind": "proposal",
+      "version": "20261019120000",
+      "sha256": "f49581ee301b6cc78728631334db88f68f1d89777a7357a7d05071c053c00e82",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_return_templates",
+        "taxguard_tax_return_versions",
+        "taxguard_tax_return_guard",
+        "taxguard_tax_return_template_invalid",
+        "taxguard_tax_return_template_json",
+        "taxguard_tax_return_template_draft",
+        "taxguard_tax_return_template_transition",
+        "taxguard_tax_return_template_get",
+        "taxguard_tax_return_template_list",
+        "taxguard_tax_return_derive",
+        "taxguard_tax_return_forms_sha",
+        "taxguard_tax_return_stale",
+        "taxguard_tax_return_json",
+        "taxguard_tax_return_prepare",
+        "taxguard_tax_return_transition",
+        "taxguard_tax_return_list",
+        "taxguard_tax_return_get",
+        "taxguard_tax_return_stage_facts"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- have none. Rollback (development): drop the functions and the two tables."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_return_templates, public.taxguard_tax_return_versions FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 13,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 68, draft return preparation). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 033 (taxguard_tax_actor, tax sources), 20261018090000 (live case actor), 20261018160000 (case diagnostics),",
+        "-- 20261019100000 (tax conclusions) and 20261019110000 (form mapping, taxguard_tax_form_jurisdiction_supported).",
+        "--",
+        "-- A draft return is an assembly of reviewed inputs, never a calculation and never a model judgement:",
+        "--   RETURN TEMPLATE (which forms a return of this jurisdiction, family and year consists of)",
+        "--   -> for each form: the case's CURRENT, non-stale form mapping (Block 67)",
+        "--   -> RETURN VERSION (forms with mapping id, version and values hash) -> preparer submit -> reviewer approve.",
+        "-- A return template is tax content: it cites a verified source, names a supported jurisdiction and the dates it is",
+        "-- in effect, is drafted by a content maintainer, approved by a different reviewer (maker-checker; policy baseline:",
+        "-- a designated qualified tax professional), frozen once submitted, and a newer approval supersedes it.",
+        "--"
       ]
     }
   ]
