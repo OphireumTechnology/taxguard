@@ -8,7 +8,8 @@
 -- is drafted by a content maintainer, approved by a different reviewer (maker-checker), frozen once submitted, and a
 -- newer approval supersedes it. Each rule line names the conclusion type it takes, whether the value is the
 -- conclusion's amount or one output of its calculation run, the value type (MONEY or INTEGER), whether the line is
--- required, and how several conclusions combine: SINGLE (exactly one) or SUM.
+-- required, and how several conclusions combine: SINGLE (exactly one) or SUM. A rule names a supported jurisdiction
+-- (federal: US; state: one of the 50 states or DC) and the dates it is in effect; it maps only while in effect.
 --
 -- Mapping a case is a pure derivation from durable records: the case's APPROVED conclusions of the named type, each
 -- of which must be current (not stale, Block 66) and carry exactly one approved calculation run. Nothing is guessed:
@@ -28,11 +29,22 @@
 -- case's preparer maps. Clients have none. returnUse stays BLOCKED: Stage 09 (Block 68) is not implemented.
 -- Rollback (development): drop the functions and the three tables.
 
+-- The jurisdictions a mapping rule may name: the federal return (US) and the 50 states and DC.
+CREATE OR REPLACE FUNCTION public.taxguard_tax_form_jurisdiction_supported(p_jurisdiction text, p_code text) RETURNS boolean
+LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT CASE p_jurisdiction
+    WHEN 'federal' THEN p_code = 'US'
+    WHEN 'state' THEN p_code = ANY (ARRAY['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+      'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'])
+    ELSE false END IS TRUE $$;
+
 CREATE TABLE IF NOT EXISTS public.taxguard_tax_form_rules (
   tenant_id VARCHAR(128) NOT NULL REFERENCES public.taxguard_tenants(id) ON DELETE RESTRICT,
   rule_id UUID NOT NULL DEFAULT gen_random_uuid(),
   jurisdiction VARCHAR(8) NOT NULL CHECK (jurisdiction IN ('federal','state')),
   jurisdiction_code CHAR(2) NOT NULL CHECK (jurisdiction_code ~ '^[A-Z]{2}$'),
+  effective_from DATE NOT NULL,
+  effective_to DATE,
   return_family VARCHAR(16) NOT NULL,
   tax_year INTEGER NOT NULL CHECK (tax_year BETWEEN 2000 AND 2100),
   form_id VARCHAR(40) NOT NULL CHECK (form_id ~ '^[A-Za-z0-9 _.-]{1,40}$'),
@@ -50,7 +62,9 @@ CREATE TABLE IF NOT EXISTS public.taxguard_tax_form_rules (
   review_note VARCHAR(1000),
   PRIMARY KEY (tenant_id, rule_id),
   UNIQUE (tenant_id, jurisdiction, jurisdiction_code, return_family, tax_year, form_id, form_version, version),
-  CHECK (reviewed_by IS NULL OR reviewed_by <> prepared_by)
+  CHECK (reviewed_by IS NULL OR reviewed_by <> prepared_by),
+  CHECK (public.taxguard_tax_form_jurisdiction_supported(jurisdiction, jurisdiction_code)),
+  CHECK (effective_to IS NULL OR effective_to >= effective_from)
 );
 
 CREATE TABLE IF NOT EXISTS public.taxguard_tax_form_mappings (
@@ -109,8 +123,9 @@ BEGIN
   IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'TAX_FORM_MAPPING_IMMUTABLE' USING ERRCODE = 'P0001'; END IF;
   IF TG_TABLE_NAME = 'taxguard_tax_form_rules' THEN
     IF (NEW.tenant_id, NEW.rule_id, NEW.jurisdiction, NEW.jurisdiction_code, NEW.return_family, NEW.tax_year, NEW.form_id, NEW.form_version, NEW.version,
-        NEW.prepared_by, NEW.created_at) IS DISTINCT FROM (OLD.tenant_id, OLD.rule_id, OLD.jurisdiction, OLD.jurisdiction_code, OLD.return_family, OLD.tax_year,
-        OLD.form_id, OLD.form_version, OLD.version, OLD.prepared_by, OLD.created_at)
+        NEW.effective_from, NEW.effective_to, NEW.prepared_by, NEW.created_at) IS DISTINCT FROM (OLD.tenant_id, OLD.rule_id, OLD.jurisdiction,
+        OLD.jurisdiction_code, OLD.return_family, OLD.tax_year, OLD.form_id, OLD.form_version, OLD.version, OLD.effective_from, OLD.effective_to,
+        OLD.prepared_by, OLD.created_at)
        OR (OLD.status <> 'DRAFT' AND (NEW.definition, NEW.content_sha256, NEW.source_id) IS DISTINCT FROM (OLD.definition, OLD.content_sha256, OLD.source_id)) THEN
       RAISE EXCEPTION 'TAX_FORM_MAPPING_IMMUTABLE' USING ERRCODE = 'P0001';
     END IF;
@@ -135,7 +150,7 @@ END $$;
 -- NULL when the definition is well formed, otherwise the reason.
 CREATE OR REPLACE FUNCTION public.taxguard_tax_form_rule_invalid(p_def jsonb) RETURNS text
 LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE l jsonb; keys text[] := '{}'; k text;
+DECLARE l jsonb; keys text[] := '{}'; k text; d_from date; d_to date;
 BEGIN
   IF p_def IS NULL OR jsonb_typeof(p_def) <> 'object' THEN RETURN 'DEFINITION'; END IF;
   IF COALESCE(p_def->>'jurisdiction', '') NOT IN ('federal','state') OR COALESCE(p_def->>'jurisdictionCode', '') !~ '^[A-Z]{2}$'
@@ -143,6 +158,22 @@ BEGIN
      OR (p_def->>'taxYear') !~ '^20[0-9]{2}$' OR COALESCE(p_def->>'formId', '') !~ '^[A-Za-z0-9 _.-]{1,40}$'
      OR COALESCE(p_def->>'formVersion', '') !~ '^[A-Za-z0-9_.-]{1,40}$' OR COALESCE(p_def->>'sourceId', '') !~ '^[A-Za-z0-9_.:-]{3,80}$' THEN
     RETURN 'HEADER';
+  END IF;
+  IF NOT public.taxguard_tax_form_jurisdiction_supported(p_def->>'jurisdiction', p_def->>'jurisdictionCode') THEN RETURN 'JURISDICTION'; END IF;
+  -- effectiveFrom is required; effectiveTo is absent, null or a date not before it.
+  IF jsonb_typeof(p_def->'effectiveFrom') IS DISTINCT FROM 'string' OR (p_def->>'effectiveFrom') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+     OR (p_def ? 'effectiveTo' AND jsonb_typeof(p_def->'effectiveTo') <> 'null'
+         AND (jsonb_typeof(p_def->'effectiveTo') <> 'string' OR (p_def->>'effectiveTo') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')) THEN
+    RETURN 'EFFECTIVE_DATES';
+  END IF;
+  BEGIN
+    d_from := (p_def->>'effectiveFrom')::date;
+    d_to := (p_def->>'effectiveTo')::date;
+  EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+    RETURN 'EFFECTIVE_DATES';
+  END;
+  IF to_char(d_from, 'YYYY-MM-DD') <> p_def->>'effectiveFrom' OR (d_to IS NOT NULL AND (to_char(d_to, 'YYYY-MM-DD') <> p_def->>'effectiveTo' OR d_to < d_from)) THEN
+    RETURN 'EFFECTIVE_DATES';
   END IF;
   IF jsonb_typeof(p_def->'lines') IS DISTINCT FROM 'array' OR jsonb_array_length(p_def->'lines') NOT BETWEEN 1 AND 200 THEN RETURN 'LINES'; END IF;
   FOR l IN SELECT value FROM jsonb_array_elements(p_def->'lines') LOOP
@@ -167,7 +198,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.taxguard_tax_form_rule_json(r public.taxguard_tax_form_rules, p_full boolean) RETURNS jsonb
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT jsonb_build_object('ruleId', r.rule_id, 'jurisdiction', r.jurisdiction, 'jurisdictionCode', r.jurisdiction_code, 'returnFamily', r.return_family,
-    'taxYear', r.tax_year, 'formId', r.form_id, 'formVersion', r.form_version, 'version', r.version, 'contentSha256', r.content_sha256, 'sourceId', r.source_id,
+    'effectiveFrom', r.effective_from, 'effectiveTo', r.effective_to, 'taxYear', r.tax_year, 'formId', r.form_id, 'formVersion', r.form_version, 'version', r.version, 'contentSha256', r.content_sha256, 'sourceId', r.source_id,
     'status', r.status, 'preparedBy', r.prepared_by, 'createdAt', r.created_at, 'submittedAt', r.submitted_at, 'reviewedBy', r.reviewed_by,
     'reviewedAt', r.reviewed_at, 'reviewNote', r.review_note, 'lines', jsonb_array_length(r.definition->'lines'))
   || CASE WHEN p_full THEN jsonb_build_object('definition', r.definition) ELSE '{}'::jsonb END $$;
@@ -189,9 +220,10 @@ BEGIN
   SELECT COALESCE(max(version), 0) + 1 INTO v FROM public.taxguard_tax_form_rules WHERE tenant_id = p_tenant AND jurisdiction = p_definition->>'jurisdiction'
     AND jurisdiction_code = p_definition->>'jurisdictionCode' AND return_family = p_definition->>'returnFamily' AND tax_year = (p_definition->>'taxYear')::integer
     AND form_id = p_definition->>'formId' AND form_version = p_definition->>'formVersion';
-  INSERT INTO public.taxguard_tax_form_rules(tenant_id, jurisdiction, jurisdiction_code, return_family, tax_year, form_id, form_version, version, definition,
-      content_sha256, source_id, prepared_by)
-    VALUES (p_tenant, p_definition->>'jurisdiction', p_definition->>'jurisdictionCode', p_definition->>'returnFamily', (p_definition->>'taxYear')::integer,
+  INSERT INTO public.taxguard_tax_form_rules(tenant_id, jurisdiction, jurisdiction_code, effective_from, effective_to, return_family, tax_year, form_id,
+      form_version, version, definition, content_sha256, source_id, prepared_by)
+    VALUES (p_tenant, p_definition->>'jurisdiction', p_definition->>'jurisdictionCode', (p_definition->>'effectiveFrom')::date,
+      (p_definition->>'effectiveTo')::date, p_definition->>'returnFamily', (p_definition->>'taxYear')::integer,
       p_definition->>'formId', p_definition->>'formVersion', v, p_definition, sha, p_definition->>'sourceId', p_actor) RETURNING * INTO r;
   PERFORM public.taxguard_tax_audit(p_tenant, NULL, p_actor, role_, 'TAX_FORM_RULE_DRAFTED',
     jsonb_build_object('ruleId', r.rule_id, 'formId', r.form_id, 'formVersion', r.form_version, 'version', v, 'sha256', sha));
@@ -369,6 +401,10 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'TAX_FORM_RULE_NOT_FOUND' USING ERRCODE = 'P0001'; END IF;
   IF r.status <> 'APPROVED' THEN RAISE EXCEPTION 'TAX_FORM_RULE_NOT_APPROVED' USING ERRCODE = 'P0001'; END IF;
   IF r.tax_year <> c.tax_year OR r.return_family <> c.return_family THEN RAISE EXCEPTION 'TAX_FORM_RULE_SCOPE_MISMATCH' USING ERRCODE = 'P0001'; END IF;
+  IF current_date < r.effective_from OR current_date > r.effective_to THEN
+    RAISE EXCEPTION 'TAX_FORM_RULE_NOT_EFFECTIVE' USING ERRCODE = 'P0001',
+      DETAIL = concat_ws(' to ', r.effective_from::text, COALESCE(r.effective_to::text, 'open'));
+  END IF;
   PERFORM pg_advisory_xact_lock(hashtext(concat_ws('|', 'form-map', p_tenant, c.case_id, r.form_id, r.form_version)));
   d := public.taxguard_tax_form_derive(c, r);
   IF jsonb_array_length(d->'problems') > 0 THEN RAISE EXCEPTION 'TAX_FORM_MAPPING_REFUSED' USING ERRCODE = 'P0001', DETAIL = (d->'problems')::text; END IF;

@@ -13,4 +13,4 @@
 | Return use | BLOCKED: Stage 09 (Block 68) and later stages are not implemented |
 | AI | No agent writes or chooses mappings |
 | Accessibility | Structural checks in suite 07 and the unit test; no screen-reader test performed |
-| Depends on | Block 66 being merged (this branch is stacked on it) |
+| Depends on | Block 66, merged into `main` (PR #37, `b0e0dca`); this branch is synchronized with it |

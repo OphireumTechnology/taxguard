@@ -189,7 +189,7 @@ export function evidenceText(r: EvidenceResolution): string {
   return r.kind === 'DOCUMENT' ? 'Reviewed ' + doc : `${r.fieldKey} = ${r.decidedValue}, ${r.decision.toLowerCase()}${r.decidedBy ? ' by ' + r.decidedBy : ''}, from ${doc}`;
 }
 
-export interface FormRule { ruleId: string; jurisdiction: string; jurisdictionCode: string; returnFamily: string; taxYear: number; formId: string; formVersion: string;
+export interface FormRule { ruleId: string; jurisdiction: string; jurisdictionCode: string; effectiveFrom: string; effectiveTo: string | null; returnFamily: string; taxYear: number; formId: string; formVersion: string;
   version: number; contentSha256: string; sourceId: string; status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED'; lines: number }
 export interface FormValueSource { conclusionId: string; conclusionVersion: number; conclusionType: string; value: string; runId: string; ruleSetId: string;
   ruleSetVersion: number; ruleSetSha256: string; evidence: Array<{ ref: string; snapshot: Record<string, unknown> }> }
@@ -256,6 +256,7 @@ export function taxEngineMessage(error: unknown): string {
     TAX_FORM_RULE_NOT_FOUND: 'This mapping rule no longer exists or is not visible to you.',
     TAX_FORM_RULE_NOT_APPROVED: 'Only an approved mapping rule can be used. A newer approval may have superseded this one.',
     TAX_FORM_RULE_SCOPE_MISMATCH: 'This mapping rule is for another tax year or return family than the case.',
+    TAX_FORM_RULE_NOT_EFFECTIVE: 'This mapping rule is not in effect today (outside its effective dates). Nothing was written.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
     TAX_CALC_ALREADY_REVIEWED: 'This calculation run has already been reviewed.',
     TAX_CALC_INPUT_INVALID: 'Enter a review note of at least 10 characters.',

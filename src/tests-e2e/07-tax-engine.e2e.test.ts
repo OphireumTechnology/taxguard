@@ -600,7 +600,7 @@ describe('deterministic form mapping on the real server', () => {
     const income = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.filter((k: any) => k.type === 'INCOME_INCLUSION' && k.status === 'APPROVED');
     expect(income).toHaveLength(1); // left by the Block 66 journey: one approved, current wages conclusion with its calculation run
     const definition = { jurisdiction: 'federal', jurisdictionCode: 'US', returnFamily: target.returnFamily, taxYear: 2025, formId: 'SYN-1040', formVersion: '2025.0',
-      sourceId: SYNTHETIC_SOURCE_ID, lines: [
+      effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, lines: [
         { schedule: 'MAIN', line: '1a', field: 'f1_wages', valueType: 'MONEY', required: true, aggregate: 'SINGLE', source: { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' } },
         { schedule: 'MAIN', line: '16', field: 'f1_tax', valueType: 'MONEY', required: true, aggregate: 'SINGLE',
           source: { conclusionType: 'INCOME_INCLUSION', value: 'OUTPUT', outputKey: 'synthetic_amount' } }] };
@@ -622,6 +622,9 @@ describe('deterministic form mapping on the real server', () => {
     const reviewer = await staffLogin('e2e-rev');
     await openCase(reviewer);
     await panel(reviewer).getByLabel('Approved mapping rule').selectOption(rule.body.ruleId);
+    // The rule is described with its jurisdiction and the dates it is in effect.
+    expect(await panel(reviewer).locator(`option[value="${rule.body.ruleId}"]`).innerText()).toContain('federal US');
+    expect(await panel(reviewer).locator(`option[value="${rule.body.ruleId}"]`).innerText()).toContain('in effect 2025-01-01 to open');
     await panel(reviewer).getByRole('button', { name: 'Map to form' }).click();
     await panel(reviewer).getByRole('alert').getByText("Only the case's preparer can map the case to a form.").waitFor();
     // The preparer maps.

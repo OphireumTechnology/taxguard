@@ -6,7 +6,7 @@
     "core": 13,
     "proposals": 88,
     "tables": 167,
-    "functions": 431,
+    "functions": 432,
     "securityDefinerFunctions": 337,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
@@ -4156,6 +4156,7 @@
       "functionsAdded": [
         "taxguard_tax_form_derive",
         "taxguard_tax_form_guard",
+        "taxguard_tax_form_jurisdiction_supported",
         "taxguard_tax_form_map",
         "taxguard_tax_form_mapping_get",
         "taxguard_tax_form_mapping_json",

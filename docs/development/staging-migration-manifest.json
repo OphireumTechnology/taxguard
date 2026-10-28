@@ -5350,7 +5350,7 @@
       "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
       "kind": "proposal",
       "version": "20261019110000",
-      "sha256": "95e6e7f6d43d5a1fa22b18a9ecd7f1adcebe05178262d63edc2751356511fc1b",
+      "sha256": "a057a6c26c592668f9311a01e90e1b37b54ca0ab1524dec170898aee0ad43542",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -5368,6 +5368,7 @@
         "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
       ],
       "declaredObjects": [
+        "taxguard_tax_form_jurisdiction_supported",
         "taxguard_tax_form_rules",
         "taxguard_tax_form_mappings",
         "taxguard_tax_form_values",
@@ -5409,8 +5410,8 @@
         "-- is drafted by a content maintainer, approved by a different reviewer (maker-checker), frozen once submitted, and a",
         "-- newer approval supersedes it. Each rule line names the conclusion type it takes, whether the value is the",
         "-- conclusion's amount or one output of its calculation run, the value type (MONEY or INTEGER), whether the line is",
-        "-- required, and how several conclusions combine: SINGLE (exactly one) or SUM.",
-        "--"
+        "-- required, and how several conclusions combine: SINGLE (exactly one) or SUM. A rule names a supported jurisdiction",
+        "-- (federal: US; state: one of the 50 states or DC) and the dates it is in effect; it maps only while in effect."
       ]
     }
   ]

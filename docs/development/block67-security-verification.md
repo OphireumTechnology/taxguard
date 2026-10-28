@@ -17,6 +17,8 @@ All cases run on real PostgreSQL with every proposal applied (`taxFormMapping.db
 | 11 | Silent recalculation after a source change | stored values unchanged and read STALE (`SOURCE_CHANGED`, `SOURCE_STALE`, `MAPPING_RULE_SUPERSEDED`); a new mapping version is needed | staleness cases; suite 07 |
 | 12 | Process-memory fallback in production | `/api/tax-engine` not mounted; form-mapping routes answer `API_NOT_RELEASED`; cutover requires `20261019110000` | `routeCutover.test.ts` |
 | 13 | Direct helper access | derivation, staleness and stored-value helpers not executable by service_role | injection case |
+| 14 | Rule for an unsupported jurisdiction or with invalid dates | refused on draft (`JURISDICTION`, `EFFECTIVE_DATES`); table CHECK refuses direct rows; dates and jurisdiction frozen (`TAX_FORM_MAPPING_IMMUTABLE`) | jurisdiction and dates case |
+| 15 | Mapping with a rule outside its effective dates | `TAX_FORM_RULE_NOT_EFFECTIVE` (not yet in effect, expired); nothing written | refusal case |
 
 Mutation checks (applied to the test database only): disabling the staleness check in the derivation fails case 3's
 test; summing an ambiguous SINGLE line fails case 4's test and three others. Both pass on the unmodified proposal.

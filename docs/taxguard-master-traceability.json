@@ -4875,16 +4875,16 @@
     },
     {
       "file": "docs/development/block67-browser-verification.md",
-      "sha256": "22073b39448db929f87fa58d50c9f053a2d0bd1dd86a58ca2f56fcc3c2517136",
-      "bytes": 1984,
+      "sha256": "4a0bc3cc36dbe7506283cc3bef8ac87d2563db28e7cb7367f67d5c2e973ff2e9",
+      "bytes": 1929,
       "headings": [
         "# Block 67: browser verification"
       ]
     },
     {
       "file": "docs/development/block67-deterministic-form-mapping-report.md",
-      "sha256": "13b4258ab148ec6e596b631aaab0eb7a0ada35dd074fab45c0314d4ecdaf7761",
-      "bytes": 6693,
+      "sha256": "6f6d6f6bc8d6a1d65cabc868aff555841cbca09c1561370c9e6ba940e8955260",
+      "bytes": 7716,
       "headings": [
         "# Block 67: deterministic form mapping",
         "## Chain",
@@ -4900,16 +4900,16 @@
     },
     {
       "file": "docs/development/block67-production-readiness.md",
-      "sha256": "dd65f344fa3f3869cca6371d0446fd7fab05c66d42423a7b453d671860bf7845",
-      "bytes": 895,
+      "sha256": "8323b2f4166953e50d7bba22a7f014231fefcb2d7dd509859e60efa907cbe81b",
+      "bytes": 928,
       "headings": [
         "# Block 67: production readiness"
       ]
     },
     {
       "file": "docs/development/block67-security-verification.md",
-      "sha256": "e6112f67222759a470e0d65337552b3c1acf01a4948f1a7cb0957594b60bfd9e",
-      "bytes": 2491,
+      "sha256": "5a8f1c14dd708a4466b831547f4ff9f7796ce19dca5dbbe1605ac7dfa9977215",
+      "bytes": 2889,
       "headings": [
         "# Block 67: security verification"
       ]
@@ -5195,7 +5195,7 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "fd6ee165230bec1ea489a02fc6b253988d25f97e5466cd44fa0d2c9fe8d86bef",
+      "sha256": "a4d229ac0764e04be7c6145c258231ab50a63342bc576a5c771b2802fb9e1148",
       "bytes": 21879,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
@@ -6547,8 +6547,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
-      "sha256": "95e6e7f6d43d5a1fa22b18a9ecd7f1adcebe05178262d63edc2751356511fc1b",
-      "bytes": 34611,
+      "sha256": "a057a6c26c592668f9311a01e90e1b37b54ca0ab1524dec170898aee0ad43542",
+      "bytes": 37243,
       "headings": []
     },
     {

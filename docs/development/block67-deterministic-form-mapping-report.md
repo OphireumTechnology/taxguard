@@ -1,7 +1,7 @@
 # Block 67: deterministic form mapping
 
-Branch `claude/taxguard-block67-deterministic-form-mapping`, stacked on Block 66 (`8e3f2f5`, not yet merged into
-`main`). Review-only proposal `20261019110000_taxguard_tax_form_mapping.sql`; nothing applied to a hosted database.
+Branch `claude/taxguard-block67-deterministic-form-mapping`, synchronized with `main` after Block 66 merged (PR #37,
+`b0e0dca`). Review-only proposal `20261019110000_taxguard_tax_form_mapping.sql`; nothing applied to a hosted database.
 Completes the mapping part of `TAX-FORM-MAPPING`; no AI decides where a value is written.
 
 ## Chain
@@ -19,7 +19,8 @@ form-line foundation (Block 66 taxguard_tax_form_line_sources) → conclusion tr
 ## Schema (new)
 
 - `taxguard_tax_form_rules`: versioned mapping rule per jurisdiction, return family, tax year, form id and form
-  version; definition (lines), content hash, cited source; DRAFT → PENDING_REVIEW → APPROVED / REJECTED, SUPERSEDED
+  version, with its effective dates; definition (lines), content hash, cited source; a CHECK allows only a supported
+  jurisdiction (federal `US`, a state of the 50 or `DC`) and an end date not before the start; DRAFT → PENDING_REVIEW → APPROVED / REJECTED, SUPERSEDED
   by a newer approval. Preparer and reviewer must differ. Content frozen once submitted; no delete or truncate.
 - `taxguard_tax_form_mappings`: one mapping version of one case and form: rule id, version and hash, values hash,
   optional lines without a source, CURRENT / SUPERSEDED (at most one CURRENT per case and form), mapper, time.
@@ -34,13 +35,15 @@ form-line foundation (Block 66 taxguard_tax_form_line_sources) → conclusion tr
 ## Mapping rule definition
 
 ```
-{ jurisdiction, jurisdictionCode, returnFamily, taxYear, formId, formVersion, sourceId,
+{ jurisdiction, jurisdictionCode, returnFamily, taxYear, formId, formVersion, effectiveFrom, effectiveTo?, sourceId,
   lines: [{ schedule, line, field, valueType: MONEY|INTEGER, required, aggregate: SINGLE|SUM,
             source: { conclusionType, value: AMOUNT | OUTPUT, outputKey? } }] }
 ```
 
 Validated in the database (unknown conclusion types, an output line without an output key, an amount line with
-one, and duplicate schedule/line/field are refused); the hash is computed in the database.
+one, duplicate schedule/line/field, an unsupported jurisdiction (`JURISDICTION`) and a missing, malformed or reversed
+effective date (`EFFECTIVE_DATES`, ISO `YYYY-MM-DD`; `effectiveTo` optional) are refused); the hash is computed in the
+database. Dates and jurisdiction are frozen with the rule.
 
 ## Derivation (deterministic, refuses instead of guessing)
 
@@ -57,7 +60,8 @@ mapping with it, when:
 | `VALUE_MISSING` | the conclusion has no amount, or the run no such output |
 | `VALUE_TYPE` | an INTEGER line receives a fractional value |
 
-The rule must be APPROVED and match the case's tax year and return family; only the case's live preparer maps.
+The rule must be APPROVED, match the case's tax year and return family, and be in effect today
+(`TAX_FORM_RULE_NOT_EFFECTIVE` with its dates otherwise); only the case's live preparer maps.
 Mapping identical values again returns the current mapping (`replayed`); otherwise a new version supersedes it.
 
 ## Staleness
@@ -89,7 +93,8 @@ rules are authored through the API in this block; there is no rule editor.
 
 ## Tests
 
-- `taxFormMapping.db.test.ts` (7, PostgreSQL, HTTP): rule governance; every refusal above; provenance of every value;
+- `taxFormMapping.db.test.ts` (8, PostgreSQL, HTTP): rule governance; supported jurisdictions and effective dates
+  (validation, CHECK, frozen); every refusal above, including a rule not yet in effect and an expired rule; provenance of every value;
   idempotent re-mapping; the conclusion trace reaches the form lines; no injection, edit or removal (CHECK, triggers,
   privileges); isolation by tenant, client, case assignment, tax year and role; revised conclusion → STALE → version 2
   with version 1 kept; stale document and superseded rule → STALE, mapping refused.
@@ -108,3 +113,8 @@ rules are authored through the API in this block; there is no rule editor.
 - No review step for a mapping itself: it is a pure derivation from reviewed inputs; Stage 09 (Block 68) adds return
   versions, reviewer status and rework.
 - Diagnostics (Block 70) do not yet read mapping staleness.
+- A state rule is checked against the supported states, not against the case: cases record no filing states (the
+  client's mailing address is not residency), so applying a state form to a case is the preparer's choice of rule.
+  Recording filing states per case is an owner decision.
+- A mapping already made stays CURRENT when its rule's effective period later ends; the dates govern when a rule may
+  be used to map.

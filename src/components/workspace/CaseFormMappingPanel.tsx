@@ -66,7 +66,7 @@ export function CaseFormMappingPanel({ caseId, taxYear, returnFamily }: { caseId
     <form aria-label="Map the case to a form" onSubmit={e => { e.preventDefault(); void mapNow(); }}>
       <label>Approved mapping rule<select value={rule} onChange={e => setRule(e.target.value)} disabled={rules.length === 0}>
         {rules.length === 0 && <option value="">No approved rule for {returnFamily ?? 'this return family'} {taxYear}</option>}
-        {rules.map(r => <option key={r.ruleId} value={r.ruleId}>{r.formId} {r.formVersion} · rule version {r.version} · {r.lines} lines</option>)}
+        {rules.map(r => <option key={r.ruleId} value={r.ruleId}>{r.formId} {r.formVersion} · {r.jurisdiction} {r.jurisdictionCode} · rule version {r.version} · {r.lines} lines · in effect {r.effectiveFrom} to {r.effectiveTo ?? 'open'}</option>)}
       </select></label>
       <p id="case-form-mapping-hint">Only the case preparer can map. Mapping is refused, and nothing is written, if any line cannot be filled from a single approved, current conclusion with an approved calculation.</p>
       <button disabled={busy || !rule} aria-describedby="case-form-mapping-hint">Map to form</button>

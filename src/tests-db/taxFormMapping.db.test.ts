@@ -43,7 +43,7 @@ async function approvedConclusion(type: string, amount: string, links: unknown[]
 const line = (lineNo: string, field: string, source: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
   ({ schedule: 'MAIN', line: lineNo, field, valueType: 'MONEY', required: true, aggregate: 'SINGLE', source, ...extra });
 const definition = (lines: unknown[], over: Record<string, unknown> = {}) => ({ jurisdiction: 'federal', jurisdictionCode: 'US', returnFamily: '1040', taxYear: 2025,
-  formId: 'SYN-1040', formVersion: '2025.0', sourceId: SYNTHETIC_SOURCE_ID, lines, ...over });
+  formId: 'SYN-1040', formVersion: '2025.0', effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, lines, ...over });
 const LINES = [
   line('1a', 'f1_wages', { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' }),
   line('16', 'f1_tax', { conclusionType: 'INCOME_INCLUSION', value: 'OUTPUT', outputKey: 'synthetic_amount' }),
@@ -118,6 +118,31 @@ describe('mapping rules are governed tax content', () => {
     expect((await call('POST', `/form-rules/${ruleId}/approve`)).body).toMatchObject({ status: 'APPROVED', reviewedBy: 'fm-rev' });
     expect((await call('GET', `/form-rules/${ruleId}`)).body.definition.lines).toHaveLength(3);
   });
+
+  it('names only a supported jurisdiction and valid effective dates, frozen with the rule', async () => {
+    as('fm-prep');
+    const invalid = async (over: Record<string, unknown>) => (await call('POST', '/form-rules', { definition: definition([LINES[0]], { formVersion: '2025.5', ...over }) })).body;
+    for (const over of [{ jurisdictionCode: 'ZZ' }, { jurisdiction: 'state', jurisdictionCode: 'US' }, { jurisdiction: 'state', jurisdictionCode: 'ZZ' },
+      { jurisdiction: 'federal', jurisdictionCode: 'CA' }])
+      expect(await invalid(over), JSON.stringify(over)).toEqual({ code: 'TAX_FORM_RULE_INPUT_INVALID', detail: 'JURISDICTION' });
+    for (const over of [{ effectiveFrom: undefined }, { effectiveFrom: '2025-02-30' }, { effectiveFrom: '2025-1-01' }, { effectiveFrom: 20250101 },
+      { effectiveTo: '2024-12-31' }, { effectiveTo: 'never' }, { effectiveTo: 2026 }])
+      expect(await invalid(over), JSON.stringify(over)).toEqual({ code: 'TAX_FORM_RULE_INPUT_INVALID', detail: 'EFFECTIVE_DATES' });
+    const state = (await call('POST', '/form-rules', { definition: definition([LINES[0]], { jurisdiction: 'state', jurisdictionCode: 'CA', formId: 'SYN-540',
+      effectiveTo: '2026-12-31' }) })).body;
+    expect(state).toMatchObject({ jurisdiction: 'state', jurisdictionCode: 'CA', effectiveFrom: '2025-01-01', effectiveTo: '2026-12-31', status: 'DRAFT' });
+    expect((await call('GET', `/form-rules/${ruleId}`)).body).toMatchObject({ effectiveFrom: '2025-01-01', effectiveTo: null });
+    // Dates and jurisdiction cannot be changed after drafting, and the table refuses an unsupported pair outright.
+    for (const sql of [`UPDATE taxguard_tax_form_rules SET effective_to = '2030-01-01' WHERE tenant_id = $1 AND rule_id = $2`,
+      `UPDATE taxguard_tax_form_rules SET jurisdiction_code = 'NY' WHERE tenant_id = $1 AND rule_id = $2`])
+      await expect(db.pool.query(sql, [T, state.ruleId]), sql).rejects.toThrow('TAX_FORM_MAPPING_IMMUTABLE');
+    await expect(db.pool.query(`INSERT INTO taxguard_tax_form_rules(tenant_id, jurisdiction, jurisdiction_code, effective_from, return_family, tax_year, form_id,
+      form_version, version, definition, content_sha256, source_id, prepared_by) VALUES ($1, 'state', 'ZZ', '2025-01-01', '1040', 2025, 'SYN-X', '1', 1, '{}'::jsonb,
+      repeat('c', 64), 'syn-src', 'fm-prep')`, [T])).rejects.toThrow(/check/i);
+    await expect(db.pool.query(`INSERT INTO taxguard_tax_form_rules(tenant_id, jurisdiction, jurisdiction_code, effective_from, effective_to, return_family, tax_year,
+      form_id, form_version, version, definition, content_sha256, source_id, prepared_by) VALUES ($1, 'federal', 'US', '2025-06-01', '2025-01-01', '1040', 2025, 'SYN-X',
+      '1', 1, '{}'::jsonb, repeat('c', 64), 'syn-src', 'fm-prep')`, [T])).rejects.toThrow(/check/i);
+  });
 });
 
 describe('form values come only from approved, current conclusions through the approved rule', () => {
@@ -147,6 +172,11 @@ describe('form values come only from approved, current conclusions through the a
     expect((await map(otherFamily)).body.code).toBe('TAX_FORM_RULE_SCOPE_MISMATCH');
     as('fm-prep'); const draft = (await call('POST', '/form-rules', { definition: definition([LINES[0]], { formVersion: '2025.1' }) })).body.ruleId;
     expect((await map(draft)).body.code).toBe('TAX_FORM_RULE_NOT_APPROVED');
+    // An approved rule maps only while in effect: not before its first day, not after its last.
+    const future = await approvedRule([LINES[0]], { formVersion: '2025.7', effectiveFrom: '2099-01-01' });
+    expect((await map(future)).body).toEqual({ code: 'TAX_FORM_RULE_NOT_EFFECTIVE', detail: '2099-01-01 to open' });
+    const expired = await approvedRule([LINES[0]], { formVersion: '2025.8', effectiveTo: '2025-12-31' });
+    expect((await map(expired)).body).toEqual({ code: 'TAX_FORM_RULE_NOT_EFFECTIVE', detail: '2025-01-01 to 2025-12-31' });
     expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_form_mappings WHERE tenant_id = $1`, [T])).rows[0].n).toBe(0);
   });
 

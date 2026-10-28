@@ -5,7 +5,7 @@
 > Nothing here has been applied to any Supabase project. Every proposal still needs human review and approval.
 
 Execution order: explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority. 102 files (13 core, 88 proposals, 1 separate audit proposal);
-167 tables and 431 public functions (337 SECURITY DEFINER) after composition.
+167 tables and 432 public functions (337 SECURITY DEFINER) after composition.
 
 Functions executable by anon or authenticated after every file, with Supabase default privileges: —;
 without default privileges: —.
@@ -113,7 +113,7 @@ Tables reachable by anon or authenticated after every file, with Supabase defaul
 | 98 | `20261019080000_taxguard_ledger_replay_year_scope` | proposal | ok | 0 | 1 | taxguard_b2t_prepare_adjustment (from #92), taxguard_ledger_post_entry_once (from #95), taxguard_ledger_reverse_entry_once (from #95) | 1, 27, 32, 77, 95 | 0 | — | — |
 | 99 | `20261019090000_taxguard_onboarding_authority_after_wait` | proposal | ok | 0 | 0 | taxguard_onb_decide (from #73), taxguard_onb_save (from #73), taxguard_onb_submit (from #73) | 1, 28, 34, 73 | 0 | — | — |
 | 100 | `20261019100000_taxguard_tax_conclusions` | proposal | ok | 3 | 15 | taxguard_tax_evidence_resolve (from #87) | 1, 29, 32, 36, 79, 83, 87 | 0 | — | — |
-| 101 | `20261019110000_taxguard_tax_form_mapping` | proposal | ok | 3 | 15 | — | 1, 28, 29, 36, 79, 100 | 0 | — | — |
+| 101 | `20261019110000_taxguard_tax_form_mapping` | proposal | ok | 3 | 16 | — | 1, 28, 29, 36, 79, 100 | 0 | — | — |
 | 102 | `taxguard-audit-append-only.proposal` | separate-proposal | not re-runnable | 0 | 1 | — | 1 | 0 | — | — |
 
 ## Not re-runnable files
