@@ -5,11 +5,11 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  GitMerge, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Download, 
+import {
+  GitMerge,
+  CheckCircle2,
+  AlertTriangle,
+  Download,
   ArrowRight,
   Edit3
 } from 'lucide-react';
@@ -291,8 +291,8 @@ export const TaxGuardFieldMappingView: React.FC<{ userRole: string }> = ({ userR
                   key={m.id}
                   onClick={() => setSelectedMapping(m)}
                   className={`p-4 rounded-xs border cursor-pointer transition-all ${
-                    isSelected 
-                      ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40' 
+                    isSelected
+                      ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40'
                       : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                   }`}
                 >

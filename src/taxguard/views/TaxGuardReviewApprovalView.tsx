@@ -4,13 +4,13 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  CheckCircle2, 
-  ShieldCheck, 
-  Lock, 
-  AlertTriangle, 
-  UserCheck, 
-  FileCheck, 
+import {
+  CheckCircle2,
+  ShieldCheck,
+  Lock,
+  AlertTriangle,
+  UserCheck,
+  FileCheck,
   Clock,
   ArrowRight
 } from 'lucide-react';
@@ -31,7 +31,7 @@ export const TaxGuardReviewApprovalView: React.FC<{ userRole: string }> = ({ use
     setActionError(null);
     setActionSuccess(null);
 
-    const reviewerName = 
+    const reviewerName =
       userRole === 'cpa' ? 'Desmond Hinds, Principal CPA' :
       userRole === 'reviewer' ? 'Sarah Jenkins, CPA' :
       userRole === 'preparer' ? 'Marcus Vance, EA' :

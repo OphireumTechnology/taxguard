@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { 
-  StageOneOnboardingService, 
-  StageOneDossier 
+import {
+  StageOneOnboardingService,
+  StageOneDossier
 } from '../services/stageOneOnboardingService';
 import { EnvironmentConfigService } from '../config/environmentConfig';
 import { INITIAL_DEMO_CLIENTS } from '../demo/mockData';

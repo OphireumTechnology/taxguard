@@ -1,9 +1,9 @@
 /**
  * TaxGuard AI - Role-to-Capability Authorization & Integration Matrix
- * 
+ *
  * Formal mapping of practice roles, routes, permissions, data scopes,
  * added capabilities, removed controls, and rendered reusable components.
- * 
+ *
  * Architecture Principle:
  * TaxGuard AI is an integrated intelligence and automation layer,
  * not a standalone console or user role.

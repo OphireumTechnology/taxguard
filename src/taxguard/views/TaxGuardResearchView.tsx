@@ -4,13 +4,13 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Search, 
-  Send, 
-  ExternalLink, 
-  ShieldCheck, 
-  BookOpen, 
-  AlertCircle, 
+import {
+  Search,
+  Send,
+  ExternalLink,
+  ShieldCheck,
+  BookOpen,
+  AlertCircle,
   Sparkles,
   Layers
 } from 'lucide-react';

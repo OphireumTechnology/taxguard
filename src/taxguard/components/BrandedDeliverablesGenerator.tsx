@@ -5,23 +5,23 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  QrCode, 
-  CheckCircle2, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Lock, 
-  Printer, 
-  Layers, 
+import {
+  FileText,
+  Download,
+  QrCode,
+  CheckCircle2,
+  ShieldCheck,
+  ShieldAlert,
+  Lock,
+  Printer,
+  Layers,
   Share2,
   ExternalLink,
   Sparkles
 } from 'lucide-react';
 import { TaxGuardAuditService } from '../services/TaxGuardAuditService';
 
-export type DeliverableType = 
+export type DeliverableType =
   | 'Research Memo'
   | 'Strategic Tax Plan'
   | 'Form 1120-S Workpaper Dossier'

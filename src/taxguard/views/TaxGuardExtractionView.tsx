@@ -4,13 +4,13 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Cpu, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Edit3, 
-  History, 
-  FileText, 
+import {
+  Cpu,
+  CheckCircle2,
+  AlertTriangle,
+  Edit3,
+  History,
+  FileText,
   ShieldCheck,
   Check,
   X,
@@ -273,7 +273,7 @@ export const TaxGuardExtractionView: React.FC<{ userRole: string }> = ({ userRol
             const isEditing = correctingFieldId === f.id;
 
             return (
-              <div 
+              <div
                 key={f.id}
                 className={`p-4 rounded-xs border transition-all space-y-3 ${
                   isAccepted

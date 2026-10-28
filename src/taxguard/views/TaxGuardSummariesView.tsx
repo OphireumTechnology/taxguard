@@ -5,11 +5,11 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  ShieldAlert, 
-  User, 
-  Briefcase, 
+import {
+  Sparkles,
+  ShieldAlert,
+  User,
+  Briefcase,
   AlertTriangle,
   AlertCircle
 } from 'lucide-react';
@@ -86,8 +86,8 @@ export const TaxGuardSummariesView: React.FC<{ userRole: string }> = ({ userRole
                 key={s.id}
                 onClick={() => setSelectedSummary(s)}
                 className={`p-4 rounded-xs border cursor-pointer transition-all ${
-                  isSelected 
-                    ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40' 
+                  isSelected
+                    ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40'
                     : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                 }`}
               >

@@ -1,4 +1,4 @@
-export type UserRole = 
+export type UserRole =
   | 'prospective_client'
   | 'client'
   | 'consultant'
@@ -59,7 +59,7 @@ export interface User {
   lastLoginAt?: string;
 }
 
-export type EngagementStatus = 
+export type EngagementStatus =
   | 'new'
   | 'intake'
   | 'awaiting_client'
@@ -80,7 +80,7 @@ export type EngagementStatus =
   | 'closed'
   | 'archived';
 
-export type ServiceType = 
+export type ServiceType =
   | 'individual_tax_1040'
   | 'business_tax_scorp_llc'
   | 'bookkeeping_monthly'
@@ -126,7 +126,7 @@ export interface EngagementTask {
   dueDate?: string;
 }
 
-export type DocumentStatus = 
+export type DocumentStatus =
   | 'requested'
   | 'uploaded'
   | 'scanning'
@@ -143,7 +143,7 @@ export type DocumentStatus =
   | 'archived'
   | 'rejected';
 
-export type DocumentCategory = 
+export type DocumentCategory =
   | 'tax_form_w2'
   | 'tax_form_1099'
   | 'tax_form_1098'
@@ -530,7 +530,7 @@ export interface SecurityTestResult {
 // ACCOUNTANT-CLIENT BINDING & WORKSPACE ARCHITECTURE
 // -------------------------------------------------------------
 
-export type AssignmentStatus = 
+export type AssignmentStatus =
   | 'pending'
   | 'active'
   | 'suspended'
@@ -538,12 +538,12 @@ export type AssignmentStatus =
   | 'reassigned'
   | 'expired';
 
-export type AssignmentType = 
+export type AssignmentType =
   | 'primary'
   | 'supporting'
   | 'reviewer';
 
-export type PermissionScope = 
+export type PermissionScope =
   | 'view_profile'
   | 'view_documents'
   | 'upload_files'
@@ -625,7 +625,7 @@ export interface AccountantProfile {
   internalNotes?: string;
 }
 
-export type AccountingWorkflowModule = 
+export type AccountingWorkflowModule =
   | 'bookkeeping'
   | 'bank_reconciliation'
   | 'accounts_payable'

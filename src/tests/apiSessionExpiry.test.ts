@@ -34,4 +34,3 @@ it('establishes session and stores token on successful supabaseSession call', as
   expect(result.token).toBe('jwt-token-456');
   expect(getStoredToken()).toBe('jwt-token-456');
 });
-

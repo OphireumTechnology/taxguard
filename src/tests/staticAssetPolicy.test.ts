@@ -33,4 +33,3 @@ it('ensures no development transfer zip archives exist in public directory', () 
     expect(zipFiles).toEqual([]);
   }
 });
-

@@ -8,16 +8,16 @@ import { isStaffIdentityDevelopmentConfigured } from '../supabase/config';
  * Handles bearer token injection, automated error decoding, and real-time state synchronization.
  */
 
-import { 
-  User, 
-  Engagement, 
-  DocumentItem, 
-  Appointment, 
-  Invoice, 
-  AccountingConnection, 
-  Message, 
-  JobListing, 
-  Applicant, 
+import {
+  User,
+  Engagement,
+  DocumentItem,
+  Appointment,
+  Invoice,
+  AccountingConnection,
+  Message,
+  JobListing,
+  Applicant,
   AuditLog,
   OnboardingState,
   JournalEntryDraft,

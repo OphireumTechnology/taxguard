@@ -4,16 +4,16 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Users, 
-  FileSpreadsheet, 
-  UploadCloud, 
-  AlertTriangle, 
-  ListChecks, 
-  CheckCircle2, 
-  Clock, 
-  Cpu, 
-  ShieldAlert, 
+import {
+  Users,
+  FileSpreadsheet,
+  UploadCloud,
+  AlertTriangle,
+  ListChecks,
+  CheckCircle2,
+  Clock,
+  Cpu,
+  ShieldAlert,
   ArrowUpRight,
   Filter,
   Search,
@@ -98,7 +98,7 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
             <strong className="text-[#061A2F]">Security Status:</strong> Malware scanning endpoint is currently <span className="font-semibold text-amber-700">Not Configured</span> in this deployment. All uploaded documents are held in safe quarantine before processing.
           </div>
         </div>
-        <button 
+        <button
           onClick={() => onNavigateSubRoute('integrations')}
           className="text-[11px] font-bold text-[#C99A32] hover:text-[#061A2F] underline inline-flex items-center gap-1"
         >
@@ -119,7 +119,7 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
                 Maker-checker workflows, statutory due dates, and client completion stages.
               </p>
             </div>
-            <button 
+            <button
               onClick={() => onNavigateSubRoute('intake')}
               className="px-3 py-1 bg-[#061A2F] hover:bg-[#0A2544] text-[#F7F4ED] text-xs font-semibold rounded-xs transition-colors"
             >
@@ -144,9 +144,9 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
                     <span>Deadline: <strong className="text-rose-700">{c.filingDeadline}</strong></span>
                   </div>
                   <div className="w-full sm:w-64 bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
-                    <div 
-                      className="bg-[#C99A32] h-full rounded-full" 
-                      style={{ width: `${c.clientProgressPercent}%` }} 
+                    <div
+                      className="bg-[#C99A32] h-full rounded-full"
+                      style={{ width: `${c.clientProgressPercent}%` }}
                     />
                   </div>
                 </div>
@@ -182,7 +182,7 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
           </div>
 
           <div className="space-y-3">
-            <div 
+            <div
               onClick={() => onNavigateSubRoute('discrepancies')}
               className="p-3 bg-amber-50/70 border border-amber-200 rounded-xs hover:bg-amber-50 cursor-pointer transition-colors"
             >
@@ -195,7 +195,7 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
               </p>
             </div>
 
-            <div 
+            <div
               onClick={() => onNavigateSubRoute('missing-items')}
               className="p-3 bg-rose-50/70 border border-rose-200 rounded-xs hover:bg-rose-50 cursor-pointer transition-colors"
             >
@@ -208,7 +208,7 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
               </p>
             </div>
 
-            <div 
+            <div
               onClick={() => onNavigateSubRoute('extraction')}
               className="p-3 bg-blue-50/70 border border-blue-200 rounded-xs hover:bg-blue-50 cursor-pointer transition-colors"
             >
@@ -221,7 +221,7 @@ export const TaxGuardDashboardView: React.FC<TaxGuardDashboardViewProps> = ({
               </p>
             </div>
 
-            <div 
+            <div
               onClick={() => onNavigateSubRoute('reports')}
               className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xs hover:bg-emerald-50 cursor-pointer transition-colors"
             >
