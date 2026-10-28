@@ -6,8 +6,8 @@ maps.
 
 1. A synthetic mapping rule (line 1a from the conclusion amount, line 16 from the run's `synthetic_amount`) is drafted
    by the accountant; the drafter's own approval is refused (403); the reviewer approves it after submission.
-2. The rule choice names its jurisdiction and effective dates ("federal US", "in effect 2025-01-01 to open"). The
-   reviewer tries to map: the refusal is shown as an alert ("Only the case's preparer can map the case to a form.").
+2. Beside the rule choice, a line linked to it (`aria-describedby`) gives the chosen rule's jurisdiction and effective
+   dates ("federal US · in effect 2025-01-01 to open"). The reviewer tries to map: the refusal is shown as an alert ("Only the case's preparer can map the case to a form.").
 3. The preparer maps: "Mapped SYN-1040 as version 1."; the mapping reads CURRENT.
 4. After reload, the reviewer opens the values with the keyboard (`aria-expanded` true) and reads the provenance table
    (caption, column and row headers): line 1a shows the conclusion amount, the conclusion's short id and version, its

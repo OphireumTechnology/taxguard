@@ -622,9 +622,11 @@ describe('deterministic form mapping on the real server', () => {
     const reviewer = await staffLogin('e2e-rev');
     await openCase(reviewer);
     await panel(reviewer).getByLabel('Approved mapping rule').selectOption(rule.body.ruleId);
-    // The rule is described with its jurisdiction and the dates it is in effect.
-    expect(await panel(reviewer).locator(`option[value="${rule.body.ruleId}"]`).innerText()).toContain('federal US');
-    expect(await panel(reviewer).locator(`option[value="${rule.body.ruleId}"]`).innerText()).toContain('in effect 2025-01-01 to open');
+    // The chosen rule is described, beside the choice, with its jurisdiction and the dates it is in effect.
+    const ruleChoice = panel(reviewer).getByLabel('Approved mapping rule');
+    const described = await ruleChoice.getAttribute('aria-describedby');
+    expect(described).toBe('case-form-mapping-rule');
+    expect(await panel(reviewer).locator('#' + described).innerText()).toBe('federal US · in effect 2025-01-01 to open');
     await panel(reviewer).getByRole('button', { name: 'Map to form' }).click();
     await panel(reviewer).getByRole('alert').getByText("Only the case's preparer can map the case to a form.").waitFor();
     // The preparer maps.
