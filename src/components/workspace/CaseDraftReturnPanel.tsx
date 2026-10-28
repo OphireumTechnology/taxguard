@@ -16,6 +16,12 @@ export function returnBadge(v: Pick<ReturnVersion, 'status' | 'stale'>): 'STALE'
   return v.stale.length > 0 ? 'STALE' : v.status;
 }
 
+/** The announcement after a confirmed action: plain when the refreshed list shows it, an alert when it could not be refreshed. */
+export function actionNotice(confirmed: string, refreshFailure: string | null): { error: boolean; text: string } {
+  return refreshFailure === null ? { error: false, text: confirmed }
+    : { error: true, text: `${confirmed} The list below could not be refreshed, so it may not show this yet: ${refreshFailure} Use Refresh draft returns.` };
+}
+
 export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId: string; taxYear: number; returnFamily: string | null }) {
   const [items, setItems] = useState<{ status: 'loading' | 'ready' | 'error'; list: ReturnVersion[]; message?: string }>({ status: 'loading', list: [] });
   const [templates, setTemplates] = useState<ReturnTemplate[]>([]);
@@ -27,15 +33,17 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const current = useRef(caseId); current.current = caseId;
   const heading = useRef<HTMLHeadingElement>(null);
 
-  const load = useCallback(() => {
+  /** Resolves to null when the server's current list was loaded, otherwise to the reason it could not be. */
+  const load = useCallback((): Promise<string | null> => {
     const key = caseId;
     setItems(i => ({ ...i, status: 'loading' }));
+    let failure: string | null = null;
     return Promise.all([
       taxEngineService.caseReturns(caseId).then(list => { if (current.current === key) setItems({ status: 'ready', list }); })
-        .catch(e => { if (current.current === key) setItems({ status: 'error', list: [], message: taxEngineMessage(e) }); }),
+        .catch(e => { failure = taxEngineMessage(e); if (current.current === key) setItems({ status: 'error', list: [], message: failure }); }),
       taxEngineService.returnTemplates(taxYear).then(list => { if (current.current === key) setTemplates(list.filter(t => t.status === 'APPROVED' && t.returnFamily === returnFamily)); })
         .catch(() => { if (current.current === key) setTemplates([]); }),
-    ]);
+    ]).then(() => failure);
   }, [caseId, taxYear, returnFamily]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (templates.length > 0 && !templates.some(t => t.templateRuleId === template)) setTemplate(templates[0].templateRuleId); }, [templates, template]);
@@ -52,10 +60,11 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
       const v = await work();
       if (current.current !== key) return;
       setOpen(null);
-      // Refresh first, then announce: the result is never read out while the list still shows the previous status.
-      await load();
+      // Refresh first, then announce: the result is never read out while the list still shows the previous status,
+      // and a failed refresh is said plainly instead of showing an assumed status.
+      const refreshFailure = await load();
       if (current.current !== key) return;
-      setNotice({ error: false, text: done(v) });
+      setNotice(actionNotice(done(v), refreshFailure));
       focusHeading(key);
     } catch (e) { if (current.current === key) setNotice({ error: true, text: taxEngineMessage(e) }); }
     finally { if (current.current === key) setBusy(false); }

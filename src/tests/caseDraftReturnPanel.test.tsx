@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
 import { returnProblems, returnProblemText, TaxEngineRequestError, taxEngineMessage, taxEngineService } from '../services/taxEngineService';
-import { CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
+import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
 
 // Block 68 browser client and panel. The server rules are covered on PostgreSQL in taxReturnPreparation.db.test.ts.
@@ -45,6 +45,12 @@ describe('draft returns in the browser client', () => {
     expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_STALE', detail)))
       .toBe('Refused: this version is stale. SYN-1040 2025.0: the form mapping is stale; map the form again. Prepare the return again.');
     expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_RETURN_REVIEWER_REQUIRED'))).toBe("Only the case's independent reviewer can approve or return the draft return.");
+  });
+
+  it('announces a confirmed action only over refreshed server data, and says so when the refresh failed', () => {
+    expect(actionNotice('Version 1 of SYN-1040-RETURN: approved.', null)).toEqual({ error: false, text: 'Version 1 of SYN-1040-RETURN: approved.' });
+    expect(actionNotice('Version 1 of SYN-1040-RETURN: approved.', 'The tax rules service did not confirm this action.')).toEqual({ error: true,
+      text: 'Version 1 of SYN-1040-RETURN: approved. The list below could not be refreshed, so it may not show this yet: The tax rules service did not confirm this action. Use Refresh draft returns.' });
   });
 
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {
