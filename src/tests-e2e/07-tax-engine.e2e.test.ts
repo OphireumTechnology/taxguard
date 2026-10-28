@@ -724,6 +724,7 @@ describe('draft return preparation on the real server', () => {
       .getByText(`SYN-1040 (2025.0): form mapping ${mapping.mappingId.slice(0, 8)} version ${mapping.version}`).waitFor();
     await article(prep, 1).getByRole('button', { name: 'Submit SYN-1040-RETURN version 1 for review' }).click();
     await result(prep).getByText('Version 1 of SYN-1040-RETURN: submitted.').waitFor();
+    expect(await badge(prep, 1)).toBe('SUBMITTED'); // announced only after the list shows the server's state
     // The reviewer reads the lineage with the keyboard and approves.
     await reviewer.page.reload(); await openCase(reviewer);
     const show = article(reviewer, 1).getByRole('button', { name: /^(Show|Hide) lineage of SYN-1040-RETURN version 1$/ });
