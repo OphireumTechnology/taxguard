@@ -172,6 +172,12 @@ describe('form values come only from approved, current conclusions through the a
     expect((await map(otherFamily)).body.code).toBe('TAX_FORM_RULE_SCOPE_MISMATCH');
     as('fm-prep'); const draft = (await call('POST', '/form-rules', { definition: definition([LINES[0]], { formVersion: '2025.1' }) })).body.ruleId;
     expect((await map(draft)).body.code).toBe('TAX_FORM_RULE_NOT_APPROVED');
+    // A rejected rule and a rule that does not exist are refused too.
+    await call('POST', `/form-rules/${draft}/submit`);
+    as('fm-rev'); expect((await call('POST', `/form-rules/${draft}/reject`, { note: 'Synthetic: line 1a field name is wrong' })).body.status).toBe('REJECTED');
+    expect((await map(draft)).body.code).toBe('TAX_FORM_RULE_NOT_APPROVED');
+    expect((await map('00000000-0000-4000-8000-000000000000')).body.code).toBe('TAX_FORM_RULE_NOT_FOUND');
+    expect(await map('not-a-rule').then(r => [r.status, r.body.code])).toEqual([404, 'TAX_FORM_RULE_NOT_FOUND']);
     // An approved rule maps only while in effect: not before its first day, not after its last.
     const future = await approvedRule([LINES[0]], { formVersion: '2025.7', effectiveFrom: '2099-01-01' });
     expect((await map(future)).body).toEqual({ code: 'TAX_FORM_RULE_NOT_EFFECTIVE', detail: '2099-01-01 to open' });
@@ -190,7 +196,11 @@ describe('form values come only from approved, current conclusions through the a
     const source = mapped.body.values[1].sources[0];
     const ruleSet = (await db.pool.query(`SELECT version, content_sha256 FROM taxguard_tax_rule_sets WHERE tenant_id = $1 AND rule_set_id = $2`, [T, ruleSetId])).rows[0];
     expect(source).toMatchObject({ conclusionId: income1, conclusionVersion: 1, conclusionType: 'INCOME_INCLUSION', value: '5000.00', ruleSetId,
-      ruleSetVersion: ruleSet.version, ruleSetSha256: ruleSet.content_sha256, evidence: [{ ref: 'document:fm-w2', snapshot: { kind: 'DOCUMENT', documentId: 'fm-w2', documentVersion: 1 } }] });
+      ruleSetVersion: ruleSet.version, ruleSetSha256: ruleSet.content_sha256,
+      evidence: [{ ref: 'document:fm-w2', snapshot: { kind: 'DOCUMENT', documentId: 'fm-w2', documentVersion: 1, documentSha256: '1'.repeat(64) } }] });
+    // The form line reaches the exact source document version and hash that was reviewed.
+    const stored = (await db.pool.query(`SELECT version, hash FROM taxguard_documents WHERE tenant_id = $1 AND document_id = 'fm-w2'`, [T])).rows[0];
+    expect(source.evidence[0].snapshot).toMatchObject({ documentVersion: stored.version, documentSha256: stored.hash });
     expect(source.runId).toMatch(/^[0-9a-f-]{36}$/);
     const row = (await db.pool.query(`SELECT tax_year, form_id, form_version, schedule, line, field, value_type, value::text, rule_id, rule_version, rule_sha256, mapped_at
       FROM taxguard_tax_form_values WHERE tenant_id = $1 AND mapping_id = $2 AND line = '1a'`, [T, mapping1])).rows[0];

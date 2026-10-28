@@ -36,6 +36,7 @@ export function CaseFormMappingPanel({ caseId, taxYear, returnFamily }: { caseId
   }, [caseId, taxYear, returnFamily]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (rules.length > 0 && !rules.some(r => r.ruleId === rule)) setRule(rules[0].ruleId); }, [rules, rule]);
+  const selected = rules.find(r => r.ruleId === rule);
 
   const toggle = (id: string) => {
     if (open?.id === id) { setOpen(null); return; }
@@ -64,10 +65,12 @@ export function CaseFormMappingPanel({ caseId, taxYear, returnFamily }: { caseId
     <div role="status" aria-label="Form mapping result">{notice && !notice.error && <p>{notice.text}</p>}</div>
     {notice?.error && <p role="alert">{notice.text}</p>}
     <form aria-label="Map the case to a form" onSubmit={e => { e.preventDefault(); void mapNow(); }}>
-      <label>Approved mapping rule<select value={rule} onChange={e => setRule(e.target.value)} disabled={rules.length === 0}>
+      <label>Approved mapping rule<select className="max-w-full" value={rule} onChange={e => setRule(e.target.value)} disabled={rules.length === 0}
+        aria-describedby={selected ? 'case-form-mapping-rule' : undefined}>
         {rules.length === 0 && <option value="">No approved rule for {returnFamily ?? 'this return family'} {taxYear}</option>}
-        {rules.map(r => <option key={r.ruleId} value={r.ruleId}>{r.formId} {r.formVersion} · {r.jurisdiction} {r.jurisdictionCode} · rule version {r.version} · {r.lines} lines · in effect {r.effectiveFrom} to {r.effectiveTo ?? 'open'}</option>)}
+        {rules.map(r => <option key={r.ruleId} value={r.ruleId}>{r.formId} {r.formVersion} · rule version {r.version} · {r.lines} lines</option>)}
       </select></label>
+      {selected && <p id="case-form-mapping-rule">{selected.jurisdiction} {selected.jurisdictionCode} · in effect {selected.effectiveFrom} to {selected.effectiveTo ?? 'open'}</p>}
       <p id="case-form-mapping-hint">Only the case preparer can map. Mapping is refused, and nothing is written, if any line cannot be filled from a single approved, current conclusion with an approved calculation.</p>
       <button disabled={busy || !rule} aria-describedby="case-form-mapping-hint">Map to form</button>
       <button type="button" disabled={busy} onClick={() => void load()}>Refresh form mappings</button>
