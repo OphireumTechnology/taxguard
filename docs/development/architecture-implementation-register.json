@@ -532,12 +532,18 @@
         "src/taxForms/federalForms.ts",
         "src/taxForms/registry.ts",
         "src/server/routes/taxForms.routes.ts",
-        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql"
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "src/components/workspace/CaseFormMappingPanel.tsx",
+        "src/server/taxguard/taxEngine/taxEngineStore.ts"
       ],
       "tests": [
-        "src/tests/taxFormsLibrary.test.tsx"
+        "src/tests/taxFormsLibrary.test.tsx",
+        "src/tests-db/taxFormMapping.db.test.ts",
+        "src/tests/caseFormMappingPanel.test.tsx",
+        "src/tests-e2e/07-tax-engine.e2e.test.ts"
       ],
-      "remainingGap": "Form catalogue only. Block 66 added the lineage foundation (taxguard_tax_form_line_sources: form line → approved conclusion) and the backward trace reads it; no deterministic mapping writes it yet (Block 67)."
+      "remainingGap": "Block 67 (unapproved development checkpoint, stacked on Block 66): deterministic mapping from approved, current conclusions through versioned, maker-checker mapping rules; every value stores conclusion, calculation, rule set, evidence and mapping-rule provenance; ambiguity, staleness, missing calculation, value type and missing required lines are refused; derived staleness and versioned re-mapping; default-profile browser journey. Status stays PARTIAL until Block 66 merges and the full matrix runs on the synchronized branch. Synthetic form only (no real form lines encoded); MONEY and INTEGER values only; selection by conclusion type (SINGLE or SUM); proposal 20261019110000 is review-only."
     },
     {
       "id": "TAX-DIAGNOSTICS",

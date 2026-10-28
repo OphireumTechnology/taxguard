@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "4308220cf9a020f6f674fa5d78fbf2d4fc3f9a7a25f01f24903244e7a48381eb",
+  "executionPlanSha256": "140b84e5c7780e0ddfa876d7fc669cd46f04830ec26835135488c373d2fba659",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5343,6 +5343,74 @@
         "--   CALCULATION  a calculation run of the same case (rule set and hash pinned in the run)",
         "--   RESEARCH  an approved research memo of the same case (its citations carry the authority levels)",
         "--   WORKPAPER  an approved book-to-tax workpaper of the same client and tax year"
+      ]
+    },
+    {
+      "order": 101,
+      "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+      "kind": "proposal",
+      "version": "20261019110000",
+      "sha256": "95e6e7f6d43d5a1fa22b18a9ecd7f1adcebe05178262d63edc2751356511fc1b",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_form_rules",
+        "taxguard_tax_form_mappings",
+        "taxguard_tax_form_values",
+        "taxguard_tax_form_guard",
+        "taxguard_tax_form_rule_invalid",
+        "taxguard_tax_form_rule_json",
+        "taxguard_tax_form_rule_draft",
+        "taxguard_tax_form_rule_transition",
+        "taxguard_tax_form_rule_get",
+        "taxguard_tax_form_rule_list",
+        "taxguard_tax_form_derive",
+        "taxguard_tax_form_values_sha",
+        "taxguard_tax_form_stored",
+        "taxguard_tax_form_mapping_stale",
+        "taxguard_tax_form_mapping_json",
+        "taxguard_tax_form_map",
+        "taxguard_tax_form_mapping_list",
+        "taxguard_tax_form_mapping_get"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the functions and the three tables."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_form_rules, public.taxguard_tax_form_mappings, public.taxguard_tax_form_values FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 12,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 67, deterministic form mapping). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 033 (tax sources, rule sets, calculation runs, taxguard_tax_actor), 20261018090000 (live case actor) and",
+        "-- 20261019100000 (tax conclusions, their links and staleness, taxguard_tax_form_line_sources).",
+        "--",
+        "-- A form mapping writes values onto a form deterministically, never by model judgement:",
+        "--   APPROVED TAX CONCLUSION -> FORM (id, version) -> SCHEDULE -> LINE -> FIELD",
+        "-- through a versioned mapping rule. A mapping rule is tax content: it cites a verified source (the form instructions),",
+        "-- is drafted by a content maintainer, approved by a different reviewer (maker-checker), frozen once submitted, and a",
+        "-- newer approval supersedes it. Each rule line names the conclusion type it takes, whether the value is the",
+        "-- conclusion's amount or one output of its calculation run, the value type (MONEY or INTEGER), whether the line is",
+        "-- required, and how several conclusions combine: SINGLE (exactly one) or SUM.",
+        "--"
       ]
     }
   ]

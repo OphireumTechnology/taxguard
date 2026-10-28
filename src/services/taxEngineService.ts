@@ -57,6 +57,11 @@ export const taxEngineService = {
     request<TaxConclusion>('POST', '/conclusions' + id(conclusionId) + '/' + decision, { note }),
   traceConclusion: (conclusionId: string) => request<ConclusionTrace>('GET', '/conclusions' + id(conclusionId) + '/trace'),
   conclusionReadiness: (caseId: string) => request<ConclusionReadiness>('GET', '/cases' + id(caseId) + '/conclusions/readiness'),
+  /** Deterministic form mapping: the server derives every value from approved, current conclusions; the browser sends only the rule. */
+  formRules: (taxYear?: number) => request<{ items: FormRule[] }>('GET', '/form-rules' + (taxYear ? '?taxYear=' + taxYear : '')).then(r => r.items),
+  caseFormMappings: (caseId: string) => request<{ items: FormMapping[] }>('GET', '/cases' + id(caseId) + '/form-mappings').then(r => r.items),
+  mapForm: (caseId: string, ruleId: string) => request<FormMapping>('POST', '/cases' + id(caseId) + '/form-mappings', { ruleId }),
+  formMapping: (mappingId: string) => request<FormMapping>('GET', '/form-mappings' + id(mappingId)),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -184,6 +189,36 @@ export function evidenceText(r: EvidenceResolution): string {
   return r.kind === 'DOCUMENT' ? 'Reviewed ' + doc : `${r.fieldKey} = ${r.decidedValue}, ${r.decision.toLowerCase()}${r.decidedBy ? ' by ' + r.decidedBy : ''}, from ${doc}`;
 }
 
+export interface FormRule { ruleId: string; jurisdiction: string; jurisdictionCode: string; returnFamily: string; taxYear: number; formId: string; formVersion: string;
+  version: number; contentSha256: string; sourceId: string; status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED'; lines: number }
+export interface FormValueSource { conclusionId: string; conclusionVersion: number; conclusionType: string; value: string; runId: string; ruleSetId: string;
+  ruleSetVersion: number; ruleSetSha256: string; evidence: Array<{ ref: string; snapshot: Record<string, unknown> }> }
+export interface FormValue { schedule: string; line: string; field: string; valueType: 'MONEY' | 'INTEGER'; value: string; sources: FormValueSource[] }
+export interface FormMappingProblem { reason: string; schedule?: string; line?: string; field?: string; conclusionId?: string; candidates?: number }
+export interface FormMapping { mappingId: string; caseId: string; taxYear: number; formId: string; formVersion: string; version: number; status: 'CURRENT' | 'SUPERSEDED';
+  ruleId: string; ruleVersion: number; ruleSha256: string; valuesSha256: string; missing: Array<{ schedule: string; line: string; field: string }>; mappedBy: string;
+  createdAt: string; stale: FormMappingProblem[]; values?: FormValue[]; replayed?: boolean; returnUse: 'BLOCKED' }
+export const FORM_PROBLEM_LABELS: Record<string, string> = {
+  SOURCE_MISSING: 'no approved conclusion of the required type',
+  AMBIGUOUS_SOURCE: 'more than one approved conclusion could fill this line',
+  SOURCE_STALE: 'the conclusion is stale',
+  CALCULATION_SOURCE_REQUIRED: 'the conclusion has no single calculation run',
+  CALCULATION_NOT_APPROVED: 'the conclusion\'s calculation run is not approved',
+  VALUE_MISSING: 'the conclusion has no amount or the run has no such output',
+  VALUE_TYPE: 'the value is not of the line\'s type',
+  SOURCE_CHANGED: 'a source conclusion or its calculation changed',
+  SOURCE_WITHDRAWN: 'the source conclusion is no longer approved',
+  SOURCE_ADDED: 'a newly approved conclusion would fill this line',
+  MAPPING_RULE_SUPERSEDED: 'a newer mapping rule was approved for this form',
+};
+export function formProblemText(p: FormMappingProblem): string {
+  const where = p.line ? `${p.schedule && p.schedule !== 'MAIN' ? p.schedule + ' ' : ''}line ${p.line}${p.field ? ` (${p.field})` : ''}: ` : '';
+  return where + (FORM_PROBLEM_LABELS[p.reason] ?? (p.reason.startsWith('MAPPING_RULE_') ? 'the mapping rule is ' + p.reason.slice(13).toLowerCase() : p.reason));
+}
+export function formProblems(detail?: string): FormMappingProblem[] {
+  try { const parsed = JSON.parse(detail ?? ''); return Array.isArray(parsed) ? parsed.filter(p => p && typeof p.reason === 'string') : []; } catch { return []; }
+}
+
 export function taxEngineMessage(error: unknown): string {
   if (!(error instanceof TaxEngineRequestError)) return 'The tax rules service did not confirm this action. Refresh and try again.';
   const known: Record<string, string> = {
@@ -215,6 +250,12 @@ export function taxEngineMessage(error: unknown): string {
     TAX_CONCLUSION_NOT_DRAFT: 'Only a draft conclusion can be submitted.', TAX_CONCLUSION_NOT_SUBMITTED: 'Only a conclusion awaiting review can be decided.',
     TAX_CONCLUSION_NOT_REVISABLE: 'This version cannot be revised (it is awaiting review, or a newer version exists).',
     TAX_CONCLUSION_NOT_FOUND: 'This conclusion is not available to you. Access follows your live assignment to the case.',
+    TAX_FORM_MAPPING_PREPARER_REQUIRED: 'Only the case\'s preparer can map the case to a form.',
+    TAX_FORM_MAPPING_NOT_FOUND: 'This form mapping is not available to you. Access follows your live assignment to the case.',
+    TAX_FORM_MAPPING_EMPTY: 'Refused: the mapping rule produced no value for this case.',
+    TAX_FORM_RULE_NOT_FOUND: 'This mapping rule no longer exists or is not visible to you.',
+    TAX_FORM_RULE_NOT_APPROVED: 'Only an approved mapping rule can be used. A newer approval may have superseded this one.',
+    TAX_FORM_RULE_SCOPE_MISMATCH: 'This mapping rule is for another tax year or return family than the case.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
     TAX_CALC_ALREADY_REVIEWED: 'This calculation run has already been reviewed.',
     TAX_CALC_INPUT_INVALID: 'Enter a review note of at least 10 characters.',
@@ -243,6 +284,10 @@ export function taxEngineMessage(error: unknown): string {
   if (error.code === 'TAX_CONCLUSION_SOURCE_UNRESOLVED') {
     const u = unresolvedSource(error.detail);
     return 'Refused: a cited source does not resolve for this case' + (u ? ` (${u.type.toLowerCase()} ${u.ref}: ${staleReason(u.reason)}).` : '.');
+  }
+  if (error.code === 'TAX_FORM_MAPPING_REFUSED') {
+    const problems = formProblems(error.detail);
+    return 'Mapping refused: nothing was written. ' + (problems.map(formProblemText).join('; ') || 'A line cannot be filled deterministically.') + '.';
   }
   if (error.code === 'TAX_CONCLUSION_STALE') return 'Refused: a source changed after it was linked. Revise the conclusion on the current, reviewed sources.';
   if (error.code === 'TAX_CONCLUSION_SOURCES_NOT_APPROVED') return 'Approval refused: every linked calculation run, research memo and workpaper must be approved first (' + (error.detail ?? '').replace(/,/g, ', ') + ').';

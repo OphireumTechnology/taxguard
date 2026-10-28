@@ -23,6 +23,9 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_CONCLUSION_PREPARER_REQUIRED: 403, TAX_CONCLUSION_REVIEWER_REQUIRED: 403, TAX_CONCLUSION_EVIDENCE_REQUIRED: 409, TAX_CONCLUSION_SOURCE_UNRESOLVED: 409,
   TAX_CONCLUSION_STALE: 409, TAX_CONCLUSION_SOURCES_NOT_APPROVED: 409, TAX_CONCLUSION_NOT_DRAFT: 409, TAX_CONCLUSION_NOT_SUBMITTED: 409,
   TAX_CONCLUSION_NOT_REVISABLE: 409, TAX_CONCLUSION_HISTORY_IMMUTABLE: 409,
+  // Deterministic form mapping (proposal 20261019110000).
+  TAX_FORM_RULE_DUPLICATE: 409, TAX_FORM_RULE_NOT_DRAFT: 409, TAX_FORM_RULE_NOT_PENDING: 409, TAX_FORM_RULE_NOT_APPROVED: 409, TAX_FORM_RULE_SCOPE_MISMATCH: 409,
+  TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
   RESEARCH_REVIEWER_REQUIRED: 403, RESEARCH_MEMO_NOT_EDITABLE: 409, RESEARCH_MEMO_NOT_SUBMITTED: 409, RESEARCH_VERSION_CONFLICT: 409,
   RESEARCH_AUTHORITY_REQUIRED: 409, RESEARCH_SOURCE_NOT_VERIFIED: 409, RESEARCH_MEMO_IMMUTABLE: 409,
@@ -183,6 +186,26 @@ export class TaxEngineStore {
   }
   traceEvidence(tenant: string, actor: string, caseId: string, ref: string) { return this.call('taxguard_tax_evidence_trace', { p_tenant: tenant, p_actor: actor, p_case: caseId, p_ref: ref }); }
   conclusionReadiness(tenant: string, actor: string, caseId: string) { return this.call('taxguard_tax_conclusion_readiness', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+
+  // Deterministic form mapping (proposal 20261019110000). The database validates and hashes mapping rules, derives every
+  // value from approved, current conclusions with its provenance, refuses anything ambiguous and derives staleness.
+  private formRule(v: string) { if (!UUID.test(v)) throw new TaxEngineStoreError('TAX_FORM_RULE_NOT_FOUND', 404); return v; }
+  private formMapping(v: string) { if (!UUID.test(v)) throw new TaxEngineStoreError('TAX_FORM_MAPPING_NOT_FOUND', 404); return v; }
+  formRules(tenant: string, actor: string, taxYear?: number) { return this.call<any[]>('taxguard_tax_form_rule_list', { p_tenant: tenant, p_actor: actor, p_tax_year: taxYear ?? null }); }
+  formRuleDetail(tenant: string, actor: string, ruleId: string) { return this.call('taxguard_tax_form_rule_get', { p_tenant: tenant, p_actor: actor, p_rule: this.formRule(ruleId) }); }
+  draftFormRule(tenant: string, actor: string, definition: unknown) {
+    return this.call('taxguard_tax_form_rule_draft', { p_tenant: tenant, p_actor: actor, p_definition: definition && typeof definition === 'object' && !Array.isArray(definition) ? definition : null });
+  }
+  transitionFormRule(tenant: string, actor: string, ruleId: string, action: 'submit' | 'approve' | 'reject', note?: string) {
+    return this.call('taxguard_tax_form_rule_transition', { p_tenant: tenant, p_actor: actor, p_rule: this.formRule(ruleId), p_action: action, p_note: note ?? null });
+  }
+  formMappings(tenant: string, actor: string, caseId: string) { return this.call<any[]>('taxguard_tax_form_mapping_list', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+  mapForm(tenant: string, actor: string, caseId: string, ruleId: string) {
+    return this.call('taxguard_tax_form_map', { p_tenant: tenant, p_actor: actor, p_case: caseId, p_rule: this.formRule(ruleId) });
+  }
+  formMappingDetail(tenant: string, actor: string, mappingId: string) {
+    return this.call('taxguard_tax_form_mapping_get', { p_tenant: tenant, p_actor: actor, p_mapping: this.formMapping(mappingId) });
+  }
 }
 
 /** Only the documented fields reach the database; links are type and reference pairs. */

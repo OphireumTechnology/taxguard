@@ -588,3 +588,91 @@ describe('tax conclusions with evidence-to-conclusion lineage on the real server
     await prep.context.close(); await reviewer.context.close();
   });
 });
+
+// Block 67 (proposal 20261019110000): the approved conclusion of the case reaches a synthetic form through an approved,
+// versioned mapping rule; the reviewer reads every value with its provenance; a revised conclusion makes the mapping
+// stale until the preparer maps again. Synthetic data and a synthetic form only.
+describe('deterministic form mapping on the real server', () => {
+  it('Case Workflow → Form mapping: mapped with provenance, stale after the conclusion is revised, mapped again as version 2', async () => {
+    const [mgr, acct, rev] = [await apiLogin('e2e-mgr'), await apiLogin('e2e-acct'), await apiLogin('e2e-rev')];
+    const target = (await api(mgr, 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025);
+    const caseId = target.caseId;
+    const income = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.filter((k: any) => k.type === 'INCOME_INCLUSION' && k.status === 'APPROVED');
+    expect(income).toHaveLength(1); // left by the Block 66 journey: one approved, current wages conclusion with its calculation run
+    const definition = { jurisdiction: 'federal', jurisdictionCode: 'US', returnFamily: target.returnFamily, taxYear: 2025, formId: 'SYN-1040', formVersion: '2025.0',
+      sourceId: SYNTHETIC_SOURCE_ID, lines: [
+        { schedule: 'MAIN', line: '1a', field: 'f1_wages', valueType: 'MONEY', required: true, aggregate: 'SINGLE', source: { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' } },
+        { schedule: 'MAIN', line: '16', field: 'f1_tax', valueType: 'MONEY', required: true, aggregate: 'SINGLE',
+          source: { conclusionType: 'INCOME_INCLUSION', value: 'OUTPUT', outputKey: 'synthetic_amount' } }] };
+    const rule = await api(acct, 'POST', '/api/tax-engine/form-rules', { definition });
+    expect(rule.status, JSON.stringify(rule.body)).toBe(201);
+    expect((await api(acct, 'POST', `/api/tax-engine/form-rules/${rule.body.ruleId}/approve`, {})).status).toBe(403); // maker-checker: not the drafter
+    expect((await api(acct, 'POST', `/api/tax-engine/form-rules/${rule.body.ruleId}/submit`, {})).body.status).toBe('PENDING_REVIEW');
+    expect((await api(rev, 'POST', `/api/tax-engine/form-rules/${rule.body.ruleId}/approve`, {})).body.status).toBe('APPROVED');
+    type S = Awaited<ReturnType<typeof staffLogin>>;
+    const openCase = async (s: S) => {
+      await s.page.getByRole('button', { name: caseId.slice(0, 16) }).first().click();
+      await s.page.getByRole('heading', { name: 'Form mapping' }).waitFor();
+    };
+    const panel = (s: S) => s.page.getByRole('region', { name: 'Form mapping' });
+    const article = (s: S, version: number) => panel(s).getByRole('article', { name: `Form mapping SYN-1040 2025.0 version ${version}` });
+    const badge = (s: S, version: number) => article(s, version).locator('strong[data-mapping-status]').innerText();
+    const result = (s: S) => panel(s).getByRole('status', { name: 'Form mapping result' });
+    // The reviewer cannot map: the refusal is announced as an alert.
+    const reviewer = await staffLogin('e2e-rev');
+    await openCase(reviewer);
+    await panel(reviewer).getByLabel('Approved mapping rule').selectOption(rule.body.ruleId);
+    await panel(reviewer).getByRole('button', { name: 'Map to form' }).click();
+    await panel(reviewer).getByRole('alert').getByText("Only the case's preparer can map the case to a form.").waitFor();
+    // The preparer maps.
+    const prep = await staffLogin('e2e-acct');
+    await openCase(prep);
+    await panel(prep).getByLabel('Approved mapping rule').selectOption(rule.body.ruleId);
+    await panel(prep).getByRole('button', { name: 'Map to form' }).click();
+    await result(prep).getByText('Mapped SYN-1040 as version 1.').waitFor();
+    expect(await badge(prep, 1)).toBe('CURRENT');
+    // The reviewer opens the values with the keyboard and reads their provenance.
+    await reviewer.page.reload(); await openCase(reviewer);
+    const show = article(reviewer, 1).getByRole('button', { name: /^(Show|Hide) values of SYN-1040 2025.0 version 1$/ });
+    await show.focus(); await reviewer.page.keyboard.press('Enter');
+    const table = article(reviewer, 1).getByRole('table', { name: 'Values of SYN-1040 2025.0 version 1, with provenance' });
+    await table.waitFor();
+    expect(await show.getAttribute('aria-expanded')).toBe('true');
+    const wages = table.getByRole('row').filter({ has: reviewer.page.getByRole('rowheader', { name: '1a', exact: true }) });
+    const text = await wages.innerText();
+    expect(text).toContain(`${income[0].amount} (money)`);
+    expect(text).toContain(`Conclusion ${income[0].conclusionId.slice(0, 8)} version ${income[0].version} (income inclusion)`);
+    expect(text).toMatch(/run [0-9a-f]{8} · rule set [0-9a-f]{8} version \d+ \(sha256 [0-9a-f]{12}…\) · evidence document:/);
+    await table.getByRole('rowheader', { name: '16', exact: true }).waitFor();
+    // The preparer revises the conclusion on the same sources with a corrected amount; the reviewer approves it.
+    const k = income[0];
+    const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7150.00',
+      links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });
+    expect(revised.status, JSON.stringify(revised.body)).toBe(201);
+    expect((await api(acct, 'POST', `/api/tax-engine/conclusions/${revised.body.conclusionId}/submit`)).body.status).toBe('READY_FOR_REVIEW');
+    expect((await api(rev, 'POST', `/api/tax-engine/conclusions/${revised.body.conclusionId}/approve`, {})).body.status).toBe('APPROVED');
+    // Nothing is replaced silently: the mapping reads STALE with its reasons until the preparer maps again.
+    await prep.page.reload(); await openCase(prep);
+    expect(await badge(prep, 1)).toBe('STALE');
+    await article(prep, 1).getByRole('list', { name: 'Stale reasons' }).getByText('line 1a (f1_wages): a source conclusion or its calculation changed').waitFor();
+    await panel(prep).getByLabel('Approved mapping rule').selectOption(rule.body.ruleId);
+    await panel(prep).getByRole('button', { name: 'Map to form' }).click();
+    await result(prep).getByText('Mapped SYN-1040 as version 2.').waitFor();
+    expect(await badge(prep, 2)).toBe('CURRENT');
+    expect(await badge(prep, 1)).toBe('SUPERSEDED');
+    await expect.poll(async () => prep.page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Form mapping'); // focus stays in the panel
+    const v2 = (await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/form-mappings`)).body.items.find((m: any) => m.version === 2);
+    const detail = (await api(rev, 'GET', `/api/tax-engine/form-mappings/${v2.mappingId}`)).body;
+    expect(detail.values.find((v: any) => v.line === '1a')).toMatchObject({ value: '7150.00', sources: [{ conclusionId: revised.body.conclusionId, conclusionVersion: k.version + 1 }] });
+    expect((await api(rev, 'GET', `/api/tax-engine/conclusions/${revised.body.conclusionId}/trace`)).body.formLines).toEqual(expect.arrayContaining([
+      { formId: 'SYN-1040', formVersion: '2025.0', line: '1a' }]));
+    // Clients have no access to form mappings.
+    const clientToken = await apiLogin('e2e-client');
+    expect((await api(clientToken, 'GET', `/api/tax-engine/form-mappings/${v2.mappingId}`)).status).toBe(403);
+    await prep.page.setViewportSize({ width: 375, height: 812 });
+    await prep.page.getByRole('heading', { name: 'Form mapping' }).waitFor();
+    expect(await prep.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    for (const s of [prep, reviewer]) expect(realErrors(s)).toEqual([]);
+    await prep.context.close(); await reviewer.context.close();
+  });
+});
