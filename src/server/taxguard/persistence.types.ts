@@ -1,927 +1,286 @@
-/**
- * TaxGuard M18.4 - M18.6 Canonical Persistence and Stage Engine Types
- * Server-authoritative entity interfaces and enumerations.
- */
-
-export type TaxGuardRole =
-  | 'client'
-  | 'accountant'
-  | 'reviewer'
-  | 'senior_reviewer'
-  | 'administrator'
-  | 'cpa';
-
-export type TaxCaseStatus =
-  | 'DRAFT'
-  | 'ACTIVE'
-  | 'BLOCKED'
-  | 'IN_REVIEW'
-  | 'READY'
-  | 'APPROVED'
-  | 'FILED'
-  | 'RESOLVED'
-  | 'ARCHIVED';
-
-export type StageNumber =
-  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-  | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
-
-export const STAGE_NAMES: Record<StageNumber, string> = {
-  1: 'ONBOARD',
-  2: 'COLLECT',
-  3: 'VALIDATE',
-  4: 'RECORD',
-  5: 'RECONCILE',
-  6: 'REVIEW',
-  7: 'REPORT',
-  8: 'PLAN',
-  9: 'PREPARE_TAXES',
-  10: 'APPROVE',
-  11: 'SIGN',
-  12: 'FILE',
-  13: 'GOVERNMENT_FEEDBACK',
-  14: 'RESOLVE',
-  15: 'MONITOR',
-  16: 'ARCHIVE',
-  17: 'RENEW',
-  18: 'REPEAT',
-};
+export type StageNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
 
 export const CANONICAL_STAGE_LABELS: Record<StageNumber, string> = {
-  1: 'Stage 01 — Onboard',
-  2: 'Stage 02 — Collect',
-  3: 'Stage 03 — Validate',
-  4: 'Stage 04 — Record',
-  5: 'Stage 05 — Reconcile',
-  6: 'Stage 06 — Review',
-  7: 'Stage 07 — Report',
-  8: 'Stage 08 — Plan',
-  9: 'Stage 09 — Prepare Taxes',
-  10: 'Stage 10 — Approve',
-  11: 'Stage 11 — Sign',
-  12: 'Stage 12 — File',
-  13: 'Stage 13 — Government Feedback',
-  14: 'Stage 14 — Resolve',
-  15: 'Stage 15 — Monitor',
-  16: 'Stage 16 — Archive',
-  17: 'Stage 17 — Renew',
-  18: 'Stage 18 — Repeat',
+  1: 'Client Onboarding & Identity',
+  2: 'Document Intake & Extraction',
+  3: 'Validation & Reconcile',
+  4: 'Record & Classification',
+  5: 'Reconcile Accounts & Balances',
+  6: 'Professional Review',
+  7: 'Financial & Tax Reporting',
+  8: 'Strategic Tax Planning',
+  9: 'Draft Return Preparation',
+  10: 'Technical Quality Review',
+  11: 'Client Approval & Authorizations',
+  12: 'Electronic Filing & Submission',
+  13: 'Filing Acknowledgement & Tracking',
+  14: 'Government Feedback & Notice Review',
+  15: 'Tax Resolution & Defense',
+  16: 'Continuous Monitoring & Compliance',
+  17: 'Engagement Archive & Data Custody',
+  18: 'Client Retention & Renewal'
 };
 
-export const STAGE_TITLES: Record<StageNumber, string> = {
-  1: '01 Onboard',
-  2: '02 Collect',
-  3: '03 Validate',
-  4: '04 Record',
-  5: '05 Reconcile',
-  6: '06 Review',
-  7: '07 Report',
-  8: '08 Plan',
-  9: '09 Prepare Taxes',
-  10: '10 Approve',
-  11: '11 Sign',
-  12: '12 File',
-  13: '13 Government Feedback',
-  14: '14 Resolve',
-  15: '15 Monitor',
-  16: '16 Archive',
-  17: '17 Renew',
-  18: '18 Repeat',
-};
+export const STAGE_NAMES = CANONICAL_STAGE_LABELS;
 
-export type StageStateStatus =
-  | 'LOCKED'
-  | 'AVAILABLE'
-  | 'IN_PROGRESS'
-  | 'BLOCKED'
-  | 'NEEDS_REVIEW'
-  | 'READY'
-  | 'COMPLETE'
-  | 'INVALIDATED';
+export type TaxCaseStatus = 'ACTIVE' | 'ON_HOLD' | 'IN_REVIEW' | 'COMPLETED' | 'FILED' | 'ARCHIVED';
+export type StageStateStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'PENDING_REVIEW';
+export type DocumentLifecycleStatus = 'UPLOADED' | 'QUEUED' | 'EXTRACTED' | 'REVIEWED' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
 
-export type DocumentLifecycleStatus =
-  | 'REQUESTED'
-  | 'RECEIVED'
-  | 'QUARANTINED'
-  | 'SCANNING'
-  | 'REJECTED'
-  | 'RELEASED'
-  | 'OCR_PENDING'
-  | 'OCR_COMPLETE'
-  | 'HUMAN_REVIEW_REQUIRED'
-  | 'VERIFIED'
-  | 'SUPERSEDED'
-  | 'ARCHIVED';
-
-export type OcrJobStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'HUMAN_REVIEW_REQUIRED'
-  | 'ACCEPTED'
-  | 'REJECTED'
-  | 'CORRECTED';
-
-export type ProviderType =
-  | 'DATABASE'
-  | 'AUTHENTICATION'
-  | 'DOCUMENT_STORAGE'
-  | 'STORAGE'
-  | 'MALWARE_SCANNER'
-  | 'OCR'
-  | 'AI'
-  | 'E_SIGNATURE'
-  | 'FILING'
-  | 'QUICKBOOKS'
-  | 'XERO';
-
-export type ProviderReadinessStatus =
-  | 'CONFIGURED'
-  | 'DEGRADED'
-  | 'NOT_CONFIGURED'
-  | 'DISABLED'
-  | 'ERROR';
-
-export interface ProviderReadinessInfo {
-  provider: ProviderType;
-  status: ProviderReadinessStatus;
-  description: string;
-  isOperational: boolean;
-  verificationState?: 'CONFIGURATION_ONLY' | 'NOT_VERIFIED' | 'SYNTHETIC_TEST';
-  lastChecked: string;
-}
-
-/** Base interface for applicable scoped authoritative entities */
-export interface ScopedAuthoritativeEntity {
-  id: string;
-  tenantId: string;
-  clientId: string;
-  engagementId: string;
+export interface TaxCaseEntity {
   caseId: string;
-  taxYear: number;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  version: number;
-}
-
-export interface TenantEntity {
-  id: string;
-  name: string;
-  status: 'active' | 'suspended';
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  version: number;
-}
-
-export interface UserEntity {
-  id: string;
-  tenantId: string;
-  email: string;
-  role: TaxGuardRole;
-  status: 'active' | 'suspended';
-  credentialVerified?: boolean;
-  credentialType?: 'CPA' | 'EA' | 'ATTORNEY';
-  credentialExpiresAt?: string;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  version: number;
-}
-
-export interface ClientEntity {
-  id: string;
-  tenantId: string;
-  name: string;
-  ownerUid: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  version: number;
-}
-
-export interface EngagementEntity {
-  id: string;
   tenantId: string;
   clientId: string;
-  name: string;
-  taxYears: number[];
-  status: 'active' | 'closed';
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  version: number;
-}
-
-export interface TaxCaseEntity extends ScopedAuthoritativeEntity {
+  taxYear: number;
   status: TaxCaseStatus;
   activeStage: StageNumber;
-  clientUid: string;
-  preparerUid: string;
-  reviewerUid: string;
-  openExceptions: number;
-  externalSubmissionEnabled: false;
-  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  assignedPreparerId?: string;
+  assignedReviewerId?: string;
+  version: number;
 }
 
-export interface StageStateEntity extends ScopedAuthoritativeEntity {
-  stage: StageNumber;
-  stageName: string;
+export interface StageStateEntity {
+  stageId: string;
+  caseId: string;
+  stageNumber: StageNumber;
   status: StageStateStatus;
-  requirementsMet: boolean;
-  evaluatedAt?: string;
-  evaluatedBy?: string;
-  approvedAt?: string;
-  approvedBy?: string;
-  blockedReason?: string;
-  invalidatedReason?: string;
-  invalidatedBy?: string;
-  invalidatedAt?: string;
-  gateResult?: Record<string, unknown>;
-}
-
-export interface DocumentEntity extends ScopedAuthoritativeEntity {
-  fileName: string;
-  mimeType: string;
-  fileSizeBytes: number;
-  storagePath: string;
-  sha256: string;
-  status: DocumentLifecycleStatus;
-  quarantineReason?: string;
-  scanResult?: {
-    clean: boolean;
-    verified?: boolean;
-    scanner: string;
-    scannerVersion: string;
-    scannedAt: string;
-    details?: string;
-  };
-  releaseApprovedBy?: string;
-  releaseApprovedAt?: string;
-  ocrJobId?: string;
-}
-
-export interface EvidenceEntity extends ScopedAuthoritativeEntity {
-  evidencePackageId: string;
-  sourceSha256: string;
-  sourceDocumentIds: string[];
-  status: 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
-  requiresHumanReview: true;
-  preparedBy: string;
-  evidencePackage: Record<string, unknown>;
+  startedAt?: string;
+  completedAt?: string;
+  updatedAt: string;
+  metadata?: Record<string, any>;
 }
 
 export interface ExtractedFieldProvenance {
-  tenantId: string;
-  caseId: string;
-  documentId: string;
-  page?: number;
-  source: string;
-  provider: string;
-  providerVersion: string;
-  proposal: unknown;
   confidence: number;
-  recordVersion: number;
-  humanDecision?: 'ACCEPTED' | 'REJECTED' | 'CORRECTED';
-  reviewer?: string;
-  reviewTimestamp?: string;
+  sourceBoundingBox?: any;
+  method: 'AI' | 'OCR' | 'MANUAL';
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
-export interface ExtractedFieldEntity extends ScopedAuthoritativeEntity {
+export interface ExtractedFieldEntity {
+  fieldId: string;
   documentId: string;
-  page: number;
-  field: string;
-  proposedValue: unknown;
-  confidence: number;
-  boundingBox?: { x: number; y: number; width: number; height: number };
-  sourceText?: string;
-  provider: string;
-  providerVersion: string;
-  isAiProposedOnly: true;
-  humanDecision?: 'ACCEPTED' | 'REJECTED' | 'CORRECTED';
-  finalAcceptedValue?: unknown;
-  reviewer?: string;
-  reviewerRole?: string;
-  reviewTimestamp?: string;
-  reviewReason?: string;
+  key: string;
+  value: string;
   provenance: ExtractedFieldProvenance;
+  status: 'PENDING' | 'ACCEPTED' | 'CORRECTED' | 'REJECTED';
 }
 
-export interface ValidationEntity extends ScopedAuthoritativeEntity {
-  stage: StageNumber;
-  ruleId: string;
-  passed: boolean;
-  details?: string;
-  evidenceId?: string;
-}
-
-export interface ExceptionEntity extends ScopedAuthoritativeEntity {
-  code: string;
-  status: 'OPEN' | 'RESOLVED';
-  openedBy: string;
-  openedAt: string;
-  resolvedBy?: string;
-  resolvedAt?: string;
-  resolutionNotes?: string;
-}
-
-export interface ReviewEntity extends ScopedAuthoritativeEntity {
-  evidenceId?: string;
-  documentId?: string;
-  stage?: StageNumber;
-  reviewer: string;
-  reviewerRole: string;
-  outcome: 'APPROVED' | 'CHANGES_REQUIRED';
-  notes?: string;
-}
-
-export interface ApprovalEntity extends ScopedAuthoritativeEntity {
-  stage?: StageNumber;
-  evidenceId?: string;
-  approvedBy: string;
-  credentialType: string;
-  notes?: string;
-}
-
-export interface AuditEventEntity {
-  id: string;
+export interface DocumentEntity {
+  documentId: string;
   tenantId: string;
   clientId: string;
-  engagementId: string;
-  caseId: string;
   taxYear: number;
-  action: string;
-  actorUid: string;
-  actorRole: string;
-  details?: string;
-  metadata?: Record<string, unknown>;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  status: DocumentLifecycleStatus;
+  storagePath: string;
+  sha256?: string;
   version: number;
-  timestamp: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// ============================================================================
-// STAGE 04 — RECORD INTERFACES
-// ============================================================================
-
-export type TaxRecordCategory =
-  | 'taxpayer_identity'
-  | 'filing_profile'
-  | 'dependents'
-  | 'wages'
-  | 'interest'
-  | 'dividends'
-  | 'capital_transactions'
-  | 'business_income'
-  | 'business_expenses'
-  | 'rental_income'
-  | 'rental_expenses'
-  | 'retirement_income'
-  | 'social_security'
-  | 'unemployment'
-  | 'other_income'
-  | 'adjustments'
-  | 'itemized_deductions'
-  | 'credits'
-  | 'estimated_payments'
-  | 'federal_withholding'
-  | 'state_withholding'
-  | 'carryovers'
-  | 'assets'
-  | 'liabilities'
-  | 'entity_info'
-  | 'ownership_info'
-  | 'w2'
-  | 'form_1099'
-  | 'k1'
-  | 'other';
-
-export interface TaxRecordProvenance {
-  sourceEvidenceId?: string;
-  sourceDocumentId?: string;
-  sourceFieldId?: string;
-  sourcePage?: number;
-  originalValue: unknown;
-  recordVersion: number;
-  ruleVersion?: string;
-  humanReviewer?: string;
-  reviewTimestamp?: string;
+export interface EvidenceEntity {
+  evidenceId: string;
+  caseId: string;
+  stageNumber: StageNumber;
+  type: string;
+  data: Record<string, any>;
+  createdAt: string;
 }
 
-export interface TaxRecordEntity extends ScopedAuthoritativeEntity {
+export type TaxRecordCategory = 'INCOME' | 'DEDUCTION' | 'CREDIT' | 'PAYMENT' | 'ASSET';
+
+export interface TaxRecordEntity {
+  recordId: string;
+  caseId: string;
   category: TaxRecordCategory;
-  subcategory?: string;
   description: string;
-  sourceEvidenceId?: string;
-  sourceDocumentId?: string;
-  sourceFieldId?: string;
-  sourcePage?: number;
-  originalValue: unknown;
-  normalizedValue: number | string | boolean | Record<string, unknown>;
-  currency: string;
-  confidence?: number;
-  humanReviewer?: string;
-  reviewTimestamp?: string;
-  isAiClassified?: boolean;
-  aiClassificationReason?: string;
-  provenance: TaxRecordProvenance;
-  status: 'DRAFT' | 'RECORDED' | 'FLAGGED' | 'SUPERSEDED';
-  duplicateCandidateOf?: string;
+  amountCents: number;
+  verified: boolean;
+  metadata?: Record<string, any>;
 }
 
-// ============================================================================
-// STAGE 05 — RECONCILE INTERFACES
-// ============================================================================
+export type ReconciliationCategory = 'BANK' | 'CREDIT_CARD' | 'PAYROLL' | 'BOOK_TO_TAX';
+export type ReconciliationStatus = 'UNRECONCILED' | 'IN_PROGRESS' | 'RECONCILED' | 'EXCEPTION';
 
-export type ReconciliationCategory =
-  | 'wages'
-  | 'withholding'
-  | '1099_income'
-  | 'brokerage'
-  | 'k1_passthrough'
-  | 'business_income'
-  | 'business_expenses'
-  | 'estimated_payments'
-  | 'carryovers'
-  | 'state_withholding';
-
-export type ReconciliationStatus =
-  | 'PENDING'
-  | 'MATCHED'
-  | 'VARIANCE'
-  | 'EXCEPTION'
-  | 'REVIEW_REQUIRED'
-  | 'RESOLVED';
-
-export interface ReconciliationRecordEntity extends ScopedAuthoritativeEntity {
+export interface ReconciliationRecordEntity {
+  reconciliationId: string;
+  caseId: string;
   category: ReconciliationCategory;
-  sourceTotal: number;
-  recordedTotal: number;
-  difference: number;
-  tolerance: number;
   status: ReconciliationStatus;
-  evidenceReferences: string[];
-  recordIds: string[];
-  exceptions: string[];
-  reviewer?: string;
-  reviewTimestamp?: string;
-  resolutionNotes?: string;
+  varianceCents: number;
+  updatedAt: string;
 }
 
-// ============================================================================
-// STAGE 06 — REVIEW INTERFACES
-// ============================================================================
-
-export type ReviewActionType =
-  | 'ACCEPT'
-  | 'RETURN_FOR_CORRECTION'
-  | 'REQUEST_EVIDENCE'
-  | 'RAISE_EXCEPTION'
-  | 'RESOLVE_EXCEPTION'
-  | 'ESCALATE';
-
-export interface TaxWorkpaperEntity extends ScopedAuthoritativeEntity {
-  workpaperType: string;
+export interface TaxWorkpaperEntity {
+  workpaperId: string;
+  caseId: string;
   title: string;
-  issue: string;
-  sourceEvidenceIds: string[];
-  taxRecordIds: string[];
-  analysis: string;
-  conclusion: string;
-  reviewer: string;
-  reviewerRole: string;
-  reviewDate: string;
-  references: string[];
-  exceptionIds: string[];
-  resolution?: string;
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+  status: string;
+  preparedBy: string;
+  reviewedBy?: string;
+  sections: any[];
+  updatedAt: string;
 }
 
-// ============================================================================
-// STAGE 07 — REPORT INTERFACES
-// ============================================================================
+export type ReviewActionType = 'CLAIM' | 'ACCEPT' | 'CORRECT' | 'REJECT' | 'RECLASSIFY' | 'DUPLICATE' | 'SUPERSEDE' | 'REQUEST';
 
-export type ReportType =
-  | 'case_summary'
-  | 'income_summary'
-  | 'deduction_summary'
-  | 'credit_summary'
-  | 'payment_withholding_summary'
-  | 'business_summary'
-  | 'reconciliation_report'
-  | 'exception_report'
-  | 'review_report'
-  | 'evidence_report'
-  | 'workpaper_summary'
-  | 'audit_trail_summary';
+export type ReportType = 'TAX_SUMMARY' | 'SCHEDULE_K1' | 'BALANCE_SHEET' | 'PROFIT_LOSS';
 
-export interface TaxReportEntity extends ScopedAuthoritativeEntity {
+export interface TaxReportEntity {
+  reportId: string;
+  caseId: string;
   reportType: ReportType;
-  title: string;
-  dataVersion: number;
   generatedAt: string;
-  generatedBy: string;
-  status: 'CURRENT' | 'STALE' | 'INVALIDATED';
-  invalidatedReason?: string;
-  sourceReferences: string[];
-  sections: Array<{ title: string; items: Record<string, unknown> | Array<Record<string, unknown>> }>;
-  summaryMetrics: Record<string, number | string>;
+  data: Record<string, any>;
 }
 
-// ============================================================================
-// STAGE 08 — PLAN INTERFACES
-// ============================================================================
-
-export interface PlanningAdjustment {
-  category: string;
-  description: string;
-  deltaAmount: number;
-}
-
-export interface PlanningScenarioEntity extends ScopedAuthoritativeEntity {
+export interface PlanningScenarioEntity {
+  scenarioId: string;
+  caseId: string;
   name: string;
-  description: string;
-  baselineVersion: number;
-  assumptions: Record<string, unknown>;
-  adjustments: PlanningAdjustment[];
-  projectedResults: {
-    projectedAgi: number;
-    projectedTaxableIncome: number;
-    projectedTaxLiability: number;
-    projectedEffectiveRate: number;
-    projectedSavingsOrCost: number;
-    ruleVersion: string;
-    calculationVersion: string;
-  };
-  reviewStatus: 'DRAFT' | 'PROPOSED' | 'REVIEWED' | 'ACCEPTED';
+  taxYear: number;
+  projections: Record<string, any>;
 }
-
-// ============================================================================
-// STAGE 09 — PREPARE TAXES INTERFACES
-// ============================================================================
 
 export interface ReturnDiagnostic {
   code: string;
+  severity: 'CRITICAL' | 'WARNING' | 'INFO';
   message: string;
-  severity: 'CRITICAL_BLOCKING' | 'WARNING' | 'INFORMATIONAL';
-  resolved: boolean;
 }
 
-export interface DraftReturnFigures {
-  totalIncome: number;
-  totalAdjustments: number;
-  adjustedGrossIncome: number;
-  deductionType: 'STANDARD' | 'ITEMIZED';
-  deductionAmount: number;
-  qualifiedBusinessIncomeDeduction: number;
-  taxableIncome: number;
-  tentativeTax: number;
-  creditsTotal: number;
-  totalTaxLiability: number;
-  paymentsAndWithholding: number;
-  balanceDueOrRefund: number;
-}
-
-export interface DraftReturnEntity extends ScopedAuthoritativeEntity {
+export interface DraftReturnEntity {
   returnId: string;
-  jurisdiction: 'FEDERAL' | 'CA' | 'NY' | 'TX' | 'FL' | string;
-  returnType: 'INDIVIDUAL_1040' | 'PARTNERSHIP_1065' | 'S_CORP_1120S' | 'C_CORP_1120';
-  status: 'DRAFT' | 'DIAGNOSTIC_FAILED' | 'READY_FOR_PREPARER_REVIEW' | 'PREPARER_CERTIFIED' | 'STALE' | 'SUPERSEDED';
-  sourceDataVersion: number;
-  ruleVersion: string;
-  calculationVersion: string;
-  figures: DraftReturnFigures;
-  forms: Array<{ formNumber: string; formName: string; lineItems: Record<string, unknown> }>;
-  schedules: Array<{ scheduleName: string; lineItems: Record<string, unknown> }>;
-  diagnostics: ReturnDiagnostic[];
-  preparerCertifiedBy?: string;
-  preparerCertifiedAt?: string;
-}
-
-// ============================================================================
-// STAGE 10 — APPROVAL INTERFACES
-// ============================================================================
-
-export type ApprovalStatus =
-  | 'PENDING'
-  | 'READY'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'REOPENED'
-  | 'INVALIDATED';
-
-export interface ApprovalRecord extends ScopedAuthoritativeEntity {
-  approvalId: string;
-  returnVersionId: string;
-  returnHash: string;
-  preparedBy: string;
-  reviewedBy: string;
-  approvedBy: string;
-  credential: string;
-  status: ApprovalStatus;
-  rationale: string;
-  diagnosticsSnapshot: ReturnDiagnostic[];
-  exceptionSnapshot: Array<{ code: string; resolved: boolean }>;
-  approvedAt: string;
-}
-
-// ============================================================================
-// STAGE 11 — SIGNATURE INTERFACES
-// ============================================================================
-
-export type SignaturePackageStatus =
-  | 'NOT_READY'
-  | 'READY'
-  | 'SENT'
-  | 'VIEWED'
-  | 'SIGNED'
-  | 'DECLINED'
-  | 'EXPIRED'
-  | 'VOIDED'
-  | 'FAILED';
-
-export type SignatureRequestStatus =
-  | 'PENDING'
-  | 'SENT'
-  | 'VIEWED'
-  | 'SIGNED'
-  | 'DECLINED'
-  | 'EXPIRED'
-  | 'FAILED';
-
-export type SignerRole = 'TAXPAYER' | 'SPOUSE' | 'PREPARER' | 'REPRESENTATIVE';
-
-export interface Signer {
-  id: string;
-  name: string;
-  email: string;
-  role: SignerRole;
-  status: SignatureRequestStatus;
-  signedAt?: string;
-  signatureEvidenceHash?: string;
-}
-
-export interface SignatureAuthorization {
   caseId: string;
+  formType: string;
   taxYear: number;
-  returnVersionId: string;
-  returnHash: string;
-  consentTimestamp: string;
-  ipAddress?: string;
-  userAgent?: string;
+  diagnostics: ReturnDiagnostic[];
+  status: 'DRAFT' | 'READY_FOR_REVIEW' | 'APPROVED';
+}
+
+export interface ApprovalRecord {
+  approvalId: string;
+  caseId: string;
+  approvedBy: string;
+  role: string;
+  approvedAt: string;
+  hash: string;
 }
 
 export interface SignatureEvent {
   eventId: string;
-  packageId: string;
-  eventType: 'SENT' | 'VIEWED' | 'SIGNED' | 'DECLINED' | 'EXPIRED' | 'VOIDED';
-  actorEmail: string;
+  signerEmail: string;
+  signerName: string;
   timestamp: string;
-  evidenceHash?: string;
+  ipAddress: string;
 }
 
-export interface SignaturePackageEntity extends ScopedAuthoritativeEntity {
+export interface SignaturePackageEntity {
   packageId: string;
-  returnVersionId: string;
-  returnHash: string;
-  signers: Signer[];
-  status: SignaturePackageStatus;
-  provider: string;
-  providerEnvelopeId?: string;
-  completedAt?: string;
-  authorization?: SignatureAuthorization;
+  caseId: string;
+  status: 'SENT' | 'SIGNED' | 'DECLINED';
   events: SignatureEvent[];
 }
 
-// ============================================================================
-// STAGE 12 — FILING INTERFACES
-// ============================================================================
-
-export type FilingPackageStatus =
-  | 'NOT_READY'
-  | 'READY'
-  | 'QUEUED'
-  | 'SUBMITTING'
-  | 'SUBMITTED'
-  | 'ACKNOWLEDGED'
-  | 'ACCEPTED'
-  | 'REJECTED'
-  | 'FAILED'
-  | 'CANCELLED';
-
 export interface FilingAttempt {
-  attemptNumber: number;
-  provider: string;
-  submittedAt: string;
-  requestPayloadHash: string;
-  responseStatus: string;
-  errorDetails?: string;
+  attemptId: string;
+  timestamp: string;
+  status: 'QUEUED' | 'TRANSMITTED' | 'ACCEPTED' | 'REJECTED';
+  transmissionId?: string;
 }
 
 export interface FilingAcknowledgement {
-  ackId: string;
-  receivedAt: string;
+  acknowledgementId: string;
   submissionId: string;
-  status: 'ACCEPTED' | 'REJECTED' | 'PENDING';
-  rawCode?: string;
-  message?: string;
-  acceptanceCode?: string;
+  acceptedAt: string;
+  irsAcceptanceCode?: string;
 }
 
-export interface FilingPackageEntity extends ScopedAuthoritativeEntity {
-  packageId: string;
-  submissionId: string;
-  returnVersionId: string;
-  returnHash: string;
-  jurisdiction: string;
-  status: FilingPackageStatus;
-  idempotencyKey: string;
-  signatureAuthorizationId: string;
-  provider: string;
-  submittedAt?: string;
-  acknowledgedAt?: string;
+export interface FilingPackageEntity {
+  filingId: string;
+  caseId: string;
+  status: 'READY' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED';
   attempts: FilingAttempt[];
   acknowledgement?: FilingAcknowledgement;
 }
 
-// ============================================================================
-// STAGE 13 — GOVERNMENT FEEDBACK INTERFACES
-// ============================================================================
-
-export type GovernmentFeedbackStatus =
-  | 'RECEIVED'
-  | 'PROCESSING'
-  | 'ACCEPTED'
-  | 'REJECTED'
-  | 'PARTIALLY_ACCEPTED'
-  | 'NOTICE_RECEIVED'
-  | 'ACTION_REQUIRED';
-
 export interface GovernmentNotice {
   noticeId: string;
-  noticeNumber: string;
-  noticeDate: string;
-  issuingAgency: string;
-  summary: string;
-  responseDeadline?: string;
-  amountProposed?: number;
-  actionRequired: string;
-  resolved: boolean;
+  agency: string;
+  noticeCode: string;
+  receivedDate: string;
+  responseDueDate: string;
+  status: string;
 }
 
-export interface GovernmentFeedbackEntity extends ScopedAuthoritativeEntity {
+export interface GovernmentFeedbackEntity {
   feedbackId: string;
-  submissionId: string;
-  provider: string;
-  jurisdiction: string;
-  status: GovernmentFeedbackStatus;
-  externalReference: string;
-  receivedTimestamp: string;
-  payloadHash: string;
-  normalizedCode: string;
-  message: string;
-  severity: 'INFO' | 'WARNING' | 'CRITICAL';
-  requiredAction?: string;
-  provenance: Record<string, unknown>;
+  caseId: string;
   notices: GovernmentNotice[];
 }
 
-// ============================================================================
-// STAGE 14 — RESOLVE INTERFACES
-// ============================================================================
-
-export type ResolutionCaseStatus =
-  | 'OPEN'
-  | 'INVESTIGATING'
-  | 'WAITING_FOR_CLIENT'
-  | 'WAITING_FOR_GOVERNMENT'
-  | 'READY_FOR_REVIEW'
-  | 'RESOLVED'
-  | 'CLOSED';
-
 export interface ResolutionIssue {
   issueId: string;
-  code: string;
-  description: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH';
-  status: 'OPEN' | 'ADDRESSED' | 'DISMISSED';
-  resolvedAt?: string;
-}
-
-export interface ResolutionCaseEntity extends ScopedAuthoritativeEntity {
-  resolutionId: string;
-  originatingFeedbackId?: string;
-  status: ResolutionCaseStatus;
-  issueType: string;
-  description: string;
-  issues: ResolutionIssue[];
-  actionsTaken: Array<{ action: string; timestamp: string; actor: string }>;
-  evidenceIds: string[];
-  assignedTo: string;
-  resolutionDecision?: {
-    actionType: 'AMENDED_RETURN' | 'CORRECTION_STATEMENT' | 'NOTICE_RESPONSE' | 'NO_CHANGE';
-    rationale: string;
-    decidedBy: string;
-    decidedAt: string;
-  };
-  resolvedAt?: string;
-}
-
-// ============================================================================
-// STAGE 15 — MONITOR INTERFACES
-// ============================================================================
-
-export type MonitoringItemStatus =
-  | 'OPEN'
-  | 'DUE_SOON'
-  | 'OVERDUE'
-  | 'ESCALATED'
-  | 'RESOLVED'
-  | 'CANCELLED';
-
-export interface MonitoringItemEntity extends ScopedAuthoritativeEntity {
-  itemId: string;
-  itemType: 'GOVERNMENT_DEADLINE' | 'PAYMENT_DEADLINE' | 'ESTIMATED_TAX' | 'NOTICE_RESPONSE' | 'AMENDED_RETURN_FOLLOWUP' | 'PROFESSIONAL_REVIEW';
   title: string;
-  description: string;
-  dueDate: string;
-  status: MonitoringItemStatus;
-  followUpDate?: string;
-  assignedTo: string;
-  resolvedAt?: string;
-  escalationCount: number;
-}
-
-// ============================================================================
-// STAGE 16 — ARCHIVE INTERFACES
-// ============================================================================
-
-export interface ArchiveManifestEntity extends ScopedAuthoritativeEntity {
-  manifestId: string;
+  amountInDisputeCents: number;
   status: string;
-  returnVersions: string[];
-  filingRecords: string[];
-  governmentFeedback: string[];
-  resolutionStatus: string;
-  documentManifest: Array<{ documentId: string; hash: string; version: number }>;
-  auditManifest: { totalEvents: number; checksum: string };
-  retentionPolicy: {
-    minimumRetentionYears: number;
-    eligibleForDestructionDate: string;
-    legalHold: boolean;
-  };
-  integrityHash: string;
-  archivedAt: string;
-  archivedBy: string;
 }
 
-// ============================================================================
-// STAGE 17 — RENEW INTERFACES
-// ============================================================================
+export interface ResolutionCaseEntity {
+  resolutionId: string;
+  caseId: string;
+  issues: ResolutionIssue[];
+  status: string;
+}
 
-export type CarryForwardClassification =
-  | 'REFERENCE'
-  | 'CANDIDATE'
-  | 'REQUIRES_CONFIRMATION'
-  | 'CONFIRMED';
+export interface MonitoringItemEntity {
+  monitoringId: string;
+  caseId: string;
+  checkType: string;
+  lastCheckedAt: string;
+  status: 'PASS' | 'FLAG';
+}
+
+export interface ArchiveManifestEntity {
+  archiveId: string;
+  caseId: string;
+  archivedAt: string;
+  documentCount: number;
+  sha256Digest: string;
+}
+
+export type CarryForwardClassification = 'DEPRECIATION' | 'LOSS_CARRYOVER' | 'CREDIT_CARRYFORWARD' | 'PASSIVE_ACTIVITY';
 
 export interface CarryForwardCandidate {
   id: string;
-  category: string;
-  description: string;
-  priorYearValue: string | number;
   classification: CarryForwardClassification;
-  sourceTaxRecordId?: string;
-  confirmedBy?: string;
-  confirmedAt?: string;
+  amountCents: number;
+  sourceTaxYear: number;
 }
 
-export interface RenewalRecordEntity extends ScopedAuthoritativeEntity {
+export interface RenewalRecordEntity {
   renewalId: string;
-  priorTaxYear: number;
-  nextTaxYear: number;
-  checklist: Array<{ item: string; completed: boolean; completedAt?: string }>;
-  carryForwardCandidates: CarryForwardCandidate[];
-  status: 'PENDING' | 'IN_REVIEW' | 'COMPLETED';
+  clientId: string;
+  targetTaxYear: number;
+  engagementProposed: boolean;
 }
 
-// ============================================================================
-// STAGE 18 — REPEAT INTERFACES
-// ============================================================================
-
-export interface RepeatCaseEntity extends ScopedAuthoritativeEntity {
+export interface RepeatCaseEntity {
   repeatId: string;
   previousCaseId: string;
-  nextCaseId: string;
-  priorTaxYear: number;
-  nextTaxYear: number;
-  carryForwardCount: number;
-  initializedAt: string;
+  newTaxYear: number;
+  status: string;
+}
+
+export interface ProviderReadinessInfo {
+  provider: string;
+  status: 'HEALTHY' | 'DEGRADED' | 'UNAVAILABLE' | 'NOT_CONFIGURED';
+  latencyMs?: number;
+  message?: string;
 }
