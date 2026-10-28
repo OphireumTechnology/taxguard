@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "94a8fb5ecc1984126084ecd056f626ed877483a9b7c1e20fba8954f8a87fcbd0",
+  "executionPlanSha256": "430c085f2089409a070b45f9ef7887d4dec91684aab3ceff1ca6ef6c8f8ab420",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5416,10 +5416,58 @@
     },
     {
       "order": 102,
+      "file": "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+      "kind": "proposal",
+      "version": "20261019115000",
+      "sha256": "0a53351cdd3a38b235ef2fd463047cdf529806f3350983e04929b6a57cdfbf54",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_approval_policies",
+        "taxguard_tax_professional_eligibility",
+        "taxguard_tax_function_designations",
+        "taxguard_tax_approval_history_guard",
+        "taxguard_tax_approval_authority"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the function and the three tables."
+      ],
+      "grantsAndRevocations": [
+        "EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated, service_role', t);",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (approval authority for tax-content and return decisions). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 033 (taxguard_tax_actor) and 20261019110000 (taxguard_tax_form_jurisdiction_supported).",
+        "--",
+        "-- Three separate facts, never inferred from a role or from one another:",
+        "--   1. Verified professional eligibility: a credential (CPA, EA, attorney) of one person, verified by someone else,",
+        "--      with its reference, issuing jurisdiction, the jurisdictions it may be relied on for, validity dates and an",
+        "--      optional revocation.",
+        "--   2. Function designation: an explicit decision that one person may perform one approval function, made by someone",
+        "--      else under a specific policy version, with an optional revocation.",
+        "--   3. Case-specific reviewer authorization: the person's live reviewer assignment on the case (checked by the caller",
+        "--      for case decisions; templates and mapping rules are not case decisions).",
+        "-- An owner-approved, versioned policy per function states which of the three are required and which credential types"
+      ]
+    },
+    {
+      "order": 103,
       "file": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
       "kind": "proposal",
       "version": "20261019120000",
-      "sha256": "ba517fc544e5642a49af4b5060c80d00e79baec9b49bb6a4708f79a7de293fa4",
+      "sha256": "e6f13206e1821e6b59ec8a1c101f25cb63d3fe24ace5abba5ec195c5c431c53f",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -5428,13 +5476,15 @@
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
         "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
         "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
-        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
       ],
       "referencedDependencies": [
         "supabase/migrations/20260928000000_taxguard_core_schema.sql",
         "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
         "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
         "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
         "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
@@ -5442,10 +5492,6 @@
       "declaredObjects": [
         "taxguard_tax_return_templates",
         "taxguard_tax_return_versions",
-        "taxguard_tax_template_approval_policy",
-        "taxguard_tax_template_approvers",
-        "taxguard_tax_template_approval_guard",
-        "taxguard_tax_template_approver",
         "taxguard_tax_return_guard",
         "taxguard_tax_return_template_invalid",
         "taxguard_tax_return_template_json",
@@ -5468,17 +5514,17 @@
         "-- have none. Rollback (development): drop the functions and the two tables."
       ],
       "grantsAndRevocations": [
-        "REVOKE ALL ON public.taxguard_tax_template_approval_policy, public.taxguard_tax_template_approvers FROM PUBLIC, anon, authenticated, service_role;",
         "REVOKE ALL ON public.taxguard_tax_return_templates, public.taxguard_tax_return_versions FROM PUBLIC, anon, authenticated, service_role;",
         "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
         "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
       ],
-      "securityDefinerDeclarations": 14,
+      "securityDefinerDeclarations": 13,
       "notValidConstraints": 0,
       "header": [
         "-- PROPOSAL (Block 68, draft return preparation). REVIEW ONLY; NOT APPLIED anywhere external.",
         "-- Requires 033 (taxguard_tax_actor, tax sources), 20261018090000 (live case actor), 20261018160000 (case diagnostics),",
-        "-- 20261019100000 (tax conclusions) and 20261019110000 (form mapping, taxguard_tax_form_jurisdiction_supported).",
+        "-- 20261019100000 (tax conclusions), 20261019110000 (form mapping, taxguard_tax_form_jurisdiction_supported) and",
+        "-- 20261019115000 (approval authority).",
         "--",
         "-- A draft return is an assembly of reviewed inputs, never a calculation and never a model judgement:",
         "--   RETURN TEMPLATE (which forms a return of this jurisdiction, family and year consists of)",
@@ -5486,8 +5532,7 @@
         "--   -> RETURN VERSION (forms with mapping id, version and values hash) -> preparer submit -> reviewer approve.",
         "-- A return template is tax content: it cites a verified source, names a supported jurisdiction and the dates it is",
         "-- in effect, is drafted by a content maintainer, approved by a different person (maker-checker), frozen once",
-        "-- submitted, and a newer approval supersedes it. Only a designated template approver may approve: the tenant's",
-        "-- owner-approved eligibility policy plus an active designation (verified qualification or explicit administrative"
+        "-- submitted, and a newer approval supersedes it. Approving a template needs the RETURN_TEMPLATE_APPROVAL authority"
       ]
     }
   ]

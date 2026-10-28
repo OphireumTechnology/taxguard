@@ -2,10 +2,10 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 103,
+    "files": 104,
     "core": 13,
-    "proposals": 89,
-    "tables": 171,
+    "proposals": 90,
+    "tables": 172,
     "functions": 450,
     "securityDefinerFunctions": 351,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
@@ -4194,14 +4194,42 @@
     {
       "order": 102,
       "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_tax_approval_policies",
+        "taxguard_tax_function_designations",
+        "taxguard_tax_professional_eligibility"
+      ],
+      "functionsAdded": [
+        "taxguard_tax_approval_authority",
+        "taxguard_tax_approval_history_guard"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 6,
+      "indexesAdded": 4,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 103,
+      "kind": "proposal",
       "file": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
       "appliesInOrder": true,
       "reapply": "ok",
       "tablesAdded": [
         "taxguard_tax_return_templates",
-        "taxguard_tax_return_versions",
-        "taxguard_tax_template_approval_policy",
-        "taxguard_tax_template_approvers"
+        "taxguard_tax_return_versions"
       ],
       "functionsAdded": [
         "taxguard_tax_return_derive",
@@ -4219,15 +4247,13 @@
         "taxguard_tax_return_template_json",
         "taxguard_tax_return_template_list",
         "taxguard_tax_return_template_transition",
-        "taxguard_tax_return_transition",
-        "taxguard_tax_template_approval_guard",
-        "taxguard_tax_template_approver"
+        "taxguard_tax_return_transition"
       ],
       "supersedes": [],
       "functionsRemoved": [],
       "policiesAdded": [],
-      "triggersAdded": 8,
-      "indexesAdded": 8,
+      "triggersAdded": 4,
+      "indexesAdded": 5,
       "notValidConstraints": [],
       "prerequisites": [
         1,
@@ -4236,7 +4262,8 @@
         36,
         79,
         84,
-        101
+        101,
+        102
       ],
       "clientRoleAccess": [],
       "serviceRoleRevoked": [],
@@ -4245,7 +4272,7 @@
       "hazards": []
     },
     {
-      "order": 103,
+      "order": 104,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

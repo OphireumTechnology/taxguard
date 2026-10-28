@@ -51,6 +51,20 @@ async function approvedTemplate(over: Record<string, unknown> = {}, forms?: unkn
 }
 const prepare = (tpl = templateId, uid = 'rp-prep') => { as(uid); return call('POST', `/cases/${caseId}/returns`, { templateRuleId: tpl }); };
 const act = (id: string, action: 'submit' | 'approve' | 'return', uid: string, note?: string) => { as(uid); return call('POST', `/returns/${id}/${action}`, note === undefined ? {} : { note }); };
+let verifiedSeq = 0;
+const policy = (fn: string, version: number, o: { eligibility: boolean; designation: boolean; caseAssignment: boolean; credentials?: string[] }) =>
+  db.pool.query(`INSERT INTO taxguard_tax_approval_policies(tenant_id, function_code, policy_version, requires_eligibility, requires_designation, requires_case_assignment,
+    accepted_credentials, eligibility_text, approved_by) VALUES ($1, $2, $3, $4, $5, $6, $7, 'Synthetic policy for tests: verified, recorded credentials only.', 'rp-owner')`,
+    [T, fn, version, o.eligibility, o.designation, o.caseAssignment, o.credentials ?? []]);
+// Each record is verified one second after the previous one, so "most recently verified" is unambiguous.
+const eligibility = async (uid: string, o: { credential?: string; scope?: string[]; validFrom?: string; expiresOn?: string }) =>
+  (await db.pool.query(`INSERT INTO taxguard_tax_professional_eligibility(tenant_id, person_uid, credential_type, credential_reference, issuing_jurisdiction,
+    scope_jurisdictions, valid_from, expires_on, verified_by, verification_reference, verified_at) VALUES ($1, $2, $3, 'synthetic-licence-ref', 'NY', $4, $5, $6, 'rp-owner',
+    'synthetic-registry-lookup', now() + make_interval(secs => $7)) RETURNING eligibility_id`,
+    [T, uid, o.credential ?? 'CPA', o.scope ?? ['US'], o.validFrom ?? '2025-01-01', o.expiresOn ?? '2099-12-31', ++verifiedSeq])).rows[0].eligibility_id as string;
+const designate = (uid: string, fn: string, version: number, ref: string, by = 'rp-owner') =>
+  db.pool.query(`INSERT INTO taxguard_tax_function_designations(tenant_id, person_uid, function_code, policy_version, designation_reference, designated_by)
+    VALUES ($1, $2, $3, $4, $5, $6)`, [T, uid, fn, version, ref, by]);
 const facts = () => { as('rp-rev'); return call('GET', `/cases/${caseId}/returns/stage-facts`).then(r => r.body); };
 
 beforeAll(async () => {
@@ -116,52 +130,71 @@ describe('return templates are governed tax content', () => {
     as('rp-rev'); const own = (await call('POST', '/return-templates', { definition: template({ templateId: 'SYN-OWN' }) })).body;
     await call('POST', `/return-templates/${own.templateRuleId}/submit`);
     expect((await call('POST', `/return-templates/${own.templateRuleId}/approve`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
-    // Fail closed: a case reviewer (or any reviewer role) cannot approve until the owner's eligibility policy exists and
-    // the approver is designated under it. Nothing is granted to existing reviewers or managers.
-    expect((await call('POST', `/return-templates/${templateId}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED');
-    await db.pool.query(`INSERT INTO taxguard_tax_template_approval_policy(tenant_id, policy_version, eligibility, approved_by)
-      VALUES ($1, 1, 'Synthetic policy: designated reviewers with a recorded qualification reference.', 'rp-owner')`, [T]);
-    expect((await call('POST', `/return-templates/${templateId}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED');
-    as('rp-admin'); expect((await call('POST', `/return-templates/${templateId}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED'); // admin role alone: nothing
-    as('rp-rev');
-    await db.pool.query(`INSERT INTO taxguard_tax_template_approvers(tenant_id, approver_uid, policy_version, basis, basis_reference, designated_by)
-      VALUES ($1, 'rp-rev', 1, 'VERIFIED_QUALIFICATION', 'synthetic-credential-rp-rev', 'rp-owner')`, [T]);
+    // Fail closed: no role, case assignment or administrator status approves a template. The function needs the owner's
+    // policy, a designation under it and verified eligibility in scope for the template's jurisdiction.
+    const refusal = async (uid: string) => { as(uid); const b = (await call('POST', `/return-templates/${templateId}/approve`)).body; return [b.code, b.detail]; };
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'NO_POLICY']);
+    await policy('RETURN_TEMPLATE_APPROVAL', 1, { eligibility: true, designation: true, caseAssignment: false, credentials: ['CPA', 'EA'] });
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'NO_DESIGNATION']);
+    expect(await refusal('rp-admin')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'NO_DESIGNATION']); // admin role alone: nothing
+    await designate('rp-rev', 'RETURN_TEMPLATE_APPROVAL', 1, 'synthetic-designation-rp-rev');
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'NO_ELIGIBILITY']); // a designation is not a qualification
+    await eligibility('rp-rev', { credential: 'ATTORNEY' });
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'CREDENTIAL_NOT_ACCEPTED']);
+    await eligibility('rp-rev', { expiresOn: '2025-06-30' });
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'ELIGIBILITY_EXPIRED']);
+    await eligibility('rp-rev', { validFrom: '2099-01-01', expiresOn: '2099-12-31' });
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'ELIGIBILITY_NOT_YET_VALID']);
+    await eligibility('rp-rev', { scope: ['CA'] });
+    expect(await refusal('rp-rev')).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'OUTSIDE_ELIGIBILITY_SCOPE']);
     expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_templates WHERE tenant_id = $1 AND status = 'APPROVED'`, [T])).rows[0].n).toBe(0);
+    const cpa = await eligibility('rp-rev', {});
     as('rp-rev'); const approved = (await call('POST', `/return-templates/${templateId}/approve`)).body;
-    expect(approved).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev', approvalBasis: { approverUid: 'rp-rev', basis: 'VERIFIED_QUALIFICATION',
-      basisReference: 'synthetic-credential-rp-rev', designatedBy: 'rp-owner', policyVersion: 1, templateVersion: 2, contentSha256: drafted.body.contentSha256,
+    expect(approved).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev', approvalBasis: { approverUid: 'rp-rev', function: 'RETURN_TEMPLATE_APPROVAL',
+      policyVersion: 1, jurisdiction: 'US', designationReference: 'synthetic-designation-rp-rev', designatedBy: 'rp-owner', eligibilityId: cpa,
+      credentialType: 'CPA', issuingJurisdiction: 'NY', verifiedBy: 'rp-owner', templateVersion: 2, contentSha256: drafted.body.contentSha256,
       sourceId: SYNTHETIC_SOURCE_ID, sourceVerifiedForTaxYear: 2025 } });
     expect(approved.approvalBasis.approvedAt).toEqual(expect.any(String));
     const audit = (await db.pool.query(`SELECT actor_uid, metadata FROM taxguard_audit_log WHERE tenant_id = $1 AND action = 'TAX_RETURN_TEMPLATE_APPROVED'`, [T])).rows;
-    expect(audit).toEqual([expect.objectContaining({ actor_uid: 'rp-rev', metadata: expect.objectContaining({ approvalBasis: expect.objectContaining({ basis: 'VERIFIED_QUALIFICATION' }) }) })]);
+    expect(audit).toEqual([expect.objectContaining({ actor_uid: 'rp-rev', metadata: expect.objectContaining({ approvalBasis: expect.objectContaining({ eligibilityId: cpa }) }) })]);
     await expect(db.pool.query(`UPDATE taxguard_tax_return_templates SET approval_basis = '{}'::jsonb WHERE tenant_id = $1 AND template_rule_id = $2`, [T, templateId]))
       .rejects.toThrow('TAX_RETURN_IMMUTABLE');
     expect((await call('GET', `/return-templates/${templateId}`)).body.definition.forms).toHaveLength(2);
   });
 
-  it('template approval authority: revocation fails closed; the configuration is immutable and unreachable through the API', async () => {
+  it('approval authority: revocation and a new policy version fail closed; the records are immutable and unreachable through the API', async () => {
     as('rp-prep'); const t = (await call('POST', '/return-templates', { definition: template({ templateId: 'SYN-REVOKE' }) })).body.templateRuleId;
     await call('POST', `/return-templates/${t}/submit`);
-    await db.pool.query(`UPDATE taxguard_tax_template_approvers SET revoked_by = 'rp-owner', revoked_at = now() WHERE tenant_id = $1 AND approver_uid = 'rp-rev'`, [T]);
-    as('rp-rev'); expect((await call('POST', `/return-templates/${t}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED');
+    const approve = async () => { as('rp-rev'); const b = (await call('POST', `/return-templates/${t}/approve`)).body; return [b.code, b.detail]; };
+    await db.pool.query(`UPDATE taxguard_tax_professional_eligibility SET revoked_by = 'rp-owner', revoked_at = now(), revocation_reason = 'Synthetic: licence lapsed'
+      WHERE tenant_id = $1 AND person_uid = 'rp-rev' AND revoked_at IS NULL`, [T]);
+    expect(await approve()).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'ELIGIBILITY_REVOKED']);
+    await eligibility('rp-rev', {});
+    await policy('RETURN_TEMPLATE_APPROVAL', 2, { eligibility: true, designation: true, caseAssignment: false, credentials: ['CPA'] });
+    expect(await approve()).toEqual(['TAX_RETURN_TEMPLATE_APPROVER_REQUIRED', 'DESIGNATION_UNDER_OLD_POLICY']);
     // Rejecting grants nothing, so it stays open to content reviewers.
     expect((await call('POST', `/return-templates/${t}/reject`, { note: 'Synthetic: superseded by the corrected template' })).body).toMatchObject({ status: 'REJECTED', approvalBasis: null });
-    for (const sql of [`UPDATE taxguard_tax_template_approvers SET revoked_at = NULL, revoked_by = NULL WHERE tenant_id = '${T}'`,
-      `UPDATE taxguard_tax_template_approvers SET basis_reference = 'changed' WHERE tenant_id = '${T}'`,
-      `UPDATE taxguard_tax_template_approval_policy SET eligibility = 'Anyone may approve templates now.' WHERE tenant_id = '${T}'`,
-      `DELETE FROM taxguard_tax_template_approvers WHERE tenant_id = '${T}'`, 'TRUNCATE taxguard_tax_template_approval_policy CASCADE'])
-      await expect(db.pool.query(sql), sql).rejects.toThrow('TAX_TEMPLATE_APPROVAL_HISTORY_IMMUTABLE');
-    await expect(db.pool.query(`INSERT INTO taxguard_tax_template_approvers(tenant_id, approver_uid, policy_version, basis, basis_reference, designated_by)
-      VALUES ($1, 'rp-rev', 1, 'VERIFIED_QUALIFICATION', 'self-designation', 'rp-rev')`, [T])).rejects.toThrow(/check/i);
-    for (const table of ['taxguard_tax_template_approval_policy', 'taxguard_tax_template_approvers'])
+    for (const sql of [`UPDATE taxguard_tax_professional_eligibility SET revoked_at = NULL, revoked_by = NULL, revocation_reason = NULL WHERE tenant_id = '${T}' AND revoked_at IS NOT NULL`,
+      `UPDATE taxguard_tax_professional_eligibility SET credential_reference = 'changed-ref' WHERE tenant_id = '${T}'`,
+      `UPDATE taxguard_tax_professional_eligibility SET expires_on = '2199-01-01' WHERE tenant_id = '${T}' AND revoked_at IS NULL`,
+      `UPDATE taxguard_tax_function_designations SET designation_reference = 'changed-ref' WHERE tenant_id = '${T}'`,
+      `UPDATE taxguard_tax_approval_policies SET accepted_credentials = ARRAY['CPA','EA','ATTORNEY'] WHERE tenant_id = '${T}'`,
+      `DELETE FROM taxguard_tax_function_designations WHERE tenant_id = '${T}'`, 'TRUNCATE taxguard_tax_approval_policies CASCADE'])
+      await expect(db.pool.query(sql), sql).rejects.toThrow('TAX_APPROVAL_AUTHORITY_IMMUTABLE');
+    await expect(db.pool.query(`INSERT INTO taxguard_tax_professional_eligibility(tenant_id, person_uid, credential_type, credential_reference, issuing_jurisdiction,
+      scope_jurisdictions, valid_from, expires_on, verified_by, verification_reference) VALUES ($1, 'rp-rev', 'CPA', 'self-ref', 'NY', ARRAY['US'], '2025-01-01', '2099-12-31',
+      'rp-rev', 'self-verified')`, [T])).rejects.toThrow(/check/i);
+    await expect(designate('rp-rev', 'RETURN_TEMPLATE_APPROVAL', 2, 'self-designation', 'rp-rev')).rejects.toThrow(/check/i);
+    for (const table of ['taxguard_tax_approval_policies', 'taxguard_tax_professional_eligibility', 'taxguard_tax_function_designations'])
       for (const role of ['anon', 'authenticated', 'service_role'])
         expect((await db.pool.query(`SELECT has_table_privilege($1, $2, 'SELECT') OR has_table_privilege($1, $2, 'INSERT') OR has_table_privilege($1, $2, 'UPDATE') AS ok`,
           [role, 'public.' + table])).rows[0].ok, `${role} ${table}`).toBe(false);
-    expect((await db.pool.query(`SELECT has_function_privilege('service_role', 'public.taxguard_tax_template_approver(text,text)', 'EXECUTE') AS ok`)).rows[0].ok).toBe(false);
-    // A new designation under the same policy restores the authority; earlier rows stay as history.
-    await db.pool.query(`INSERT INTO taxguard_tax_template_approvers(tenant_id, approver_uid, policy_version, basis, basis_reference, designated_by)
-      VALUES ($1, 'rp-rev', 1, 'ADMINISTRATIVE_DESIGNATION', 'synthetic-designation-rp-rev-2', 'rp-owner')`, [T]);
-    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_template_approvers WHERE tenant_id = $1 AND approver_uid = 'rp-rev'`, [T])).rows[0].n).toBe(2);
+    expect((await db.pool.query(`SELECT has_function_privilege('service_role', 'public.taxguard_tax_approval_authority(text,text,text,text,boolean)', 'EXECUTE') AS ok`)).rows[0].ok).toBe(false);
+    // Re-designation under the current policy restores the authority; the earlier designation is revoked, never deleted.
+    await db.pool.query(`UPDATE taxguard_tax_function_designations SET revoked_by = 'rp-owner', revoked_at = now(), revocation_reason = 'Synthetic: policy version 2'
+      WHERE tenant_id = $1 AND person_uid = 'rp-rev' AND revoked_at IS NULL`, [T]);
+    await designate('rp-rev', 'RETURN_TEMPLATE_APPROVAL', 2, 'synthetic-designation-rp-rev-v2');
+    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_function_designations WHERE tenant_id = $1 AND person_uid = 'rp-rev'`, [T])).rows[0].n).toBe(2);
   });
 });
 
@@ -225,7 +258,13 @@ describe('a draft return is assembled only from current form mappings', () => {
     expect((await act(return1, 'approve', 'rp-prep')).body.code).toBe('TAX_RETURN_REVIEWER_REQUIRED');
     expect((await act(return1, 'approve', 'rp-mgr')).body.code).toBe('TAX_RETURN_REVIEWER_REQUIRED');
     expect((await act(return1, 'return', 'rp-rev', 'short')).body.code).toBe('TAX_RETURN_INPUT_INVALID');
-    expect((await act(return1, 'approve', 'rp-rev')).body).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev', stale: [] });
+    // The Stage 09 draft review also needs the owner's review policy; without it the case reviewer cannot approve.
+    expect((await act(return1, 'approve', 'rp-rev')).body).toEqual({ code: 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED', detail: 'NO_POLICY' });
+    await policy('RETURN_DRAFT_REVIEW', 1, { eligibility: false, designation: false, caseAssignment: true });
+    expect((await act(return1, 'approve', 'rp-rev')).body).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev', stale: [],
+      approvalBasis: { function: 'RETURN_DRAFT_REVIEW', policyVersion: 1, jurisdiction: 'US', caseReviewer: true, approverUid: 'rp-rev' } });
+    await expect(db.pool.query(`UPDATE taxguard_tax_return_versions SET approval_basis = '{}'::jsonb WHERE tenant_id = $1 AND return_version_id = $2`, [T, return1]))
+      .rejects.toThrow('TAX_RETURN_IMMUTABLE');
     expect(await facts()).toEqual({ draftReturnGenerated: true, preparerReviewComplete: true, provenanceComplete: true, openReturns: 1,
       approvedCurrentReturns: 1, returnUse: 'BLOCKED' });
     const audit = (await db.pool.query(`SELECT action, actor_uid FROM taxguard_audit_log WHERE tenant_id = $1 AND action IN ('TAX_RETURN_SUBMITTED','TAX_RETURN_APPROVED') ORDER BY action`, [T])).rows;

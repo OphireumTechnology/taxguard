@@ -44,12 +44,16 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
     -- Seeded clients stand for clients whose Stage 01 onboarding was already completed (Stage 02 suites).
     || CASE WHEN m.role = 'client' THEN jsonb_build_object('onboardingStatus','COMPLETED','onboardingCompletedAt','2026-01-02T00:00:00.000000Z') ELSE '{}'::jsonb END
     FROM taxguard_members m JOIN (VALUES ${identityNames}) AS n(uid,email,name) ON n.uid = m.uid WHERE m.uid LIKE 'e2e-%';
-  -- Synthetic stand-in for the owner-approved template-approver configuration (proposal 20261019120000): no RPC can
-  -- write these tables. Only e2e-rev is designated; no other reviewer or administrator can approve return templates.
-  INSERT INTO taxguard_tax_template_approval_policy(tenant_id,policy_version,eligibility,approved_by)
-    VALUES('${E2E.tenant}',1,'Synthetic test policy: a designated reviewer with a recorded qualification reference.','e2e-admin');
-  INSERT INTO taxguard_tax_template_approvers(tenant_id,approver_uid,policy_version,basis,basis_reference,designated_by)
-    VALUES('${E2E.tenant}','e2e-rev',1,'ADMINISTRATIVE_DESIGNATION','synthetic-designation-e2e-rev','e2e-admin');
+  -- Synthetic stand-in for the owner-approved approval authority (proposal 20261019115000): no RPC can write these
+  -- tables. Only e2e-rev holds a (synthetic) verified eligibility and a template-approval designation; the draft review
+  -- policy needs the case reviewer assignment only. No other reviewer or administrator is authorized.
+  INSERT INTO taxguard_tax_approval_policies(tenant_id,function_code,policy_version,requires_eligibility,requires_designation,requires_case_assignment,accepted_credentials,eligibility_text,approved_by)
+    VALUES('${E2E.tenant}','RETURN_TEMPLATE_APPROVAL',1,true,true,false,ARRAY['CPA','EA'],'Synthetic test policy: verified CPA or EA with a designation.','e2e-admin'),
+      ('${E2E.tenant}','RETURN_DRAFT_REVIEW',1,false,false,true,'{}','Synthetic test policy: the case reviewer assignment.','e2e-admin');
+  INSERT INTO taxguard_tax_professional_eligibility(tenant_id,person_uid,credential_type,credential_reference,issuing_jurisdiction,scope_jurisdictions,valid_from,expires_on,verified_by,verification_reference)
+    VALUES('${E2E.tenant}','e2e-rev','CPA','synthetic-licence-e2e-rev','NY',ARRAY['US'],'2025-01-01','2099-12-31','e2e-admin','synthetic-registry-lookup');
+  INSERT INTO taxguard_tax_function_designations(tenant_id,person_uid,function_code,policy_version,designation_reference,designated_by)
+    VALUES('${E2E.tenant}','e2e-rev','RETURN_TEMPLATE_APPROVAL',1,'synthetic-designation-e2e-rev','e2e-admin');
   -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
   -- created by the tests through /e2e/provider-user; they have no local password.
   INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000a','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-00000000000b','admin','active'),

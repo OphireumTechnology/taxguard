@@ -224,6 +224,19 @@ export const RETURN_PROBLEM_LABELS: Record<string, string> = {
   RETURN_FORM_ADDED: 'an optional form now has a mapping',
   RETURN_TEMPLATE_SUPERSEDED: 'a newer return template was approved',
 };
+/** Why an approval authority check failed (proposal 20261019115000); nothing here grants or infers authority. */
+export const AUTHORITY_REASON_LABELS: Record<string, string> = {
+  NO_POLICY: 'No approval policy has been approved for this function yet.',
+  NOT_CASE_REVIEWER: 'You are not the case\'s assigned reviewer.',
+  NO_DESIGNATION: 'You have not been designated for this approval function.',
+  DESIGNATION_UNDER_OLD_POLICY: 'Your designation was made under an earlier policy version.',
+  NO_ELIGIBILITY: 'No verified professional eligibility is recorded for you.',
+  ELIGIBILITY_REVOKED: 'Your recorded professional eligibility has been revoked.',
+  ELIGIBILITY_NOT_YET_VALID: 'Your recorded professional eligibility is not valid yet.',
+  ELIGIBILITY_EXPIRED: 'Your recorded professional eligibility has expired.',
+  CREDENTIAL_NOT_ACCEPTED: 'Your credential type is not accepted for this function.',
+  OUTSIDE_ELIGIBILITY_SCOPE: 'Your recorded eligibility does not cover this jurisdiction.',
+};
 export function returnProblemText(p: ReturnProblem): string {
   const where = p.formId ? `${p.formId} ${p.formVersion ?? ''}`.trim() + ': ' : '';
   const label = RETURN_PROBLEM_LABELS[p.reason] ?? (p.reason.startsWith('RETURN_TEMPLATE_') ? 'the return template is ' + p.reason.slice(16).toLowerCase() : p.reason);
@@ -294,7 +307,6 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_PREPARER_REQUIRED: 'Only the case\'s preparer can prepare or submit the draft return.',
     TAX_RETURN_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can approve or return the draft return.',
     TAX_RETURN_NOT_FOUND: 'This draft return is not available to you. Access follows your live assignment to the case.',
-    TAX_RETURN_TEMPLATE_APPROVER_REQUIRED: 'Only a designated template approver can approve a return template. Approvers are designated under the practice’s approved eligibility policy; none is configured for you.',
     TAX_RETURN_TEMPLATE_NOT_FOUND: 'This return template no longer exists or is not visible to you.',
     TAX_RETURN_TEMPLATE_NOT_APPROVED: 'Only an approved return template can be used. A newer approval may have superseded this one.',
     TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 'This return template is not in effect today (outside its effective dates). Nothing was written.',
@@ -335,6 +347,10 @@ export function taxEngineMessage(error: unknown): string {
     const problems = formProblems(error.detail);
     return 'Mapping refused: nothing was written. ' + (problems.map(formProblemText).join('; ') || 'A line cannot be filled deterministically.') + '.';
   }
+  if (error.code === 'TAX_RETURN_TEMPLATE_APPROVER_REQUIRED') return 'Approval refused: approving a return template needs verified professional eligibility and a designation under the practice\'s approved policy. '
+    + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your approval authority is not configured.');
+  if (error.code === 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED') return 'Approval refused: the Stage 09 draft review needs the case reviewer assignment under the practice\'s approved review policy. '
+    + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your review authority is not configured.');
   if (error.code === 'TAX_RETURN_PREPARATION_REFUSED') {
     const problems = returnProblems(error.detail);
     return 'Preparation refused: nothing was written. ' + (problems.map(returnProblemText).join('; ') || 'A required form cannot be assembled.') + '.';
