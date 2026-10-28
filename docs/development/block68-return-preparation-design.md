@@ -102,8 +102,9 @@ production fail-closed; no AI-produced values; no external transmission.
 ## 9. Policy baseline (proposed 2026-10-28, pending formal owner and tax-professional approval)
 
 1. **Templates**: versioned, source-verified, and approved by a designated qualified tax professional. Implemented
-   as maker-checker on a verified source; which reviewers count as "qualified tax professional" is not yet encoded
-   (any reviewer role can approve today) and needs the owner's designation.
+   as a separate, server-enforced approval authority (section 10): a case-reviewer assignment or a reviewer or
+   administrator role alone confers nothing, and approval fails closed until the owner's eligibility policy and the
+   approvers are configured.
 2. **Stage 09 / Stage 10**: Stage 09 requires independent draft review (implemented: the case's live reviewer, never
    the preparer, approves the return version). Stage 10 requires separate final authorization by an appropriately
    authorized tax professional (not part of this block).
@@ -113,3 +114,20 @@ production fail-closed; no AI-produced values; no external transmission.
 
 Draft output is not authoritative: every version reads `returnUse: BLOCKED`, production refuses the routes, and the
 proposal stays review-only until approved.
+
+## 10. Qualified template-approver authorization
+
+| Element | Design |
+|---|---|
+| Eligibility policy | `taxguard_tax_template_approval_policy` (tenant, version, eligibility text, owner approver, time). Written only by a reviewed, owner-approved database change; immutable. |
+| Designation | `taxguard_tax_template_approvers` (approver, policy version, basis `VERIFIED_QUALIFICATION` or `ADMINISTRATIVE_DESIGNATION`, basis reference, designated by someone else, time, optional revocation). One active designation per person; rows only gain a revocation; no delete. Written only by reviewed database change. |
+| Check | `taxguard_tax_template_approver(tenant, actor)`: an active designation under the tenant's latest policy version, else NULL. Not callable by any API role. |
+| Approve | Needs a content-review role, the template PENDING_REVIEW, approver <> drafter, a designation (else `TAX_RETURN_TEMPLATE_APPROVER_REQUIRED`), and the cited source verified for the year. |
+| Record | `approval_basis` on the template and in the audit event: approver, designation id, basis and reference, designated by/at, policy version, template version and content hash, source id and verified tax year, approval time. Immutable once set. |
+| Fail closed | No policy, no designation, a revoked designation, or a designation under an older policy version: approval refused. Rejection grants nothing and stays open to content reviewers. |
+| No automatic grant | Existing reviewers, administrators and managers receive nothing; the browser suite seeds one synthetic designation for its reviewer only. |
+
+**[OWNER]** approve the eligibility policy text and the first designations; decide who may record designations (proposed:
+the owner, through a reviewed database change, until a designation workflow with its own maker-checker exists).
+Block 67 mapping rules are approved by any content reviewer today; applying the same authority to them is recommended
+as a follow-up change to that merged block.

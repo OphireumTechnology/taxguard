@@ -7,8 +7,11 @@
 --   -> for each form: the case's CURRENT, non-stale form mapping (Block 67)
 --   -> RETURN VERSION (forms with mapping id, version and values hash) -> preparer submit -> reviewer approve.
 -- A return template is tax content: it cites a verified source, names a supported jurisdiction and the dates it is
--- in effect, is drafted by a content maintainer, approved by a different reviewer (maker-checker; policy baseline:
--- a designated qualified tax professional), frozen once submitted, and a newer approval supersedes it.
+-- in effect, is drafted by a content maintainer, approved by a different person (maker-checker), frozen once
+-- submitted, and a newer approval supersedes it. Only a designated template approver may approve: the tenant's
+-- owner-approved eligibility policy plus an active designation (verified qualification or explicit administrative
+-- designation), configured by reviewed database change only. A case assignment or reviewer role alone confers
+-- nothing; with nothing configured, template approval fails closed.
 --
 -- Preparing is refused, with the reasons and nothing written, when a required form has no current mapping, a
 -- mapping is stale or its rule no longer approved, the case has blocking diagnostics, or the template is not
@@ -42,7 +45,10 @@ CREATE TABLE IF NOT EXISTS public.taxguard_tax_return_templates (
   reviewed_by VARCHAR(128),
   reviewed_at TIMESTAMPTZ,
   review_note VARCHAR(1000),
+  -- On approval: who approved, on what basis (designation, policy version) and the source verification relied on.
+  approval_basis JSONB CHECK (approval_basis IS NULL OR jsonb_typeof(approval_basis) = 'object'),
   PRIMARY KEY (tenant_id, template_rule_id),
+  CHECK ((status IN ('APPROVED','SUPERSEDED') AND reviewed_by IS NOT NULL) = (approval_basis IS NOT NULL)),
   UNIQUE (tenant_id, template_id, jurisdiction, jurisdiction_code, return_family, tax_year, version),
   CHECK (reviewed_by IS NULL OR reviewed_by <> prepared_by),
   CHECK (public.taxguard_tax_form_jurisdiction_supported(jurisdiction, jurisdiction_code)),
@@ -79,6 +85,72 @@ CREATE TABLE IF NOT EXISTS public.taxguard_tax_return_versions (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_taxguard_tax_return_versions_open ON public.taxguard_tax_return_versions(tenant_id, case_id, template_id)
   WHERE status <> 'SUPERSEDED';
 
+-- Who may approve return templates. Approving a template is a professional act, not a case role: a case reviewer
+-- assignment, a reviewer or administrator role alone confers nothing. Approval requires (1) the owner-approved
+-- professional eligibility policy for the tenant and (2) an active designation of the approver under it, based on a
+-- verified qualification or an explicit administrative designation. No RPC writes either table: both are configured
+-- only by a reviewed, owner-approved database change. With neither configured, template approval fails closed.
+CREATE TABLE IF NOT EXISTS public.taxguard_tax_template_approval_policy (
+  tenant_id VARCHAR(128) NOT NULL REFERENCES public.taxguard_tenants(id) ON DELETE RESTRICT,
+  policy_version INTEGER NOT NULL CHECK (policy_version BETWEEN 1 AND 1000),
+  eligibility VARCHAR(2000) NOT NULL CHECK (length(btrim(eligibility)) >= 20),
+  approved_by VARCHAR(128) NOT NULL,
+  approved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, policy_version)
+);
+CREATE TABLE IF NOT EXISTS public.taxguard_tax_template_approvers (
+  tenant_id VARCHAR(128) NOT NULL REFERENCES public.taxguard_tenants(id) ON DELETE RESTRICT,
+  designation_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  approver_uid VARCHAR(128) NOT NULL,
+  policy_version INTEGER NOT NULL,
+  basis VARCHAR(32) NOT NULL CHECK (basis IN ('VERIFIED_QUALIFICATION','ADMINISTRATIVE_DESIGNATION')),
+  -- The qualification or designation record relied on (credential reference or designation decision), never a secret.
+  basis_reference VARCHAR(300) NOT NULL CHECK (length(btrim(basis_reference)) >= 5),
+  designated_by VARCHAR(128) NOT NULL,
+  designated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  revoked_by VARCHAR(128),
+  revoked_at TIMESTAMPTZ,
+  PRIMARY KEY (tenant_id, designation_id),
+  FOREIGN KEY (tenant_id, policy_version) REFERENCES public.taxguard_tax_template_approval_policy(tenant_id, policy_version),
+  CHECK (designated_by <> approver_uid),
+  CHECK ((revoked_by IS NULL) = (revoked_at IS NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_taxguard_tax_template_approvers_active ON public.taxguard_tax_template_approvers(tenant_id, approver_uid)
+  WHERE revoked_at IS NULL;
+
+CREATE OR REPLACE FUNCTION public.taxguard_tax_template_approval_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP IN ('DELETE','TRUNCATE') OR TG_TABLE_NAME = 'taxguard_tax_template_approval_policy' THEN
+    RAISE EXCEPTION 'TAX_TEMPLATE_APPROVAL_HISTORY_IMMUTABLE' USING ERRCODE = 'P0001';
+  END IF;
+  -- A designation only ever gains its revocation.
+  IF OLD.revoked_at IS NOT NULL OR (to_jsonb(NEW) - ARRAY['revoked_by','revoked_at']) IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['revoked_by','revoked_at']) THEN
+    RAISE EXCEPTION 'TAX_TEMPLATE_APPROVAL_HISTORY_IMMUTABLE' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
+DO $$ DECLARE t text; BEGIN
+  FOREACH t IN ARRAY ARRAY['taxguard_tax_template_approval_policy','taxguard_tax_template_approvers'] LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_%s_guard ON public.%I', t, t);
+    EXECUTE format('CREATE TRIGGER trg_%s_guard BEFORE UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.taxguard_tax_template_approval_guard()', t, t);
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_%s_no_truncate ON public.%I', t, t);
+    EXECUTE format('CREATE TRIGGER trg_%s_no_truncate BEFORE TRUNCATE ON public.%I FOR EACH STATEMENT EXECUTE FUNCTION public.taxguard_tax_template_approval_guard()', t, t);
+  END LOOP;
+END $$;
+ALTER TABLE public.taxguard_tax_template_approval_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.taxguard_tax_template_approvers ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.taxguard_tax_template_approval_policy, public.taxguard_tax_template_approvers FROM PUBLIC, anon, authenticated, service_role;
+
+-- The actor's current authority to approve templates, or NULL: the tenant's latest approved eligibility policy and an
+-- active designation under that policy version.
+CREATE OR REPLACE FUNCTION public.taxguard_tax_template_approver(p_tenant text, p_actor text) RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT jsonb_build_object('approverUid', a.approver_uid, 'designationId', a.designation_id, 'basis', a.basis, 'basisReference', a.basis_reference,
+      'designatedBy', a.designated_by, 'designatedAt', a.designated_at, 'policyVersion', a.policy_version)
+  FROM public.taxguard_tax_template_approvers a
+  WHERE a.tenant_id = p_tenant AND a.approver_uid = p_actor AND a.revoked_at IS NULL
+    AND a.policy_version = (SELECT max(p.policy_version) FROM public.taxguard_tax_template_approval_policy p WHERE p.tenant_id = p_tenant) $$;
+
 ALTER TABLE public.taxguard_tax_return_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxguard_tax_return_versions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.taxguard_tax_return_templates, public.taxguard_tax_return_versions FROM PUBLIC, anon, authenticated, service_role;
@@ -92,7 +164,8 @@ BEGIN
         NEW.return_family, NEW.tax_year, NEW.version, NEW.prepared_by, NEW.created_at) IS DISTINCT FROM (OLD.tenant_id, OLD.template_rule_id,
         OLD.template_id, OLD.jurisdiction, OLD.jurisdiction_code, OLD.effective_from, OLD.effective_to, OLD.return_family, OLD.tax_year, OLD.version,
         OLD.prepared_by, OLD.created_at)
-       OR (OLD.status <> 'DRAFT' AND (NEW.definition, NEW.content_sha256, NEW.source_id) IS DISTINCT FROM (OLD.definition, OLD.content_sha256, OLD.source_id)) THEN
+       OR (OLD.status <> 'DRAFT' AND (NEW.definition, NEW.content_sha256, NEW.source_id) IS DISTINCT FROM (OLD.definition, OLD.content_sha256, OLD.source_id))
+       OR (OLD.approval_basis IS NOT NULL AND NEW.approval_basis IS DISTINCT FROM OLD.approval_basis) THEN
       RAISE EXCEPTION 'TAX_RETURN_IMMUTABLE' USING ERRCODE = 'P0001';
     END IF;
   ELSE
@@ -164,7 +237,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_te
     'jurisdictionCode', r.jurisdiction_code, 'effectiveFrom', r.effective_from, 'effectiveTo', r.effective_to, 'returnFamily', r.return_family,
     'taxYear', r.tax_year, 'version', r.version, 'contentSha256', r.content_sha256, 'sourceId', r.source_id, 'status', r.status,
     'preparedBy', r.prepared_by, 'createdAt', r.created_at, 'submittedAt', r.submitted_at, 'reviewedBy', r.reviewed_by, 'reviewedAt', r.reviewed_at,
-    'reviewNote', r.review_note, 'forms', jsonb_array_length(r.definition->'forms'))
+    'reviewNote', r.review_note, 'approvalBasis', r.approval_basis, 'forms', jsonb_array_length(r.definition->'forms'))
   || CASE WHEN p_full THEN jsonb_build_object('definition', r.definition) ELSE '{}'::jsonb END $$;
 
 CREATE OR REPLACE FUNCTION public.taxguard_tax_return_template_draft(p_tenant text, p_actor text, p_definition jsonb) RETURNS jsonb
@@ -193,11 +266,13 @@ BEGIN
   RETURN public.taxguard_tax_return_template_json(r, false);
 END $$;
 
--- submit (maintainer), approve / reject (a reviewer other than the preparer). The cited source must be verified for
--- the template's tax year; approving supersedes the previously approved template of the same family.
+-- submit (maintainer), approve / reject (a content reviewer other than the preparer). Approving also requires a designated
+-- template approver under the tenant's approved eligibility policy (taxguard_tax_template_approver); with none it
+-- fails closed. The cited source must be verified for the template's tax year; the approval records its basis, and
+-- approving supersedes the previously approved template of the same family. Rejecting grants nothing and needs a note.
 CREATE OR REPLACE FUNCTION public.taxguard_tax_return_template_transition(p_tenant text, p_actor text, p_template uuid, p_action text, p_note text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE role_ text; r public.taxguard_tax_return_templates; missing text[]; note text := NULLIF(btrim(COALESCE(p_note, '')), '');
+DECLARE role_ text; r public.taxguard_tax_return_templates; missing text[]; note text := NULLIF(btrim(COALESCE(p_note, '')), ''); basis jsonb;
 BEGIN
   IF p_action NOT IN ('submit','approve','reject') THEN RAISE EXCEPTION 'TAX_RETURN_TEMPLATE_INPUT_INVALID' USING ERRCODE = 'P0001'; END IF;
   role_ := public.taxguard_tax_actor(p_tenant, p_actor, CASE WHEN p_action = 'submit' THEN 'maintain' ELSE 'review' END);
@@ -215,16 +290,21 @@ BEGIN
     IF r.prepared_by = p_actor THEN RAISE EXCEPTION 'MAKER_CHECKER_VIOLATION' USING ERRCODE = 'P0001'; END IF;
     IF p_action = 'reject' AND length(COALESCE(note, '')) < 10 THEN RAISE EXCEPTION 'TAX_RETURN_TEMPLATE_INPUT_INVALID' USING ERRCODE = 'P0001'; END IF;
     IF p_action = 'approve' THEN
+      basis := public.taxguard_tax_template_approver(p_tenant, p_actor);
+      IF basis IS NULL THEN RAISE EXCEPTION 'TAX_RETURN_TEMPLATE_APPROVER_REQUIRED' USING ERRCODE = 'P0001'; END IF;
       IF cardinality(missing) > 0 THEN RAISE EXCEPTION 'TAX_SOURCE_NOT_VERIFIED' USING ERRCODE = 'P0001', DETAIL = array_to_string(missing, ','); END IF;
+      basis := basis || jsonb_build_object('templateVersion', r.version, 'contentSha256', r.content_sha256, 'sourceId', r.source_id,
+        'sourceVerifiedForTaxYear', r.tax_year, 'approvedAt', now());
       UPDATE public.taxguard_tax_return_templates SET status = 'SUPERSEDED' WHERE tenant_id = p_tenant AND template_id = r.template_id
         AND jurisdiction = r.jurisdiction AND jurisdiction_code = r.jurisdiction_code AND return_family = r.return_family AND tax_year = r.tax_year
         AND status = 'APPROVED';
     END IF;
     UPDATE public.taxguard_tax_return_templates SET status = CASE p_action WHEN 'approve' THEN 'APPROVED' ELSE 'REJECTED' END, reviewed_by = p_actor,
-      reviewed_at = now(), review_note = note WHERE tenant_id = p_tenant AND template_rule_id = p_template RETURNING * INTO r;
+      reviewed_at = now(), review_note = note, approval_basis = basis WHERE tenant_id = p_tenant AND template_rule_id = p_template RETURNING * INTO r;
   END IF;
   PERFORM public.taxguard_tax_audit(p_tenant, NULL, p_actor, role_, 'TAX_RETURN_TEMPLATE_' || CASE p_action WHEN 'submit' THEN 'SUBMITTED' WHEN 'approve' THEN 'APPROVED' ELSE 'REJECTED' END,
-    jsonb_build_object('templateRuleId', p_template, 'version', r.version, 'sha256', r.content_sha256));
+    jsonb_build_object('templateRuleId', p_template, 'version', r.version, 'sha256', r.content_sha256)
+    || CASE WHEN basis IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('approvalBasis', basis) END);
   RETURN public.taxguard_tax_return_template_json(r, false);
 END $$;
 
@@ -450,7 +530,7 @@ END $$;
 
 DO $$ DECLARE f record; BEGIN
   FOR f IN SELECT p.oid::regprocedure AS sig, p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public' AND p.proname LIKE 'taxguard\_tax\_return\_%' LOOP
+      WHERE n.nspname = 'public' AND (p.proname LIKE 'taxguard\_tax\_return\_%' OR p.proname LIKE 'taxguard\_tax\_template\_%') LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);
     IF f.proname IN ('taxguard_tax_return_template_draft','taxguard_tax_return_template_transition','taxguard_tax_return_template_get',
         'taxguard_tax_return_template_list','taxguard_tax_return_prepare','taxguard_tax_return_transition','taxguard_tax_return_list',

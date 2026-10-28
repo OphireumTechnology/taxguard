@@ -44,6 +44,12 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
     -- Seeded clients stand for clients whose Stage 01 onboarding was already completed (Stage 02 suites).
     || CASE WHEN m.role = 'client' THEN jsonb_build_object('onboardingStatus','COMPLETED','onboardingCompletedAt','2026-01-02T00:00:00.000000Z') ELSE '{}'::jsonb END
     FROM taxguard_members m JOIN (VALUES ${identityNames}) AS n(uid,email,name) ON n.uid = m.uid WHERE m.uid LIKE 'e2e-%';
+  -- Synthetic stand-in for the owner-approved template-approver configuration (proposal 20261019120000): no RPC can
+  -- write these tables. Only e2e-rev is designated; no other reviewer or administrator can approve return templates.
+  INSERT INTO taxguard_tax_template_approval_policy(tenant_id,policy_version,eligibility,approved_by)
+    VALUES('${E2E.tenant}',1,'Synthetic test policy: a designated reviewer with a recorded qualification reference.','e2e-admin');
+  INSERT INTO taxguard_tax_template_approvers(tenant_id,approver_uid,policy_version,basis,basis_reference,designated_by)
+    VALUES('${E2E.tenant}','e2e-rev',1,'ADMINISTRATIVE_DESIGNATION','synthetic-designation-e2e-rev','e2e-admin');
   -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
   -- created by the tests through /e2e/provider-user; they have no local password.
   INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES ('${E2E.tenant}','d0000000-0000-4000-8000-00000000000a','admin','active'),('${E2E.tenant}','d0000000-0000-4000-8000-00000000000b','admin','active'),

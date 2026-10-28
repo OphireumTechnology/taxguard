@@ -15,7 +15,7 @@ import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEng
 // returns it; a changed input makes the version stale. SYNTHETIC data, form and template only: nothing here is tax law.
 const T = 'tenantReturnPrep', T2 = 'tenantReturnPrepOther', C = 'rpClient';
 const roles: Record<string, string> = { 'rp-mgr': 'practice_manager', 'rp-prep': 'accountant', 'rp-rev': 'reviewer', 'rp-out': 'accountant', 'rp-client': 'client',
-  'rp-prep24': 'accountant' };
+  'rp-prep24': 'accountant', 'rp-admin': 'admin' };
 let db: TestDatabase; let caseId = '', engagementId = '', ruleSetId = '', formRuleId = '', templateId = '', income = '', return1 = '';
 let server: Server; let origin = ''; let user: any = null;
 const as = (uid: string, tenantId = T) => { user = { id: uid, role: roles[uid] ?? 'practice_manager', tenantId, status: 'active' }; };
@@ -59,7 +59,7 @@ beforeAll(async () => {
     INSERT INTO taxguard_clients(tenant_id, client_id, owner_uid, name) VALUES ('${T}', '${C}', 'rp-client', 'Synthetic Return Client');
     INSERT INTO taxguard_members(tenant_id, uid, role, status, client_id) VALUES ('${T}', 'rp-mgr', 'practice_manager', 'active', NULL), ('${T}', 'rp-prep', 'accountant', 'active', NULL),
       ('${T}', 'rp-rev', 'reviewer', 'active', NULL), ('${T}', 'rp-out', 'accountant', 'active', NULL), ('${T}', 'rp-client', 'client', 'active', '${C}'),
-      ('${T}', 'rp-prep24', 'accountant', 'active', NULL), ('${T2}', 'rp-foreign', 'practice_manager', 'active', NULL);`);
+      ('${T}', 'rp-prep24', 'accountant', 'active', NULL), ('${T}', 'rp-admin', 'admin', 'active', NULL), ('${T2}', 'rp-foreign', 'practice_manager', 'active', NULL);`);
   const practice = new PracticeStore(pgRpc(db.pool));
   engagementId = (await practice.createEngagement(T, C, 'rp-mgr', 'rp-engagement-1', { title: 'Synthetic 2025 return', type: 'tax_preparation', taxYears: [2025] })).engagementId;
   await practice.setEngagementStatus(T, C, 'rp-mgr', engagementId, 'active', 1);
@@ -116,8 +116,52 @@ describe('return templates are governed tax content', () => {
     as('rp-rev'); const own = (await call('POST', '/return-templates', { definition: template({ templateId: 'SYN-OWN' }) })).body;
     await call('POST', `/return-templates/${own.templateRuleId}/submit`);
     expect((await call('POST', `/return-templates/${own.templateRuleId}/approve`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
-    expect((await call('POST', `/return-templates/${templateId}/approve`)).body).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev' });
+    // Fail closed: a case reviewer (or any reviewer role) cannot approve until the owner's eligibility policy exists and
+    // the approver is designated under it. Nothing is granted to existing reviewers or managers.
+    expect((await call('POST', `/return-templates/${templateId}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED');
+    await db.pool.query(`INSERT INTO taxguard_tax_template_approval_policy(tenant_id, policy_version, eligibility, approved_by)
+      VALUES ($1, 1, 'Synthetic policy: designated reviewers with a recorded qualification reference.', 'rp-owner')`, [T]);
+    expect((await call('POST', `/return-templates/${templateId}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED');
+    as('rp-admin'); expect((await call('POST', `/return-templates/${templateId}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED'); // admin role alone: nothing
+    as('rp-rev');
+    await db.pool.query(`INSERT INTO taxguard_tax_template_approvers(tenant_id, approver_uid, policy_version, basis, basis_reference, designated_by)
+      VALUES ($1, 'rp-rev', 1, 'VERIFIED_QUALIFICATION', 'synthetic-credential-rp-rev', 'rp-owner')`, [T]);
+    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_templates WHERE tenant_id = $1 AND status = 'APPROVED'`, [T])).rows[0].n).toBe(0);
+    as('rp-rev'); const approved = (await call('POST', `/return-templates/${templateId}/approve`)).body;
+    expect(approved).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev', approvalBasis: { approverUid: 'rp-rev', basis: 'VERIFIED_QUALIFICATION',
+      basisReference: 'synthetic-credential-rp-rev', designatedBy: 'rp-owner', policyVersion: 1, templateVersion: 2, contentSha256: drafted.body.contentSha256,
+      sourceId: SYNTHETIC_SOURCE_ID, sourceVerifiedForTaxYear: 2025 } });
+    expect(approved.approvalBasis.approvedAt).toEqual(expect.any(String));
+    const audit = (await db.pool.query(`SELECT actor_uid, metadata FROM taxguard_audit_log WHERE tenant_id = $1 AND action = 'TAX_RETURN_TEMPLATE_APPROVED'`, [T])).rows;
+    expect(audit).toEqual([expect.objectContaining({ actor_uid: 'rp-rev', metadata: expect.objectContaining({ approvalBasis: expect.objectContaining({ basis: 'VERIFIED_QUALIFICATION' }) }) })]);
+    await expect(db.pool.query(`UPDATE taxguard_tax_return_templates SET approval_basis = '{}'::jsonb WHERE tenant_id = $1 AND template_rule_id = $2`, [T, templateId]))
+      .rejects.toThrow('TAX_RETURN_IMMUTABLE');
     expect((await call('GET', `/return-templates/${templateId}`)).body.definition.forms).toHaveLength(2);
+  });
+
+  it('template approval authority: revocation fails closed; the configuration is immutable and unreachable through the API', async () => {
+    as('rp-prep'); const t = (await call('POST', '/return-templates', { definition: template({ templateId: 'SYN-REVOKE' }) })).body.templateRuleId;
+    await call('POST', `/return-templates/${t}/submit`);
+    await db.pool.query(`UPDATE taxguard_tax_template_approvers SET revoked_by = 'rp-owner', revoked_at = now() WHERE tenant_id = $1 AND approver_uid = 'rp-rev'`, [T]);
+    as('rp-rev'); expect((await call('POST', `/return-templates/${t}/approve`)).body.code).toBe('TAX_RETURN_TEMPLATE_APPROVER_REQUIRED');
+    // Rejecting grants nothing, so it stays open to content reviewers.
+    expect((await call('POST', `/return-templates/${t}/reject`, { note: 'Synthetic: superseded by the corrected template' })).body).toMatchObject({ status: 'REJECTED', approvalBasis: null });
+    for (const sql of [`UPDATE taxguard_tax_template_approvers SET revoked_at = NULL, revoked_by = NULL WHERE tenant_id = '${T}'`,
+      `UPDATE taxguard_tax_template_approvers SET basis_reference = 'changed' WHERE tenant_id = '${T}'`,
+      `UPDATE taxguard_tax_template_approval_policy SET eligibility = 'Anyone may approve templates now.' WHERE tenant_id = '${T}'`,
+      `DELETE FROM taxguard_tax_template_approvers WHERE tenant_id = '${T}'`, 'TRUNCATE taxguard_tax_template_approval_policy CASCADE'])
+      await expect(db.pool.query(sql), sql).rejects.toThrow('TAX_TEMPLATE_APPROVAL_HISTORY_IMMUTABLE');
+    await expect(db.pool.query(`INSERT INTO taxguard_tax_template_approvers(tenant_id, approver_uid, policy_version, basis, basis_reference, designated_by)
+      VALUES ($1, 'rp-rev', 1, 'VERIFIED_QUALIFICATION', 'self-designation', 'rp-rev')`, [T])).rejects.toThrow(/check/i);
+    for (const table of ['taxguard_tax_template_approval_policy', 'taxguard_tax_template_approvers'])
+      for (const role of ['anon', 'authenticated', 'service_role'])
+        expect((await db.pool.query(`SELECT has_table_privilege($1, $2, 'SELECT') OR has_table_privilege($1, $2, 'INSERT') OR has_table_privilege($1, $2, 'UPDATE') AS ok`,
+          [role, 'public.' + table])).rows[0].ok, `${role} ${table}`).toBe(false);
+    expect((await db.pool.query(`SELECT has_function_privilege('service_role', 'public.taxguard_tax_template_approver(text,text)', 'EXECUTE') AS ok`)).rows[0].ok).toBe(false);
+    // A new designation under the same policy restores the authority; earlier rows stay as history.
+    await db.pool.query(`INSERT INTO taxguard_tax_template_approvers(tenant_id, approver_uid, policy_version, basis, basis_reference, designated_by)
+      VALUES ($1, 'rp-rev', 1, 'ADMINISTRATIVE_DESIGNATION', 'synthetic-designation-rp-rev-2', 'rp-owner')`, [T]);
+    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_template_approvers WHERE tenant_id = $1 AND approver_uid = 'rp-rev'`, [T])).rows[0].n).toBe(2);
   });
 });
 

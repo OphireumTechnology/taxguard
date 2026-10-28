@@ -294,6 +294,7 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_PREPARER_REQUIRED: 'Only the case\'s preparer can prepare or submit the draft return.',
     TAX_RETURN_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can approve or return the draft return.',
     TAX_RETURN_NOT_FOUND: 'This draft return is not available to you. Access follows your live assignment to the case.',
+    TAX_RETURN_TEMPLATE_APPROVER_REQUIRED: 'Only a designated template approver can approve a return template. Approvers are designated under the practice’s approved eligibility policy; none is configured for you.',
     TAX_RETURN_TEMPLATE_NOT_FOUND: 'This return template no longer exists or is not visible to you.',
     TAX_RETURN_TEMPLATE_NOT_APPROVED: 'Only an approved return template can be used. A newer approval may have superseded this one.',
     TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 'This return template is not in effect today (outside its effective dates). Nothing was written.',

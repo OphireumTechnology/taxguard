@@ -5,9 +5,9 @@
     "files": 103,
     "core": 13,
     "proposals": 89,
-    "tables": 169,
-    "functions": 448,
-    "securityDefinerFunctions": 350,
+    "tables": 171,
+    "functions": 450,
+    "securityDefinerFunctions": 351,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -4199,7 +4199,9 @@
       "reapply": "ok",
       "tablesAdded": [
         "taxguard_tax_return_templates",
-        "taxguard_tax_return_versions"
+        "taxguard_tax_return_versions",
+        "taxguard_tax_template_approval_policy",
+        "taxguard_tax_template_approvers"
       ],
       "functionsAdded": [
         "taxguard_tax_return_derive",
@@ -4217,13 +4219,15 @@
         "taxguard_tax_return_template_json",
         "taxguard_tax_return_template_list",
         "taxguard_tax_return_template_transition",
-        "taxguard_tax_return_transition"
+        "taxguard_tax_return_transition",
+        "taxguard_tax_template_approval_guard",
+        "taxguard_tax_template_approver"
       ],
       "supersedes": [],
       "functionsRemoved": [],
       "policiesAdded": [],
-      "triggersAdded": 4,
-      "indexesAdded": 5,
+      "triggersAdded": 8,
+      "indexesAdded": 8,
       "notValidConstraints": [],
       "prerequisites": [
         1,

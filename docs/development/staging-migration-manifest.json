@@ -5419,7 +5419,7 @@
       "file": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
       "kind": "proposal",
       "version": "20261019120000",
-      "sha256": "f49581ee301b6cc78728631334db88f68f1d89777a7357a7d05071c053c00e82",
+      "sha256": "ba517fc544e5642a49af4b5060c80d00e79baec9b49bb6a4708f79a7de293fa4",
       "validTimestamp": true,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -5442,6 +5442,10 @@
       "declaredObjects": [
         "taxguard_tax_return_templates",
         "taxguard_tax_return_versions",
+        "taxguard_tax_template_approval_policy",
+        "taxguard_tax_template_approvers",
+        "taxguard_tax_template_approval_guard",
+        "taxguard_tax_template_approver",
         "taxguard_tax_return_guard",
         "taxguard_tax_return_template_invalid",
         "taxguard_tax_return_template_json",
@@ -5464,11 +5468,12 @@
         "-- have none. Rollback (development): drop the functions and the two tables."
       ],
       "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_template_approval_policy, public.taxguard_tax_template_approvers FROM PUBLIC, anon, authenticated, service_role;",
         "REVOKE ALL ON public.taxguard_tax_return_templates, public.taxguard_tax_return_versions FROM PUBLIC, anon, authenticated, service_role;",
         "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
         "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
       ],
-      "securityDefinerDeclarations": 13,
+      "securityDefinerDeclarations": 14,
       "notValidConstraints": 0,
       "header": [
         "-- PROPOSAL (Block 68, draft return preparation). REVIEW ONLY; NOT APPLIED anywhere external.",
@@ -5480,9 +5485,9 @@
         "--   -> for each form: the case's CURRENT, non-stale form mapping (Block 67)",
         "--   -> RETURN VERSION (forms with mapping id, version and values hash) -> preparer submit -> reviewer approve.",
         "-- A return template is tax content: it cites a verified source, names a supported jurisdiction and the dates it is",
-        "-- in effect, is drafted by a content maintainer, approved by a different reviewer (maker-checker; policy baseline:",
-        "-- a designated qualified tax professional), frozen once submitted, and a newer approval supersedes it.",
-        "--"
+        "-- in effect, is drafted by a content maintainer, approved by a different person (maker-checker), frozen once",
+        "-- submitted, and a newer approval supersedes it. Only a designated template approver may approve: the tenant's",
+        "-- owner-approved eligibility policy plus an active designation (verified qualification or explicit administrative"
       ]
     }
   ]
