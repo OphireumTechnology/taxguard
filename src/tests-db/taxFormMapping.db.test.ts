@@ -159,6 +159,32 @@ describe('mapping rules are governed tax content', () => {
       form_id, form_version, version, definition, content_sha256, source_id, prepared_by) VALUES ($1, 'federal', 'US', '2025-06-01', '2025-01-01', '1040', 2025, 'SYN-X',
       '1', 1, '{}'::jsonb, repeat('c', 64), 'syn-src', 'fm-prep')`, [T])).rejects.toThrow(/check/i);
   });
+
+  it('FORM_RULE_APPROVAL: revoked eligibility fails closed; rules approved before the authority keep their status and cannot be backfilled', async () => {
+    as('fm-prep'); const r = (await call('POST', '/form-rules', { definition: definition([LINES[0]], { formVersion: '2025.6' }) })).body.ruleId;
+    await call('POST', `/form-rules/${r}/submit`);
+    await db.pool.query(`UPDATE taxguard_tax_professional_eligibility SET revoked_by = 'fm-owner', revoked_at = now(), revocation_reason = 'Synthetic: enrolment lapsed'
+      WHERE tenant_id = $1 AND person_uid = 'fm-rev' AND revoked_at IS NULL`, [T]);
+    as('fm-rev'); expect((await call('POST', `/form-rules/${r}/approve`)).body).toEqual({ code: 'TAX_FORM_RULE_APPROVER_REQUIRED', detail: 'ELIGIBILITY_REVOKED' });
+    // Maker-checker still applies to an authorized approver: the drafter cannot approve their own rule.
+    await db.pool.query(`INSERT INTO taxguard_tax_professional_eligibility(tenant_id, person_uid, credential_type, credential_reference, issuing_jurisdiction,
+      scope_jurisdictions, valid_from, expires_on, verified_by, verification_reference, verified_at) VALUES ($1, 'fm-rev', 'EA', 'synthetic-enrolment-ref-2', 'US',
+      ARRAY['US'], '2025-01-01', '2099-12-31', 'fm-owner', 'synthetic-registry-lookup-2', now() + interval '1 second')`, [T]);
+    const own = (await call('POST', '/form-rules', { definition: definition([LINES[0]], { formVersion: '2025.4' }) })).body.ruleId;
+    await call('POST', `/form-rules/${own}/submit`);
+    expect((await call('POST', `/form-rules/${own}/approve`)).body.code).toBe('MAKER_CHECKER_VIOLATION');
+    expect((await call('POST', `/form-rules/${r}/approve`)).body).toMatchObject({ status: 'APPROVED', approvalBasis: { credentialType: 'EA', function: 'FORM_RULE_APPROVAL' } });
+    // A rule approved before this proposal (no recorded basis) stays APPROVED; its basis cannot be filled in afterwards.
+    const legacy = (await db.pool.query(`INSERT INTO taxguard_tax_form_rules(tenant_id, jurisdiction, jurisdiction_code, effective_from, return_family, tax_year,
+      form_id, form_version, version, definition, content_sha256, source_id, status, prepared_by, submitted_at, reviewed_by, reviewed_at)
+      VALUES ($1, 'federal', 'US', '2025-01-01', '1040', 2025, 'SYN-LEGACY', '2025.0', 1, $2, repeat('d', 64), $3, 'APPROVED', 'fm-prep', now(), 'fm-legacy-reviewer', now())
+      RETURNING rule_id`, [T, JSON.stringify(definition([LINES[0]], { formId: 'SYN-LEGACY' })), SYNTHETIC_SOURCE_ID])).rows[0].rule_id;
+    expect((await call('GET', `/form-rules/${legacy}`)).body).toMatchObject({ status: 'APPROVED', reviewedBy: 'fm-legacy-reviewer', approvalBasis: null });
+    await expect(db.pool.query(`UPDATE taxguard_tax_form_rules SET approval_basis = '{"backfilled": true}'::jsonb WHERE tenant_id = $1 AND rule_id = $2`, [T, legacy]))
+      .rejects.toThrow('TAX_FORM_MAPPING_IMMUTABLE');
+    const audit = (await db.pool.query(`SELECT metadata FROM taxguard_audit_log WHERE tenant_id = $1 AND action = 'TAX_FORM_RULE_APPROVED' AND metadata->>'ruleId' = $2`, [T, r])).rows;
+    expect(audit).toEqual([{ metadata: expect.objectContaining({ approvalBasis: expect.objectContaining({ credentialType: 'EA', approverUid: 'fm-rev' }) }) }]);
+  });
 });
 
 describe('form values come only from approved, current conclusions through the approved rule', () => {
