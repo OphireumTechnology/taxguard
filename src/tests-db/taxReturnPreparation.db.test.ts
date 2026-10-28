@@ -336,4 +336,19 @@ describe('a changed input makes the return stale; preparing again records a new 
     expect(refused.code).toBe('TAX_RETURN_STALE');
     expect(JSON.parse(refused.detail).map((p: any) => p.reason)).toEqual(['RETURN_MAPPING_STALE']);
   });
+
+  it('a mapping made under a superseded mapping rule is refused, and the open version reads stale', async () => {
+    as('rp-prep'); const newer = (await call('POST', '/form-rules', { definition: { jurisdiction: 'federal', jurisdictionCode: 'US', returnFamily: '1040', taxYear: 2025,
+      formId: 'SYN-1040', formVersion: '2025.0', effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, lines: [
+        { schedule: 'MAIN', line: '1a', field: 'f1_wages_v2', valueType: 'MONEY', required: true, aggregate: 'SINGLE', source: { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' } }] } })).body.ruleId;
+    await call('POST', `/form-rules/${newer}/submit`);
+    as('rp-rev'); expect((await call('POST', `/form-rules/${newer}/approve`)).body.status).toBe('APPROVED'); // supersedes the rule of the current mapping
+    const before = (await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_versions WHERE tenant_id = $1`, [T])).rows[0].n;
+    const refused = (await prepare()).body;
+    expect(refused.code).toBe('TAX_RETURN_PREPARATION_REFUSED');
+    expect(JSON.parse(refused.detail)).toEqual([expect.objectContaining({ formId: 'SYN-1040', formVersion: '2025.0', reason: 'RETURN_MAPPING_RULE_NOT_APPROVED' })]);
+    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_versions WHERE tenant_id = $1`, [T])).rows[0].n).toBe(before);
+    as('rp-rev'); const open = (await call('GET', `/cases/${caseId}/returns`)).body.items.find((v: any) => v.status === 'DRAFT');
+    expect(open.stale.map((p: any) => p.reason)).toContain('RETURN_MAPPING_RULE_NOT_APPROVED');
+  });
 });

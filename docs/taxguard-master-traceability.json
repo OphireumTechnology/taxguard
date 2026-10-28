@@ -4916,6 +4916,20 @@
       ]
     },
     {
+      "file": "docs/development/block68-draft-return-preparation-report.md",
+      "sha256": "b9bf612e66274ce44b98644dad3a9725d26986294b5d11fb665f6e0b596b8b71",
+      "bytes": 5004,
+      "headings": [
+        "# Block 68: draft return preparation",
+        "## Chain",
+        "## Approval authority (20261019115000, shared)",
+        "## Return preparation (20261019120000)",
+        "## API and interface",
+        "## Tests",
+        "## Known gaps and owner decisions"
+      ]
+    },
+    {
       "file": "docs/development/block68-return-preparation-design.md",
       "sha256": "6496aee345a1bb46ea0ad6cb12358bf2115c9e024b8dce891dd5daad7cfcaf5f",
       "bytes": 10224,
@@ -5950,8 +5964,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "9300c2cad7ac56a9ef4929cac970a47deeb8ba005bc8d1bc316e817c66b184fc",
-      "bytes": 16745,
+      "sha256": "9dc9356a4b791d8dbe3c4bcb9f58957e8778ef4e06af5bdc322a45c83a57cb09",
+      "bytes": 17478,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
