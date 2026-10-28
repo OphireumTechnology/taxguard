@@ -1,28 +1,44 @@
-import type { StageGateEvidence } from "./stageGate.types";
+import { StageGateDecision } from './stageGate.types';
 
-export interface StageFourteenGateDecision {
-  stage: number;
-  passed: boolean;
-  approvalId: string;
-  evaluatorVersion: string;
-  evidence?: StageGateEvidence;
-  failedChecks?: string[];
+export interface StageFourteenGateSnapshot {
+  stageThirteenComplete: boolean;
+  rejectionsOrNoticesResolved: boolean;
+  openResolutionIssues: number;
+  professionalReviewComplete: boolean;
+  hardExitGatePassed: boolean;
+  blockingReasons?: string[];
 }
 
-export function evaluateStageFourteenServerGate(snapshot: any): StageFourteenGateDecision {
+export function evaluateStageFourteenServerGate(snapshot: StageFourteenGateSnapshot): StageGateDecision {
+  const checks = {
+    stageThirteenComplete: snapshot.stageThirteenComplete === true,
+    rejectionsOrNoticesResolved: snapshot.rejectionsOrNoticesResolved === true,
+    noOpenResolutionIssues: snapshot.openResolutionIssues === 0,
+    professionalReviewComplete: snapshot.professionalReviewComplete === true,
+    existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
+  };
+
+  const blockingReasons = [...(snapshot.blockingReasons || [])];
+
+  for (const [name, passed] of Object.entries(checks)) {
+    if (!passed) {
+      blockingReasons.push(`Stage 14 requirement failed: ${name}`);
+    }
+  }
+
   return {
     stage: 14,
-    passed: true,
-    approvalId: "gate_appr_14_" + Date.now(),
-    evaluatorVersion: "v1.0.0",
+    passed: Object.values(checks).every(Boolean) && blockingReasons.length === 0,
+    gateName: 'STAGE_14_RESOLVE_GATE',
     evidence: {
-      stageNumber: 14,
-      satisfiedAt: new Date().toISOString(),
-      sourceDocuments: [],
-      assertions: [
-        { id: "stage_14_criteria", verified: true }
-      ]
+      source: 'TaxGuardResolutionEngine',
+      evaluatedAt: new Date().toISOString(),
+      checks,
+      blockingReasons,
+      metadata: {
+        openResolutionIssues: snapshot.openResolutionIssues ?? null,
+        professionalReviewComplete: snapshot.professionalReviewComplete === true,
+      },
     },
-    failedChecks: []
   };
 }
