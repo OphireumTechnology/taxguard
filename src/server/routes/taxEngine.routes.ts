@@ -53,6 +53,17 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/cases/:caseId/runs', run(async req => ({ items: await store().runs(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
   router.post('/cases/:caseId/runs', run(req => store().calculate(t(req), u(req), req.params.caseId, String(req.body?.ruleSetId ?? ''),
     { filingStatus: typeof req.body?.filingStatus === 'string' ? req.body.filingStatus : undefined, inputs: Array.isArray(req.body?.inputs) ? req.body.inputs : [] }), 201));
+  // Tax conclusions and evidence-to-conclusion traces (proposal 20261019100000). Scope comes from the database for every
+  // request; the trace is bounded to one conclusion or one piece of evidence of one case.
+  router.get('/cases/:caseId/conclusions', run(async req => ({ items: await store().conclusions(t(req), u(req), req.params.caseId), returnUse: 'BLOCKED' })));
+  router.post('/cases/:caseId/conclusions', run(req => store().proposeConclusion(t(req), u(req), req.params.caseId, req.body), 201));
+  router.get('/cases/:caseId/conclusions/readiness', run(req => store().conclusionReadiness(t(req), u(req), req.params.caseId)));
+  router.get('/cases/:caseId/evidence-trace', run(req => store().traceEvidence(t(req), u(req), req.params.caseId, String(req.query.ref ?? ''))));
+  router.get('/conclusions/:conclusionId/trace', run(req => store().traceConclusion(t(req), u(req), req.params.conclusionId)));
+  router.post('/conclusions/:conclusionId/revise', run(req => store().reviseConclusion(t(req), u(req), req.params.conclusionId, req.body), 201));
+  router.post('/conclusions/:conclusionId/submit', run(req => store().submitConclusion(t(req), u(req), req.params.conclusionId)));
+  router.post('/conclusions/:conclusionId/:decision(approve|return|reject)', run(req => store().reviewConclusion(t(req), u(req), req.params.conclusionId,
+    req.params.decision as 'approve' | 'return' | 'reject', note(req.body?.note) ?? '')));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));
   router.post('/runs/:runId/:decision(approve|reject)', run(req => store().reviewRun(t(req), u(req), req.params.runId, req.params.decision as 'approve' | 'reject', note(req.body?.note) ?? '')));
   // Tax research memos for a case (proposal 20261018150000). Scope, authority levels and maker-checker are enforced by

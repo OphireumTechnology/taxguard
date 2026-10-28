@@ -1100,3 +1100,7 @@ Per-agent AI responsibilities and permissions; migration approval and NOT VALID 
 installation; staging infrastructure (isolated Supabase project, API/frontend hosts, secrets); provider
 commissioning (identity/MFA, storage, scanner, e-mail/SMS, calendar/video, payments, signature, filing);
 retention, consent and legal-referral policies; tax rule-set and practitioner approvals; PR #20 review.
+
+  **Durable evidence-to-conclusion traceability (Block 66).** See `docs/development/block66-evidence-conclusion-traceability-report.md`
+  (schema, staleness, API, UI, tests, gaps), `block66-security-verification.md`, `block66-browser-verification.md`,
+  `block66-production-readiness.md` and the inventory `block66-existing-traceability-inventory.md`.

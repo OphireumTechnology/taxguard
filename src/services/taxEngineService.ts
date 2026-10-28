@@ -49,6 +49,14 @@ export const taxEngineService = {
   caseRuns: (caseId: string) => request<{ items: CalculationRun[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/runs').then(r => r.items),
   reviewRun: (runId: string, decision: 'approve' | 'reject', note: string) => request<CalculationRun>('POST', '/runs' + id(runId) + '/' + decision, { note }),
   runLineage: (runId: string) => request<RunLineage>('GET', '/runs' + id(runId) + '/lineage'),
+  caseConclusions: (caseId: string) => request<{ items: TaxConclusion[] }>('GET', '/cases' + id(caseId) + '/conclusions').then(r => r.items),
+  proposeConclusion: (caseId: string, body: ConclusionInput) => request<TaxConclusion>('POST', '/cases' + id(caseId) + '/conclusions', body),
+  reviseConclusion: (conclusionId: string, body: Partial<ConclusionInput>) => request<TaxConclusion>('POST', '/conclusions' + id(conclusionId) + '/revise', body),
+  submitConclusion: (conclusionId: string) => request<TaxConclusion>('POST', '/conclusions' + id(conclusionId) + '/submit'),
+  reviewConclusion: (conclusionId: string, decision: 'approve' | 'return' | 'reject', note: string) =>
+    request<TaxConclusion>('POST', '/conclusions' + id(conclusionId) + '/' + decision, { note }),
+  traceConclusion: (conclusionId: string) => request<ConclusionTrace>('GET', '/conclusions' + id(conclusionId) + '/trace'),
+  conclusionReadiness: (caseId: string) => request<ConclusionReadiness>('GET', '/cases' + id(caseId) + '/conclusions/readiness'),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -127,6 +135,39 @@ export type EvidenceResolution = { unresolved: string } | { kind: 'DOCUMENT'; do
     documentId: string; documentVersion: number; documentSha256: string };
 export interface RunLineage { runId: string; status: CalculationRun['status']; recorded: boolean; complete: boolean; returnUse: 'BLOCKED';
   citations: Array<{ factPath: string; value: string | null; ref: string; resolution: EvidenceResolution; recordedBy?: string; recordedAt?: string }> }
+/** A governed tax determination for a case (proposal 20261019100000); never model output, never used for a return yet. */
+export const CONCLUSION_TYPES = ['INCOME_INCLUSION', 'DEDUCTION', 'DEPRECIATION', 'CREDIT_ELIGIBILITY', 'FILING_STATUS', 'ENTITY_CLASSIFICATION', 'BASIS',
+  'CAPITAL_GAIN_LOSS', 'CARRYFORWARD', 'STATE_ALLOCATION', 'BOOK_TO_TAX_ADJUSTMENT', 'OTHER'] as const;
+export type ConclusionLinkType = 'EVIDENCE' | 'CALCULATION' | 'RESEARCH' | 'WORKPAPER';
+export interface ConclusionInput { type: string; statement: string; amount?: string | null; links: Array<{ type: ConclusionLinkType; ref: string }> }
+export interface TaxConclusion { conclusionId: string; lineageId: string; version: number; supersedesId: string | null; caseId: string; taxYear: number; type: string;
+  statement: string; amount: string | null; status: 'DRAFT' | 'READY_FOR_REVIEW' | 'APPROVED' | 'RETURNED' | 'REJECTED' | 'SUPERSEDED'; preparedBy: string;
+  reviewedBy: string | null; reviewedAt: string | null; reviewNote: string | null; createdAt: string;
+  stale: Array<{ type: ConclusionLinkType; ref: string; reason: string }>; links: Array<{ type: ConclusionLinkType; ref: string; snapshot: Record<string, unknown> }>; returnUse: 'BLOCKED' }
+export interface ConclusionTrace { conclusion: TaxConclusion; returnUse: 'BLOCKED';
+  sources: Array<{ type: ConclusionLinkType; ref: string; snapshot: Record<string, any>; current: Record<string, any>; detail: Record<string, any> | null }>;
+  versions: Array<{ conclusionId: string; version: number; status: string; reviewedBy: string | null; reviewedAt: string | null; createdAt: string }>;
+  formLines: Array<{ formId: string; formVersion: string; line: string }>; audit: Array<{ action: string; actorUid: string; actorRole: string | null; at: string; version: number | null }> }
+export interface ConclusionReadiness { caseId: string; ready: boolean; conclusions: number; blockers: Array<{ conclusionId: string; version: number; status: string; reasons: string[] }> }
+/** The status a reviewer reads first: stale beats any review state, because a stale conclusion cannot be relied on. */
+export function conclusionBadge(k: Pick<TaxConclusion, 'status' | 'stale'>): 'STALE' | 'APPROVED' | 'REVIEW REQUIRED' | 'BLOCKED' | 'DRAFT' | 'SUPERSEDED' {
+  if (k.status === 'SUPERSEDED') return 'SUPERSEDED';
+  if (k.stale.length > 0) return 'STALE';
+  if (k.status === 'APPROVED') return 'APPROVED';
+  if (k.status === 'READY_FOR_REVIEW') return 'REVIEW REQUIRED';
+  if (k.status === 'REJECTED' || k.status === 'RETURNED') return 'BLOCKED';
+  return 'DRAFT';
+}
+export const STALE_REASON_LABELS: Record<string, string> = {
+  SOURCE_CHANGED: 'the source changed after it was linked', CALCULATION_REJECTED: 'the calculation run was rejected',
+  CALCULATION_EVIDENCE_STALE: 'the calculation\'s own evidence no longer resolves', RESEARCH_REJECTED: 'the research was rejected',
+  WORKPAPER_REJECTED: 'the workpaper was rejected', WORKPAPER_SUPERSEDED: 'a newer workpaper replaced it',
+};
+export const staleReason = (reason: string) => STALE_REASON_LABELS[reason] ?? EVIDENCE_REASON_LABELS[reason] ?? reason;
+/** Parses "type|ref|reason" from TAX_CONCLUSION_SOURCE_UNRESOLVED. */
+export function unresolvedSource(detail?: string): { type: string; ref: string; reason: string } | null {
+  const p = (detail ?? '').split('|'); return p.length === 3 ? { type: p[0], ref: p[1], reason: p[2] } : null;
+}
 export const EVIDENCE_REASON_LABELS: Record<string, string> = {
   NOT_FOUND: 'no such evidence for this client', OUT_OF_SCOPE: 'belongs to another engagement or tax year', NOT_DECIDED: 'the extracted value is not decided yet',
   VALUE_REJECTED: 'the extracted value was rejected', DOCUMENT_SUPERSEDED: 'a newer version of the document replaced it',
@@ -167,6 +208,13 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RULE_TEST_INPUT_INVALID: 'Check the test: a name, a cited source, inputs and expected outputs as "path = amount" lines.',
     TAX_RULE_TEST_IMMUTABLE: 'Tests can only change while the rule set is a draft.',
     TAX_RULE_TEST_NOT_FOUND: 'This test no longer exists.',
+    TAX_CONCLUSION_PREPARER_REQUIRED: 'Only the case\'s preparer can propose, revise or submit a conclusion.',
+    TAX_CONCLUSION_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a conclusion.',
+    TAX_CONCLUSION_EVIDENCE_REQUIRED: 'A conclusion needs at least one verified evidence citation (extraction:<id> or document:<id>).',
+    TAX_CONCLUSION_INPUT_INVALID: 'Check the conclusion: a type, a statement of 10 to 4,000 characters, an amount in dollars and cents if any, and a note of at least 10 characters to return or reject.',
+    TAX_CONCLUSION_NOT_DRAFT: 'Only a draft conclusion can be submitted.', TAX_CONCLUSION_NOT_SUBMITTED: 'Only a conclusion awaiting review can be decided.',
+    TAX_CONCLUSION_NOT_REVISABLE: 'This version cannot be revised (it is awaiting review, or a newer version exists).',
+    TAX_CONCLUSION_NOT_FOUND: 'This conclusion is not available to you. Access follows your live assignment to the case.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
     TAX_CALC_ALREADY_REVIEWED: 'This calculation run has already been reviewed.',
     TAX_CALC_INPUT_INVALID: 'Enter a review note of at least 10 characters.',
@@ -192,6 +240,12 @@ export function taxEngineMessage(error: unknown): string {
     TAX_ENGINE_STORE_UNAVAILABLE: 'The tax rules service is not enabled in this environment.',
   };
   if (error.code === 'TAX_SOURCE_NOT_VERIFIED') return `Submit refused: source ${error.detail ?? ''} is not verified yet.`.replace('  ', ' ');
+  if (error.code === 'TAX_CONCLUSION_SOURCE_UNRESOLVED') {
+    const u = unresolvedSource(error.detail);
+    return 'Refused: a cited source does not resolve for this case' + (u ? ` (${u.type.toLowerCase()} ${u.ref}: ${staleReason(u.reason)}).` : '.');
+  }
+  if (error.code === 'TAX_CONCLUSION_STALE') return 'Refused: a source changed after it was linked. Revise the conclusion on the current, reviewed sources.';
+  if (error.code === 'TAX_CONCLUSION_SOURCES_NOT_APPROVED') return 'Approval refused: every linked calculation run, research memo and workpaper must be approved first (' + (error.detail ?? '').replace(/,/g, ', ') + ').';
   if (error.code === 'TAX_CALC_EVIDENCE_UNRESOLVED') return 'Refused: every input must cite a reviewed document or a decided extracted value of this case. '
     + (unresolvedCitations(error.detail).map(u => `${u.factPath} (${u.ref}): ${EVIDENCE_REASON_LABELS[u.reason] ?? u.reason}`).join('; ') || 'No input cites evidence.');
   return (error.code && known[error.code]) || (error.status === 403 ? 'Your role is not authorized for this action.' : 'The tax rules service did not confirm this action.');
