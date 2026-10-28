@@ -1,99 +1,94 @@
+/**
+ * Client and engagement management over the proposal-025 service RPCs. Identifiers for
+ * created records are derived from the caller's idempotency key, so a retried request maps to
+ * the same row instead of creating a duplicate.
+ */
+import { createHash } from 'node:crypto';
+
+export interface PracticeRpcClient { rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: any; error: { code?: string; message?: string } | null }> }
 export class PracticeStoreError extends Error {
-  status: number;
-  code: string;
-  constructor(message: string, status = 500, code = 'PRACTICE_STORE_ERROR') {
-    super(message);
-    this.name = 'PracticeStoreError';
-    this.status = status;
-    this.code = code;
-  }
+  constructor(public readonly code: string, public readonly status: number) { super(code); }
+}
+const STATUS: Record<string, number> = {
+  PRACTICE_ACCESS_DENIED: 403, PRACTICE_MANAGER_REQUIRED: 403, DASHBOARD_MANAGER_REQUIRED: 403, DASHBOARD_ROLE_NOT_SUPPORTED: 403, TASK_ACTION_NOT_AUTHORIZED: 403, DEADLINE_WAIVER_NOT_AUTHORIZED: 403,
+  PRACTICE_VERSION_CONFLICT: 409, PRACTICE_CONCURRENT_UPDATE: 409, PRACTICE_IDEMPOTENCY_CONFLICT: 409, PRACTICE_BUSY: 409,
+  CLIENT_HAS_OPEN_ENGAGEMENTS: 409, ENGAGEMENT_HAS_OPEN_TASKS: 409, TASK_DEPENDENCIES_OPEN: 409, ASSIGNMENT_SEGREGATION_OF_DUTIES: 409,
+};
+const statusOf = (code: string) => STATUS[code] ?? (code.endsWith('_NOT_FOUND') ? 404 : 400);
+/** Stable record ID from (tenant, client, purpose, idempotency key). */
+export function derivedId(prefix: string, tenantId: string, clientId: string, key: string) {
+  if (typeof key !== 'string' || !/^[A-Za-z0-9_.:-]{8,128}$/.test(key)) throw new PracticeStoreError('IDEMPOTENCY_KEY_REQUIRED', 400);
+  return `${prefix}_${createHash('sha256').update([tenantId, clientId, prefix, key].join('|')).digest('hex').slice(0, 32)}`;
 }
 
-export type PracticeRpcClient = any;
+export interface ClientListFilter { q?: string; status?: 'active' | 'archived'; clientType?: string; after?: string; limit?: number }
 
 export class PracticeStore {
-  constructor(private client?: any) {}
-
-  async myWork(_tenantId: string, _userId: string): Promise<any> {
-    return { items: [] };
+  constructor(private readonly client: PracticeRpcClient) {}
+  private async call<T = any>(name: string, args: Record<string, unknown>): Promise<T> {
+    let response;
+    try { response = await this.client.rpc(name, args); } catch { throw new PracticeStoreError('PRACTICE_STORE_UNAVAILABLE', 503); }
+    if (response?.error) {
+      const { code, message } = response.error;
+      if (code === '55P03' || code === '40001' || code === '40P01') throw new PracticeStoreError('PRACTICE_BUSY', 409);
+      if (code === 'P0001' && typeof message === 'string' && /^[A-Z_]{3,64}$/.test(message)) throw new PracticeStoreError(message, statusOf(message));
+      throw new PracticeStoreError('PRACTICE_STORE_UNAVAILABLE', 503);
+    }
+    return response?.data as T;
   }
+  private base(tenantId: string, clientId: string, actor: string) { return { p_tenant: tenantId, p_client: clientId, p_actor: actor }; }
 
-  async practiceSummary(_tenantId: string, _userId: string, _taxYear?: number): Promise<any> {
-    return { activeClients: 1, pendingCases: 1, openInvoices: 0 };
+  /** Proposal 032: the actor's own durable work queue (cases, reviews, requests, returned entries). */
+  myWork(tenantId: string, actor: string) { return this.call('taxguard_dash_my_work', { p_tenant: tenantId, p_actor: actor }); }
+  /** Proposal 032: manager summary computed only from recorded rows, with definitions. */
+  practiceSummary(tenantId: string, actor: string, taxYear?: number) {
+    if (taxYear !== undefined && (!Number.isInteger(taxYear) || taxYear < 2000 || taxYear > 2100)) throw new PracticeStoreError('DASHBOARD_INPUT_INVALID', 400);
+    return this.call('taxguard_dash_practice_summary', { p_tenant: tenantId, p_actor: actor, p_tax_year: taxYear ?? null });
   }
-
-  async listClients(_tenantId: string, _userId: string, _filter: any): Promise<any> {
-    return {
-      items: [
-        {
-          clientId: 'client-1',
-          name: 'Apex Holdings LLC',
-          status: 'ACTIVE',
-          clientType: 'BUSINESS',
-          taxYear: 2025
-        }
-      ]
-    };
+  async listClients(tenantId: string, actor: string, filter: ClientListFilter = {}) {
+    const limit = filter.limit ?? 25;
+    const rows = await this.call<any[]>('taxguard_practice_list_clients', { p_tenant: tenantId, p_actor: actor, p_filter: { ...filter, limit: limit + 1 } });
+    const items = rows.slice(0, limit);
+    return { items, nextCursor: rows.length > limit ? items[items.length - 1].clientId as string : null };
   }
-
-  async clientDetail(_tenantId: string, clientId: string, _userId: string): Promise<any> {
-    return {
-      clientId,
-      name: 'Apex Holdings LLC',
-      status: 'ACTIVE',
-      clientType: 'BUSINESS',
-      team: [
-        { role: 'PREPARER', userId: 'usr-prep-1', name: 'John Doe, EA' },
-        { role: 'REVIEWER', userId: 'usr-rev-1', name: 'Jane Smith, CPA' }
-      ]
-    };
+  clientDetail(tenantId: string, clientId: string, actor: string) { return this.call('taxguard_practice_client_detail', this.base(tenantId, clientId, actor)); }
+  setClientStatus(tenantId: string, clientId: string, actor: string, status: string, reason: string) {
+    return this.call('taxguard_practice_set_client_status', { ...this.base(tenantId, clientId, actor), p_status: status, p_reason: reason });
   }
-
-  async setClientStatus(_tenantId: string, clientId: string, _userId: string, status: string, reason?: string): Promise<any> {
-    return { clientId, status, reason };
+  setClientType(tenantId: string, clientId: string, actor: string, clientType: string) {
+    return this.call('taxguard_practice_set_client_type', { ...this.base(tenantId, clientId, actor), p_type: clientType });
   }
-
-  async setClientType(_tenantId: string, clientId: string, _userId: string, clientType: string): Promise<any> {
-    return { clientId, clientType };
+  createEngagement(tenantId: string, clientId: string, actor: string, key: string, input: { title: string; type: string; description?: string; taxYears: number[] }) {
+    if (!Array.isArray(input?.taxYears) || !input.taxYears.every(y => Number.isInteger(y))) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
+    return this.call<{ engagementId: string; created: boolean }>('taxguard_practice_create_engagement', { ...this.base(tenantId, clientId, actor),
+      p_engagement: derivedId('eng', tenantId, clientId, key), p_title: input.title, p_type: input.type, p_description: input.description ?? null, p_tax_years: input.taxYears });
   }
-
-  async createEngagement(_tenantId: string, clientId: string, _userId: string, _key: string, payload: any): Promise<any> {
-    return { engagementId: 'eng-' + Date.now(), clientId, ...payload };
+  setEngagementStatus(tenantId: string, clientId: string, actor: string, engagementId: string, status: string, version: number, reason?: string) {
+    return this.call('taxguard_practice_set_engagement_status', { ...this.base(tenantId, clientId, actor), p_engagement: engagementId, p_status: status, p_version: version, p_reason: reason ?? null });
   }
-
-  async setEngagementStatus(_tenantId: string, clientId: string, _userId: string, engagementId: string, status: string): Promise<any> {
-    return { engagementId, clientId, status };
+  addTaxYear(tenantId: string, clientId: string, actor: string, engagementId: string, taxYear: number) {
+    return this.call('taxguard_practice_add_tax_year', { ...this.base(tenantId, clientId, actor), p_engagement: engagementId, p_year: taxYear });
   }
-
-  async addTaxYear(_tenantId: string, clientId: string, _userId: string, engagementId: string, taxYear: number): Promise<any> {
-    return { engagementId, clientId, taxYear };
+  assign(tenantId: string, clientId: string, actor: string, key: string, input: { engagementId: string; taxYear: number; role: string; userId: string; reason: string }) {
+    return this.call('taxguard_practice_assign', { ...this.base(tenantId, clientId, actor), p_engagement: input.engagementId, p_year: input.taxYear, p_role: input.role,
+      p_user: input.userId, p_reason: input.reason, p_assignment: derivedId('asg', tenantId, clientId, key) });
   }
-
-  async assign(_tenantId: string, clientId: string, _userId: string, _key: string, payload: any): Promise<any> {
-    return { assignmentId: 'asg-' + Date.now(), clientId, ...payload };
+  unassign(tenantId: string, clientId: string, actor: string, assignmentId: string, reason: string) {
+    return this.call('taxguard_practice_unassign', { ...this.base(tenantId, clientId, actor), p_assignment: assignmentId, p_reason: reason });
   }
-
-  async unassign(_tenantId: string, clientId: string, _userId: string, assignmentId: string, reason?: string): Promise<any> {
-    return { assignmentId, clientId, reason };
+  addNote(tenantId: string, clientId: string, actor: string, body: string, engagementId?: string) {
+    return this.call<{ noteId: string }>('taxguard_practice_add_note', { ...this.base(tenantId, clientId, actor), p_engagement: engagementId ?? null, p_body: body });
   }
-
-  async addNote(_tenantId: string, clientId: string, _userId: string, body: string, engagementId?: string): Promise<any> {
-    return { noteId: 'note-' + Date.now(), clientId, body, engagementId };
+  createTask(tenantId: string, clientId: string, actor: string, key: string, task: Record<string, unknown>) {
+    return this.call<{ taskId: string; created: boolean }>('taxguard_practice_create_task', { ...this.base(tenantId, clientId, actor), p_task: derivedId('task', tenantId, clientId, key), p_body: task });
   }
-
-  async createTask(_tenantId: string, clientId: string, _userId: string, _key: string, payload: any): Promise<any> {
-    return { taskId: 'tsk-' + Date.now(), clientId, ...payload, status: 'OPEN', version: 1 };
+  setTaskStatus(tenantId: string, clientId: string, actor: string, taskId: string, status: string, version: number) {
+    return this.call('taxguard_practice_set_task_status', { ...this.base(tenantId, clientId, actor), p_task: taskId, p_status: status, p_version: version });
   }
-
-  async setTaskStatus(_tenantId: string, clientId: string, _userId: string, taskId: string, status: string, version: number): Promise<any> {
-    return { taskId, clientId, status, version: version + 1 };
+  addDeadline(tenantId: string, clientId: string, actor: string, key: string, deadline: Record<string, unknown>) {
+    return this.call('taxguard_practice_add_deadline', { ...this.base(tenantId, clientId, actor), p_deadline: derivedId('ddl', tenantId, clientId, key), p_body: deadline });
   }
-
-  async addDeadline(_tenantId: string, clientId: string, _userId: string, _key: string, payload: any): Promise<any> {
-    return { deadlineId: 'ddl-' + Date.now(), clientId, ...payload };
-  }
-
-  async resolveDeadline(_tenantId: string, clientId: string, _userId: string, deadlineId: string, status: string, reason?: string): Promise<any> {
-    return { deadlineId, clientId, status, reason };
+  resolveDeadline(tenantId: string, clientId: string, actor: string, deadlineId: string, status: string, reason?: string) {
+    return this.call('taxguard_practice_resolve_deadline', { ...this.base(tenantId, clientId, actor), p_deadline: deadlineId, p_status: status, p_reason: reason ?? null });
   }
 }

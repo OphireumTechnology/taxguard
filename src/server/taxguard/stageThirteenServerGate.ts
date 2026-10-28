@@ -1,28 +1,44 @@
-import type { StageGateEvidence } from "./stageGate.types";
+import { StageGateDecision } from './stageGate.types';
 
-export interface StageThirteenGateDecision {
-  stage: number;
-  passed: boolean;
-  approvalId: string;
-  evaluatorVersion: string;
-  evidence?: StageGateEvidence;
-  failedChecks?: string[];
+export interface StageThirteenGateSnapshot {
+  stageTwelveComplete: boolean;
+  feedbackReceived: boolean;
+  feedbackProcessed: boolean;
+  unresolvedGovernmentNotices: number;
+  hardExitGatePassed: boolean;
+  blockingReasons?: string[];
 }
 
-export function evaluateStageThirteenServerGate(snapshot: any): StageThirteenGateDecision {
+export function evaluateStageThirteenServerGate(snapshot: StageThirteenGateSnapshot): StageGateDecision {
+  const checks = {
+    stageTwelveComplete: snapshot.stageTwelveComplete === true,
+    feedbackReceived: snapshot.feedbackReceived === true,
+    feedbackProcessed: snapshot.feedbackProcessed === true,
+    noUnresolvedNotices: snapshot.unresolvedGovernmentNotices === 0,
+    existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
+  };
+
+  const blockingReasons = [...(snapshot.blockingReasons || [])];
+
+  for (const [name, passed] of Object.entries(checks)) {
+    if (!passed) {
+      blockingReasons.push(`Stage 13 requirement failed: ${name}`);
+    }
+  }
+
   return {
     stage: 13,
-    passed: true,
-    approvalId: "gate_appr_13_" + Date.now(),
-    evaluatorVersion: "v1.0.0",
+    passed: Object.values(checks).every(Boolean) && blockingReasons.length === 0,
+    gateName: 'STAGE_13_GOVERNMENT_FEEDBACK_GATE',
     evidence: {
-      stageNumber: 13,
-      satisfiedAt: new Date().toISOString(),
-      sourceDocuments: [],
-      assertions: [
-        { id: "stage_13_criteria", verified: true }
-      ]
+      source: 'TaxGuardGovernmentFeedbackEngine',
+      evaluatedAt: new Date().toISOString(),
+      checks,
+      blockingReasons,
+      metadata: {
+        feedbackReceived: snapshot.feedbackReceived === true,
+        unresolvedGovernmentNotices: snapshot.unresolvedGovernmentNotices ?? null,
+      },
     },
-    failedChecks: []
   };
 }

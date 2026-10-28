@@ -1,28 +1,44 @@
-import type { StageGateEvidence } from "./stageGate.types";
+import { StageGateDecision } from './stageGate.types';
 
-export interface StageSevenGateDecision {
-  stage: number;
-  passed: boolean;
-  approvalId: string;
-  evaluatorVersion: string;
-  evidence?: StageGateEvidence;
-  failedChecks?: string[];
+export interface StageSevenGateSnapshot {
+  stageSixComplete: boolean;
+  requiredReportsGenerated: boolean;
+  reportsCurrent: boolean;
+  unresolvedBlockingExceptions: number;
+  hardExitGatePassed: boolean;
+  blockingReasons?: string[];
 }
 
-export function evaluateStageSevenServerGate(snapshot: any): StageSevenGateDecision {
+export function evaluateStageSevenServerGate(snapshot: StageSevenGateSnapshot): StageGateDecision {
+  const checks = {
+    stageSixComplete: snapshot.stageSixComplete === true,
+    requiredReportsGenerated: snapshot.requiredReportsGenerated === true,
+    reportsCurrent: snapshot.reportsCurrent === true,
+    noBlockingExceptions: snapshot.unresolvedBlockingExceptions === 0,
+    existingHardExitGatePassed: snapshot.hardExitGatePassed === true,
+  };
+
+  const blockingReasons = [...(snapshot.blockingReasons || [])];
+
+  for (const [name, passed] of Object.entries(checks)) {
+    if (!passed) {
+      blockingReasons.push(`Stage 07 requirement failed: ${name}`);
+    }
+  }
+
   return {
     stage: 7,
-    passed: true,
-    approvalId: "gate_appr_7_" + Date.now(),
-    evaluatorVersion: "v1.0.0",
+    passed: Object.values(checks).every(Boolean) && blockingReasons.length === 0,
+    gateName: 'STAGE_07_REPORT_GATE',
     evidence: {
-      stageNumber: 7,
-      satisfiedAt: new Date().toISOString(),
-      sourceDocuments: [],
-      assertions: [
-        { id: "stage_7_criteria", verified: true }
-      ]
+      source: 'TaxGuardReportingEngine',
+      evaluatedAt: new Date().toISOString(),
+      checks,
+      blockingReasons,
+      metadata: {
+        unresolvedBlockingExceptions: snapshot.unresolvedBlockingExceptions ?? null,
+        reportsCurrent: snapshot.reportsCurrent === true,
+      },
     },
-    failedChecks: []
   };
 }

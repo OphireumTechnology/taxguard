@@ -373,14 +373,18 @@
         "src/server/taxguard/documents/documentVaultStore.ts",
         "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
         "src/server/taxguard/taxEngine/taxEngineStore.ts",
-        "src/components/workspace/RunEvidence.tsx"
+        "src/components/workspace/RunEvidence.tsx",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+        "src/components/workspace/CaseConclusionsPanel.tsx"
       ],
       "tests": [
         "src/tests-db/taxCalcInputLineage.db.test.ts",
         "src/tests/runEvidence.test.tsx",
-        "src/tests-e2e/07-tax-engine.e2e.test.ts"
+        "src/tests-e2e/07-tax-engine.e2e.test.ts",
+        "src/tests-db/taxConclusions.db.test.ts",
+        "src/tests/caseConclusionsPanel.test.tsx"
       ],
-      "remainingGap": "Calculation inputs cite decided extracted values or reviewed documents, and approval records an immutable lineage snapshot (Block 65); the proposal is review-only, document-level citations await an owner decision, and lineage ends at the calculation run: nothing yet links runs to return lines (TAX-FORM-MAPPING). The process-local case-authority evidence adapter stays refused in production (Block 39)."
+      "remainingGap": "Durable evidence-to-conclusion lineage (Block 66): conclusions link to verified evidence, calculation runs (rule set and hash), approved research (authority levels) and approved workpapers with per-link snapshots; staleness is derived and blocks submission, approval and readiness; backward and forward traces; browser journey through source replacement and re-approval. Proposals are review-only; document-level citations await an owner decision; lineage ends at the conclusion until form mapping (TAX-FORM-MAPPING) writes form lines; diagnostics and risk do not yet read conclusion staleness."
     },
     {
       "id": "TAX-DOC-INTELLIGENCE",
@@ -527,12 +531,13 @@
       "implementation": [
         "src/taxForms/federalForms.ts",
         "src/taxForms/registry.ts",
-        "src/server/routes/taxForms.routes.ts"
+        "src/server/routes/taxForms.routes.ts",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql"
       ],
       "tests": [
         "src/tests/taxFormsLibrary.test.tsx"
       ],
-      "remainingGap": "Form catalogue only; no evidence-to-line lineage."
+      "remainingGap": "Form catalogue only. Block 66 added the lineage foundation (taxguard_tax_form_line_sources: form line → approved conclusion) and the backward trace reads it; no deterministic mapping writes it yet (Block 67)."
     },
     {
       "id": "TAX-DIAGNOSTICS",
@@ -590,7 +595,8 @@
       ],
       "tests": [
         "src/tests/reviewerDashboardHttp.test.ts",
-        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts"
+        "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
+        "src/tests-db/taxConclusions.db.test.ts"
       ],
       "remainingGap": "Reviewer queue and decisions refuse in production (process-local adapter); durable reviewer discovery is Codex's package. No separate QC role or agent."
     },
@@ -623,7 +629,7 @@
         "src/tests/caseAuthorityProductionDurability.test.ts",
         "src/tests/practiceOperationsProductionDurability.test.ts"
       ],
-      "remainingGap": "Durable proposals are review-only. Production refuses every process-local authority (Blocks 39-41); no durable router is mounted in production."
+      "remainingGap": "Durable proposals are review-only. Production refuses every process-local authority (Blocks 39-41); no durable router is mounted in production. Block 66 tax conclusions exist only in the durable store (no process-local adapter); the tax-engine cutover now requires every proposal its routes use."
     },
     {
       "id": "REC-AUDIT-LEDGER",

@@ -1,44 +1,112 @@
+/**
+ * Utility for resolving asset URLs respecting Vite's base path
+ * (critical for GitHub Pages and subpath deployments).
+ */
+export function getAssetUrl(path: string): string {
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const base = import.meta.env.BASE_URL || '/';
+  const prefix = base.endsWith('/') ? base : `${base}/`;
+  return `${prefix}${cleanPath}`;
+}
+
 export const BRAND_ASSETS = {
-  aboutClientAdvisoryJpg: '/images/about/about-client-advisory.jpg',
-  aboutClientAdvisoryWebp: '/images/about/about-client-advisory.webp',
-  aboutTaxAdvisoryOfficeJpg: '/images/about/about-tax-advisory-office.jpg',
-  aboutTaxAdvisoryOfficeWebp: '/images/about/about-tax-advisory-office.webp',
-  auditRepresentationJpg: '/images/audit-representation.jpg',
-  auditRepresentationWebp: '/images/audit-representation.webp',
-  bookkeepingReportingJpg: '/images/bookkeeping-financial-reporting.jpg',
-  bookkeepingReportingWebp: '/images/bookkeeping-financial-reporting.webp',
-  businessStrategyJpg: '/images/business-tax-strategy.jpg',
-  businessStrategyWebp: '/images/business-tax-strategy.webp',
-  columbiaSkylineJpg: '/images/about/about-tax-advisory-office.jpg',
-  columbiaSkylineWebp: '/images/about/about-tax-advisory-office.webp',
-  corporateBusinessAdvisoryJpg: '/images/corporate-business-advisory.jpg',
-  corporateBusinessAdvisoryWebp: '/images/corporate-business-advisory.webp',
-  corporateTaxComplianceJpg: '/images/corporate-tax-compliance.jpg',
-  corporateTaxComplianceWebp: '/images/corporate-tax-compliance.webp',
-  digitalDocumentReviewJpg: '/images/digital-document-review.jpg',
-  digitalDocumentReviewWebp: '/images/digital-document-review.webp',
-  estateLegacyPlanningJpg: '/images/estate-legacy-planning.jpg',
-  estateLegacyPlanningWebp: '/images/estate-legacy-planning.webp',
-  executiveConsultationSuiteJpg: '/images/executive-consultation-suite.jpg',
-  executiveConsultationSuiteWebp: '/images/executive-consultation-suite.webp',
-  familyTaxPlanningJpg: '/images/family-tax-planning.jpg',
-  familyTaxPlanningWebp: '/images/family-tax-planning.webp',
-  logoMonochrome: '/images/ar-tax-logo-monochrome.png',
-  logoMonochromeHeader: '/images/ar-tax-logo-monochrome-header.png',
-  logoPng: '/images/ar-tax-services-logo.png',
-  logoWebp: '/images/ar-tax-services-logo.webp',
-  meticulousTaxPrepJpg: '/images/meticulous-tax-preparation.jpg',
-  meticulousTaxPrepWebp: '/images/meticulous-tax-preparation.webp',
-  payrollAdminJpg: '/images/payroll-administration.jpg',
-  payrollAdminWebp: '/images/payroll-administration.webp',
-  privateConsultationExpJpg: '/images/private-consultation-experience.jpg',
-  privateConsultationExpWebp: '/images/private-consultation-experience.webp',
-  taxAdvisoryPlanningJpg: '/images/tax-advisory-planning.jpg',
-  taxAdvisoryPlanningWebp: '/images/tax-advisory-planning.webp',
-  taxConsultationJpg: '/images/tax-consultation-advisory.jpg',
-  taxConsultationWebp: '/images/tax-consultation-advisory.webp',
-  taxCreditResearchJpg: '/images/tax-credit-research.jpg',
-  taxCreditResearchWebp: '/images/tax-credit-research.webp',
-  taxStrategyWorkspaceJpg: '/images/tax-strategies/tax-strategy-workspace.jpg',
-  taxStrategyWorkspaceWebp: '/images/tax-strategies/tax-strategy-workspace.webp',
+  logoPng: getAssetUrl('images/ar-tax-services-logo.png'),
+  logoWebp: getAssetUrl('images/ar-tax-services-logo.webp'),
+  logoMonochrome: getAssetUrl('images/ar-tax-logo-monochrome.png'),
+  logoMonochromeHeader: getAssetUrl('images/ar-tax-logo-monochrome-header.png'),
+  logo192: getAssetUrl('images/ar-logo-192.png'),
+  founderWebp: getAssetUrl('ceo/123456789-desmond.png'),
+  founderJpg: getAssetUrl('ceo/123456789-desmond.png'),
+  founderPng: getAssetUrl('ceo/123456789-desmond.png'),
+  founderProfilePic: getAssetUrl('ceo/123456789-desmond.png'),
+  founderPortraitWebp: getAssetUrl('ceo/123456789-desmond.png'),
+  founderPortraitJpg: getAssetUrl('ceo/123456789-desmond.png'),
+  founderWideWebp: getAssetUrl('ceo/123456789-desmond.png'),
+  founderWideJpg: getAssetUrl('ceo/123456789-desmond.png'),
+  founderSquareWebp: getAssetUrl('ceo/123456789-desmond.png'),
+  founderSquareJpg: getAssetUrl('ceo/123456789-desmond.png'),
+  founderMobileWebp: getAssetUrl('ceo/123456789-desmond.png'),
+  founderMobileJpg: getAssetUrl('ceo/123456789-desmond.png'),
+  founderOriginalReference: getAssetUrl('ceo/123456789-desmond.png'),
+  corporateSignage: getAssetUrl('images/ar-tax-corporate-signage.png'),
+  favicon: getAssetUrl('favicon.png'),
+
+  // Master Corporate Editorial Assets
+  heroCeoPortraitPng: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
+  heroCeoPortraitWebp: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
+  heroCeoPortraitJpg: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
+  heroExecutiveAdvisoryWebp: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
+  heroExecutiveAdvisoryJpg: getAssetUrl('ceo/123456789-desmond.png?v=20260922-1'),
+
+  taxAdvisoryPlanningWebp: getAssetUrl('images/tax-advisory-planning.webp?v=2026_corp_v4'),
+  taxAdvisoryPlanningJpg: getAssetUrl('images/tax-advisory-planning.jpg?v=2026_corp_v4'),
+
+  corporateBusinessAdvisoryWebp: getAssetUrl('images/corporate-business-advisory.webp?v=2026_corp_v4'),
+  corporateBusinessAdvisoryJpg: getAssetUrl('images/corporate-business-advisory.jpg?v=2026_corp_v4'),
+
+  meticulousTaxPrepWebp: getAssetUrl('images/meticulous-tax-preparation.webp?v=2026_corp_v4'),
+  meticulousTaxPrepJpg: getAssetUrl('images/meticulous-tax-preparation.jpg?v=2026_corp_v4'),
+
+  estateLegacyPlanningWebp: getAssetUrl('images/estate-legacy-planning.webp?v=2026_corp_v4'),
+  estateLegacyPlanningJpg: getAssetUrl('images/estate-legacy-planning.jpg?v=2026_corp_v4'),
+
+  bookkeepingReportingWebp: getAssetUrl('images/bookkeeping-financial-reporting.webp?v=2026_corp_v4'),
+  bookkeepingReportingJpg: getAssetUrl('images/bookkeeping-financial-reporting.jpg?v=2026_corp_v4'),
+
+  privateConsultationExpWebp: getAssetUrl('images/private-consultation-experience.webp?v=2026_corp_v4'),
+  privateConsultationExpJpg: getAssetUrl('images/private-consultation-experience.jpg?v=2026_corp_v4'),
+
+  executiveConsultationSuiteWebp: getAssetUrl('images/executive-consultation-suite.webp?v=2026_corp_v4'),
+  executiveConsultationSuiteJpg: getAssetUrl('images/executive-consultation-suite.jpg?v=2026_corp_v4'),
+
+  founderOfficeJpg: getAssetUrl('images/desmond-hinds-office.jpg'),
+
+  // Editorial Marketing & Service Photography
+  taxConsultationWebp: getAssetUrl('images/tax-consultation-advisory.webp'),
+  taxConsultationJpg: getAssetUrl('images/tax-consultation-advisory.jpg'),
+
+  businessStrategyWebp: getAssetUrl('images/business-tax-strategy.webp'),
+  businessStrategyJpg: getAssetUrl('images/business-tax-strategy.jpg'),
+
+  familyTaxPlanningWebp: getAssetUrl('images/family-tax-planning.webp'),
+  familyTaxPlanningJpg: getAssetUrl('images/family-tax-planning.jpg'),
+
+  bookkeepingAccountingWebp: getAssetUrl('images/bookkeeping-accounting.webp'),
+  bookkeepingAccountingJpg: getAssetUrl('images/bookkeeping-accounting.jpg'),
+
+  payrollAdminWebp: getAssetUrl('images/payroll-administration.webp'),
+  payrollAdminJpg: getAssetUrl('images/payroll-administration.jpg'),
+
+  corporateTaxComplianceWebp: getAssetUrl('images/corporate-tax-compliance.webp'),
+  corporateTaxComplianceJpg: getAssetUrl('images/corporate-tax-compliance.jpg'),
+
+  auditRepresentationWebp: getAssetUrl('images/audit-representation.webp'),
+  auditRepresentationJpg: getAssetUrl('images/audit-representation.jpg'),
+
+  taxCreditResearchWebp: getAssetUrl('images/tax-credit-research.webp'),
+  taxCreditResearchJpg: getAssetUrl('images/tax-credit-research.jpg'),
+
+  digitalDocumentReviewWebp: getAssetUrl('images/digital-document-review.webp'),
+  digitalDocumentReviewJpg: getAssetUrl('images/digital-document-review.jpg'),
+
+  financialAdvisoryWebp: getAssetUrl('images/financial-advisory-planning.webp'),
+  financialAdvisoryJpg: getAssetUrl('images/financial-advisory-planning.jpg'),
+
+  smallBusinessGrowthWebp: getAssetUrl('images/small-business-growth.webp'),
+  smallBusinessGrowthJpg: getAssetUrl('images/small-business-growth.jpg'),
+
+  aboutTaxAdvisoryOfficeWebp: getAssetUrl('images/about/about-tax-advisory-office.webp'),
+  aboutTaxAdvisoryOfficeJpg: getAssetUrl('images/about/about-tax-advisory-office.jpg'),
+  aboutClientAdvisoryWebp: getAssetUrl('images/about/about-client-advisory.webp'),
+  aboutClientAdvisoryJpg: getAssetUrl('images/about/about-client-advisory.jpg'),
+
+  // Tax Strategies Corporate Editorial Assets
+  taxStrategyWorkspaceWebp: getAssetUrl('images/tax-strategies/tax-strategy-workspace.webp'),
+  taxStrategyWorkspaceJpg: getAssetUrl('images/tax-strategies/tax-strategy-workspace.jpg'),
+  taxStrategiesHeroWebp: getAssetUrl('images/tax-strategies/tax-strategies-hero.webp'),
+  taxStrategiesHeroJpg: getAssetUrl('images/tax-strategies/tax-strategies-hero.jpg'),
+
+  // Backward compatibility alias
+  columbiaSkylineWebp: getAssetUrl('images/about/about-tax-advisory-office.webp'),
+  columbiaSkylineJpg: getAssetUrl('images/about/about-tax-advisory-office.jpg'),
 };
