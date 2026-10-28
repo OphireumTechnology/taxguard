@@ -4883,8 +4883,8 @@
     },
     {
       "file": "docs/development/block67-deterministic-form-mapping-report.md",
-      "sha256": "a3e7106affb3362aff389fc5ae4ded0d0b9febfcc8a0670dd2607ec462a48668",
-      "bytes": 7832,
+      "sha256": "2d19c6bc9158344d21fdf37fd9473c5f54c5e1d89432da5041b5af4716448e7a",
+      "bytes": 8891,
       "headings": [
         "# Block 67: deterministic form mapping",
         "## Chain",
@@ -4895,6 +4895,7 @@
         "## API (`/api/tax-engine`, staff only)",
         "## UI",
         "## Tests",
+        "## Validation",
         "## Known gaps and dependencies"
       ]
     },

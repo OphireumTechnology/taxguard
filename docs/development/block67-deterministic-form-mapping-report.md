@@ -104,6 +104,27 @@ rules are authored through the API in this block; there is no rule editor.
 - `caseFormMappingPanel.test.tsx`, `routeCutover.test.ts` (production refusal, cutover requirement).
 - Suite 07 browser journey (`block67-browser-verification.md`).
 
+## Validation
+
+Full matrix on `eb8279b` (synchronized with `main` after Block 66 merged), 2026-10-29, local:
+
+| Check | Result |
+|---|---|
+| Unit | 6,205 passed (379 files) |
+| Lint, typecheck | pass |
+| PostgreSQL | 275 passed (51 files); `taxFormMapping.db.test.ts` 8 |
+| Browser, default profile | 135 passed (18 files), including the 375 px check of the form mapping journey |
+| Browser, provider profile | 44 passed (7 files) |
+| Production build | pass |
+| Migration release candidate | pass: 101 manifest entries replayed on disposable loopback PostgreSQL; review only |
+| Constraint review | pass: 13 constraints, nothing written |
+| Secrets scan | pass: 1,624 files, no findings |
+| `git diff --check`, contamination | clean |
+
+Nothing was skipped. An earlier run on `3f4bfe2` failed one browser check (133 px horizontal overflow at 375 px from
+the rule choice); `eb8279b` fixes it. `3f4bfe2` was merged into `main` through PR #38 without a GitHub CI run (the PR
+had conflicts while open), so `main` carries that overflow until `eb8279b` is merged.
+
 ## Known gaps and dependencies
 
 - Synthetic form only. No real form's lines are encoded; real mapping rules need verified form instructions and an
