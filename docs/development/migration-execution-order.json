@@ -691,6 +691,13 @@
         "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
         "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019130000_taxguard_form_rule_approval_authority.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
+      ]
     }
   ]
 }
