@@ -4,12 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  CheckCircle2, 
-  HelpCircle, 
-  ShieldCheck, 
-  Info, 
+import {
+  FileText,
+  CheckCircle2,
+  HelpCircle,
+  ShieldCheck,
+  Info,
   ArrowRight,
   Sparkles,
   Layers,

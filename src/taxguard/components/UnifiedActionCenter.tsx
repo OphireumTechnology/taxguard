@@ -5,15 +5,15 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle, 
-  FileText, 
-  PenTool, 
-  Send, 
-  ShieldCheck, 
-  Filter, 
+import {
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  FileText,
+  PenTool,
+  Send,
+  ShieldCheck,
+  Filter,
   Search,
   Calendar,
   Layers,
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { TaxGuardAuditService } from '../services/TaxGuardAuditService';
 
-export type ActionTaskType = 
+export type ActionTaskType =
   | 'Document Request'
   | 'Client Response'
   | 'Staff Task'

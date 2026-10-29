@@ -4916,6 +4916,20 @@
       ]
     },
     {
+      "file": "docs/development/block68-draft-return-preparation-report.md",
+      "sha256": "b9bf612e66274ce44b98644dad3a9725d26986294b5d11fb665f6e0b596b8b71",
+      "bytes": 5004,
+      "headings": [
+        "# Block 68: draft return preparation",
+        "## Chain",
+        "## Approval authority (20261019115000, shared)",
+        "## Return preparation (20261019120000)",
+        "## API and interface",
+        "## Tests",
+        "## Known gaps and owner decisions"
+      ]
+    },
+    {
       "file": "docs/development/block68-return-preparation-design.md",
       "sha256": "6496aee345a1bb46ea0ad6cb12358bf2115c9e024b8dce891dd5daad7cfcaf5f",
       "bytes": 10224,
@@ -5950,8 +5964,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "9300c2cad7ac56a9ef4929cac970a47deeb8ba005bc8d1bc316e817c66b184fc",
-      "bytes": 16745,
+      "sha256": "9dc9356a4b791d8dbe3c4bcb9f58957e8778ef4e06af5bdc322a45c83a57cb09",
+      "bytes": 17478,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7708,7 +7722,7 @@
     "src/server/taxguard/bookkeeping/bookkeeping.engine.ts": "d76087793d287d6c0126021e9caaba3c910da0f013c8d68103ec0fee17480a56",
     "src/server/taxguard/documents/authenticatedScanner.ts": "94482ed730a9d61f45faa7dfdcf9d8082a75594a94877a0c1adf20d62f7b106f",
     "src/server/taxguard/documents/malwareScanning.ts": "58e6ec7b0594b2a193f85d5f4b3f735fb1a0ea465a189fdfb5ec1f891a05efbd",
-    "src/server/taxguard/ocrProvider.ts": "7ece0f89567ea15108933b62b02e221a134d553a9ec5a8b3c2dfd3c7d6b0f1d0",
+    "src/server/taxguard/ocrProvider.ts": "0f56d3960e43e70ffcd71701c9fe7d02676bd56d04d20ac78879c53644daaa3e",
     "src/server/taxguard/operations/durableIdempotency.service.ts": "36e14828cdae5a962a2b21b4fbcbf4742c433d6001393ab707470320d2317645",
     "src/server/taxguard/operations/durableJobQueue.service.ts": "185f6a504c3ad7903949086da8afed986c42bd21a66d59ce063985b052662f7d",
     "src/server/taxguard/operations/engagementBilling.service.ts": "fa33866e63357f72f5e034bce537cde6b1af7b878d1c8223e64b0ec22a5b4f70",
@@ -7733,7 +7747,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "29d70c4b3002f714aad7ec4d4b65e4e09b716e405c31fbc80945ad7ba630dd91",
+    "src/services/api.ts": "3b3d2c60c7cbb8c43fd335d476aef74ebce0e3f090986bf3f6c7daa07b2e0233",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
@@ -7852,7 +7866,7 @@
     "src/tests/stageGateBridgeBoolean.test.ts": "e3230599f6bda0315bc326609a2739155237dbbb77a5c402c138d94b938192a4",
     "src/tests/stageGateUnknownEvidence.test.ts": "48f8f2a99b3fa10ead7ae6f03abbe19f2d867579843576ca851b9aa865705c7e",
     "src/tests/stageTwoProductionVerification.test.ts": "f3b518f9b1d0f9702134e4a7950ab8df9826ec64cf1f2e2d16b3261af48d2778",
-    "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "05cad4c6600c25995fa68cf93206ea04f1985b35b61c42b383b863cb64656c54",
+    "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "a0eb05b53a2979423564bb7d983f33462a5c9861cfb6482029d6f5e763c1cff5",
     "src/tests/stagingAcceptanceCoverage.test.ts": "259cbfeab328766bd3e43919a7ddec83b6ac1b03ae9087befcbc32e866374368",
     "src/tests/stagingConfiguration.test.ts": "d337febae5b1d4e85a129fae45688acc3ba5344764c975e7eb2a79072c8ea5b0",
     "src/tests/stagingEnvironmentValidator.test.ts": "340fc4908b74616f46cf948f099b631e4d5b9626f76b97672a4be67e260a83e4",

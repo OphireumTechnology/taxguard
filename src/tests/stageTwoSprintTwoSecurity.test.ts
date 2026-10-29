@@ -168,7 +168,7 @@ describe('Milestone M2 / Stage 02: Sprint 2 — Secure Document Intake, Quaranti
 
     it('detects zip bomb expansion ratios and blocks nested archives', async () => {
       const zipBytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
-      
+
       const zipBombRes = ArchiveProtectionValidator.validateSizeAndArchive(zipBytes, 'ratio_violation_zipbomb.zip');
       expect(zipBombRes.validationResult).toBe('VIOLATION');
       expect(zipBombRes.violationReason).toContain('Zip Bomb anomaly');

@@ -5,12 +5,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  ShieldCheck, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Cpu, 
+import {
+  Settings,
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  Cpu,
   Database,
   Lock,
   HardDrive,

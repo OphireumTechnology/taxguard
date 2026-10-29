@@ -5,17 +5,17 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  Users, 
-  Share2, 
-  ShieldCheck, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowRight, 
-  DollarSign, 
-  Percent, 
-  Layers, 
+import {
+  Building2,
+  Users,
+  Share2,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  DollarSign,
+  Percent,
+  Layers,
   ExternalLink,
   Plus,
   Lock,
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { TaxGuardAuditService } from '../services/TaxGuardAuditService';
 
-export type EntityType = 
+export type EntityType =
   | 'Individual'
   | 'Spouse'
   | 'Dependent'
@@ -40,7 +40,7 @@ export type EntityType =
   | 'Rental Property'
   | 'Investment Entity';
 
-export type RelationshipType = 
+export type RelationshipType =
   | 'Shareholder'
   | 'Partner'
   | 'Beneficiary'
@@ -273,8 +273,8 @@ export const EntityRelationshipGraph: React.FC<{ userRole: string }> = ({ userRo
               key={node.id}
               onClick={() => setSelectedEntityId(node.id)}
               className={`px-3 py-1.5 border text-xs font-semibold flex items-center gap-2 transition-colors ${
-                selectedEntityId === node.id 
-                  ? 'bg-[#061A2F] text-white border-[#061A2F]' 
+                selectedEntityId === node.id
+                  ? 'bg-[#061A2F] text-white border-[#061A2F]'
                   : 'bg-white text-neutral-700 border-neutral-300 hover:border-neutral-500'
               }`}
             >

@@ -1,9 +1,9 @@
 /**
  * TaxGuard AI - Unified Reusable Component Interface
- * 
+ *
  * Reusable intelligence and automation components ready to be embedded
  * into any role-based dashboard across the A/R Tax Services, LLC platform.
- * 
+ *
  * Each component strictly enforces:
  * - Current user identity and role-based permissions
  * - Tenant isolation and client scoping

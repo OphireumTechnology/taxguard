@@ -5,15 +5,15 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  ShieldAlert, 
-  FileText, 
-  Calculator, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Calendar, 
-  DollarSign, 
-  Clock, 
+import {
+  ShieldAlert,
+  FileText,
+  Calculator,
+  CheckCircle2,
+  AlertTriangle,
+  Calendar,
+  DollarSign,
+  Clock,
   ArrowRight,
   Download,
   Lock,

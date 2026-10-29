@@ -5,21 +5,21 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  RotateCw, 
-  Crop, 
-  Sun, 
-  Contrast, 
-  Trash2, 
-  ArrowLeft, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertTriangle, 
-  ShieldAlert, 
-  RefreshCw, 
-  FileCheck, 
+import {
+  Camera,
+  Upload,
+  RotateCw,
+  Crop,
+  Sun,
+  Contrast,
+  Trash2,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
+  ShieldAlert,
+  RefreshCw,
+  FileCheck,
   Sliders,
   Eye,
   Layers,
@@ -80,7 +80,7 @@ export const TaxGuardScannerView: React.FC<{ userRole: string; onFinished?: () =
     } catch (err: any) {
       console.warn('Camera access error:', err);
       setCameraError(
-        err.name === 'NotAllowedError' 
+        err.name === 'NotAllowedError'
           ? 'Camera permission denied. Please grant camera access in your browser or use the file upload alternative.'
           : 'Could not access hardware camera. Switching to upload mode is recommended.'
       );
@@ -480,7 +480,7 @@ export const TaxGuardScannerView: React.FC<{ userRole: string; onFinished?: () =
                         alt={`Page ${selectedPageIndex + 1}`}
                         style={{
                           transform: `rotate(${pages[selectedPageIndex].rotationDegrees}deg)`,
-                          filter: 
+                          filter:
                             filterMode === 'high_contrast' ? `contrast(160%) brightness(${brightness}%)` :
                             filterMode === 'black_and_white' ? `grayscale(100%) contrast(180%) brightness(${brightness}%)` :
                             filterMode === 'brighten' ? `brightness(${brightness + 20}%) contrast(${contrast}%)` :
@@ -585,8 +585,8 @@ export const TaxGuardScannerView: React.FC<{ userRole: string; onFinished?: () =
                       key={p.id}
                       onClick={() => setSelectedPageIndex(idx)}
                       className={`relative shrink-0 w-16 h-20 rounded-xs border overflow-hidden bg-slate-100 ${
-                        selectedPageIndex === idx 
-                          ? 'border-[#C99A32] ring-2 ring-[#C99A32]/50' 
+                        selectedPageIndex === idx
+                          ? 'border-[#C99A32] ring-2 ring-[#C99A32]/50'
                           : 'border-slate-300 hover:border-slate-400'
                       }`}
                     >

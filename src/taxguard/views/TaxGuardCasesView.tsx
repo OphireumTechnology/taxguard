@@ -4,13 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  FolderKanban, 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  ShieldCheck, 
-  ChevronRight, 
+import {
+  FolderKanban,
+  CheckCircle2,
+  Clock,
+  FileText,
+  ShieldCheck,
+  ChevronRight,
   Lock,
   AlertTriangle,
   RotateCcw,
@@ -334,7 +334,7 @@ export const TaxGuardCasesView: React.FC<{ userRole: string }> = ({ userRole }) 
             </span>
           </div>
           <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-            <div 
+            <div
               className="bg-[#C99A32] h-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />

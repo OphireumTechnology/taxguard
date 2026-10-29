@@ -55,6 +55,13 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
+  verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
+  `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;
+  preparer submit; independent Stage 09 review; derived staleness; lineage to the source document SHA-256). Draft
+  return panel in Case Workflow; production refused. PostgreSQL (11), unit, suite 07 journey. Report:
+  `block68-draft-return-preparation-report.md`. **Owner review point:** approval policies, eligibility records and
+  designations (nothing is configured; approvals fail closed).
 - **Durable evidence-to-conclusion traceability (Block 66).** Review-only proposal `20261019100000`: versioned tax
   conclusions linked to verified evidence, calculation runs, approved research and workpapers with per-link snapshots;
   derived staleness blocks submission, approval and readiness; backward and forward traces; reviewer lineage panel;

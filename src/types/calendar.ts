@@ -97,7 +97,7 @@ export interface StaffAvailabilityConfig {
   staffRole: string;
   timeZone: string;
   isFounder: boolean;
-  
+
   // Weekly Recurring Hours
   weeklySchedule: DayRecurringSchedule[];
 
@@ -173,7 +173,7 @@ export interface SynchronizedAppointment {
   clientEmail: string;
   clientPhone: string;
   clientTimeZone: string;
-  
+
   staffId: string;
   staffName: string;
   staffTimeZone: string;
@@ -185,14 +185,14 @@ export interface SynchronizedAppointment {
 
   startUtc: string;
   endUtc: string;
-  
+
   meetingType: 'virtual' | 'telephone' | 'in_office';
   virtualMeetingUrl?: string;
   phoneDialIn?: string;
   officeLocationAddress?: string;
 
   status: ProductionAppointmentStatus;
-  
+
   // External calendar sync records
   googleCalendarEventId?: string;
   microsoftCalendarEventId?: string;
