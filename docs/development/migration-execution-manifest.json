@@ -2,9 +2,9 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 105,
+    "files": 106,
     "core": 13,
-    "proposals": 91,
+    "proposals": 92,
     "tables": 173,
     "functions": 455,
     "securityDefinerFunctions": 355,
@@ -4315,6 +4315,47 @@
     },
     {
       "order": 105,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_case_diagnostics_run",
+          "previous": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql"
+        },
+        {
+          "function": "taxguard_tax_return_derive",
+          "previous": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        27,
+        32,
+        36,
+        79,
+        83,
+        84,
+        101,
+        103,
+        104
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 106,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

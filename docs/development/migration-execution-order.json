@@ -700,6 +700,14 @@
         "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
         "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql"
+      ]
     }
   ]
 }

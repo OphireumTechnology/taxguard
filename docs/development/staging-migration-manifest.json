@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "65ddf5da758571a6fcbf51e9ef95c120fbaac774673b4f6475112fef46d87952",
+  "executionPlanSha256": "817b9cad9fdd2ee4f2cf3ac8b29a333c9e6011f662c074f044f53db532506e8f",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5598,6 +5598,69 @@
         "-- the hash the run was pinned to (RULE_SET_INTEGRITY), and every mapped value equals the sum of the source values it",
         "-- cites (VALUE_SOURCE_MISMATCH). No findings: VERIFIED; otherwise DISCREPANCY with the findings. Nothing is corrected",
         "-- or recalculated into the return. Verifications are immutable and audited; approval needs the latest one recorded"
+      ]
+    },
+    {
+      "order": 105,
+      "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+      "kind": "proposal",
+      "version": "20261019150000",
+      "sha256": "00e6eae068282f0c86f7920141b0cdc64df2057e1565128f78067a09b17badf2",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_case_diagnostics_run",
+        "taxguard_tax_return_derive"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_case_diagnostics_run",
+          "previousFile": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_return_derive",
+          "previousFile": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): restore both functions, delete the five rules, restore the affected_type CHECK."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 70, return-level diagnostics). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018160000 (case diagnostics), 20261019120000 (return versions) and 20261019140000 (verifications).",
+        "--",
+        "-- Extends the governed case diagnostics to draft return versions. New rules in the governed rule table, with severity",
+        "-- set here as reviewed content (proposed defaults; the owner may change them by a reviewed database change, never a",
+        "-- caller): RETURN_VERSION_STALE and RETURN_VERIFICATION_DISCREPANCY are BLOCKING (integrity); RETURN_AWAITING_VERIFICATION",
+        "-- and RETURN_AWAITING_REVIEW are WARNING; RETURN_OPTIONAL_FORM_UNMAPPED is INFO. The diagnostics run detects them on every",
+        "-- open version of the case and clears them like other findings; history is kept. INFO and WARNING may be acknowledged;",
+        "-- BLOCKING clears only when the version is fixed (re-prepared, re-verified) or superseded.",
+        "-- Return-level findings report readiness (and feed Block 72); they do not block preparing a new version, so preparation",
+        "-- now counts case-level blocking findings only.",
+        "-- Current definitions after this file: taxguard_case_diagnostics_run (previously 20261018160000) and"
       ]
     }
   ]
