@@ -133,6 +133,38 @@ describe('staff workspaces', () => {
     expect(await s.page.getByRole('tab', { name: 'Execution history' }).getAttribute('aria-selected')).toBe('true');
     await s.context.close();
   });
+
+  it('the administrator reads the architecture overview as reference only, without a governance call', async () => {
+    const s = await staffLogin('e2e-admin');
+    await s.page.getByRole('button', { name: /AI Control Center/ }).first().click();
+    await s.page.getByRole('tab', { name: 'Agent registry' }).waitFor();
+    const calls: string[] = [];
+    s.page.on('request', r => { if (r.url().includes('/api/ai-governance/control-center/')) calls.push(r.url()); });
+    // Keyboard: the new tab is last, so ArrowLeft from the first tab reaches it.
+    await s.page.getByRole('tab', { name: 'Agent registry' }).press('ArrowLeft');
+    const tab = s.page.getByRole('tab', { name: 'Architecture overview' });
+    expect(await tab.getAttribute('aria-selected')).toBe('true');
+    expect(await s.page.evaluate(() => document.activeElement?.textContent)).toBe('Architecture overview');
+    const view = s.page.getByTestId('ai-architecture-overview-view');
+    await view.waitFor();
+    const text = await view.innerText();
+    expect(text).toContain('Reference only');
+    expect(text).toContain('every agent stays DRAFT');
+    expect(text).toMatch(/Agents recorded\s*61 \/ 61/);
+    expect(text).toMatch(/With a page-2 responsibility\s*59 \/ 61/);
+    expect(text).toContain('Owner decisions (13)');
+    expect(await view.getByRole('table', { name: 'Architecture overview record for each canonical agent' }).getByRole('row').count()).toBe(62);
+    const a30 = view.getByRole('row', { name: /^A30 / }).first();
+    expect(await a30.innerText()).toMatch(/Form Mapping Agent\s+Form Mapping\s+TAX_INTELLIGENCE/);
+    const page9 = view.getByRole('table', { name: /Page 9 example permissions/ });
+    expect(await page9.getByRole('row', { name: /^A38 / }).innerText()).toContain('Not allowed (drawn: allowed)');
+    expect(calls).toEqual([]);
+    expect(await view.getByRole('heading', { name: 'Owner decisions (13)' }).count()).toBe(1);
+    await s.page.setViewportSize({ width: 375, height: 800 });
+    expect(await noPageOverflow(s)).toBe(true);
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+  });
 });
 
 describe('public website', () => {

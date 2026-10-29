@@ -62,6 +62,14 @@ Audits completed in this cycle (documents):
   return panel in Case Workflow; production refused. PostgreSQL (11), unit, suite 07 journey. Report:
   `block68-draft-return-preparation-report.md`. **Owner review point:** approval policies, eligibility records and
   designations (nothing is configured; approvals fail closed).
+- **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
+  `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
+  agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
+  Read-only "Architecture overview" tab in the AI Control Center. Grants nothing: every agent stays DRAFT and the 58
+  unmapped agents stay denied; governance does not read the record. Owner answers of 2026-10-28: people-only powers
+  stay with people, always human review, "Staff" gate means REVIEWER, A10/A39 left unassigned. **Owner review point:**
+  the ten open decisions in `docs/development/ai-architecture-overview-reconciliation.md`, then approval of any
+  per-agent mapping.
 - **Durable evidence-to-conclusion traceability (Block 66).** Review-only proposal `20261019100000`: versioned tax
   conclusions linked to verified evidence, calculation runs, approved research and workpapers with per-link snapshots;
   derived staleness blocks submission, approval and readiness; backward and forward traces; reviewer lineage panel;

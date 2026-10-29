@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
 import { AiCommissioningView } from './AiCommissioningView';
+import { AiArchitectureOverviewView } from './AiArchitectureOverviewView';
 
 /**
  * AI Control Center — read-only registry, execution history, governance decisions and
@@ -53,7 +54,9 @@ export function formatCell(key: string, value: unknown): string {
 
 type State = { status: 'loading' | 'ready' | 'error'; rows: Record<string, unknown>[]; next: string | null; globalStop?: boolean; scopedStops?: { scope: string; target: string }[]; totals?: Record<string, number>; message?: string; appending?: boolean };
 
-type PanelView = ControlCenterView | 'commissioning';
+type PanelView = ControlCenterView | 'commissioning' | 'architecture';
+// Views rendered from build evidence in the browser; they call no governance endpoint.
+const isLocalView = (view: PanelView): view is 'commissioning' | 'architecture' => view === 'commissioning' || view === 'architecture';
 
 export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ initialView = 'registry' }) => {
   const [view, setView] = useState<PanelView>(initialView);
@@ -62,7 +65,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
   const [state, setState] = useState<State>({ status: 'loading', rows: [], next: null });
 
   const load = (cursor: string | null, signal?: AbortSignal) => {
-    if (view === 'commissioning') return Promise.resolve({ rows: [], next: null as string | null });
+    if (isLocalView(view)) return Promise.resolve({ rows: [], next: null as string | null });
     const query = { ...filters, ...(cursor ? { cursor } : {}) };
     return api.caseAuthority.getAiControlCenter(view, view === 'registry' ? {} : view === 'usage' ? filters : query, signal).then((result: any) => {
       const rows = view === 'registry' ? result.agents : view === 'usage' ? result.by_agent : result.items;
@@ -72,8 +75,8 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
   };
 
   useEffect(() => {
-    // The commissioning view is build evidence rendered locally; it calls no governance endpoint.
-    if (view === 'commissioning') { setState({ status: 'ready', rows: [], next: null }); return; }
+    // The commissioning and architecture views are build evidence rendered locally; they call no governance endpoint.
+    if (isLocalView(view)) { setState({ status: 'ready', rows: [], next: null }); return; }
     const controller = new AbortController();
     setState({ status: 'loading', rows: [], next: null });
     load(null, controller.signal)
@@ -91,7 +94,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       .catch(error => setState(current => ({ ...current, appending: false, message: controlCenterErrorMessage(error) })));
   };
 
-  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue']];
+  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['architecture', 'Architecture overview']];
   const select = (id: PanelView) => { setView(id); setFilters({}); };
   const onTabKey = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -115,7 +118,8 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       </div>
       <div id="ai-cc-panel" role="tabpanel" aria-labelledby={'ai-cc-tab-' + view} className="space-y-4">
       {view === 'commissioning' && <AiCommissioningView />}
-      {view !== 'commissioning' && FILTERS[view].length > 0 && (
+      {view === 'architecture' && <AiArchitectureOverviewView />}
+      {!isLocalView(view) && FILTERS[view].length > 0 && (
         <div className="flex flex-wrap gap-3">
           {FILTERS[view].map(filter => (
             <label key={filter.key} className="flex items-center gap-1.5">{filter.label}
@@ -136,8 +140,8 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       {view === 'registry' && state.status === 'ready' && state.globalStop &&<p role="alert" className="text-red-300 font-semibold">A GLOBAL emergency stop is engaged for this tenant. All governed AI work is refused.</p>}
       {state.status === 'loading' && <p role="status">Loading…</p>}
       {state.status === 'error' && <p role="alert" className="text-amber-300">{state.message}</p>}
-      {view !== 'commissioning' && state.status === 'ready' && state.rows.length === 0 && <p>No records match this view for your tenant.</p>}
-      {view !== 'commissioning' && state.status === 'ready' && state.rows.length > 0 && (
+      {!isLocalView(view) && state.status === 'ready' && state.rows.length === 0 && <p>No records match this view for your tenant.</p>}
+      {!isLocalView(view) && state.status === 'ready' && state.rows.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <caption className="sr-only">{tabs.find(([id]) => id === view)![1]}</caption>

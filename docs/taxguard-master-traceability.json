@@ -4766,6 +4766,34 @@
       ]
     },
     {
+      "file": "docs/development/ai-architecture-overview-reconciliation.md",
+      "sha256": "956ee14d2c500eeb5ab889b8b35e41014301c5fe2c10763f4f7ec430aadb8e51",
+      "bytes": 6568,
+      "headings": [
+        "# AI Architecture Overview reconciliation (2026-10-28)",
+        "## What was recorded",
+        "## Owner decisions",
+        "## Comparison with what is built",
+        "## Verification"
+      ]
+    },
+    {
+      "file": "docs/development/ai-architecture-requirements-classification.md",
+      "sha256": "262f124e65528ec7b64adab07471f49eac6937e4fe6a8713ce1e99e349de8eb5",
+      "bytes": 11087,
+      "headings": [
+        "# TaxGuard AI architecture: requirement classification (2026-10-28)",
+        "## Section 3: agent architecture (pages 1-3)",
+        "## Section 4: A00 orchestration (page 4)",
+        "## Section 5: document intelligence (page 5)",
+        "## Section 6: tax return pipeline (page 6)",
+        "## Sections 7-9: governance, execution records, permissions (pages 7-9)",
+        "## Section 10: AI Control Center (page 10)",
+        "## Section 11: unified platform (page 11)",
+        "## Section 12: block order and the next authorized step"
+      ]
+    },
+    {
       "file": "docs/development/ai-commissioning-matrix.md",
       "sha256": "78354b39b073a77e34d93456491108d05727ce8c0aae4d3d66ccf5bb5c4ba68c",
       "bytes": 10523,
@@ -5964,8 +5992,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "9dc9356a4b791d8dbe3c4bcb9f58957e8778ef4e06af5bdc322a45c83a57cb09",
-      "bytes": 17478,
+      "sha256": "7603d97950a59012b03f97230a6bf29dae532002b9d4d53e026d2418b7a2c7db",
+      "bytes": 18308,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7004,8 +7032,8 @@
     },
     {
       "file": "docs/taxguard-ai-canonical-architecture.md",
-      "sha256": "a85bec882e26b9472ebbd3d14232c8caaa6fcfbe956545bca40aeea35ce539fc",
-      "bytes": 12426,
+      "sha256": "44ac98e679a1792419ecfd3d3582a366e198426b22b922e897d31d54a0825734",
+      "bytes": 12746,
       "headings": [
         "# TaxGuard canonical A00-A60 architecture and authority mapping",
         "## Reconciliation and source order",
@@ -7782,7 +7810,7 @@
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ebfe940b1a4e29cf0a2970c8b19a232461c5a1f8bc2e340f05d0aa604c09f2f5",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
-    "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "3dfdc5e07ad48aad60b3156699ca51e7b7830c4cf38d5c2c0b7323e4c621c0c4",
+    "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "eea1d4f9fe6c564ee8dc73088b021c4365a390bb4dcf70e0d186d8b0f95167a7",
     "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
