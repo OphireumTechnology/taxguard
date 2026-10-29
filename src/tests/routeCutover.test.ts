@@ -145,6 +145,16 @@ describe('production app', () => {
     expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019140000')).refused)
       .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019140000'] });
   });
+  it('the Block 71 return risk routes are refused in production and the cutover requires the risk proposal', async () => {
+    const id = '0123abcd-0000-4000-8000-000000000001';
+    expect((await fetch(origin + `/api/tax-engine/returns/${id}/risk`, { headers: { Accept: 'application/json' } })).status).toBe(503);
+    expect((await fetch(origin + `/api/tax-engine/returns/${id}/risk`, { method: 'POST', headers: { Accept: 'application/json', 'content-type': 'application/json' }, body: '{"amountCents":1}' })).status).toBe(503);
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
+    expect(route.proposals).toContain('20261019160000');
+    expect(route.sentinelRpcs).toContain('taxguard_tax_return_risk_list');
+    expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019160000')).refused)
+      .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019160000'] });
+  });
   it('the cutover status report is for operational administrators only', async () => {
     expect((await fetch(origin + '/api/route-cutover')).status).toBe(401);
   });

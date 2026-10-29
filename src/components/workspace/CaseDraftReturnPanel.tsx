@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { returnProblemText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
+import { dollarsToCents, returnProblemText, returnRiskText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
 
 /**
  * Draft return for the selected case (proposal 20261019120000). The server assembles a return version only from the
  * case's current, non-stale form mappings through an approved return template, and records which mapping version of
  * each form it used; the browser only chooses the template. The preparer submits, the case's independent reviewer
  * approves or returns it (Stage 09 draft review). A version whose inputs changed is shown STALE and cannot be
- * submitted or approved. This is a draft: final professional authorization is Stage 10, and nothing is signed or
- * filed (return use: BLOCKED).
+ * submitted or approved. A risk assessment of an open version (proposal 20261019160000) takes only the amount at stake
+ * from the browser and is never better than human review. This is a draft: final professional authorization is
+ * Stage 10, and nothing is signed or filed (return use: BLOCKED).
  */
 const short = (v: string) => v.slice(0, 8);
 const words = (s: string) => s.replace(/_/g, ' ').toLowerCase();
@@ -28,6 +29,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const [template, setTemplate] = useState('');
   const [open, setOpen] = useState<{ id: string; data?: ReturnVersion; message?: string } | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const current = useRef(caseId); current.current = caseId;
@@ -76,6 +78,11 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
     r => `Version ${r.version} of ${r.templateId}: ${words(r.status)}.`);
   const verify = (v: ReturnVersion) => act(() => taxEngineService.verifyReturn(v.returnVersionId),
     r => `Calculation verification of ${v.templateId} version ${v.version}: ${verificationText(r)}.`);
+  const assess = (v: ReturnVersion) => {
+    const cents = dollarsToCents(amounts[v.returnVersionId] ?? '');
+    if (cents === null) { setNotice({ error: true, text: 'Enter the amount at stake in dollars and cents (zero or more).' }); return; }
+    return act(() => taxEngineService.assessReturnRisk(v.returnVersionId, cents), r => `Risk assessment of ${v.templateId} version ${v.version}: ${returnRiskText(r)}.`);
+  };
   const toggle = (id: string) => {
     if (open?.id === id) { setOpen(null); return; }
     const key = caseId;
@@ -100,12 +107,13 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
       <button disabled={busy || !template} aria-describedby="case-draft-return-hint">Prepare draft return</button>
       <button type="button" disabled={busy} onClick={() => void load()}>Refresh draft returns</button>
     </form>
+    <p id="case-draft-return-risk-hint">A risk assessment reads the version's verification, diagnostics and research itself; only the amount at stake is entered. Materiality comes only from the practice's approved policy, and the outcome is never better than human review.</p>
     {items.status === 'loading' && items.list.length === 0 && <p role="status">Loading draft returns…</p>}
     {items.status === 'error' && <p role="alert">{items.message} <button type="button" onClick={() => void load()}>Retry</button></p>}
     {items.status === 'ready' && items.list.length === 0 && <p role="status">No draft return is recorded for this case.</p>}
     {items.list.map(v => {
       const badge = returnBadge(v); const name = `${v.templateId} version ${v.version}`;
-      const noteId = `draft-return-note-${v.returnVersionId}`;
+      const noteId = `draft-return-note-${v.returnVersionId}`, amountId = `draft-return-amount-${v.returnVersionId}`;
       return <article key={v.returnVersionId} aria-label={`Draft return ${name}`} className="tg-draft-return">
         <h5>{v.templateId} · version {v.version} · status <strong data-return-status>{badge}</strong></h5>
         <p>Prepared by {v.preparedBy} · {new Date(v.createdAt).toLocaleString()} · template version {v.templateVersion} (sha256 {v.templateSha256.slice(0, 12)}…)
@@ -121,6 +129,12 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
           <label htmlFor={noteId}>Note for returning {name}</label>
           <input id={noteId} value={notes[v.returnVersionId] ?? ''} onChange={e => setNotes(n => ({ ...n, [v.returnVersionId]: e.target.value }))} />
           <button type="button" disabled={busy} onClick={() => void decide(v, 'return')}>Return {name} to the preparer</button>
+        </>}
+        {badge !== 'SUPERSEDED' && <>
+          <label htmlFor={amountId}>Amount at stake for {name} (dollars)</label>
+          <input id={amountId} inputMode="decimal" value={amounts[v.returnVersionId] ?? ''} aria-describedby="case-draft-return-risk-hint"
+            onChange={e => setAmounts(n => ({ ...n, [v.returnVersionId]: e.target.value }))} />
+          <button type="button" disabled={busy} onClick={() => void assess(v)}>Assess risk of {name}</button>
         </>}
         <button type="button" aria-expanded={open?.id === v.returnVersionId} aria-controls={`draft-return-lineage-${v.returnVersionId}`} onClick={() => toggle(v.returnVersionId)}>
           {open?.id === v.returnVersionId ? 'Hide' : 'Show'} lineage of {name}</button>

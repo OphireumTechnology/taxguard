@@ -70,6 +70,9 @@ export const taxEngineService = {
     request<ReturnVersion>('POST', '/returns' + id(returnVersionId) + '/' + action, note === undefined ? {} : { note }),
   verifyReturn: (returnVersionId: string) => request<ReturnVerification>('POST', '/returns' + id(returnVersionId) + '/verify', {}),
   returnVerifications: (returnVersionId: string) => request<{ items: ReturnVerification[] }>('GET', '/returns' + id(returnVersionId) + '/verifications').then(r => r.items),
+  /** Risk of a return version: the server reads every signal; a person states only the amount at stake. Never better than human review. */
+  assessReturnRisk: (returnVersionId: string, amountCents: number) => request<ReturnRiskAssessment>('POST', '/returns' + id(returnVersionId) + '/risk', { amountCents }),
+  returnRisk: (returnVersionId: string) => request<{ items: ReturnRiskAssessment[]; returnUse: 'BLOCKED' }>('GET', '/returns' + id(returnVersionId) + '/risk').then(r => r.items),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -105,6 +108,28 @@ export const RISK_REASON_LABELS: Record<string, string> = {
   POLICY_REQUIRES_HUMAN_REVIEW: 'The practice policy requires human review.',
   UNSUPPORTED_POSITION: 'A position lacks support.',
 };
+export interface ReturnRiskAssessment { assessmentId: string; returnVersionId: string; caseId: string; taxYear: number; versionStatus: string; formsSha256: string;
+  policyVersion: number | null; amountCents: number; materiality: 'IMMATERIAL' | 'MATERIAL' | 'UNKNOWN'; riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN';
+  outcome: Exclude<RiskOutcome, 'CONTINUE'>; reasonCodes: string[]; assessedBy: string; assessedAt: string }
+/** Reasons a return version's risk assessment can give (proposal 20261019160000); the materiality ones are shared with the case assessment. */
+export const RETURN_RISK_REASON_LABELS: Record<string, string> = {
+  RETURN_HUMAN_REVIEW_REQUIRED: 'Every return has human review (practice decision).',
+  RETURN_VERSION_STALE: 'The version no longer matches its sources and must be prepared again.',
+  RETURN_NOT_VERIFIED: 'The calculations have not been verified since submission.',
+  RETURN_VERIFICATION_DISCREPANCY: 'The latest calculation verification found a discrepancy.',
+  DIAGNOSTICS_NOT_CURRENT: 'Readiness diagnostics have not been run since this version was prepared.',
+  DIAGNOSTIC_BLOCKING: 'A blocking readiness finding is open.',
+  DIAGNOSTIC_ERRORS: 'Readiness errors are open.',
+  DIAGNOSTIC_WARNINGS_OPEN: 'Readiness warnings are open and not acknowledged.',
+  RESEARCH_UNRESOLVED: 'A research memo is still a draft or awaiting review.',
+  RESEARCH_POSITION_UNSUPPORTED: 'An open research memo has no authoritative citation.',
+  RESEARCH_AI_INFERENCE_ONLY: 'A research memo is supported only by AI inference.',
+  NO_APPROVED_MATERIALITY_POLICY: 'The practice has no approved materiality policy, so materiality is unknown.',
+  AMOUNT_MATERIAL: 'The amount is material under the practice policy.',
+};
+export function returnRiskText(r: Pick<ReturnRiskAssessment, 'outcome' | 'reasonCodes'>): string {
+  return `${RISK_OUTCOME_LABELS[r.outcome].toLowerCase()}: ` + r.reasonCodes.map(c => (RETURN_RISK_REASON_LABELS[c] ?? c).replace(/\.$/, '')).join('; ');
+}
 /** Whole dollars and cents as entered by a person, to integer cents; anything else is null. */
 export function dollarsToCents(text: string): number | null {
   const m = /^\s*(\d{1,13})(?:\.(\d{1,2}))?\s*$/.exec(text);
@@ -330,6 +355,7 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_SCOPE_MISMATCH: 'This return template is for another tax year or return family than the case.',
     TAX_RETURN_NOT_DRAFT: 'Only a draft version can be submitted.',
     TAX_RETURN_VERIFIER_REQUIRED: 'Only the case\'s independent reviewer can verify the calculations of a draft return.',
+    TAX_RETURN_SUPERSEDED: 'This version has been superseded; assess the current version.',
     TAX_RETURN_NOT_SUBMITTED: 'Only a submitted version can be approved or returned.',
     TAX_RETURN_INPUT_INVALID: 'Enter a note of at least 10 characters to return the draft.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',

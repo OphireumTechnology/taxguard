@@ -38,6 +38,16 @@ so a changed return makes it stale (the pattern of Blocks 65-68).
 | Tests | Each reason code; policy versioning; immutable assessments; no AI confidence can lower the outcome |
 | [OWNER] | Materiality thresholds and the position-risk taxonomy |
 
+As built (proposal 20261019160000, review only): `POST /api/tax-engine/returns/:id/risk` takes only `amountCents`; the
+database reads staleness, the latest verification after submission, the case's and this version's open diagnostics
+(and whether they were run since the version was prepared) and the case's research memos (unresolved, without an
+authoritative citation, AI inference only). Materiality uses the latest approved materiality policy; none is seeded,
+so `NO_APPROVED_MATERIALITY_POLICY`. No AI confidence is accepted. The outcome is `BLOCKED` (stale, verification
+discrepancy, blocking finding) or `HUMAN_REVIEW_REQUIRED`; the table refuses `CONTINUE` and requires the
+`RETURN_HUMAN_REVIEW_REQUIRED` reason (OV-09). Assessments are immutable and audited and change nothing about the return.
+Not built: escalation into a reviewer queue (no queue exists yet; the assessment is listed on the version), and
+deriving the amount at stake from mapped lines (the owner has not defined which lines count).
+
 ## Block 72: independent quality control
 
 | | |

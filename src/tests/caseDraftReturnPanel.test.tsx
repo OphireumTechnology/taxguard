@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
-import { returnProblems, returnProblemText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
+import { RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
 import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
 
@@ -63,6 +63,19 @@ describe('draft returns in the browser client', () => {
       .toBe('Approval refused: the latest calculation verification of this version found a discrepancy. Return it to the preparer.');
   });
 
+  it('sends only the amount at stake for a return risk assessment, and describes its outcome and reasons (Block 71)', async () => {
+    await taxEngineService.assessReturnRisk(ID, 50_000);
+    await taxEngineService.returnRisk(ID);
+    expect(transport.mock.calls.map(([url, init]) => [url.replace('http://127.0.0.1:3000/api/tax-engine', ''), init.method, init.body ? JSON.parse(init.body) : undefined])).toEqual([
+      [`/returns/${ID}/risk`, 'POST', { amountCents: 50_000 }],
+      [`/returns/${ID}/risk`, 'GET', undefined],
+    ]);
+    expect(returnRiskText({ outcome: 'BLOCKED', reasonCodes: ['RETURN_HUMAN_REVIEW_REQUIRED', 'RETURN_VERIFICATION_DISCREPANCY'] }))
+      .toBe('blocked: Every return has human review (practice decision); The latest calculation verification found a discrepancy');
+    for (const label of Object.values(RETURN_RISK_REASON_LABELS)) expect(label).toMatch(/\.$/);
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_SUPERSEDED'))).toBe('This version has been superseded; assess the current version.');
+  });
+
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {
     const html = renderToStaticMarkup(<CaseDraftReturnPanel caseId="case-1" taxYear={2025} returnFamily="1040" />);
     expect(html).toContain('<h4 id="case-draft-return-heading" tabindex="-1">Draft return</h4>');
@@ -70,18 +83,19 @@ describe('draft returns in the browser client', () => {
     expect(html).toContain('No approved template for 1040 2025');
     expect(html).toMatch(/<button disabled="" aria-describedby="case-draft-return-hint">Prepare draft return<\/button>/);
     expect(html).toContain('Final professional authorization is a separate step (Stage 10). Return use: BLOCKED.');
+    expect(html).toContain('the outcome is never better than human review.');
   });
 
   it('lets practice managers read returns and draft templates, but not prepare, submit or approve', () => {
     vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
     vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
     for (const path of ['/api/tax-engine/return-templates', `/api/tax-engine/return-templates/${ID}`, '/api/tax-engine/cases/c1/returns',
-      '/api/tax-engine/cases/c1/returns/stage-facts', `/api/tax-engine/returns/${ID}`])
+      '/api/tax-engine/cases/c1/returns/stage-facts', `/api/tax-engine/returns/${ID}`, `/api/tax-engine/returns/${ID}/risk`])
       expect(practiceManagerRequestAllowed('practice_manager', 'GET', path), path).toBe(true);
     for (const path of ['/api/tax-engine/return-templates', `/api/tax-engine/return-templates/${ID}/submit`])
       expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(true);
     for (const path of [`/api/tax-engine/return-templates/${ID}/approve`, '/api/tax-engine/cases/c1/returns', `/api/tax-engine/returns/${ID}/submit`,
-      `/api/tax-engine/returns/${ID}/approve`, `/api/tax-engine/returns/${ID}/return`])
+      `/api/tax-engine/returns/${ID}/approve`, `/api/tax-engine/returns/${ID}/return`, `/api/tax-engine/returns/${ID}/risk`])
       expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(false);
   });
 });

@@ -29,6 +29,7 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   // Draft return preparation (proposal 20261019120000).
   TAX_RETURN_TEMPLATE_DUPLICATE: 409, TAX_RETURN_TEMPLATE_NOT_DRAFT: 409, TAX_RETURN_TEMPLATE_NOT_PENDING: 409, TAX_RETURN_TEMPLATE_NOT_APPROVED: 409,
   TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 409, TAX_RETURN_SCOPE_MISMATCH: 409, TAX_RETURN_PREPARER_REQUIRED: 403, TAX_RETURN_REVIEWER_REQUIRED: 403, TAX_RETURN_TEMPLATE_APPROVER_REQUIRED: 403, TAX_RETURN_REVIEW_AUTHORITY_REQUIRED: 403, TAX_RETURN_VERIFIER_REQUIRED: 403, TAX_RETURN_VERIFICATION_REQUIRED: 409, TAX_RETURN_VERIFICATION_IMMUTABLE: 409,
+  TAX_RETURN_SUPERSEDED: 409, TAX_RETURN_RISK_ASSESSMENT_IMMUTABLE: 409,
   TAX_RETURN_PREPARATION_REFUSED: 409, TAX_RETURN_NOT_DRAFT: 409, TAX_RETURN_NOT_SUBMITTED: 409, TAX_RETURN_STALE: 409, TAX_RETURN_IMMUTABLE: 409,
   TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
@@ -257,6 +258,16 @@ export class TaxEngineStore {
   }
   returnVerifications(tenant: string, actor: string, returnVersionId: string) {
     return this.call<any[]>('taxguard_tax_return_verification_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+
+  // Risk and materiality of a return version (proposal 20261019160000). The database reads every signal itself; a person
+  // states only the amount at stake, and the outcome is never better than human review.
+  assessReturnRisk(tenant: string, actor: string, returnVersionId: string, amountCents: unknown) {
+    return this.call('taxguard_tax_return_risk_assess', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId),
+      p_signals: { amountCents: amountCents ?? null } });
+  }
+  returnRiskAssessments(tenant: string, actor: string, returnVersionId: string) {
+    return this.call<any[]>('taxguard_tax_return_risk_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
   }
 }
 

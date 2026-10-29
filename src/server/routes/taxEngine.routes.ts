@@ -87,6 +87,8 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/returns/:returnVersionId', run(req => store().returnDetail(t(req), u(req), req.params.returnVersionId)));
   router.get('/returns/:returnVersionId/verifications', run(async req => ({ items: await store().returnVerifications(t(req), u(req), req.params.returnVersionId) })));
   router.post('/returns/:returnVersionId/verify', run(req => store().verifyReturn(t(req), u(req), req.params.returnVersionId), 201));
+  router.get('/returns/:returnVersionId/risk', run(async req => ({ items: await store().returnRiskAssessments(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
+  router.post('/returns/:returnVersionId/risk', run(req => store().assessReturnRisk(t(req), u(req), req.params.returnVersionId, req.body?.amountCents), 201));
   router.post('/returns/:returnVersionId/:action(submit|approve|return)', run(req => store().transitionReturn(t(req), u(req), req.params.returnVersionId,
     req.params.action as 'submit' | 'approve' | 'return', note(req.body?.note))));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));

@@ -744,6 +744,12 @@ describe('draft return preparation on the real server', () => {
     expect(await badge(reviewer, 1)).toBe('APPROVED');
     expect((await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns/stage-facts`)).body)
       .toMatchObject({ draftReturnGenerated: true, preparerReviewComplete: true, provenanceComplete: true, returnUse: 'BLOCKED' });
+    // Block 71: the reviewer assesses the approved version's risk; with no approved materiality policy it is human review.
+    await article(reviewer, 1).getByRole('button', { name: 'Assess risk of SYN-1040-RETURN version 1' }).click();
+    await panel(reviewer).getByRole('alert').getByText('Enter the amount at stake in dollars and cents (zero or more).').waitFor();
+    await article(reviewer, 1).getByLabel('Amount at stake for SYN-1040-RETURN version 1 (dollars)').fill('5000.00');
+    await article(reviewer, 1).getByRole('button', { name: 'Assess risk of SYN-1040-RETURN version 1' }).click();
+    await result(reviewer).getByText(/^Risk assessment of SYN-1040-RETURN version 1: human review required: Every return has human review \(practice decision\);.*The practice has no approved materiality policy, so materiality is unknown\.$/).waitFor();
     // A revised conclusion makes the mapping and then the approved return STALE; nothing is replaced silently.
     const k = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
     const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7300.00', links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });
