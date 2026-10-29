@@ -439,6 +439,8 @@ export function taxEngineMessage(error: unknown): string {
     const problems = formProblems(error.detail);
     return 'Mapping refused: nothing was written. ' + (problems.map(formProblemText).join('; ') || 'A line cannot be filled deterministically.') + '.';
   }
+  if (error.code === 'TAX_FORM_RULE_APPROVER_REQUIRED') return 'Approval refused: approving a form-mapping rule needs verified professional eligibility and a designation under the practice\'s approved policy. '
+    + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your approval authority is not configured.');
   if (error.code === 'TAX_RETURN_TEMPLATE_APPROVER_REQUIRED') return 'Approval refused: approving a return template needs verified professional eligibility and a designation under the practice\'s approved policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your approval authority is not configured.');
   if (error.code === 'TAX_RETURN_VERIFICATION_REQUIRED') return error.detail === 'DISCREPANCY'

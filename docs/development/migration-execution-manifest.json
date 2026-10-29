@@ -2,9 +2,9 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 108,
+    "files": 109,
     "core": 13,
-    "proposals": 94,
+    "proposals": 95,
     "tables": 177,
     "functions": 470,
     "securityDefinerFunctions": 367,
@@ -4274,6 +4274,45 @@
     {
       "order": 104,
       "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019130000_taxguard_form_rule_approval_authority.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_tax_form_guard",
+          "previous": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+        },
+        {
+          "function": "taxguard_tax_form_rule_json",
+          "previous": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+        },
+        {
+          "function": "taxguard_tax_form_rule_transition",
+          "previous": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        28,
+        36,
+        101,
+        102
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 105,
+      "kind": "proposal",
       "file": "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
       "appliesInOrder": true,
       "reapply": "ok",
@@ -4314,7 +4353,7 @@
       "hazards": []
     },
     {
-      "order": 105,
+      "order": 106,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
       "appliesInOrder": true,
@@ -4346,7 +4385,7 @@
         84,
         101,
         103,
-        104
+        105
       ],
       "clientRoleAccess": [],
       "serviceRoleRevoked": [],
@@ -4355,7 +4394,7 @@
       "hazards": []
     },
     {
-      "order": 106,
+      "order": 107,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
       "appliesInOrder": true,
@@ -4383,7 +4422,7 @@
         84,
         85,
         103,
-        104
+        105
       ],
       "clientRoleAccess": [],
       "serviceRoleRevoked": [],
@@ -4392,7 +4431,7 @@
       "hazards": []
     },
     {
-      "order": 107,
+      "order": 108,
       "kind": "proposal",
       "file": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
       "appliesInOrder": true,
@@ -4429,8 +4468,8 @@
         84,
         102,
         103,
-        104,
-        106
+        105,
+        107
       ],
       "clientRoleAccess": [],
       "serviceRoleRevoked": [],
@@ -4439,7 +4478,7 @@
       "hazards": []
     },
     {
-      "order": 108,
+      "order": 109,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

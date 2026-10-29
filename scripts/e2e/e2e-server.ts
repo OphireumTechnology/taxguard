@@ -49,11 +49,13 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
   -- policy needs the case reviewer assignment only. No other reviewer or administrator is authorized.
   INSERT INTO taxguard_tax_approval_policies(tenant_id,function_code,policy_version,requires_eligibility,requires_designation,requires_case_assignment,accepted_credentials,eligibility_text,approved_by)
     VALUES('${E2E.tenant}','RETURN_TEMPLATE_APPROVAL',1,true,true,false,ARRAY['CPA','EA'],'Synthetic test policy: verified CPA or EA with a designation.','e2e-admin'),
-      ('${E2E.tenant}','RETURN_DRAFT_REVIEW',1,false,false,true,'{}','Synthetic test policy: the case reviewer assignment.','e2e-admin');
+      ('${E2E.tenant}','RETURN_DRAFT_REVIEW',1,false,false,true,'{}','Synthetic test policy: the case reviewer assignment.','e2e-admin'),
+      ('${E2E.tenant}','FORM_RULE_APPROVAL',1,true,true,false,ARRAY['CPA','EA'],'Synthetic test policy: verified CPA or EA with a designation.','e2e-admin');
   INSERT INTO taxguard_tax_professional_eligibility(tenant_id,person_uid,credential_type,credential_reference,issuing_jurisdiction,scope_jurisdictions,valid_from,expires_on,verified_by,verification_reference)
     VALUES('${E2E.tenant}','e2e-rev','CPA','synthetic-licence-e2e-rev','NY',ARRAY['US'],'2025-01-01','2099-12-31','e2e-admin','synthetic-registry-lookup');
   INSERT INTO taxguard_tax_function_designations(tenant_id,person_uid,function_code,policy_version,designation_reference,designated_by)
-    VALUES('${E2E.tenant}','e2e-rev','RETURN_TEMPLATE_APPROVAL',1,'synthetic-designation-e2e-rev','e2e-admin');
+    VALUES('${E2E.tenant}','e2e-rev','RETURN_TEMPLATE_APPROVAL',1,'synthetic-designation-e2e-rev','e2e-admin'),
+      ('${E2E.tenant}','e2e-rev','FORM_RULE_APPROVAL',1,'synthetic-form-rule-designation-e2e-rev','e2e-admin');
   -- Synthetic stand-in for the owner's quality control configuration (proposal 20261019170000): a QC policy, e2e-qc's
   -- eligibility and designation, and a two-item checklist. Not a practice checklist; nobody else holds QC authority.
   INSERT INTO taxguard_tax_approval_policies(tenant_id,function_code,policy_version,requires_eligibility,requires_designation,requires_case_assignment,accepted_credentials,eligibility_text,approved_by)

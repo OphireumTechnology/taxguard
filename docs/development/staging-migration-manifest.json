@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "6ef2644aa06a496bd8a65d17a2e02c7e5154fa395eb3aea422fb6be3b9856069",
+  "executionPlanSha256": "b9fdb6f99ebf158a89acd453d96315a14ed0ec781e185062a928d33b05506667",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5537,6 +5537,68 @@
     },
     {
       "order": 104,
+      "file": "docs/proposed-migrations/20261019130000_taxguard_form_rule_approval_authority.sql",
+      "kind": "proposal",
+      "version": "20261019130000",
+      "sha256": "700f9aadebf0bab24bb606bf08d03c854676ffdc9df3dda86cd81e4156b438e3",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_form_guard",
+        "taxguard_tax_form_rule_json",
+        "taxguard_tax_form_rule_transition"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_tax_form_guard",
+          "previousFile": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_form_rule_json",
+          "previousFile": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_form_rule_transition",
+          "previousFile": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): restore the three functions from 20261019110000 and drop the column."
+      ],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 67 security enhancement: designated approval of form-mapping rules). REVIEW ONLY; NOT APPLIED anywhere.",
+        "-- Requires 20261019110000 (form mapping) and 20261019115000 (approval authority).",
+        "--",
+        "-- Block 67 lets any content reviewer other than the drafter approve a form-mapping rule. A mapping rule decides which",
+        "-- reviewed value lands on which form line, so approving one is a professional act like approving a return template.",
+        "-- This proposal makes approval also require the FORM_RULE_APPROVAL authority (20261019115000): the owner-approved",
+        "-- policy, a function designation and verified professional eligibility in scope for the rule's jurisdiction. With",
+        "-- nothing configured, approving a mapping rule fails closed (TAX_FORM_RULE_APPROVER_REQUIRED, DETAIL = the missing",
+        "-- element). Submission, rejection, maker-checker, source verification and supersession are unchanged.",
+        "--",
+        "-- Compatibility: additive column only; rules approved before this change stay APPROVED and keep a NULL basis; no",
+        "-- record is rewritten. Each new approval records its basis, frozen once set."
+      ]
+    },
+    {
+      "order": 105,
       "file": "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
       "kind": "proposal",
       "version": "20261019140000",
@@ -5601,7 +5663,7 @@
       ]
     },
     {
-      "order": 105,
+      "order": 106,
       "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
       "kind": "proposal",
       "version": "20261019150000",
@@ -5664,7 +5726,7 @@
       ]
     },
     {
-      "order": 106,
+      "order": 107,
       "file": "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
       "kind": "proposal",
       "version": "20261019160000",
@@ -5724,7 +5786,7 @@
       ]
     },
     {
-      "order": 107,
+      "order": 108,
       "file": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
       "kind": "proposal",
       "version": "20261019170000",

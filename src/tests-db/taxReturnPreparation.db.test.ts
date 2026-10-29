@@ -15,7 +15,7 @@ import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEng
 // returns it; a changed input makes the version stale. SYNTHETIC data, form and template only: nothing here is tax law.
 const T = 'tenantReturnPrep', T2 = 'tenantReturnPrepOther', C = 'rpClient';
 const roles: Record<string, string> = { 'rp-mgr': 'practice_manager', 'rp-prep': 'accountant', 'rp-rev': 'reviewer', 'rp-out': 'accountant', 'rp-client': 'client',
-  'rp-prep24': 'accountant', 'rp-admin': 'admin' };
+  'rp-prep24': 'accountant', 'rp-admin': 'admin', 'rp-content': 'reviewer' };
 let db: TestDatabase; let caseId = '', engagementId = '', ruleSetId = '', formRuleId = '', templateId = '', income = '', return1 = '';
 let server: Server; let origin = ''; let user: any = null;
 const as = (uid: string, tenantId = T) => { user = { id: uid, role: roles[uid] ?? 'practice_manager', tenantId, status: 'active' }; };
@@ -73,7 +73,7 @@ beforeAll(async () => {
     INSERT INTO taxguard_clients(tenant_id, client_id, owner_uid, name) VALUES ('${T}', '${C}', 'rp-client', 'Synthetic Return Client');
     INSERT INTO taxguard_members(tenant_id, uid, role, status, client_id) VALUES ('${T}', 'rp-mgr', 'practice_manager', 'active', NULL), ('${T}', 'rp-prep', 'accountant', 'active', NULL),
       ('${T}', 'rp-rev', 'reviewer', 'active', NULL), ('${T}', 'rp-out', 'accountant', 'active', NULL), ('${T}', 'rp-client', 'client', 'active', '${C}'),
-      ('${T}', 'rp-prep24', 'accountant', 'active', NULL), ('${T}', 'rp-admin', 'admin', 'active', NULL), ('${T2}', 'rp-foreign', 'practice_manager', 'active', NULL);`);
+      ('${T}', 'rp-prep24', 'accountant', 'active', NULL), ('${T}', 'rp-admin', 'admin', 'active', NULL), ('${T}', 'rp-content', 'reviewer', 'active', NULL), ('${T2}', 'rp-foreign', 'practice_manager', 'active', NULL);`);
   const practice = new PracticeStore(pgRpc(db.pool));
   engagementId = (await practice.createEngagement(T, C, 'rp-mgr', 'rp-engagement-1', { title: 'Synthetic 2025 return', type: 'tax_preparation', taxYears: [2025] })).engagementId;
   await practice.setEngagementStatus(T, C, 'rp-mgr', engagementId, 'active', 1);
@@ -102,7 +102,17 @@ beforeAll(async () => {
     formId: 'SYN-1040', formVersion: '2025.0', effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, lines: [
       { schedule: 'MAIN', line: '1a', field: 'f1_wages', valueType: 'MONEY', required: true, aggregate: 'SINGLE', source: { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' } }] } });
   formRuleId = rule.body.ruleId;
-  await call('POST', `/form-rules/${formRuleId}/submit`); as('rp-rev'); expect((await call('POST', `/form-rules/${formRuleId}/approve`)).body.status).toBe('APPROVED');
+  // Proposal 20261019130000: the mapping rule is approved by a separately authorized content reviewer, so rp-rev starts
+  // with no eligibility or designation for the template tests below.
+  await db.pool.query(`INSERT INTO taxguard_tax_approval_policies(tenant_id, function_code, policy_version, requires_eligibility, requires_designation,
+      requires_case_assignment, accepted_credentials, eligibility_text, approved_by) VALUES ($1, 'FORM_RULE_APPROVAL', 1, true, true, false, ARRAY['CPA'],
+      'Synthetic policy for tests: verified CPA with a designation.', 'rp-owner');
+    INSERT INTO taxguard_tax_professional_eligibility(tenant_id, person_uid, credential_type, credential_reference, issuing_jurisdiction, scope_jurisdictions,
+      valid_from, expires_on, verified_by, verification_reference) VALUES ($1, 'rp-content', 'CPA', 'synthetic-licence-rp-content', 'NY', ARRAY['US'], '2025-01-01',
+      '2099-12-31', 'rp-owner', 'synthetic-registry-lookup');
+    INSERT INTO taxguard_tax_function_designations(tenant_id, person_uid, function_code, policy_version, designation_reference, designated_by)
+      VALUES ($1, 'rp-content', 'FORM_RULE_APPROVAL', 1, 'synthetic-designation-rp-content', 'rp-owner')`.replace(/\$1/g, `'${T}'`));
+  await call('POST', `/form-rules/${formRuleId}/submit`); as('rp-content'); expect((await call('POST', `/form-rules/${formRuleId}/approve`)).body.status).toBe('APPROVED');
 }, 240_000);
 afterAll(async () => { server?.closeAllConnections(); await new Promise<void>(r => server ? server.close(() => r()) : r()); await db?.stop(); });
 
@@ -349,7 +359,7 @@ describe('a changed input makes the return stale; preparing again records a new 
       formId: 'SYN-1040', formVersion: '2025.0', effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, lines: [
         { schedule: 'MAIN', line: '1a', field: 'f1_wages_v2', valueType: 'MONEY', required: true, aggregate: 'SINGLE', source: { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' } }] } })).body.ruleId;
     await call('POST', `/form-rules/${newer}/submit`);
-    as('rp-rev'); expect((await call('POST', `/form-rules/${newer}/approve`)).body.status).toBe('APPROVED'); // supersedes the rule of the current mapping
+    as('rp-content'); expect((await call('POST', `/form-rules/${newer}/approve`)).body.status).toBe('APPROVED'); // supersedes the rule of the current mapping
     const before = (await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_versions WHERE tenant_id = $1`, [T])).rows[0].n;
     const refused = (await prepare()).body;
     expect(refused.code).toBe('TAX_RETURN_PREPARATION_REFUSED');
