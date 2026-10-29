@@ -352,7 +352,7 @@ describe('a changed input makes the return stale; preparing again records a new 
       formId: 'SYN-1040', formVersion: '2025.0', effectiveFrom: '2025-01-01', sourceId: SYNTHETIC_SOURCE_ID, lines: [
         { schedule: 'MAIN', line: '1a', field: 'f1_wages_v2', valueType: 'MONEY', required: true, aggregate: 'SINGLE', source: { conclusionType: 'INCOME_INCLUSION', value: 'AMOUNT' } }] } })).body.ruleId;
     await call('POST', `/form-rules/${newer}/submit`);
-    as('rp-rev'); expect((await call('POST', `/form-rules/${newer}/approve`)).body.status).toBe('APPROVED'); // supersedes the rule of the current mapping
+    as('rp-content'); expect((await call('POST', `/form-rules/${newer}/approve`)).body.status).toBe('APPROVED'); // supersedes the rule of the current mapping
     const before = (await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_versions WHERE tenant_id = $1`, [T])).rows[0].n;
     const refused = (await prepare()).body;
     expect(refused.code).toBe('TAX_RETURN_PREPARATION_REFUSED');
