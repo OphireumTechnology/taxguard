@@ -11,10 +11,16 @@ import { CaseStore } from '../server/taxguard/practice/caseStore';
 // role matrix. Synthetic data only. Proposals remain unapplied anywhere else.
 let fixture: Awaited<ReturnType<typeof capabilityFixture>>;
 const proposals = readdirSync('docs/proposed-migrations').filter(n => /^\d{14}_.+\.sql$/.test(n)).sort();
+let taxPrivileges: { proname: string; client: boolean; service: boolean }[] = [];
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
   await applyProposals(fixture.pg, /^\d{14}_.+\.sql$/);
+  // Captured before 're-applies cleanly' re-runs older proposals, whose privilege loops would reset these grants.
+  taxPrivileges = (await fixture.pg.query<{ proname: string; client: boolean; service: boolean }>(`SELECT p.proname,
+      has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE') AS client,
+      has_function_privilege('service_role', p.oid, 'EXECUTE') AS service
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname LIKE 'taxguard\\_tax\\_%'`)).rows;
   await fixture.pg.exec(`INSERT INTO taxguard_clients(tenant_id,client_id,owner_uid,name) VALUES('tenantA','isoA','ownA','Synthetic A'),('tenantB','isoB','ownB','Synthetic B');
     INSERT INTO taxguard_members(tenant_id,uid,role,status) VALUES('tenantA','iso-mgr','practice_manager','active'),('tenantB','iso-mgr-b','practice_manager','active'),
       ('tenantA','iso-client','client','active'),('tenantA','iso-recruiter','recruiter','active'),('tenantA','iso-acct','accountant','active'),('tenantA','iso-suspended','admin','suspended');`);
@@ -84,6 +90,25 @@ describe('database-wide security invariants', () => {
           'taxguard_staff_admin_session','taxguard_mfa_recovery_history','taxguard_mfa_recovery_step'))
         AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))`)).rows;
     expect(rows.map(r => r.proname)).toEqual([]);
+  });
+  it('no tax engine function is executable by anon or authenticated in execution order', () => {
+    expect(taxPrivileges.length).toBeGreaterThan(0);
+    expect(taxPrivileges.filter(r => r.client).map(r => r.proname)).toEqual([]);
+  });
+  it('return verification, risk and quality control internals are not executable by the service role in execution order', () => {
+    const internal = ['taxguard_tax_return_verification_guard', 'taxguard_tax_return_verification_runs', 'taxguard_tax_return_risk_guard',
+      'taxguard_tax_return_risk_json', 'taxguard_tax_qc_checklist_current', 'taxguard_tax_return_qc_guard', 'taxguard_tax_return_qc_live',
+      'taxguard_tax_return_qc_scope'];
+    const present = taxPrivileges.filter(r => internal.includes(r.proname));
+    expect([...new Set(present.map(r => r.proname))].sort()).toEqual([...internal].sort());
+    expect(present.filter(r => r.service).map(r => r.proname)).toEqual([]);
+  });
+  it('the return verification, risk and quality control entry points stay executable by the service role in execution order', () => {
+    const entry = ['taxguard_tax_return_verify', 'taxguard_tax_return_risk_assess', 'taxguard_tax_return_qc_assign', 'taxguard_tax_return_qc_record',
+      'taxguard_tax_return_final_readiness'];
+    const present = taxPrivileges.filter(r => entry.includes(r.proname));
+    expect([...new Set(present.map(r => r.proname))].sort()).toEqual([...entry].sort());
+    expect(present.filter(r => !r.service).map(r => r.proname)).toEqual([]);
   });
   it('new tables are not readable by anon or authenticated', async () => {
     for (const table of ['taxguard_ledger_entries', 'taxguard_ledger_lines', 'taxguard_ledger_accounts', 'taxguard_ledger_bank_transactions', 'taxguard_engagement_notes', 'taxguard_case_stage_events']) {
