@@ -68,6 +68,8 @@ export const taxEngineService = {
   returnVersion: (returnVersionId: string) => request<ReturnVersion>('GET', '/returns' + id(returnVersionId)),
   transitionReturn: (returnVersionId: string, action: 'submit' | 'approve' | 'return', note?: string) =>
     request<ReturnVersion>('POST', '/returns' + id(returnVersionId) + '/' + action, note === undefined ? {} : { note }),
+  verifyReturn: (returnVersionId: string) => request<ReturnVerification>('POST', '/returns' + id(returnVersionId) + '/verify', {}),
+  returnVerifications: (returnVersionId: string) => request<{ items: ReturnVerification[] }>('GET', '/returns' + id(returnVersionId) + '/verifications').then(r => r.items),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -209,6 +211,21 @@ export interface ReturnTemplate { templateRuleId: string; templateId: string; ju
   status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED'; forms: number }
 export interface ReturnForm { formId: string; formVersion: string; mappingId: string; mappingVersion: number; valuesSha256: string }
 export interface ReturnProblem { reason: string; formId?: string; formVersion?: string; mappingId?: string; blocking?: number }
+export interface ReturnVerificationFinding { reason: string; runId?: string; formId?: string; line?: string; field?: string }
+export interface ReturnVerification { verificationId: string; returnVersionId?: string; result: 'VERIFIED' | 'DISCREPANCY'; findings: ReturnVerificationFinding[];
+  runs: Array<{ runId: string; ruleSetId: string; recordedOutputSha256: string; recomputedOutputSha256: string }>; engineVersion: string; verifiedBy: string; verifiedAt: string }
+export const VERIFICATION_FINDING_LABELS: Record<string, string> = {
+  RECALCULATION_MISMATCH: 'recalculating the run gives a different result',
+  ENGINE_VERSION_CHANGED: 'the calculation engine version differs from the one the run used',
+  RULE_SET_NOT_CURRENT: 'the run\'s rule set is no longer the approved version',
+  RULE_SET_INTEGRITY: 'the run\'s rule set content does not match the hash it was pinned to',
+  VALUE_SOURCE_MISMATCH: 'the value differs from the sum of the sources it cites',
+};
+export function verificationText(v: Pick<ReturnVerification, 'result' | 'findings' | 'runs'>): string {
+  if (v.result === 'VERIFIED') return `verified: ${v.runs.length} calculation run${v.runs.length === 1 ? '' : 's'} recalculated with identical results`;
+  return 'discrepancy: ' + v.findings.map(f => (f.runId ? `run ${f.runId.slice(0, 8)}` : `${f.formId ?? ''} line ${f.line ?? ''}`.trim()) + ': '
+    + (VERIFICATION_FINDING_LABELS[f.reason] ?? f.reason)).join('; ');
+}
 export interface ReturnVersion { returnVersionId: string; caseId: string; taxYear: number; templateId: string; version: number;
   status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED' | 'SUPERSEDED'; templateRuleId: string; templateVersion: number; templateSha256: string;
   forms: ReturnForm[]; formsSha256: string; missing: Array<{ formId: string; formVersion: string }>; preparedBy: string; createdAt: string;
@@ -312,6 +329,7 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 'This return template is not in effect today (outside its effective dates). Nothing was written.',
     TAX_RETURN_SCOPE_MISMATCH: 'This return template is for another tax year or return family than the case.',
     TAX_RETURN_NOT_DRAFT: 'Only a draft version can be submitted.',
+    TAX_RETURN_VERIFIER_REQUIRED: 'Only the case\'s independent reviewer can verify the calculations of a draft return.',
     TAX_RETURN_NOT_SUBMITTED: 'Only a submitted version can be approved or returned.',
     TAX_RETURN_INPUT_INVALID: 'Enter a note of at least 10 characters to return the draft.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
@@ -349,6 +367,9 @@ export function taxEngineMessage(error: unknown): string {
   }
   if (error.code === 'TAX_RETURN_TEMPLATE_APPROVER_REQUIRED') return 'Approval refused: approving a return template needs verified professional eligibility and a designation under the practice\'s approved policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your approval authority is not configured.');
+  if (error.code === 'TAX_RETURN_VERIFICATION_REQUIRED') return error.detail === 'DISCREPANCY'
+    ? 'Approval refused: the latest calculation verification of this version found a discrepancy. Return it to the preparer.'
+    : 'Approval refused: verify the calculations of this version first.';
   if (error.code === 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED') return 'Approval refused: the Stage 09 draft review needs the case reviewer assignment under the practice\'s approved review policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your review authority is not configured.');
   if (error.code === 'TAX_RETURN_PREPARATION_REFUSED') {

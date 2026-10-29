@@ -261,6 +261,9 @@ describe('a draft return is assembled only from current form mappings', () => {
     // The Stage 09 draft review also needs the owner's review policy; without it the case reviewer cannot approve.
     expect((await act(return1, 'approve', 'rp-rev')).body).toEqual({ code: 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED', detail: 'NO_POLICY' });
     await policy('RETURN_DRAFT_REVIEW', 1, { eligibility: false, designation: false, caseAssignment: true });
+    // Block 69: approval also needs the version's independent calculation verification.
+    expect((await act(return1, 'approve', 'rp-rev')).body).toEqual({ code: 'TAX_RETURN_VERIFICATION_REQUIRED', detail: 'NONE' });
+    as('rp-rev'); expect((await call('POST', `/returns/${return1}/verify`)).body).toMatchObject({ result: 'VERIFIED', findings: [] });
     expect((await act(return1, 'approve', 'rp-rev')).body).toMatchObject({ status: 'APPROVED', reviewedBy: 'rp-rev', stale: [],
       approvalBasis: { function: 'RETURN_DRAFT_REVIEW', policyVersion: 1, jurisdiction: 'US', caseReviewer: true, approverUid: 'rp-rev' } });
     await expect(db.pool.query(`UPDATE taxguard_tax_return_versions SET approval_basis = '{}'::jsonb WHERE tenant_id = $1 AND return_version_id = $2`, [T, return1]))

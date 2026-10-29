@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { returnProblemText, taxEngineMessage, taxEngineService, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
+import { returnProblemText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
 
 /**
  * Draft return for the selected case (proposal 20261019120000). The server assembles a return version only from the
@@ -52,7 +52,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const focusHeading = (key: string) => setTimeout(() => {
     if (current.current === key && (!document.activeElement || document.activeElement === document.body)) heading.current?.focus();
   }, 0);
-  const act = async (work: () => Promise<ReturnVersion>, done: (v: ReturnVersion) => string) => {
+  const act = async <T,>(work: () => Promise<T>, done: (v: T) => string) => {
     if (busy) return;
     const key = caseId;
     setBusy(true); setNotice(null);
@@ -74,6 +74,8 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const decide = (v: ReturnVersion, action: 'submit' | 'approve' | 'return') => act(
     () => taxEngineService.transitionReturn(v.returnVersionId, action, action === 'return' ? (notes[v.returnVersionId] ?? '') : undefined),
     r => `Version ${r.version} of ${r.templateId}: ${words(r.status)}.`);
+  const verify = (v: ReturnVersion) => act(() => taxEngineService.verifyReturn(v.returnVersionId),
+    r => `Calculation verification of ${v.templateId} version ${v.version}: ${verificationText(r)}.`);
   const toggle = (id: string) => {
     if (open?.id === id) { setOpen(null); return; }
     const key = caseId;
@@ -114,6 +116,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
         {v.missing.length > 0 && <p>Optional forms without a mapping: {v.missing.map(m => `${m.formId} (${m.formVersion})`).join(', ')}.</p>}
         {badge === 'DRAFT' && <button type="button" disabled={busy} onClick={() => void decide(v, 'submit')}>Submit {name} for review</button>}
         {badge === 'SUBMITTED' && <>
+          <button type="button" disabled={busy} onClick={() => void verify(v)}>Verify calculations of {name}</button>
           <button type="button" disabled={busy} onClick={() => void decide(v, 'approve')}>Approve {name}</button>
           <label htmlFor={noteId}>Note for returning {name}</label>
           <input id={noteId} value={notes[v.returnVersionId] ?? ''} onChange={e => setNotes(n => ({ ...n, [v.returnVersionId]: e.target.value }))} />

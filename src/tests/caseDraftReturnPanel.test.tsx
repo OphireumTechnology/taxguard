@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
-import { returnProblems, returnProblemText, TaxEngineRequestError, taxEngineMessage, taxEngineService } from '../services/taxEngineService';
+import { returnProblems, returnProblemText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
 import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
 
@@ -51,6 +51,16 @@ describe('draft returns in the browser client', () => {
     expect(actionNotice('Version 1 of SYN-1040-RETURN: approved.', null)).toEqual({ error: false, text: 'Version 1 of SYN-1040-RETURN: approved.' });
     expect(actionNotice('Version 1 of SYN-1040-RETURN: approved.', 'The tax rules service did not confirm this action.')).toEqual({ error: true,
       text: 'Version 1 of SYN-1040-RETURN: approved. The list below could not be refreshed, so it may not show this yet: The tax rules service did not confirm this action. Use Refresh draft returns.' });
+  });
+
+  it('describes a calculation verification, and why approval waits for one (Block 69)', () => {
+    expect(verificationText({ result: 'VERIFIED', findings: [], runs: [{ runId: ID, ruleSetId: ID, recordedOutputSha256: 'a', recomputedOutputSha256: 'a' }] }))
+      .toBe('verified: 1 calculation run recalculated with identical results');
+    expect(verificationText({ result: 'DISCREPANCY', runs: [], findings: [{ runId: ID, reason: 'RECALCULATION_MISMATCH' }, { formId: 'SYN-1040', line: '1a', reason: 'VALUE_SOURCE_MISMATCH' }] }))
+      .toBe('discrepancy: run 0123abcd: recalculating the run gives a different result; SYN-1040 line 1a: the value differs from the sum of the sources it cites');
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_VERIFICATION_REQUIRED', 'NONE'))).toBe('Approval refused: verify the calculations of this version first.');
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_VERIFICATION_REQUIRED', 'DISCREPANCY')))
+      .toBe('Approval refused: the latest calculation verification of this version found a discrepancy. Return it to the preparer.');
   });
 
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {

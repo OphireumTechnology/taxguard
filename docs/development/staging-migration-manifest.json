@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "430c085f2089409a070b45f9ef7887d4dec91684aab3ceff1ca6ef6c8f8ab420",
+  "executionPlanSha256": "65ddf5da758571a6fcbf51e9ef95c120fbaac774673b4f6475112fef46d87952",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5533,6 +5533,71 @@
         "-- A return template is tax content: it cites a verified source, names a supported jurisdiction and the dates it is",
         "-- in effect, is drafted by a content maintainer, approved by a different person (maker-checker), frozen once",
         "-- submitted, and a newer approval supersedes it. Approving a template needs the RETURN_TEMPLATE_APPROVAL authority"
+      ]
+    },
+    {
+      "order": 104,
+      "file": "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+      "kind": "proposal",
+      "version": "20261019140000",
+      "sha256": "40bf768636afef9312640e50582f2a7924ae04c7b22daf48372256523a10ff18",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_return_verifications",
+        "taxguard_tax_return_verification_guard",
+        "taxguard_tax_return_verification_runs",
+        "taxguard_tax_return_verification_inputs",
+        "taxguard_tax_return_verify",
+        "taxguard_tax_return_verification_list",
+        "taxguard_tax_return_transition"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_tax_return_transition",
+          "previousFile": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): restore taxguard_tax_return_transition from 20261019120000, drop the functions and table."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_return_verifications FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 5,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 69, independent calculation verification of a draft return). REVIEW ONLY; NOT APPLIED anywhere.",
+        "-- Requires 033 (calculation runs, rule sets), 20261018090000 (live case actor), 20261019110000 (form mapping) and",
+        "-- 20261019120000 (return versions).",
+        "--",
+        "-- Before a draft return version is approved at Stage 09, the case's independent reviewer (never its preparer) has the",
+        "-- server re-execute every calculation run that a value of the version relies on, with the same deterministic engine",
+        "-- and the run's pinned rule set, after the server re-checks the rule-set hash. The database then records the result",
+        "-- and itself checks: the recomputed output hash equals the recorded one (RECALCULATION_MISMATCH), the engine version",
+        "-- is unchanged (ENGINE_VERSION_CHANGED), the run's rule set is still the approved version (RULE_SET_NOT_CURRENT) with",
+        "-- the hash the run was pinned to (RULE_SET_INTEGRITY), and every mapped value equals the sum of the source values it",
+        "-- cites (VALUE_SOURCE_MISMATCH). No findings: VERIFIED; otherwise DISCREPANCY with the findings. Nothing is corrected",
+        "-- or recalculated into the return. Verifications are immutable and audited; approval needs the latest one recorded"
       ]
     }
   ]

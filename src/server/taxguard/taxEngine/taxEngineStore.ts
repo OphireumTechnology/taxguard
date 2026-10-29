@@ -28,7 +28,7 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_FORM_RULE_NOT_EFFECTIVE: 409,
   // Draft return preparation (proposal 20261019120000).
   TAX_RETURN_TEMPLATE_DUPLICATE: 409, TAX_RETURN_TEMPLATE_NOT_DRAFT: 409, TAX_RETURN_TEMPLATE_NOT_PENDING: 409, TAX_RETURN_TEMPLATE_NOT_APPROVED: 409,
-  TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 409, TAX_RETURN_SCOPE_MISMATCH: 409, TAX_RETURN_PREPARER_REQUIRED: 403, TAX_RETURN_REVIEWER_REQUIRED: 403, TAX_RETURN_TEMPLATE_APPROVER_REQUIRED: 403, TAX_RETURN_REVIEW_AUTHORITY_REQUIRED: 403,
+  TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 409, TAX_RETURN_SCOPE_MISMATCH: 409, TAX_RETURN_PREPARER_REQUIRED: 403, TAX_RETURN_REVIEWER_REQUIRED: 403, TAX_RETURN_TEMPLATE_APPROVER_REQUIRED: 403, TAX_RETURN_REVIEW_AUTHORITY_REQUIRED: 403, TAX_RETURN_VERIFIER_REQUIRED: 403, TAX_RETURN_VERIFICATION_REQUIRED: 409, TAX_RETURN_VERIFICATION_IMMUTABLE: 409,
   TAX_RETURN_PREPARATION_REFUSED: 409, TAX_RETURN_NOT_DRAFT: 409, TAX_RETURN_NOT_SUBMITTED: 409, TAX_RETURN_STALE: 409, TAX_RETURN_IMMUTABLE: 409,
   TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
@@ -238,6 +238,26 @@ export class TaxEngineStore {
     return this.call('taxguard_tax_return_transition', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId), p_action: action, p_note: note ?? null });
   }
   returnStageFacts(tenant: string, actor: string, caseId: string) { return this.call('taxguard_tax_return_stage_facts', { p_tenant: tenant, p_actor: actor, p_case: caseId }); }
+
+  // Independent calculation verification (proposal 20261019140000). The server re-executes every run a return version
+  // relies on with the same deterministic engine and the run's approved rule set; the database records the result and
+  // performs its own checks. Nothing is recalculated into the return.
+  async verifyReturn(tenant: string, actor: string, returnVersionId: string) {
+    const input = await this.call<{ runs: Array<{ runId: string; ruleSetId: string; filingStatus: string | null; inputs: CalculationRequest['inputs'] }> }>(
+      'taxguard_tax_return_verification_inputs', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+    const runs: Array<{ runId: string; recomputedOutputSha256: string }> = [];
+    for (const run of input.runs) {
+      const rs = await this.ruleSet(tenant, actor, run.ruleSetId);
+      const definition = rs.definition as RuleSetDefinition;
+      if (this.engine(() => definitionHash(definition)) !== rs.contentSha256) throw new TaxEngineStoreError('TAX_RULE_SET_INTEGRITY', 409);
+      const outcome = this.engine(() => evaluateRuleSet(definition, { filingStatus: run.filingStatus ?? undefined, inputs: run.inputs }));
+      runs.push({ runId: run.runId, recomputedOutputSha256: outcome.outputHash });
+    }
+    return this.call('taxguard_tax_return_verify', { p_tenant: tenant, p_actor: actor, p_version: returnVersionId, p_runs: runs, p_engine_version: TAX_ENGINE_VERSION });
+  }
+  returnVerifications(tenant: string, actor: string, returnVersionId: string) {
+    return this.call<any[]>('taxguard_tax_return_verification_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
 }
 
 /** Only the documented fields reach the database; links are type and reference pairs. */

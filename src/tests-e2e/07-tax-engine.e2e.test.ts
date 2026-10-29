@@ -734,6 +734,11 @@ describe('draft return preparation on the real server', () => {
     expect(await show.getAttribute('aria-expanded')).toBe('true');
     expect(await table.getByRole('row').filter({ has: reviewer.page.getByRole('rowheader', { name: '1a', exact: true }) }).innerText())
       .toMatch(/Conclusion [0-9a-f]{8} version \d+ · run [0-9a-f]{8}/);
+    // Block 69: approval needs an independent calculation verification first.
+    await article(reviewer, 1).getByRole('button', { name: 'Approve SYN-1040-RETURN version 1' }).click();
+    await panel(reviewer).getByRole('alert').getByText('Approval refused: verify the calculations of this version first.').waitFor();
+    await article(reviewer, 1).getByRole('button', { name: 'Verify calculations of SYN-1040-RETURN version 1' }).click();
+    await result(reviewer).getByText(/^Calculation verification of SYN-1040-RETURN version 1: verified: \d+ calculation runs? recalculated with identical results\.$/).waitFor();
     await article(reviewer, 1).getByRole('button', { name: 'Approve SYN-1040-RETURN version 1' }).click();
     await result(reviewer).getByText('Version 1 of SYN-1040-RETURN: approved.').waitFor();
     expect(await badge(reviewer, 1)).toBe('APPROVED');
