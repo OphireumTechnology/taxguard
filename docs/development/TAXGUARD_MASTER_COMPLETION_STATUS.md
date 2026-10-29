@@ -62,6 +62,21 @@ Audits completed in this cycle (documents):
   return panel in Case Workflow; production refused. PostgreSQL (11), unit, suite 07 journey. Report:
   `block68-draft-return-preparation-report.md`. **Owner review point:** approval policies, eligibility records and
   designations (nothing is configured; approvals fail closed).
+- **Return verification, diagnostics, risk and independent QC (Blocks 69-72, stacked on Block 68).** Review-only
+  proposals `20261019140000` (server re-execution of every calculation behind a return version; `VERIFIED` required
+  for Stage 09 approval), `20261019150000` (return-level rules in the governed diagnostics table),
+  `20261019160000` (immutable risk assessments; `BLOCKED` or `HUMAN_REVIEW_REQUIRED`, never `CONTINUE`, per OV-09)
+  and `20261019170000` (a manager assigns QC to a third person independent of preparer and reviewer; checklist
+  review under the `RETURN_QC_REVIEW` authority; final readiness reports `stage10: FINAL_AUTHORIZATION_REQUIRED` and
+  `returnUse: BLOCKED`). Each branch passed its own full matrix (Block 69 within Block 70's). Integration branch
+  `claude/taxguard-integration-68-72` combines the stack with the form-rule authority and the architecture
+  reconciliation. **Owner review point:** QC policy, eligibility and designations, the QC checklist and the
+  materiality policy (none configured; QC and readiness fail closed).
+- **Tax engine privileges checked in execution order (2026-10-30).** The composition security test never checked
+  `taxguard_tax_` functions, and its invariants ran after a re-application step that resets their grants. Privileges
+  are now captured right after the in-order application; mutation checks confirmed. Operational note: re-running
+  `20261012330000` alone after Blocks 66-72 removes service-role access to their entry points (fails closed), so any
+  re-run must replay the full execution order.
 - **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
   `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
   agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
