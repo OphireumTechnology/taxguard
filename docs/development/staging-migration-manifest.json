@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "c762e33529bb2796b280b139352f50322467e4f4844257716d81acf2cd5f08b1",
+  "executionPlanSha256": "6ef2644aa06a496bd8a65d17a2e02c7e5154fa395eb3aea422fb6be3b9856069",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5721,6 +5721,77 @@
         "--     (DIAGNOSTICS_NOT_CURRENT), blocking (DIAGNOSTIC_BLOCKING), errors (DIAGNOSTIC_ERRORS), open warnings",
         "--     (DIAGNOSTIC_WARNINGS_OPEN);",
         "--   * research positions of the case: memos still a draft or awaiting review (RESEARCH_UNRESOLVED), open memos without an"
+      ]
+    },
+    {
+      "order": 107,
+      "file": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
+      "kind": "proposal",
+      "version": "20261019170000",
+      "sha256": "5951b40d4e7b00d61aaf592552f20e376b4961a61433bbc3e79d4d650aab24df",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_qc_checklists",
+        "taxguard_tax_return_qc_assignments",
+        "taxguard_tax_return_qc_reviews",
+        "taxguard_tax_return_qc_guard",
+        "taxguard_tax_qc_checklist_current",
+        "taxguard_tax_return_qc_live",
+        "taxguard_tax_return_qc_scope",
+        "taxguard_tax_return_qc_assign",
+        "taxguard_tax_return_qc_unassign",
+        "taxguard_tax_return_qc_queue",
+        "taxguard_tax_return_qc_context",
+        "taxguard_tax_return_qc_record",
+        "taxguard_tax_return_qc_list",
+        "taxguard_tax_return_final_readiness"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the functions, guards and the three tables."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_qc_checklists, public.taxguard_tax_return_qc_assignments, public.taxguard_tax_return_qc_reviews",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 10,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 72, independent quality control and final draft readiness). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018090000 (live case actor), 20261018160000 (diagnostics), 20261019115000 (approval authority),",
+        "-- 20261019120000 (return versions), 20261019140000 (verifications), 20261019150000 (return-level diagnostics) and",
+        "-- 20261019160000 (return risk assessments).",
+        "--",
+        "-- Quality control of an APPROVED draft return version by a third person, separate from the Stage 09 draft review:",
+        "--   * Assignment: a practice manager assigns one QC reviewer to the version. The QC reviewer is an active staff member",
+        "--     and is neither the version's preparer or reviewer, nor the case's assigned preparer or reviewer, nor the manager",
+        "--     making the assignment. The live QC assignment is the case-specific authorization that the RETURN_QC_REVIEW policy",
+        "--     requires (20261019115000 makes case assignment mandatory for that function).",
+        "--   * Authority: recording QC needs the RETURN_QC_REVIEW authority for the template's jurisdiction under the owner's",
+        "--     approved policy (eligibility and designation if the policy requires them). No policy: refused (fail closed)."
       ]
     }
   ]

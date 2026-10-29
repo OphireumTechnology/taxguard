@@ -73,6 +73,16 @@ export const taxEngineService = {
   /** Risk of a return version: the server reads every signal; a person states only the amount at stake. Never better than human review. */
   assessReturnRisk: (returnVersionId: string, amountCents: number) => request<ReturnRiskAssessment>('POST', '/returns' + id(returnVersionId) + '/risk', { amountCents }),
   returnRisk: (returnVersionId: string) => request<{ items: ReturnRiskAssessment[]; returnUse: 'BLOCKED' }>('GET', '/returns' + id(returnVersionId) + '/risk').then(r => r.items),
+  /** Independent quality control (proposal 20261019170000): a manager assigns a third person, who records PASS/FAIL per item of the practice's checklist. */
+  assignQc: (returnVersionId: string, qcUid: string) => request<QcAssignment>('POST', '/returns' + id(returnVersionId) + '/qc-assignment', { qcUid }),
+  revokeQc: (returnVersionId: string, reason: string) => request<QcAssignment>('POST', '/returns' + id(returnVersionId) + '/qc-assignment/revoke', { reason }),
+  qcQueue: () => request<{ items: QcQueueItem[]; returnUse: 'BLOCKED' }>('GET', '/qc/queue').then(r => r.items),
+  qcContext: (returnVersionId: string) => request<QcContext>('GET', '/returns' + id(returnVersionId) + '/qc-context'),
+  recordQc: (returnVersionId: string, results: QcResultInput[], note?: string) =>
+    request<QcReview>('POST', '/returns' + id(returnVersionId) + '/qc', note === undefined ? { results } : { results, note }),
+  qcReviews: (returnVersionId: string) => request<{ items: QcReview[]; returnUse: 'BLOCKED' }>('GET', '/returns' + id(returnVersionId) + '/qc-reviews').then(r => r.items),
+  /** Final draft readiness: only an input to Stage 10 final authorization; nothing is signed or filed. */
+  returnReadiness: (returnVersionId: string) => request<ReturnReadiness>('GET', '/returns' + id(returnVersionId) + '/readiness'),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -129,6 +139,35 @@ export const RETURN_RISK_REASON_LABELS: Record<string, string> = {
 };
 export function returnRiskText(r: Pick<ReturnRiskAssessment, 'outcome' | 'reasonCodes'>): string {
   return `${RISK_OUTCOME_LABELS[r.outcome].toLowerCase()}: ` + r.reasonCodes.map(c => (RETURN_RISK_REASON_LABELS[c] ?? c).replace(/\.$/, '')).join('; ');
+}
+export interface QcAssignment { assignmentId: string; returnVersionId: string; qcUid: string; assignedBy?: string; assignedAt?: string; revokedAt?: string }
+export interface QcQueueItem { assignmentId: string; returnVersionId: string; caseId: string; taxYear: number; templateId: string; version: number; status: string;
+  assignedAt: string; latestOutcome: QcOutcome | null }
+export type QcOutcome = 'QC_PASSED' | 'QC_RETURNED';
+export interface QcChecklistItem { code: string; text: string }
+export interface QcContext { returnVersion: ReturnVersion; assignment: { assignmentId: string; qcUid: string; assignedBy: string; assignedAt: string } | null;
+  checklist: { checklistVersion: number; items: QcChecklistItem[] } | null; verification: { verificationId: string; result: 'VERIFIED' | 'DISCREPANCY'; verifiedAt: string } | null;
+  risk: ReturnRiskAssessment | null; returnUse: 'BLOCKED' }
+export interface QcResultInput { code: string; result: 'PASS' | 'FAIL'; note?: string }
+export interface QcReview { qcReviewId: string; checklistVersion: number; results: Array<QcResultInput & { text: string }>; outcome: QcOutcome; note: string | null;
+  reviewedBy: string; reviewedAt: string }
+export interface ReturnReadiness { returnVersionId: string; ready: boolean; reasons: string[]; riskAssessmentId: string | null; qcReviewId: string | null;
+  stage10: 'FINAL_AUTHORIZATION_REQUIRED'; returnUse: 'BLOCKED' }
+export const READINESS_REASON_LABELS: Record<string, string> = {
+  NOT_APPROVED: 'the draft review has not approved this version',
+  STALE: 'the version no longer matches its sources',
+  NOT_VERIFIED: 'the latest calculation verification is not VERIFIED',
+  DIAGNOSTICS_NOT_CURRENT: 'diagnostics have not been run since approval',
+  DIAGNOSTICS_OPEN: 'blocking or error diagnostics are open',
+  RISK_NOT_CURRENT: 'no risk assessment since the latest approval and diagnostics run',
+  RISK_BLOCKED: 'the current risk assessment is blocked',
+  QC_NOT_RECORDED: 'no quality control review is recorded',
+  QC_RETURNED: 'quality control returned the version',
+  QC_NOT_CURRENT: 'the quality control review predates the current risk assessment, diagnostics or checklist',
+};
+export function readinessText(r: Pick<ReturnReadiness, 'ready' | 'reasons'>): string {
+  return r.ready ? 'ready for Stage 10 final authorization by an authorized professional (nothing is signed or filed)'
+    : 'not ready: ' + r.reasons.map(c => READINESS_REASON_LABELS[c] ?? c).join('; ');
 }
 /** Whole dollars and cents as entered by a person, to integer cents; anything else is null. */
 export function dollarsToCents(text: string): number | null {
@@ -356,6 +395,15 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_NOT_DRAFT: 'Only a draft version can be submitted.',
     TAX_RETURN_VERIFIER_REQUIRED: 'Only the case\'s independent reviewer can verify the calculations of a draft return.',
     TAX_RETURN_SUPERSEDED: 'This version has been superseded; assess the current version.',
+    TAX_RETURN_QC_ASSIGNER_REQUIRED: 'Only a practice manager can assign or revoke the quality control reviewer.',
+    TAX_RETURN_QC_REVIEWER_REQUIRED: 'Only the assigned quality control reviewer can record quality control.',
+    TAX_RETURN_QC_NOT_INDEPENDENT: 'The quality control reviewer must be a third person: not the preparer, the reviewer or the assigning manager.',
+    TAX_RETURN_QC_ASSIGNEE_INVALID: 'That person is not an active staff member of this practice.',
+    TAX_RETURN_QC_ALREADY_ASSIGNED: 'A quality control reviewer is already assigned to this version. Revoke that assignment first.',
+    TAX_RETURN_QC_NOT_ASSIGNED: 'No quality control reviewer is assigned to this version.',
+    TAX_RETURN_QC_CHECKLIST_REQUIRED: 'The practice has no approved quality control checklist, so quality control cannot be recorded.',
+    TAX_RETURN_QC_INPUT_INVALID: 'Give PASS or FAIL for every checklist item; returning a version needs a note of at least 10 characters.',
+    TAX_RETURN_NOT_APPROVED: 'Only an approved draft return version goes to quality control.',
     TAX_RETURN_NOT_SUBMITTED: 'Only a submitted version can be approved or returned.',
     TAX_RETURN_INPUT_INVALID: 'Enter a note of at least 10 characters to return the draft.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
@@ -396,6 +444,8 @@ export function taxEngineMessage(error: unknown): string {
   if (error.code === 'TAX_RETURN_VERIFICATION_REQUIRED') return error.detail === 'DISCREPANCY'
     ? 'Approval refused: the latest calculation verification of this version found a discrepancy. Return it to the preparer.'
     : 'Approval refused: verify the calculations of this version first.';
+  if (error.code === 'TAX_RETURN_QC_AUTHORITY_REQUIRED') return 'Quality control refused: it needs the QC authority under the practice\'s approved policy. '
+    + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your quality control authority is not configured.');
   if (error.code === 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED') return 'Approval refused: the Stage 09 draft review needs the case reviewer assignment under the practice\'s approved review policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your review authority is not configured.');
   if (error.code === 'TAX_RETURN_PREPARATION_REFUSED') {

@@ -89,6 +89,13 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.post('/returns/:returnVersionId/verify', run(req => store().verifyReturn(t(req), u(req), req.params.returnVersionId), 201));
   router.get('/returns/:returnVersionId/risk', run(async req => ({ items: await store().returnRiskAssessments(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
   router.post('/returns/:returnVersionId/risk', run(req => store().assessReturnRisk(t(req), u(req), req.params.returnVersionId, req.body?.amountCents), 201));
+  router.post('/returns/:returnVersionId/qc-assignment', run(req => store().assignQc(t(req), u(req), req.params.returnVersionId, req.body?.qcUid), 201));
+  router.post('/returns/:returnVersionId/qc-assignment/revoke', run(req => store().unassignQc(t(req), u(req), req.params.returnVersionId, textOf(req.body?.reason, 500))));
+  router.get('/qc/queue', run(async req => ({ items: await store().qcQueue(t(req), u(req)), returnUse: 'BLOCKED' })));
+  router.get('/returns/:returnVersionId/qc-context', run(req => store().qcContext(t(req), u(req), req.params.returnVersionId)));
+  router.get('/returns/:returnVersionId/qc-reviews', run(async req => ({ items: await store().qcReviews(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
+  router.post('/returns/:returnVersionId/qc', run(req => store().recordQc(t(req), u(req), req.params.returnVersionId, req.body?.results, note(req.body?.note)), 201));
+  router.get('/returns/:returnVersionId/readiness', run(req => store().finalReadiness(t(req), u(req), req.params.returnVersionId)));
   router.post('/returns/:returnVersionId/:action(submit|approve|return)', run(req => store().transitionReturn(t(req), u(req), req.params.returnVersionId,
     req.params.action as 'submit' | 'approve' | 'return', note(req.body?.note))));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));

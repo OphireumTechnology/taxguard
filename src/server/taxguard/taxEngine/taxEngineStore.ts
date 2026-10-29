@@ -30,6 +30,9 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_RETURN_TEMPLATE_DUPLICATE: 409, TAX_RETURN_TEMPLATE_NOT_DRAFT: 409, TAX_RETURN_TEMPLATE_NOT_PENDING: 409, TAX_RETURN_TEMPLATE_NOT_APPROVED: 409,
   TAX_RETURN_TEMPLATE_NOT_EFFECTIVE: 409, TAX_RETURN_SCOPE_MISMATCH: 409, TAX_RETURN_PREPARER_REQUIRED: 403, TAX_RETURN_REVIEWER_REQUIRED: 403, TAX_RETURN_TEMPLATE_APPROVER_REQUIRED: 403, TAX_RETURN_REVIEW_AUTHORITY_REQUIRED: 403, TAX_RETURN_VERIFIER_REQUIRED: 403, TAX_RETURN_VERIFICATION_REQUIRED: 409, TAX_RETURN_VERIFICATION_IMMUTABLE: 409,
   TAX_RETURN_SUPERSEDED: 409, TAX_RETURN_RISK_ASSESSMENT_IMMUTABLE: 409,
+  TAX_RETURN_QC_ASSIGNER_REQUIRED: 403, TAX_RETURN_QC_REVIEWER_REQUIRED: 403, TAX_RETURN_QC_AUTHORITY_REQUIRED: 403, TAX_RETURN_QC_NOT_INDEPENDENT: 409,
+  TAX_RETURN_QC_ASSIGNEE_INVALID: 409, TAX_RETURN_QC_ALREADY_ASSIGNED: 409, TAX_RETURN_QC_NOT_ASSIGNED: 409, TAX_RETURN_QC_CHECKLIST_REQUIRED: 409,
+  TAX_RETURN_NOT_APPROVED: 409, TAX_RETURN_QC_HISTORY_IMMUTABLE: 409,
   TAX_RETURN_PREPARATION_REFUSED: 409, TAX_RETURN_NOT_DRAFT: 409, TAX_RETURN_NOT_SUBMITTED: 409, TAX_RETURN_STALE: 409, TAX_RETURN_IMMUTABLE: 409,
   TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
@@ -268,6 +271,31 @@ export class TaxEngineStore {
   }
   returnRiskAssessments(tenant: string, actor: string, returnVersionId: string) {
     return this.call<any[]>('taxguard_tax_return_risk_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+
+  // Independent quality control and final draft readiness (proposal 20261019170000). A practice manager assigns a third
+  // person; the database checks independence, the RETURN_QC_REVIEW authority and the owner's checklist. Readiness is
+  // only an input to Stage 10 final authorization.
+  assignQc(tenant: string, actor: string, returnVersionId: string, qcUid: unknown) {
+    return this.call('taxguard_tax_return_qc_assign', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId),
+      p_qc_uid: typeof qcUid === 'string' ? qcUid : null });
+  }
+  unassignQc(tenant: string, actor: string, returnVersionId: string, reason: string) {
+    return this.call('taxguard_tax_return_qc_unassign', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId), p_reason: reason });
+  }
+  qcQueue(tenant: string, actor: string) { return this.call<any[]>('taxguard_tax_return_qc_queue', { p_tenant: tenant, p_actor: actor }); }
+  qcContext(tenant: string, actor: string, returnVersionId: string) {
+    return this.call('taxguard_tax_return_qc_context', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+  recordQc(tenant: string, actor: string, returnVersionId: string, results: unknown, note: string | undefined) {
+    return this.call('taxguard_tax_return_qc_record', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId),
+      p_results: Array.isArray(results) ? results : null, p_note: note ?? null });
+  }
+  qcReviews(tenant: string, actor: string, returnVersionId: string) {
+    return this.call<any[]>('taxguard_tax_return_qc_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+  finalReadiness(tenant: string, actor: string, returnVersionId: string) {
+    return this.call('taxguard_tax_return_final_readiness', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
   }
 }
 

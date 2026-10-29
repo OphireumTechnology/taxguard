@@ -58,6 +58,31 @@ deriving the amount at stake from mapped lines (the owner has not defined which 
 | Tests | Three-person separation (preparer, reviewer, QC); QC authority fail-closed; readiness false when any input is stale; nothing marks a return filed or signed |
 | [OWNER] | QC eligibility policy and checklist; whether QC is required for every return or by risk outcome |
 
+As built (proposal 20261019170000, review only):
+
+- **Assignment.** The authority proposal makes case assignment mandatory for `RETURN_QC_REVIEW`. The case has only
+  preparer and reviewer slots, so QC uses an explicit per-version assignment instead.
+  - A practice manager makes it with `POST /returns/:id/qc-assignment`, and revokes it with a reason.
+  - The assignee must be an active staff member. They must not be the version's preparer or reviewer, the case's
+    preparer or reviewer, or the manager making the assignment.
+  - Independence is checked again when QC is recorded.
+- **Recording.** `POST /returns/:id/qc` is for the live assignee only.
+  - Order of checks: the version is approved and not stale; the QC authority (no policy: `NO_POLICY`); the owner's
+    approved checklist (none seeded: `TAX_RETURN_QC_CHECKLIST_REQUIRED`).
+  - The reviewer gives PASS or FAIL for every item. Any FAIL is `QC_RETURNED` and needs a note.
+  - The approved version never changes: the preparer prepares a new one.
+- **Readiness.** `GET /returns/:id/readiness` checks, in order:
+  1. The version is approved and not stale.
+  2. Its calculations are VERIFIED.
+  3. Diagnostics were run after approval, with no open BLOCKING or ERROR finding.
+  4. A risk assessment newer than approval and that run exists, and it is not BLOCKED.
+  5. A `QC_PASSED` review newer than both exists, under the current checklist.
+- **Scope of readiness.** QC is required for every return until the owner decides otherwise. Readiness reports
+  `stage10: FINAL_AUTHORIZATION_REQUIRED` and `returnUse: BLOCKED`. Nothing signs, files or transmits.
+- **QC queue.** QC reviewers have a queue panel on the reviewer dashboard.
+- **Not built.** A maker-checker workflow for writing checklists, policies and designations; until one is approved,
+  these change only by a reviewed database change.
+
 ## Common acceptance for each block
 
 PostgreSQL acceptance cases over HTTP; mutation checks for each refusal; unit tests for store, routes, panel and

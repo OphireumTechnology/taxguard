@@ -1,6 +1,7 @@
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, staffLogin } from './helpers';
 import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEngine/syntheticFixtures';
+import { readinessText } from '../services/taxEngineService';
 
 // Phase 5 through the real server and its real capability lists: synthetic source and rule set,
 // independent verification and approval, a deterministic pinned run on the E2E case, reviewer-only
@@ -750,6 +751,35 @@ describe('draft return preparation on the real server', () => {
     await article(reviewer, 1).getByLabel('Amount at stake for SYN-1040-RETURN version 1 (dollars)').fill('5000.00');
     await article(reviewer, 1).getByRole('button', { name: 'Assess risk of SYN-1040-RETURN version 1' }).click();
     await result(reviewer).getByText(/^Risk assessment of SYN-1040-RETURN version 1: human review required: Every return has human review \(practice decision\);.*The practice has no approved materiality policy, so materiality is unknown\.$/).waitFor();
+    // Block 72: the reviewer cannot assign quality control; a manager assigns a third person, who records it from the QC queue.
+    const v1id = (await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns`)).body.items.find((v: any) => v.version === 1).returnVersionId;
+    await article(reviewer, 1).getByLabel('Quality control reviewer for SYN-1040-RETURN version 1 (user ID)').fill('e2e-qc');
+    await article(reviewer, 1).getByRole('button', { name: 'Assign quality control of SYN-1040-RETURN version 1' }).click();
+    await panel(reviewer).getByRole('alert').getByText('Only a practice manager can assign or revoke the quality control reviewer.').waitFor();
+    expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/qc-assignment`, { qcUid: 'e2e-acct' })).body.code).toBe('TAX_RETURN_QC_NOT_INDEPENDENT');
+    expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/qc-assignment`, { qcUid: 'e2e-qc' })).status).toBe(201);
+    expect((await api(rev, 'POST', `/api/tax-engine/cases/${caseId}/diagnostics/run`)).status).toBeLessThan(300);
+    expect((await api(acct, 'POST', `/api/tax-engine/returns/${v1id}/risk`, { amountCents: 500000 })).status).toBe(201);
+    const qc = await staffLogin('e2e-qc');
+    const qcPanel = qc.page.getByRole('region', { name: /My quality control queue/ });
+    const qcItem = qcPanel.getByRole('article', { name: 'Quality control of SYN-1040-RETURN version 1' });
+    await qcItem.getByRole('button', { name: 'Review quality control of SYN-1040-RETURN version 1' }).click();
+    const checklist = qcItem.getByRole('form', { name: 'Quality control checklist for SYN-1040-RETURN version 1' });
+    await checklist.getByRole('button', { name: 'Record quality control of SYN-1040-RETURN version 1' }).click();
+    await qcPanel.getByRole('alert').getByText(/^Choose pass or fail for: /).waitFor();
+    for (const group of await checklist.getByRole('group').all()) await group.getByRole('radio', { name: 'Pass' }).check();
+    await checklist.getByRole('button', { name: 'Record quality control of SYN-1040-RETURN version 1' }).click();
+    await qcPanel.getByRole('status', { name: 'Quality control result' }).getByText('Quality control of SYN-1040-RETURN version 1: passed.').waitFor();
+    await qc.page.setViewportSize({ width: 375, height: 812 });
+    expect(await qc.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    // Final readiness, as the server computes it, is announced in the reviewer's panel; it never signs or files anything.
+    const readiness = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
+    expect(readiness).toMatchObject({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', returnUse: 'BLOCKED' });
+    expect(readiness.reasons.filter((r: string) => r.startsWith('QC_') || r.startsWith('RISK_'))).toEqual([]);
+    await article(reviewer, 1).getByRole('button', { name: 'Check final readiness of SYN-1040-RETURN version 1' }).click();
+    await result(reviewer).getByText(`Final readiness of SYN-1040-RETURN version 1: ${readinessText(readiness)}.`).waitFor();
+    expect(realErrors(qc)).toEqual([]);
+    await qc.context.close();
     // A revised conclusion makes the mapping and then the approved return STALE; nothing is replaced silently.
     const k = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
     const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7300.00', links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });

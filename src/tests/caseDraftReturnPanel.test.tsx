@@ -3,9 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
-import { RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
+import { READINESS_REASON_LABELS, readinessText, RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
 import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
+import { qcOutcomeText, QualityControlQueuePanel } from '../components/workspace/QualityControlQueuePanel';
 
 // Block 68 browser client and panel. The server rules are covered on PostgreSQL in taxReturnPreparation.db.test.ts.
 const transport = vi.fn();
@@ -76,6 +77,43 @@ describe('draft returns in the browser client', () => {
     expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_SUPERSEDED'))).toBe('This version has been superseded; assess the current version.');
   });
 
+  it('relays quality control and readiness requests to their routes with only the documented fields (Block 72)', async () => {
+    await taxEngineService.assignQc(ID, 'qc-1');
+    await taxEngineService.revokeQc(ID, 'Synthetic: rotating reviewers');
+    await taxEngineService.qcQueue();
+    await taxEngineService.qcContext(ID);
+    await taxEngineService.recordQc(ID, [{ code: 'TIES', result: 'PASS' }]);
+    await taxEngineService.recordQc(ID, [{ code: 'TIES', result: 'FAIL', note: 'Synthetic' }], 'Synthetic: prepare again');
+    await taxEngineService.qcReviews(ID);
+    await taxEngineService.returnReadiness(ID);
+    expect(transport.mock.calls.map(([url, init]) => [url.replace('http://127.0.0.1:3000/api/tax-engine', ''), init.method, init.body ? JSON.parse(init.body) : undefined])).toEqual([
+      [`/returns/${ID}/qc-assignment`, 'POST', { qcUid: 'qc-1' }],
+      [`/returns/${ID}/qc-assignment/revoke`, 'POST', { reason: 'Synthetic: rotating reviewers' }],
+      ['/qc/queue', 'GET', undefined],
+      [`/returns/${ID}/qc-context`, 'GET', undefined],
+      [`/returns/${ID}/qc`, 'POST', { results: [{ code: 'TIES', result: 'PASS' }] }],
+      [`/returns/${ID}/qc`, 'POST', { results: [{ code: 'TIES', result: 'FAIL', note: 'Synthetic' }], note: 'Synthetic: prepare again' }],
+      [`/returns/${ID}/qc-reviews`, 'GET', undefined],
+      [`/returns/${ID}/readiness`, 'GET', undefined],
+    ]);
+  });
+
+  it('says what final readiness means and why a version is not ready, and never calls it filed or signed', () => {
+    expect(readinessText({ ready: true, reasons: [] })).toBe('ready for Stage 10 final authorization by an authorized professional (nothing is signed or filed)');
+    expect(readinessText({ ready: false, reasons: ['RISK_NOT_CURRENT', 'QC_RETURNED'] }))
+      .toBe('not ready: no risk assessment since the latest approval and diagnostics run; quality control returned the version');
+    for (const code of ['NOT_APPROVED', 'STALE', 'NOT_VERIFIED', 'DIAGNOSTICS_NOT_CURRENT', 'DIAGNOSTICS_OPEN', 'RISK_NOT_CURRENT', 'RISK_BLOCKED', 'QC_NOT_RECORDED', 'QC_RETURNED', 'QC_NOT_CURRENT'])
+      expect(READINESS_REASON_LABELS[code], code).toBeTruthy();
+    expect(qcOutcomeText('QC_RETURNED')).toBe('returned to the preparer');
+    expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_RETURN_QC_AUTHORITY_REQUIRED', 'NO_POLICY'))).toMatch(/^Quality control refused: it needs the QC authority under the practice's approved policy\. /);
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_QC_NOT_INDEPENDENT'))).toBe('The quality control reviewer must be a third person: not the preparer, the reviewer or the assigning manager.');
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_QC_CHECKLIST_REQUIRED'))).toBe('The practice has no approved quality control checklist, so quality control cannot be recorded.');
+    const html = renderToStaticMarkup(<QualityControlQueuePanel />);
+    expect(html).toContain('<h2 id="qc-queue-heading" tabindex="-1">My quality control queue');
+    expect(html).toContain('<div role="status" aria-label="Quality control result"></div>');
+    expect(html).toContain('Return use: BLOCKED.');
+  });
+
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {
     const html = renderToStaticMarkup(<CaseDraftReturnPanel caseId="case-1" taxYear={2025} returnFamily="1040" />);
     expect(html).toContain('<h4 id="case-draft-return-heading" tabindex="-1">Draft return</h4>');
@@ -90,12 +128,14 @@ describe('draft returns in the browser client', () => {
     vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
     vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
     for (const path of ['/api/tax-engine/return-templates', `/api/tax-engine/return-templates/${ID}`, '/api/tax-engine/cases/c1/returns',
-      '/api/tax-engine/cases/c1/returns/stage-facts', `/api/tax-engine/returns/${ID}`, `/api/tax-engine/returns/${ID}/risk`])
+      '/api/tax-engine/cases/c1/returns/stage-facts', `/api/tax-engine/returns/${ID}`, `/api/tax-engine/returns/${ID}/risk`,
+      `/api/tax-engine/returns/${ID}/qc-reviews`, `/api/tax-engine/returns/${ID}/readiness`, `/api/tax-engine/returns/${ID}/qc-context`, '/api/tax-engine/qc/queue'])
       expect(practiceManagerRequestAllowed('practice_manager', 'GET', path), path).toBe(true);
-    for (const path of ['/api/tax-engine/return-templates', `/api/tax-engine/return-templates/${ID}/submit`])
+    for (const path of ['/api/tax-engine/return-templates', `/api/tax-engine/return-templates/${ID}/submit`, `/api/tax-engine/returns/${ID}/qc-assignment`,
+      `/api/tax-engine/returns/${ID}/qc-assignment/revoke`])
       expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(true);
     for (const path of [`/api/tax-engine/return-templates/${ID}/approve`, '/api/tax-engine/cases/c1/returns', `/api/tax-engine/returns/${ID}/submit`,
-      `/api/tax-engine/returns/${ID}/approve`, `/api/tax-engine/returns/${ID}/return`, `/api/tax-engine/returns/${ID}/risk`])
+      `/api/tax-engine/returns/${ID}/approve`, `/api/tax-engine/returns/${ID}/return`, `/api/tax-engine/returns/${ID}/risk`, `/api/tax-engine/returns/${ID}/qc`])
       expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(false);
   });
 });
