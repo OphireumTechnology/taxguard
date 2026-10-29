@@ -4,14 +4,14 @@
  */
 
 import React from 'react';
-import { 
-  Cpu, 
-  CheckCircle2, 
-  AlertCircle, 
-  ShieldAlert, 
-  ExternalLink, 
-  Lock, 
-  RefreshCw 
+import {
+  Cpu,
+  CheckCircle2,
+  AlertCircle,
+  ShieldAlert,
+  ExternalLink,
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 import { TaxGuardDisclaimer } from '../components/TaxGuardDisclaimer';
 

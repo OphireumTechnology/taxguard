@@ -280,7 +280,7 @@ describe('TaxGuard Accounting Document Intake Agent', () => {
     it('provides registered connectors for Google Drive and Email', () => {
       const connectors = ConnectorRegistry.getAllConnectors();
       expect(connectors.length).toBeGreaterThanOrEqual(2);
-      
+
       const drive = ConnectorRegistry.getConnector('GOOGLE_DRIVE');
       expect(drive).toBeDefined();
       expect(drive?.providerName).toBe('Google Drive');

@@ -5,16 +5,16 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Calendar, 
-  DollarSign, 
-  ShieldCheck, 
-  ShieldAlert, 
-  AlertCircle, 
-  CheckCircle2, 
-  Download, 
-  Upload, 
-  Lock, 
+import {
+  Calendar,
+  DollarSign,
+  ShieldCheck,
+  ShieldAlert,
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Upload,
+  Lock,
   ArrowRight,
   ExternalLink,
   Sparkles

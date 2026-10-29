@@ -4,20 +4,20 @@
  */
 
 import React from 'react';
-import { 
-  ShieldCheck, 
-  Layers, 
-  FileText, 
-  UploadCloud, 
-  ListChecks, 
-  AlertTriangle, 
-  DollarSign, 
-  BookOpen, 
-  CheckCircle2, 
-  Search, 
-  QrCode, 
-  History, 
-  Cpu, 
+import {
+  ShieldCheck,
+  Layers,
+  FileText,
+  UploadCloud,
+  ListChecks,
+  AlertTriangle,
+  DollarSign,
+  BookOpen,
+  CheckCircle2,
+  Search,
+  QrCode,
+  History,
+  Cpu,
   Settings,
   ArrowLeft,
   Home,
@@ -28,7 +28,7 @@ import {
   Database
 } from 'lucide-react';
 
-export type TaxGuardSubRoute = 
+export type TaxGuardSubRoute =
   | 'dashboard'
   | 'cases'
   | 'intake'

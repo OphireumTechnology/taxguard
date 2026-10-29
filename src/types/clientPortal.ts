@@ -1,6 +1,6 @@
 /**
  * A/R TAX SERVICES, LLC - Client Portal Architecture Data Models & State Machine
- * 
+ *
  * Compliant with:
  * - IRS Publication 4557 (Safeguarding Taxpayer Data)
  * - IRC § 7216 (Consent to Disclose/Use Tax Return Information)
@@ -89,7 +89,7 @@ export type ClientPortalModule =
   | 'billing'
   | 'profile_security';
 
-export type ClientPortalTab = 
+export type ClientPortalTab =
   | 'overview'
   | 'organizer'
   | 'vault'
@@ -442,7 +442,7 @@ export interface AuditEventRecord {
     userName: string;
     role: string;
   };
-  action: 
+  action:
     | 'SIGN_IN'
     | 'SIGN_OUT'
     | 'VIEW_SENSITIVE_RECORD'

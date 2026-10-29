@@ -41,8 +41,8 @@ export interface TaxGuardFeatureConfig {
 }
 
 export const TAXGUARD_CONFIG: TaxGuardFeatureConfig = {
-  enabled: typeof process !== 'undefined' && process.env?.TAXGUARD_AI_ENABLED !== undefined 
-    ? process.env.TAXGUARD_AI_ENABLED === 'true' 
+  enabled: typeof process !== 'undefined' && process.env?.TAXGUARD_AI_ENABLED !== undefined
+    ? process.env.TAXGUARD_AI_ENABLED === 'true'
     : true,
   moduleName: 'TaxGuard AI – Verified Tax and Accounting Operations',
   poweredBy: 'Powered by Ophireum AI Technology',

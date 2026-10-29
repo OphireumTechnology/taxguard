@@ -6,18 +6,18 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Mic, 
-  MicOff, 
-  Sparkles, 
-  Volume2, 
-  VolumeX, 
-  Trash2, 
-  CheckCircle2, 
-  AlertCircle, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Lock, 
+import {
+  Mic,
+  MicOff,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  ShieldAlert,
+  Lock,
   ExternalLink,
   Edit3
 } from 'lucide-react';
@@ -283,8 +283,8 @@ export const TaxGuardVoiceAssistant: React.FC<{ userRole: string }> = ({ userRol
             onTouchStart={handleStartTalking}
             onTouchEnd={handleStopTalking}
             className={`w-20 h-20 rounded-full flex flex-col items-center justify-center transition-all shadow-md select-none ${
-              isRecording 
-                ? 'bg-rose-600 text-white scale-110 animate-pulse ring-4 ring-rose-200' 
+              isRecording
+                ? 'bg-rose-600 text-white scale-110 animate-pulse ring-4 ring-rose-200'
                 : 'bg-[#061A2F] text-white hover:bg-neutral-800'
             }`}
           >
