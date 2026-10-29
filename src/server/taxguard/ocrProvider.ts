@@ -148,7 +148,7 @@ export class GoogleCloudDocumentAiProvider implements TaxGuardOcrProvider {
       }
 
       const endpoint = `https://${location}-documentai.googleapis.com/v1/${processorPath}:process`;
-      
+
       const apiKey = process.env.GOOGLE_CLOUD_VISION_KEY;
       const url = apiKey ? `${endpoint}?key=${apiKey}` : endpoint;
 

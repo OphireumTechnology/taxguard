@@ -5,16 +5,16 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  FileSpreadsheet, 
-  Plus, 
-  ShieldAlert, 
-  CheckCircle2, 
-  AlertCircle, 
-  Download, 
-  Layers, 
-  DollarSign, 
-  Percent, 
+import {
+  FileSpreadsheet,
+  Plus,
+  ShieldAlert,
+  CheckCircle2,
+  AlertCircle,
+  Download,
+  Layers,
+  DollarSign,
+  Percent,
   Calendar,
   Lock,
   RefreshCw,
@@ -301,7 +301,7 @@ export const FixedAssetRegister: React.FC<{ userRole: string }> = ({ userRole })
               </thead>
               <tbody className="divide-y divide-neutral-200">
                 {assets.map(asset => (
-                  <tr 
+                  <tr
                     key={asset.id}
                     onClick={() => setSelectedAssetId(asset.id)}
                     className={`cursor-pointer transition-colors ${
@@ -322,8 +322,8 @@ export const FixedAssetRegister: React.FC<{ userRole: string }> = ({ userRole })
                     <td className="py-2.5 px-3 text-right font-mono font-bold text-neutral-900">${asset.currentYearDepr.toLocaleString()}</td>
                     <td className="py-2.5 px-3 text-center">
                       <span className={`text-[10px] px-2 py-0.5 font-bold uppercase font-mono ${
-                        asset.reviewStatus === 'CPA Approved' 
-                          ? 'bg-emerald-100 text-emerald-800' 
+                        asset.reviewStatus === 'CPA Approved'
+                          ? 'bg-emerald-100 text-emerald-800'
                           : asset.reviewStatus === 'Preparer Verified'
                           ? 'bg-sky-100 text-sky-800'
                           : 'bg-amber-100 text-amber-800'

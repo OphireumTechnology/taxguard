@@ -394,7 +394,7 @@ export interface DocumentIntelligenceRecord {
   taxYear: number;
   filename: string;
   sha256Hash: string;
-  
+
   // OCR Artifacts (TG-COL-012)
   providerMode: DocumentIntelligenceProviderMode;
   ocrState: OcrProcessingState;

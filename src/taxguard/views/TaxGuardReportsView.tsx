@@ -4,14 +4,14 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  QrCode, 
-  ShieldCheck, 
-  Lock, 
-  Search, 
-  CheckCircle2, 
-  AlertCircle, 
-  Download, 
+import {
+  QrCode,
+  ShieldCheck,
+  Lock,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Download,
   ExternalLink,
   Copy,
   Check

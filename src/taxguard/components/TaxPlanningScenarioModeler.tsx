@@ -5,16 +5,16 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Calculator, 
-  TrendingUp, 
-  ShieldAlert, 
-  CheckCircle2, 
-  AlertCircle, 
-  Layers, 
-  DollarSign, 
-  PieChart, 
-  Sparkles, 
+import {
+  Calculator,
+  TrendingUp,
+  ShieldAlert,
+  CheckCircle2,
+  AlertCircle,
+  Layers,
+  DollarSign,
+  PieChart,
+  Sparkles,
   ArrowRight,
   Filter,
   Download,

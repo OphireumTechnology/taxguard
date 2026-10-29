@@ -135,8 +135,8 @@ export class TaxGuardAssistantService {
 
     // Guardrail 2: Refuse unrelated general-purpose questions
     const taxAndAccountingIndicators = [
-      'tax', 'deduct', '1040', '1120', 'w-2', '1099', 'irs', 'depreciation', 'expense', 
-      'revenue', 'withholding', 'sc dor', 'basis', 'k-1', 'accounting', 'reconciliation', 
+      'tax', 'deduct', '1040', '1120', 'w-2', '1099', 'irs', 'depreciation', 'expense',
+      'revenue', 'withholding', 'sc dor', 'basis', 'k-1', 'accounting', 'reconciliation',
       'ledger', 'fincen', 'audit', 'schedule c', 'payroll', 'fica', 'entity', 'llc', 'cpa'
     ];
 

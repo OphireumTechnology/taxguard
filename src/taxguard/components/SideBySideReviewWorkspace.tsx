@@ -5,19 +5,19 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  ArrowLeft, 
-  ArrowRight, 
-  ZoomIn, 
-  ZoomOut, 
-  ShieldCheck, 
-  ShieldAlert, 
-  CornerUpLeft, 
-  Edit3, 
+import {
+  FileText,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  ZoomIn,
+  ZoomOut,
+  ShieldCheck,
+  ShieldAlert,
+  CornerUpLeft,
+  Edit3,
   HelpCircle,
   MessageSquare,
   Lock,
@@ -206,9 +206,9 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
     setShowOverrideModal(false);
     setOverrideValue('');
     setOverrideReason('');
-    setActionNotice({ 
-      type: 'warning', 
-      message: `Material override applied. Any prior CPA approval was invalidated and returned to review status (v${selectedField.version + 1}).` 
+    setActionNotice({
+      type: 'warning',
+      message: `Material override applied. Any prior CPA approval was invalidated and returned to review status (v${selectedField.version + 1}).`
     });
     setTimeout(() => setActionNotice(null), 5000);
   };
@@ -240,8 +240,8 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
 
         {actionNotice && (
           <div className={`p-3 text-xs font-semibold flex items-center gap-2 border ${
-            actionNotice.type === 'success' 
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+            actionNotice.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : actionNotice.type === 'warning'
               ? 'bg-amber-50 border-amber-300 text-amber-900'
               : 'bg-rose-50 border-rose-300 text-rose-900'
@@ -268,7 +268,7 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
             </div>
 
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 onClick={() => setZoomLevel(prev => Math.max(75, prev - 15))}
                 className="p-1 hover:bg-neutral-100 border border-neutral-200 text-neutral-600"
                 title="Zoom Out"
@@ -276,7 +276,7 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
               <span className="text-[10px] font-mono px-1.5">{zoomLevel}%</span>
-              <button 
+              <button
                 onClick={() => setZoomLevel(prev => Math.min(150, prev + 15))}
                 className="p-1 hover:bg-neutral-100 border border-neutral-200 text-neutral-600"
                 title="Zoom In"
@@ -288,7 +288,7 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
 
           {/* Document Canvas Simulator with Bounding Box */}
           <div className="relative bg-neutral-900 border border-neutral-300 min-h-[460px] flex-1 flex items-center justify-center p-4 overflow-hidden select-none">
-            <div 
+            <div
               className="relative bg-white shadow-2xl transition-transform duration-200"
               style={{
                 width: '420px',
@@ -337,7 +337,7 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
               </div>
 
               {/* Live Highlighted Bounding Box Overlay */}
-              <div 
+              <div
                 className="absolute border-2 border-emerald-600 bg-emerald-500/20 shadow-sm pointer-events-none transition-all duration-300 flex items-start justify-end p-1"
                 style={{
                   top: `${selectedField.boundingBox.ymin}px`,
@@ -370,8 +370,8 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
                   key={f.id}
                   onClick={() => setSelectedFieldId(f.id)}
                   className={`p-2 text-left border text-xs transition-colors ${
-                    selectedFieldId === f.id 
-                      ? 'border-[#061A2F] bg-neutral-50 font-bold' 
+                    selectedFieldId === f.id
+                      ? 'border-[#061A2F] bg-neutral-50 font-bold'
                       : 'border-neutral-200 hover:border-neutral-400'
                   }`}
                 >
@@ -450,7 +450,7 @@ export const SideBySideReviewWorkspace: React.FC<{ userRole: string }> = ({ user
             {/* Reviewer Action Controls */}
             <div className="pt-2 border-t border-neutral-200 space-y-3">
               <div className="text-[11px] font-bold text-neutral-800 uppercase">Reviewer Decision Gate</div>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleApprove(selectedField.id)}

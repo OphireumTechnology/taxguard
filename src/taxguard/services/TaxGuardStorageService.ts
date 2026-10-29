@@ -1115,9 +1115,9 @@ export class TaxGuardStorageService {
     // Enforce separation of duties: maker cannot checker high-risk steps
     if (step.requiresDualAuthorization && (step.riskTier === 'high_risk' || step.riskTier === 'filing_critical')) {
       if (stepNumber >= 5 && reviewerRole === 'preparer') {
-        return { 
-          success: false, 
-          error: 'Separation of duties violation: Staff preparer cannot sign off on Senior Reviewer or CPA Quality Control approval gates.' 
+        return {
+          success: false,
+          error: 'Separation of duties violation: Staff preparer cannot sign off on Senior Reviewer or CPA Quality Control approval gates.'
         };
       }
     }

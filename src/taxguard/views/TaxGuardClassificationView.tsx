@@ -5,15 +5,15 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Cpu, 
-  CheckCircle2, 
-  AlertTriangle, 
-  FileText, 
-  Sparkles, 
-  Edit3, 
-  ShieldCheck, 
-  Filter, 
+import {
+  Cpu,
+  CheckCircle2,
+  AlertTriangle,
+  FileText,
+  Sparkles,
+  Edit3,
+  ShieldCheck,
+  Filter,
   Search,
   Lock,
   ArrowRight,
@@ -153,8 +153,8 @@ export const TaxGuardClassificationView: React.FC<{ userRole: string }> = ({ use
                   setEditingCategory(false);
                 }}
                 className={`p-4 rounded-xs border cursor-pointer transition-all ${
-                  isSelected 
-                    ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40' 
+                  isSelected
+                    ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40'
                     : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                 }`}
               >
@@ -163,8 +163,8 @@ export const TaxGuardClassificationView: React.FC<{ userRole: string }> = ({ use
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-[#061A2F]">{effectiveCategory}</span>
                       <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded-xs border ${
-                        isHighConfidence 
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                        isHighConfidence
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           : 'bg-amber-50 text-amber-900 border-amber-200'
                       }`}>
                         {(item.confidenceScore * 100).toFixed(0)}% Conf

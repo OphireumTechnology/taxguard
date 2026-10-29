@@ -4,12 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  AlertTriangle, 
-  CheckCircle2, 
-  ShieldAlert, 
-  FileText, 
-  HelpCircle, 
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ShieldAlert,
+  FileText,
+  HelpCircle,
   Search,
   Check,
   X,
@@ -29,8 +29,8 @@ export const TaxGuardDiscrepanciesView: React.FC<{ userRole: string }> = ({ user
   const handleResolve = (id: string) => {
     if (!resolutionNotes) return;
     TaxGuardStorageService.resolveDiscrepancy(
-      id, 
-      userRole === 'client' ? 'Client Explanation' : 'Sarah Jenkins, CPA', 
+      id,
+      userRole === 'client' ? 'Client Explanation' : 'Sarah Jenkins, CPA',
       resolutionNotes
     );
     setDiscrepancies(TaxGuardStorageService.getDiscrepancies(userRole, userRole === 'client' ? 'client_henze_001' : undefined));

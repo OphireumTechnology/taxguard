@@ -5,12 +5,12 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Database, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  ShieldCheck, 
+import {
+  Database,
+  Search,
+  Filter,
+  CheckCircle2,
+  ShieldCheck,
   FileText
 } from 'lucide-react';
 import { TaxGuardStorageService } from '../services/TaxGuardStorageService';
@@ -27,8 +27,8 @@ export const TaxGuardEvidenceView: React.FC<{ userRole: string }> = ({ userRole 
 
   const filteredItems = items.filter(item => {
     if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-    if (searchTerm && 
-      !item.documentName.toLowerCase().includes(searchTerm.toLowerCase()) && 
+    if (searchTerm &&
+      !item.documentName.toLowerCase().includes(searchTerm.toLowerCase()) &&
       !item.extractedFieldKey.toLowerCase().includes(searchTerm.toLowerCase()) &&
       !item.workflowUsages.join(' ').toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
@@ -98,8 +98,8 @@ export const TaxGuardEvidenceView: React.FC<{ userRole: string }> = ({ userRole 
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
                 className={`p-4 rounded-xs border cursor-pointer transition-all ${
-                  isSelected 
-                    ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40' 
+                  isSelected
+                    ? 'bg-white border-[#C99A32] shadow-sm ring-1 ring-[#C99A32]/40'
                     : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                 }`}
               >
