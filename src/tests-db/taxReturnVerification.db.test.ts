@@ -149,7 +149,11 @@ describe('independent calculation verification of a draft return', () => {
       VALUES ('rv-w2', $1, $2, $3, 2025, $4, 2, repeat('2', 64), 'application/pdf', 'PENDING_REVIEW', 'CLEAN', 'rv-client')`, [T, C, engagementId, caseId]);
     // The approved version is now stale; a new version cannot be prepared on stale sources, so the approved one is checked directly.
     expect((await call('POST', `/cases/${caseId}/returns`, { templateRuleId: tpl })).body.code).toBe('TAX_RETURN_PREPARATION_REFUSED');
-    const r = await rpc('taxguard_tax_return_verify', { p_tenant: T, p_actor: 'rv-rev', p_version: version, p_runs: [], p_engine_version: TAX_ENGINE_VERSION });
+    // A well-formed request, so the refusal comes from the version's state (approved, and now stale), not from the input.
+    const run = (await db.pool.query(`SELECT run_id, output_sha256 FROM taxguard_tax_calc_runs WHERE tenant_id = $1`, [T])).rows[0];
+    const r = await rpc('taxguard_tax_return_verify', { p_tenant: T, p_actor: 'rv-rev', p_version: version,
+      p_runs: [{ runId: run.run_id, recomputedOutputSha256: run.output_sha256 }], p_engine_version: TAX_ENGINE_VERSION });
     expect(r.error?.message).toMatch(/TAX_RETURN_NOT_SUBMITTED|TAX_RETURN_STALE/);
+    expect((await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_return_verifications WHERE tenant_id = $1`, [T])).rows[0].n).toBe(4); // nothing new recorded
   });
 });

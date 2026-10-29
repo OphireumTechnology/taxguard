@@ -278,9 +278,13 @@ describe('a draft return is assembled only from current form mappings', () => {
     for (const sql of [`UPDATE taxguard_tax_return_versions SET forms = '[]'::jsonb WHERE tenant_id = '${T}'`,
       `UPDATE taxguard_tax_return_versions SET status = 'DRAFT' WHERE tenant_id = '${T}'`,
       `UPDATE taxguard_tax_return_versions SET reviewed_by = 'rp-out' WHERE tenant_id = '${T}'`,
-      `DELETE FROM taxguard_tax_return_versions WHERE tenant_id = '${T}'`, 'TRUNCATE taxguard_tax_return_versions',
-      'TRUNCATE taxguard_tax_return_templates CASCADE'])
+      `DELETE FROM taxguard_tax_return_versions WHERE tenant_id = '${T}'`])
       await expect(db.pool.query(sql), sql).rejects.toThrow('TAX_RETURN_IMMUTABLE');
+    // Block 69's verifications reference versions, so a plain TRUNCATE is refused by the foreign key; with CASCADE the
+    // immutability guards of the tables involved refuse it.
+    await expect(db.pool.query('TRUNCATE taxguard_tax_return_versions')).rejects.toThrow(/TAX_RETURN_IMMUTABLE|foreign key/);
+    for (const sql of ['TRUNCATE taxguard_tax_return_versions CASCADE', 'TRUNCATE taxguard_tax_return_templates CASCADE'])
+      await expect(db.pool.query(sql), sql).rejects.toThrow(/TAX_RETURN_(VERIFICATION_)?IMMUTABLE/);
     await expect(db.pool.query(`INSERT INTO taxguard_tax_return_versions(tenant_id, case_id, client_id, engagement_id, tax_year, template_id, version,
       template_rule_id, template_version, template_sha256, forms, forms_sha256, prepared_by) VALUES ($1, $2, $3, $4, 2025, 'X', 99, $5, 1, repeat('a', 64), '[]'::jsonb,
       repeat('a', 64), 'rp-prep')`, [T, caseId, C, engagementId, templateId])).rejects.toThrow(/check/i);
