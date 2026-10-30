@@ -6,7 +6,7 @@ import { practiceStoreConfigured } from './taxguard/practice/practiceStoreConfig
 // Ledger (/api/bookkeeping), administration, security, e-file and payment-by-card routes stay
 // closed to managers.
 const ID = '[A-Za-z0-9_-]{1,128}';
-const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/(tests|coverage)|form-rules(/${ID})?|return-templates(/${ID})?|cases/${ID}/(runs|research|diagnostics|risk|conclusions|conclusions/readiness|evidence-trace|form-mappings|returns|returns/stage-facts)|runs/${ID}/lineage|conclusions/${ID}/trace|form-mappings/${ID}|returns/${ID}|returns/${ID}/(verifications|risk|qc-context|qc-reviews|readiness|final-context|final-authorizations)|qc/queue|final/queue)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID}(/room)?)?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
+const DURABLE_GET = new RegExp(`^/api/(practice/(my-work|summary)|practice/clients(/${ID})?|cases(/|/report|/${ID})?|vault/review-queue|vault/requests/(missing|review-queue)|vault/request-templates|vault/clients/${ID}/(upload-targets|documents(/${ID})?|requests|notifications)|billing/(catalog|ar-aging|clients/${ID}/invoices)|tax-engine/(sources|rule-sets(/${ID})?|rule-sets/${ID}/(tests|coverage)|form-rules(/${ID})?|return-templates(/${ID})?|cases/${ID}/(runs|research|diagnostics|risk|conclusions|conclusions/readiness|evidence-trace|form-mappings|returns|returns/stage-facts)|runs/${ID}/lineage|conclusions/${ID}/trace|form-mappings/${ID}|returns/${ID}|returns/${ID}/(verifications|risk|qc-context|qc-reviews|readiness|final-context|final-authorizations|signature-context|signature-packages)|qc/queue|final/queue)|communications/(inbox|clients/${ID}/threads(/${ID})?)|scheduling/(schedule|clients/${ID}/appointments(/${ID}(/room)?)?)|legal-matters/(disclaimer|clients/${ID}/matters)|consultations/requests|client-portal/clients/${ID}/engagements|reassignment/(queue|clients/${ID}/requests))$`);
 const DURABLE_POST = new RegExp(`^/api/(` + [
   `practice/clients/${ID}/(status|type|engagements|engagements/${ID}/(status|tax-years|team)|team/${ID}/revoke|notes|tasks|tasks/${ID}/status|deadlines|deadlines/${ID}/resolve)`,
   `cases/?`, `cases/${ID}/(advance|return|hold|notes|team)`,
@@ -28,6 +28,8 @@ const DURABLE_POST = new RegExp(`^/api/(` + [
   `tax-engine/cases/${ID}/(diagnostics/run|risk)`, `tax-engine/diagnostics/${ID}/acknowledge`,
   `tax-engine/returns/${ID}/qc-assignment(/revoke)?`,
   `tax-engine/returns/${ID}/final-assignment(/revoke)?`,
+  // Stage 11: the database requires the release authority and a durable multi-factor session; a manager may withdraw.
+  `tax-engine/returns/${ID}/signature-package(/withdraw)?`,
   // Client conversations (proposal 039): the database re-checks client scope and visibility.
   `communications/clients/${ID}/threads`, `communications/clients/${ID}/threads/${ID}/(messages|read|status)`,
   // Appointments (proposal 040): the database re-checks scope, staff eligibility and conflicts.

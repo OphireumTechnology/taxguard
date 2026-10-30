@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { dollarsToCents, finalAuthorizationText, readinessText, returnProblemText, returnRiskText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
+import { SignatureReleaseForm } from './SignatureReleaseForm';
 
 /**
  * Draft return for the selected case (proposal 20261019120000). The server assembles a return version only from the
@@ -32,6 +33,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [qcUids, setQcUids] = useState<Record<string, string>>({});
   const [finalUids, setFinalUids] = useState<Record<string, string>>({});
+  const [signatureOpen, setSignatureOpen] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const current = useRef(caseId); current.current = caseId;
@@ -118,6 +120,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
     <p id="case-draft-return-risk-hint">A risk assessment reads the version's verification, diagnostics and research itself; only the amount at stake is entered. Materiality comes only from the practice's approved policy, and the outcome is never better than human review.</p>
     <p id="case-draft-return-qc-hint">A practice manager assigns quality control of an approved version to a third person, who is neither its preparer nor its reviewer. Final readiness is only an input to Stage 10.</p>
     <p id="case-draft-return-final-hint">For Stage 10, a practice manager assigns an independent professional (not the preparer, the reviewer, the quality control reviewer or a manager who assigned them) to authorize or decline the ready version. Authorization does not sign or file it.</p>
+    <p id="case-draft-return-signature-hint">For Stage 11, a person with the practice's release authority (not the preparer) releases an authorized version for client signature under the practice's consent text. Electronic signing is not available, and nothing is sent, signed or filed.</p>
     {items.status === 'loading' && items.list.length === 0 && <p role="status">Loading draft returns…</p>}
     {items.status === 'error' && <p role="alert">{items.message} <button type="button" onClick={() => void load()}>Retry</button></p>}
     {items.status === 'ready' && items.list.length === 0 && <p role="status">No draft return is recorded for this case.</p>}
@@ -156,6 +159,10 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
           <input id={finalId} value={finalUids[v.returnVersionId] ?? ''} aria-describedby="case-draft-return-final-hint"
             onChange={e => setFinalUids(n => ({ ...n, [v.returnVersionId]: e.target.value }))} />
           <button type="button" disabled={busy} onClick={() => void assignFinal(v)}>Assign final authorization of {name}</button>
+          <button type="button" aria-expanded={signatureOpen === v.returnVersionId} aria-controls={`draft-return-signature-${v.returnVersionId}`}
+            onClick={() => setSignatureOpen(o => o === v.returnVersionId ? null : v.returnVersionId)}>
+            {signatureOpen === v.returnVersionId ? 'Hide' : 'Show'} signature package of {name}</button>
+          <div id={`draft-return-signature-${v.returnVersionId}`}>{signatureOpen === v.returnVersionId && <SignatureReleaseForm returnVersionId={v.returnVersionId} name={name} />}</div>
         </>}
         <button type="button" aria-expanded={open?.id === v.returnVersionId} aria-controls={`draft-return-lineage-${v.returnVersionId}`} onClick={() => toggle(v.returnVersionId)}>
           {open?.id === v.returnVersionId ? 'Hide' : 'Show'} lineage of {name}</button>

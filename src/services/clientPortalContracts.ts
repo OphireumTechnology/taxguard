@@ -43,6 +43,9 @@ function validStages(d: any): d is CaseStages {
     && d.evidence && typeof d.team === 'object';
 }
 
+/** A return released to this client for signature (Stage 11, proposal 20261019190000): status only, no figures or forms. */
+export type SignaturePackageStatus = { packageId: string; taxYear: number; releasedAt: string; status: 'AWAITING_SIGNATURE'; signature: 'NOT_AVAILABLE' };
+
 export const clientPortalContracts = {
   engagements: (clientId: string, signal?: AbortSignal) => get<{ items: PortalEngagement[] }>(`/api/client-portal/clients/${encodeURIComponent(clientId)}/engagements`, signal),
   async caseStages(clientId: string, engagementId: string, taxYear: number, signal?: AbortSignal): Promise<CaseStages> {
@@ -55,6 +58,13 @@ export const clientPortalContracts = {
     if (!d || !Array.isArray(d.items) || d.items.some((i: any) => typeof i?.requestId !== 'string' || typeof i.status !== 'string' || typeof i.createdAt !== 'string'))
       throw new PortalContractError(502, 'INVALID_PORTAL_RESPONSE');
     return d as { items: ConsultationHistoryItem[]; nextCursor: string | null };
+  },
+  async signaturePackages(clientId: string, signal?: AbortSignal): Promise<SignaturePackageStatus[]> {
+    const d = await get<any>(`/api/client-signatures/clients/${encodeURIComponent(clientId)}/signature-packages`, signal);
+    if (!d || d.signature !== 'NOT_AVAILABLE' || !Array.isArray(d.items) || d.items.some((i: any) => typeof i?.packageId !== 'string' || !Number.isInteger(i.taxYear)
+      || i.status !== 'AWAITING_SIGNATURE' || i.signature !== 'NOT_AVAILABLE' || typeof i.releasedAt !== 'string'))
+      throw new PortalContractError(502, 'INVALID_PORTAL_RESPONSE');
+    return d.items as SignaturePackageStatus[];
   },
 };
 

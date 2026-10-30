@@ -37,6 +37,11 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_RETURN_FINAL_SESSION_REQUIRED: 403, STAFF_RECENT_SIGN_IN_REQUIRED: 403, STAFF_FRESH_SIGN_IN_REQUIRED: 403, TAX_RETURN_FINAL_NOT_INDEPENDENT: 409,
   TAX_RETURN_FINAL_ASSIGNEE_INVALID: 409, TAX_RETURN_FINAL_ALREADY_ASSIGNED: 409, TAX_RETURN_FINAL_NOT_ASSIGNED: 409, TAX_RETURN_NOT_READY: 409,
   TAX_RETURN_ATTESTATION_REQUIRED: 409, TAX_RETURN_ATTESTATION_CHANGED: 409, TAX_RETURN_FINAL_ALREADY_DECIDED: 409, TAX_RETURN_FINAL_HISTORY_IMMUTABLE: 409,
+  // Stage 11 signature packages (proposal 20261019190000).
+  TAX_RETURN_SIGNATURE_SESSION_REQUIRED: 403, TAX_RETURN_SIGNATURE_AUTHORITY_REQUIRED: 403, TAX_RETURN_SIGNATURE_WITHDRAWER_REQUIRED: 403,
+  TAX_RETURN_SIGNATURE_NOT_INDEPENDENT: 409, TAX_RETURN_SIGNATURE_NOT_AUTHORIZED: 409, TAX_RETURN_SIGNATURE_CONSENT_REQUIRED: 409,
+  TAX_RETURN_SIGNATURE_CONSENT_CHANGED: 409, TAX_RETURN_SIGNATURE_SIGNER_INVALID: 409, TAX_RETURN_SIGNATURE_ALREADY_RELEASED: 409,
+  TAX_RETURN_SIGNATURE_NOT_RELEASED: 409, TAX_RETURN_SIGNATURE_HISTORY_IMMUTABLE: 409,
   TAX_RETURN_PREPARATION_REFUSED: 409, TAX_RETURN_NOT_DRAFT: 409, TAX_RETURN_NOT_SUBMITTED: 409, TAX_RETURN_STALE: 409, TAX_RETURN_IMMUTABLE: 409,
   TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
@@ -321,6 +326,28 @@ export class TaxEngineStore {
   finalAuthorizations(tenant: string, actor: string, returnVersionId: string) {
     return this.call<any[]>('taxguard_tax_return_final_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
   }
+  // Stage 11 signature packages (proposal 20261019190000): an authorized, current version released for client signature.
+  // Nothing is rendered, sent or signed; the release needs a durable multi-factor session, proved again in the database.
+  signatureContext(tenant: string, actor: string, returnVersionId: string) {
+    return this.call('taxguard_tax_return_signature_context', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+  releaseSignaturePackage(tenant: string, actor: string, sessionHash: string, returnVersionId: string, input: unknown) {
+    return this.call('taxguard_tax_return_signature_release', { p_tenant: tenant, p_actor: actor, p_session_hash: sessionHash,
+      p_version: this.returnVersion(returnVersionId), p_input: signatureReleaseBody(input) });
+  }
+  withdrawSignaturePackage(tenant: string, actor: string, returnVersionId: string, reason: string) {
+    return this.call('taxguard_tax_return_signature_withdraw', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId), p_reason: reason });
+  }
+  signaturePackages(tenant: string, actor: string, returnVersionId: string) {
+    return this.call<any[]>('taxguard_tax_return_signature_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+}
+
+/** Only the documented fields reach the database, which validates them; any other field makes the release invalid. */
+function signatureReleaseBody(body: unknown) {
+  const b = (body && typeof body === 'object' && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
+  const unexpected = Object.keys(b).some(k => !['consentVersion', 'acknowledged', 'signers'].includes(k));
+  return { consentVersion: b.consentVersion ?? null, acknowledged: b.acknowledged ?? null, signers: b.signers ?? null, ...(unexpected ? { unexpectedField: true } : {}) };
 }
 
 /** Only the documented fields reach the database, which validates them; any other field makes the decision invalid. */

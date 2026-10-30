@@ -31,14 +31,15 @@ export const ROUTE_CUTOVER_CATALOG: readonly CutoverRoute[] = Object.freeze([
   { key: 'vault', path: '/api/vault', proposals: ['20261012270000', '20261015030851', '20261018060000', '20261018080000'], sentinelRpcs: ['taxguard_doc_list'] },
   { key: 'billing', path: '/api/billing', proposals: ['20261012280000', '20261015070000'], sentinelRpcs: ['taxguard_bill_list'] },
   { key: 'book-to-tax', path: '/api/book-to-tax', proposals: ['20261012290000', '20261018070000'], sentinelRpcs: ['taxguard_b2t_overview'] },
-  { key: 'tax-engine', path: '/api/tax-engine', proposals: ['20261012330000', '20261018090000', '20261018150000', '20261018160000', '20261018170000', '20261018190000', '20261019100000', '20261019110000', '20261019115000', '20261019120000', '20261019140000', '20261019150000', '20261019160000', '20261019170000', '20261019180000'],
-    sentinelRpcs: ['taxguard_tax_run_list', 'taxguard_tax_research_list', 'taxguard_case_diagnostics_list', 'taxguard_case_risk_list', 'taxguard_tax_run_lineage', 'taxguard_tax_conclusion_list', 'taxguard_tax_form_mapping_list', 'taxguard_tax_return_list', 'taxguard_tax_return_verification_list', 'taxguard_tax_return_risk_list', 'taxguard_tax_return_final_readiness', 'taxguard_tax_return_final_list'] },
+  { key: 'tax-engine', path: '/api/tax-engine', proposals: ['20261012330000', '20261018090000', '20261018150000', '20261018160000', '20261018170000', '20261018190000', '20261019100000', '20261019110000', '20261019115000', '20261019120000', '20261019140000', '20261019150000', '20261019160000', '20261019170000', '20261019180000', '20261019190000'],
+    sentinelRpcs: ['taxguard_tax_run_list', 'taxguard_tax_research_list', 'taxguard_case_diagnostics_list', 'taxguard_case_risk_list', 'taxguard_tax_run_lineage', 'taxguard_tax_conclusion_list', 'taxguard_tax_form_mapping_list', 'taxguard_tax_return_list', 'taxguard_tax_return_verification_list', 'taxguard_tax_return_risk_list', 'taxguard_tax_return_final_readiness', 'taxguard_tax_return_final_list', 'taxguard_tax_return_signature_list'] },
   { key: 'communications', path: '/api/communications', proposals: ['20261013390000'], sentinelRpcs: ['taxguard_comm_threads'] },
   { key: 'scheduling', path: '/api/scheduling', proposals: ['20261014400000'], sentinelRpcs: ['taxguard_apt_list_client'] },
   { key: 'legal-matters', path: '/api/legal-matters', proposals: ['20261014420000'], sentinelRpcs: ['taxguard_legal_list'] },
   { key: 'audit-center', path: '/api/audit-center', proposals: ['20261014410000', '20261014460000'], sentinelRpcs: ['taxguard_audit_center_list'] },
   { key: 'consultations', path: '/api/consultations', proposals: ['20261014430000'], sentinelRpcs: ['taxguard_consult_list'] },
   { key: 'client-portal', path: '/api/client-portal', proposals: ['20261014440000'], sentinelRpcs: ['taxguard_portal_engagements'] },
+  { key: 'client-signatures', path: '/api/client-signatures', proposals: ['20261012270000', '20261019180000', '20261019190000'], sentinelRpcs: ['taxguard_portal_signature_packages'] },
   { key: 'reassignment', path: '/api/reassignment', proposals: ['20261014450000'], sentinelRpcs: ['taxguard_rar_queue'] },
 ]);
 

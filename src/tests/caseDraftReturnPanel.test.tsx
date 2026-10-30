@@ -3,11 +3,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
-import { FINAL_STATUS_REASON_LABELS, finalAuthorizationText, READINESS_REASON_LABELS, readinessText, RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
+import { FINAL_STATUS_REASON_LABELS, finalAuthorizationText, READINESS_REASON_LABELS, readinessText, RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText,
+  SIGNATURE_STATUS_REASON_LABELS, signaturePackageText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
 import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
 import { qcOutcomeText, QualityControlQueuePanel } from '../components/workspace/QualityControlQueuePanel';
 import { FinalAuthorizationQueuePanel, finalOutcomeText } from '../components/workspace/FinalAuthorizationQueuePanel';
+import { SignatureReleaseForm } from '../components/workspace/SignatureReleaseForm';
 
 // Block 68 browser client and panel. The server rules are covered on PostgreSQL in taxReturnPreparation.db.test.ts.
 const transport = vi.fn();
@@ -164,6 +166,47 @@ describe('draft returns in the browser client', () => {
     for (const path of [`/api/tax-engine/returns/${ID}/final-assignment`, `/api/tax-engine/returns/${ID}/final-assignment/revoke`])
       expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(true);
     expect(practiceManagerRequestAllowed('practice_manager', 'POST', `/api/tax-engine/returns/${ID}/final-authorization`)).toBe(false);
+  });
+
+  it('relays Stage 11 releases with only the documented fields and never calls a release signed, sent or filed (Block 74)', async () => {
+    await taxEngineService.signatureContext(ID);
+    await taxEngineService.releaseSignaturePackage(ID, { consentVersion: 3, acknowledged: true, signers: ['client-1', 'client-2'] });
+    await taxEngineService.withdrawSignaturePackage(ID, 'Synthetic: the decision lapsed');
+    expect(transport.mock.calls.map(([url, init]) => [url.replace('http://127.0.0.1:3000/api/tax-engine', ''), init.method, init.body ? JSON.parse(init.body) : undefined])).toEqual([
+      [`/returns/${ID}/signature-context`, 'GET', undefined],
+      [`/returns/${ID}/signature-package`, 'POST', { consentVersion: 3, acknowledged: true, signers: ['client-1', 'client-2'] }],
+      [`/returns/${ID}/signature-package/withdraw`, 'POST', { reason: 'Synthetic: the decision lapsed' }],
+    ]);
+    const pkg = { packageId: ID, returnVersionId: ID, authorizationId: ID, consentVersion: 3, signerUids: ['client-1'], releasedBy: 'rel-1', releasedAt: '2026-10-30T00:00:00Z',
+      withdrawnBy: null, withdrawnAt: null, withdrawReason: null };
+    expect(signaturePackageText({ stage11: 'SIGNATURE_PACKAGE_RELEASED' }))
+      .toBe('released for client signature; electronic signing is not available yet, and nothing is signed or filed');
+    expect(signaturePackageText({ stage11: 'CLIENT_SIGNATURE_REQUIRED', signaturePackage: { package: null, current: false, reasons: [] } })).toBe('not released for client signature yet');
+    expect(signaturePackageText({ stage11: 'CLIENT_SIGNATURE_REQUIRED', signaturePackage: { package: pkg, current: false, reasons: ['CONSENT_CHANGED'] } }))
+      .toBe('the released package is no longer current: the practice approved a new consent text; withdraw it');
+    expect(signaturePackageText({ stage11: 'NOT_STARTED' })).toBe('not started');
+    for (const code of ['FINAL_AUTHORIZATION_NOT_CURRENT', 'FINAL_AUTHORIZATION_CHANGED', 'CONSENT_CHANGED']) expect(SIGNATURE_STATUS_REASON_LABELS[code], code).toBeTruthy();
+    expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_RETURN_SIGNATURE_AUTHORITY_REQUIRED', 'NO_POLICY')))
+      .toMatch(/^Release refused: it needs the signature release authority under the practice's approved policy\. /);
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_SIGNATURE_NOT_AUTHORIZED', '["NOT_READY","DIAGNOSTICS_RERUN"]')))
+      .toBe('Release refused: the version is no longer ready; diagnostics were run again.');
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_SIGNATURE_NOT_AUTHORIZED', '["NO_DECISION"]'))).toBe('Release refused: it has no Stage 10 decision.');
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_SIGNATURE_NOT_AUTHORIZED', 'not json'))).toBe('Release refused: the version has no current Stage 10 authorization.');
+    expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_RETURN_SIGNATURE_SESSION_REQUIRED'))).toMatch(/multi-factor session/);
+    const form = renderToStaticMarkup(<SignatureReleaseForm returnVersionId={ID} name="SYN-1040-RETURN version 1" />);
+    expect(form).toContain('Loading the signature status');
+    const panel = renderToStaticMarkup(<CaseDraftReturnPanel caseId="case-1" taxYear={2025} returnFamily="1040" />);
+    expect(panel).toContain('Electronic signing is not available, and nothing is sent, signed or filed.');
+  });
+
+  it('lets practice managers read and withdraw Stage 11 packages; the database decides whether they may release (Block 74)', () => {
+    vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
+    vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
+    for (const path of [`/api/tax-engine/returns/${ID}/signature-context`, `/api/tax-engine/returns/${ID}/signature-packages`])
+      expect(practiceManagerRequestAllowed('practice_manager', 'GET', path), path).toBe(true);
+    for (const path of [`/api/tax-engine/returns/${ID}/signature-package`, `/api/tax-engine/returns/${ID}/signature-package/withdraw`])
+      expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(true);
+    expect(practiceManagerRequestAllowed('practice_manager', 'POST', `/api/tax-engine/returns/${ID}/signature-package/sign`)).toBe(false);
   });
 
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {

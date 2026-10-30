@@ -1,6 +1,6 @@
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, durableSession, ensureStaffed, liveSessionWithToken, openModule, providerControl, providerToken, realErrors, sees,
-  staffLogin } from './helpers';
+  sessionWithToken, staffLogin } from './helpers';
 import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEngine/syntheticFixtures';
 import { finalAuthorizationText, readinessText } from '../services/taxEngineService';
 
@@ -877,6 +877,41 @@ describe('draft return preparation on the real server', () => {
     // A replayed decision is refused and records nothing.
     expect((await decide({ outcome: 'AUTHORIZED', attestationVersion: 1, acknowledged: true })).body.code).toBe('TAX_RETURN_FINAL_ALREADY_DECIDED');
     expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items).toHaveLength(1);
+    // Block 74 (Stage 11, without signing): the same durable authorizer, who holds the synthetic release designation, releases
+    // the authorized version for client signature from the queue. Nothing is rendered, sent or signed.
+    await dfaItem.getByRole('button', { name: 'Show signature package of SYN-1040-RETURN version 1' }).click();
+    const sig = dfaItem.getByRole('form', { name: 'Signature package for SYN-1040-RETURN version 1' });
+    await sig.getByText('Stage 11: not released for client signature yet.').waitFor();
+    await sig.getByRole('blockquote', { name: 'Consent version 1' }).getByText('Synthetic signature consent for end-to-end tests only; not legal wording.').waitFor();
+    const releaseButton = sig.getByRole('button', { name: 'Release SYN-1040-RETURN version 1 for signature' });
+    const signer = sig.getByRole('group', { name: 'Signers for SYN-1040-RETURN version 1' }).getByRole('checkbox', { name: /\(e2e-client\)$/ });
+    expect(await signer.isChecked()).toBe(false); // no signer is pre-selected
+    expect(await releaseButton.isDisabled()).toBe(true);
+    await signer.check();
+    expect(await releaseButton.isDisabled()).toBe(true); // the consent must be acknowledged too
+    await sig.getByRole('checkbox', { name: /I have read consent version 1/ }).check();
+    expect(await releaseButton.isDisabled()).toBe(false);
+    await releaseButton.click();
+    await sig.getByRole('status', { name: 'Signature package result' })
+      .getByText('SYN-1040-RETURN version 1 released for client signature. Electronic signing is not available yet; nothing has been signed or filed.').waitFor();
+    await sig.getByText('Stage 11: released for client signature; electronic signing is not available yet, and nothing is signed or filed.').waitFor();
+    const released = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
+    expect(released).toMatchObject({ stage10: 'AUTHORIZED', stage11: 'SIGNATURE_PACKAGE_RELEASED', signature: 'NOT_AVAILABLE', returnUse: 'BLOCKED',
+      signaturePackage: { current: true, package: { signerUids: ['e2e-client'], releasedBy: DURABLE_FA, consentVersion: 1 } } });
+    // The process-local reviewer session cannot release; the client sees status only.
+    expect((await api(rev, 'POST', `/api/tax-engine/returns/${v1id}/signature-package`, { consentVersion: 1, acknowledged: true, signers: ['e2e-client'] })).body.code)
+      .toBe('TAX_RETURN_SIGNATURE_SESSION_REQUIRED');
+    const signerToken = await apiLogin('e2e-client');
+    const portalView = await api(signerToken, 'GET', `/api/client-signatures/clients/${C}/signature-packages`);
+    expect(portalView.status, JSON.stringify(portalView.body)).toBe(200);
+    expect(portalView.body).toMatchObject({ signature: 'NOT_AVAILABLE', items: [{ taxYear: 2025, status: 'AWAITING_SIGNATURE', signature: 'NOT_AVAILABLE' }] });
+    expect(Object.keys(portalView.body.items[0]).sort()).toEqual(['packageId', 'releasedAt', 'signature', 'status', 'taxYear']);
+    const clientView = await sessionWithToken(signerToken, '/portal/dashboard#nav=stage_11');
+    const clientRegion = clientView.page.getByRole('region', { name: 'Your return and signature' });
+    await clientRegion.getByText('Electronic signing is not available yet.', { exact: false }).first().waitFor();
+    await expect.poll(() => clientRegion.innerText()).toMatch(/2025 return: awaiting your signature|No (?!2025)\d{4} return has been released to you for signature/);
+    expect(realErrors(clientView)).toEqual([]);
+    await clientView.context.close();
     await dfa.page.setViewportSize({ width: 375, height: 812 });
     expect(await dfa.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     expect(realErrors(dfa)).toEqual([]);
@@ -888,6 +923,13 @@ describe('draft return preparation on the real server', () => {
       finalAuthorization: { current: false, decision: { outcome: 'AUTHORIZED' } } });
     expect(lapsed.finalAuthorization.reasons).toEqual(expect.arrayContaining(['NOT_READY', 'DIAGNOSTICS_RERUN']));
     expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items).toHaveLength(1); // kept, not erased
+    // The released package lapses with the decision: the client no longer sees it, and a manager withdraws it with a reason.
+    expect(lapsed.signaturePackage).toMatchObject({ current: false, reasons: ['FINAL_AUTHORIZATION_NOT_CURRENT'] });
+    expect((await api(signerToken, 'GET', `/api/client-signatures/clients/${C}/signature-packages`)).body.items).toEqual([]);
+    const withdrawn = await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/signature-package/withdraw`, { reason: 'Synthetic: the Stage 10 decision lapsed.' });
+    expect(withdrawn.status, JSON.stringify(withdrawn.body)).toBe(200);
+    expect(withdrawn.body).toMatchObject({ withdrawnBy: 'e2e-mgr' });
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/signature-packages`)).body.items).toHaveLength(1); // kept, not erased
     // A revised conclusion makes the mapping and then the approved return STALE; nothing is replaced silently.
     const k = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
     const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7300.00', links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });

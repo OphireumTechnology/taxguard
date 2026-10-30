@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 109,
+    "files": 110,
     "core": 13,
-    "proposals": 95,
-    "tables": 180,
-    "functions": 483,
-    "securityDefinerFunctions": 379,
+    "proposals": 96,
+    "tables": 182,
+    "functions": 495,
+    "securityDefinerFunctions": 390,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -4495,6 +4495,57 @@
     },
     {
       "order": 109,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_tax_return_signature_packages",
+        "taxguard_tax_signature_consents"
+      ],
+      "functionsAdded": [
+        "taxguard_portal_signature_packages",
+        "taxguard_tax_return_signature_authorized",
+        "taxguard_tax_return_signature_candidates",
+        "taxguard_tax_return_signature_context",
+        "taxguard_tax_return_signature_guard",
+        "taxguard_tax_return_signature_json",
+        "taxguard_tax_return_signature_list",
+        "taxguard_tax_return_signature_live",
+        "taxguard_tax_return_signature_release",
+        "taxguard_tax_return_signature_status",
+        "taxguard_tax_return_signature_withdraw",
+        "taxguard_tax_signature_consent_current"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_tax_return_final_readiness",
+          "previous": "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 4,
+      "indexesAdded": 4,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        28,
+        29,
+        30,
+        37,
+        102,
+        103,
+        108
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 110,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

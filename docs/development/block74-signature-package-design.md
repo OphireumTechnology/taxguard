@@ -107,3 +107,30 @@ Stage 11 signing or live filing").
 
 Form 8879 rendering, invitations, signature collection and identity verification (the rest of Stage 11); filing and
 transmission (Stage 12); payments. No AI agent is given any capability here.
+
+## As built (proposal 20261019190000, review only)
+
+- **Tables:** `taxguard_tax_signature_consents` (immutable, approved by someone other than its author) and
+  `taxguard_tax_return_signature_packages` (immutable except one withdrawal; one live package per version). The pinned
+  Stage 10 decision has no foreign key, so the Stage 10 no-truncate guard still reports a truncate itself.
+- **Policy:** `RETURN_SIGNATURE_RELEASE` in a new function-code CHECK (`_function_code_v3`); `_signature_release`
+  requires a designation. The case-specific part, when the policy asks for it, is satisfied by the case reviewer or the
+  final authorizer of record.
+- **Release** (`taxguard_tax_return_signature_release`) checks, in order: privileged session
+  (`TAX_RETURN_SIGNATURE_SESSION_REQUIRED`); scope; not the version's or case's preparer (`..._NOT_INDEPENDENT`); input
+  (only `consentVersion`, `acknowledged: true` and one to four distinct `signers`); a current `AUTHORIZED` Stage 10
+  decision (`..._NOT_AUTHORIZED`, reasons in DETAIL); the authority (`..._AUTHORITY_REQUIRED`); the consent text
+  (`..._CONSENT_REQUIRED` / `..._CONSENT_CHANGED`); signers (`..._SIGNER_INVALID`); no live package
+  (`..._ALREADY_RELEASED`).
+- **Withdrawal** by the releaser or a practice manager, with a reason of 10 to 500 characters.
+- **Readiness** (supersedes the Block 73 definition) adds `signaturePackage`, `signature: NOT_AVAILABLE` and
+  `stage11: SIGNATURE_PACKAGE_RELEASED` while the package is current.
+- **Client portal:** `taxguard_portal_signature_packages` returns status only (`packageId`, `taxYear`, `releasedAt`,
+  `status: AWAITING_SIGNATURE`, `signature: NOT_AVAILABLE`), to the named signers, and to staff in scope of the client.
+  It is served at `/api/client-signatures`, a separate mount with its own cutover entry, so the existing portal reads do
+  not wait for this proposal.
+- **Interface:** the release form (`SignatureReleaseForm`) in the draft return panel and in the final authorizer's queue
+  on an authorized item; the client's Stage 11 page shows the status panel (`ClientSignaturePackagesPanel`).
+- **Tests:** PostgreSQL acceptance 4/4 (`taxReturnSignaturePackage.db.test.ts`); mutation checks on the Stage 10 check,
+  the session check and the signer check are each caught; unit tests for the service, routes, manager access and
+  cutover; suite 07 releases from the durable authorizer's queue in the browser and checks the client's status view.
