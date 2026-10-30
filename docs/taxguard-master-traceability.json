@@ -5032,6 +5032,28 @@
       ]
     },
     {
+      "file": "docs/development/block77-operational-alerts.md",
+      "sha256": "8efb8f1c016d694c5123d7b0c158b97a15ae1a87b8d0cbd1ada248c214bd4f18",
+      "bytes": 2567,
+      "headings": [
+        "# Block 77: operational alert conditions (no paging, no invented thresholds)",
+        "## Purpose",
+        "## As built",
+        "## [OWNER] decisions"
+      ]
+    },
+    {
+      "file": "docs/development/block78-return-review-queue.md",
+      "sha256": "61db1e6d1f5456950b756de94847b94e7b4f3378df3394e613bff805298f9263",
+      "bytes": 2531,
+      "headings": [
+        "# Block 78: Stage 09 draft return review queue (read-only)",
+        "## Purpose",
+        "## As built",
+        "## Not in scope"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5325,8 +5347,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f152fc89303035fae1a5382d1535c17172b393a98553f49be4b4e21d1e01f162",
-      "bytes": 23564,
+      "sha256": "e949152551d05ae504eab0de5f3f88afe855632ce95c5f4876a1f478b74a934b",
+      "bytes": 23693,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6742,6 +6764,12 @@
       "headings": []
     },
     {
+      "file": "docs/proposed-migrations/20261019210000_taxguard_return_review_queue.sql",
+      "sha256": "7aae9c89f227359a491ec907a188a802ccf6f2de24fcade2de8b531c7731e014",
+      "bytes": 3239,
+      "headings": []
+    },
+    {
       "file": "docs/proposed-migrations/rollback/20261014470000_taxguard_billing_client_projection.rollback.sql",
       "sha256": "2847cea1e7e1c6dc3856875e27174564aa99dab0942afbcaa280c3be4bc3bc64",
       "bytes": 4253,
@@ -7835,7 +7863,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "607f01a1b0d038c02fd1e86a9fc30808a420959b3d0868ee4ac4c15cf7bfd397",
+    "src/server/productionApp.ts": "b07a1a07fdb7de718be2aafb2295587321cd5ae03579b6952f66123c29d0136e",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
@@ -7970,7 +7998,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "fc17df4ce0e91b9edf39130ad50bfb339ba8fd58aea00daf3433fd8ae108d411",
+    "src/tests/proposalCompositionSecurity.test.ts": "80e6eaad0b3be024a5ba4b81d635404ae12331986b54ec9b4fd55c4d82c1cc68",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

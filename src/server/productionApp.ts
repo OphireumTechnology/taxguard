@@ -31,6 +31,7 @@ import { createConsultationReviewRouter } from './routes/consultations.routes';
 import { createClientPortalRouter, createClientSignaturesRouter } from './routes/client-portal.routes';
 import { createReassignmentRouter } from './routes/reassignment.routes';
 import { runtimeProbes } from './observability/defaultProbes';
+import { createOperationalAlertsRouter } from './observability/operationalAlerts';
 import {
   protectServerBuildArtifacts,
   resolveProductionDistPath,
@@ -97,6 +98,8 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
     res.json({ providers: ProviderReadinessRegistry.getAllProviderStatuses() });
   });
   app.get('/api/operational-metrics',authenticateToken,requireOperationalAdministrator,(_req,res)=>res.json(operationalMetrics.snapshot()));
+  app.use('/api/operational-alerts', createOperationalAlertsRouter({ probes: () => runtimeProbes(), authenticate: authenticateToken as any,
+    serverErrors: () => operationalMetrics.snapshot().statusClasses['5xx'] }));
 
   app.get('/api/readiness', authenticateToken,requireOperationalAdministrator, async (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');

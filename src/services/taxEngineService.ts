@@ -76,6 +76,8 @@ export const taxEngineService = {
   /** Independent quality control (proposal 20261019170000): a manager assigns a third person, who records PASS/FAIL per item of the practice's checklist. */
   assignQc: (returnVersionId: string, qcUid: string) => request<QcAssignment>('POST', '/returns' + id(returnVersionId) + '/qc-assignment', { qcUid }),
   revokeQc: (returnVersionId: string, reason: string) => request<QcAssignment>('POST', '/returns' + id(returnVersionId) + '/qc-assignment/revoke', { reason }),
+  /** Stage 09: SUBMITTED versions of cases where the signed-in person is the live reviewer, oldest first. Read only. */
+  reviewQueue: () => request<{ items: ReviewQueueItem[]; returnUse: 'BLOCKED' }>('GET', '/review/queue').then(r => r.items),
   qcQueue: () => request<{ items: QcQueueItem[]; returnUse: 'BLOCKED' }>('GET', '/qc/queue').then(r => r.items),
   qcContext: (returnVersionId: string) => request<QcContext>('GET', '/returns' + id(returnVersionId) + '/qc-context'),
   recordQc: (returnVersionId: string, results: QcResultInput[], note?: string) =>
@@ -161,6 +163,9 @@ export function returnRiskText(r: Pick<ReturnRiskAssessment, 'outcome' | 'reason
   return `${RISK_OUTCOME_LABELS[r.outcome].toLowerCase()}: ` + r.reasonCodes.map(c => (RETURN_RISK_REASON_LABELS[c] ?? c).replace(/\.$/, '')).join('; ');
 }
 export interface QcAssignment { assignmentId: string; returnVersionId: string; qcUid: string; assignedBy?: string; assignedAt?: string; revokedAt?: string }
+export interface ReviewQueueItem { returnVersionId: string; caseId: string; clientId: string; taxYear: number; templateId: string; version: number; status: 'SUBMITTED';
+  preparedBy: string; submittedAt: string; stale: boolean; verification: { verificationId: string; result: 'VERIFIED' | 'DISCREPANCY'; verifiedAt: string } | null;
+  risk: { assessmentId: string; outcome: 'HUMAN_REVIEW_REQUIRED' | 'BLOCKED'; reasonCodes: string[]; assessedAt: string } | null; returnUse: 'BLOCKED' }
 export interface QcQueueItem { assignmentId: string; returnVersionId: string; caseId: string; taxYear: number; templateId: string; version: number; status: string;
   assignedAt: string; latestOutcome: QcOutcome | null }
 export type QcOutcome = 'QC_PASSED' | 'QC_RETURNED';

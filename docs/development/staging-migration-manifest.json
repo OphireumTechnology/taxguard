@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "633cd1d22aa81acc55700df4cb4c2b776485dbcf62facfd5b5a6e5b080eb1528",
+  "executionPlanSha256": "4894e39dda95b3fec2427c609cf9d2ca9d3e131b14c8b5a68eeafa14ea41ffac",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6065,6 +6065,57 @@
         "-- cross-year line crosswalk is tax content and is not encoded. A key that appears twice on either side, or with",
         "-- different value types, is AMBIGUOUS and carries no values.",
         "-- Variance flags need the owner's approved variance policy (versioned, approved by someone other than its author). None"
+      ]
+    },
+    {
+      "order": 112,
+      "file": "docs/proposed-migrations/20261019210000_taxguard_return_review_queue.sql",
+      "kind": "proposal",
+      "version": "20261019210000",
+      "sha256": "7aae9c89f227359a491ec907a188a802ccf6f2de24fcade2de8b531c7731e014",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_return_review_queue"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- tenant. Rollback (development): drop the function."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_return_review_queue(text,text) FROM PUBLIC, anon, authenticated, service_role;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_tax_return_review_queue(text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 78, Stage 09 draft return review queue). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018090000 (case slot liveness), 20261019120000 (return versions), 20261019140000 (verifications) and",
+        "-- 20261019160000 (risk assessments).",
+        "--",
+        "-- The reviewer's queue of return versions waiting for the independent Stage 09 review: SUBMITTED versions of cases where",
+        "-- the actor holds the live reviewer assignment. Each item carries what the reviewer must know before deciding:",
+        "--   * whether the version is stale (it cannot be approved);",
+        "--   * the latest calculation verification (approval needs a current VERIFIED one);",
+        "--   * the latest risk assessment, its outcome and reason codes. A BLOCKED assessment is the escalation Block 71 left",
+        "--     out: it is shown, never acted on.",
+        "-- Ordered by submission time, oldest first; no priority is computed (prioritisation is a practice decision).",
+        "-- Read only: nothing is approved, returned, assigned or recorded. Practice managers see every SUBMITTED version of the"
       ]
     }
   ]

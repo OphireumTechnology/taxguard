@@ -728,7 +728,14 @@ describe('draft return preparation on the real server', () => {
     await result(prep).getByText('Version 1 of SYN-1040-RETURN: submitted.').waitFor();
     expect(await badge(prep, 1)).toBe('SUBMITTED'); // announced only after the list shows the server's state
     // The reviewer reads the lineage with the keyboard and approves.
-    await reviewer.page.reload(); await openCase(reviewer);
+    await reviewer.page.reload();
+    // Block 78: the submitted version is in the reviewer's Stage 09 queue, not verified or assessed yet.
+    const reviewQueue = reviewer.page.getByRole('region', { name: /Draft returns awaiting my review/ });
+    const queued = reviewQueue.getByRole('article', { name: 'Review of SYN-1040-RETURN version 1' });
+    await queued.getByText('calculations not verified yet · risk not assessed').waitFor();
+    await reviewQueue.getByRole('status').getByText(/^\d+ draft returns? waiting\.$/).waitFor();
+    expect((await api(acct, 'GET', '/api/tax-engine/review/queue')).body.items).toEqual([]); // the preparer is not the reviewer
+    await openCase(reviewer);
     const show = article(reviewer, 1).getByRole('button', { name: /^(Show|Hide) lineage of SYN-1040-RETURN version 1$/ });
     await show.focus(); await reviewer.page.keyboard.press('Enter');
     const table = article(reviewer, 1).getByRole('table', { name: `SYN-1040 2025.0, form mapping version ${mapping.version}: lines with provenance` });

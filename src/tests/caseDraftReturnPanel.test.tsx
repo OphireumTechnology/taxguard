@@ -11,6 +11,7 @@ import { qcOutcomeText, QualityControlQueuePanel } from '../components/workspace
 import { FinalAuthorizationQueuePanel, finalOutcomeText } from '../components/workspace/FinalAuthorizationQueuePanel';
 import { SignatureReleaseForm } from '../components/workspace/SignatureReleaseForm';
 import { ComparisonLines, ReturnComparisonView } from '../components/workspace/ReturnComparisonView';
+import { ReturnReviewQueuePanel, reviewQueueStateText } from '../components/workspace/ReturnReviewQueuePanel';
 
 // Block 68 browser client and panel. The server rules are covered on PostgreSQL in taxReturnPreparation.db.test.ts.
 const transport = vi.fn();
@@ -237,6 +238,22 @@ describe('draft returns in the browser client', () => {
     vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
     expect(practiceManagerRequestAllowed('practice_manager', 'GET', `/api/tax-engine/returns/${ID}/comparison`)).toBe(true);
     expect(practiceManagerRequestAllowed('practice_manager', 'POST', `/api/tax-engine/returns/${ID}/comparison`)).toBe(false);
+  });
+
+  it('reads the Stage 09 review queue and describes stale, verification and a BLOCKED risk assessment (Block 78)', async () => {
+    await taxEngineService.reviewQueue();
+    expect(transport.mock.calls.map(([url, init]) => [url.replace('http://127.0.0.1:3000/api/tax-engine', ''), init.method])).toEqual([['/review/queue', 'GET']]);
+    expect(reviewQueueStateText({ stale: false, verification: null, risk: null })).toBe('calculations not verified yet · risk not assessed');
+    expect(reviewQueueStateText({ stale: true, verification: { verificationId: ID, result: 'VERIFIED', verifiedAt: '2026-10-30T00:00:00Z' },
+      risk: { assessmentId: ID, outcome: 'BLOCKED', reasonCodes: ['RETURN_HUMAN_REVIEW_REQUIRED', 'RETURN_VERSION_STALE'], assessedAt: '2026-10-30T00:00:00Z' } }))
+      .toMatch(/^stale: its inputs changed, so it cannot be approved; return it to the preparer · calculations verified · risk assessment BLOCKED: The version no longer matches its sources and must be prepared again$/);
+    expect(reviewQueueStateText({ stale: false, verification: { verificationId: ID, result: 'DISCREPANCY', verifiedAt: '2026-10-30T00:00:00Z' },
+      risk: { assessmentId: ID, outcome: 'HUMAN_REVIEW_REQUIRED', reasonCodes: ['RETURN_HUMAN_REVIEW_REQUIRED'], assessedAt: '2026-10-30T00:00:00Z' } }))
+      .toBe('calculations have a discrepancy · risk: human review required');
+    expect(renderToStaticMarkup(<ReturnReviewQueuePanel />)).toContain('Loading your review queue…');
+    vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
+    vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
+    expect(practiceManagerRequestAllowed('practice_manager', 'GET', '/api/tax-engine/review/queue')).toBe(true);
   });
 
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {
