@@ -122,6 +122,14 @@ Audits completed in this cycle (documents):
   entries), NOT VALID (13), secrets (1661 scanned), diff check, contamination). **Owner review point:** variance
   policy, a cross-year line crosswalk, prior-year returns prepared outside TaxGuard, and prior-year access for QC and
   the final authorizer.
+- **Read-only AI evaluation view in the Control Center (Block 76, stacked on Block 75; 2026-10-30).** An Evaluations
+  tab and `GET /api/ai-governance/control-center/evaluations` (governance roles, verified tenant): whether the review-only
+  evaluation framework is applied, suites and runs with coverage per dimension, and whether each agent's current version
+  would pass the activation gate. Nothing is evaluated, approved or activated. Branch
+  `claude/taxguard-block76-ai-evaluation-view` at `164878d`: PGlite tests with two mutation checks caught; default
+  browser profile 136/136. Integration at `9ef4fce` (Blocks 68-76): full matrix green (unit 6248, PostgreSQL 59 files /
+  320, browser 137 + 44, build, release candidate (111 entries), NOT VALID (13), secrets (1664 scanned), diff check,
+  contamination).
 - **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
   `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
   agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
