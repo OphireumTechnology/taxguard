@@ -111,6 +111,17 @@ Audits completed in this cycle (documents):
   68-74): full matrix green (unit 6241, PostgreSQL 315, browser 137 + 44, build, release candidate, NOT VALID,
   secrets, diff check, contamination). **Owner review point:** release policy, consent wording (legal), who must sign,
   what the client sees, and the e-signature provider and identity verification method.
+- **Return comparison with the previous version and the prior year (Block 75, stacked on Block 74; 2026-10-30).**
+  Review-only proposal `20261019200000`: a read-only, deterministic line-by-line comparison of a return version with
+  its previous version and with the client's prior-year return approved at Stage 09, matched only on identical line
+  identifiers. Prior-year values need access to the prior-year case (otherwise `NOT_AVAILABLE`, nothing disclosed).
+  Variance flags only under the owner's approved, immutable variance policy; none is seeded (`NOT_CONFIGURED`). It
+  gates, records and changes nothing. Branch `claude/taxguard-block75-return-comparison` at `e856847`: PostgreSQL 5/5
+  with three mutation checks caught; browser suites 01-07 59/59 in a clean single run. Integration at `7ddaafd` (Blocks
+  68-75): full matrix green (unit 6243, PostgreSQL 59 files / 320, browser 137 + 44, build, release candidate (111
+  entries), NOT VALID (13), secrets (1661 scanned), diff check, contamination). **Owner review point:** variance
+  policy, a cross-year line crosswalk, prior-year returns prepared outside TaxGuard, and prior-year access for QC and
+  the final authorizer.
 - **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
   `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
   agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
