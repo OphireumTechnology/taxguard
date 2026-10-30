@@ -97,6 +97,7 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/returns/:returnVersionId/qc-reviews', run(async req => ({ items: await store().qcReviews(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
   router.post('/returns/:returnVersionId/qc', run(req => store().recordQc(t(req), u(req), req.params.returnVersionId, req.body?.results, note(req.body?.note)), 201));
   router.get('/returns/:returnVersionId/readiness', run(req => store().finalReadiness(t(req), u(req), req.params.returnVersionId)));
+  router.get('/returns/:returnVersionId/comparison', run(req => store().returnComparison(t(req), u(req), req.params.returnVersionId)));
   // Stage 10 final authorization (proposal 20261019180000). The decision needs the person's own durable session: its hash
   // lets the database re-check the live AAL2 session and its recent sign-in in the same transaction. Any other session
   // (for example a process-local development session) is refused as not proving multi-factor sign-in.

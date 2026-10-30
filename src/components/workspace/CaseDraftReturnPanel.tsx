@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { dollarsToCents, finalAuthorizationText, readinessText, returnProblemText, returnRiskText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
+import { ReturnComparisonView } from './ReturnComparisonView';
 import { SignatureReleaseForm } from './SignatureReleaseForm';
 
 /**
@@ -34,6 +35,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const [qcUids, setQcUids] = useState<Record<string, string>>({});
   const [finalUids, setFinalUids] = useState<Record<string, string>>({});
   const [signatureOpen, setSignatureOpen] = useState<string | null>(null);
+  const [comparisonOpen, setComparisonOpen] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const current = useRef(caseId); current.current = caseId;
@@ -167,6 +169,10 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
         <button type="button" aria-expanded={open?.id === v.returnVersionId} aria-controls={`draft-return-lineage-${v.returnVersionId}`} onClick={() => toggle(v.returnVersionId)}>
           {open?.id === v.returnVersionId ? 'Hide' : 'Show'} lineage of {name}</button>
         <div id={`draft-return-lineage-${v.returnVersionId}`}>{open?.id === v.returnVersionId && <ReturnLineage state={open} />}</div>
+        <button type="button" aria-expanded={comparisonOpen === v.returnVersionId} aria-controls={`draft-return-comparison-${v.returnVersionId}`}
+          onClick={() => setComparisonOpen(o => o === v.returnVersionId ? null : v.returnVersionId)}>
+          {comparisonOpen === v.returnVersionId ? 'Hide' : 'Show'} comparison of {name}</button>
+        <div id={`draft-return-comparison-${v.returnVersionId}`}>{comparisonOpen === v.returnVersionId && <ReturnComparisonView returnVersionId={v.returnVersionId} name={name} />}</div>
       </article>;
     })}
   </section>;

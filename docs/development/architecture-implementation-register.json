@@ -505,12 +505,17 @@
       "status": "PARTIAL",
       "implementation": [
         "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql",
-        "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql"
+        "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql",
+        "docs/proposed-migrations/20261019200000_taxguard_return_comparison.sql",
+        "docs/development/block75-return-comparison-design.md",
+        "src/components/workspace/ReturnComparisonView.tsx"
       ],
       "tests": [
-        "src/tests/taxEngineHttp.test.ts"
+        "src/tests/taxEngineHttp.test.ts",
+        "src/tests-db/taxReturnComparison.db.test.ts",
+        "src/tests/caseDraftReturnPanel.test.tsx"
       ],
-      "remainingGap": "Rule-set verification cases and coverage exist; per-return variance and prior-year anomaly checks do not."
+      "remainingGap": "Rule-set verification cases and coverage exist. Block 75 (unmerged, stacked on Block 74; review-only proposal 20261019200000): a read-only, deterministic comparison of a return version with its previous version and with the client's prior-year return approved at Stage 09, line by line on identical identifiers, scoped so that prior-year values need access to the prior-year case; variance flags only under the owner's approved variance policy (none seeded, so NOT_CONFIGURED). Gaps: the owner's variance policy, a cross-year line crosswalk (tax content), prior-year returns prepared outside TaxGuard, and whether a flag should feed diagnostics or QC."
     },
     {
       "id": "TAX-RETURN-PREP",

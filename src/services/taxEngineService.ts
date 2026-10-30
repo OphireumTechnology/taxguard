@@ -101,6 +101,8 @@ export const taxEngineService = {
     request<SignaturePackage>('POST', '/returns' + id(returnVersionId) + '/signature-package', input),
   withdrawSignaturePackage: (returnVersionId: string, reason: string) =>
     request<SignaturePackage>('POST', '/returns' + id(returnVersionId) + '/signature-package/withdraw', { reason }),
+  /** Read-only comparison with the previous version and the prior-year return. Flags come only from an approved variance policy. */
+  returnComparison: (returnVersionId: string) => request<ReturnComparison>('GET', '/returns' + id(returnVersionId) + '/comparison'),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -191,6 +193,26 @@ export function signaturePackageText(r: Pick<ReturnReadiness, 'stage11' | 'signa
   const st = r.signaturePackage;
   if (st?.package) return 'the released package is no longer current: ' + st.reasons.map(c => SIGNATURE_STATUS_REASON_LABELS[c] ?? c).join('; ') + '; withdraw it';
   return r.stage11 === 'CLIENT_SIGNATURE_REQUIRED' ? 'not released for client signature yet' : 'not started';
+}
+export type ComparisonKind = 'CHANGED' | 'UNCHANGED' | 'ADDED' | 'REMOVED' | 'AMBIGUOUS';
+export interface ComparisonLine { formId: string; priorFormVersion: string | null; formVersion: string | null; schedule: string; line: string; field: string;
+  valueType: 'MONEY' | 'INTEGER'; kind: ComparisonKind; priorValue: string | null; value: string | null; change: string | null;
+  changeBasisPoints: number | null; variance: boolean | null }
+export interface ReturnComparison { returnVersionId: string; caseId: string; taxYear: number; templateId: string; version: number;
+  previousVersion: { returnVersionId: string; version: number; status: string; lines: ComparisonLine[] } | null;
+  priorYear: { status: 'NOT_AVAILABLE'; taxYear: number } | { status: 'COMPARED'; taxYear: number; returnVersionId: string; caseId: string; templateId: string;
+    version: number; basis: 'STAGE_09_APPROVED'; stale: boolean; matching: 'IDENTICAL_LINE_IDENTIFIERS'; lines: ComparisonLine[] };
+  varianceCheck: 'NOT_CONFIGURED' | 'APPLIED'; variancePolicyVersion: number | null; returnUse: 'BLOCKED' }
+const COMPARISON_KIND_LABELS: Record<ComparisonKind, string> = { CHANGED: 'changed', UNCHANGED: 'unchanged', ADDED: 'new line', REMOVED: 'no longer on the return',
+  AMBIGUOUS: 'not compared: the line identifier is not unique' };
+/** The change on one line, in words. A variance flag is information for the reviewer, never a decision. */
+export function comparisonLineText(l: ComparisonLine): string {
+  const at = `${l.formId} ${l.schedule} line ${l.line} (${l.field})`;
+  if (l.kind === 'AMBIGUOUS') return `${at}: ${COMPARISON_KIND_LABELS.AMBIGUOUS}`;
+  const values = l.kind === 'ADDED' ? `${l.value}` : l.kind === 'REMOVED' ? `was ${l.priorValue}` : `${l.priorValue} to ${l.value}`;
+  const share = l.changeBasisPoints === null || l.kind === 'UNCHANGED' ? '' : `, ${(l.changeBasisPoints / 100).toFixed(2)}%`;
+  const change = l.kind === 'CHANGED' ? ` (change ${l.change}${share})` : '';
+  return `${at}: ${COMPARISON_KIND_LABELS[l.kind]}, ${values}${change}${l.variance ? '; above the practice variance threshold, review it' : ''}`;
 }
 export type FinalOutcome = 'AUTHORIZED' | 'DECLINED';
 export interface FinalDecision { authorizationId: string; outcome: FinalOutcome; note: string | null; attestationVersion: number; decidedBy: string; decidedAt: string;

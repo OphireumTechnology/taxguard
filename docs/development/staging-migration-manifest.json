@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "41e24262be657a482c29d11b61ad7c7e965c9cd6fb89a09cc27293e5c8915cd0",
+  "executionPlanSha256": "633cd1d22aa81acc55700df4cb4c2b776485dbcf62facfd5b5a6e5b080eb1528",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6010,6 +6010,61 @@
         "--   * Separation: the releaser is not the version's or the case's preparer.",
         "--   * Session: the releaser's live AAL2 session with a recent sign-in (taxguard_privileged_session), in the same transaction.",
         "--   * Consent: the owner's approved signature consent text (versioned, approved by someone other than its author). None is"
+      ]
+    },
+    {
+      "order": 111,
+      "file": "docs/proposed-migrations/20261019200000_taxguard_return_comparison.sql",
+      "kind": "proposal",
+      "version": "20261019200000",
+      "sha256": "26cfb96df32709578414cac8ee153e868f79cf1c8bfd4bcaba4acac8071a1c91",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_variance_policies",
+        "taxguard_tax_variance_policy_guard",
+        "taxguard_tax_return_value_rows",
+        "taxguard_tax_return_value_diff",
+        "taxguard_tax_return_comparison"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the functions, the guard and the table."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_variance_policies FROM PUBLIC, anon, authenticated, service_role;",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 3,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 75, return comparison: previous version and prior year). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018090000 (live case actor), 20261019110000 (form values), 20261019120000 (return versions) and",
+        "-- 20261019180000 (taxguard_tax_return_final_scope).",
+        "--",
+        "-- A read-only, deterministic comparison of one return version's mapped values with:",
+        "--   * the previous version of the same case and template (what changed since the last preparation), and",
+        "--   * the client's prior-year return: the latest version of tax year - 1 approved at Stage 09, for the same jurisdiction",
+        "--     and return family, in a case the actor may open. Anything else reports NOT_AVAILABLE (no values, no reason).",
+        "-- Lines match only on identical identifiers (form, schedule, line, field; and form version within one tax year). A",
+        "-- cross-year line crosswalk is tax content and is not encoded. A key that appears twice on either side, or with",
+        "-- different value types, is AMBIGUOUS and carries no values.",
+        "-- Variance flags need the owner's approved variance policy (versioned, approved by someone other than its author). None"
       ]
     }
   ]
