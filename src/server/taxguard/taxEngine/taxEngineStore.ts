@@ -341,6 +341,11 @@ export class TaxEngineStore {
   signaturePackages(tenant: string, actor: string, returnVersionId: string) {
     return this.call<any[]>('taxguard_tax_return_signature_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
   }
+  // Return comparison (proposal 20261019200000): read-only differences from the previous version and the prior-year return.
+  // Variance flags come only from the owner's approved variance policy; none is seeded.
+  returnComparison(tenant: string, actor: string, returnVersionId: string) {
+    return this.call('taxguard_tax_return_comparison', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
 }
 
 /** Only the documented fields reach the database, which validates them; any other field makes the release invalid. */

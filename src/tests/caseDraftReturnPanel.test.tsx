@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
 import { FINAL_STATUS_REASON_LABELS, finalAuthorizationText, READINESS_REASON_LABELS, readinessText, RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText,
-  SIGNATURE_STATUS_REASON_LABELS, signaturePackageText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
+  SIGNATURE_STATUS_REASON_LABELS, comparisonLineText, signaturePackageText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
 import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
 import { qcOutcomeText, QualityControlQueuePanel } from '../components/workspace/QualityControlQueuePanel';
 import { FinalAuthorizationQueuePanel, finalOutcomeText } from '../components/workspace/FinalAuthorizationQueuePanel';
 import { SignatureReleaseForm } from '../components/workspace/SignatureReleaseForm';
+import { ComparisonLines, ReturnComparisonView } from '../components/workspace/ReturnComparisonView';
 
 // Block 68 browser client and panel. The server rules are covered on PostgreSQL in taxReturnPreparation.db.test.ts.
 const transport = vi.fn();
@@ -207,6 +208,35 @@ describe('draft returns in the browser client', () => {
     for (const path of [`/api/tax-engine/returns/${ID}/signature-package`, `/api/tax-engine/returns/${ID}/signature-package/withdraw`])
       expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(true);
     expect(practiceManagerRequestAllowed('practice_manager', 'POST', `/api/tax-engine/returns/${ID}/signature-package/sign`)).toBe(false);
+  });
+
+  it('reads the return comparison, describes each line and flags only what the variance policy flagged (Block 75)', async () => {
+    await taxEngineService.returnComparison(ID);
+    expect(transport.mock.calls.map(([url, init]) => [url.replace('http://127.0.0.1:3000/api/tax-engine', ''), init.method, init.body])).toEqual([
+      [`/returns/${ID}/comparison`, 'GET', undefined]]);
+    const base = { formId: 'SYN-1040', priorFormVersion: '2024.0', formVersion: '2025.0', schedule: 'MAIN', line: '1a', field: 'f1_wages', valueType: 'MONEY' as const };
+    const changed = { ...base, kind: 'CHANGED' as const, priorValue: '4000.00', value: '6000.00', change: '2000.00', changeBasisPoints: 5000, variance: true };
+    expect(comparisonLineText(changed))
+      .toBe('SYN-1040 MAIN line 1a (f1_wages): changed, 4000.00 to 6000.00 (change 2000.00, 50.00%); above the practice variance threshold, review it');
+    expect(comparisonLineText({ ...changed, variance: null })).toBe('SYN-1040 MAIN line 1a (f1_wages): changed, 4000.00 to 6000.00 (change 2000.00, 50.00%)');
+    expect(comparisonLineText({ ...base, kind: 'ADDED', priorValue: null, value: '10.00', change: '10.00', changeBasisPoints: null, variance: false }))
+      .toBe('SYN-1040 MAIN line 1a (f1_wages): new line, 10.00');
+    expect(comparisonLineText({ ...base, kind: 'REMOVED', priorValue: '10.00', value: null, change: '-10.00', changeBasisPoints: null, variance: null }))
+      .toBe('SYN-1040 MAIN line 1a (f1_wages): no longer on the return, was 10.00');
+    expect(comparisonLineText({ ...base, kind: 'AMBIGUOUS', priorValue: null, value: null, change: null, changeBasisPoints: null, variance: null }))
+      .toBe('SYN-1040 MAIN line 1a (f1_wages): not compared: the line identifier is not unique');
+    const unchanged = { ...base, field: 'f1_tax', line: '16', kind: 'UNCHANGED' as const, priorValue: '290.00', value: '290.00', change: '0.00', changeBasisPoints: 0, variance: null };
+    const list = renderToStaticMarkup(<ComparisonLines label="Changes against 2024" lines={[changed, unchanged]} />);
+    expect(list).toContain('1 of 2 lines differ; 1 above the variance threshold.');
+    expect(list).toContain('<ul aria-label="Changes against 2024"><li data-variance="true">');
+    expect(list).not.toContain('f1_tax');
+    expect(renderToStaticMarkup(<ComparisonLines label="x" lines={[unchanged]} />)).toBe('<p>No line changed.</p>');
+    expect(renderToStaticMarkup(<ReturnComparisonView returnVersionId={ID} name="SYN-1040-RETURN version 2" />))
+      .toBe('<p role="status">Loading the comparison of SYN-1040-RETURN version 2…</p>');
+    vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
+    vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
+    expect(practiceManagerRequestAllowed('practice_manager', 'GET', `/api/tax-engine/returns/${ID}/comparison`)).toBe(true);
+    expect(practiceManagerRequestAllowed('practice_manager', 'POST', `/api/tax-engine/returns/${ID}/comparison`)).toBe(false);
   });
 
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {

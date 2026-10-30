@@ -4980,6 +4980,19 @@
       ]
     },
     {
+      "file": "docs/development/block75-return-comparison-design.md",
+      "sha256": "d42a5e424a9cb342a03914e4cfd1957f4dafdbb79425966a5147fcb8f9f1192c",
+      "bytes": 5898,
+      "headings": [
+        "# Block 75: return comparison with the previous version and the prior year (design and as built)",
+        "## Purpose",
+        "## Rules",
+        "## As built",
+        "## [OWNER] decisions",
+        "## Not in scope"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5273,8 +5286,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "1a7466f8b94ab91fae8a5d200bd0efed91d555ba673aaa84a70f531e3a5f45f0",
-      "bytes": 23191,
+      "sha256": "a23268767530eed886087eaacc16f0302438d06c992e77c9f07539b29fbdb108",
+      "bytes": 23314,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6674,7 +6687,13 @@
     {
       "file": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
       "sha256": "d2b27d45720e01fcea2824023c9dca591c8c59aa12f7622cb420140de878289b",
-      "bytes": 24168,
+      "bytes": 24461,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019200000_taxguard_return_comparison.sql",
+      "sha256": "26cfb96df32709578414cac8ee153e868f79cf1c8bfd4bcaba4acac8071a1c91",
+      "bytes": 10763,
       "headings": []
     },
     {

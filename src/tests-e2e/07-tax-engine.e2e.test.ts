@@ -950,10 +950,25 @@ describe('draft return preparation on the real server', () => {
     expect(await badge(prep, 2)).toBe('DRAFT');
     expect(await badge(prep, 1)).toBe('SUPERSEDED');
     await expect.poll(async () => prep.page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Draft return'); // focus stays in the panel
-    // Clients have no access to draft returns.
+    // Block 75: the preparer opens the comparison of version 2 with the keyboard. The revised wages show as a change from
+    // version 1; there is no approved prior-year return and no approved variance policy, so nothing is flagged.
+    const compareToggle = article(prep, 2).getByRole('button', { name: /^(Show|Hide) comparison of SYN-1040-RETURN version 2$/ });
+    await compareToggle.focus(); await prep.page.keyboard.press('Enter');
+    const comparison = article(prep, 2).getByRole('region', { name: 'Comparison of SYN-1040-RETURN version 2' });
+    await comparison.getByRole('status').getByText('Variance check: not configured. The practice has no approved variance policy, so no line is flagged.').waitFor();
+    expect(await compareToggle.getAttribute('aria-expanded')).toBe('true');
+    const sinceV1 = comparison.getByRole('list', { name: 'Changes in SYN-1040-RETURN version 2 since version 1' });
+    await sinceV1.getByText(/^SYN-1040 MAIN line 1a \(f1_wages\): changed, \d+\.\d{2} to 7300\.00 \(change -?\d+\.\d{2}, -?\d+\.\d{2}%\)$/).waitFor();
+    expect(await sinceV1.locator('[data-variance]').count()).toBe(0);
+    await comparison.getByText('No prior-year return approved at Stage 09 is available to compare.').waitFor();
+    // Clients have no access to draft returns or their comparison.
     const clientToken = await apiLogin('e2e-client');
     const v1 = (await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns`)).body.items.find((v: any) => v.version === 1);
     expect((await api(clientToken, 'GET', `/api/tax-engine/returns/${v1.returnVersionId}`)).status).toBe(403);
+    expect((await api(clientToken, 'GET', `/api/tax-engine/returns/${v1.returnVersionId}/comparison`)).status).toBe(403);
+    const v2 = (await api(rev, 'GET', `/api/tax-engine/cases/${caseId}/returns`)).body.items.find((v: any) => v.version === 2);
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v2.returnVersionId}/comparison`)).body).toMatchObject({ version: 2,
+      previousVersion: { version: 1, status: 'SUPERSEDED' }, priorYear: { status: 'NOT_AVAILABLE', taxYear: 2024 }, varianceCheck: 'NOT_CONFIGURED', returnUse: 'BLOCKED' });
     await prep.page.setViewportSize({ width: 375, height: 812 });
     await prep.page.getByRole('heading', { name: 'Draft return' }).waitFor();
     expect(await prep.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);

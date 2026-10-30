@@ -195,6 +195,14 @@ describe('production app', () => {
     // The existing portal reads do not wait for this proposal.
     expect(ROUTE_CUTOVER_CATALOG.find(r => r.key === 'client-portal')!.proposals).not.toContain('20261019190000');
   });
+  it('the Block 75 return comparison is refused in production until its proposal is approved', async () => {
+    const id = '0123abcd-0000-4000-8000-000000000001';
+    expect((await fetch(origin + `/api/tax-engine/returns/${id}/comparison`, { headers: { Accept: 'application/json' } })).status).toBe(503);
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
+    expect(route.sentinelRpcs).toContain('taxguard_tax_return_comparison');
+    expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019200000')).refused)
+      .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019200000'] });
+  });
   it('the cutover status report is for operational administrators only', async () => {
     expect((await fetch(origin + '/api/route-cutover')).status).toBe(401);
   });
