@@ -83,6 +83,18 @@ export const taxEngineService = {
   qcReviews: (returnVersionId: string) => request<{ items: QcReview[]; returnUse: 'BLOCKED' }>('GET', '/returns' + id(returnVersionId) + '/qc-reviews').then(r => r.items),
   /** Final draft readiness: only an input to Stage 10 final authorization; nothing is signed or filed. */
   returnReadiness: (returnVersionId: string) => request<ReturnReadiness>('GET', '/returns' + id(returnVersionId) + '/readiness'),
+  /** Stage 10 final authorization: a manager assigns an independent professional, who alone decides in a recent multi-factor
+   *  session under the practice's approved attestation. Nothing is signed or filed. */
+  assignFinalAuthorizer: (returnVersionId: string, authorizerUid: string) =>
+    request<FinalAssignment>('POST', '/returns' + id(returnVersionId) + '/final-assignment', { authorizerUid }),
+  revokeFinalAuthorizer: (returnVersionId: string, reason: string) =>
+    request<FinalAssignment>('POST', '/returns' + id(returnVersionId) + '/final-assignment/revoke', { reason }),
+  finalQueue: () => request<{ items: FinalQueueItem[]; returnUse: 'BLOCKED' }>('GET', '/final/queue').then(r => r.items),
+  finalContext: (returnVersionId: string) => request<FinalContext>('GET', '/returns' + id(returnVersionId) + '/final-context'),
+  decideFinal: (returnVersionId: string, decision: FinalDecisionInput) =>
+    request<FinalDecision>('POST', '/returns' + id(returnVersionId) + '/final-authorization', decision),
+  finalAuthorizations: (returnVersionId: string) =>
+    request<{ items: FinalDecision[]; returnUse: 'BLOCKED' }>('GET', '/returns' + id(returnVersionId) + '/final-authorizations').then(r => r.items),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -152,7 +164,37 @@ export interface QcResultInput { code: string; result: 'PASS' | 'FAIL'; note?: s
 export interface QcReview { qcReviewId: string; checklistVersion: number; results: Array<QcResultInput & { text: string }>; outcome: QcOutcome; note: string | null;
   reviewedBy: string; reviewedAt: string }
 export interface ReturnReadiness { returnVersionId: string; ready: boolean; reasons: string[]; riskAssessmentId: string | null; qcReviewId: string | null;
-  stage10: 'FINAL_AUTHORIZATION_REQUIRED'; returnUse: 'BLOCKED' }
+  finalAuthorization?: FinalStatus; stage10: 'FINAL_AUTHORIZATION_REQUIRED' | 'AUTHORIZED'; stage11?: 'NOT_STARTED' | 'CLIENT_SIGNATURE_REQUIRED';
+  returnUse: 'BLOCKED' }
+export type FinalOutcome = 'AUTHORIZED' | 'DECLINED';
+export interface FinalDecision { authorizationId: string; outcome: FinalOutcome; note: string | null; attestationVersion: number; decidedBy: string; decidedAt: string;
+  stage10?: ReturnReadiness['stage10']; stage11?: ReturnReadiness['stage11'] }
+export interface FinalStatus { decision: FinalDecision | null; current: boolean; reasons: string[] }
+export interface FinalAssignment { assignmentId: string; returnVersionId: string; authorizerUid: string; assignedBy?: string; assignedAt?: string; revokedAt?: string }
+export interface FinalQueueItem { assignmentId: string; returnVersionId: string; caseId: string; taxYear: number; templateId: string; version: number; status: string;
+  assignedAt: string; latestOutcome: FinalOutcome | null }
+export interface FinalContext { returnVersion: ReturnVersion; readiness: ReturnReadiness;
+  assignment: { assignmentId: string; authorizerUid: string; assignedBy: string; assignedAt: string } | null;
+  attestation: { attestationVersion: number; text: string } | null; returnUse: 'BLOCKED' }
+/** The decision a person makes. acknowledged must be true, and attestationVersion the text they were shown. */
+export interface FinalDecisionInput { outcome: FinalOutcome; attestationVersion: number; acknowledged: true; note?: string }
+export const FINAL_STATUS_REASON_LABELS: Record<string, string> = {
+  NOT_READY: 'the version is no longer ready',
+  FORMS_CHANGED: 'the forms changed',
+  VERIFICATION_CHANGED: 'a newer calculation verification exists',
+  DIAGNOSTICS_RERUN: 'diagnostics were run again',
+  RISK_REASSESSED: 'risk was assessed again',
+  QC_REVIEWED_AGAIN: 'quality control was recorded again',
+  ATTESTATION_CHANGED: 'the practice approved a new attestation text',
+};
+/** Where Stage 10 stands for a version, in words. An authorization is never a signature or a filing. */
+export function finalAuthorizationText(r: Pick<ReturnReadiness, 'stage10' | 'finalAuthorization'>): string {
+  if (r.stage10 === 'AUTHORIZED') return 'final authorization given; the client signature (Stage 11) is next, and nothing is signed or filed';
+  const st = r.finalAuthorization;
+  if (!st?.decision) return 'final authorization required';
+  if (st.current && st.decision.outcome === 'DECLINED') return 'final authorization declined: ' + (st.decision.note ?? 'no note');
+  return 'final authorization required again: ' + st.reasons.map(c => FINAL_STATUS_REASON_LABELS[c] ?? c).join('; ');
+}
 export const READINESS_REASON_LABELS: Record<string, string> = {
   NOT_APPROVED: 'the draft review has not approved this version',
   STALE: 'the version no longer matches its sources',
@@ -404,6 +446,19 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_QC_CHECKLIST_REQUIRED: 'The practice has no approved quality control checklist, so quality control cannot be recorded.',
     TAX_RETURN_QC_INPUT_INVALID: 'Give PASS or FAIL for every checklist item; returning a version needs a note of at least 10 characters.',
     TAX_RETURN_NOT_APPROVED: 'Only an approved draft return version goes to quality control.',
+    TAX_RETURN_FINAL_ASSIGNER_REQUIRED: 'Only a practice manager can assign or revoke the final authorizer.',
+    TAX_RETURN_FINAL_AUTHORIZER_REQUIRED: 'Only the assigned final authorizer can authorize or decline this version.',
+    TAX_RETURN_FINAL_NOT_INDEPENDENT: 'The final authorizer must be independent: not the preparer, the reviewer, the quality control reviewer or a manager who assigned them.',
+    TAX_RETURN_FINAL_ASSIGNEE_INVALID: 'That person is not an active staff member of this practice.',
+    TAX_RETURN_FINAL_ALREADY_ASSIGNED: 'A final authorizer is already assigned to this version. Revoke that assignment first.',
+    TAX_RETURN_FINAL_NOT_ASSIGNED: 'No final authorizer is assigned to this version.',
+    TAX_RETURN_FINAL_SESSION_REQUIRED: 'Final authorization needs your own multi-factor session. Sign in again with your authenticator.',
+    STAFF_RECENT_SIGN_IN_REQUIRED: 'Sign in again: this action needs a recent sign-in.',
+    STAFF_FRESH_SIGN_IN_REQUIRED: 'Sign in again: your sign-in predates a change to your membership.',
+    TAX_RETURN_ATTESTATION_REQUIRED: 'The practice has no approved attestation text, so final authorization cannot be given.',
+    TAX_RETURN_ATTESTATION_CHANGED: 'The attestation text changed while you were reviewing it. Read the new text before deciding.',
+    TAX_RETURN_FINAL_ALREADY_DECIDED: 'A decision is already recorded on these inputs. A new decision needs a changed input, such as a new quality control review.',
+    TAX_RETURN_FINAL_INPUT_INVALID: 'Confirm the acknowledgement; declining needs a note of at least 10 characters.',
     TAX_RETURN_NOT_SUBMITTED: 'Only a submitted version can be approved or returned.',
     TAX_RETURN_INPUT_INVALID: 'Enter a note of at least 10 characters to return the draft.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
@@ -448,6 +503,13 @@ export function taxEngineMessage(error: unknown): string {
     : 'Approval refused: verify the calculations of this version first.';
   if (error.code === 'TAX_RETURN_QC_AUTHORITY_REQUIRED') return 'Quality control refused: it needs the QC authority under the practice\'s approved policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your quality control authority is not configured.');
+  if (error.code === 'TAX_RETURN_FINAL_AUTHORITY_REQUIRED') return 'Final authorization refused: it needs the final authorization authority under the practice\'s approved policy. '
+    + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your final authorization authority is not configured.');
+  if (error.code === 'TAX_RETURN_NOT_READY') {
+    let reasons: string[] = [];
+    try { const parsed = JSON.parse(error.detail ?? '[]'); if (Array.isArray(parsed)) reasons = parsed.filter((x): x is string => typeof x === 'string'); } catch { /* unreadable detail */ }
+    return 'Final authorization refused: the version is ' + (reasons.length ? readinessText({ ready: false, reasons }) : 'not ready') + '.';
+  }
   if (error.code === 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED') return 'Approval refused: the Stage 09 draft review needs the case reviewer assignment under the practice\'s approved review policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your review authority is not configured.');
   if (error.code === 'TAX_RETURN_PREPARATION_REFUSED') {

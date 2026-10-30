@@ -4,6 +4,7 @@
  * non-production project; never mounted in createProductionApp. TaxGuard ships no tax rules; every
  * response states returnUse BLOCKED because stages 9-18 remain blocked.
  */
+import { createHash } from 'node:crypto';
 import express, { Router, type RequestHandler, type Response } from 'express';
 import { authenticateToken, type AuthenticatedRequest } from '../auth';
 import { getSupabaseAdmin } from '../supabase';
@@ -96,6 +97,19 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/returns/:returnVersionId/qc-reviews', run(async req => ({ items: await store().qcReviews(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
   router.post('/returns/:returnVersionId/qc', run(req => store().recordQc(t(req), u(req), req.params.returnVersionId, req.body?.results, note(req.body?.note)), 201));
   router.get('/returns/:returnVersionId/readiness', run(req => store().finalReadiness(t(req), u(req), req.params.returnVersionId)));
+  // Stage 10 final authorization (proposal 20261019180000). The decision needs the person's own durable session: its hash
+  // lets the database re-check the live AAL2 session and its recent sign-in in the same transaction. Any other session
+  // (for example a process-local development session) is refused as not proving multi-factor sign-in.
+  const sessionHash = (req: AuthenticatedRequest) => {
+    if (typeof req.token !== 'string' || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new TaxEngineStoreError('TAX_RETURN_FINAL_SESSION_REQUIRED', 403);
+    return createHash('sha256').update(req.token).digest('hex');
+  };
+  router.post('/returns/:returnVersionId/final-assignment', run(req => store().assignFinalAuthorizer(t(req), u(req), req.params.returnVersionId, req.body?.authorizerUid), 201));
+  router.post('/returns/:returnVersionId/final-assignment/revoke', run(req => store().unassignFinalAuthorizer(t(req), u(req), req.params.returnVersionId, textOf(req.body?.reason, 500))));
+  router.get('/final/queue', run(async req => ({ items: await store().finalQueue(t(req), u(req)), returnUse: 'BLOCKED' })));
+  router.get('/returns/:returnVersionId/final-context', run(req => store().finalContext(t(req), u(req), req.params.returnVersionId)));
+  router.get('/returns/:returnVersionId/final-authorizations', run(async req => ({ items: await store().finalAuthorizations(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
+  router.post('/returns/:returnVersionId/final-authorization', run(async req => store().authorizeFinal(t(req), u(req), sessionHash(req), req.params.returnVersionId, req.body), 201));
   router.post('/returns/:returnVersionId/:action(submit|approve|return)', run(req => store().transitionReturn(t(req), u(req), req.params.returnVersionId,
     req.params.action as 'submit' | 'approve' | 'return', note(req.body?.note))));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));

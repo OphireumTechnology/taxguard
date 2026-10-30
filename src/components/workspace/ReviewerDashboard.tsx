@@ -8,6 +8,7 @@ import { REVIEW_FILTERS, REVIEW_TABS, REVIEWER_STAGES, reviewFilter, reviewerDec
 import { ReviewEmpty, ReviewerExceptionPanel, ReviewerQualityPanel, ReviewerReadPanel } from './ReviewerCasePanels';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
 import { QualityControlQueuePanel } from './QualityControlQueuePanel';
+import { FinalAuthorizationQueuePanel } from './FinalAuthorizationQueuePanel';
 import { CaseWorkflowPanel } from './CaseWorkflowPanel';
 import { TaxRulesPanel } from './TaxRulesPanel';
 import { ReviewerLedgerReviewPanel } from './ReviewerLedgerReviewPanel';
@@ -60,6 +61,7 @@ export function ReviewerDashboard() {
       <div className="tg-review-kpis">{kpis.map((label,i)=><button key={label} className={'tg-review-kpi tg-review-kpi-'+i} disabled={data.queue.status!=='ready'} aria-pressed={filter===label} onClick={()=>setFilter(label)}><span>{label}</span><strong>{data.queue.status==='ready'?rows.filter(r=>reviewFilter(r,label,today)).length:'—'}</strong><small>{label==='High Risk'?'Critical return diagnostics':label==='Overdue'?'Recorded deadlines · SLA unavailable':'View authorized cases'}</small></button>)}</div>
       {!inspecting && <DurableMyWorkPanel heading="My durable review queue" />}
       {!inspecting && <QualityControlQueuePanel />}
+      {!inspecting && <FinalAuthorizationQueuePanel />}
       {/* Durable case workflow and document review: the server limits both to cases and clients assigned to this reviewer. */}
       {!inspecting && <CaseWorkflowPanel />}
       {!inspecting && <StaffDocumentReviewPanel />}

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { dollarsToCents, readinessText, returnProblemText, returnRiskText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
+import { dollarsToCents, finalAuthorizationText, readinessText, returnProblemText, returnRiskText, taxEngineMessage, taxEngineService, verificationText, type ReturnTemplate, type ReturnVersion } from '../../services/taxEngineService';
 
 /**
  * Draft return for the selected case (proposal 20261019120000). The server assembles a return version only from the
@@ -31,6 +31,7 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [qcUids, setQcUids] = useState<Record<string, string>>({});
+  const [finalUids, setFinalUids] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const current = useRef(caseId); current.current = caseId;
@@ -85,9 +86,11 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
     return act(() => taxEngineService.assessReturnRisk(v.returnVersionId, cents), r => `Risk assessment of ${v.templateId} version ${v.version}: ${returnRiskText(r)}.`);
   };
   const readiness = (v: ReturnVersion) => act(() => taxEngineService.returnReadiness(v.returnVersionId),
-    r => `Final readiness of ${v.templateId} version ${v.version}: ${readinessText(r)}.`);
+    r => `Final readiness of ${v.templateId} version ${v.version}: ${readinessText(r)}. Stage 10: ${finalAuthorizationText(r)}.`);
   const assignQc = (v: ReturnVersion) => act(() => taxEngineService.assignQc(v.returnVersionId, (qcUids[v.returnVersionId] ?? '').trim()),
     r => `Quality control of ${v.templateId} version ${v.version} assigned to ${r.qcUid}.`);
+  const assignFinal = (v: ReturnVersion) => act(() => taxEngineService.assignFinalAuthorizer(v.returnVersionId, (finalUids[v.returnVersionId] ?? '').trim()),
+    r => `Final authorization of ${v.templateId} version ${v.version} assigned to ${r.authorizerUid}.`);
   const toggle = (id: string) => {
     if (open?.id === id) { setOpen(null); return; }
     const key = caseId;
@@ -114,12 +117,13 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
     </form>
     <p id="case-draft-return-risk-hint">A risk assessment reads the version's verification, diagnostics and research itself; only the amount at stake is entered. Materiality comes only from the practice's approved policy, and the outcome is never better than human review.</p>
     <p id="case-draft-return-qc-hint">A practice manager assigns quality control of an approved version to a third person, who is neither its preparer nor its reviewer. Final readiness is only an input to Stage 10.</p>
+    <p id="case-draft-return-final-hint">For Stage 10, a practice manager assigns an independent professional (not the preparer, the reviewer, the quality control reviewer or a manager who assigned them) to authorize or decline the ready version. Authorization does not sign or file it.</p>
     {items.status === 'loading' && items.list.length === 0 && <p role="status">Loading draft returns…</p>}
     {items.status === 'error' && <p role="alert">{items.message} <button type="button" onClick={() => void load()}>Retry</button></p>}
     {items.status === 'ready' && items.list.length === 0 && <p role="status">No draft return is recorded for this case.</p>}
     {items.list.map(v => {
       const badge = returnBadge(v); const name = `${v.templateId} version ${v.version}`;
-      const noteId = `draft-return-note-${v.returnVersionId}`, amountId = `draft-return-amount-${v.returnVersionId}`, qcId = `draft-return-qc-${v.returnVersionId}`;
+      const noteId = `draft-return-note-${v.returnVersionId}`, amountId = `draft-return-amount-${v.returnVersionId}`, qcId = `draft-return-qc-${v.returnVersionId}`, finalId = `draft-return-final-${v.returnVersionId}`;
       return <article key={v.returnVersionId} aria-label={`Draft return ${name}`} className="tg-draft-return">
         <h5>{v.templateId} · version {v.version} · status <strong data-return-status>{badge}</strong></h5>
         <p>Prepared by {v.preparedBy} · {new Date(v.createdAt).toLocaleString()} · template version {v.templateVersion} (sha256 {v.templateSha256.slice(0, 12)}…)
@@ -148,6 +152,10 @@ export function CaseDraftReturnPanel({ caseId, taxYear, returnFamily }: { caseId
           <input id={qcId} value={qcUids[v.returnVersionId] ?? ''} aria-describedby="case-draft-return-qc-hint"
             onChange={e => setQcUids(n => ({ ...n, [v.returnVersionId]: e.target.value }))} />
           <button type="button" disabled={busy} onClick={() => void assignQc(v)}>Assign quality control of {name}</button>
+          <label htmlFor={finalId}>Final authorizer for {name} (user ID)</label>
+          <input id={finalId} value={finalUids[v.returnVersionId] ?? ''} aria-describedby="case-draft-return-final-hint"
+            onChange={e => setFinalUids(n => ({ ...n, [v.returnVersionId]: e.target.value }))} />
+          <button type="button" disabled={busy} onClick={() => void assignFinal(v)}>Assign final authorization of {name}</button>
         </>}
         <button type="button" aria-expanded={open?.id === v.returnVersionId} aria-controls={`draft-return-lineage-${v.returnVersionId}`} onClick={() => toggle(v.returnVersionId)}>
           {open?.id === v.returnVersionId ? 'Hide' : 'Show'} lineage of {name}</button>

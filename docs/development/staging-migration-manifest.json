@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "b9fdb6f99ebf158a89acd453d96315a14ed0ec781e185062a928d33b05506667",
+  "executionPlanSha256": "6044d64209fd158ce38e2e8e80694cb16d0b437aa98b6273df83e112314758a4",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -5854,6 +5854,87 @@
         "--     requires (20261019115000 makes case assignment mandatory for that function).",
         "--   * Authority: recording QC needs the RETURN_QC_REVIEW authority for the template's jurisdiction under the owner's",
         "--     approved policy (eligibility and designation if the policy requires them). No policy: refused (fail closed)."
+      ]
+    },
+    {
+      "order": 109,
+      "file": "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql",
+      "kind": "proposal",
+      "version": "20261019180000",
+      "sha256": "dab8127fc1be062f0b8813e4e4aa3e183501817c74e7e5c1dbf80555d56b33e5",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+        "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_final_attestations",
+        "taxguard_tax_return_final_assignments",
+        "taxguard_tax_return_final_authorizations",
+        "taxguard_tax_return_final_guard",
+        "taxguard_tax_final_attestation_current",
+        "taxguard_tax_return_final_live",
+        "taxguard_tax_return_final_excluded",
+        "taxguard_tax_return_final_scope",
+        "taxguard_tax_return_readiness_eval",
+        "taxguard_tax_return_final_status",
+        "taxguard_tax_return_final_readiness",
+        "taxguard_tax_return_final_assign",
+        "taxguard_tax_return_final_unassign",
+        "taxguard_tax_return_final_queue",
+        "taxguard_tax_return_final_context",
+        "taxguard_tax_return_final_authorize",
+        "taxguard_tax_return_final_list"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_tax_return_final_readiness",
+          "previousFile": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): drop the functions, guards and the three tables, then restore the original function-code CHECK."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_tax_final_attestations, public.taxguard_tax_return_final_assignments, public.taxguard_tax_return_final_authorizations",
+        "EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', f.sig);",
+        "EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.sig);"
+      ],
+      "securityDefinerDeclarations": 13,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 73, Stage 10 final authorization of a draft return version). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261012340000 (privileged session proof), 20261018090000 (live case actor), 20261019115000 (approval authority),",
+        "-- 20261019120000 (return versions), 20261019140000 (verifications), 20261019160000 (risk assessments) and",
+        "-- 20261019170000 (quality control and final draft readiness).",
+        "--",
+        "-- Stage 10 is a protected professional decision, made only by a person:",
+        "--   * Authority: the new function RETURN_FINAL_AUTHORIZATION. Its policy must require verified eligibility, a designation",
+        "--     and the case-specific assignment. None is seeded: without the owner's policy every authorization is refused.",
+        "--   * Assignment: a practice manager assigns one final authorizer to an approved, current version. The authorizer is an",
+        "--     active staff member, independent of the version's preparer and reviewer, the case's preparer and reviewer, the live QC",
+        "--     assignee, every QC reviewer of record for the version, the manager who assigned QC and the manager making this",
+        "--     assignment. Independence is checked again at decision time."
       ]
     }
   ]

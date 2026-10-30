@@ -3,10 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../config/apiEndpoint', () => ({ apiEndpoint: (path: string) => 'http://127.0.0.1:3000' + path }));
 import { clearStoredToken, setStoredToken } from '../services/api';
-import { READINESS_REASON_LABELS, readinessText, RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
+import { FINAL_STATUS_REASON_LABELS, finalAuthorizationText, READINESS_REASON_LABELS, readinessText, RETURN_RISK_REASON_LABELS, returnProblems, returnProblemText, returnRiskText, TaxEngineRequestError, taxEngineMessage, taxEngineService, verificationText } from '../services/taxEngineService';
 import { actionNotice, CaseDraftReturnPanel, returnBadge } from '../components/workspace/CaseDraftReturnPanel';
 import { practiceManagerRequestAllowed } from '../server/practiceManagerAccess';
 import { qcOutcomeText, QualityControlQueuePanel } from '../components/workspace/QualityControlQueuePanel';
+import { FinalAuthorizationQueuePanel, finalOutcomeText } from '../components/workspace/FinalAuthorizationQueuePanel';
 
 // Block 68 browser client and panel. The server rules are covered on PostgreSQL in taxReturnPreparation.db.test.ts.
 const transport = vi.fn();
@@ -112,6 +113,57 @@ describe('draft returns in the browser client', () => {
     expect(html).toContain('<h2 id="qc-queue-heading" tabindex="-1">My quality control queue');
     expect(html).toContain('<div role="status" aria-label="Quality control result"></div>');
     expect(html).toContain('Return use: BLOCKED.');
+  });
+
+  it('relays Stage 10 requests with only the documented fields and describes the decision without calling it signed or filed (Block 73)', async () => {
+    await taxEngineService.assignFinalAuthorizer(ID, 'fa-1');
+    await taxEngineService.revokeFinalAuthorizer(ID, 'Synthetic: rotating authorizers');
+    await taxEngineService.finalQueue();
+    await taxEngineService.finalContext(ID);
+    await taxEngineService.decideFinal(ID, { outcome: 'AUTHORIZED', attestationVersion: 2, acknowledged: true });
+    await taxEngineService.decideFinal(ID, { outcome: 'DECLINED', attestationVersion: 2, acknowledged: true, note: 'Synthetic: explain line 16' });
+    await taxEngineService.finalAuthorizations(ID);
+    expect(transport.mock.calls.map(([url, init]) => [url.replace('http://127.0.0.1:3000/api/tax-engine', ''), init.method, init.body ? JSON.parse(init.body) : undefined])).toEqual([
+      [`/returns/${ID}/final-assignment`, 'POST', { authorizerUid: 'fa-1' }],
+      [`/returns/${ID}/final-assignment/revoke`, 'POST', { reason: 'Synthetic: rotating authorizers' }],
+      ['/final/queue', 'GET', undefined],
+      [`/returns/${ID}/final-context`, 'GET', undefined],
+      [`/returns/${ID}/final-authorization`, 'POST', { outcome: 'AUTHORIZED', attestationVersion: 2, acknowledged: true }],
+      [`/returns/${ID}/final-authorization`, 'POST', { outcome: 'DECLINED', attestationVersion: 2, acknowledged: true, note: 'Synthetic: explain line 16' }],
+      [`/returns/${ID}/final-authorizations`, 'GET', undefined],
+    ]);
+    const decision = { authorizationId: ID, outcome: 'DECLINED' as const, note: 'Synthetic: explain line 16', attestationVersion: 2, decidedBy: 'fa-1', decidedAt: '2026-10-30T00:00:00Z' };
+    expect(finalAuthorizationText({ stage10: 'AUTHORIZED' })).toBe('final authorization given; the client signature (Stage 11) is next, and nothing is signed or filed');
+    expect(finalAuthorizationText({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', finalAuthorization: { decision: null, current: false, reasons: [] } })).toBe('final authorization required');
+    expect(finalAuthorizationText({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', finalAuthorization: { decision, current: true, reasons: [] } }))
+      .toBe('final authorization declined: Synthetic: explain line 16');
+    expect(finalAuthorizationText({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', finalAuthorization: { decision: { ...decision, outcome: 'AUTHORIZED' }, current: false,
+      reasons: ['RISK_REASSESSED', 'ATTESTATION_CHANGED'] } })).toBe('final authorization required again: risk was assessed again; the practice approved a new attestation text');
+    for (const code of ['NOT_READY', 'FORMS_CHANGED', 'VERIFICATION_CHANGED', 'DIAGNOSTICS_RERUN', 'RISK_REASSESSED', 'QC_REVIEWED_AGAIN', 'ATTESTATION_CHANGED'])
+      expect(FINAL_STATUS_REASON_LABELS[code], code).toBeTruthy();
+    expect(finalOutcomeText(null)).toBe('not decided yet');
+    expect(taxEngineMessage(new TaxEngineRequestError(403, 'TAX_RETURN_FINAL_AUTHORITY_REQUIRED', 'NO_POLICY')))
+      .toMatch(/^Final authorization refused: it needs the final authorization authority under the practice's approved policy\. /);
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_NOT_READY', '["QC_NOT_CURRENT"]')))
+      .toBe('Final authorization refused: the version is not ready: the quality control review predates the current risk assessment, diagnostics or checklist.');
+    expect(taxEngineMessage(new TaxEngineRequestError(409, 'TAX_RETURN_NOT_READY', 'not json'))).toBe('Final authorization refused: the version is not ready.');
+    expect(taxEngineMessage(new TaxEngineRequestError(403, 'STAFF_RECENT_SIGN_IN_REQUIRED'))).toBe('Sign in again: this action needs a recent sign-in.');
+    const html = renderToStaticMarkup(<FinalAuthorizationQueuePanel />);
+    expect(html).toContain('<h2 id="final-queue-heading" tabindex="-1">My final authorization queue');
+    expect(html).toContain('<div role="status" aria-label="Final authorization result"></div>');
+    expect(html).toContain('Return use: BLOCKED.');
+    const panel = renderToStaticMarkup(<CaseDraftReturnPanel caseId="case-1" taxYear={2025} returnFamily="1040" />);
+    expect(panel).toContain('Authorization does not sign or file it.');
+  });
+
+  it('lets practice managers assign and read Stage 10, but never authorize (Block 73)', () => {
+    vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('TAXGUARD_PRACTICE_STORE', 'durable');
+    vi.stubEnv('SUPABASE_URL', 'http://127.0.0.1:54321'); vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-test-key');
+    for (const path of ['/api/tax-engine/final/queue', `/api/tax-engine/returns/${ID}/final-context`, `/api/tax-engine/returns/${ID}/final-authorizations`])
+      expect(practiceManagerRequestAllowed('practice_manager', 'GET', path), path).toBe(true);
+    for (const path of [`/api/tax-engine/returns/${ID}/final-assignment`, `/api/tax-engine/returns/${ID}/final-assignment/revoke`])
+      expect(practiceManagerRequestAllowed('practice_manager', 'POST', path), path).toBe(true);
+    expect(practiceManagerRequestAllowed('practice_manager', 'POST', `/api/tax-engine/returns/${ID}/final-authorization`)).toBe(false);
   });
 
   it('renders the preparation form with its live region, focusable heading and the reason preparation may be refused', () => {
