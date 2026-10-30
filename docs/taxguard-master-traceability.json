@@ -6685,8 +6685,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql",
-      "sha256": "dab8127fc1be062f0b8813e4e4aa3e183501817c74e7e5c1dbf80555d56b33e5",
-      "bytes": 33693,
+      "sha256": "b090a5debf56f5fa4f3eeea8636ceb76d16fa90f23ad60d9b2b50f5c2a901326",
+      "bytes": 33813,
       "headings": []
     },
     {

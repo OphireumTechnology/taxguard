@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS public.taxguard_tax_return_final_authorizations (
   verification_id UUID NOT NULL,
   diagnostics_run_at TIMESTAMPTZ NOT NULL,
   risk_assessment_id UUID NOT NULL,
+  -- The pinned verification, risk assessment and QC review ids carry no foreign key: those records are immutable and never
+  -- deleted, and a reference would make TRUNCATE on them fail before their own no-truncate guards report it.
   qc_review_id UUID NOT NULL,
   outcome VARCHAR(12) NOT NULL CHECK (outcome IN ('AUTHORIZED','DECLINED')),
   note VARCHAR(2000),
@@ -88,7 +90,6 @@ CREATE TABLE IF NOT EXISTS public.taxguard_tax_return_final_authorizations (
   FOREIGN KEY (tenant_id, return_version_id) REFERENCES public.taxguard_tax_return_versions(tenant_id, return_version_id),
   FOREIGN KEY (tenant_id, assignment_id) REFERENCES public.taxguard_tax_return_final_assignments(tenant_id, assignment_id),
   FOREIGN KEY (tenant_id, attestation_version) REFERENCES public.taxguard_tax_final_attestations(tenant_id, attestation_version),
-  FOREIGN KEY (tenant_id, qc_review_id) REFERENCES public.taxguard_tax_return_qc_reviews(tenant_id, qc_review_id),
   CHECK (outcome = 'AUTHORIZED' OR length(btrim(COALESCE(note, ''))) >= 10)
 );
 CREATE INDEX IF NOT EXISTS idx_taxguard_tax_return_final_authorizations_version ON public.taxguard_tax_return_final_authorizations(tenant_id, return_version_id, decided_at DESC);
