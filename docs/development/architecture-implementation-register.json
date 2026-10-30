@@ -318,13 +318,17 @@
       "category": "Governance",
       "status": "UNIT_VERIFIED",
       "implementation": [
-        "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql"
+        "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql",
+        "src/server/ai/governance/ControlCenterReadService.ts",
+        "src/components/admin/AiEvaluationView.tsx",
+        "docs/development/block76-ai-evaluation-view.md"
       ],
       "tests": [
         "src/tests/aiAgentEvaluation.test.ts",
-        "src/tests/proposalCompositionSecurity.test.ts"
+        "src/tests/proposalCompositionSecurity.test.ts",
+        "src/tests/aiControlCenterEvaluations.test.ts"
       ],
-      "remainingGap": "Activation gate and evaluation records exist (review-only proposal; not applied anywhere). No evaluation runner executes real agent cases, because no model is commissioned; no Control Center view of evaluations; dimension thresholds beyond per-case pass or fail are owner policy.",
+      "remainingGap": "Activation gate and evaluation records exist (review-only proposal; not applied anywhere). No evaluation runner executes real agent cases, because no model is commissioned; dimension thresholds beyond per-case pass or fail are owner policy. Block 76 (unmerged, stacked on Block 75): the Control Center's read-only Evaluations view shows whether the framework is applied, the tenant's suites and runs with coverage per dimension, and whether each agent's current version would pass the activation gate; it runs, approves and activates nothing.",
       "persistence": "review-only proposal 20261018140000: suites, pinned runs, append-only case results; outcomes derived by the database"
     },
     {
@@ -336,14 +340,16 @@
         "src/server/ai/governance/ControlCenterReadService.ts",
         "src/components/admin/AiControlCenterPanel.tsx",
         "src/components/admin/AiCommissioningView.tsx",
-        "src/components/admin/AiLiveCommissioningRecords.tsx"
+        "src/components/admin/AiLiveCommissioningRecords.tsx",
+        "src/components/admin/AiEvaluationView.tsx"
       ],
       "tests": [
         "src/tests/aiControlCenterRead.test.ts",
         "src/tests/aiControlCenterPanel.test.tsx",
         "src/tests/aiLiveCommissioningUi.test.tsx",
         "src/tests-e2e/14-phase12b-frontend.e2e.test.ts",
-        "src/tests-e2e/15-phase13a-contracts.e2e.test.ts"
+        "src/tests-e2e/15-phase13a-contracts.e2e.test.ts",
+        "src/tests/aiControlCenterEvaluations.test.ts"
       ],
       "remainingGap": "Read-only projections of live governance tables, with nothing operational to show. Browser journeys (suites 14, 15): commissioning readiness, 0 of 61 commissioned, and live records refused outside a governance database. No agent detail view beyond the commissioning rows."
     },

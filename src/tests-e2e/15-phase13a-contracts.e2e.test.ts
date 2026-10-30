@@ -161,6 +161,7 @@ describe('C7 live commissioning records', () => {
   it('fails closed outside a configured governance database and never reports an agent as commissioned', async () => {
     const r = await api(tokens['e2e-admin'], 'GET', '/api/ai-governance/control-center/commissioning');
     expect([403, 503]).toContain(r.status);
+    expect([403, 503]).toContain((await api(tokens['e2e-admin'], 'GET', '/api/ai-governance/control-center/evaluations')).status);
     const s = await staffLogin('e2e-admin');
     await s.page.getByRole('button', { name: /AI Control Center/ }).first().click();
     await s.page.getByRole('tab', { name: 'Commissioning readiness' }).click();

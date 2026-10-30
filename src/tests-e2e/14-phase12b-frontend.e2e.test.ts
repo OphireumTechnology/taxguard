@@ -128,8 +128,15 @@ describe('staff workspaces', () => {
     expect(text).toMatch(/Production commissioned\s*0 \/ 61/);
     expect(text).toMatch(/Provider configured\s*0 \/ 61/);
     expect(text).toContain('AI-16 material-action approval');
-    // Keyboard: arrow keys move between tabs.
+    // Keyboard: arrow keys move between tabs. The Evaluations view (Block 76) fails closed without a governance
+    // database: an alert, no figures and no action.
     await s.page.getByRole('tab', { name: 'Commissioning readiness' }).press('ArrowRight');
+    expect(await s.page.getByRole('tab', { name: 'Evaluations' }).getAttribute('aria-selected')).toBe('true');
+    const evaluations = s.page.getByRole('tabpanel');
+    await evaluations.getByRole('alert').getByText(/governance service is unavailable|not authorized to view the AI Control Center/).waitFor();
+    expect(await evaluations.getByRole('button').count()).toBe(0);
+    expect(await s.page.getByTestId('ai-evaluation-view').count()).toBe(0);
+    await s.page.getByRole('tab', { name: 'Evaluations' }).press('ArrowRight');
     expect(await s.page.getByRole('tab', { name: 'Execution history' }).getAttribute('aria-selected')).toBe('true');
     await s.context.close();
   });

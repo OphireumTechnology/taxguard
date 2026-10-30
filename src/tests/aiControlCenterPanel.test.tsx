@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('../services/api', () => ({ api: { caseAuthority: { getAiControlCenter: vi.fn(() => new Promise(() => {})) } } }));
 import { AiControlCenterPanel, controlCenterErrorMessage, formatCell, parseScopedStops } from '../components/admin/AiControlCenterPanel';
+import { coverageText, gateText } from '../components/admin/AiEvaluationView';
 
 describe('AI Control Center panel', () => {
   it('renders the four read-only views with a loading state and no mutation controls', () => {
@@ -11,6 +12,18 @@ describe('AI Control Center panel', () => {
     expect(html).toContain('role="status"');
     const labels = [...html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
     for (const label of labels) expect(label).not.toMatch(/delete|disable|activate|approve|lift|edit/i);
+  });
+  it('offers a read-only Evaluations view that describes coverage and the activation gate without activating anything', () => {
+    const html = renderToStaticMarkup(<AiControlCenterPanel initialView="evaluations" />);
+    expect(html).toContain('>Evaluations</button>');
+    expect(html).toContain('Loading evaluations…');
+    expect(html).not.toContain('No records match this view');
+    expect(gateText({ agent_id: 'A34', version: '1.0.0', version_status: 'DRAFT', activation_gate: 'NOT_PASSED', reason: 'EVALUATION_FRAMEWORK_NOT_APPLIED' }))
+      .toBe('A34 1.0.0: not passed; the evaluation framework is not applied to this database');
+    expect(gateText({ agent_id: 'A34', version: '1.0.0', version_status: 'DRAFT', activation_gate: 'PASSED', reason: null }))
+      .toBe('A34 1.0.0: the activation gate would pass (activation is a separate, authorized change)');
+    expect(coverageText({ dimension: 'HALLUCINATION', required: true, cases: 1, failed: 1, met: false })).toBe('HALLUCINATION: 1 case, 1 failed — not met');
+    expect(coverageText({ dimension: 'CORRECTNESS', required: false, cases: 2, failed: 0, met: true })).toBe('CORRECTNESS (not required): 2 cases');
   });
   it('offers server-validated filters for execution history and security events', () => {
     expect(renderToStaticMarkup(<AiControlCenterPanel initialView="runs" />)).toContain('value="REVIEW_REQUIRED"');
