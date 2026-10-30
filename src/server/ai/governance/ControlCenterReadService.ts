@@ -160,6 +160,67 @@ export class ControlCenterReadService {
     });
   }
 
+  /**
+   * AI evaluation records (review-only proposal 20261018140000) of the verified tenant: suites, the latest runs with
+   * their coverage per dimension, and whether each agent's current version would pass the activation gate. Read-only;
+   * it evaluates, approves and activates nothing. Before the proposal is applied the framework is NOT_APPLIED and every
+   * gate is NOT_PASSED. Case keys, evidence hashes and outputs are never returned.
+   */
+  async evaluations(token: string) {
+    return this.read(token, async (sql, identity) => {
+      const tenant = identity.tenant_id;
+      const applied = (await sql.query<{ ok: boolean }>(
+        `SELECT to_regclass('public.ai_evaluation_runs') IS NOT NULL AND to_regclass('public.ai_evaluation_suites') IS NOT NULL
+           AND to_regclass('public.ai_evaluation_results') IS NOT NULL AND to_regclass('public.ai_evaluation_dimensions') IS NOT NULL AS ok`)).rows[0]?.ok === true;
+      const versions = (await sql.query<any>(
+        `SELECT v.agent_id,v.version,v.status,v.default_model,v.default_model_version,v.prompt_id,v.prompt_version
+         FROM ai_agent_versions v JOIN ai_agents a ON a.agent_id=v.agent_id AND a.version=v.version ORDER BY v.agent_id`)).rows;
+      if (!applied) return { source: 'LIVE_GOVERNANCE_TABLES', framework: 'NOT_APPLIED', activation: 'NOT_PERFORMED_HERE', dimensions: [], suites: [], runs: [],
+        agents: versions.map(v => ({ agent_id: v.agent_id, version: v.version, version_status: v.status, activation_gate: 'NOT_PASSED', reason: 'EVALUATION_FRAMEWORK_NOT_APPLIED' })) };
+      const dimensions = (await sql.query<{ dimension: string; description: string }>('SELECT dimension,description FROM ai_evaluation_dimensions ORDER BY dimension')).rows;
+      const all = dimensions.map(d => d.dimension);
+      const suites = (await sql.query<any>(
+        `SELECT suite_id,agent_id,name,required_dimensions,minimum_cases_per_dimension,created_by,approved_by,approved_at,created_at
+         FROM ai_evaluation_suites WHERE tenant_id=$1 ORDER BY created_at DESC,suite_id DESC LIMIT 100`, [tenant])).rows;
+      const runs = (await sql.query<any>(
+        `SELECT evaluation_id,suite_id,agent_id,agent_version,model_id,model_version,prompt_id,prompt_version,started_by,status,started_at,completed_at
+         FROM ai_evaluation_runs WHERE tenant_id=$1 ORDER BY started_at DESC,evaluation_id DESC LIMIT 50`, [tenant])).rows;
+      const coverage = runs.length === 0 ? [] : (await sql.query<{ evaluation_id: string; dimension: string; cases: number; failed: number }>(
+        `SELECT evaluation_id,dimension,count(DISTINCT case_key)::int AS cases,count(*) FILTER (WHERE outcome='FAIL')::int AS failed
+         FROM ai_evaluation_results WHERE evaluation_id=ANY($1::uuid[]) GROUP BY evaluation_id,dimension`, [runs.map(r => r.evaluation_id)])).rows;
+      const suiteOf = new Map(suites.map(s => [s.suite_id, s]));
+      // The same condition as ai_agent_version_activation_gate, for each agent's current version.
+      const passed = new Set((await sql.query<{ agent_id: string }>(
+        `SELECT DISTINCT v.agent_id FROM ai_agent_versions v JOIN ai_agents a ON a.agent_id=v.agent_id AND a.version=v.version
+         JOIN ai_evaluation_runs e ON e.agent_id=v.agent_id AND e.agent_version=v.version AND e.model_id=v.default_model AND e.model_version=v.default_model_version
+           AND e.prompt_id=v.prompt_id AND e.prompt_version=v.prompt_version AND e.status='PASS'
+         JOIN ai_evaluation_suites s ON s.suite_id=e.suite_id AND s.approved_by IS NOT NULL AND s.agent_id=v.agent_id
+         WHERE NOT EXISTS (SELECT 1 FROM ai_evaluation_dimensions d WHERE NOT d.dimension=ANY(s.required_dimensions))`)).rows.map(r => r.agent_id));
+      const iso = (t: unknown) => t ? new Date(t as string).toISOString() : null;
+      return {
+        source: 'LIVE_GOVERNANCE_TABLES', framework: 'APPLIED', activation: 'NOT_PERFORMED_HERE', dimensions,
+        suites: suites.map(s => ({ suite_id: s.suite_id, agent_id: s.agent_id, name: s.name, required_dimensions: s.required_dimensions,
+          minimum_cases_per_dimension: s.minimum_cases_per_dimension, created_by: s.created_by, approved: s.approved_by !== null, approved_by: s.approved_by,
+          approved_at: iso(s.approved_at), covers_all_dimensions: all.every(d => s.required_dimensions.includes(d)), created_at: iso(s.created_at) })),
+        runs: runs.map(r => {
+          const required: string[] = suiteOf.get(r.suite_id)?.required_dimensions ?? [];
+          const minimum: number = suiteOf.get(r.suite_id)?.minimum_cases_per_dimension ?? 1;
+          const mine = coverage.filter(c => c.evaluation_id === r.evaluation_id);
+          const dims = [...new Set([...required, ...mine.map(c => c.dimension)])].sort();
+          return { evaluation_id: r.evaluation_id, suite_id: r.suite_id, agent_id: r.agent_id, agent_version: r.agent_version, model_id: r.model_id,
+            model_version: r.model_version, prompt_id: r.prompt_id, prompt_version: r.prompt_version, started_by: r.started_by, status: r.status,
+            started_at: iso(r.started_at), completed_at: iso(r.completed_at),
+            coverage: dims.map(d => { const c = mine.find(x => x.dimension === d); const cases = c?.cases ?? 0, failed = c?.failed ?? 0;
+              return { dimension: d, required: required.includes(d), cases, failed, met: failed === 0 && (!required.includes(d) || cases >= minimum) }; }) };
+        }),
+        agents: versions.map(v => {
+          const gate = passed.has(v.agent_id);
+          return { agent_id: v.agent_id, version: v.version, version_status: v.status, activation_gate: gate ? 'PASSED' : 'NOT_PASSED',
+            reason: gate ? null : !v.default_model || !v.prompt_id ? 'MODEL_OR_PROMPT_NOT_CONFIGURED' : 'NO_PASSING_EVALUATION' };
+        }) };
+    });
+  }
+
   async runs(token: string, raw: unknown) {
     const q = parsePageQuery(raw, { agent_id: isAgent, status: oneOf(RUN_STATUSES) });
     return this.read(token, async (sql, identity) => this.page(await this.keyset(sql, 'ai_runs', 'run_id',

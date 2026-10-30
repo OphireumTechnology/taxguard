@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
 import { AiCommissioningView } from './AiCommissioningView';
 import { AiArchitectureOverviewView } from './AiArchitectureOverviewView';
+import { AiEvaluationView } from './AiEvaluationView';
 
 /**
  * AI Control Center — read-only registry, execution history, governance decisions and
@@ -54,9 +55,11 @@ export function formatCell(key: string, value: unknown): string {
 
 type State = { status: 'loading' | 'ready' | 'error'; rows: Record<string, unknown>[]; next: string | null; globalStop?: boolean; scopedStops?: { scope: string; target: string }[]; totals?: Record<string, number>; message?: string; appending?: boolean };
 
-type PanelView = ControlCenterView | 'commissioning' | 'architecture';
-// Views rendered from build evidence in the browser; they call no governance endpoint.
-const isLocalView = (view: PanelView): view is 'commissioning' | 'architecture' => view === 'commissioning' || view === 'architecture';
+type PanelView = ControlCenterView | 'commissioning' | 'architecture' | 'evaluations';
+// Views that render themselves: commissioning and architecture from build evidence (no governance endpoint), and
+// evaluations, which reads its own endpoint.
+const isLocalView = (view: PanelView): view is 'commissioning' | 'architecture' | 'evaluations' =>
+  view === 'commissioning' || view === 'architecture' || view === 'evaluations';
 
 export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ initialView = 'registry' }) => {
   const [view, setView] = useState<PanelView>(initialView);
@@ -75,7 +78,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
   };
 
   useEffect(() => {
-    // The commissioning and architecture views are build evidence rendered locally; they call no governance endpoint.
+    // The commissioning, architecture and evaluation views render themselves (see isLocalView).
     if (isLocalView(view)) { setState({ status: 'ready', rows: [], next: null }); return; }
     const controller = new AbortController();
     setState({ status: 'loading', rows: [], next: null });
@@ -94,7 +97,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       .catch(error => setState(current => ({ ...current, appending: false, message: controlCenterErrorMessage(error) })));
   };
 
-  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['architecture', 'Architecture overview']];
+  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['evaluations', 'Evaluations'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['architecture', 'Architecture overview']];
   const select = (id: PanelView) => { setView(id); setFilters({}); };
   const onTabKey = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -119,6 +122,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       <div id="ai-cc-panel" role="tabpanel" aria-labelledby={'ai-cc-tab-' + view} className="space-y-4">
       {view === 'commissioning' && <AiCommissioningView />}
       {view === 'architecture' && <AiArchitectureOverviewView />}
+      {view === 'evaluations' && <AiEvaluationView />}
       {!isLocalView(view) && FILTERS[view].length > 0 && (
         <div className="flex flex-wrap gap-3">
           {FILTERS[view].map(filter => (

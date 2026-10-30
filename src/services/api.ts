@@ -863,7 +863,7 @@ export const api = {
       return request<{ kill_switches: unknown[] }>('/api/ai-governance/kill-switches', {signal});
     },
     // AI Control Center read-only views; filters and cursor are validated server-side.
-    getAiControlCenter: async (view: 'registry' | 'runs' | 'decisions' | 'security-events' | 'usage' | 'commissioning', query: Record<string, string> = {}, signal?: AbortSignal) => {
+    getAiControlCenter: async (view: 'registry' | 'runs' | 'decisions' | 'security-events' | 'usage' | 'commissioning' | 'evaluations', query: Record<string, string> = {}, signal?: AbortSignal) => {
       const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== ''));
       const suffix = params.toString() ? `?${params.toString()}` : '';
       return request<Record<string, unknown>>(`/api/ai-governance/control-center/${view}${suffix}`, {signal});

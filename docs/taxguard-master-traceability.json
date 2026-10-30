@@ -5021,6 +5021,17 @@
       ]
     },
     {
+      "file": "docs/development/block76-ai-evaluation-view.md",
+      "sha256": "6c76b60212028daf417851ded465d3f0474489194879bcdc6e8bd9b523d48e13",
+      "bytes": 2784,
+      "headings": [
+        "# Block 76: AI evaluation records in the Control Center (read-only)",
+        "## Purpose",
+        "## As built",
+        "## Not in scope"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -7810,7 +7821,7 @@
     "src/server/ai/documents/DocumentDuplicateAdvisory.ts": "70a562e16382f8c3d2cff8340b2d67cfb0af47b85ff827c42c117f2f590b4919",
     "src/server/ai/gateway/GovernedAIGateway.ts": "7b4d0f1dcdee39b54f8ca8f91d058a99812b7edf71ef2c9d87c133483aeb0a81",
     "src/server/ai/gateway/structuredOutput.ts": "843474d91d33fd46c35f5611db6238857609e79a4460345c3bd052a71d5e3efa",
-    "src/server/ai/governance/ControlCenterReadService.ts": "9c7000cbbe6a32fff6160357e36f52ff8756b96f9b44ef952836c7a40e7f3a29",
+    "src/server/ai/governance/ControlCenterReadService.ts": "ac2bed110d42845483851f0a256a2bd71db3f848a63daeae9bcecaca4d47372e",
     "src/server/ai/governance/GovernanceControlPlane.ts": "54a1b29d3cefc5010d5d65a80aa1e7ac9e8a959f2c9d5c79deec0b849a10114a",
     "src/server/ai/ledger/ExecutionLedgerService.ts": "877c96b3c13a85f487aa0e065a3920e54df3b6774e3d42435c36c4690def3305",
     "src/server/ai/orchestration/A00Orchestrator.ts": "9d63b273e979e7efbd9d4ed2a517599eeb8d0513ffbbe49a2b8b3f59cb85cf7f",
@@ -7862,7 +7873,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "3b3d2c60c7cbb8c43fd335d476aef74ebce0e3f090986bf3f6c7daa07b2e0233",
+    "src/services/api.ts": "093beac40faafffb61c1eb85a6ef3f0d1cd18f4f664f7c5cd4d121f9d3a22e49",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",
@@ -7873,9 +7884,9 @@
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ebfe940b1a4e29cf0a2970c8b19a232461c5a1f8bc2e340f05d0aa604c09f2f5",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
-    "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "eea1d4f9fe6c564ee8dc73088b021c4365a390bb4dcf70e0d186d8b0f95167a7",
+    "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "912f15683a8e761a21fbf8f6b125db127da44c967f57af1761f1ca36309a4bfd",
     "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",
-    "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "8f0c682916cdc61e873226fb00f83b64fddf720ac9cd14203a68082e97d297c6",
+    "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "b681c91adb373b823fa626895859d64e173fd24aa7fb2bc3e3ae292c1f76fa35",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
     "src/tests/aiA00Orchestration.test.ts": "1b395aaa91205278d0889bdb19d0cf1a342a1dc5fe40a0dca4723eeef8f1f4fb",
