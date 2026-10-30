@@ -101,6 +101,14 @@ describe('case access follows the live preparer and reviewer assignments', () =>
     expect(await code(rpc('taxguard_tax_run_review', { p_tenant: T, p_actor: 'cr-rev', p_run: runId, p_decision: 'approve', p_note: 'Synthetic inputs traced to evidence' })))
       .toBe('TAX_CALC_REVIEWER_REQUIRED');
     expect((await db.pool.query(`SELECT status FROM taxguard_tax_calc_runs WHERE run_id = $1`, [runId])).rows[0].status).toBe('COMPUTED');
+    // Block 79: recording a run and reading a run's evidence lineage follow the live assignment too (the access check
+    // comes first, so the refusal is the not-found code whatever the run body says).
+    const runCount = async () => (await db.pool.query(`SELECT count(*)::int AS n FROM taxguard_tax_calc_runs WHERE tenant_id = $1 AND case_id = $2`, [T, caseId])).rows[0].n;
+    const before = await runCount();
+    expect(await code(rpc('taxguard_tax_run_record', { p_tenant: T, p_actor: 'cr-rev', p_case: caseId,
+      p_run: { ruleSetId: '0123abcd-0000-4000-8000-000000000001', ruleSetSha256: 'a'.repeat(64) } }))).toBe('TAX_CALC_CASE_NOT_FOUND');
+    expect(await runCount()).toBe(before);
+    expect(await code(rpc('taxguard_tax_run_lineage', { p_tenant: T, p_actor: 'cr-rev', p_run: runId }))).toBe('TAX_CALC_RUN_NOT_FOUND');
     expect(await code(cases.setHold(T, caseId, 'cr-rev', true, 1, 'Synthetic hold attempt'))).toBe('CASE_NOT_FOUND');
     expect(await code(cases.returnTo(T, caseId, 'cr-rev', 1, 1, 'Synthetic return attempt'))).toBe('CASE_NOT_FOUND');
     expect(await code(docs('cr-rev'))).toBe('DOCUMENT_NOT_FOUND');
@@ -115,6 +123,7 @@ describe('case access follows the live preparer and reviewer assignments', () =>
       expect(JSON.stringify(await cases.detail(T, caseId, who)), who).toContain('Synthetic reviewer note recorded before revocation');
       expect(await queueIds(who), who).toContain(caseId);
       expect(await code(runs(who)), who).toBe('OK');
+      expect(await code(rpc('taxguard_tax_run_lineage', { p_tenant: T, p_actor: who, p_run: runId })), who).toBe('OK');
     }
   });
 

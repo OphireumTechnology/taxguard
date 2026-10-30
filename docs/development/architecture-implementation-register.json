@@ -739,16 +739,21 @@
       "implementation": [
         "src/server/auth.ts",
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
-        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261019220000_taxguard_tax_run_liveness.sql",
+        "docs/development/function-access-inventory.json",
+        "docs/development/block79-function-access-inventory.md"
       ],
       "tests": [
         "src/tests/clientDataIsolationSecurity.test.ts",
         "src/tests-e2e/18-client-confidentiality-sweep.e2e.test.ts",
         "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
         "src/tests-db/ledgerYearScope.db.test.ts",
-        "src/tests-db/onboardingAuthorizationWait.db.test.ts"
+        "src/tests-db/onboardingAuthorizationWait.db.test.ts",
+        "src/tests-db/functionAccessInventory.db.test.ts",
+        "src/tests-db/caseAssignmentRevocation.db.test.ts"
       ],
-      "remainingGap": "Messaging, appointment and legal general records wait on the owner's general-record policy. Phase 15 integration closed three year/authority gaps (general-ledger year guard, replay year scope, onboarding re-check after lock wait)."
+      "remainingGap": "Messaging, appointment and legal general records wait on the owner's general-record policy. Phase 15 integration closed three year/authority gaps (general-ledger year guard, replay year scope, onboarding re-check after lock wait). Block 79: a committed function access inventory test (233 server-callable actor functions; 111 scoped, 122 listed with reviewed reasons) fails on any new unlisted client-level function. It found and fixed a regression (proposal 20261019220000): calculation-run recording and lineage trusted the recorded case name instead of the live assignment. Five staff paths remain client-level (portal case stages, engagements and signature packages, the practice client list and case creation), recorded for follow-up."
     },
     {
       "id": "UX-RESPONSIVE-A11Y",
