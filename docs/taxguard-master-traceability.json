@@ -5015,6 +5015,17 @@
       ]
     },
     {
+      "file": "docs/development/block78-return-review-queue.md",
+      "sha256": "61db1e6d1f5456950b756de94847b94e7b4f3378df3394e613bff805298f9263",
+      "bytes": 2531,
+      "headings": [
+        "# Block 78: Stage 09 draft return review queue (read-only)",
+        "## Purpose",
+        "## As built",
+        "## Not in scope"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,

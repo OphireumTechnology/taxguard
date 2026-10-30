@@ -617,14 +617,18 @@
       "implementation": [
         "src/components/workspace/ReviewerDashboard.tsx",
         "src/components/workspace/ReviewerLedgerReviewPanel.tsx",
-        "src/server/routes/case-authority.routes.ts"
+        "src/server/routes/case-authority.routes.ts",
+        "docs/proposed-migrations/20261019210000_taxguard_return_review_queue.sql",
+        "src/components/workspace/ReturnReviewQueuePanel.tsx",
+        "docs/development/block78-return-review-queue.md"
       ],
       "tests": [
         "src/tests/reviewerDashboardHttp.test.ts",
         "src/tests-e2e/03-ledger-b2t-cases.e2e.test.ts",
-        "src/tests-db/taxConclusions.db.test.ts"
+        "src/tests-db/taxConclusions.db.test.ts",
+        "src/tests-db/taxReturnComparison.db.test.ts"
       ],
-      "remainingGap": "Reviewer queue and decisions refuse in production (process-local adapter); durable reviewer discovery is Codex's package. No separate QC role or agent."
+      "remainingGap": "Reviewer queue and decisions refuse in production (process-local adapter); durable reviewer discovery is Codex's package. No separate QC role or agent. Block 78 (unmerged, stacked on Block 77; review-only proposal 20261019210000): the reviewer's Stage 09 queue of submitted versions on cases they currently review, oldest first, with staleness, verification and the latest risk outcome (BLOCKED shown, never acted on); read only."
     },
     {
       "id": "TAX-SIGN-FILE",
