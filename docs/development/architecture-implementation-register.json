@@ -680,12 +680,15 @@
       "status": "PARTIAL",
       "implementation": [
         "src/server/observability/health.ts",
-        "src/server/operationalMetrics.ts"
+        "src/server/operationalMetrics.ts",
+        "src/server/observability/operationalAlerts.ts",
+        "docs/development/block77-operational-alerts.md"
       ],
       "tests": [
-        "src/tests/healthEndpoints.test.ts"
+        "src/tests/healthEndpoints.test.ts",
+        "src/tests/operationalAlerts.test.ts"
       ],
-      "remainingGap": "No log shipping or alerting; AI telemetry has nothing to report."
+      "remainingGap": "Block 77 (unmerged, stacked on Block 76): yes-or-no alert conditions derived from the administrator diagnostics (database, migrations, identity and storage configuration in production, scanner failures and backlog, security events lost or not durable), each change written as a redacted JSON line to standard output, and GET /api/operational-alerts for operational administrators. Gaps: delivery to a person (no notification provider is commissioned), rate or latency thresholds and the evaluation interval (owner decisions), and a log collector in each deployment; AI telemetry has nothing to report."
     },
     {
       "id": "OPS-INTEGRATION-ADAPTERS",

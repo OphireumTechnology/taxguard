@@ -5004,6 +5004,17 @@
       ]
     },
     {
+      "file": "docs/development/block77-operational-alerts.md",
+      "sha256": "8efb8f1c016d694c5123d7b0c158b97a15ae1a87b8d0cbd1ada248c214bd4f18",
+      "bytes": 2567,
+      "headings": [
+        "# Block 77: operational alert conditions (no paging, no invented thresholds)",
+        "## Purpose",
+        "## As built",
+        "## [OWNER] decisions"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -7801,7 +7812,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "607f01a1b0d038c02fd1e86a9fc30808a420959b3d0868ee4ac4c15cf7bfd397",
+    "src/server/productionApp.ts": "b07a1a07fdb7de718be2aafb2295587321cd5ae03579b6952f66123c29d0136e",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
