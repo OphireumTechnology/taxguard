@@ -252,6 +252,15 @@ describe('Stage 11 signature package (no signing)', () => {
     expect(await portal('rv-other')).toEqual({ error: 'DOCUMENT_NOT_FOUND' }); // another client's member
     expect(await portal('rv-foreign', C, T2)).toEqual({ error: 'DOCUMENT_NOT_FOUND' });
     expect(await portal('rv-mgr')).toHaveLength(1); // staff in scope of the client
+    // Block 80 (proposal 20261019231000): staff see only packages of engagements and years they are assigned to.
+    expect(await portal('rv-rev')).toHaveLength(1); // the case reviewer, assigned for this engagement and 2025
+    await db.pool.query(`INSERT INTO taxguard_members(tenant_id, uid, role, status, client_id) VALUES ($1, 'rv-other-year', 'accountant', 'active', NULL)
+      ON CONFLICT DO NOTHING`, [T]);
+    const practice = new PracticeStore(pgRpc(db.pool));
+    await practice.addTaxYear(T, C, 'rv-mgr', engagementId, 2024);
+    await practice.assign(T, C, 'rv-mgr', 'rv-assign-other-year', { engagementId, taxYear: 2024, role: 'preparer', userId: 'rv-other-year',
+      reason: 'Synthetic staffing for another year' });
+    expect(await portal('rv-other-year')).toEqual([]);
     as('rv-client'); expect((await call('GET', `/returns/${version}/signature-context`)).status).toBeGreaterThanOrEqual(400);
   });
 

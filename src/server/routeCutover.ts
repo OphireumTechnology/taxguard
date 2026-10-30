@@ -25,9 +25,9 @@ export interface CutoverRoute {
 }
 
 export const ROUTE_CUTOVER_CATALOG: readonly CutoverRoute[] = Object.freeze([
-  { key: 'practice', path: '/api/practice', proposals: ['20261012250000', '20261018100000'], sentinelRpcs: ['taxguard_practice_client_detail'] },
+  { key: 'practice', path: '/api/practice', proposals: ['20261012250000', '20261018100000', '20261019230000'], sentinelRpcs: ['taxguard_practice_client_detail'] },
   { key: 'stage-one', path: '/api/stage-one', proposals: ['20261018030000'], sentinelRpcs: ['taxguard_onb_get'] },
-  { key: 'cases', path: '/api/cases', proposals: ['20261012260000', '20261018090000', '20261018105000'], sentinelRpcs: ['taxguard_case_detail', 'taxguard_case_restaff'] },
+  { key: 'cases', path: '/api/cases', proposals: ['20261012260000', '20261018090000', '20261018105000', '20261019230000'], sentinelRpcs: ['taxguard_case_detail', 'taxguard_case_restaff'] },
   { key: 'vault', path: '/api/vault', proposals: ['20261012270000', '20261015030851', '20261018060000', '20261018080000'], sentinelRpcs: ['taxguard_doc_list'] },
   { key: 'billing', path: '/api/billing', proposals: ['20261012280000', '20261015070000'], sentinelRpcs: ['taxguard_bill_list'] },
   { key: 'book-to-tax', path: '/api/book-to-tax', proposals: ['20261012290000', '20261018070000'], sentinelRpcs: ['taxguard_b2t_overview'] },
@@ -38,8 +38,8 @@ export const ROUTE_CUTOVER_CATALOG: readonly CutoverRoute[] = Object.freeze([
   { key: 'legal-matters', path: '/api/legal-matters', proposals: ['20261014420000'], sentinelRpcs: ['taxguard_legal_list'] },
   { key: 'audit-center', path: '/api/audit-center', proposals: ['20261014410000', '20261014460000'], sentinelRpcs: ['taxguard_audit_center_list'] },
   { key: 'consultations', path: '/api/consultations', proposals: ['20261014430000'], sentinelRpcs: ['taxguard_consult_list'] },
-  { key: 'client-portal', path: '/api/client-portal', proposals: ['20261014440000'], sentinelRpcs: ['taxguard_portal_engagements'] },
-  { key: 'client-signatures', path: '/api/client-signatures', proposals: ['20261012270000', '20261019180000', '20261019190000'], sentinelRpcs: ['taxguard_portal_signature_packages'] },
+  { key: 'client-portal', path: '/api/client-portal', proposals: ['20261014440000', '20261019230000'], sentinelRpcs: ['taxguard_portal_engagements'] },
+  { key: 'client-signatures', path: '/api/client-signatures', proposals: ['20261012270000', '20261019180000', '20261019190000', '20261019231000'], sentinelRpcs: ['taxguard_portal_signature_packages'] },
   { key: 'reassignment', path: '/api/reassignment', proposals: ['20261014450000'], sentinelRpcs: ['taxguard_rar_queue'] },
 ]);
 

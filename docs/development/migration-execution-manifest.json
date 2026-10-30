@@ -2,9 +2,9 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 114,
+    "files": 116,
     "core": 13,
-    "proposals": 100,
+    "proposals": 102,
     "tables": 183,
     "functions": 500,
     "securityDefinerFunctions": 394,
@@ -4685,6 +4685,86 @@
     },
     {
       "order": 114,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_case_create",
+          "previous": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+        },
+        {
+          "function": "taxguard_portal_case_stages",
+          "previous": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql"
+        },
+        {
+          "function": "taxguard_portal_engagements",
+          "previous": "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql"
+        },
+        {
+          "function": "taxguard_practice_list_clients",
+          "previous": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        29,
+        30,
+        34,
+        73,
+        76,
+        80
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 115,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_portal_signature_packages",
+          "previous": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        30,
+        76,
+        103,
+        110
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 116,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

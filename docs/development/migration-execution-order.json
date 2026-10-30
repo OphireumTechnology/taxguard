@@ -785,6 +785,24 @@
         "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
         "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql",
+        "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql"
+      ]
     }
   ]
 }

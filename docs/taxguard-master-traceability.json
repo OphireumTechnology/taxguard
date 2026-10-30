@@ -5055,15 +5055,26 @@
     },
     {
       "file": "docs/development/block79-function-access-inventory.md",
-      "sha256": "1fa61d5cc9e339ab0295480eb53395152bc05537dafb7eb24cf03031235e96b2",
-      "bytes": 4953,
+      "sha256": "2d6256509ff1d7787ea8e361e998ab754793a6bbb287ff5d42f75ba7908b6b10",
+      "bytes": 5259,
       "headings": [
         "# Block 79: function access inventory and the calculation-run liveness regression",
         "## Purpose",
         "## The inventory test",
         "## Finding 1 (fixed): calculation runs ignored the live assignment",
-        "## Finding 2 (recorded, not changed): client-level staff paths",
+        "## Finding 2: client-level staff paths (fixed by Block 80)",
         "## Not in scope"
+      ]
+    },
+    {
+      "file": "docs/development/block80-staff-client-scope.md",
+      "sha256": "9240f7b50ba5b5ec114b9ff4d745213c1374ce4deed4dde4a887a7c4e95a489a",
+      "bytes": 3199,
+      "headings": [
+        "# Block 80: engagement scope of five client-level staff paths",
+        "## Purpose",
+        "## Changes",
+        "## Tests"
       ]
     },
     {
@@ -5360,8 +5371,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "53bab013c558cc3bb3448661d6edb48227f50409a9e1876bd6e14d91260dee29",
-      "bytes": 23881,
+      "sha256": "d8c2fe45db95364bdcaef2f91ff490d7c42f588f3e7c07321a1960bde104bf00",
+      "bytes": 24345,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6785,7 +6796,19 @@
     {
       "file": "docs/proposed-migrations/20261019220000_taxguard_tax_run_liveness.sql",
       "sha256": "e30b7f3bddd3b2dbb01d4ed79afe0caba3d01425aac1e7d11b3ff5323ca4562c",
-      "bytes": 7503,
+      "bytes": 7584,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
+      "sha256": "81672896f24ce6779e3eedf6d24b029256901398772ee0cb8b32629992a5c564",
+      "bytes": 16542,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
+      "sha256": "1e3173ceba171d9f60cc19854b1f69e5655f52a84f32c857b50a93943a64e508",
+      "bytes": 2408,
       "headings": []
     },
     {
@@ -8017,7 +8040,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "06f8afa482d35e2126f014f63adf93a4f18ec9e553dd5c9780d6597b5960a1e9",
+    "src/tests/proposalCompositionSecurity.test.ts": "d521301708283ebf2a8560f1d88bc7e01b1b6ad7be6a6199aca16813419f7a11",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",

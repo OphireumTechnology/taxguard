@@ -1,5 +1,5 @@
 {
-  "description": "Server-callable functions that take an actor and do not reach an engagement, tax-year, case or return-version scope check, each with a reviewed reason. Checked by src/tests-db/functionAccessInventory.db.test.ts against a database with every migration and proposal applied; a new unlisted function fails the test. Generated 2026-10-31 (Block 79).",
+  "description": "Server-callable functions that take an actor and do not reach an engagement, tax-year, case or return-version scope check, each with a reviewed reason. Checked by src/tests-db/functionAccessInventory.db.test.ts against a database with every migration and proposal applied; a new unlisted function fails the test. Generated 2026-10-31 (Block 79); the five client-level staff paths it recorded were scoped by Block 80 (proposals 20261019230000 and 20261019231000).",
   "categories": {
     "TENANT_TAX_CONTENT": "Tenant-wide tax content (sources, rule sets and their tests, form rules, return templates, categories, document-request templates, the service catalog). Not client data; maker-checker and roles apply.",
     "STAFF_ADMIN_SECURITY": "Staff identity, sessions, MFA recovery, membership, audit centre and security events. Administrator or own-session checks; not client records.",
@@ -8,8 +8,7 @@
     "CLIENT_SELF": "For the client's own portal account: the actor must be the client member of that client. Staff paths, where they exist, are noted in the reason.",
     "CLIENT_LEVEL_BY_DESIGN": "Client-level records with no engagement or tax year (Stage 01 onboarding identity, chart of accounts, bank feeds, notifications, consultations, reassignment requests), recorded as client-level by design in the Phase 14 dossier.",
     "OWNER_DECISION_PENDING": "Messaging, appointments, rooms and legal matters: still decided per client until the owner decides how general (engagement-less) records are shared (phase14-remaining-domain-access-policy.md).",
-    "CODEX_HANDOFF": "Billing: invoice records carry an engagement, but taxguard_bill_* is redefined by Codex's Phase 15 work; engagement scope belongs in those definitions (phase14-phase15-billing-overlap.md).",
-    "STAFF_CLIENT_LEVEL_REVIEW": "Finding recorded by Block 79: the staff path is client-level (any active assignment to the client) and returns status-level data of every engagement or year. Follow-up: scope it like the practice client detail (20261018100000)."
+    "CODEX_HANDOFF": "Billing: invoice records carry an engagement, but taxguard_bill_* is redefined by Codex's Phase 15 work; engagement scope belongs in those definitions (phase14-phase15-billing-overlap.md)."
   },
   "functions": {
     "taxguard_admin_revoke_member_sessions": {
@@ -135,10 +134,6 @@
     "taxguard_cancel_mfa_recovery": {
       "category": "STAFF_ADMIN_SECURITY",
       "reason": "Staff identity, sessions, MFA recovery, membership, audit centre and security events."
-    },
-    "taxguard_case_create": {
-      "category": "STAFF_CLIENT_LEVEL_REVIEW",
-      "reason": "Creating a case needs only client-level access (practice_client_access with p_manage false): any staff member with any assignment to the client can open a case for another engagement or tax year of that client."
     },
     "taxguard_case_restaff": {
       "category": "MANAGER_ONLY",
@@ -304,21 +299,9 @@
       "category": "CLIENT_SELF",
       "reason": "For the client's own portal account: the actor must be the client member of that client."
     },
-    "taxguard_portal_case_stages": {
-      "category": "STAFF_CLIENT_LEVEL_REVIEW",
-      "reason": "Staff path returns case stage counts for any engagement and year of the client; the client path is the client's own."
-    },
     "taxguard_portal_consultations": {
       "category": "CLIENT_SELF",
       "reason": "Lists consultations converted for this client; a client sees their own, staff any assignment to the client (consultation requests are client-level by design)."
-    },
-    "taxguard_portal_engagements": {
-      "category": "STAFF_CLIENT_LEVEL_REVIEW",
-      "reason": "Staff path lists every engagement and tax year of the client with case status; the client path omits draft and cancelled engagements."
-    },
-    "taxguard_portal_signature_packages": {
-      "category": "STAFF_CLIENT_LEVEL_REVIEW",
-      "reason": "Staff path returns status-only signature packages of every engagement of the client; a client sees only packages naming them as signer."
     },
     "taxguard_practice_add_tax_year": {
       "category": "MANAGER_ONLY",
@@ -331,10 +314,6 @@
     "taxguard_practice_create_engagement": {
       "category": "MANAGER_ONLY",
       "reason": "Refused unless the actor is a practice manager (or administrator), who is tenant-wide by design."
-    },
-    "taxguard_practice_list_clients": {
-      "category": "STAFF_CLIENT_LEVEL_REVIEW",
-      "reason": "Lists the clients the actor can see, each with its whole team (all assignments) and open-task count, regardless of the actor's engagement scope."
     },
     "taxguard_practice_set_client_status": {
       "category": "MANAGER_ONLY",

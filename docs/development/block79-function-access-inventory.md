@@ -38,7 +38,7 @@ A mutation check that removes one entry from the list makes the test fail.
 | `MANAGER_ONLY` | 13 | Refused unless the actor is a practice manager or administrator |
 | `CODEX_HANDOFF` | 11 | Billing, redefined by Codex's Phase 15 work |
 | `CLIENT_SELF` | 6 | The client's own intake and onboarding |
-| `STAFF_CLIENT_LEVEL_REVIEW` | 5 | Findings, below |
+| `STAFF_CLIENT_LEVEL_REVIEW` | 5 | Findings, below (scoped by Block 80, so the category is now empty and removed) |
 | `OWN_RECORDS` | 4 | The actor's own assignments, tasks or uploads |
 
 ## Finding 1 (fixed): calculation runs ignored the live assignment
@@ -56,7 +56,7 @@ A mutation check that removes one entry from the list makes the test fail.
   `TAX_CALC_CASE_NOT_FOUND` / `TAX_CALC_RUN_NOT_FOUND`, nothing is inserted, and the manager and administrator still
   read lineage. 6/6.
 
-## Finding 2 (recorded, not changed): client-level staff paths
+## Finding 2: client-level staff paths (fixed by Block 80)
 
 These five functions are listed under `STAFF_CLIENT_LEVEL_REVIEW`. For staff, each needs only client-level access (any
 active assignment to the client):
@@ -64,7 +64,9 @@ active assignment to the client):
 - `taxguard_portal_case_stages`, `taxguard_portal_engagements` and `taxguard_portal_signature_packages` return statuses
   and counts for every engagement and year of the client.
 - `taxguard_practice_list_clients` shows each client's whole team and open-task count.
-- `taxguard_case_create` lets any assignee open a case for another engagement or year of the client.
+- `taxguard_case_create`: only the engagement-year preparer (or a manager) can create the case, but the checks before
+  that answered, to anyone with client-level access, whether the case already existed and whether the engagement and
+  year were active. (Corrected 2026-10-31: an earlier version of this note said any assignee could open a case.)
 
 Clients see only their own records. The proposed follow-up is to scope the staff paths the way `20261018100000` scoped
 the practice client detail. Whether a client-wide team list is acceptable is an owner question.

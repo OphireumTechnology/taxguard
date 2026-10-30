@@ -160,3 +160,57 @@ describe('practice writes: an engagement-year assignee changes only its engageme
     expect(await code(detail('pd-prep24'))).toBe('CLIENT_NOT_FOUND');
   });
 });
+
+// Block 80 (proposal 20261019230000): the four other staff paths the function access inventory found client-level now
+// follow the same rule as the detail. Same synthetic practice.
+describe('Block 80: client list, portal reads and case creation follow the engagement-year scope', () => {
+  const rpc = async (fn: string, args: Record<string, unknown>) => {
+    const r = await pgRpc(db.pool).rpc(fn, args);
+    if (r.error) throw Object.assign(new Error(r.error.message), { code: r.error.message });
+    return r.data as any;
+  };
+  const row = async (actor: string) => (await practice.listClients(T, actor) as any).items.find((c: any) => c.clientId === C);
+  const team = (r: any) => r.team.map((m: any) => `${m.userId}:${m.engagementId ?? '-'}:${m.taxYear ?? '-'}`).sort();
+  const stages = (actor: string, engagement: string, year: number) =>
+    code(rpc('taxguard_portal_case_stages', { p_tenant: T, p_client: C, p_actor: actor, p_engagement: engagement, p_year: year }));
+  const rows = async (actor: string) => (await rpc('taxguard_portal_engagements', { p_tenant: T, p_client: C, p_actor: actor }))
+    .map((e: any) => `${e.engagementId === E1 ? 'E1' : 'E2'}:${e.taxYear}`).sort();
+
+  it('the client list shows an engagement-year assignee only its engagement, team, tasks and deadlines', async () => {
+    expect(team(await row('pd-prep'))).toEqual([`pd-prep:${E1}:2025`, `pd-rev:${E1}:2025`]);
+    expect(team(await row('pd-rev2'))).toEqual([`pd-prep2:${E2}:2025`, `pd-rev2:${E2}:2025`]);
+    expect((await row('pd-prep')).engagements).toBe(1);
+    // For everyone, the list's team and open-task count agree with what the client detail shows the same person.
+    const open = (t: any) => !['COMPLETED', 'CANCELLED'].includes(t.status);
+    for (const who of ['pd-prep', 'pd-rev2', 'pd-wide', 'pd-mgr', 'pd-admin']) {
+      const r = await row(who); const d = await detail(who);
+      expect(team(r), who).toEqual(d.team.map((m: any) => `${m.userId}:${m.engagementId ?? '-'}:${m.taxYear ?? '-'}`).sort());
+      expect(r.openTasks, who).toBe(d.tasks.filter(open).length);
+    }
+    expect((await row('pd-prep')).openTasks).toBeLessThan((await row('pd-mgr')).openTasks);
+    for (const who of ['pd-wide', 'pd-mgr', 'pd-admin']) expect((await row(who)).engagements, who).toBe(2);
+    expect(await row('pd-other')).toBeUndefined();
+  });
+
+  it('portal case stages and engagements are limited to the staff member\'s engagement and year', async () => {
+    expect(await stages('pd-prep', E1, 2025)).toBe('OK');
+    expect(await stages('pd-prep', E2, 2025)).toBe('PORTAL_ENGAGEMENT_NOT_FOUND');
+    expect(await stages('pd-prep', E1, 2024)).toBe('PORTAL_ENGAGEMENT_NOT_FOUND');
+    expect(await stages('pd-rev2', E1, 2025)).toBe('PORTAL_ENGAGEMENT_NOT_FOUND');
+    expect(await stages('pd-rev2', E2, 2025)).toBe('OK');
+    for (const who of ['pd-wide', 'pd-mgr', 'pd-admin']) expect(await stages(who, E2, 2025), who).toBe('OK');
+    expect(await rows('pd-prep')).toEqual(['E1:2025']);
+    expect(await rows('pd-rev2')).toEqual(['E2:2025']);
+    for (const who of ['pd-wide', 'pd-mgr']) expect(await rows(who), who).toEqual(['E1:2024', 'E1:2025', 'E2:2025']);
+  });
+
+  it('creating a case for another engagement or year says nothing about it', async () => {
+    // The E2 case exists, and E1/2024 has no case yet: both answer the same refusal to an out-of-scope assignee.
+    expect(await code(cases.create(T, C, 'pd-prep', 'pd-case-key-probe-1', { engagementId: E2, taxYear: 2025, returnFamily: '1040' }))).toBe('CASE_CREATE_NOT_AUTHORIZED');
+    expect(await code(cases.create(T, C, 'pd-prep', 'pd-case-key-e2', { engagementId: E2, taxYear: 2025, returnFamily: '1040' }))).toBe('CASE_CREATE_NOT_AUTHORIZED');
+    expect(await code(cases.create(T, C, 'pd-prep', 'pd-case-key-probe-2', { engagementId: E1, taxYear: 2024, returnFamily: '1040' }))).toBe('CASE_CREATE_NOT_AUTHORIZED');
+    // In scope, the existing answers are unchanged: the engagement-year preparer replays its own case.
+    expect(await code(cases.create(T, C, 'pd-prep', 'pd-case-key-e1', { engagementId: E1, taxYear: 2025, returnFamily: '1040' }))).toBe('OK');
+    expect(await code(cases.create(T, C, 'pd-mgr', 'pd-case-key-probe-3', { engagementId: E2, taxYear: 2025, returnFamily: '1040' }))).toBe('CASE_ALREADY_EXISTS');
+  });
+});

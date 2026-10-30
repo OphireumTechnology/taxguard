@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "762238e75f5e46a2303a9c8fcb07b155888370599d0e1fe3eec615ba5eaad0d8",
+  "executionPlanSha256": "0ae6c473cad8546d660d9eaa3f6fc3890fe15cf21080f2c57414d81ee5d157b8",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6178,6 +6178,144 @@
         "--",
         "-- What changes: both functions require taxguard_case_slot_live, as taxguard_tax_run_list and taxguard_tax_run_review",
         "-- already do. Refusals keep the existing not-found codes (TAX_CALC_CASE_NOT_FOUND, TAX_CALC_RUN_NOT_FOUND), so an"
+      ]
+    },
+    {
+      "order": 114,
+      "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
+      "kind": "proposal",
+      "version": "20261019230000",
+      "sha256": "81672896f24ce6779e3eedf6d24b029256901398772ee0cb8b32629992a5c564",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql",
+        "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_portal_case_stages",
+        "taxguard_portal_engagements",
+        "taxguard_practice_list_clients",
+        "taxguard_case_create"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_portal_case_stages",
+          "previousFile": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_portal_engagements",
+          "previousFile": "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_practice_list_clients",
+          "previousFile": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_case_create",
+          "previousFile": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the listed proposals' definitions."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_portal_case_stages(text,text,text,text,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_portal_case_stages(text,text,text,text,integer) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_portal_engagements(text,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_portal_engagements(text,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_list_clients(text,text,jsonb) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_practice_list_clients(text,text,jsonb) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_case_create(text,text,text,text,integer,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_case_create(text,text,text,text,integer,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 4,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 80, engagement scope of five staff paths found by the function access inventory). REVIEW ONLY;",
+        "-- NOT APPLIED anywhere external.",
+        "-- Requires 20261012250000, 20261012260000, 20261014440000 and 20261016000000, which hold the current definitions below, 20261018060000 (taxguard_staff_scope) and 20261018100000 (taxguard_staff_record_scope and",
+        "-- taxguard_practice_item_scope).",
+        "--",
+        "-- Owner decision 2026-10-19 (as applied by 20261018060000 and 20261018100000): a staff member assigned to one engagement",
+        "-- and tax year reaches that client's records for that engagement and year only, unless independently authorized (a",
+        "-- client-wide assignment, a practice manager or an administrator). Block 79's inventory found five functions (four here) whose",
+        "-- staff path still decided per client (any active assignment to the client):",
+        "--   * taxguard_portal_case_stages: case stage, evidence counts and team flags of any engagement and year.",
+        "--     Now: a staff member out of scope reads PORTAL_ENGAGEMENT_NOT_FOUND, like a missing engagement.",
+        "--   * taxguard_portal_engagements: every engagement and year with its case status. Now: only those in scope."
+      ]
+    },
+    {
+      "order": 115,
+      "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
+      "kind": "proposal",
+      "version": "20261019231000",
+      "sha256": "1e3173ceba171d9f60cc19854b1f69e5655f52a84f32c857b50a93943a64e508",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_portal_signature_packages"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_portal_signature_packages",
+          "previousFile": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261019190000 definition."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_portal_signature_packages(text,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_portal_signature_packages(text,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 80, engagement scope of the staff path of client signature packages). REVIEW ONLY; NOT APPLIED anywhere",
+        "-- external. Requires 20261018060000 (taxguard_staff_scope) and 20261019190000, which holds the current definition below.",
+        "--",
+        "-- Companion of 20261019230000 (same owner decision of 2026-10-19), kept separate so that only the client-signatures",
+        "-- cutover waits for it. taxguard_portal_signature_packages returned, to staff with any active assignment to the client,",
+        "-- the status-only packages of every engagement and tax year. Now staff see only packages of engagements and years in",
+        "-- their scope; clients keep their rule (packages naming them as a signer); managers and administrators are unchanged.",
+        "-- The function is identical to its current definition except for that filter.",
+        "-- Rollback (development): re-apply the 20261019190000 definition.",
+        "-- Current definition: 20261019190000. Changed: staff path: only packages of engagements and years in scope."
       ]
     }
   ]
