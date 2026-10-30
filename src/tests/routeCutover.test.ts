@@ -203,6 +203,13 @@ describe('production app', () => {
     expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019200000')).refused)
       .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019200000'] });
   });
+  it('the Block 78 review queue is refused in production until its proposal is approved', async () => {
+    expect((await fetch(origin + '/api/tax-engine/review/queue', { headers: { Accept: 'application/json' } })).status).toBe(503);
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
+    expect(route.sentinelRpcs).toContain('taxguard_tax_return_review_queue');
+    expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019210000')).refused)
+      .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019210000'] });
+  });
   it('the cutover status report is for operational administrators only', async () => {
     expect((await fetch(origin + '/api/route-cutover')).status).toBe(401);
   });

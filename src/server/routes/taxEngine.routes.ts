@@ -92,6 +92,7 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.post('/returns/:returnVersionId/risk', run(req => store().assessReturnRisk(t(req), u(req), req.params.returnVersionId, req.body?.amountCents), 201));
   router.post('/returns/:returnVersionId/qc-assignment', run(req => store().assignQc(t(req), u(req), req.params.returnVersionId, req.body?.qcUid), 201));
   router.post('/returns/:returnVersionId/qc-assignment/revoke', run(req => store().unassignQc(t(req), u(req), req.params.returnVersionId, textOf(req.body?.reason, 500))));
+  router.get('/review/queue', run(async req => ({ items: await store().reviewQueue(t(req), u(req)), returnUse: 'BLOCKED' })));
   router.get('/qc/queue', run(async req => ({ items: await store().qcQueue(t(req), u(req)), returnUse: 'BLOCKED' })));
   router.get('/returns/:returnVersionId/qc-context', run(req => store().qcContext(t(req), u(req), req.params.returnVersionId)));
   router.get('/returns/:returnVersionId/qc-reviews', run(async req => ({ items: await store().qcReviews(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));

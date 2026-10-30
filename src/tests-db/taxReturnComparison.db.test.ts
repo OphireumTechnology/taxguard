@@ -198,3 +198,62 @@ describe('Block 75: return comparison (proposal 20261019200000)', () => {
       { rolname: 'service_role', tbl: false, entry: true, rows_: false, diff: false }]);
   });
 });
+
+// Block 78: the Stage 09 review queue (proposal 20261019210000, review only), on the same synthetic practice. It runs
+// after Block 75's cases: the 2025 case has version 2 as a DRAFT, reviewed by rc-rev25; rc-rev reviews only 2024.
+describe('Block 78: Stage 09 review queue (proposal 20261019210000)', () => {
+  const queue = async (uid: string) => { as(uid); const r = await call('GET', '/review/queue'); expect(r.status, JSON.stringify(r.body)).toBe(200); return r.body.items as any[]; };
+
+  it('lists submitted versions of the live reviewer\'s cases, with verification and risk, and nothing else', async () => {
+    expect(await queue('rc-rev25')).toEqual([]); // a draft is not waiting for review
+    as('rc-prep'); expect((await ok(call('POST', `/returns/${versions.v2}/submit`))).status).toBe('SUBMITTED');
+    const [item] = await queue('rc-rev25');
+    expect(item).toMatchObject({ returnVersionId: versions.v2, caseId: cases[2025], clientId: C, taxYear: 2025, templateId: 'SYN-1040-RETURN', version: 2,
+      status: 'SUBMITTED', preparedBy: 'rc-prep', stale: false, verification: null, risk: null, returnUse: 'BLOCKED' });
+    expect(await queue('rc-rev')).toEqual([]);  // reviewer of the other year's case only
+    expect(await queue('rc-prep')).toEqual([]); // the preparer is not the reviewer
+    expect(await queue('rc-out')).toEqual([]);
+    expect((await queue('rc-mgr')).map(i => i.returnVersionId)).toEqual([versions.v2]);
+    as('rc-foreign', T2); expect((await call('GET', '/review/queue')).body.items).toEqual([]);
+    as('rc-rev25'); expect((await ok(call('POST', `/returns/${versions.v2}/verify`), 201)).result).toBe('VERIFIED');
+    as('rc-prep'); const risk = await ok(call('POST', `/returns/${versions.v2}/risk`, { amountCents: 100_000 }), 201);
+    const [after] = await queue('rc-rev25');
+    expect(after.verification).toMatchObject({ result: 'VERIFIED' });
+    expect(after.risk).toMatchObject({ assessmentId: risk.assessmentId, outcome: risk.outcome, reasonCodes: risk.reasonCodes });
+  });
+
+  it('shows a stale version and a BLOCKED assessment; it leaves the queue when returned or when the assignment ends', async () => {
+    // A revised conclusion makes version 2 stale; a new assessment of a stale version is BLOCKED.
+    const k = (await ok(call('GET', `/cases/${cases[2025]}/conclusions`))).items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
+    const run = await approvedRun(2025, '6500.00');
+    as('rc-prep'); const revised = await ok(call('POST', `/conclusions/${k.conclusionId}/revise`, { amount: '6500.00', links: links(2025, run) }), 201);
+    await ok(call('POST', `/conclusions/${revised.conclusionId}/submit`));
+    as('rc-rev25'); await ok(call('POST', `/conclusions/${revised.conclusionId}/approve`, {}));
+    as('rc-prep'); const blocked = await ok(call('POST', `/returns/${versions.v2}/risk`, { amountCents: 100_000 }), 201);
+    expect(blocked.outcome).toBe('BLOCKED');
+    const [item] = await queue('rc-rev25');
+    expect(item).toMatchObject({ stale: true, risk: { assessmentId: blocked.assessmentId, outcome: 'BLOCKED' } });
+    // The queue only reads: the version is still SUBMITTED and nothing was recorded by reading it.
+    as('rc-rev25'); expect((await ok(call('GET', `/returns/${versions.v2}`))).status).toBe('SUBMITTED');
+    // The assignment ends: the version leaves the reviewer's queue but stays in the manager's.
+    const assignment = (await db.pool.query(`SELECT id FROM taxguard_staff_assignments WHERE tenant_id = $1 AND user_id = 'rc-rev25' AND role = 'reviewer'
+      AND tax_year = 2025 AND status = 'ACTIVE'`, [T])).rows[0].id as string;
+    const practice = new PracticeStore(pgRpc(db.pool));
+    await practice.unassign(T, C, 'rc-mgr', assignment, 'Synthetic reassignment');
+    expect(await queue('rc-rev25')).toEqual([]);
+    expect((await queue('rc-mgr')).map(i => i.returnVersionId)).toEqual([versions.v2]);
+    // Assigned again, the reviewer returns the stale version to the preparer; it is no longer waiting for anyone.
+    const engagementId = (await db.pool.query(`SELECT engagement_id FROM taxguard_cases WHERE tenant_id = $1 AND case_id = $2`, [T, cases[2025]])).rows[0].engagement_id;
+    await practice.assign(T, C, 'rc-mgr', 'rc-assign-reviewer-2025-again', { engagementId, taxYear: 2025, role: 'reviewer', userId: 'rc-rev25', reason: 'Synthetic staffing' });
+    expect((await queue('rc-rev25')).map(i => i.returnVersionId)).toEqual([versions.v2]);
+    as('rc-rev25'); expect((await ok(call('POST', `/returns/${versions.v2}/return`, { note: 'Synthetic: inputs changed, prepare again.' }))).status).toBe('RETURNED');
+    expect(await queue('rc-rev25')).toEqual([]);
+    expect(await queue('rc-mgr')).toEqual([]);
+  });
+
+  it('only the entry point is executable by the service role', async () => {
+    const priv = (await db.pool.query(`SELECT r.rolname, has_function_privilege(r.rolname, 'public.taxguard_tax_return_review_queue(text,text)', 'EXECUTE') AS entry
+      FROM pg_roles r WHERE r.rolname IN ('anon','authenticated','service_role') ORDER BY r.rolname`)).rows;
+    expect(priv).toEqual([{ rolname: 'anon', entry: false }, { rolname: 'authenticated', entry: false }, { rolname: 'service_role', entry: true }]);
+  });
+});

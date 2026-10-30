@@ -292,6 +292,8 @@ export class TaxEngineStore {
   unassignQc(tenant: string, actor: string, returnVersionId: string, reason: string) {
     return this.call('taxguard_tax_return_qc_unassign', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId), p_reason: reason });
   }
+  // Stage 09 review queue (proposal 20261019210000): SUBMITTED versions of the actor's live reviewer cases. Read only.
+  reviewQueue(tenant: string, actor: string) { return this.call<any[]>('taxguard_tax_return_review_queue', { p_tenant: tenant, p_actor: actor }); }
   qcQueue(tenant: string, actor: string) { return this.call<any[]>('taxguard_tax_return_qc_queue', { p_tenant: tenant, p_actor: actor }); }
   qcContext(tenant: string, actor: string, returnVersionId: string) {
     return this.call('taxguard_tax_return_qc_context', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
