@@ -91,8 +91,26 @@ Audits completed in this cycle (documents):
   69-73 fixtures) passed the full matrix: unit 6238, lint, typecheck, PostgreSQL 311, e2e default 137 and provider
   44, build, release candidate, NOT VALID, secrets, diff check, contamination. **Owner review point:** final
   authorization eligibility criteria, attestation wording (legal), any relaxation of independence, and the follow-up
-  workflow after a decline (none configured; final authorization fails closed). Not built: a positive Stage 10
-  browser journey (needs a ready return on the provider profile).
+  workflow after a decline (none configured; final authorization fails closed).
+- **Positive Stage 10 browser journey (Block 73, 2026-10-30).** Suite 07 makes the version genuinely ready (the
+  administrator, as an independent ledger reviewer, rejects the reviewer's own pending entry; diagnostics, risk and QC
+  are recorded again), then a durable final authorizer signs in through the provider emulation and the real session
+  exchange and authorizes in the browser. Checked: one recorded decision and what it pins, `stage10: AUTHORIZED`, a
+  refused replay, and the decision lapsing after a diagnostics rerun (mutation check caught). Commits `d8e3ca6` and
+  `05cccbf` (traceability). Integration at `b08b156`: full matrix green (unit 6238, PostgreSQL 311, browser 137 + 44).
+- **Stage 11 signature package, without signing (Block 74, stacked on Block 73; 2026-10-30).** Review-only proposal
+  `20261019190000`: an authorized, current version is released for client signature as an immutable package pinned to
+  the Stage 10 decision and consent version, only with a durable recent multi-factor session, the
+  `RETURN_SIGNATURE_RELEASE` authority (designation required), the owner's approved consent text and one to four
+  active client-portal members as signers; the preparer cannot release. It lapses with the decision or the consent
+  text and is withdrawn once. Clients see status only at `/api/client-signatures` (its own cutover entry). Nothing is
+  rendered, sent, signed or filed (`signature: NOT_AVAILABLE`, `returnUse: BLOCKED`). Branch
+  `claude/taxguard-block74-signature-package` at `45bc27b`: PostgreSQL 4/4 with three mutation checks caught; full
+  matrix green (unit 6224, PostgreSQL 314, browser 136 + 44; the run was interrupted by a session restart after the
+  default browser profile and its remaining stages were rerun on the same commit). Integration at `8f63641` (Blocks
+  68-74): full matrix green (unit 6241, PostgreSQL 315, browser 137 + 44, build, release candidate, NOT VALID,
+  secrets, diff check, contamination). **Owner review point:** release policy, consent wording (legal), who must sign,
+  what the client sees, and the e-signature provider and identity verification method.
 - **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
   `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
   agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
