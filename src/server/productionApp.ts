@@ -28,7 +28,7 @@ import { createSchedulingRouter } from './routes/appointments-durable.routes';
 import { createLegalMattersRouter } from './routes/legal-durable.routes';
 import { createAuditCenterRouter } from './routes/audit-center.routes';
 import { createConsultationReviewRouter } from './routes/consultations.routes';
-import { createClientPortalRouter } from './routes/client-portal.routes';
+import { createClientPortalRouter, createClientSignaturesRouter } from './routes/client-portal.routes';
 import { createReassignmentRouter } from './routes/reassignment.routes';
 import { runtimeProbes } from './observability/defaultProbes';
 import {
@@ -145,7 +145,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
     vault: () => createVaultRouter(), billing: () => createBillingRouter(), 'book-to-tax': () => createBookToTaxRouter(),
     'tax-engine': () => createTaxEngineRouter(), communications: () => createCommunicationsRouter(), scheduling: () => createSchedulingRouter(),
     'legal-matters': () => createLegalMattersRouter(), 'audit-center': () => createAuditCenterRouter(), consultations: () => createConsultationReviewRouter(),
-    'client-portal': () => createClientPortalRouter(), reassignment: () => createReassignmentRouter(),
+    'client-portal': () => createClientPortalRouter(), 'client-signatures': () => createClientSignaturesRouter(), reassignment: () => createReassignmentRouter(),
   }, null);
   app.get('/api/route-cutover', authenticateToken, requireOperationalAdministrator, (_req, res) => res.json({ routes: cutover.status() }));
 

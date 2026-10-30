@@ -95,6 +95,12 @@ export const taxEngineService = {
     request<FinalDecision>('POST', '/returns' + id(returnVersionId) + '/final-authorization', decision),
   finalAuthorizations: (returnVersionId: string) =>
     request<{ items: FinalDecision[]; returnUse: 'BLOCKED' }>('GET', '/returns' + id(returnVersionId) + '/final-authorizations').then(r => r.items),
+  /** Stage 11 signature package: an authorized, current version released for client signature. Nothing is rendered, sent or signed. */
+  signatureContext: (returnVersionId: string) => request<SignatureContext>('GET', '/returns' + id(returnVersionId) + '/signature-context'),
+  releaseSignaturePackage: (returnVersionId: string, input: SignatureReleaseInput) =>
+    request<SignaturePackage>('POST', '/returns' + id(returnVersionId) + '/signature-package', input),
+  withdrawSignaturePackage: (returnVersionId: string, reason: string) =>
+    request<SignaturePackage>('POST', '/returns' + id(returnVersionId) + '/signature-package/withdraw', { reason }),
   /** Tax research memos for one case. The server enforces scope, authority levels and maker-checker; research never feeds a return. */
   caseResearch: (caseId: string) => request<{ items: ResearchMemo[]; returnUse: 'BLOCKED' }>('GET', '/cases' + id(caseId) + '/research').then(r => r.items),
   openResearch: (caseId: string, question: string) => request<ResearchMemo>('POST', '/cases' + id(caseId) + '/research', { question }),
@@ -164,8 +170,28 @@ export interface QcResultInput { code: string; result: 'PASS' | 'FAIL'; note?: s
 export interface QcReview { qcReviewId: string; checklistVersion: number; results: Array<QcResultInput & { text: string }>; outcome: QcOutcome; note: string | null;
   reviewedBy: string; reviewedAt: string }
 export interface ReturnReadiness { returnVersionId: string; ready: boolean; reasons: string[]; riskAssessmentId: string | null; qcReviewId: string | null;
-  finalAuthorization?: FinalStatus; stage10: 'FINAL_AUTHORIZATION_REQUIRED' | 'AUTHORIZED'; stage11?: 'NOT_STARTED' | 'CLIENT_SIGNATURE_REQUIRED';
+  finalAuthorization?: FinalStatus; stage10: 'FINAL_AUTHORIZATION_REQUIRED' | 'AUTHORIZED';
+  stage11?: 'NOT_STARTED' | 'CLIENT_SIGNATURE_REQUIRED' | 'SIGNATURE_PACKAGE_RELEASED'; signaturePackage?: SignatureStatus; signature?: 'NOT_AVAILABLE';
   returnUse: 'BLOCKED' }
+export interface SignaturePackage { packageId: string; returnVersionId: string; authorizationId: string; consentVersion: number; signerUids: string[];
+  releasedBy: string; releasedAt: string; withdrawnBy: string | null; withdrawnAt: string | null; withdrawReason: string | null }
+export interface SignatureStatus { package: SignaturePackage | null; current: boolean; reasons: string[] }
+export interface SignatureContext { readiness: ReturnReadiness; releasable: { releasable: boolean; reasons: string[]; authorizationId?: string };
+  consent: { consentVersion: number; text: string } | null; candidates: Array<{ uid: string; name: string | null }>; signature: 'NOT_AVAILABLE'; returnUse: 'BLOCKED' }
+/** The release a person makes. acknowledged must be true, and consentVersion the text they were shown. */
+export interface SignatureReleaseInput { consentVersion: number; acknowledged: true; signers: string[] }
+export const SIGNATURE_STATUS_REASON_LABELS: Record<string, string> = {
+  FINAL_AUTHORIZATION_NOT_CURRENT: 'the Stage 10 authorization is no longer current',
+  FINAL_AUTHORIZATION_CHANGED: 'a newer Stage 10 decision exists',
+  CONSENT_CHANGED: 'the practice approved a new consent text',
+};
+/** Where Stage 11 stands for a version, in words. Releasing a package never signs, sends or files anything. */
+export function signaturePackageText(r: Pick<ReturnReadiness, 'stage11' | 'signaturePackage'>): string {
+  if (r.stage11 === 'SIGNATURE_PACKAGE_RELEASED') return 'released for client signature; electronic signing is not available yet, and nothing is signed or filed';
+  const st = r.signaturePackage;
+  if (st?.package) return 'the released package is no longer current: ' + st.reasons.map(c => SIGNATURE_STATUS_REASON_LABELS[c] ?? c).join('; ') + '; withdraw it';
+  return r.stage11 === 'CLIENT_SIGNATURE_REQUIRED' ? 'not released for client signature yet' : 'not started';
+}
 export type FinalOutcome = 'AUTHORIZED' | 'DECLINED';
 export interface FinalDecision { authorizationId: string; outcome: FinalOutcome; note: string | null; attestationVersion: number; decidedBy: string; decidedAt: string;
   stage10?: ReturnReadiness['stage10']; stage11?: ReturnReadiness['stage11'] }
@@ -388,6 +414,10 @@ export function formProblemText(p: FormMappingProblem): string {
 export function formProblems(detail?: string): FormMappingProblem[] {
   try { const parsed = JSON.parse(detail ?? ''); return Array.isArray(parsed) ? parsed.filter(p => p && typeof p.reason === 'string') : []; } catch { return []; }
 }
+/** Reason codes the database lists in an error's DETAIL as a JSON array; anything unreadable is no reasons. */
+function detailReasons(detail?: string): string[] {
+  try { const parsed = JSON.parse(detail ?? '[]'); return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []; } catch { return []; }
+}
 
 export function taxEngineMessage(error: unknown): string {
   if (!(error instanceof TaxEngineRequestError)) return 'The tax rules service did not confirm this action. Refresh and try again.';
@@ -459,6 +489,15 @@ export function taxEngineMessage(error: unknown): string {
     TAX_RETURN_ATTESTATION_CHANGED: 'The attestation text changed while you were reviewing it. Read the new text before deciding.',
     TAX_RETURN_FINAL_ALREADY_DECIDED: 'A decision is already recorded on these inputs. A new decision needs a changed input, such as a new quality control review.',
     TAX_RETURN_FINAL_INPUT_INVALID: 'Confirm the acknowledgement; declining needs a note of at least 10 characters.',
+    TAX_RETURN_SIGNATURE_SESSION_REQUIRED: 'Releasing for signature needs your own multi-factor session. Sign in again with your authenticator.',
+    TAX_RETURN_SIGNATURE_NOT_INDEPENDENT: 'The preparer of a return cannot release it for client signature.',
+    TAX_RETURN_SIGNATURE_CONSENT_REQUIRED: 'The practice has no approved signature consent text, so the return cannot be released for signature.',
+    TAX_RETURN_SIGNATURE_CONSENT_CHANGED: 'The consent text changed while you were reviewing it. Read the new text before releasing.',
+    TAX_RETURN_SIGNATURE_SIGNER_INVALID: 'Each signer must be an active client-portal member of this client.',
+    TAX_RETURN_SIGNATURE_ALREADY_RELEASED: 'A signature package is already released for this version. Withdraw it first.',
+    TAX_RETURN_SIGNATURE_NOT_RELEASED: 'No signature package is released for this version.',
+    TAX_RETURN_SIGNATURE_WITHDRAWER_REQUIRED: 'Only the person who released the package or a practice manager can withdraw it.',
+    TAX_RETURN_SIGNATURE_INPUT_INVALID: 'Confirm the acknowledgement and choose one to four signers; a withdrawal needs a reason of at least 10 characters.',
     TAX_RETURN_NOT_SUBMITTED: 'Only a submitted version can be approved or returned.',
     TAX_RETURN_INPUT_INVALID: 'Enter a note of at least 10 characters to return the draft.',
     TAX_CALC_REVIEWER_REQUIRED: 'Only the case\'s independent reviewer can decide on a calculation run.',
@@ -505,9 +544,14 @@ export function taxEngineMessage(error: unknown): string {
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your quality control authority is not configured.');
   if (error.code === 'TAX_RETURN_FINAL_AUTHORITY_REQUIRED') return 'Final authorization refused: it needs the final authorization authority under the practice\'s approved policy. '
     + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your final authorization authority is not configured.');
+  if (error.code === 'TAX_RETURN_SIGNATURE_AUTHORITY_REQUIRED') return 'Release refused: it needs the signature release authority under the practice\'s approved policy. '
+    + (AUTHORITY_REASON_LABELS[error.detail ?? ''] ?? 'Your release authority is not configured.');
+  if (error.code === 'TAX_RETURN_SIGNATURE_NOT_AUTHORIZED') {
+    const labels: Record<string, string> = { NO_DECISION: 'it has no Stage 10 decision', DECLINED: 'Stage 10 final authorization was declined', ...FINAL_STATUS_REASON_LABELS };
+    return 'Release refused: ' + (detailReasons(error.detail).map(c => labels[c] ?? c).join('; ') || 'the version has no current Stage 10 authorization') + '.';
+  }
   if (error.code === 'TAX_RETURN_NOT_READY') {
-    let reasons: string[] = [];
-    try { const parsed = JSON.parse(error.detail ?? '[]'); if (Array.isArray(parsed)) reasons = parsed.filter((x): x is string => typeof x === 'string'); } catch { /* unreadable detail */ }
+    const reasons = detailReasons(error.detail);
     return 'Final authorization refused: the version is ' + (reasons.length ? readinessText({ ready: false, reasons }) : 'not ready') + '.';
   }
   if (error.code === 'TAX_RETURN_REVIEW_AUTHORITY_REQUIRED') return 'Approval refused: the Stage 09 draft review needs the case reviewer assignment under the practice\'s approved review policy. '

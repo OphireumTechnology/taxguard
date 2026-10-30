@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TaxEngineRequestError, finalAuthorizationText, readinessText, taxEngineMessage, taxEngineService, type FinalContext, type FinalOutcome,
   type FinalQueueItem } from '../../services/taxEngineService';
+import { SignatureReleaseForm } from './SignatureReleaseForm';
 
 /**
  * The signed-in professional's Stage 10 queue (proposal 20261019180000): approved draft return versions a practice
@@ -21,6 +22,7 @@ export function FinalAuthorizationQueuePanel() {
   const [note, setNote] = useState('');
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
 
   const load = useCallback((): Promise<string | null> => {
@@ -73,6 +75,12 @@ export function FinalAuthorizationQueuePanel() {
           {isOpen ? 'Close' : 'Review'} final authorization of {name}</button>
         <div id={`final-form-${item.returnVersionId}`}>{isOpen && <FinalForm item={item} name={name} state={open!} acknowledged={acknowledged}
           setAcknowledged={setAcknowledged} note={note} setNote={setNote} busy={busy} onDecide={(ctx, outcome) => void decide(item, ctx, outcome)} />}</div>
+        {item.latestOutcome === 'AUTHORIZED' && <>
+          <button type="button" aria-expanded={signatureOpen === item.returnVersionId} aria-controls={`final-signature-${item.returnVersionId}`}
+            onClick={() => setSignatureOpen(o => o === item.returnVersionId ? null : item.returnVersionId)}>
+            {signatureOpen === item.returnVersionId ? 'Hide' : 'Show'} signature package of {name}</button>
+          <div id={`final-signature-${item.returnVersionId}`}>{signatureOpen === item.returnVersionId && <SignatureReleaseForm returnVersionId={item.returnVersionId} name={name} />}</div>
+        </>}
       </article>;
     })}
   </section>;

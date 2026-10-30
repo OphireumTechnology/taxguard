@@ -20,7 +20,7 @@ import { practiceStoreConfigured } from './src/server/taxguard/practice/practice
 import { createLegalMattersRouter } from './src/server/routes/legal-durable.routes';
 import { createConsultationReviewRouter, createPublicConsultationRouter } from './src/server/routes/consultations.routes';
 import { createPublicContactRouter } from './src/server/routes/contact-intake.routes';
-import { createClientPortalRouter } from './src/server/routes/client-portal.routes';
+import { createClientPortalRouter, createClientSignaturesRouter } from './src/server/routes/client-portal.routes';
 import { createReassignmentRouter } from './src/server/routes/reassignment.routes';
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
@@ -494,6 +494,8 @@ app.use('/api/legal-matters', createLegalMattersRouter());
 app.use('/api/consultations', createConsultationReviewRouter());
 // Client-portal engagement reads (proposal 044): development-only, 503 unless configured.
 app.use('/api/client-portal', createClientPortalRouter());
+// Stage 11 signature package status for clients (proposal 20261019190000): development-only, 503 unless configured.
+app.use('/api/client-signatures', createClientSignaturesRouter());
 // Durable reassignment requests (proposal 045): development-only, 503 unless configured.
 app.use('/api/reassignment', createReassignmentRouter());
 

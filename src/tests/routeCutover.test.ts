@@ -179,6 +179,22 @@ describe('production app', () => {
     expect(planCutover('tax-engine', route.proposals.filter(v => v !== '20261019180000')).refused)
       .toContainEqual({ key: 'tax-engine', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019180000'] });
   });
+  it('the Block 74 signature package routes are refused in production, and the client view has its own cutover', async () => {
+    const id = '0123abcd-0000-4000-8000-000000000001';
+    for (const path of [`/api/tax-engine/returns/${id}/signature-context`, `/api/tax-engine/returns/${id}/signature-packages`, '/api/client-signatures/clients/c1/signature-packages'])
+      expect((await fetch(origin + path, { headers: { Accept: 'application/json' } })).status, path).toBe(503);
+    for (const path of [`/api/tax-engine/returns/${id}/signature-package`, `/api/tax-engine/returns/${id}/signature-package/withdraw`])
+      expect((await fetch(origin + path, { method: 'POST', headers: { Accept: 'application/json', 'content-type': 'application/json' }, body: '{}' })).status, path).toBe(503);
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
+    expect(route.proposals).toContain('20261019190000');
+    expect(route.sentinelRpcs).toContain('taxguard_tax_return_signature_list');
+    const client = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'client-signatures')!;
+    expect(client).toMatchObject({ path: '/api/client-signatures', sentinelRpcs: ['taxguard_portal_signature_packages'] });
+    expect(planCutover('client-signatures', client.proposals.filter(v => v !== '20261019190000')).refused)
+      .toContainEqual({ key: 'client-signatures', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261019190000'] });
+    // The existing portal reads do not wait for this proposal.
+    expect(ROUTE_CUTOVER_CATALOG.find(r => r.key === 'client-portal')!.proposals).not.toContain('20261019190000');
+  });
   it('the cutover status report is for operational administrators only', async () => {
     expect((await fetch(origin + '/api/route-cutover')).status).toBe(401);
   });

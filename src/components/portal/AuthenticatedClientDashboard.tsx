@@ -74,6 +74,7 @@ import { StageEightPlanView } from './views/stages/StageEightPlanView';
 import { TaxStageStatusView } from './views/stages/TaxStageStatusView';
 import { ClientCaseStageView } from './views/stages/ClientCaseStageView';
 import { ClientConsultationHistoryPanel } from './dashboard/ClientConsultationHistoryPanel';
+import { ClientSignaturePackagesPanel } from './dashboard/ClientSignaturePackagesPanel';
 import { ClientNotificationsPanel } from './dashboard/ClientNotificationsPanel';
 import { ClientNotificationPreferencesPanel } from './dashboard/ClientNotificationPreferencesPanel';
 import { BLOCKED_STAGES } from '../../taxguard/stageCapabilities';
@@ -788,7 +789,7 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
     const STAGE_ALIASES: Record<string, number> = { tax_prep: 9, approval: 10, signature: 11, filing: 12, completed: 15 };
     const lateStage = STAGE_ALIASES[activeNavId] ?? (/^stage_(09|1[0-8])$/.test(activeNavId) ? Number(activeNavId.slice(6)) : 0);
     if (lateStage) {
-      return (
+      const view = (
         <TaxStageStatusView
           key={clientId + ':' + selectedTaxYear + ':' + lateStage}
           stage={lateStage}
@@ -797,6 +798,8 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
           onNavigate={target => handleSelectNav(target)}
         />
       );
+      // Stage 11: the server's record of a return released to this client for signature (status only).
+      return lateStage === 11 ? <div className="space-y-4">{view}<ClientSignaturePackagesPanel clientId={clientId} taxYear={selectedTaxYear} /></div> : view;
     }
 
     // Default Fallback: Client Dashboard Home

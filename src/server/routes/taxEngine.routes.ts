@@ -100,8 +100,8 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   // Stage 10 final authorization (proposal 20261019180000). The decision needs the person's own durable session: its hash
   // lets the database re-check the live AAL2 session and its recent sign-in in the same transaction. Any other session
   // (for example a process-local development session) is refused as not proving multi-factor sign-in.
-  const sessionHash = (req: AuthenticatedRequest) => {
-    if (typeof req.token !== 'string' || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new TaxEngineStoreError('TAX_RETURN_FINAL_SESSION_REQUIRED', 403);
+  const sessionHash = (req: AuthenticatedRequest, refusal = 'TAX_RETURN_FINAL_SESSION_REQUIRED') => {
+    if (typeof req.token !== 'string' || !/^tg_live_[a-f0-9]{64}$/.test(req.token)) throw new TaxEngineStoreError(refusal, 403);
     return createHash('sha256').update(req.token).digest('hex');
   };
   router.post('/returns/:returnVersionId/final-assignment', run(req => store().assignFinalAuthorizer(t(req), u(req), req.params.returnVersionId, req.body?.authorizerUid), 201));
@@ -110,6 +110,12 @@ export function createTaxEngineRouter(deps: { store?: () => TaxEngineStore; auth
   router.get('/returns/:returnVersionId/final-context', run(req => store().finalContext(t(req), u(req), req.params.returnVersionId)));
   router.get('/returns/:returnVersionId/final-authorizations', run(async req => ({ items: await store().finalAuthorizations(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
   router.post('/returns/:returnVersionId/final-authorization', run(async req => store().authorizeFinal(t(req), u(req), sessionHash(req), req.params.returnVersionId, req.body), 201));
+  // Stage 11 signature packages (proposal 20261019190000): release needs the same durable session; nothing is signed or sent.
+  router.get('/returns/:returnVersionId/signature-context', run(req => store().signatureContext(t(req), u(req), req.params.returnVersionId)));
+  router.get('/returns/:returnVersionId/signature-packages', run(async req => ({ items: await store().signaturePackages(t(req), u(req), req.params.returnVersionId), returnUse: 'BLOCKED' })));
+  router.post('/returns/:returnVersionId/signature-package', run(async req => store().releaseSignaturePackage(t(req), u(req),
+    sessionHash(req, 'TAX_RETURN_SIGNATURE_SESSION_REQUIRED'), req.params.returnVersionId, req.body), 201));
+  router.post('/returns/:returnVersionId/signature-package/withdraw', run(req => store().withdrawSignaturePackage(t(req), u(req), req.params.returnVersionId, textOf(req.body?.reason, 500))));
   router.post('/returns/:returnVersionId/:action(submit|approve|return)', run(req => store().transitionReturn(t(req), u(req), req.params.returnVersionId,
     req.params.action as 'submit' | 'approve' | 'return', note(req.body?.note))));
   router.get('/runs/:runId/lineage', run(req => store().runLineage(t(req), u(req), req.params.runId)));

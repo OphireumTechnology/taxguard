@@ -4,7 +4,7 @@
  * (tests) or when the durable store is configured against a non-production project; otherwise
  * 503. The database decides scope (own client / assigned staff / managers) and what clients see.
  */
-import { Router, type RequestHandler } from 'express';
+import { Router, type RequestHandler, type Response } from 'express';
 import { authenticateToken, type AuthenticatedRequest } from '../auth';
 import { getSupabaseAdmin } from '../supabase';
 import { practiceStoreConfigured } from '../taxguard/practice/practiceStoreConfig';
@@ -62,19 +62,44 @@ export function createClientPortalRouter(deps: ClientPortalRouterDeps = {}) {
   });
   return router;
 
-  /** Calls a portal RPC and maps database codes to safe HTTP answers (no database text is returned). */
-  async function portalRpc(res: import('express').Response, name: string, args: Record<string, unknown>) {
-    let response;
-    try { response = await rpc().rpc(name, args); } catch { return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' }); }
-    if (response?.error) {
-      const m = response.error.message;
-      if (response.error.code === 'P0001') {
-        if (m === 'DOCUMENT_NOT_FOUND' || m === 'PORTAL_ENGAGEMENT_NOT_FOUND' || m === 'CONSULT_CLIENT_NOT_FOUND') return res.status(404).json({ code: 'PORTAL_NOT_FOUND' });
-        if (m === 'DOCUMENT_ACCESS_DENIED') return res.status(403).json({ code: 'PORTAL_ACCESS_DENIED' });
-        if (m === 'DOCUMENT_INPUT_INVALID' || m === 'PORTAL_INPUT_INVALID') return res.status(400).json({ code: 'PORTAL_INPUT_INVALID' });
-      }
-      return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' });
+  function portalRpc(res: Response, name: string, args: Record<string, unknown>) { return callPortalRpc(rpc(), res, name, args); }
+}
+
+/**
+ * Stage 11 signature packages for the client portal (proposal 20261019190000): status only, no figures, forms or signing
+ * action. A separate mount, so its cutover does not hold back the other portal reads.
+ */
+export function createClientSignaturesRouter(deps: ClientPortalRouterDeps = {}) {
+  const router = Router();
+  const rpc = () => deps.client?.() ?? (getSupabaseAdmin() as unknown as PracticeRpcClient);
+  router.use((_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!deps.client && !practiceStoreConfigured()) return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' });
+    next();
+  });
+  router.use(deps.authenticate || authenticateToken);
+  router.get('/clients/:clientId/signature-packages', async (req: AuthenticatedRequest, res) => {
+    const user = req.user;
+    if (!user?.tenantId || user.status !== 'active' || user.role === 'recruiter') return res.status(403).json({ code: 'PORTAL_ACCESS_DENIED' });
+    const send = res.json.bind(res);
+    res.json = (body: any) => send(Array.isArray(body) ? { items: body, signature: 'NOT_AVAILABLE' } : body);
+    return callPortalRpc(rpc(), res, 'taxguard_portal_signature_packages', { p_tenant: user.tenantId, p_client: req.params.clientId, p_actor: user.id });
+  });
+  return router;
+}
+
+/** Calls a portal RPC and maps database codes to safe HTTP answers (no database text is returned). */
+async function callPortalRpc(client: PracticeRpcClient, res: Response, name: string, args: Record<string, unknown>) {
+  let response;
+  try { response = await client.rpc(name, args); } catch { return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' }); }
+  if (response?.error) {
+    const m = response.error.message;
+    if (response.error.code === 'P0001') {
+      if (m === 'DOCUMENT_NOT_FOUND' || m === 'PORTAL_ENGAGEMENT_NOT_FOUND' || m === 'CONSULT_CLIENT_NOT_FOUND') return res.status(404).json({ code: 'PORTAL_NOT_FOUND' });
+      if (m === 'DOCUMENT_ACCESS_DENIED') return res.status(403).json({ code: 'PORTAL_ACCESS_DENIED' });
+      if (m === 'DOCUMENT_INPUT_INVALID' || m === 'PORTAL_INPUT_INVALID') return res.status(400).json({ code: 'PORTAL_INPUT_INVALID' });
     }
-    return res.json(response?.data ?? null);
+    return res.status(503).json({ code: 'PORTAL_STORE_UNAVAILABLE' });
   }
+  return res.json(response?.data ?? null);
 }

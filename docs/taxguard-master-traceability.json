@@ -4992,6 +4992,22 @@
       ]
     },
     {
+      "file": "docs/development/block74-signature-package-design.md",
+      "sha256": "0af90761b326a93f2d35d6c2b723384a759584d41cd8acb7db2627b331ffbd0b",
+      "bytes": 10236,
+      "headings": [
+        "# Block 74: Stage 11 signature package preparation, without signing (design)",
+        "## Purpose",
+        "## Reuses",
+        "## Adds",
+        "## Independence and separation",
+        "## Tests",
+        "## [OWNER] decisions required before anything here can release a real return",
+        "## Not in scope",
+        "## As built (proposal 20261019190000, review only)"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5285,8 +5301,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "3d6585d6b854322d13c249e00652a4902df439c0e7d075ae041464c132c9728c",
-      "bytes": 23254,
+      "sha256": "1cd47cf4b32d33e7c8c0afcb3884f4488b7bce2dcd310877e5cf5c16f9695c40",
+      "bytes": 23441,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6690,6 +6706,12 @@
       "headings": []
     },
     {
+      "file": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
+      "sha256": "d2b27d45720e01fcea2824023c9dca591c8c59aa12f7622cb420140de878289b",
+      "bytes": 24461,
+      "headings": []
+    },
+    {
       "file": "docs/proposed-migrations/rollback/20261014470000_taxguard_billing_client_projection.rollback.sql",
       "sha256": "2847cea1e7e1c6dc3856875e27174564aa99dab0942afbcaa280c3be4bc3bc64",
       "bytes": 4253,
@@ -7726,7 +7748,7 @@
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/backup/logical-backup.mjs": "d43b32114ecd5ea781df3100ebaf1ae1b436b46a274f0bc7008d32a8ae005163",
-    "scripts/e2e/e2e-server.ts": "94a4b428d5b4dedfeb9bda435de7f28c9be5b5207ff06587448981848cd00552",
+    "scripts/e2e/e2e-server.ts": "c694f01d21a05de94e767ba6dda8c26e0c63c7ca07a1c32dcb392326074595a1",
     "scripts/frontend/reachability-audit.mjs": "a4f32a935ecb879bc774d3b4a8d35c9466da08b33d1abad566591e0f7bae6481",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/migrations/migration-audit.mjs": "0fdde903233b5fd7c836b45da7e80e7d86aba205796d0e7de97032d92816df22",
@@ -7750,7 +7772,7 @@
     "src/components/documents/ClientDocumentVaultPanel.tsx": "3edb12f96445fcdf8f6672b07ec9863e41e6c7940f0e084f054a0bddf2a69aab",
     "src/components/layout/DashboardApplicationShell.tsx": "50aadd182609d6c2c3ae0ad0d7e3f898993c82f4d4dc10b68d009e936e51810e",
     "src/components/layout/dashboardAccess.ts": "d9a86f0ad6fd7c84b0ce82809538be2a7973554842ba104963ed9a03b13c7ac2",
-    "src/components/portal/AuthenticatedClientDashboard.tsx": "886effc8c8a9fd3d8e1feb9c2a4b7645cce7321b48423c32363ebca6692e35b4",
+    "src/components/portal/AuthenticatedClientDashboard.tsx": "9a48d0c9f82c1db743eb942ac3f90c6f3c421037cfbbf53b1e5b42fd571c8721",
     "src/components/portal/dashboard/ClientNotificationsPanel.tsx": "873fdc578ab2eea2b5df6e2cf7c066ce9d9fab983e2c214d1eb0c9be1e82d4df",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
@@ -7783,7 +7805,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "d9bea579ae38856cc991d30b9e6f2aff45bc44f4715b3e72a1b62d80aa4e5713",
+    "src/server/productionApp.ts": "607f01a1b0d038c02fd1e86a9fc30808a420959b3d0868ee4ac4c15cf7bfd397",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
