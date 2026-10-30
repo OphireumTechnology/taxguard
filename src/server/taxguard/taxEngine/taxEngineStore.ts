@@ -33,6 +33,10 @@ const STATUS: Record<string, number> = { TAX_CONTENT_ROLE_REQUIRED: 403, TAX_CON
   TAX_RETURN_QC_ASSIGNER_REQUIRED: 403, TAX_RETURN_QC_REVIEWER_REQUIRED: 403, TAX_RETURN_QC_AUTHORITY_REQUIRED: 403, TAX_RETURN_QC_NOT_INDEPENDENT: 409,
   TAX_RETURN_QC_ASSIGNEE_INVALID: 409, TAX_RETURN_QC_ALREADY_ASSIGNED: 409, TAX_RETURN_QC_NOT_ASSIGNED: 409, TAX_RETURN_QC_CHECKLIST_REQUIRED: 409,
   TAX_RETURN_NOT_APPROVED: 409, TAX_RETURN_QC_HISTORY_IMMUTABLE: 409,
+  TAX_RETURN_FINAL_ASSIGNER_REQUIRED: 403, TAX_RETURN_FINAL_AUTHORIZER_REQUIRED: 403, TAX_RETURN_FINAL_AUTHORITY_REQUIRED: 403,
+  TAX_RETURN_FINAL_SESSION_REQUIRED: 403, STAFF_RECENT_SIGN_IN_REQUIRED: 403, STAFF_FRESH_SIGN_IN_REQUIRED: 403, TAX_RETURN_FINAL_NOT_INDEPENDENT: 409,
+  TAX_RETURN_FINAL_ASSIGNEE_INVALID: 409, TAX_RETURN_FINAL_ALREADY_ASSIGNED: 409, TAX_RETURN_FINAL_NOT_ASSIGNED: 409, TAX_RETURN_NOT_READY: 409,
+  TAX_RETURN_ATTESTATION_REQUIRED: 409, TAX_RETURN_ATTESTATION_CHANGED: 409, TAX_RETURN_FINAL_ALREADY_DECIDED: 409, TAX_RETURN_FINAL_HISTORY_IMMUTABLE: 409,
   TAX_RETURN_PREPARATION_REFUSED: 409, TAX_RETURN_NOT_DRAFT: 409, TAX_RETURN_NOT_SUBMITTED: 409, TAX_RETURN_STALE: 409, TAX_RETURN_IMMUTABLE: 409,
   TAX_FORM_MAPPING_PREPARER_REQUIRED: 403, TAX_FORM_MAPPING_REFUSED: 409, TAX_FORM_MAPPING_EMPTY: 409, TAX_FORM_MAPPING_IMMUTABLE: 409,
   // Tax research memos (proposal 20261018150000).
@@ -297,6 +301,34 @@ export class TaxEngineStore {
   finalReadiness(tenant: string, actor: string, returnVersionId: string) {
     return this.call('taxguard_tax_return_final_readiness', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
   }
+  // Stage 10 final authorization (proposal 20261019180000). A practice manager assigns an independent authorizer; only that
+  // person decides, in a live AAL2 session with a recent sign-in, on a ready version under the owner's attestation text.
+  assignFinalAuthorizer(tenant: string, actor: string, returnVersionId: string, authorizerUid: unknown) {
+    return this.call('taxguard_tax_return_final_assign', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId),
+      p_authorizer: typeof authorizerUid === 'string' ? authorizerUid : null });
+  }
+  unassignFinalAuthorizer(tenant: string, actor: string, returnVersionId: string, reason: string) {
+    return this.call('taxguard_tax_return_final_unassign', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId), p_reason: reason });
+  }
+  finalQueue(tenant: string, actor: string) { return this.call<any[]>('taxguard_tax_return_final_queue', { p_tenant: tenant, p_actor: actor }); }
+  finalContext(tenant: string, actor: string, returnVersionId: string) {
+    return this.call('taxguard_tax_return_final_context', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+  authorizeFinal(tenant: string, actor: string, sessionHash: string, returnVersionId: string, input: unknown) {
+    return this.call('taxguard_tax_return_final_authorize', { p_tenant: tenant, p_actor: actor, p_session_hash: sessionHash,
+      p_version: this.returnVersion(returnVersionId), p_input: finalAuthorizationBody(input) });
+  }
+  finalAuthorizations(tenant: string, actor: string, returnVersionId: string) {
+    return this.call<any[]>('taxguard_tax_return_final_list', { p_tenant: tenant, p_actor: actor, p_version: this.returnVersion(returnVersionId) });
+  }
+}
+
+/** Only the documented fields reach the database, which validates them; any other field makes the decision invalid. */
+function finalAuthorizationBody(body: unknown) {
+  const b = (body && typeof body === 'object' && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
+  const unexpected = Object.keys(b).some(k => !['outcome', 'attestationVersion', 'acknowledged', 'note'].includes(k));
+  return { outcome: b.outcome ?? null, attestationVersion: b.attestationVersion ?? null, acknowledged: b.acknowledged ?? null,
+    ...(b.note === undefined ? {} : { note: b.note }), ...(unexpected ? { unexpectedField: true } : {}) };
 }
 
 /** Only the documented fields reach the database; links are type and reference pairs. */

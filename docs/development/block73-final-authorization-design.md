@@ -116,3 +116,36 @@ practice. That would be a reviewed database change, never a caller option.
 
 Client signature (Form 8879) and any e-file rendering (Stage 11), filing and transmission (Stage 12), and payments.
 No AI agent is given any capability here.
+
+## As built (proposal 20261019180000, review only)
+
+- **Assignment.** The case has only preparer and reviewer slots, so Stage 10 uses a per-version assignment, like QC.
+  - A practice manager assigns the final authorizer: `POST /returns/:id/final-assignment`. It is revoked with a reason.
+  - The policy CHECK makes the assignment mandatory, together with eligibility and designation.
+  - The independence exclusions cover everyone who took part in the version, including every QC reviewer of record
+    and the manager who assigned QC. They are checked when assigning and again when deciding.
+- **Session.** The route hashes the person's own `tg_live_` durable token; anything else is refused with 401. The
+  database re-checks AAL2 and a sign-in within `taxguard_privileged_max_age_seconds()` in the same transaction. A
+  missing or non-AAL2 session reports `TAX_RETURN_FINAL_SESSION_REQUIRED`; an old sign-in reports
+  `STAFF_RECENT_SIGN_IN_REQUIRED`.
+- **Order of checks:**
+  1. session;
+  2. scope (not found);
+  3. live assignee;
+  4. independence;
+  5. input;
+  6. readiness (`TAX_RETURN_NOT_READY` with the reasons);
+  7. authority;
+  8. attestation present and equal to the version shown;
+  9. no current decision on the same inputs (`TAX_RETURN_FINAL_ALREADY_DECIDED`).
+- **Declining.** Declining also requires a ready version, and is recorded with a note.
+- **Readiness.** `taxguard_tax_return_final_readiness` is superseded. It has the same checks, moved into the internal
+  `taxguard_tax_return_readiness_eval`. It is readable by the live authorizer and reports:
+  - `finalAuthorization` (`decision`, `current`, `reasons`);
+  - `stage10` (`AUTHORIZED` only for a current `AUTHORIZED`);
+  - `stage11` (`CLIENT_SIGNATURE_REQUIRED` once authorized);
+  - `returnUse: BLOCKED`.
+- **Not built:**
+  - automatic routing back to preparation after `DECLINED` (owner decision 4);
+  - a maker-checker workflow for writing attestation texts and policies (reviewed database change only);
+  - Stage 11 itself.

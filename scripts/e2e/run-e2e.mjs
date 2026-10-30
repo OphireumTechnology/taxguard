@@ -29,6 +29,7 @@ const users = [
   person('e2e-acct', 'accountant', 'Synthetic Accountant'),
   person('e2e-rev', 'senior_reviewer', 'Synthetic Reviewer'),
   person('e2e-qc', 'reviewer', 'Synthetic Quality Control Reviewer'),
+  person('e2e-fa', 'reviewer', 'Synthetic Final Authorizer'),
   person('e2e-bk', 'bookkeeper', 'Synthetic Bookkeeper', { authorizedClientIds: [C] }),
   person('e2e-recruiter', 'recruiter', 'Synthetic Recruiter'),
   person('e2e-client', 'client', 'Synthetic Client', { clientId: C }),

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, staffLogin } from './helpers';
 import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEngine/syntheticFixtures';
-import { readinessText } from '../services/taxEngineService';
+import { finalAuthorizationText, readinessText } from '../services/taxEngineService';
 
 // Phase 5 through the real server and its real capability lists: synthetic source and rule set,
 // independent verification and approval, a deterministic pinned run on the E2E case, reviewer-only
@@ -777,9 +777,43 @@ describe('draft return preparation on the real server', () => {
     expect(readiness).toMatchObject({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', returnUse: 'BLOCKED' });
     expect(readiness.reasons.filter((r: string) => r.startsWith('QC_') || r.startsWith('RISK_'))).toEqual([]);
     await article(reviewer, 1).getByRole('button', { name: 'Check final readiness of SYN-1040-RETURN version 1' }).click();
-    await result(reviewer).getByText(`Final readiness of SYN-1040-RETURN version 1: ${readinessText(readiness)}.`).waitFor();
+    await result(reviewer).getByText(`Final readiness of SYN-1040-RETURN version 1: ${readinessText(readiness)}. Stage 10: ${finalAuthorizationText(readiness)}.`).waitFor();
     expect(realErrors(qc)).toEqual([]);
     await qc.context.close();
+    // Block 73: a manager assigns an independent final authorizer, who reads the attestation and must confirm it. The
+    // decision needs a durable multi-factor session (proved again in the database); this profile signs in with
+    // process-local sessions, so the decision is refused and nothing is recorded. The authorized path runs on
+    // PostgreSQL with real session rows (taxReturnFinalAuthorization.db.test.ts). Nothing is signed or filed.
+    expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/final-assignment`, { authorizerUid: 'e2e-qc' })).body.code).toBe('TAX_RETURN_FINAL_NOT_INDEPENDENT');
+    expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/final-assignment`, { authorizerUid: 'e2e-fa' })).status).toBe(201);
+    expect((await api(rev, 'POST', `/api/tax-engine/returns/${v1id}/final-authorization`, { outcome: 'AUTHORIZED', attestationVersion: 1, acknowledged: true })).body.code)
+      .toBe('TAX_RETURN_FINAL_SESSION_REQUIRED');
+    const fa = await staffLogin('e2e-fa');
+    const faPanel = fa.page.getByRole('region', { name: /My final authorization queue/ });
+    const faItem = faPanel.getByRole('article', { name: 'Final authorization of SYN-1040-RETURN version 1' });
+    await faItem.getByRole('button', { name: 'Review final authorization of SYN-1040-RETURN version 1' }).click();
+    const decision = faItem.getByRole('form', { name: 'Final authorization of SYN-1040-RETURN version 1' });
+    await decision.getByText('Synthetic attestation for end-to-end tests only; not legal wording.').waitFor();
+    const authorizeButton = decision.getByRole('button', { name: 'Authorize SYN-1040-RETURN version 1' });
+    expect(await authorizeButton.isDisabled()).toBe(true); // nothing is pre-confirmed
+    // In this journey the version is not ready (the server's reasons are asserted below): the panel shows them and the
+    // decision stays unavailable even after the acknowledgement. The server refuses a decision on its own too.
+    const pre = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
+    expect(pre.ready, JSON.stringify(pre.reasons)).toBe(false);
+    await decision.getByText(`Readiness: ${readinessText(pre)}.`, { exact: false }).waitFor();
+    await decision.getByRole('checkbox').check();
+    expect(await authorizeButton.isDisabled()).toBe(true);
+    expect(await decision.getByRole('button', { name: 'Decline SYN-1040-RETURN version 1' }).isDisabled()).toBe(true);
+    const faApi = await apiLogin('e2e-fa');
+    expect((await api(faApi, 'POST', `/api/tax-engine/returns/${v1id}/final-authorization`, { outcome: 'AUTHORIZED', attestationVersion: 1, acknowledged: true })).body.code)
+      .toBe('TAX_RETURN_FINAL_SESSION_REQUIRED');
+    await fa.page.setViewportSize({ width: 375, height: 812 });
+    expect(await fa.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    expect(realErrors(fa)).toEqual([]);
+    await fa.context.close();
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items).toEqual([]);
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body).toMatchObject({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', stage11: 'NOT_STARTED',
+      returnUse: 'BLOCKED' });
     // A revised conclusion makes the mapping and then the approved return STALE; nothing is replaced silently.
     const k = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
     const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7300.00', links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });

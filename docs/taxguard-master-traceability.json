@@ -4948,6 +4948,22 @@
       ]
     },
     {
+      "file": "docs/development/block73-final-authorization-design.md",
+      "sha256": "9ddbab5743bddbdccc53291114af015f2fc0bf937485a5e91eafc4fb912385af",
+      "bytes": 8699,
+      "headings": [
+        "# Block 73: Stage 10 final authorization of a return version (design)",
+        "## Purpose",
+        "## Reuses",
+        "## Adds",
+        "## Independence",
+        "## Tests",
+        "## [OWNER] decisions required before anything here can authorize a real return",
+        "## Not in scope",
+        "## As built (proposal 20261019180000, review only)"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5241,8 +5257,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "f0ef41d69c63d86260ee847162b91cf4560544dfb8b2dfcc77506a996eb66480",
-      "bytes": 22805,
+      "sha256": "893cecdc8c4b469ba4ce09e7bca19e7adcbb5a30f785fc714f97dc963e23c30f",
+      "bytes": 23004,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6630,7 +6646,13 @@
     {
       "file": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
       "sha256": "5951b40d4e7b00d61aaf592552f20e376b4961a61433bbc3e79d4d650aab24df",
-      "bytes": 27167,
+      "bytes": 27498,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql",
+      "sha256": "dab8127fc1be062f0b8813e4e4aa3e183501817c74e7e5c1dbf80555d56b33e5",
+      "bytes": 33300,
       "headings": []
     },
     {
@@ -7670,7 +7692,7 @@
     "qa/synthetic-shell/main.tsx": "fd0bd6fb7330b8cc3a86d562e55f85ca023e18f79ccc8e85f6c5c43a52f61a38",
     "qa/synthetic-shell/qa.css": "ec0e789c2e34bcbe64abac4008eae3ff2260d09c1f86d4383274d09f725c5735",
     "scripts/backup/logical-backup.mjs": "d43b32114ecd5ea781df3100ebaf1ae1b436b46a274f0bc7008d32a8ae005163",
-    "scripts/e2e/e2e-server.ts": "e4c511119c1633f12edd421f25ef4354b7ca7f6dee77d80933be02f0f111bad5",
+    "scripts/e2e/e2e-server.ts": "b642783c12b4b58503238724c6a4a4f6125ba6f2fa880f745f1ee7da17e41892",
     "scripts/frontend/reachability-audit.mjs": "a4f32a935ecb879bc774d3b4a8d35c9466da08b33d1abad566591e0f7bae6481",
     "scripts/local-browser-prerequisites.mjs": "ac57470de4bb6390186bdac8718f46736e8892427216836126bb1e7e10ebc0ba",
     "scripts/migrations/migration-audit.mjs": "0fdde903233b5fd7c836b45da7e80e7d86aba205796d0e7de97032d92816df22",
@@ -7862,7 +7884,7 @@
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
-    "src/tests/proposalCompositionSecurity.test.ts": "cfb747a7fe258df753b8949438801d9692c8c2df65a01170df22f33fffc4c1ba",
+    "src/tests/proposalCompositionSecurity.test.ts": "b57c139caf90b17773c0fc11c71d10a02423f95fdf4bc1ed9c2e0116a5d917af",
     "src/tests/providerConfigurationTruthfulness.test.ts": "ad4d9773501f4b5835e7115b16d74bbf498db598a340ee04ea54778d9da0cfd9",
     "src/tests/providerValidationTarget.test.ts": "810a6fafdc181861d5130ab449de0c50af287e57ffec7ed6d5e9ee25da10c68a",
     "src/tests/readinessProbeBoundaries.test.ts": "14facbda89f7dcf48cf3d400a4f19d32a51f04bf58e6a6d77bedf82ace016c10",
