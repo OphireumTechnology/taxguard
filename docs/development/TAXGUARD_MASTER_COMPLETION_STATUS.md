@@ -55,6 +55,12 @@ Audits completed in this cycle (documents):
 
 ### In progress (not yet verified)
 
+- **Blocks 66-78 are on `main` (2026-10-31).** `main` was fast-forwarded on the owner's instruction from `c998807` to
+  `d0b7099`, which is the integrated branch after its full matrix passed at `c283dfd` (unit 6256, PostgreSQL 323,
+  browser 137 + 44, build, release candidate, NOT VALID, secrets, diff check, contamination). GitHub CI did not run:
+  the workflow runs on pull requests to `main`, not on pushes. The "stacked on Block N" wording in the entries below
+  records how each block was built. Every database change is still a review-only proposal: nothing is applied to a
+  hosted database, and the owner policies listed below are still unconfigured, so the gated actions still fail closed.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "4894e39dda95b3fec2427c609cf9d2ca9d3e131b14c8b5a68eeafa14ea41ffac",
+  "executionPlanSha256": "762238e75f5e46a2303a9c8fcb07b155888370599d0e1fe3eec615ba5eaad0d8",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6116,6 +6116,68 @@
         "--     out: it is shown, never acted on.",
         "-- Ordered by submission time, oldest first; no priority is computed (prioritisation is a practice decision).",
         "-- Read only: nothing is approved, returned, assigned or recorded. Practice managers see every SUBMITTED version of the"
+      ]
+    },
+    {
+      "order": 113,
+      "file": "docs/proposed-migrations/20261019220000_taxguard_tax_run_liveness.sql",
+      "kind": "proposal",
+      "version": "20261019220000",
+      "sha256": "e30b7f3bddd3b2dbb01d4ed79afe0caba3d01425aac1e7d11b3ff5323ca4562c",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_tax_run_record",
+        "taxguard_tax_run_lineage"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_tax_run_record",
+          "previousFile": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_tax_run_lineage",
+          "previousFile": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the 20261018190000 definitions."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_run_record(text,text,text,jsonb) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_tax_run_record(text,text,text,jsonb) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_tax_run_lineage(text,text,uuid) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_tax_run_lineage(text,text,uuid) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 79, live assignment for calculation runs). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261018090000 (taxguard_case_slot_live) and 20261018190000, which holds the current definitions below.",
+        "--",
+        "-- Regression found by the function access inventory (src/tests-db/functionAccessInventory.db.test.ts):",
+        "-- 20261018090000 made taxguard_tax_run_record require the live preparer or reviewer assignment. 20261018190000 then",
+        "-- redefined it from the older 033 definition, which trusted the name recorded on the case, so the liveness check was",
+        "-- lost; its new taxguard_tax_run_lineage trusted the recorded name as well. A preparer or reviewer whose assignment was",
+        "-- revoked or had expired, but who was still named on the case, could therefore record a calculation run on the case",
+        "-- and read a run's evidence lineage (input values and the documents they cite).",
+        "--",
+        "-- What changes: both functions require taxguard_case_slot_live, as taxguard_tax_run_list and taxguard_tax_run_review",
+        "-- already do. Refusals keep the existing not-found codes (TAX_CALC_CASE_NOT_FOUND, TAX_CALC_RUN_NOT_FOUND), so an"
       ]
     }
   ]
