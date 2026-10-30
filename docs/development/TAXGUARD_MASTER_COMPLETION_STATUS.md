@@ -130,6 +130,16 @@ Audits completed in this cycle (documents):
   browser profile 136/136. Integration at `9ef4fce` (Blocks 68-76): full matrix green (unit 6248, PostgreSQL 59 files /
   320, browser 137 + 44, build, release candidate (111 entries), NOT VALID (13), secrets (1664 scanned), diff check,
   contamination).
+- **Operational alert conditions (Block 77) and the Stage 09 review queue (Block 78), 2026-10-31.** Block 77: yes-or-no
+  alert conditions from the administrator diagnostics, written as redacted JSON lines, and `GET /api/operational-alerts`
+  for operational administrators; delivery NOT_CONFIGURED (no notification provider) and no invented thresholds (branch
+  at `a8ce81c`: unit 6237, default browser profile 136/136, two mutation checks caught). Block 78: review-only proposal
+  `20261019210000`, the reviewer's queue of submitted versions with staleness, verification and the latest risk outcome
+  (BLOCKED shown, never acted on); read only (branch at `4958e1d`: PostgreSQL 8/8, three mutation checks caught, browser
+  suites 01-07 59/59). Integration at `c283dfd` (Blocks 68-78): full matrix green (unit 6256, PostgreSQL 59 files / 323,
+  browser 137 + 44, build, release candidate (112 entries), NOT VALID (13), secrets (1670 scanned), diff check,
+  contamination). **Owner review point:** alert recipients and provider, any rate or latency thresholds, the alert
+  interval and log destination per deployment.
 - **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
   `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
   agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
