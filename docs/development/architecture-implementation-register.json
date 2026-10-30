@@ -524,17 +524,27 @@
         "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
         "src/server/taxguard/taxEngine/taxEngineStore.ts",
         "src/server/routes/taxEngine.routes.ts",
-        "src/components/workspace/CaseDraftReturnPanel.tsx"
+        "src/components/workspace/CaseDraftReturnPanel.tsx",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+        "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
+        "src/components/workspace/QualityControlQueuePanel.tsx"
       ],
       "tests": [
         "src/tests/productionStages04Through09.test.ts",
         "src/tests-db/taxReturnPreparation.db.test.ts",
+        "src/tests-db/taxReturnVerification.db.test.ts",
+        "src/tests-db/taxReturnDiagnostics.db.test.ts",
+        "src/tests-db/taxReturnRisk.db.test.ts",
+        "src/tests-db/taxReturnQualityControl.db.test.ts",
+        "src/tests/proposalCompositionSecurity.test.ts",
         "src/tests/caseDraftReturnPanel.test.tsx",
         "src/tests/routeCutover.test.ts",
         "src/tests-e2e/07-tax-engine.e2e.test.ts"
       ],
-      "blocker": "Review-only proposals 20261019115000 and 20261019120000 await owner approval; approval policies, eligibility and designations are unconfigured, so every approval fails closed; no real template content.",
-      "remainingGap": "Block 68: versioned draft returns assembled only from current Block 67 mappings through approved templates, preparer submit and independent Stage 09 review under separate eligibility, designation and case authority; lineage to the source document SHA-256; derived staleness; production refused. Gaps: real federal/state templates, wiring Stage 09 facts into the gate callers, Blocks 69-72 (verification, return diagnostics, risk, QC) and Stage 10."
+      "blocker": "Review-only proposals 20261019115000, 20261019120000 and 20261019140000-20261019170000 await owner approval; approval policies (draft review, QC), eligibility, designations, the materiality policy and the QC checklist are unconfigured, so every approval, QC record and readiness check fails closed; no real template content.",
+      "remainingGap": "Block 68: versioned draft returns assembled only from current Block 67 mappings through approved templates, preparer submit and independent Stage 09 review under separate eligibility, designation and case authority; lineage to the source document SHA-256; derived staleness; production refused. Blocks 69-72 (unmerged stack): independent re-execution of every calculation behind a version (VERIFIED required for approval), return-level diagnostics in the governed rule table, immutable risk assessments that never return CONTINUE (OV-09), and an independent third-person QC assignment and checklist review; final readiness reports stage10 FINAL_AUTHORIZATION_REQUIRED and returnUse BLOCKED. Gaps: real federal/state templates, wiring Stage 09 facts into the gate callers, risk escalation to a reviewer queue, deriving the amount at stake from mapped lines (owner criterion), a maker-checker workflow for policies and checklists, and Stage 10 final authorization."
     },
     {
       "id": "TAX-FORM-MAPPING",
