@@ -73,6 +73,12 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
     VALUES('${E2E.tenant}','e2e-fa','EA','synthetic-enrolment-e2e-fa','US',ARRAY['US'],'2025-01-01','2099-12-31','e2e-admin','synthetic-registry-lookup');
   INSERT INTO taxguard_tax_function_designations(tenant_id,person_uid,function_code,policy_version,designation_reference,designated_by)
     VALUES('${E2E.tenant}','e2e-fa','RETURN_FINAL_AUTHORIZATION',1,'synthetic-designation-e2e-fa','e2e-admin');
+  -- The same synthetic authority for a durable (provider-session) final authorizer, the only kind of session that can
+  -- record a Stage 10 decision (suite 07). Its membership is added with the other durable staff below.
+  INSERT INTO taxguard_tax_professional_eligibility(tenant_id,person_uid,credential_type,credential_reference,issuing_jurisdiction,scope_jurisdictions,valid_from,expires_on,verified_by,verification_reference)
+    VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000fa','EA','synthetic-enrolment-durable-fa','US',ARRAY['US'],'2025-01-01','2099-12-31','e2e-admin','synthetic-registry-lookup');
+  INSERT INTO taxguard_tax_function_designations(tenant_id,person_uid,function_code,policy_version,designation_reference,designated_by)
+    VALUES('${E2E.tenant}','d0000000-0000-4000-8000-0000000000fa','RETURN_FINAL_AUTHORIZATION',1,'synthetic-designation-durable-fa','e2e-admin');
   INSERT INTO taxguard_tax_final_attestations(tenant_id,attestation_version,attestation_text,rationale,created_by,approved_by)
     VALUES('${E2E.tenant}',1,'Synthetic attestation for end-to-end tests only; not legal wording.','Synthetic attestation for end-to-end tests only.','e2e-mgr','e2e-admin');
   -- Durable (provider-session) staff for the staff-security suite. Their provider accounts are
@@ -83,6 +89,8 @@ await q(`INSERT INTO taxguard_tenants(id,name) VALUES('${E2E.tenant}','Synthetic
     ('${E2E.tenant}','d0000000-0000-4000-8000-000000000003','accountant','active'),
     -- MFA recovery retry / cancellation / self-reactivation (provider suite 09 only).
     ('${E2E.tenant}','d0000000-0000-4000-8000-000000000004','accountant','active'),('${E2E.tenant}','d0000000-0000-4000-8000-000000000005','accountant','active'),
+    -- Durable Stage 10 final authorizer (suite 07 only).
+    ('${E2E.tenant}','d0000000-0000-4000-8000-0000000000fa','reviewer','active'),
     -- An administrator of ANOTHER tenant (cross-tenant denial): no membership in this deployment's tenant.
     ('${E2E.other}','d0000000-0000-4000-8000-0000000000f1','admin','active');
   INSERT INTO taxguard_identities(tenant_id,uid,user_data) SELECT tenant_id,uid,jsonb_build_object('id',uid,'tenantId',tenant_id,'role',role,'status',status,

@@ -1,5 +1,6 @@
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
-import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, ensureStaffed, openModule, realErrors, sees, staffLogin } from './helpers';
+import { ORIGIN, api, apiLogin, C, closeBrowser, control, dumpOnFailure, durableSession, ensureStaffed, liveSessionWithToken, openModule, providerControl, providerToken, realErrors, sees,
+  staffLogin } from './helpers';
 import { syntheticRuleSet, SYNTHETIC_SOURCE_ID } from '../server/taxguard/taxEngine/syntheticFixtures';
 import { finalAuthorizationText, readinessText } from '../services/taxEngineService';
 
@@ -781,9 +782,9 @@ describe('draft return preparation on the real server', () => {
     expect(realErrors(qc)).toEqual([]);
     await qc.context.close();
     // Block 73: a manager assigns an independent final authorizer, who reads the attestation and must confirm it. The
-    // decision needs a durable multi-factor session (proved again in the database); this profile signs in with
-    // process-local sessions, so the decision is refused and nothing is recorded. The authorized path runs on
-    // PostgreSQL with real session rows (taxReturnFinalAuthorization.db.test.ts). Nothing is signed or filed.
+    // decision needs a durable multi-factor session (proved again in the database). First with e2e-fa, signed in with a
+    // process-local session on a version that is not ready yet: refused, and nothing is recorded. Then, once the version
+    // is ready, a durable final authorizer decides in the browser. Nothing is signed or filed.
     expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/final-assignment`, { authorizerUid: 'e2e-qc' })).body.code).toBe('TAX_RETURN_FINAL_NOT_INDEPENDENT');
     expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/final-assignment`, { authorizerUid: 'e2e-fa' })).status).toBe(201);
     expect((await api(rev, 'POST', `/api/tax-engine/returns/${v1id}/final-authorization`, { outcome: 'AUTHORIZED', attestationVersion: 1, acknowledged: true })).body.code)
@@ -800,6 +801,8 @@ describe('draft return preparation on the real server', () => {
     // decision stays unavailable even after the acknowledgement. The server refuses a decision on its own too.
     const pre = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
     expect(pre.ready, JSON.stringify(pre.reasons)).toBe(false);
+    // The open ERROR is the reviewer's own adjusting entry left pending by suite 03 (LEDGER_ENTRIES_UNREVIEWED).
+    expect(pre.reasons).toEqual(['DIAGNOSTICS_OPEN']);
     await decision.getByText(`Readiness: ${readinessText(pre)}.`, { exact: false }).waitFor();
     await decision.getByRole('checkbox').check();
     expect(await authorizeButton.isDisabled()).toBe(true);
@@ -814,6 +817,77 @@ describe('draft return preparation on the real server', () => {
     expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items).toEqual([]);
     expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body).toMatchObject({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', stage11: 'NOT_STARTED',
       returnUse: 'BLOCKED' });
+    // Making the version ready the way a practice would: an independent ledger reviewer (the administrator) rejects the
+    // pending entry, which posts nothing; the reviewer runs the diagnostics again, so the earlier QC review is no longer
+    // newer than them, and the QC reviewer records QC again.
+    const admin = await apiLogin('e2e-admin');
+    const ledgerScope = { clientId: C, taxYear: 2025 };
+    const pending = (await api(admin, 'GET', `/api/bookkeeping/journal-entries?status=PREPARED&clientId=${C}&taxYear=2025`)).body.entries;
+    expect(pending.length).toBeGreaterThan(0);
+    for (const e of pending) {
+      expect((await api(rev, 'POST', `/api/bookkeeping/journal-entries/${e.id}/reject`, { ...ledgerScope, version: e.version, note: 'Synthetic self-review attempt.' })).status)
+        .toBeGreaterThanOrEqual(400); // the reviewer prepared it: maker-checker
+      const rejected = await api(admin, 'POST', `/api/bookkeeping/journal-entries/${e.id}/reject`, { ...ledgerScope, version: e.version, note: 'Synthetic: not part of this return.' });
+      expect(rejected.status, JSON.stringify(rejected.body)).toBe(200);
+      expect(rejected.body.entry.status).toBe('REJECTED');
+    }
+    expect((await api(rev, 'POST', `/api/tax-engine/cases/${caseId}/diagnostics/run`)).status).toBeLessThan(300);
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body.reasons).toEqual(['RISK_NOT_CURRENT', 'QC_NOT_CURRENT']);
+    expect((await api(acct, 'POST', `/api/tax-engine/returns/${v1id}/risk`, { amountCents: 500000 })).status).toBe(201);
+    const qcApi = await apiLogin('e2e-qc');
+    const qcAgain = await api(qcApi, 'POST', `/api/tax-engine/returns/${v1id}/qc`, { results: [{ code: 'TIES_TO_SOURCES', result: 'PASS' }, { code: 'PRIOR_YEAR_COMPARED', result: 'PASS' }] });
+    expect(qcAgain.status, JSON.stringify(qcAgain.body)).toBe(201);
+    const ready = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
+    expect(ready, JSON.stringify(ready.reasons)).toMatchObject({ ready: true, reasons: [], stage10: 'FINAL_AUTHORIZATION_REQUIRED', stage11: 'NOT_STARTED', returnUse: 'BLOCKED' });
+    // The durable final authorizer signs in through the provider (multi-factor, just now) and the real session exchange.
+    const DURABLE_FA = 'd0000000-0000-4000-8000-0000000000fa';
+    expect((await providerControl('/e2e/provider-user', { uid: DURABLE_FA, email: `${DURABLE_FA}@example.test`, name: 'Synthetic Durable Final Authorizer' })).status).toBe(200);
+    const live = await durableSession(await providerToken(DURABLE_FA));
+    expect(live.status, JSON.stringify(live.body)).toBe(200);
+    // Only the assigned authorizer decides: before the manager reassigns, the durable session cannot even see the version.
+    const decide = (body: unknown) => fetch(ORIGIN + `/api/tax-engine/returns/${v1id}/final-authorization`, { method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${live.body.token}` }, body: JSON.stringify(body) }).then(async r => ({ status: r.status, body: await r.json() as any }));
+    expect((await decide({ outcome: 'AUTHORIZED', attestationVersion: 1, acknowledged: true })).body.code).toBe('TAX_RETURN_NOT_FOUND');
+    expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/final-assignment/revoke`, { reason: 'Synthetic: reassigned to the durable authorizer.' })).status).toBe(200);
+    expect((await api(mgr, 'POST', `/api/tax-engine/returns/${v1id}/final-assignment`, { authorizerUid: DURABLE_FA })).status).toBe(201);
+    const dfa = await liveSessionWithToken(live.body.token, '/staff');
+    const dfaPanel = dfa.page.getByRole('region', { name: /My final authorization queue/ });
+    const dfaItem = dfaPanel.getByRole('article', { name: 'Final authorization of SYN-1040-RETURN version 1' });
+    await dfaItem.getByRole('button', { name: 'Review final authorization of SYN-1040-RETURN version 1' }).click();
+    const dfaForm = dfaItem.getByRole('form', { name: 'Final authorization of SYN-1040-RETURN version 1' });
+    await dfaForm.getByText(`Readiness: ${readinessText(ready)}.`, { exact: false }).waitFor();
+    await dfaForm.getByRole('blockquote', { name: 'Attestation version 1' }).getByText('Synthetic attestation for end-to-end tests only; not legal wording.').waitFor();
+    const authorize = dfaForm.getByRole('button', { name: 'Authorize SYN-1040-RETURN version 1' });
+    expect(await authorize.isDisabled()).toBe(true); // nothing is pre-confirmed, even on a ready version
+    expect(await dfaForm.getByRole('checkbox').isChecked()).toBe(false);
+    await dfaForm.getByRole('checkbox').check();
+    expect(await authorize.isDisabled()).toBe(false);
+    await authorize.click();
+    await dfaPanel.getByRole('status', { name: 'Final authorization result' })
+      .getByText('Final authorization of SYN-1040-RETURN version 1: authorized. The client signature (Stage 11) is next; nothing has been signed or filed.').waitFor();
+    await dfaItem.getByRole('heading', { name: /authorized$/ }).waitFor();
+    // Recorded once, pinned to what was decided on, attributed to the authorizer's own multi-factor session.
+    const recorded = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items;
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]).toMatchObject({ outcome: 'AUTHORIZED', decidedBy: DURABLE_FA, attestationVersion: 1, riskAssessmentId: ready.riskAssessmentId,
+      qcReviewId: ready.qcReviewId, note: null });
+    const authorized = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
+    expect(authorized).toMatchObject({ ready: true, stage10: 'AUTHORIZED', stage11: 'CLIENT_SIGNATURE_REQUIRED', returnUse: 'BLOCKED',
+      finalAuthorization: { current: true, reasons: [], decision: { outcome: 'AUTHORIZED', decidedBy: DURABLE_FA, attestationVersion: 1 } } });
+    // A replayed decision is refused and records nothing.
+    expect((await decide({ outcome: 'AUTHORIZED', attestationVersion: 1, acknowledged: true })).body.code).toBe('TAX_RETURN_FINAL_ALREADY_DECIDED');
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items).toHaveLength(1);
+    await dfa.page.setViewportSize({ width: 375, height: 812 });
+    expect(await dfa.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    expect(realErrors(dfa)).toEqual([]);
+    await dfa.context.close();
+    // The decision lapses when an input it was bound to changes: the diagnostics are run again.
+    expect((await api(rev, 'POST', `/api/tax-engine/cases/${caseId}/diagnostics/run`)).status).toBeLessThan(300);
+    const lapsed = (await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/readiness`)).body;
+    expect(lapsed).toMatchObject({ stage10: 'FINAL_AUTHORIZATION_REQUIRED', stage11: 'NOT_STARTED', returnUse: 'BLOCKED',
+      finalAuthorization: { current: false, decision: { outcome: 'AUTHORIZED' } } });
+    expect(lapsed.finalAuthorization.reasons).toEqual(expect.arrayContaining(['NOT_READY', 'DIAGNOSTICS_RERUN']));
+    expect((await api(rev, 'GET', `/api/tax-engine/returns/${v1id}/final-authorizations`)).body.items).toHaveLength(1); // kept, not erased
     // A revised conclusion makes the mapping and then the approved return STALE; nothing is replaced silently.
     const k = (await api(mgr, 'GET', `/api/tax-engine/cases/${caseId}/conclusions`)).body.items.find((c: any) => c.type === 'INCOME_INCLUSION' && c.status === 'APPROVED');
     const revised = await api(acct, 'POST', `/api/tax-engine/conclusions/${k.conclusionId}/revise`, { amount: '7300.00', links: k.links.map((l: any) => ({ type: l.type, ref: l.ref })) });
