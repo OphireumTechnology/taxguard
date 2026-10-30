@@ -77,6 +77,22 @@ Audits completed in this cycle (documents):
   are now captured right after the in-order application; mutation checks confirmed. Operational note: re-running
   `20261012330000` alone after Blocks 66-72 removes service-role access to their entry points (fails closed), so any
   re-run must replay the full execution order.
+- **Stage 10 final authorization (Block 73, stacked on Block 72; 2026-10-30).** Review-only proposal `20261019180000`:
+  a manager assigns a ready return version to a final authorizer independent of the preparer, Stage 09 reviewer, QC
+  reviewer and QC assigner; the authorizer records `AUTHORIZED` or `DECLINED` (no preselected outcome) only with a
+  durable recent multi-factor session checked in the same transaction, the `RETURN_FINAL_AUTHORIZATION` authority
+  (policy, eligibility, designation, case assignment) and acknowledgement of the current owner-approved attestation.
+  Decisions are immutable, pin the forms hash and every upstream record, and lapse automatically when any changes. A
+  decline is recorded only; nothing reopens or discards the return. Nothing is signed or filed (`stage11:
+  CLIENT_SIGNATURE_REQUIRED`, `returnUse: BLOCKED`). Branch `claude/taxguard-block73-final-authorization` at `aa12178`
+  (feature `f8c9608`; full matrix there passed except one QC immutability case caused by a foreign key to QC reviews,
+  removed in `aa12178`; PostgreSQL then 57 files / 310 tests). Integration branch at `dbcdb17` (Blocks 68-73,
+  form-rule authority, privilege sweep; synthetic `FORM_RULE_APPROVAL` policy and designation seeded in the Blocks
+  69-73 fixtures) passed the full matrix: unit 6238, lint, typecheck, PostgreSQL 311, e2e default 137 and provider
+  44, build, release candidate, NOT VALID, secrets, diff check, contamination. **Owner review point:** final
+  authorization eligibility criteria, attestation wording (legal), any relaxation of independence, and the follow-up
+  workflow after a decline (none configured; final authorization fails closed). Not built: a positive Stage 10
+  browser journey (needs a ready return on the provider profile).
 - **AI Architecture Overview recorded for review (2026-10-28).** The owner-supplied 11-page overview (SHA-256
   `f11ed12a…`) is transcribed in `src/ai/architectureOverview.ts`: names, responsibilities and human gates for 59
   agents, the page-9 example permission matrix narrowed by TaxGuard's human-only limits, and thirteen owner decisions.
