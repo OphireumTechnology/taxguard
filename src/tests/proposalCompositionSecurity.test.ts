@@ -95,17 +95,18 @@ describe('database-wide security invariants', () => {
     expect(taxPrivileges.length).toBeGreaterThan(0);
     expect(taxPrivileges.filter(r => r.client).map(r => r.proname)).toEqual([]);
   });
-  it('return verification, risk and quality control internals are not executable by the service role in execution order', () => {
+  it('return verification, risk, quality control and final authorization internals are not executable by the service role in execution order', () => {
     const internal = ['taxguard_tax_return_verification_guard', 'taxguard_tax_return_verification_runs', 'taxguard_tax_return_risk_guard',
       'taxguard_tax_return_risk_json', 'taxguard_tax_qc_checklist_current', 'taxguard_tax_return_qc_guard', 'taxguard_tax_return_qc_live',
-      'taxguard_tax_return_qc_scope'];
+      'taxguard_tax_return_qc_scope', 'taxguard_tax_return_final_guard', 'taxguard_tax_final_attestation_current', 'taxguard_tax_return_final_live',
+      'taxguard_tax_return_final_excluded', 'taxguard_tax_return_final_scope', 'taxguard_tax_return_readiness_eval', 'taxguard_tax_return_final_status'];
     const present = taxPrivileges.filter(r => internal.includes(r.proname));
     expect([...new Set(present.map(r => r.proname))].sort()).toEqual([...internal].sort());
     expect(present.filter(r => r.service).map(r => r.proname)).toEqual([]);
   });
-  it('the return verification, risk and quality control entry points stay executable by the service role in execution order', () => {
+  it('the return verification, risk, quality control and final authorization entry points stay executable by the service role in execution order', () => {
     const entry = ['taxguard_tax_return_verify', 'taxguard_tax_return_risk_assess', 'taxguard_tax_return_qc_assign', 'taxguard_tax_return_qc_record',
-      'taxguard_tax_return_final_readiness'];
+      'taxguard_tax_return_final_readiness', 'taxguard_tax_return_final_assign', 'taxguard_tax_return_final_authorize', 'taxguard_tax_return_final_list'];
     const present = taxPrivileges.filter(r => entry.includes(r.proname));
     expect([...new Set(present.map(r => r.proname))].sort()).toEqual([...entry].sort());
     expect(present.filter(r => !r.service).map(r => r.proname)).toEqual([]);
