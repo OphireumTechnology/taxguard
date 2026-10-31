@@ -122,6 +122,10 @@ Audits completed in this cycle (documents):
   cases, tasks and document requests, each under the access rule that already decides whether the actor may see it.
   The query is matched literally, with LIKE wildcards escaped. Invoices are left out because they are Codex's Phase 15
   billing. The PostgreSQL suite has 4 tests and four mutations were caught. Report: `block88-practice-search.md`.
+- **Remaining durability work (Block 89).** Register only. Analytics and the manager dashboard are mapped to the
+  durable practice summary and the escalation view. Of 147 refused routes: 28 replaced, 102 partly replaced, 17 with no
+  durable route. Every remaining gap needs one of: owner approval of proposals (case authority), owner policy (six
+  questions), providers, or tax-content review. Report: `block89-remaining-work.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;
@@ -330,4 +334,4 @@ Audits completed in this cycle (documents):
 1. Durable providers for the refused production surfaces (case authority, Stage 02 document review, practice operations): `CONTROL-DURABILITY` cutover, after the owner approves the proposals.
 2. Engagement-linked messaging, appointment and legal records (no general-record change without the policy).
 3. A re-run of the function inventory for any remaining client-level reads.
-4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`).
+4. Durable adapters for retained in-memory routes (`CONTROL-DURABILITY`): Blocks 81–89 done for every gap that needs no decision; the rest are listed in `block89-remaining-work.md`.

@@ -311,9 +311,10 @@
       "coverage": "PARTIAL",
       "replacementRoutes": [
         "GET /api/practice/summary",
+        "GET /api/practice/deadline-escalations",
         "GET /api/practice/clients/:clientId"
       ],
-      "gap": "The practice summary and client detail are the durable reads; the analytics figures and the command-center summary are not reproduced.",
+      "gap": "The practice summary reports cases by stage (including Stages 11 and 12), open, overdue and ready-for-review tasks, document requests and receivables; the escalation view counts deadlines by level; the client detail is the per-client view. The active-client count and paid revenue (billing, Codex Phase 15) are not reproduced. The in-memory bookkeeping backlog was always 0.",
       "reason": "Practice analytics and the per-client command center, projected from the in-memory task, deadline and request services.",
       "routes": [
         "GET /api/operations/analytics",
@@ -382,9 +383,10 @@
       "code": "DURABLE_OPERATIONS_PROVIDER_REQUIRED",
       "coverage": "PARTIAL",
       "replacementRoutes": [
-        "GET /api/practice/summary"
+        "GET /api/practice/summary",
+        "GET /api/practice/deadline-escalations"
       ],
-      "gap": "The practice summary is the durable read; the dashboard figures are not reproduced.",
+      "gap": "The practice summary and the escalation view are the durable reads; the dashboard's own layout of those figures is not reproduced.",
       "reason": "The practice manager dashboard projects the in-memory task and deadline services.",
       "routes": [
         "GET /api/operations/manager-dashboard"

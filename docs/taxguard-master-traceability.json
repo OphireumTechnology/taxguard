@@ -5189,6 +5189,18 @@
       ]
     },
     {
+      "file": "docs/development/block89-remaining-work.md",
+      "sha256": "8562029428bc51284f59a8bc2691fc652c8d9e1cf7d138222fb5cd0d847a24ed",
+      "bytes": 4743,
+      "headings": [
+        "# Block 89: remaining durability work and what each item needs",
+        "## Where Blocks 81–89 leave the in-memory routes",
+        "## Block 89 correction",
+        "## Every remaining gap needs a decision, a provider or a review",
+        "## Recommended next steps for the owner"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6205,8 +6217,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "f0e5f619fa34f7cedf1ea49953dd18ea4fe9ba58acc67d557cf66258dcdc64df",
-      "bytes": 32988,
+      "sha256": "fc0cbefe45c80e760737b9497bcbbd3d723cbfb5fc2c0b68f0f662825c56cc67",
+      "bytes": 33531,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
