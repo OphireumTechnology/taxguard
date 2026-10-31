@@ -48,6 +48,11 @@ export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
     if (!Number.isInteger(minLevel)) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
     return store().deadlineEscalations(t(req), u(req), str(req.query.clientId), minLevel);
   }));
+  router.get('/search', run(async req => {
+    const limit = req.query.limit === undefined ? 25 : int(req.query.limit);
+    if (!Number.isInteger(limit) || typeof req.query.q !== 'string') throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
+    return store().search(t(req), u(req), req.query.q, limit);
+  }));
   router.get('/notifications', run(async req => {
     const limit = req.query.limit === undefined ? 50 : int(req.query.limit);
     if (!Number.isInteger(limit)) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);

@@ -118,6 +118,10 @@ Audits completed in this cycle (documents):
 
   Of 147 refused routes: 28 replaced, 102 partly replaced, 17 with no durable route. Report:
   `block87-coverage-corrections.md`.
+- **Practice search (Block 88).** Review-only proposal `20261019280000`: `GET /api/practice/search` searches clients,
+  cases, tasks and document requests, each under the access rule that already decides whether the actor may see it.
+  The query is matched literally, with LIKE wildcards escaped. Invoices are left out because they are Codex's Phase 15
+  billing. The PostgreSQL suite has 4 tests and four mutations were caught. Report: `block88-practice-search.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

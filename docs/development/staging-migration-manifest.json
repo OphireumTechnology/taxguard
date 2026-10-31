@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "1a4172aacce80b210d96c9d2102fc3c4eee05dd4cb9b7574b96b7c20a17ef3a5",
+  "executionPlanSha256": "c3d47f371893f8b0dd948d6c8193c91d9e1a00b957e5e1046eadb857d0a993fd",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6568,6 +6568,56 @@
         "--     general-record policy (phase14-remaining-domain-access-policy.md). No e-mail or SMS: in-app only, delivery",
         "--     NOT_CONFIGURED, as for client notifications.",
         "--   * A notification stores identifiers only (client, task). Its title is read from the task when listed, and only"
+      ]
+    },
+    {
+      "order": 120,
+      "file": "docs/proposed-migrations/20261019280000_taxguard_practice_search.sql",
+      "kind": "proposal",
+      "version": "20261019280000",
+      "sha256": "22eb6aa70ce9fd7300fa9d7309bb36d9a0a3b224fc0b1e465ca00dcaeeb2cde7",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_practice_search"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the function."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_search(text,text,text,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_practice_search(text,text,text,integer) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 88, practice search). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261012250000 (taxguard_practice_actor, taxguard_practice_can_see, taxguard_practice_tasks), 20261012260000",
+        "-- (taxguard_cases), 20261012310000 (taxguard_doc_requests) and 20261018100000 (taxguard_staff_record_scope,",
+        "-- taxguard_practice_item_scope).",
+        "--",
+        "-- The in-memory /api/operations/search searched clients, cases, requests, tasks and invoices in process memory (Block",
+        "-- 83 and 87 coverage map). taxguard_practice_search searches the durable records, each by the rule that already",
+        "-- decides whether the actor may see it (owner decision 2026-10-19):",
+        "--   client           name or id; a client the actor can see (taxguard_practice_can_see, as the client list)",
+        "--   case             case id or the client's name; the actor's scope over the case's engagement and year",
+        "--   task             title; the task's assignee or creator, or the actor's scope over its case, engagement and year",
+        "--   document_request title; the actor's scope over the request's engagement and year"
       ]
     }
   ]

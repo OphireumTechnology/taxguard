@@ -340,9 +340,10 @@
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
       "coverage": "PARTIAL",
       "replacementRoutes": [
+        "GET /api/practice/search",
         "GET /api/practice/clients"
       ],
-      "gap": "The practice client list filters clients by name in the actor's scope. Searching cases, requests, tasks and invoices together has no durable route.",
+      "gap": "The practice search covers clients, cases, tasks and document requests, each by the actor's existing access rule. Invoices are not searched: the billing functions are redefined by Codex's Phase 15 work.",
       "reason": "Operational search across clients, cases, requests, tasks and invoices held in in-memory services.",
       "routes": [
         "GET /api/operations/search"

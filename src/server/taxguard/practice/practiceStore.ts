@@ -102,6 +102,10 @@ export class PracticeStore {
   markStaffNotificationRead(tenantId: string, actor: string, notificationId: string) {
     return this.call('taxguard_staff_notification_mark_read', { p_tenant: tenantId, p_actor: actor, p_notification: notificationId });
   }
+  /** Block 88: clients, cases, tasks and document requests matching q, each by the actor's existing access rule. */
+  search(tenantId: string, actor: string, q: string, limit = 25) {
+    return this.call('taxguard_practice_search', { p_tenant: tenantId, p_actor: actor, p_q: q, p_limit: limit });
+  }
   addDeadline(tenantId: string, clientId: string, actor: string, key: string, deadline: Record<string, unknown>) {
     return this.call('taxguard_practice_add_deadline', { ...this.base(tenantId, clientId, actor), p_deadline: derivedId('ddl', tenantId, clientId, key), p_body: deadline });
   }
