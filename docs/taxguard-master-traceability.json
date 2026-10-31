@@ -5164,6 +5164,18 @@
       ]
     },
     {
+      "file": "docs/development/block87-coverage-corrections.md",
+      "sha256": "6d91af8cadf629b3046fff2ef364eeae3dde0c18a0aacb92c1932b9b36d6acf3",
+      "bytes": 3159,
+      "headings": [
+        "# Block 87: coverage corrections for reconciliation, search and archive verification",
+        "## Purpose",
+        "## Corrections",
+        "## Result",
+        "## What remains"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6180,8 +6192,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "a3e1881de21f558686dc7f009e0eeddccfcf7a20ce119011514ba7c1ddbf3295",
-      "bytes": 31967,
+      "sha256": "87ba297d9e53276d52774c23b0ac7f976885744b3206a89e4dfdfaf59bd63923",
+      "bytes": 32521,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6918,7 +6930,7 @@
     {
       "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
       "sha256": "5726c663aa6512f600602ce2488f39b669ba4524356fb37287774eb91197b4ba",
-      "bytes": 14510,
+      "bytes": 14684,
       "headings": []
     },
     {

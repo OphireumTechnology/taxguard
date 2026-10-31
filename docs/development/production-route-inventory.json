@@ -335,15 +335,28 @@
       ]
     },
     {
-      "id": "operations-search-retention",
+      "id": "operations-search",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/practice/clients"
+      ],
+      "gap": "The practice client list filters clients by name in the actor's scope. Searching cases, requests, tasks and invoices together has no durable route.",
+      "reason": "Operational search across clients, cases, requests, tasks and invoices held in in-memory services.",
+      "routes": [
+        "GET /api/operations/search"
+      ]
+    },
+    {
+      "id": "operations-retention-archive",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
       "coverage": "NONE",
-      "gap": "No durable search or archive manifest verification exists. Retention periods and legal holds are owner policy.",
-      "reason": "Operational search, retention policies, legal holds and archive manifest verification held in in-memory services.",
+      "gap": "Retention periods and legal holds are owner policy and have no durable store. Archive verification compares a payload and a hash that the caller supplies; no archive manifest store exists, so nothing authoritative is verified.",
+      "reason": "Retention policies, legal holds and archive manifest verification held in in-memory services.",
       "routes": [
         "GET /api/operations/retention/policies",
-        "GET /api/operations/search",
         "POST /api/operations/archive/verify",
         "POST /api/operations/retention/legal-hold"
       ]
@@ -484,8 +497,12 @@
       "id": "stage-two-reconciliation",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_RECONCILIATION_REQUIRED",
-      "coverage": "NONE",
-      "gap": "No durable Stage 02 reconciliation snapshot exists.",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/vault/requests/missing",
+        "GET /api/vault/clients/:clientId/requests"
+      ],
+      "gap": "The vault tracks required documents as staff-created document requests and lists the outstanding ones. The in-memory engine derives requirements from questionnaire answers and matches evidence to them; that derivation is tax content and is not reproduced durably.",
       "reason": "The Stage 02 reconciliation snapshot is computed from process-local state.",
       "routes": [
         "GET /api/stage-two-three/snapshot/:taxYear",

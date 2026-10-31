@@ -110,6 +110,14 @@ Audits completed in this cycle (documents):
   notification read. Free-text staff dispatch is not built, because it is staff messaging and waits on the owner's
   general-record policy. The PostgreSQL suite has 5 tests and four mutations were caught. Report:
   `block86-staff-notifications.md`.
+- **Coverage corrections (Block 87).** Register only. Three corrections:
+  - Stage 02 reconciliation is partly replaced by the vault's durable document requests and missing view. The
+    questionnaire-derived requirements are tax content and are not reproduced.
+  - Search is partly replaced by the durable client list.
+  - Archive verification never checked a stored manifest (it compares two values the caller supplies).
+
+  Of 147 refused routes: 28 replaced, 102 partly replaced, 17 with no durable route. Report:
+  `block87-coverage-corrections.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;
