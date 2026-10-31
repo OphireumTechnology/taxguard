@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS public.taxguard_durable_job_events (
 CREATE INDEX IF NOT EXISTS idx_taxguard_durable_job_events_job ON public.taxguard_durable_job_events (tenant_id, job_id, event_id);
 ALTER TABLE public.taxguard_durable_job_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.taxguard_durable_job_events FROM PUBLIC, anon, authenticated;
+-- Explicit, so the sequence's privileges are the same whether or not the Data API lock-down has run after this file.
+REVOKE ALL ON SEQUENCE public.taxguard_durable_job_events_event_id_seq FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.taxguard_job_events_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

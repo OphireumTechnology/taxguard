@@ -6323,7 +6323,7 @@
       "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
       "kind": "proposal",
       "version": "20261019240000",
-      "sha256": "f837792d4861ac3c08b7e216de56866b9c05e301114c11c1ade8613ae9f48b57",
+      "sha256": "14b9bec92acedda4c6b2877d64bfd2137415be345e40209e6d8e2acdfa66a641",
       "validTimestamp": false,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -6360,6 +6360,7 @@
       ],
       "grantsAndRevocations": [
         "REVOKE ALL ON public.taxguard_durable_job_events FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON SEQUENCE public.taxguard_durable_job_events_event_id_seq FROM PUBLIC, anon, authenticated;",
         "REVOKE ALL ON FUNCTION public.taxguard_job_events_append_only() FROM PUBLIC, anon, authenticated, service_role;",
         "REVOKE ALL ON FUNCTION public.taxguard_job_is_admin(text) FROM PUBLIC, anon, authenticated, service_role;",
         "REVOKE ALL ON FUNCTION public.taxguard_job_visible(text,text,text,text,text) FROM PUBLIC, anon, authenticated, service_role;",

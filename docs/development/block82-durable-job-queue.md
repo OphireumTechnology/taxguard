@@ -98,6 +98,10 @@ Four database mutations each made the test fail:
 | Scope check removed | The enqueue, list, retry and cancel tests fail |
 | Administrator check on retry removed | The retry test fails |
 
+The first matrix run failed the idempotent re-apply check (composition test and release candidate `REPLAY_DRIFT`).
+Re-running the Data API lock-down after this file turned the event sequence's default privileges into an explicit
+list. The proposal now revokes the sequence's privileges itself, and a re-apply leaves the schema fingerprint unchanged.
+
 The first `SKIP LOCKED` mutation survived the concurrent-claim test alone: without it, PostgreSQL still never
 double-claims, because waiting claims re-check the row. The held-row test was added for that reason.
 

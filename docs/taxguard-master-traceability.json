@@ -5094,8 +5094,8 @@
     },
     {
       "file": "docs/development/block82-durable-job-queue.md",
-      "sha256": "cd4c6dd42118b63e7ed1745e192955d291045865f61027eac0c11914487d2ea4",
-      "bytes": 6341,
+      "sha256": "06e84f69d135db002a362ddcdca37f6600c4cd370988326d7f74c9a06417a80d",
+      "bytes": 6692,
       "headings": [
         "# Block 82: durable background job queue",
         "## Purpose",
@@ -6842,8 +6842,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
-      "sha256": "f837792d4861ac3c08b7e216de56866b9c05e301114c11c1ade8613ae9f48b57",
-      "bytes": 22859,
+      "sha256": "14b9bec92acedda4c6b2877d64bfd2137415be345e40209e6d8e2acdfa66a641",
+      "bytes": 23082,
       "headings": []
     },
     {
