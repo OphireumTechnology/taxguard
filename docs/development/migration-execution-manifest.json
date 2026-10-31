@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 116,
+    "files": 117,
     "core": 13,
-    "proposals": 102,
-    "tables": 183,
-    "functions": 500,
-    "securityDefinerFunctions": 394,
+    "proposals": 103,
+    "tables": 184,
+    "functions": 513,
+    "securityDefinerFunctions": 404,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -4765,6 +4765,48 @@
     },
     {
       "order": 116,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_durable_job_events"
+      ],
+      "functionsAdded": [
+        "taxguard_job_cancel",
+        "taxguard_job_claim",
+        "taxguard_job_complete",
+        "taxguard_job_enqueue",
+        "taxguard_job_event",
+        "taxguard_job_events_append_only",
+        "taxguard_job_fail",
+        "taxguard_job_held",
+        "taxguard_job_is_admin",
+        "taxguard_job_json",
+        "taxguard_job_list",
+        "taxguard_job_retry",
+        "taxguard_job_visible"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 1,
+      "indexesAdded": 3,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        80
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 117,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

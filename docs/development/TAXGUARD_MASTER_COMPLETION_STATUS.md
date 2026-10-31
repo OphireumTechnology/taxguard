@@ -74,6 +74,18 @@ Audits completed in this cycle (documents):
   the durable ledger switch, and 1 waits for a payment provider. Of the 146, 23 have a durable router behind the
   cutover gate and 123 have no durable adapter. No server behaviour changed. Report:
   `block81-production-route-inventory.md`.
+- **Durable background job queue (Block 82).** Review-only proposal `20261019240000` puts the queue's rules in the
+  database over the existing `taxguard_durable_jobs` table:
+  - staff-only enqueue, list, retry and cancel by engagement and case scope;
+  - tenant-wide jobs and retries for administrators only;
+  - one job per idempotency key;
+  - worker claims with `SKIP LOCKED`, fenced by lease tokens;
+  - backoff and dead-lettering;
+  - an append-only event log.
+
+  Development router `/api/jobs` behind cutover key `jobs`, plus a worker adapter. No worker is commissioned. The
+  PostgreSQL suite has 13 tests and four mutations were caught. Report: `block82-durable-job-queue.md`.
+  **Owner review point:** whether clients may see the status of their own jobs (the durable queue refuses them).
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

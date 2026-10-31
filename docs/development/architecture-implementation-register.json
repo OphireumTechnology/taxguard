@@ -685,6 +685,24 @@
       "remainingGap": "Durable proposals are review-only. Production refuses every process-local authority (Blocks 39-41); no durable router is mounted in production. Block 66 tax conclusions exist only in the durable store (no process-local adapter); the tax-engine cutover now requires every proposal its routes use."
     },
     {
+      "id": "OPS-JOB-QUEUE",
+      "name": "Durable background job queue",
+      "category": "Operations",
+      "status": "INTEGRATION_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
+        "src/server/routes/jobs-durable.routes.ts",
+        "src/server/taxguard/operations/durableJobWorker.ts",
+        "docs/development/block82-durable-job-queue.md"
+      ],
+      "tests": [
+        "src/tests-db/durableJobQueue.db.test.ts",
+        "src/tests/productionRouteInventory.test.ts"
+      ],
+      "persistence": "durable proposal, development-only router behind the route cutover gate",
+      "remainingGap": "Proposal 20261019240000 is review-only and the jobs cutover route is not mounted in production. No worker process, provider or AI agent is commissioned, so nothing runs a job. The in-memory /api/operations/jobs routes stay refused in production until they are retired."
+    },
+    {
       "id": "REC-AUDIT-LEDGER",
       "name": "Audit ledger and security events",
       "category": "Records",

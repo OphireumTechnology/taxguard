@@ -22,6 +22,7 @@ import { createConsultationReviewRouter, createPublicConsultationRouter } from '
 import { createPublicContactRouter } from './src/server/routes/contact-intake.routes';
 import { createClientPortalRouter, createClientSignaturesRouter } from './src/server/routes/client-portal.routes';
 import { createReassignmentRouter } from './src/server/routes/reassignment.routes';
+import { createJobsRouter } from './src/server/routes/jobs-durable.routes';
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
@@ -498,6 +499,8 @@ app.use('/api/client-portal', createClientPortalRouter());
 app.use('/api/client-signatures', createClientSignaturesRouter());
 // Durable reassignment requests (proposal 045): development-only, 503 unless configured.
 app.use('/api/reassignment', createReassignmentRouter());
+// Durable background job queue (proposal 20261019240000): development-only, 503 unless configured.
+app.use('/api/jobs', createJobsRouter());
 
 app.use('/api', legacyRouteBoundary());
 app.use(

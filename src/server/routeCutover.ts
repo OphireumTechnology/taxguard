@@ -41,6 +41,7 @@ export const ROUTE_CUTOVER_CATALOG: readonly CutoverRoute[] = Object.freeze([
   { key: 'client-portal', path: '/api/client-portal', proposals: ['20261014440000', '20261019230000'], sentinelRpcs: ['taxguard_portal_engagements'] },
   { key: 'client-signatures', path: '/api/client-signatures', proposals: ['20261012270000', '20261019180000', '20261019190000', '20261019231000'], sentinelRpcs: ['taxguard_portal_signature_packages'] },
   { key: 'reassignment', path: '/api/reassignment', proposals: ['20261014450000'], sentinelRpcs: ['taxguard_rar_queue'] },
+  { key: 'jobs', path: '/api/jobs', proposals: ['20261012250000', '20261018100000', '20261019240000'], sentinelRpcs: ['taxguard_job_list'] },
 ]);
 
 export type CutoverRefusal = 'NOT_REQUESTED' | 'UNKNOWN_ROUTE' | 'PROPOSAL_NOT_APPROVED';

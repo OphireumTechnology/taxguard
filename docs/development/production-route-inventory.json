@@ -189,14 +189,26 @@
       ]
     },
     {
+      "id": "operations-jobs",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "durableReplacement": "jobs",
+      "reason": "The in-memory background job queue. The durable jobs router (proposal 20261019240000) covers listing, enqueueing, retrying and cancelling, with worker claims fenced by lease tokens.",
+      "routes": [
+        "GET /api/operations/jobs",
+        "POST /api/operations/jobs",
+        "POST /api/operations/jobs/:id/cancel",
+        "POST /api/operations/jobs/:id/retry"
+      ]
+    },
+    {
       "id": "operations-without-durable-adapter",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
-      "reason": "Background jobs, client requests, notifications, search, analytics, the command center, retention, legal hold, archive verification and rollover: in-memory services with no durable adapter in the repository.",
+      "reason": "Client requests, notifications, search, analytics, the command center, retention, legal hold, archive verification and rollover: in-memory services with no durable adapter in the repository.",
       "routes": [
         "GET /api/operations/analytics",
         "GET /api/operations/command-center/:clientId",
-        "GET /api/operations/jobs",
         "GET /api/operations/notifications",
         "GET /api/operations/notifications/preferences",
         "GET /api/operations/requests",
@@ -205,9 +217,6 @@
         "PATCH /api/operations/requests/:id/resolve",
         "PATCH /api/operations/requests/:id/respond",
         "POST /api/operations/archive/verify",
-        "POST /api/operations/jobs",
-        "POST /api/operations/jobs/:id/cancel",
-        "POST /api/operations/jobs/:id/retry",
         "POST /api/operations/notifications/dispatch",
         "POST /api/operations/requests",
         "POST /api/operations/retention/legal-hold",

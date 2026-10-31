@@ -4249,9 +4249,10 @@
       ],
       "tests": [
         "src/tests/durableAuthority.test.ts",
-        "src/tests/productionRouteInventory.test.ts"
+        "src/tests/productionRouteInventory.test.ts",
+        "src/tests-db/durableJobQueue.db.test.ts"
       ],
-      "remaining": "Local Map is not PostgreSQL durability. Schema-to-artifact/version reconciliation and authorized cutover needed. Block 81 inventory: 146 production routes refuse over in-memory state (23 have a durable router behind the cutover gate, 123 have no durable adapter); no route over process-local state answers in production.",
+      "remaining": "Local Map is not PostgreSQL durability. Schema-to-artifact/version reconciliation and authorized cutover needed. Block 81 inventory: 146 production routes refuse over in-memory state (23 have a durable router behind the cutover gate, 123 have no durable adapter); no route over process-local state answers in production. Block 82: durable job queue proposal 20261019240000 (review only) and cutover route jobs; the four in-memory job routes now have a durable replacement.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -5092,6 +5093,20 @@
       ]
     },
     {
+      "file": "docs/development/block82-durable-job-queue.md",
+      "sha256": "cd4c6dd42118b63e7ed1745e192955d291045865f61027eac0c11914487d2ea4",
+      "bytes": 6341,
+      "headings": [
+        "# Block 82: durable background job queue",
+        "## Purpose",
+        "## What the database enforces (proposal `20261019240000`)",
+        "## Differences from the in-memory service",
+        "## Wiring",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5385,8 +5400,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "d8c2fe45db95364bdcaef2f91ff490d7c42f588f3e7c07321a1960bde104bf00",
-      "bytes": 24345,
+      "sha256": "d37d2eb9c14eab622a28aced9973163d7374b51c63040ceace837fecfdfef3cb",
+      "bytes": 24461,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5955,8 +5970,8 @@
     },
     {
       "file": "docs/development/production-route-parity.md",
-      "sha256": "7047afbe307f6c9a3347ca934145e46e6728c568c06c854a255e4da39ab3a6b4",
-      "bytes": 10060,
+      "sha256": "fce7772852bced2b71cc818eef156171fab670b6d7333c70b97e231016c54e5e",
+      "bytes": 10235,
       "headings": [
         "# Production route parity (verified inventory, 2026-10-19)",
         "## How the two entry points relate",
@@ -6108,8 +6123,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "81de1497e86675c6f248f27bc19fa0dcbba1c5639c7581be3f5f0f3b5792b6a7",
-      "bytes": 28840,
+      "sha256": "241cb6ec98b73566a61e82f12f004e1c9b0f227f024c1d801a2839c00128d208",
+      "bytes": 29639,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6823,6 +6838,12 @@
       "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
       "sha256": "1e3173ceba171d9f60cc19854b1f69e5655f52a84f32c857b50a93943a64e508",
       "bytes": 2408,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
+      "sha256": "f837792d4861ac3c08b7e216de56866b9c05e301114c11c1ade8613ae9f48b57",
+      "bytes": 22859,
       "headings": []
     },
     {
@@ -7919,7 +7940,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "b07a1a07fdb7de718be2aafb2295587321cd5ae03579b6952f66123c29d0136e",
+    "src/server/productionApp.ts": "68bdbc6d11987d8e0ccde026483168b2de915d039b5274ba885296bd0f7cbd20",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
@@ -7965,6 +7986,7 @@
     "src/tests-db/backupRestore.db.test.ts": "310beea6e47dbbe3559771647b7b8c2479ac5a442cedda45025edf8dbdb9e751",
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "a631b70043342fab5233cd3c645c9eef542757a72b8a435e4ce34eef7bcf2f54",
+    "src/tests-db/durableJobQueue.db.test.ts": "ebd5614cc22bb97bed30162ea830c8e3080482fc0a86ec3a961bca95d6a8bcad",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ebfe940b1a4e29cf0a2970c8b19a232461c5a1f8bc2e340f05d0aa604c09f2f5",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",

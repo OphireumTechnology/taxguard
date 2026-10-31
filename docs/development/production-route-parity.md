@@ -69,6 +69,7 @@ shared practice-store module: `20261012250000`, `320000`, `20261018090000` and `
 | `/api/public/contact` | `contact-intake.routes.ts` | 20261014430000, 20261016050000 | Unauthenticated by design; abuse controls reviewed |
 | `/api/client-portal` | `client-portal.routes.ts` | 20261014440000, 20261016000000, 010000 | Client projections (C9 sweep) re-run on staging |
 | `/api/reassignment` | `reassignment.routes.ts` | 20261014450000 | — |
+| `/api/jobs` | `jobs-durable.routes.ts` | 250000, 20261018100000, 20261019240000 | No worker process is commissioned; claims and results go through `DurableJobWorker` only |
 | `/api/staff-access` | `staff-access.routes.ts` | direct table reads (no RPC) | Staff directory policy reviewed |
 
 ## Cutover gate (implemented)

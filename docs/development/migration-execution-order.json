@@ -803,6 +803,14 @@
         "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
         "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
     }
   ]
 }

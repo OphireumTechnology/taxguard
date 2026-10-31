@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "0ae6c473cad8546d660d9eaa3f6fc3890fe15cf21080f2c57414d81ee5d157b8",
+  "executionPlanSha256": "dd354e2b1fab49c5c439ccacc0453dc8cc2a0f28f28f90178a72c94d15b7fd9d",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6316,6 +6316,86 @@
         "-- The function is identical to its current definition except for that filter.",
         "-- Rollback (development): re-apply the 20261019190000 definition.",
         "-- Current definition: 20261019190000. Changed: staff path: only packages of engagements and years in scope."
+      ]
+    },
+    {
+      "order": 116,
+      "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
+      "kind": "proposal",
+      "version": "20261019240000",
+      "sha256": "f837792d4861ac3c08b7e216de56866b9c05e301114c11c1ade8613ae9f48b57",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "referencedDependencies": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_durable_job_events",
+        "taxguard_job_events_append_only",
+        "taxguard_job_is_admin",
+        "taxguard_job_visible",
+        "taxguard_job_json",
+        "taxguard_job_event",
+        "taxguard_job_enqueue",
+        "taxguard_job_list",
+        "taxguard_job_retry",
+        "taxguard_job_cancel",
+        "taxguard_job_claim",
+        "taxguard_job_held",
+        "taxguard_job_complete",
+        "taxguard_job_fail"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the functions, the events table and trigger, the index and the added columns."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_durable_job_events FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_events_append_only() FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_is_admin(text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_visible(text,text,text,text,text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_json(public.taxguard_durable_jobs) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_event(public.taxguard_durable_jobs,text,text,text,jsonb) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_held(text,text,text,uuid) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_enqueue(text,text,text,jsonb,text,text,integer,integer,timestamptz,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_enqueue(text,text,text,jsonb,text,text,integer,integer,timestamptz,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_list(text,text,text,text,text,integer,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_list(text,text,text,text,text,integer,integer) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_retry(text,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_retry(text,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_cancel(text,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_cancel(text,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_claim(text,text,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_claim(text,text,integer) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_complete(text,text,text,uuid) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_complete(text,text,text,uuid) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_job_fail(text,text,text,uuid,text,text,boolean) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_job_fail(text,text,text,uuid,text,text,boolean) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 10,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 82, durable background job queue). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261001000000 (taxguard_durable_jobs), 20261012250000 (taxguard_practice_actor, taxguard_practice_is_manager)",
+        "-- and 20261018100000 (taxguard_practice_item_scope).",
+        "--",
+        "-- The background job queue behind /api/operations/jobs is an in-memory map (DurableJobQueueService), refused in",
+        "-- production (Block 81 inventory: operations-without-durable-adapter). Migration 20261001000000 created the table",
+        "-- taxguard_durable_jobs but nothing reads or writes it. This proposal adds the queue's rules to the database:",
+        "--   * Staff operations (take p_actor). Only active staff members; clients and recruiters are refused.",
+        "--       enqueue  a job for a client (and optionally one of the client's cases) needs the actor's scope over that case,",
+        "--                or over the whole client when no case is given (taxguard_practice_item_scope, owner decision",
+        "--                2026-10-19). A job with no client is tenant-wide: administrators only.",
+        "--       list     the jobs the actor may see, by the same scope; tenant-wide jobs to administrators only."
       ]
     }
   ]
