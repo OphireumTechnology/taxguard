@@ -5107,6 +5107,20 @@
       ]
     },
     {
+      "file": "docs/development/block83-durable-coverage-map.md",
+      "sha256": "1bcd0f85ba72464673a76ae3f17cb7db031cc4f9c842761e967dfb5c79bb8c32",
+      "bytes": 6101,
+      "headings": [
+        "# Block 83: durable coverage of the refused in-memory routes",
+        "## Why this block exists",
+        "## The register (`production-route-inventory.json`)",
+        "## The test",
+        "## Result",
+        "## What this does not show",
+        "## Where the gaps are"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6123,8 +6137,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "241cb6ec98b73566a61e82f12f004e1c9b0f227f024c1d801a2839c00128d208",
-      "bytes": 29639,
+      "sha256": "cfa3c9f6c30f2e9453dfda6e574e88315d1574d9825898b748a80b21c9b63336",
+      "bytes": 30187,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7940,7 +7954,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "68bdbc6d11987d8e0ccde026483168b2de915d039b5274ba885296bd0f7cbd20",
+    "src/server/productionApp.ts": "93a3b31cf8c93711603811957c9007488008e1f06bf6b599cae194e64e510d12",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
@@ -8074,7 +8088,7 @@
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
     "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
     "src/tests/productionApiHttp.test.ts": "e53fb362c92358a01a44a6ef749f7169b67a7b210adc6b2124e31067c3e5397c",
-    "src/tests/productionRouteInventory.test.ts": "18b2f6135b27e6eb744e31890dc76375baef1342e81f056c5122983fa5186d06",
+    "src/tests/productionRouteInventory.test.ts": "ecd759b897100ee21aace3c60fc787b15aeae58e7d1f6e142c2942db07115189",
     "src/tests/productionStages04Through09.test.ts": "a488742073f604306666a2047561412e338501345f0609184f74bef57fea89ab",
     "src/tests/profileRecordedEvidence.test.ts": "8fb145d7a97f7fb10885a4e0861ad2b43fe867494781fb5991f05b71bd88fe47",
     "src/tests/proposalCompositionSecurity.test.ts": "d521301708283ebf2a8560f1d88bc7e01b1b6ad7be6a6199aca16813419f7a11",

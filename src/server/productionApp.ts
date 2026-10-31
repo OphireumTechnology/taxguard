@@ -1,5 +1,5 @@
 import { createAiGovernanceRouter } from './routes/ai-governance.routes';
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import { authenticateToken } from './auth';
 import { requireOperationalAdministrator } from './operationalDiagnostics';
 import { createOperationalMetrics } from './operationalMetrics';
@@ -39,6 +39,16 @@ import {
   resolvePublicAssetsPath,
   createSpaFallbackHandler,
 } from './staticAssetPolicy';
+
+/** The durable router behind each route cutover key (src/server/routeCutover.ts). Built only when mounted. */
+export const CUTOVER_ROUTER_FACTORIES: Readonly<Record<string, () => RequestHandler>> = Object.freeze({
+  practice: () => createPracticeRouter(), 'stage-one': () => createOnboardingRouter(), cases: () => createCasesRouter(),
+  vault: () => createVaultRouter(), billing: () => createBillingRouter(), 'book-to-tax': () => createBookToTaxRouter(),
+  'tax-engine': () => createTaxEngineRouter(), communications: () => createCommunicationsRouter(), scheduling: () => createSchedulingRouter(),
+  'legal-matters': () => createLegalMattersRouter(), 'audit-center': () => createAuditCenterRouter(), consultations: () => createConsultationReviewRouter(),
+  'client-portal': () => createClientPortalRouter(), 'client-signatures': () => createClientSignaturesRouter(), reassignment: () => createReassignmentRouter(),
+  jobs: () => createJobsRouter(),
+});
 
 /** Shared Node/Cloud Functions boundary. Only durable APIs are released; clean frontend routes serve the SPA. */
 export function createProductionApp(options?: { distPath?: string; publicPath?: string; accountantDashboard?: AccountantDashboardDeps }) {
@@ -144,14 +154,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
   // Durable routers: production cutover gate (src/server/routeCutover.ts). Nothing is mounted unless requested,
   // every required proposal is owner-approved, and the schema is verified; no reviewed schema probe exists yet,
   // so an eligible route would still answer 503. Today no proposal is approved, so none is mounted.
-  const cutover = mountCutoverRoutes(app, planCutover(process.env.TAXGUARD_PRODUCTION_ROUTE_CUTOVER), {
-    practice: () => createPracticeRouter(), 'stage-one': () => createOnboardingRouter(), cases: () => createCasesRouter(),
-    vault: () => createVaultRouter(), billing: () => createBillingRouter(), 'book-to-tax': () => createBookToTaxRouter(),
-    'tax-engine': () => createTaxEngineRouter(), communications: () => createCommunicationsRouter(), scheduling: () => createSchedulingRouter(),
-    'legal-matters': () => createLegalMattersRouter(), 'audit-center': () => createAuditCenterRouter(), consultations: () => createConsultationReviewRouter(),
-    'client-portal': () => createClientPortalRouter(), 'client-signatures': () => createClientSignaturesRouter(), reassignment: () => createReassignmentRouter(),
-    jobs: () => createJobsRouter(),
-  }, null);
+  const cutover = mountCutoverRoutes(app, planCutover(process.env.TAXGUARD_PRODUCTION_ROUTE_CUTOVER), CUTOVER_ROUTER_FACTORIES, null);
   app.get('/api/route-cutover', authenticateToken, requireOperationalAdministrator, (_req, res) => res.json({ routes: cutover.status() }));
 
   // API production boundary: never allow unknown /api or /webhooks routes to reach SPA fallback

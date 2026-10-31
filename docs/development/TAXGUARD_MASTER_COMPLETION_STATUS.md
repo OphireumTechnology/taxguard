@@ -86,6 +86,11 @@ Audits completed in this cycle (documents):
   Development router `/api/jobs` behind cutover key `jobs`, plus a worker adapter. No worker is commissioned. The
   PostgreSQL suite has 13 tests and four mutations were caught. Report: `block82-durable-job-queue.md`.
   **Owner review point:** whether clients may see the status of their own jobs (the durable queue refuses them).
+- **Durable coverage map (Block 83).** The route inventory now records, for each refused in-memory group, the
+  durable routes (production or cutover) that cover its work and the remaining gap. The test checks that every named
+  route exists and is not itself refused. Of 147 refused routes: 19 replaced, 108 partly replaced, 20 with no durable
+  route. A durable client-request adapter was not built, because proposal `20261015030000` and the vault already hold
+  that work. No server behaviour changed. Report: `block83-durable-coverage-map.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

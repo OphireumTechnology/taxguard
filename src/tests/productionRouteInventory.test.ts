@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 vi.mock('../server/supabase', async importOriginal => ({ ...(await importOriginal<typeof import('../server/supabase')>()), isSupabaseServerConfigured: () => true }));
 import { setSupabaseAdmin } from '../server/supabase';
-import { createProductionApp } from '../server/productionApp';
+import { createProductionApp, CUTOVER_ROUTER_FACTORIES } from '../server/productionApp';
 import { ROUTE_CUTOVER_CATALOG } from '../server/routeCutover';
 
 // Production route inventory (CONTROL-DURABILITY). Walks every /api route the real production app registers and calls
@@ -48,17 +48,14 @@ function syntheticStore() {
 
 const ROOT_MOUNT = '^\\/?(?=\\/|$)';
 const mountPath = (re: RegExp) => re.source === ROOT_MOUNT ? '' : re.source.split('|^')[0].replace(/^\^/, '').replace('\\/?(?=\\/|$)', '').split('\\/').join('/');
-function registeredRoutes(app: any): string[] {
-  const out = new Set<string>();
-  const walk = (stack: any[], prefix: string) => {
-    for (const layer of stack) {
-      if (layer.route) for (const m of Object.keys(layer.route.methods)) for (const p of [layer.route.path].flat()) out.add(`${m.toUpperCase()} ${prefix}${p}`);
-      else if (layer.handle?.stack) walk(layer.handle.stack, prefix + mountPath(layer.regexp));
-    }
-  };
-  walk(app._router.stack, '');
-  return [...out].filter(r => r.split(' ')[1].startsWith('/api/')).sort();
+function routesOf(stack: any[], prefix: string, out = new Set<string>()): Set<string> {
+  for (const layer of stack) {
+    if (layer.route) for (const m of Object.keys(layer.route.methods)) for (const p of [layer.route.path].flat()) out.add(`${m.toUpperCase()} ${prefix}${p}`);
+    else if (layer.handle?.stack) routesOf(layer.handle.stack, prefix + mountPath(layer.regexp), out);
+  }
+  return out;
 }
+const registeredRoutes = (app: any) => [...routesOf(app._router.stack, '')].filter(r => r.split(' ')[1].startsWith('/api/')).sort();
 
 const tokens: Record<string, string> = {};
 let server: Server, origin: string, routes: string[] = [];
@@ -110,7 +107,7 @@ async function outcomes(route: string): Promise<Set<string>> {
   return seen;
 }
 
-type Group = { id: string; kind: string; code?: string; ledgerCode?: string; durableReplacement?: string; reason: string; routes: string[] };
+type Group = { id: string; kind: string; code?: string; ledgerCode?: string; coverage?: string; replacementRoutes?: string[]; gap?: string; reason: string; routes: string[] };
 const inventory = () => JSON.parse(fs.readFileSync(INVENTORY, 'utf8')) as { kinds: Record<string, string>; groups: Group[] };
 
 describe('production route inventory', () => {
@@ -125,9 +122,25 @@ describe('production route inventory', () => {
       expect([...Object.keys(REFUSED), ...ANSWERING], g.id).toContain(g.kind);
       expect(g.reason.length, g.id).toBeGreaterThanOrEqual(40);
       expect(Boolean(g.code), g.id).toBe(g.kind in REFUSED);
-      if (g.durableReplacement) expect(ROUTE_CUTOVER_CATALOG.map(c => c.key), g.id).toContain(g.durableReplacement);
     }
     expect(routes.length).toBeGreaterThan(200);
+  });
+
+  it('records the durable coverage of every refused in-memory group, naming only routes that exist', () => {
+    // Every route of every cutover router, under its catalog path, plus the routes production already serves.
+    const cutoverRoutes = ROUTE_CUTOVER_CATALOG.flatMap(c => [...routesOf((CUTOVER_ROUTER_FACTORIES[c.key]() as any).stack, c.path)]);
+    expect(cutoverRoutes.length).toBeGreaterThan(100);
+    const known = new Set([...routes, ...cutoverRoutes]);
+    for (const g of inventory().groups) {
+      if (!['VOLATILE_REFUSED', 'PROVIDER_REFUSED'].includes(g.kind)) { expect(g.coverage, g.id).toBeUndefined(); continue; }
+      expect(['REPLACED', 'PARTIAL', 'NONE'], g.id).toContain(g.coverage);
+      const replacements = g.replacementRoutes ?? [];
+      expect(replacements.length > 0, g.id).toBe(g.coverage !== 'NONE');
+      expect((g.gap ?? '').length >= 20, g.id).toBe(g.coverage !== 'REPLACED');
+      expect(replacements.filter(r => !known.has(r)), `${g.id}: replacement routes that do not exist`).toEqual([]);
+      expect(replacements.filter(r => g.routes.includes(r) || inventory().groups.some(o => o.kind in REFUSED && o.routes.includes(r))),
+        `${g.id}: a replacement must not itself be refused`).toEqual([]);
+    }
   });
 
   it('a refused route answers only authentication denials or its exact refusal code, for every role', async () => {

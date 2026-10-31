@@ -1,5 +1,5 @@
 {
-  "description": "Production route inventory (CONTROL-DURABILITY). Every /api route the production app registers, grouped by how it behaves in production. Checked by src/tests/productionRouteInventory.test.ts. A durableReplacement names the route cutover key (src/server/routeCutover.ts) of the durable router that covers the same work; it is not mounted until its proposals are owner-approved.",
+  "description": "Production route inventory (CONTROL-DURABILITY). Every /api route the production app registers, grouped by how it behaves in production. Checked by src/tests/productionRouteInventory.test.ts. A refused group records its durable coverage: REPLACED (every route's work has a named durable route), PARTIAL (named durable routes plus the gap) or NONE (the gap). A replacement route is a route of the production app or of a route cutover router (src/server/routeCutover.ts); a cutover router is not mounted until its proposals are owner-approved.",
   "kinds": {
     "VOLATILE_REFUSED": "Backed by process-local (in-memory) state. Production refuses with the group's code, after authentication and scope checks, so nothing a restart or a second instance would lose is served or acknowledged. Needs a durable adapter.",
     "DURABLE_GATED": "A durable adapter exists but is off until its proposal is approved and applied and the switch is set; until then production refuses with the group's code.",
@@ -14,6 +14,8 @@
       "id": "case-authority-review-decisions",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable reviewer decision provider; durable case authority is next priority 1.",
       "reason": "Reviewer approve and return-for-correction. The repository validates confirmation and reason, then refuses before any write because no durable reviewer decision provider exists.",
       "routes": [
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/approvals",
@@ -24,6 +26,8 @@
       "id": "case-authority-review-workspace",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable reviewer workspace; durable case authority is next priority 1.",
       "reason": "The reviewer workspace snapshot is assembled from the process-local authority adapter.",
       "routes": [
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviewer-workspace"
@@ -33,6 +37,8 @@
       "id": "case-authority-review-action",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable legacy review action; durable case authority is next priority 1.",
       "reason": "Legacy review actions on the process-local authority adapter; refused before any write.",
       "routes": [
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviews/action"
@@ -42,6 +48,8 @@
       "id": "case-authority-review-queue",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_QUEUE_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable case reviewer queue; durable case authority is next priority 1.",
       "reason": "The reviewer queue is discovered from the process-local authority adapter, which is not a production discovery source.",
       "routes": [
         "GET /api/case-authority/reviewer/dashboard"
@@ -51,6 +59,17 @@
       "id": "case-authority-scoped",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/cases/",
+        "GET /api/cases/:caseId",
+        "POST /api/cases/:caseId/advance",
+        "POST /api/cases/:caseId/return",
+        "POST /api/cases/:caseId/hold",
+        "POST /api/cases/:caseId/notes",
+        "POST /api/cases/:caseId/team"
+      ],
+      "gap": "The cases router covers the case list, detail, stage moves, holds, notes and team. The other scoped case-authority operations were not reviewed route by route and have no named durable route; durable case authority is next priority 1.",
       "reason": "Scoped case operations read and write the process-local authority adapter (TransactionalDocumentDatabase). Durable case authority is next priority 1 and needs owner-approved proposals.",
       "routes": [
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear",
@@ -133,7 +152,15 @@
       "id": "case-authority-onboarding",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_ONBOARDING_PROVIDER_REQUIRED",
-      "durableReplacement": "stage-one",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/stage-one/me",
+        "POST /api/stage-one/me",
+        "POST /api/stage-one/me/submit",
+        "GET /api/stage-one/queue",
+        "POST /api/stage-one/clients/:clientId/decision"
+      ],
+      "gap": "The durable Stage 01 router covers the client questionnaire, submission and review. Equivalence with the legacy provisioning flow was not reviewed route by route.",
       "reason": "Legacy Stage 01 onboarding on the process-local provisioner. The durable Stage 01 router is the stage-one cutover route.",
       "routes": [
         "GET /api/case-authority/client-onboarding/workflow",
@@ -145,7 +172,18 @@
       "id": "operations-tasks-deadlines-team",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
-      "durableReplacement": "practice",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/practice/my-work",
+        "GET /api/practice/clients/:clientId",
+        "POST /api/practice/clients/:clientId/tasks",
+        "POST /api/practice/clients/:clientId/tasks/:taskId/status",
+        "POST /api/practice/clients/:clientId/engagements/:engagementId/team",
+        "POST /api/practice/clients/:clientId/team/:assignmentId/revoke",
+        "POST /api/practice/clients/:clientId/deadlines",
+        "POST /api/practice/clients/:clientId/deadlines/:deadlineId/resolve"
+      ],
+      "gap": "Task reassignment, the staff workload view and the deadline escalation sweep have no durable route.",
       "reason": "Practice tasks, deadlines, staff assignments and workload held in in-memory services. The durable practice router covers tasks, deadlines and the engagement team.",
       "routes": [
         "GET /api/operations/assignments/client/:clientId",
@@ -163,7 +201,13 @@
       "id": "operations-communications",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
-      "durableReplacement": "communications",
+      "coverage": "REPLACED",
+      "replacementRoutes": [
+        "GET /api/communications/clients/:clientId/threads",
+        "POST /api/communications/clients/:clientId/threads",
+        "GET /api/communications/clients/:clientId/threads/:threadId",
+        "POST /api/communications/clients/:clientId/threads/:threadId/messages"
+      ],
       "reason": "Client message threads held in an in-memory service. The durable communications router covers threads and messages.",
       "routes": [
         "GET /api/operations/communications/threads",
@@ -176,7 +220,15 @@
       "id": "operations-billing",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
-      "durableReplacement": "billing",
+      "coverage": "REPLACED",
+      "replacementRoutes": [
+        "GET /api/billing/catalog",
+        "POST /api/billing/catalog",
+        "GET /api/billing/clients/:clientId/invoices",
+        "POST /api/billing/clients/:clientId/invoices",
+        "POST /api/billing/clients/:clientId/invoices/:invoiceId/:action(submit|approve|return|void)",
+        "POST /api/billing/clients/:clientId/invoices/:invoiceId/payments"
+      ],
       "reason": "Service catalog, invoices and payments held in an in-memory service. The durable billing router covers the catalog, invoices and payments.",
       "routes": [
         "GET /api/operations/catalog",
@@ -192,7 +244,13 @@
       "id": "operations-jobs",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
-      "durableReplacement": "jobs",
+      "coverage": "REPLACED",
+      "replacementRoutes": [
+        "GET /api/jobs/",
+        "POST /api/jobs/",
+        "POST /api/jobs/:id/retry",
+        "POST /api/jobs/:id/cancel"
+      ],
       "reason": "The in-memory background job queue. The durable jobs router (proposal 20261019240000) covers listing, enqueueing, retrying and cancelling, with worker claims fenced by lease tokens.",
       "routes": [
         "GET /api/operations/jobs",
@@ -202,32 +260,96 @@
       ]
     },
     {
-      "id": "operations-without-durable-adapter",
+      "id": "operations-requests",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
-      "reason": "Client requests, notifications, search, analytics, the command center, retention, legal hold, archive verification and rollover: in-memory services with no durable adapter in the repository.",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/stage-two-three/requests/:taxYear",
+        "POST /api/stage-two-three/requests/:taxYear",
+        "POST /api/stage-two-three/requests/:taxYear/:requestId/respond",
+        "POST /api/stage-two-three/requests/:taxYear/:requestId/resolve",
+        "GET /api/vault/clients/:clientId/requests",
+        "POST /api/vault/clients/:clientId/requests"
+      ],
+      "gap": "The durable requests are per engagement and tax year: clarification and amendment requests in the mounted collection router, document requests in the vault. Signature and payment requests have no request equivalent; signature packages and invoices carry that work.",
+      "reason": "Client requests (documents, clarifications, receipts, signatures, payments) held in an in-memory service.",
       "routes": [
-        "GET /api/operations/analytics",
-        "GET /api/operations/command-center/:clientId",
-        "GET /api/operations/notifications",
-        "GET /api/operations/notifications/preferences",
         "GET /api/operations/requests",
-        "GET /api/operations/retention/policies",
-        "GET /api/operations/search",
         "PATCH /api/operations/requests/:id/resolve",
         "PATCH /api/operations/requests/:id/respond",
-        "POST /api/operations/archive/verify",
+        "POST /api/operations/requests"
+      ]
+    },
+    {
+      "id": "operations-notifications",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/vault/clients/:clientId/notifications",
+        "GET /api/vault/clients/:clientId/notification-preferences",
+        "POST /api/vault/clients/:clientId/notification-preferences"
+      ],
+      "gap": "The vault covers client notifications and preferences. Staff notifications and staff-triggered dispatch have no durable store.",
+      "reason": "User notifications, staff dispatch and notification preferences held in an in-memory service.",
+      "routes": [
+        "GET /api/operations/notifications",
+        "GET /api/operations/notifications/preferences",
         "POST /api/operations/notifications/dispatch",
-        "POST /api/operations/requests",
-        "POST /api/operations/retention/legal-hold",
-        "POST /api/operations/rollover",
         "PUT /api/operations/notifications/preferences"
+      ]
+    },
+    {
+      "id": "operations-analytics",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/practice/summary",
+        "GET /api/practice/clients/:clientId"
+      ],
+      "gap": "The practice summary and client detail are the durable reads; the analytics figures and the command-center summary are not reproduced.",
+      "reason": "Practice analytics and the per-client command center, projected from the in-memory task, deadline and request services.",
+      "routes": [
+        "GET /api/operations/analytics",
+        "GET /api/operations/command-center/:clientId"
+      ]
+    },
+    {
+      "id": "operations-rollover",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "POST /api/practice/clients/:clientId/engagements/:engagementId/tax-years"
+      ],
+      "gap": "Adding a tax year to an engagement is the durable action. Nothing is carried forward automatically.",
+      "reason": "Annual rollover. The in-memory route returns a fixed description of what would carry forward and records nothing.",
+      "routes": [
+        "POST /api/operations/rollover"
+      ]
+    },
+    {
+      "id": "operations-search-retention",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable search or archive manifest verification exists. Retention periods and legal holds are owner policy.",
+      "reason": "Operational search, retention policies, legal holds and archive manifest verification held in in-memory services.",
+      "routes": [
+        "GET /api/operations/retention/policies",
+        "GET /api/operations/search",
+        "POST /api/operations/archive/verify",
+        "POST /api/operations/retention/legal-hold"
       ]
     },
     {
       "id": "operations-client-service",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_CLIENT_SERVICE_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable client service dashboard, search, conversation or request view exists.",
       "reason": "The client service dashboard, search, conversation and request views project in-memory requests, communications, tasks and deadlines.",
       "routes": [
         "GET /api/operations/client-service/conversation",
@@ -240,6 +362,11 @@
       "id": "operations-manager-dashboard",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_OPERATIONS_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/practice/summary"
+      ],
+      "gap": "The practice summary is the durable read; the dashboard figures are not reproduced.",
       "reason": "The practice manager dashboard projects the in-memory task and deadline services.",
       "routes": [
         "GET /api/operations/manager-dashboard"
@@ -249,6 +376,8 @@
       "id": "operations-payment-webhook",
       "kind": "PROVIDER_REFUSED",
       "code": "PAYMENT_PROVIDER_NOT_COMMISSIONED",
+      "coverage": "NONE",
+      "gap": "No payment provider is commissioned, so there is no durable webhook.",
       "reason": "No payment provider is commissioned and the billing service behind the webhook is in memory; production events are refused, not applied.",
       "routes": [
         "POST /api/operations/payments/webhook"
@@ -294,6 +423,12 @@
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_ACCOUNTING_PROVIDER_REQUIRED",
       "ledgerCode": "DURABLE_FEATURE_NOT_AVAILABLE",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/book-to-tax/clients/:clientId/:taxYear/:family",
+        "POST /api/book-to-tax/clients/:clientId/:taxYear/:family/mapping-sets"
+      ],
+      "gap": "The book-to-tax router covers book-to-tax mapping. Accounting-provider sync and document matching have no durable route.",
       "reason": "Book-to-tax, accounting-provider sync and document matching exist only on the in-memory engine; with the durable ledger selected they refuse with DURABLE_FEATURE_NOT_AVAILABLE. Book-to-tax has the book-to-tax cutover router.",
       "routes": [
         "GET /api/bookkeeping/book-to-tax",
@@ -312,6 +447,8 @@
       "id": "profile-amendments",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_PROFILE_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable profile amendment provider exists; only ordinary contact fields are durable.",
       "reason": "Profile amendments and the authoritative profile view use the process-local amendment engine; only ordinary contact fields are durable.",
       "routes": [
         "GET /api/profile/amendments",
@@ -324,6 +461,13 @@
       "id": "stage-two-document-review",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED",
+      "coverage": "REPLACED",
+      "replacementRoutes": [
+        "GET /api/vault/review-queue",
+        "GET /api/vault/clients/:clientId/documents/:documentId",
+        "POST /api/vault/clients/:clientId/documents/:documentId/versions/:version/review",
+        "POST /api/vault/clients/:clientId/extractions/:fieldId/verify"
+      ],
       "reason": "The accountant document-review store is process-local and nothing in production populates it. Durable Stage 02 document review is next priority 1.",
       "routes": [
         "GET /api/stage-two-three/accountant/review-item/:documentId",
@@ -336,6 +480,8 @@
       "id": "stage-two-reconciliation",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_RECONCILIATION_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No durable Stage 02 reconciliation snapshot exists.",
       "reason": "The Stage 02 reconciliation snapshot is computed from process-local state.",
       "routes": [
         "GET /api/stage-two-three/snapshot/:taxYear",
