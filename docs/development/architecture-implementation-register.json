@@ -739,6 +739,24 @@
       "remainingGap": "Proposal 20261019260000 is review-only and the practice cutover route is not mounted in production. The thresholds are the in-memory defaults, not an owner-reviewed policy. No reminders are sent and no user interface calls the route."
     },
     {
+      "id": "OPS-STAFF-NOTIFICATIONS",
+      "name": "Staff in-app notifications for task assignment",
+      "category": "Operations",
+      "status": "INTEGRATION_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
+        "src/server/routes/practice.routes.ts",
+        "src/server/taxguard/practice/practiceStore.ts",
+        "docs/development/block86-staff-notifications.md"
+      ],
+      "tests": [
+        "src/tests-db/staffNotifications.db.test.ts",
+        "src/tests/productionRouteInventory.test.ts"
+      ],
+      "persistence": "durable proposal, development-only router behind the route cutover gate",
+      "remainingGap": "Proposal 20261019270000 is review-only and the practice cutover route is not mounted in production. Only TASK_ASSIGNED exists; free-text staff dispatch waits on the general-record policy; no staff preferences, e-mail or SMS; no user interface."
+    },
+    {
       "id": "REC-AUDIT-LEDGER",
       "name": "Audit ledger and security events",
       "category": "Records",

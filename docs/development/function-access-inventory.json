@@ -391,6 +391,10 @@
       "category": "STAFF_ADMIN_SECURITY",
       "reason": "Staff identity, sessions, MFA recovery, membership, audit centre and security events."
     },
+    "taxguard_staff_notification_mark_read": {
+      "category": "OWN_RECORDS",
+      "reason": "Marks read only a staff notification whose recipient is the actor; another recipient's notification is STAFF_NOTIFICATION_NOT_FOUND (Block 86). Returns identifiers and a timestamp only."
+    },
     "taxguard_submit_client_intake": {
       "category": "CLIENT_SELF",
       "reason": "For the client's own portal account: the actor must be the client member of that client."

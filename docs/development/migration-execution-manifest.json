@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 119,
+    "files": 120,
     "core": 13,
-    "proposals": 105,
-    "tables": 184,
-    "functions": 517,
-    "securityDefinerFunctions": 407,
+    "proposals": 106,
+    "tables": 185,
+    "functions": 520,
+    "securityDefinerFunctions": 410,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -4864,6 +4864,47 @@
     },
     {
       "order": 119,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [
+        "taxguard_staff_notifications"
+      ],
+      "functionsAdded": [
+        "taxguard_staff_notification_mark_read",
+        "taxguard_staff_notifications_list",
+        "taxguard_staff_notify_task"
+      ],
+      "supersedes": [
+        {
+          "function": "taxguard_practice_create_task",
+          "previous": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+        },
+        {
+          "function": "taxguard_practice_reassign_task",
+          "previous": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 2,
+      "notValidConstraints": [],
+      "prerequisites": [
+        1,
+        4,
+        28,
+        80
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 120,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

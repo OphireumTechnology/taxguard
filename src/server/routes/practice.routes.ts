@@ -48,6 +48,12 @@ export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
     if (!Number.isInteger(minLevel)) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
     return store().deadlineEscalations(t(req), u(req), str(req.query.clientId), minLevel);
   }));
+  router.get('/notifications', run(async req => {
+    const limit = req.query.limit === undefined ? 50 : int(req.query.limit);
+    if (!Number.isInteger(limit)) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
+    return store().staffNotifications(t(req), u(req), req.query.unreadOnly === 'true', limit);
+  }));
+  router.post('/notifications/:notificationId/read', run(req => store().markStaffNotificationRead(t(req), u(req), req.params.notificationId)));
   router.get('/workload', run(req => store().workload(t(req), u(req), str(req.query.userId))));
   router.get('/summary', run(req => store().practiceSummary(t(req), u(req), req.query.taxYear ? int(req.query.taxYear) : undefined)));
   router.get('/clients', run(req => store().listClients(t(req), u(req), { q: str(req.query.q), status: str(req.query.status) as any, clientType: str(req.query.clientType),

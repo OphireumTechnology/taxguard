@@ -104,6 +104,12 @@ Audits completed in this cycle (documents):
   task, deadline and team group is now fully replaced. The PostgreSQL suite has 5 tests and four mutations were caught.
   Report: `block85-deadline-escalation.md`. **Owner review point:** the escalation thresholds are the in-memory
   defaults (7 days, 48 hours, critical after 7 days overdue or when statutory), not a reviewed policy.
+- **Staff notifications (Block 86).** Review-only proposal `20261019270000`: the database writes an in-app
+  `TASK_ASSIGNED` notification when a task is assigned or reassigned to someone other than the actor. Listing reads the
+  task's title only while the recipient may still see the task, so a revocation hides it. Only the recipient can mark a
+  notification read. Free-text staff dispatch is not built, because it is staff messaging and waits on the owner's
+  general-record policy. The PostgreSQL suite has 5 tests and four mutations were caught. Report:
+  `block86-staff-notifications.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

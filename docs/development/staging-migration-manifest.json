@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "22ca1371e841987a892c37bbdb748b4cdf7255345621da471be65ef2f9822e61",
+  "executionPlanSha256": "1a4172aacce80b210d96c9d2102fc3c4eee05dd4cb9b7574b96b7c20a17ef3a5",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6496,6 +6496,78 @@
         "--",
         "-- Levels and thresholds are the ones the in-memory service used (DeadlineEscalationService.evaluateSingleDeadline),",
         "-- carried over unchanged and returned with the result. They are operational defaults, not a reviewed policy:"
+      ]
+    },
+    {
+      "order": 119,
+      "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
+      "kind": "proposal",
+      "version": "20261019270000",
+      "sha256": "5726c663aa6512f600602ce2488f39b669ba4524356fb37287774eb91197b4ba",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_staff_notifications",
+        "taxguard_staff_notify_task",
+        "taxguard_practice_create_task",
+        "taxguard_practice_reassign_task",
+        "taxguard_staff_notifications_list",
+        "taxguard_staff_notification_mark_read"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_practice_create_task",
+          "previousFile": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_practice_reassign_task",
+          "previousFile": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply the two current definitions, drop the three functions and the table."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON public.taxguard_staff_notifications FROM PUBLIC, anon, authenticated;",
+        "REVOKE ALL ON FUNCTION public.taxguard_staff_notify_task(text,text,text,text,text) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_staff_notifications_list(text,text,boolean,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_staff_notifications_list(text,text,boolean,integer) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_staff_notification_mark_read(text,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_staff_notification_mark_read(text,text,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_create_task(text,text,text,text,jsonb) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_practice_create_task(text,text,text,text,jsonb) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_reassign_task(text,text,text,text,text,integer,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_practice_reassign_task(text,text,text,text,text,integer,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 5,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 86, staff in-app notifications). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261012250000 (taxguard_practice_tasks, taxguard_practice_actor), 20261018100000 (taxguard_practice_item_scope",
+        "-- and the current taxguard_practice_create_task) and 20261019250000 (the current taxguard_practice_reassign_task).",
+        "--",
+        "-- Staff had no durable notifications: the in-memory /api/operations/notifications held them in a process list (Block 83",
+        "-- coverage map). Client notifications already exist (proposals 031 and 20261016040000) and are unchanged.",
+        "--   * One kind, TASK_ASSIGNED, written by the database when a task is created with an assignee or reassigned to one,",
+        "--     for that assignee, unless the assignee is the actor. Nothing else writes staff notifications: the in-memory route",
+        "--     let staff dispatch free-text notifications to anyone, which is staff messaging and waits on the owner's",
+        "--     general-record policy (phase14-remaining-domain-access-policy.md). No e-mail or SMS: in-app only, delivery",
+        "--     NOT_CONFIGURED, as for client notifications.",
+        "--   * A notification stores identifiers only (client, task). Its title is read from the task when listed, and only"
       ]
     }
   ]

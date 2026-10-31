@@ -95,6 +95,13 @@ export class PracticeStore {
   deadlineEscalations(tenantId: string, actor: string, clientId?: string, minLevel = 0) {
     return this.call('taxguard_practice_deadline_escalations', { p_tenant: tenantId, p_actor: actor, p_client: clientId ?? null, p_min_level: minLevel });
   }
+  /** Block 86: the actor's own in-app staff notifications (task assignments), resolved against current access. */
+  staffNotifications(tenantId: string, actor: string, unreadOnly = false, limit = 50) {
+    return this.call('taxguard_staff_notifications_list', { p_tenant: tenantId, p_actor: actor, p_unread_only: unreadOnly, p_limit: limit });
+  }
+  markStaffNotificationRead(tenantId: string, actor: string, notificationId: string) {
+    return this.call('taxguard_staff_notification_mark_read', { p_tenant: tenantId, p_actor: actor, p_notification: notificationId });
+  }
   addDeadline(tenantId: string, clientId: string, actor: string, key: string, deadline: Record<string, unknown>) {
     return this.call('taxguard_practice_add_deadline', { ...this.base(tenantId, clientId, actor), p_deadline: derivedId('ddl', tenantId, clientId, key), p_body: deadline });
   }

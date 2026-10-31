@@ -5150,6 +5150,20 @@
       ]
     },
     {
+      "file": "docs/development/block86-staff-notifications.md",
+      "sha256": "c8a7a5bb0197594f8a51fa492e47cf03d2f5304d606272487044dfc2c71c0f9b",
+      "bytes": 4012,
+      "headings": [
+        "# Block 86: staff in-app notifications for task assignment",
+        "## Purpose",
+        "## What is built",
+        "## What is deliberately not built",
+        "## Wiring",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5443,8 +5457,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "cdfe8b755b3ad40eeb7ce15f823ae5c5f923e20c0a11276d40aa048dfdc22074",
-      "bytes": 24699,
+      "sha256": "a3a82710c774633386062589edd687d2dc1ab5e1fcc4abb9c269167ba93dc18a",
+      "bytes": 24898,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6166,8 +6180,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "3397772d25fcf6bde2b0da63e86365be2986c65704304fc85b7fdd0584ae5edf",
-      "bytes": 31371,
+      "sha256": "a3e1881de21f558686dc7f009e0eeddccfcf7a20ce119011514ba7c1ddbf3295",
+      "bytes": 31967,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6874,31 +6888,37 @@
     {
       "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
       "sha256": "81672896f24ce6779e3eedf6d24b029256901398772ee0cb8b32629992a5c564",
-      "bytes": 16542,
+      "bytes": 16711,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
       "sha256": "1e3173ceba171d9f60cc19854b1f69e5655f52a84f32c857b50a93943a64e508",
-      "bytes": 2408,
+      "bytes": 2437,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
       "sha256": "14b9bec92acedda4c6b2877d64bfd2137415be345e40209e6d8e2acdfa66a641",
-      "bytes": 23082,
+      "bytes": 23373,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
       "sha256": "5e44b2b17c7890b4c134411c555ca9a15e05c0a5096de0e111ff686dbe338858",
-      "bytes": 8004,
+      "bytes": 8096,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
       "sha256": "f369ce446715453b2fa6c2969b3ca2ae498779c5cdd667c9d55a7d84ffca48df",
-      "bytes": 5096,
+      "bytes": 5153,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
+      "sha256": "5726c663aa6512f600602ce2488f39b669ba4524356fb37287774eb91197b4ba",
+      "bytes": 14510,
       "headings": []
     },
     {

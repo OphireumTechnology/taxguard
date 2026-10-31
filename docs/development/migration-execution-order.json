@@ -826,6 +826,14 @@
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
         "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql"
+      ]
     }
   ]
 }

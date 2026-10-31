@@ -291,9 +291,11 @@
       "replacementRoutes": [
         "GET /api/vault/clients/:clientId/notifications",
         "GET /api/vault/clients/:clientId/notification-preferences",
-        "POST /api/vault/clients/:clientId/notification-preferences"
+        "POST /api/vault/clients/:clientId/notification-preferences",
+        "GET /api/practice/notifications",
+        "POST /api/practice/notifications/:notificationId/read"
       ],
-      "gap": "The vault covers client notifications and preferences. Staff notifications and staff-triggered dispatch have no durable store.",
+      "gap": "The vault covers client notifications and preferences, and the practice router staff task-assignment notifications. Staff-triggered free-text dispatch is staff messaging and waits on the owner's general-record policy; staff notification preferences have no durable store; e-mail and SMS are not commissioned.",
       "reason": "User notifications, staff dispatch and notification preferences held in an in-memory service.",
       "routes": [
         "GET /api/operations/notifications",
