@@ -366,7 +366,7 @@
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_CLIENT_SERVICE_PROVIDER_REQUIRED",
       "coverage": "NONE",
-      "gap": "No durable client service dashboard, search, conversation or request view exists.",
+      "gap": "No durable client service views exist. The operations role may call only these four routes, and what client records it may see (tenant-wide or by assignment) is not decided.",
       "reason": "The client service dashboard, search, conversation and request views project in-memory requests, communications, tasks and deadlines.",
       "routes": [
         "GET /api/operations/client-service/conversation",
@@ -465,7 +465,7 @@
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_PROFILE_PROVIDER_REQUIRED",
       "coverage": "NONE",
-      "gap": "No durable profile amendment provider exists; only ordinary contact fields are durable.",
+      "gap": "Only ordinary contact fields are durable. Amendments are for sensitive identity fields (legal name, SSN, TIN, EIN, ITIN, date of birth, taxpayer type, entity classification, authorized representative); approving them depends on an identity verification policy (which fields need which evidence) that is not approved.",
       "reason": "Profile amendments and the authoritative profile view use the process-local amendment engine; only ordinary contact fields are durable.",
       "routes": [
         "GET /api/profile/amendments",

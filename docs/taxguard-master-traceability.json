@@ -5165,8 +5165,8 @@
     },
     {
       "file": "docs/development/block87-coverage-corrections.md",
-      "sha256": "6d91af8cadf629b3046fff2ef364eeae3dde0c18a0aacb92c1932b9b36d6acf3",
-      "bytes": 3159,
+      "sha256": "58c1864330c1e7a93c7be3cf391c3a5d0a9140acaad1a67bcc30beacef94a317",
+      "bytes": 3528,
       "headings": [
         "# Block 87: coverage corrections for reconciliation, search and archive verification",
         "## Purpose",

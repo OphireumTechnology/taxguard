@@ -60,12 +60,15 @@ Each remaining gap needs one of the following.
 | Needs | Gaps |
 |---|---|
 | Owner-approved proposals | Case authority |
-| Owner policy | Retention, legal holds, staff messaging, client access to job status |
+| Owner policy | Retention, legal holds, staff messaging, client access to job status, identity verification for profile amendments, the operations role's access to client records |
 | Providers | Payments, accounting sync, e-mail and SMS |
 | Tax-content review | Questionnaire-derived Stage 02 requirements |
 
+Two more gaps were corrected in this block:
+- **Profile amendments:** they cover sensitive identity fields (legal name, SSN, TIN, EIN, ITIN, date of birth,
+  entity classification, authorized representative). Approving them needs an identity verification policy.
+- **Client-service views:** what the operations role may see of client records is not decided.
+
 Smaller items need none of these:
-- the client-service views for the operations role;
-- profile amendments;
 - the analytics figures;
-- combined search across cases, requests, tasks and invoices.
+- combined search across cases, requests and tasks.
