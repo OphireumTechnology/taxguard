@@ -1,0 +1,456 @@
+{
+  "description": "Production route inventory (CONTROL-DURABILITY). Every /api route the production app registers, grouped by how it behaves in production. Checked by src/tests/productionRouteInventory.test.ts. A durableReplacement names the route cutover key (src/server/routeCutover.ts) of the durable router that covers the same work; it is not mounted until its proposals are owner-approved.",
+  "kinds": {
+    "VOLATILE_REFUSED": "Backed by process-local (in-memory) state. Production refuses with the group's code, after authentication and scope checks, so nothing a restart or a second instance would lose is served or acknowledged. Needs a durable adapter.",
+    "DURABLE_GATED": "A durable adapter exists but is off until its proposal is approved and applied and the switch is set; until then production refuses with the group's code.",
+    "PROVIDER_REFUSED": "Depends on an external provider that is not commissioned; production refuses with the group's code.",
+    "RETIRED": "Local password and identity routes retired in production in favour of the Supabase session bridge (410).",
+    "DURABLE": "Reads or writes PostgreSQL or the durable session store through the server role. With the synthetic store in this test it reports its provider unavailable or answers from the synthetic session rows.",
+    "STATELESS": "Computes only from the request or from a static reference catalog; it reads and records no case state.",
+    "DIAGNOSTIC": "Liveness, readiness and administrator-only diagnostics; no client records."
+  },
+  "groups": [
+    {
+      "id": "case-authority-review-decisions",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED",
+      "reason": "Reviewer approve and return-for-correction. The repository validates confirmation and reason, then refuses before any write because no durable reviewer decision provider exists.",
+      "routes": [
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/approvals",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviewer-decision"
+      ]
+    },
+    {
+      "id": "case-authority-review-workspace",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED",
+      "reason": "The reviewer workspace snapshot is assembled from the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviewer-workspace"
+      ]
+    },
+    {
+      "id": "case-authority-review-action",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED",
+      "reason": "Legacy review actions on the process-local authority adapter; refused before any write.",
+      "routes": [
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviews/action"
+      ]
+    },
+    {
+      "id": "case-authority-review-queue",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_REVIEW_QUEUE_PROVIDER_REQUIRED",
+      "reason": "The reviewer queue is discovered from the process-local authority adapter, which is not a production discovery source.",
+      "routes": [
+        "GET /api/case-authority/reviewer/dashboard"
+      ]
+    },
+    {
+      "id": "case-authority-scoped",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "reason": "Scoped case operations read and write the process-local authority adapter (TransactionalDocumentDatabase). Durable case authority is next priority 1 and needs owner-approved proposals.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/approvals/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive/manifest/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/artifacts/:kind/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/evidence/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/feedback/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ocr/:fieldId",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/repeat/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/history",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/cases",
+        "PATCH /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear",
+        "PATCH /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/activate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ai-review",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive/manifest",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/block",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/ocr",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/release",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/scan",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/evidence",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/exceptions",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/exceptions/:id/resolve",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/feedback",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id/ack",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id/submit",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ocr/:fieldId/review",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/:id/resolve",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/run",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records/:id/resolve-duplicate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals/:id/carry-forward",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reopen",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/repeat",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports/generate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions/:id/resolve",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/:id/certify",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/generate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviews",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures/:id/events",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/block",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/evaluate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/invalidate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/reopen",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/transition",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers"
+      ]
+    },
+    {
+      "id": "case-authority-onboarding",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_ONBOARDING_PROVIDER_REQUIRED",
+      "durableReplacement": "stage-one",
+      "reason": "Legacy Stage 01 onboarding on the process-local provisioner. The durable Stage 01 router is the stage-one cutover route.",
+      "routes": [
+        "GET /api/case-authority/client-onboarding/workflow",
+        "POST /api/case-authority/client-onboarding/provision",
+        "POST /api/case-authority/client-onboarding/stage-1"
+      ]
+    },
+    {
+      "id": "operations-tasks-deadlines-team",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "durableReplacement": "practice",
+      "reason": "Practice tasks, deadlines, staff assignments and workload held in in-memory services. The durable practice router covers tasks, deadlines and the engagement team.",
+      "routes": [
+        "GET /api/operations/assignments/client/:clientId",
+        "GET /api/operations/deadlines",
+        "GET /api/operations/tasks",
+        "GET /api/operations/workload",
+        "PATCH /api/operations/tasks/:id/reassign",
+        "PATCH /api/operations/tasks/:id/status",
+        "POST /api/operations/assignments",
+        "POST /api/operations/deadlines/sweep",
+        "POST /api/operations/tasks"
+      ]
+    },
+    {
+      "id": "operations-communications",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "durableReplacement": "communications",
+      "reason": "Client message threads held in an in-memory service. The durable communications router covers threads and messages.",
+      "routes": [
+        "GET /api/operations/communications/threads",
+        "GET /api/operations/communications/threads/:id/messages",
+        "POST /api/operations/communications/threads",
+        "POST /api/operations/communications/threads/:id/messages"
+      ]
+    },
+    {
+      "id": "operations-billing",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "durableReplacement": "billing",
+      "reason": "Service catalog, invoices and payments held in an in-memory service. The durable billing router covers the catalog, invoices and payments.",
+      "routes": [
+        "GET /api/operations/catalog",
+        "GET /api/operations/invoices",
+        "POST /api/operations/catalog",
+        "POST /api/operations/invoices",
+        "POST /api/operations/invoices/:id/issue",
+        "POST /api/operations/invoices/:id/payments",
+        "POST /api/operations/invoices/:id/void"
+      ]
+    },
+    {
+      "id": "operations-without-durable-adapter",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_STORE_REQUIRED",
+      "reason": "Background jobs, client requests, notifications, search, analytics, the command center, retention, legal hold, archive verification and rollover: in-memory services with no durable adapter in the repository.",
+      "routes": [
+        "GET /api/operations/analytics",
+        "GET /api/operations/command-center/:clientId",
+        "GET /api/operations/jobs",
+        "GET /api/operations/notifications",
+        "GET /api/operations/notifications/preferences",
+        "GET /api/operations/requests",
+        "GET /api/operations/retention/policies",
+        "GET /api/operations/search",
+        "PATCH /api/operations/requests/:id/resolve",
+        "PATCH /api/operations/requests/:id/respond",
+        "POST /api/operations/archive/verify",
+        "POST /api/operations/jobs",
+        "POST /api/operations/jobs/:id/cancel",
+        "POST /api/operations/jobs/:id/retry",
+        "POST /api/operations/notifications/dispatch",
+        "POST /api/operations/requests",
+        "POST /api/operations/retention/legal-hold",
+        "POST /api/operations/rollover",
+        "PUT /api/operations/notifications/preferences"
+      ]
+    },
+    {
+      "id": "operations-client-service",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CLIENT_SERVICE_PROVIDER_REQUIRED",
+      "reason": "The client service dashboard, search, conversation and request views project in-memory requests, communications, tasks and deadlines.",
+      "routes": [
+        "GET /api/operations/client-service/conversation",
+        "GET /api/operations/client-service/dashboard",
+        "GET /api/operations/client-service/request",
+        "GET /api/operations/client-service/search"
+      ]
+    },
+    {
+      "id": "operations-manager-dashboard",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_OPERATIONS_PROVIDER_REQUIRED",
+      "reason": "The practice manager dashboard projects the in-memory task and deadline services.",
+      "routes": [
+        "GET /api/operations/manager-dashboard"
+      ]
+    },
+    {
+      "id": "operations-payment-webhook",
+      "kind": "PROVIDER_REFUSED",
+      "code": "PAYMENT_PROVIDER_NOT_COMMISSIONED",
+      "reason": "No payment provider is commissioned and the billing service behind the webhook is in memory; production events are refused, not applied.",
+      "routes": [
+        "POST /api/operations/payments/webhook"
+      ]
+    },
+    {
+      "id": "bookkeeping-ledger",
+      "kind": "DURABLE_GATED",
+      "code": "DURABLE_ACCOUNTING_PROVIDER_REQUIRED",
+      "reason": "Ledger reads and writes. With TAXGUARD_LEDGER_STORE=durable they use SqlLedgerStore over the proposal-024 RPCs; otherwise production refuses rather than use the in-memory engine.",
+      "routes": [
+        "GET /api/bookkeeping/bookkeeper-dashboard",
+        "GET /api/bookkeeping/chart-of-accounts",
+        "GET /api/bookkeeping/financial-statements",
+        "GET /api/bookkeeping/general-ledger",
+        "GET /api/bookkeeping/history",
+        "GET /api/bookkeeping/journal-entries",
+        "GET /api/bookkeeping/periods",
+        "GET /api/bookkeeping/reconciliations",
+        "GET /api/bookkeeping/transactions",
+        "GET /api/bookkeeping/trial-balance",
+        "GET /api/bookkeeping/work-queue",
+        "POST /api/bookkeeping/chart-of-accounts",
+        "POST /api/bookkeeping/chart-of-accounts/:id/status",
+        "POST /api/bookkeeping/chart-of-accounts/standard",
+        "POST /api/bookkeeping/journal-entries",
+        "POST /api/bookkeeping/journal-entries/:id/approve",
+        "POST /api/bookkeeping/journal-entries/:id/reject",
+        "POST /api/bookkeeping/journal-entries/:id/request-correction",
+        "POST /api/bookkeeping/journal-entries/:id/reverse",
+        "POST /api/bookkeeping/periods",
+        "POST /api/bookkeeping/periods/:id/close",
+        "POST /api/bookkeeping/periods/:id/reopen",
+        "POST /api/bookkeeping/reconciliations/:id/clear",
+        "POST /api/bookkeeping/reconciliations/:id/finalize",
+        "POST /api/bookkeeping/reconciliations/start",
+        "POST /api/bookkeeping/transactions/:id/categorize",
+        "POST /api/bookkeeping/transactions/ingest"
+      ]
+    },
+    {
+      "id": "bookkeeping-without-durable-adapter",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_ACCOUNTING_PROVIDER_REQUIRED",
+      "ledgerCode": "DURABLE_FEATURE_NOT_AVAILABLE",
+      "reason": "Book-to-tax, accounting-provider sync and document matching exist only on the in-memory engine; with the durable ledger selected they refuse with DURABLE_FEATURE_NOT_AVAILABLE. Book-to-tax has the book-to-tax cutover router.",
+      "routes": [
+        "GET /api/bookkeeping/book-to-tax",
+        "GET /api/bookkeeping/sync/state",
+        "POST /api/bookkeeping/book-to-tax",
+        "POST /api/bookkeeping/sync/read-only",
+        "POST /api/bookkeeping/sync/write-authorize/accountant",
+        "POST /api/bookkeeping/sync/write-authorize/client",
+        "POST /api/bookkeeping/sync/write-authorize/confirm",
+        "POST /api/bookkeeping/sync/write-authorize/reviewer",
+        "POST /api/bookkeeping/sync/write-commit",
+        "POST /api/bookkeeping/transactions/:id/match-document"
+      ]
+    },
+    {
+      "id": "profile-amendments",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_PROFILE_PROVIDER_REQUIRED",
+      "reason": "Profile amendments and the authoritative profile view use the process-local amendment engine; only ordinary contact fields are durable.",
+      "routes": [
+        "GET /api/profile/amendments",
+        "GET /api/profile/authoritative",
+        "POST /api/profile/amendments",
+        "POST /api/profile/amendments/:id/review"
+      ]
+    },
+    {
+      "id": "stage-two-document-review",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_DOCUMENT_REVIEW_PROVIDER_REQUIRED",
+      "reason": "The accountant document-review store is process-local and nothing in production populates it. Durable Stage 02 document review is next priority 1.",
+      "routes": [
+        "GET /api/stage-two-three/accountant/review-item/:documentId",
+        "GET /api/stage-two-three/accountant/review-queue",
+        "POST /api/stage-two-three/accountant/review-action",
+        "POST /api/stage-two-three/accountant/verify-evidence"
+      ]
+    },
+    {
+      "id": "stage-two-reconciliation",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_RECONCILIATION_REQUIRED",
+      "reason": "The Stage 02 reconciliation snapshot is computed from process-local state.",
+      "routes": [
+        "GET /api/stage-two-three/snapshot/:taxYear",
+        "POST /api/stage-two-three/reconcile/:taxYear"
+      ]
+    },
+    {
+      "id": "stage-two-collection",
+      "kind": "DURABLE",
+      "reason": "The durable collection router (questionnaire, requests, requirements) calls the collection RPCs; it refuses clients without a server-recorded Stage 01 completion.",
+      "routes": [
+        "GET /api/stage-two-three/questionnaire/:taxYear",
+        "GET /api/stage-two-three/requests/:taxYear",
+        "GET /api/stage-two-three/requests/:taxYear/:requestId",
+        "GET /api/stage-two-three/requirements/:taxYear",
+        "POST /api/stage-two-three/questionnaire/:taxYear",
+        "POST /api/stage-two-three/requests/:taxYear",
+        "POST /api/stage-two-three/requests/:taxYear/:requestId/resolve",
+        "POST /api/stage-two-three/requests/:taxYear/:requestId/respond",
+        "POST /api/stage-two-three/requirements/:taxYear/:reqCode/not-applicable"
+      ]
+    },
+    {
+      "id": "stage-gate-evaluation",
+      "kind": "STATELESS",
+      "reason": "Evaluates the Stage 02 and Stage 03 gate functions over the snapshot in the request and returns the decision; it reads and records nothing and advances no stage.",
+      "routes": [
+        "POST /api/stage-two-three/gates/stage-2/evaluate",
+        "POST /api/stage-two-three/gates/stage-3/evaluate"
+      ]
+    },
+    {
+      "id": "profile-ordinary",
+      "kind": "DURABLE",
+      "reason": "Ordinary contact fields are updated through the durable profile store; unsupported fields are refused.",
+      "routes": [
+        "PATCH /api/profile/ordinary"
+      ]
+    },
+    {
+      "id": "ai-governance",
+      "kind": "DURABLE",
+      "reason": "AI governance evaluation, kill switches and the control center read the production governance store; with no store they refuse with AI_GOVERNANCE_UNAVAILABLE.",
+      "routes": [
+        "GET /api/ai-governance/control-center/commissioning",
+        "GET /api/ai-governance/control-center/decisions",
+        "GET /api/ai-governance/control-center/evaluations",
+        "GET /api/ai-governance/control-center/registry",
+        "GET /api/ai-governance/control-center/runs",
+        "GET /api/ai-governance/control-center/security-events",
+        "GET /api/ai-governance/control-center/usage",
+        "GET /api/ai-governance/kill-switches",
+        "POST /api/ai-governance/evaluate",
+        "POST /api/ai-governance/kill-switches"
+      ]
+    },
+    {
+      "id": "auth-session",
+      "kind": "DURABLE",
+      "reason": "The Supabase session bridge, the current identity and logout use the durable session store (taxguard_sessions).",
+      "routes": [
+        "GET /api/auth/me",
+        "POST /api/auth/logout",
+        "POST /api/auth/supabase-session"
+      ]
+    },
+    {
+      "id": "auth-local-retired",
+      "kind": "RETIRED",
+      "code": "SUPABASE_AUTH_REQUIRED",
+      "reason": "Local password, registration, reset and verification routes; production answers 410 and requires the Supabase session bridge.",
+      "routes": [
+        "GET /api/auth/local-login-status",
+        "POST /api/auth/change-password",
+        "POST /api/auth/forgot-password",
+        "POST /api/auth/google",
+        "POST /api/auth/login",
+        "POST /api/auth/register",
+        "POST /api/auth/reset-password",
+        "POST /api/auth/revoke-sessions",
+        "POST /api/auth/verify-email"
+      ]
+    },
+    {
+      "id": "accountant-dashboard",
+      "kind": "DURABLE",
+      "reason": "The accountant dashboard reads durable, tenant-scoped records for AAL2 staff sessions (read-only).",
+      "routes": [
+        "GET /api/accountant/dashboard"
+      ]
+    },
+    {
+      "id": "bookkeeper-clients",
+      "kind": "DURABLE",
+      "reason": "Lists the client ids reachable through the bookkeeper session grants, which are loaded from the durable staff assignments.",
+      "routes": [
+        "GET /api/bookkeeping/bookkeeper-clients"
+      ]
+    },
+    {
+      "id": "tax-forms-catalog",
+      "kind": "STATELESS",
+      "reason": "Read-only federal tax forms reference catalog compiled into the server; no client records.",
+      "routes": [
+        "GET /api/tax-forms/",
+        "GET /api/tax-forms/forms/:id"
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "kind": "DIAGNOSTIC",
+      "reason": "Public liveness, readiness, and administrator-only provider readiness, metrics, alerts and route cutover status.",
+      "routes": [
+        "GET /api/case-authority/provider-readiness",
+        "GET /api/health",
+        "GET /api/health/diagnostics",
+        "GET /api/health/live",
+        "GET /api/health/ready",
+        "GET /api/operational-alerts/",
+        "GET /api/operational-metrics",
+        "GET /api/provider-readiness",
+        "GET /api/readiness",
+        "GET /api/route-cutover"
+      ]
+    }
+  ]
+}

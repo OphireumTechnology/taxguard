@@ -61,6 +61,19 @@ Audits completed in this cycle (documents):
   the workflow runs on pull requests to `main`, not on pushes. The "stacked on Block N" wording in the entries below
   records how each block was built. Every database change is still a review-only proposal: nothing is applied to a
   hosted database, and the owner policies listed below are still unconfigured, so the gated actions still fail closed.
+- **Blocks 79 and 80 are on `main` (2026-10-31).** Block 79 (function access inventory and the calculation-run
+  liveness regression, proposal `20261019220000`) merged as pull request 45 at `c0568d8`. Block 80 (engagement scope of
+  five staff paths, proposals `20261019230000` and `20261019231000`) was fast-forwarded to `main` at `7a20336`, on the
+  owner's instruction, after its full matrix passed (unit 6256, PostgreSQL 327, browser 137 + 44, build, release
+  candidate, NOT VALID, secrets, diff check, contamination). Reports: `block79-function-access-inventory.md`,
+  `block80-staff-client-scope.md`.
+- **Production route inventory (Block 81).** `src/tests/productionRouteInventory.test.ts` walks the real production
+  app's 222 `/api` routes and calls each one as an anonymous caller and as each of 10 roles. Every route must be in
+  `production-route-inventory.json`. A refused route may answer only 401, 403 or its exact refusal code. No route over
+  process-local state answers in production: 146 refuse over in-memory state, 27 bookkeeping ledger routes wait for
+  the durable ledger switch, and 1 waits for a payment provider. Of the 146, 23 have a durable router behind the
+  cutover gate and 123 have no durable adapter. No server behaviour changed. Report:
+  `block81-production-route-inventory.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;
