@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "7491f98f48c52a8aa751bc8db18c59eca53ad012eb26f6edcba621a7d0fe634b",
+  "executionPlanSha256": "22ca1371e841987a892c37bbdb748b4cdf7255345621da471be65ef2f9822e61",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6447,6 +6447,55 @@
         "--     assignee. The actor must also be in scope of the task's case, engagement and year (owner decision 2026-10-19);",
         "--     a task out of scope is TASK_NOT_FOUND, like a missing one. The new assignee must pass the same check as at task",
         "--     creation (an active staff member who can see the client, taxguard_practice_can_see). The version must match;"
+      ]
+    },
+    {
+      "order": 118,
+      "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
+      "kind": "proposal",
+      "version": "20261019260000",
+      "sha256": "f369ce446715453b2fa6c2969b3ca2ae498779c5cdd667c9d55a7d84ffca48df",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_deadline_level",
+        "taxguard_practice_deadline_escalations"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop the functions."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_deadline_level(timestamptz,text,timestamptz) FROM PUBLIC, anon, authenticated, service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_deadline_escalations(text,text,text,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_practice_deadline_escalations(text,text,text,integer) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 85, deadline escalation). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261001000000 (taxguard_deadlines), 20261012250000 (taxguard_practice_actor, taxguard_practice_is_manager)",
+        "-- and 20261018100000 (taxguard_practice_item_scope).",
+        "--",
+        "-- The in-memory /api/operations/deadlines/sweep wrote an escalation level and an OVERDUE status onto each deadline.",
+        "-- The durable deadlines are not swept. The durable functions treat status PENDING as an open deadline (the client",
+        "-- list's next deadline, the client detail), so a sweep writing OVERDUE would make overdue deadlines disappear from",
+        "-- them, and no scheduler is commissioned to run one. Instead, taxguard_practice_deadline_escalations derives the level",
+        "-- when it is read, from the due date and the current time, and writes nothing. A derived level cannot be stale.",
+        "--",
+        "-- Levels and thresholds are the ones the in-memory service used (DeadlineEscalationService.evaluateSingleDeadline),",
+        "-- carried over unchanged and returned with the result. They are operational defaults, not a reviewed policy:"
       ]
     }
   ]

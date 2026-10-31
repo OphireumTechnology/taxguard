@@ -2,12 +2,12 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 118,
+    "files": 119,
     "core": 13,
-    "proposals": 104,
+    "proposals": 105,
     "tables": 184,
-    "functions": 515,
-    "securityDefinerFunctions": 406,
+    "functions": 517,
+    "securityDefinerFunctions": 407,
     "clientExecutableFunctionsWithSupabaseDefaults": [],
     "clientExecutableFunctionsWithoutDefaults": [],
     "clientReachableTablesWithSupabaseDefaults": [
@@ -4836,6 +4836,34 @@
     },
     {
       "order": 118,
+      "kind": "proposal",
+      "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [
+        "taxguard_deadline_level",
+        "taxguard_practice_deadline_escalations"
+      ],
+      "supersedes": [],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        4,
+        28,
+        80
+      ],
+      "clientRoleAccess": [],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": []
+    },
+    {
+      "order": 119,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,

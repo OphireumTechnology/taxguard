@@ -91,6 +91,10 @@ export class PracticeStore {
   }
   /** Block 84: a staff member's open tasks and assignments; another member's only for managers. */
   workload(tenantId: string, actor: string, userId?: string) { return this.call('taxguard_dash_workload', { p_tenant: tenantId, p_actor: actor, p_user: userId ?? null }); }
+  /** Block 85: open deadlines in the actor's scope with an escalation level derived when read; nothing is written. */
+  deadlineEscalations(tenantId: string, actor: string, clientId?: string, minLevel = 0) {
+    return this.call('taxguard_practice_deadline_escalations', { p_tenant: tenantId, p_actor: actor, p_client: clientId ?? null, p_min_level: minLevel });
+  }
   addDeadline(tenantId: string, clientId: string, actor: string, key: string, deadline: Record<string, unknown>) {
     return this.call('taxguard_practice_add_deadline', { ...this.base(tenantId, clientId, actor), p_deadline: derivedId('ddl', tenantId, clientId, key), p_body: deadline });
   }

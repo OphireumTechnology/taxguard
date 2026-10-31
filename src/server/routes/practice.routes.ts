@@ -43,6 +43,11 @@ export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
   const int = (v: unknown) => typeof v === 'number' ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN;
 
   router.get('/my-work', run(req => store().myWork(t(req), u(req))));
+  router.get('/deadline-escalations', run(async req => {
+    const minLevel = req.query.minLevel === undefined ? 0 : int(req.query.minLevel);
+    if (!Number.isInteger(minLevel)) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
+    return store().deadlineEscalations(t(req), u(req), str(req.query.clientId), minLevel);
+  }));
   router.get('/workload', run(req => store().workload(t(req), u(req), str(req.query.userId))));
   router.get('/summary', run(req => store().practiceSummary(t(req), u(req), req.query.taxYear ? int(req.query.taxYear) : undefined)));
   router.get('/clients', run(req => store().listClients(t(req), u(req), { q: str(req.query.q), status: str(req.query.status) as any, clientType: str(req.query.clientType),

@@ -818,6 +818,14 @@
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
         "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
     }
   ]
 }

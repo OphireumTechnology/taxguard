@@ -5135,6 +5135,21 @@
       ]
     },
     {
+      "file": "docs/development/block85-deadline-escalation.md",
+      "sha256": "83a7a59309ae4185bb089623054dd9467fef2388aaf7803704a07c8e16a809b5",
+      "bytes": 3679,
+      "headings": [
+        "# Block 85: deadline escalation, derived when read",
+        "## Purpose",
+        "## Design: no sweep",
+        "## Thresholds (owner review point)",
+        "## Scope",
+        "## Evidence",
+        "## Register",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5428,8 +5443,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "80105cc2916a785d48b82301e46854903534029995b26327eea7c77fdd0b2f6f",
-      "bytes": 24585,
+      "sha256": "cdfe8b755b3ad40eeb7ce15f823ae5c5f923e20c0a11276d40aa048dfdc22074",
+      "bytes": 24699,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6151,8 +6166,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "1ff3e26ac8dae55b18221a3216678c1676e95dc1b30b1019f77672c5f5de6f99",
-      "bytes": 30685,
+      "sha256": "3397772d25fcf6bde2b0da63e86365be2986c65704304fc85b7fdd0584ae5edf",
+      "bytes": 31371,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6878,6 +6893,12 @@
       "file": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
       "sha256": "5e44b2b17c7890b4c134411c555ca9a15e05c0a5096de0e111ff686dbe338858",
       "bytes": 8004,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
+      "sha256": "f369ce446715453b2fa6c2969b3ca2ae498779c5cdd667c9d55a7d84ffca48df",
+      "bytes": 5096,
       "headings": []
     },
     {

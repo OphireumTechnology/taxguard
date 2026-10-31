@@ -98,6 +98,12 @@ Audits completed in this cycle (documents):
 
   The in-memory workload route let any accountant read anyone's. The PostgreSQL suite has 7 tests and four mutations
   were caught. Report: `block84-task-reassignment-workload.md`.
+- **Deadline escalation (Block 85).** Review-only proposal `20261019260000`: `GET /api/practice/deadline-escalations`
+  derives each open deadline's escalation level when read, scoped by tax year or case, and writes nothing. A sweep
+  writing `OVERDUE` would have hidden overdue deadlines from durable reads that treat `PENDING` as open. The practice
+  task, deadline and team group is now fully replaced. The PostgreSQL suite has 5 tests and four mutations were caught.
+  Report: `block85-deadline-escalation.md`. **Owner review point:** the escalation thresholds are the in-memory
+  defaults (7 days, 48 hours, critical after 7 days overdue or when statutory), not a reviewed policy.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

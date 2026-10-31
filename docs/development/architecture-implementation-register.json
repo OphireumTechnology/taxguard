@@ -721,6 +721,24 @@
       "remainingGap": "Proposal 20261019250000 is review-only and the practice cutover route is not mounted in production. No user interface calls the new routes yet. The in-memory reassign and workload routes stay refused in production until they are retired."
     },
     {
+      "id": "OPS-DEADLINE-ESCALATION",
+      "name": "Deadline escalation derived when read",
+      "category": "Operations",
+      "status": "INTEGRATION_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
+        "src/server/routes/practice.routes.ts",
+        "src/server/taxguard/practice/practiceStore.ts",
+        "docs/development/block85-deadline-escalation.md"
+      ],
+      "tests": [
+        "src/tests-db/deadlineEscalation.db.test.ts",
+        "src/tests/productionRouteInventory.test.ts"
+      ],
+      "persistence": "durable proposal, development-only router behind the route cutover gate",
+      "remainingGap": "Proposal 20261019260000 is review-only and the practice cutover route is not mounted in production. The thresholds are the in-memory defaults, not an owner-reviewed policy. No reminders are sent and no user interface calls the route."
+    },
+    {
       "id": "REC-AUDIT-LEDGER",
       "name": "Audit ledger and security events",
       "category": "Records",
