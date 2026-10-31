@@ -207,6 +207,10 @@
       "category": "MANAGER_ONLY",
       "reason": "Refused unless the actor is a practice manager (or administrator), who is tenant-wide by design."
     },
+    "taxguard_dash_workload": {
+      "category": "OWN_RECORDS",
+      "reason": "Counts the actor's own assigned open tasks and current assignments; another staff member's workload is refused unless the actor is a practice manager or administrator (Block 84). Counts only, no client records."
+    },
     "taxguard_doc_complete_upload": {
       "category": "OWN_RECORDS",
       "reason": "Completes an upload only for the member who created that pending document version."

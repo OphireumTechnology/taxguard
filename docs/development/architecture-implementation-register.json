@@ -703,6 +703,24 @@
       "remainingGap": "Proposal 20261019240000 is review-only and the jobs cutover route is not mounted in production. No worker process, provider or AI agent is commissioned, so nothing runs a job. The in-memory /api/operations/jobs routes stay refused in production until they are retired."
     },
     {
+      "id": "OPS-TASK-REASSIGNMENT",
+      "name": "Task reassignment and staff workload",
+      "category": "Operations",
+      "status": "INTEGRATION_VERIFIED",
+      "implementation": [
+        "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
+        "src/server/routes/practice.routes.ts",
+        "src/server/taxguard/practice/practiceStore.ts",
+        "docs/development/block84-task-reassignment-workload.md"
+      ],
+      "tests": [
+        "src/tests-db/taskReassignmentWorkload.db.test.ts",
+        "src/tests/productionRouteInventory.test.ts"
+      ],
+      "persistence": "durable proposal, development-only router behind the route cutover gate",
+      "remainingGap": "Proposal 20261019250000 is review-only and the practice cutover route is not mounted in production. No user interface calls the new routes yet. The in-memory reassign and workload routes stay refused in production until they are retired."
+    },
+    {
       "id": "REC-AUDIT-LEDGER",
       "name": "Audit ledger and security events",
       "category": "Records",

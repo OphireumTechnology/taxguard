@@ -10,7 +10,7 @@ export class PracticeStoreError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); }
 }
 const STATUS: Record<string, number> = {
-  PRACTICE_ACCESS_DENIED: 403, PRACTICE_MANAGER_REQUIRED: 403, DASHBOARD_MANAGER_REQUIRED: 403, DASHBOARD_ROLE_NOT_SUPPORTED: 403, TASK_ACTION_NOT_AUTHORIZED: 403, DEADLINE_WAIVER_NOT_AUTHORIZED: 403,
+  PRACTICE_ACCESS_DENIED: 403, PRACTICE_MANAGER_REQUIRED: 403, DASHBOARD_MANAGER_REQUIRED: 403, DASHBOARD_ROLE_NOT_SUPPORTED: 403, TASK_ACTION_NOT_AUTHORIZED: 403, DEADLINE_WAIVER_NOT_AUTHORIZED: 403, WORKLOAD_NOT_AUTHORIZED: 403,
   PRACTICE_VERSION_CONFLICT: 409, PRACTICE_CONCURRENT_UPDATE: 409, PRACTICE_IDEMPOTENCY_CONFLICT: 409, PRACTICE_BUSY: 409,
   CLIENT_HAS_OPEN_ENGAGEMENTS: 409, ENGAGEMENT_HAS_OPEN_TASKS: 409, TASK_DEPENDENCIES_OPEN: 409, ASSIGNMENT_SEGREGATION_OF_DUTIES: 409,
 };
@@ -85,6 +85,12 @@ export class PracticeStore {
   setTaskStatus(tenantId: string, clientId: string, actor: string, taskId: string, status: string, version: number) {
     return this.call('taxguard_practice_set_task_status', { ...this.base(tenantId, clientId, actor), p_task: taskId, p_status: status, p_version: version });
   }
+  /** Block 84: reassign or clear a task's assignee (manager, creator or current assignee, in scope). */
+  reassignTask(tenantId: string, clientId: string, actor: string, taskId: string, assignee: string | null, version: number, reason?: string) {
+    return this.call('taxguard_practice_reassign_task', { ...this.base(tenantId, clientId, actor), p_task: taskId, p_assignee: assignee, p_version: version, p_reason: reason ?? null });
+  }
+  /** Block 84: a staff member's open tasks and assignments; another member's only for managers. */
+  workload(tenantId: string, actor: string, userId?: string) { return this.call('taxguard_dash_workload', { p_tenant: tenantId, p_actor: actor, p_user: userId ?? null }); }
   addDeadline(tenantId: string, clientId: string, actor: string, key: string, deadline: Record<string, unknown>) {
     return this.call('taxguard_practice_add_deadline', { ...this.base(tenantId, clientId, actor), p_deadline: derivedId('ddl', tenantId, clientId, key), p_body: deadline });
   }

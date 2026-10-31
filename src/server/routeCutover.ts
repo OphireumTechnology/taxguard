@@ -25,7 +25,7 @@ export interface CutoverRoute {
 }
 
 export const ROUTE_CUTOVER_CATALOG: readonly CutoverRoute[] = Object.freeze([
-  { key: 'practice', path: '/api/practice', proposals: ['20261012250000', '20261018100000', '20261019230000'], sentinelRpcs: ['taxguard_practice_client_detail'] },
+  { key: 'practice', path: '/api/practice', proposals: ['20261012250000', '20261018100000', '20261019230000', '20261019250000'], sentinelRpcs: ['taxguard_practice_client_detail'] },
   { key: 'stage-one', path: '/api/stage-one', proposals: ['20261018030000'], sentinelRpcs: ['taxguard_onb_get'] },
   { key: 'cases', path: '/api/cases', proposals: ['20261012260000', '20261018090000', '20261018105000', '20261019230000'], sentinelRpcs: ['taxguard_case_detail', 'taxguard_case_restaff'] },
   { key: 'vault', path: '/api/vault', proposals: ['20261012270000', '20261015030851', '20261018060000', '20261018080000'], sentinelRpcs: ['taxguard_doc_list'] },

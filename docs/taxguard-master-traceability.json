@@ -5121,6 +5121,20 @@
       ]
     },
     {
+      "file": "docs/development/block84-task-reassignment-workload.md",
+      "sha256": "866deb613cc292d27f70f89a8b6219fea8712aaf30dcd1b17b0c86340c085d5c",
+      "bytes": 4519,
+      "headings": [
+        "# Block 84: task reassignment and staff workload",
+        "## Purpose",
+        "## Reassigning a task",
+        "## The staff workload view",
+        "## Wiring",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5414,8 +5428,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "d37d2eb9c14eab622a28aced9973163d7374b51c63040ceace837fecfdfef3cb",
-      "bytes": 24461,
+      "sha256": "80105cc2916a785d48b82301e46854903534029995b26327eea7c77fdd0b2f6f",
+      "bytes": 24585,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6137,8 +6151,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "cfa3c9f6c30f2e9453dfda6e574e88315d1574d9825898b748a80b21c9b63336",
-      "bytes": 30187,
+      "sha256": "1ff3e26ac8dae55b18221a3216678c1676e95dc1b30b1019f77672c5f5de6f99",
+      "bytes": 30685,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6858,6 +6872,12 @@
       "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
       "sha256": "14b9bec92acedda4c6b2877d64bfd2137415be345e40209e6d8e2acdfa66a641",
       "bytes": 23082,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
+      "sha256": "5e44b2b17c7890b4c134411c555ca9a15e05c0a5096de0e111ff686dbe338858",
+      "bytes": 8004,
       "headings": []
     },
     {

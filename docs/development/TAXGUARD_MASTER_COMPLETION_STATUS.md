@@ -91,6 +91,13 @@ Audits completed in this cycle (documents):
   route exists and is not itself refused. Of 147 refused routes: 19 replaced, 108 partly replaced, 20 with no durable
   route. A durable client-request adapter was not built, because proposal `20261015030000` and the vault already hold
   that work. No server behaviour changed. Report: `block83-durable-coverage-map.md`.
+- **Task reassignment and staff workload (Block 84).** Review-only proposal `20261019250000` adds two durable
+  practice routes:
+  - task reassignment: manager, creator or assignee, in scope, versioned and audited;
+  - the staff workload view: counts with definitions, the actor's own unless the actor is a manager.
+
+  The in-memory workload route let any accountant read anyone's. The PostgreSQL suite has 7 tests and four mutations
+  were caught. Report: `block84-task-reassignment-workload.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

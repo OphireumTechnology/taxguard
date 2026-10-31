@@ -43,6 +43,7 @@ export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
   const int = (v: unknown) => typeof v === 'number' ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN;
 
   router.get('/my-work', run(req => store().myWork(t(req), u(req))));
+  router.get('/workload', run(req => store().workload(t(req), u(req), str(req.query.userId))));
   router.get('/summary', run(req => store().practiceSummary(t(req), u(req), req.query.taxYear ? int(req.query.taxYear) : undefined)));
   router.get('/clients', run(req => store().listClients(t(req), u(req), { q: str(req.query.q), status: str(req.query.status) as any, clientType: str(req.query.clientType),
     after: str(req.query.cursor), limit: req.query.limit === undefined ? undefined : int(req.query.limit) })));
@@ -64,6 +65,12 @@ export function createPracticeRouter(deps: PracticeRouterDeps = {}) {
       assignedUserId: b.assignedUserId, dueDate: b.dueDate, dependencies: Array.isArray(b.dependencies) ? b.dependencies : [], engagementId: b.engagementId, taxYear: b.taxYear, caseId: b.caseId });
   }, 201));
   router.post('/clients/:clientId/tasks/:taskId/status', run(req => store().setTaskStatus(t(req), req.params.clientId, u(req), req.params.taskId, req.body?.status, int(req.body?.version))));
+  // assignedUserId must be given: a string assigns, null clears. A missing field is refused rather than read as clearing.
+  router.post('/clients/:clientId/tasks/:taskId/reassign', run(async req => {
+    const assignee = req.body?.assignedUserId;
+    if (assignee !== null && (typeof assignee !== 'string' || !assignee)) throw new PracticeStoreError('PRACTICE_INPUT_INVALID', 400);
+    return store().reassignTask(t(req), req.params.clientId, u(req), req.params.taskId, assignee, int(req.body?.version), str(req.body?.reason));
+  }));
   router.post('/clients/:clientId/deadlines', run(req => {
     const b = req.body || {};
     return store().addDeadline(t(req), req.params.clientId, u(req), key(req), { title: b.title, category: b.category, dueDate: b.dueDate, authorityType: b.authorityType,

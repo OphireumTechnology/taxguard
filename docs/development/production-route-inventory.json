@@ -181,9 +181,11 @@
         "POST /api/practice/clients/:clientId/engagements/:engagementId/team",
         "POST /api/practice/clients/:clientId/team/:assignmentId/revoke",
         "POST /api/practice/clients/:clientId/deadlines",
-        "POST /api/practice/clients/:clientId/deadlines/:deadlineId/resolve"
+        "POST /api/practice/clients/:clientId/deadlines/:deadlineId/resolve",
+        "POST /api/practice/clients/:clientId/tasks/:taskId/reassign",
+        "GET /api/practice/workload"
       ],
-      "gap": "Task reassignment, the staff workload view and the deadline escalation sweep have no durable route.",
+      "gap": "The deadline escalation sweep has no durable route.",
       "reason": "Practice tasks, deadlines, staff assignments and workload held in in-memory services. The durable practice router covers tasks, deadlines and the engagement team.",
       "routes": [
         "GET /api/operations/assignments/client/:clientId",

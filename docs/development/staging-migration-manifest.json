@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "dd354e2b1fab49c5c439ccacc0453dc8cc2a0f28f28f90178a72c94d15b7fd9d",
+  "executionPlanSha256": "7491f98f48c52a8aa751bc8db18c59eca53ad012eb26f6edcba621a7d0fe634b",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6397,6 +6397,56 @@
         "--                or over the whole client when no case is given (taxguard_practice_item_scope, owner decision",
         "--                2026-10-19). A job with no client is tenant-wide: administrators only.",
         "--       list     the jobs the actor may see, by the same scope; tenant-wide jobs to administrators only."
+      ]
+    },
+    {
+      "order": 117,
+      "file": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
+      "kind": "proposal",
+      "version": "20261019250000",
+      "sha256": "5e44b2b17c7890b4c134411c555ca9a15e05c0a5096de0e111ff686dbe338858",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_practice_reassign_task",
+        "taxguard_dash_workload"
+      ],
+      "supersededFunctions": [],
+      "rollback": [
+        "-- Rollback (development): drop both functions."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_practice_reassign_task(text,text,text,text,text,integer,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_practice_reassign_task(text,text,text,text,text,integer,text) TO service_role;",
+        "REVOKE ALL ON FUNCTION public.taxguard_dash_workload(text,text,text) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_dash_workload(text,text,text) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 84, task reassignment and staff workload). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261012250000 (taxguard_practice_tasks, taxguard_practice_client_access, taxguard_practice_actor,",
+        "-- taxguard_practice_can_see, taxguard_practice_is_manager, taxguard_practice_audit) and 20261018100000",
+        "-- (taxguard_practice_item_scope).",
+        "--",
+        "-- Block 83 found two practice operations with no durable route: reassigning a task, and the staff workload view. Both",
+        "-- exist only in the in-memory /api/operations routes, refused in production.",
+        "--   * taxguard_practice_reassign_task changes, or clears, a task's assignee. The authority is the same as for a task",
+        "--     status change (20261012250000): a practice manager or administrator, the task's creator, or its current",
+        "--     assignee. The actor must also be in scope of the task's case, engagement and year (owner decision 2026-10-19);",
+        "--     a task out of scope is TASK_NOT_FOUND, like a missing one. The new assignee must pass the same check as at task",
+        "--     creation (an active staff member who can see the client, taxguard_practice_can_see). The version must match;"
       ]
     }
   ]
