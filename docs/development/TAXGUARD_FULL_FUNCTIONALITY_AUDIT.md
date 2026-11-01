@@ -118,7 +118,7 @@ Abbreviations: **OP** operational, **PART** partial, **BLK** blocked, **PH** pla
 |---|---|---|---|---|---|---|---|---|---|
 | Client directory, engagements, team, tasks | `PracticeClientsPanel.tsx` | OP | BLK (C) | cutover `practice` | Tenant, assignment and year scope | suites 02, 04 | Staff client creation and representatives (D) | P1 | Approve practice proposals |
 | My work, workload, deadline escalation, notifications, search | `PracticeOperationsPanel.tsx`, `TeamWorkloadPanel.tsx`, `DeadlineEscalationsPanel.tsx` | OP | BLK (C) | cutover `practice` | Scoped | suites 06, 16 | Escalation thresholds are placeholders pending policy (D) | P2 | Owner thresholds |
-| Accountant dashboard (summary read) | `AccountantDashboard.tsx` | PART | PART | `/api/accountant/dashboard` (DURABLE); case detail reads (workpapers, stage states, draft returns) refuse | AAL2 staff | route inventory | Case detail uses in-memory case-authority reads | P1 | Category A: read the durable cases and tax-engine routers instead |
+| Accountant dashboard and case detail | `AccountantDashboard.tsx` | OP (Block 102) | PART: queue answers; case detail BLK (C) | `/api/accountant/dashboard` (DURABLE, now with the case id); case detail from cutover `cases` and `tax-engine` | AAL2 staff; the record must match the selected case | `accountantCaseDetail.test.ts`; suite 07 (Block 102 journey); `staffMfaAccountantProductionApi.test.ts` | General case workpapers have no durable record; the queue's stage enrichment still reads the in-memory case authority | P2 | Remove the queue's in-memory stage enrichment (durable rows already carry the stage) |
 | Case workflow (18 stages, transitions) | `CaseWorkflowPanel.tsx` | OP (stages 01–08) | BLK (C, D) | cutover `cases` · `taxguard_case_*` | Assignment and maker-checker | suite 03 | Stages 09–18 attestable-stage policy | P0, blocked | Owner policy H-series |
 | Document review | `StaffDocumentReviewPanel.tsx` | OP | BLK (C) | cutover `vault` | Independent reviewer | suite 02 | OCR provider (E) | P1 | Approve vault proposals |
 | Tax rules, research, form mapping, draft return, verification, risk, QC, final authorization, comparison | `TaxRulesPanel.tsx`, `Case*Panel.tsx`, `QualityControlQueuePanel.tsx`, `FinalAuthorizationQueuePanel.tsx` | PART (structure only) | BLK (C, D, F) | cutover `tax-engine` (25 proposals) | Independent approval; eligibility and designation under owner policies; fails closed | suite 07; tax DB suites | No real rule content; QC and final-authorization policy | P0, blocked | Tax-content review (F); owner policy (D) |
@@ -175,16 +175,16 @@ Abbreviations: **OP** operational, **PART** partial, **BLK** blocked, **PH** pla
 
 ## Category A and B work identified (implementable now)
 
-1. **Accountant case detail** (`AccountantDashboard.tsx`, three VOLATILE_REFUSED case-authority reads:
-   workpapers, stage states and draft returns). Durable replacements exist in the `cases` and `tax-engine` routers
-   and in book-to-tax workpapers (route inventory coverage PARTIAL).
+1. **Accountant case detail: done in Block 102.** Found on the way: the durable accountant queue ignored engagement /
+   tax-year scoped grants, so a preparer staffed for one engagement year saw no cases. It now reads current
+   assignments from the database at request time. The case detail reads the durable case (stage state) and its return
+   versions by case id, and the workpapers tab says plainly that general case workpapers have no durable record.
+   Remaining: the queue's per-row stage enrichment (`useAccountantDashboardData`) still calls the in-memory case
+   authority; durable rows already carry the stage.
 2. **Stage 01 browser journey.** A client completing Stage 01 through the durable onboarding panel has database and
    HTTP evidence but no browser journey.
 3. **Legacy `api.ts` members and AppContext actions with no caller** (34 call sites). The repository's unreachable-code
    rule asks for an owner deletion decision. The evidence is in the contract file, categories UNUSED_MEMBER and
    UNREACHED_CONTEXT_ACTION.
 
-Items 1 and 2 are the next development priorities. It needs the accountant case row (from `/api/accountant/dashboard`) to
-identify the durable case and return, so the durable panels can be used in place of the in-memory reads. Today
-those three reads answer 503 in production and the case detail shows "service unavailable", which is honest but
-empty.
+Item 2 and the remaining part of item 1 are the next development priorities.

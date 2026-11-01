@@ -195,6 +195,18 @@ Audits completed in this cycle (documents):
   caller. Defect fixed: the public consultation form had no production path; it now has a cutover entry
   (`public-consultations`, off until approved) and keeps its 8 KB limit behind the production parser (mutation
   caught). Production staff identity administration has no route at all; recorded as an owner decision.
+- **Accountant case detail on durable reads (Block 102).** The accountant dashboard's case detail read workpapers, stage
+  states and draft returns from the in-memory case authority, which production refuses. It now reads the durable case
+  and its return versions by the case id that each dashboard row carries (`/api/accountant/dashboard` now returns
+  `caseId`), and keeps only records that match the selected case. The development server mounts the durable dashboard
+  router when the durable store is configured, as production does. Tests: `accountantCaseDetail.test.ts` (mutation
+  caught) and a suite 07 browser journey. **Defect fixed:** the durable accountant directory checked only the session's whole-client
+  list, so a preparer staffed for one engagement year (the scoped-grant model, owner decision 2026-10-19), and every
+  local development session, saw an empty queue. It now reads current, active assignments from
+  `taxguard_staff_assignments` at request time: a whole-client row, or a row for exactly that case's engagement and
+  year. A revoked or expired assignment ends access at once (`staffMfaAccountantProductionApi.test.ts`; four mutations
+  caught). Remaining: the queue's per-row
+  stage enrichment still reads the in-memory case authority.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

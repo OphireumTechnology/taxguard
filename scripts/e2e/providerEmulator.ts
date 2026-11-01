@@ -49,7 +49,9 @@ const bearerUser = (headers: Record<string, string | string[] | undefined>) => {
   return t && u ? { t, u } : null;
 };
 const TABLES = new Set(['taxguard_identities', 'taxguard_members', 'taxguard_clients', 'taxguard_sessions', 'taxguard_audit_log', 'taxguard_staff_assignments',
-  'taxguard_client_id_sequence', 'taxguard_cases', 'taxguard_staff_invitations', 'taxguard_tenants']);
+  'taxguard_client_id_sequence', 'taxguard_cases', 'taxguard_staff_invitations', 'taxguard_tenants',
+  // Block 102: the durable accountant dashboard read model (accountantCaseDirectory.ts) reads engagement titles.
+  'taxguard_engagements']);
 const COLUMN = /^[a-z_][a-z0-9_]{0,62}$/;
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const now = () => Math.floor(Date.now() / 1000);

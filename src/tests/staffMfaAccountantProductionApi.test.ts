@@ -178,7 +178,28 @@ describe('Accountant dashboard API: role, tenant and assignment isolation', () =
     expect(r.body.unavailableFields).toEqual(['dueDate', 'priority', 'documents']);
     expect(r.body.cases.map((c: any) => c.clientId)).toEqual(['c-1']);
     expect(r.body.cases[0]).toMatchObject({ tenantId: TENANT, activeStage: 9, priority: '', documents: [], clientName: 'Synthetic c-1' });
+    // Block 102: the durable case id, so the case detail reads the cases and tax-engine routers by it.
+    expect(r.body.cases[0].caseId).toBe('case-c-1-2025');
     expect(r.body.cases[0]).not.toHaveProperty('dueDate');
+  });
+  // Block 102: a preparer staffed for one engagement and tax year (scoped grant) sees exactly that case.
+  it('lists a case reached through an engagement / tax-year scoped grant, and only that engagement year', async () => {
+    person('acct-1', 'accountant');
+    const scoped = (clientId: string, engagementId: string, taxYear: number) => tables.taxguard_staff_assignments.push({ tenant_id: TENANT, client_id: clientId,
+      user_id: 'acct-1', status: 'ACTIVE', engagement_id: engagementId, tax_year: taxYear, effective_from: past, effective_to: null });
+    scoped('c-1', 'eng-c-1', 2025); caseRow('c-1', 'acct-1');                        // returned: exact engagement and year
+    scoped('c-2', 'eng-c-2', 2024); caseRow('c-2', 'acct-1');                        // case is 2025: other year
+    scoped('c-3', 'eng-other', 2025); caseRow('c-3', 'acct-1');                      // other engagement
+    caseRow('c-4', 'acct-1');                                                        // no grant at all
+    // Whole-client rows that are no longer current reach nothing: revoked, expired, not yet effective.
+    for (const [clientId, status, from, to] of [['c-5', 'REVOKED', past, null], ['c-6', 'ACTIVE', past, new Date(Date.now() - 60_000).toISOString()],
+      ['c-7', 'ACTIVE', new Date(Date.now() + 86_400_000).toISOString(), null]] as const) {
+      tables.taxguard_staff_assignments.push({ tenant_id: TENANT, client_id: clientId, user_id: 'acct-1', status, engagement_id: null, tax_year: null, effective_from: from, effective_to: to });
+      caseRow(clientId, 'acct-1');
+    }
+    const r = await get('/api/accountant/dashboard', sessionFor('acct-1', 'aal2'));
+    expect(r.status).toBe(200);
+    expect(r.body.cases.map((c: any) => c.caseId)).toEqual(['case-c-1-2025']);
   });
   it('ignores client-supplied tenant and role hints', async () => {
     person('acct-1', 'accountant'); grant('acct-1', 'c-1'); caseRow('c-1', 'acct-1'); caseRow('c-9', 'acct-1', { tenant: OTHER });

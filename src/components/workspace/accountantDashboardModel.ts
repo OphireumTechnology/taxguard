@@ -1,7 +1,7 @@
 import type { DocumentItem } from '../../types';
 
 export interface AccountantCase {
-  id: string; tenantId: string; clientId: string; clientName: string;
+  id: string; caseId?: string; tenantId: string; clientId: string; clientName: string;
   engagementId: string; authorityClientId: string; taxYear: number; status: string; priority: string;
   dueDate?: string; serviceTitle: string; documents: DocumentItem[];
   activeStage?: number;

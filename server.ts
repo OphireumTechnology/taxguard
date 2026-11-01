@@ -30,6 +30,7 @@ import { SecurityEventRecorder, securityDenialObserver } from './src/server/secu
 import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
+import { createAccountantDashboardRouter } from './src/server/routes/accountantDashboard.routes';
 import { requireOperationalAdministrator } from './src/server/operationalDiagnostics';
 import { createOperationalMetrics } from './src/server/operationalMetrics';
 import { proxyTrustHops } from './src/server/config/proxyTrust';
@@ -547,6 +548,9 @@ app.use(
   securityRouter
 );
 
+// Block 102: with the durable store configured, the accountant dashboard reads the durable case directory, as in the
+// production app, so its rows carry the durable case id. The other legacy accountant routes are unchanged.
+if (practiceStoreConfigured()) app.use('/api/accountant', createAccountantDashboardRouter());
 app.use(
   '/api/accountant',
   accountantRouter

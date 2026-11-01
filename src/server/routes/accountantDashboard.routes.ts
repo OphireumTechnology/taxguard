@@ -30,7 +30,7 @@ export function createAccountantDashboardRouter(deps: AccountantDashboardDeps = 
         throw new AuthorityError('ACCOUNTANT_TENANT_REQUIRED', 403);
       }
       const directory = deps.directory?.() ?? new SupabaseAccountantCaseDirectory(getSupabaseAdmin());
-      const cases = await directory.listPreparerCases(user.tenantId, user.id, user.authorizedClientIds);
+      const cases = await directory.listPreparerCases(user.tenantId, user.id);
       res.json({ cases, source: 'durable', unavailableFields: [...DURABLE_UNAVAILABLE_FIELDS] });
     } catch (error) {
       res.status(error instanceof AuthorityError ? error.status : 503)

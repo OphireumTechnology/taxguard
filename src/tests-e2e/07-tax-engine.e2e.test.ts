@@ -982,4 +982,36 @@ describe('draft return preparation on the real server', () => {
     for (const s of [prep, reviewer]) expect(realErrors(s)).toEqual([]);
     await prep.context.close(); await reviewer.context.close();
   });
+
+  // Block 102: the accountant dashboard's case detail reads the durable case and its return versions by case id.
+  it('the accountant case detail shows the durable return versions and stage state of the selected case', async () => {
+    const acct = await apiLogin('e2e-acct');
+    const dashboard = (await api(acct, 'GET', '/api/accountant/dashboard')).body;
+    const row = dashboard.cases?.find((c: any) => c.clientId === C && c.taxYear === 2025);
+    const target = (await api(await apiLogin('e2e-mgr'), 'GET', '/api/cases')).body.items.find((c: any) => c.clientId === C && c.taxYear === 2025);
+    expect(row?.caseId, `the durable dashboard row carries its case id; dashboard ${JSON.stringify(dashboard).slice(0, 600)}; case ${JSON.stringify(target).slice(0, 400)}`).toBeTruthy();
+    const versions = (await api(acct, 'GET', `/api/tax-engine/cases/${row.caseId}/returns`)).body.items as any[];
+    expect(versions.length).toBeGreaterThan(0); // prepared by the draft return journey above
+    const prep = await staffLogin('e2e-acct');
+    await prep.page.getByRole('row').filter({ hasText: '2025' }).getByRole('button', { name: row.clientName, exact: true }).first().click();
+    const detail = prep.page.getByRole('region', { name: `Case workspace: ${row.clientName} 2025` });
+    await detail.getByRole('tab', { name: 'Tax Forms' }).click();
+    const latest = versions.reduce((a, b) => (b.version > a.version ? b : a));
+    const form = latest.forms[0];
+    const view = detail.getByRole('button', { name: `View form ${form.formId}, return version ${latest.version}` });
+    await view.click();
+    await detail.getByText('Form mapping', { exact: true }).waitFor();
+    expect(await detail.innerText()).toContain(form.valuesSha256);
+    expect(await detail.innerText()).not.toContain('Draft return service unavailable');
+    await detail.getByRole('tab', { name: 'Client Approval' }).click();
+    await detail.getByText(/^10 Approve · |No recorded state for these stages\./).first().waitFor();
+    expect(await detail.innerText()).not.toContain('Case stage service unavailable');
+    await detail.getByRole('tab', { name: 'Workpapers' }).click();
+    await detail.getByText('General case workpapers have no durable record.', { exact: false }).waitFor();
+    // Nothing in the case detail went to the in-memory case authority.
+    // (The queue's stage enrichment, useAccountantDashboardData, is a separate follow-up.)
+    expect(prep.api.filter(r => /^\/api\/case-authority\/.*\/(stages|workpapers|returns)(\?|$)/.test(r.path))).toEqual([]);
+    expect(realErrors(prep)).toEqual([]);
+    await prep.context.close();
+  });
 });

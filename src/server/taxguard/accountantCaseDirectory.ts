@@ -14,7 +14,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { AuthorityError } from './authority.repository';
 
 export interface AccountantCaseRow {
-  id: string; tenantId: string; clientId: string; authorityClientId: string; engagementId: string;
+  id: string; caseId: string; tenantId: string; clientId: string; authorityClientId: string; engagementId: string;
   taxYear: number; clientName: string; status: string; priority: string; dueDate?: string;
   serviceTitle: string; documents: never[]; activeStage?: number; openExceptions: number;
 }
@@ -25,10 +25,29 @@ export const DURABLE_UNAVAILABLE_FIELDS = ['dueDate', 'priority', 'documents'] a
 export class SupabaseAccountantCaseDirectory {
   constructor(private readonly client: SupabaseClient) {}
 
-  async listPreparerCases(tenantId: string, uid: string, authorizedClientIds: readonly string[] | undefined): Promise<AccountantCaseRow[]> {
+  /**
+   * The preparer's cases that a current, active staff assignment reaches, read from taxguard_staff_assignments at request
+   * time: a whole-client row (no engagement, no tax year), or an engagement / tax-year scoped row for exactly that case's
+   * engagement and year (owner decision 2026-10-19, staffScopedGrants.ts). Any other row shape reaches nothing.
+   * Block 102: this read only the session's whole-client list, so a preparer staffed for one engagement year (and every
+   * local development session) saw an empty queue; a revoked assignment now ends access at once.
+   */
+  async listPreparerCases(tenantId: string, uid: string): Promise<AccountantCaseRow[]> {
     if (!tenantId || !uid) throw new AuthorityError('ACCOUNTANT_SCOPE_REQUIRED', 403);
-    const granted = new Set((authorizedClientIds || []).filter(id => typeof id === 'string' && id.length > 0));
-    if (!granted.size) return [];
+    const { data: assignments, error: assignmentError } = await this.client
+      .from('taxguard_staff_assignments')
+      .select('tenant_id, client_id, user_id, status, engagement_id, tax_year, effective_from, effective_to')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', uid)
+      .eq('status', 'ACTIVE');
+    if (assignmentError) throw new AuthorityError('CASE_STORE_UNAVAILABLE', 503);
+    const now = Date.now();
+    const current = (assignments || []).filter((a: any) => a.tenant_id === tenantId && a.user_id === uid && a.status === 'ACTIVE'
+      && typeof a.client_id === 'string' && a.client_id
+      && (a.effective_from == null || Date.parse(a.effective_from) <= now) && (a.effective_to == null || Date.parse(a.effective_to) > now));
+    if (!current.length) return [];
+    const reachable = (c: any) => current.some((a: any) => a.client_id === c.client_id && (
+      (a.engagement_id == null && a.tax_year == null) || (a.engagement_id === c.engagement_id && a.tax_year === c.tax_year)));
 
     const { data: cases, error } = await this.client
       .from('taxguard_cases')
@@ -37,12 +56,12 @@ export class SupabaseAccountantCaseDirectory {
       .eq('preparer_uid', uid);
     if (error) throw new AuthorityError('CASE_STORE_UNAVAILABLE', 503);
 
-    const scoped = (cases || []).filter((c: any) =>
-      c.tenant_id === tenantId && c.preparer_uid === uid && granted.has(c.client_id) &&
+    const own = (cases || []).filter((c: any) =>
+      c.tenant_id === tenantId && c.preparer_uid === uid && reachable(c) &&
       Number.isInteger(c.tax_year) && c.tax_year >= 2022 && typeof c.engagement_id === 'string' && c.engagement_id);
-    if (!scoped.length) return [];
+    if (!own.length) return [];
 
-    const clientIds = Array.from(new Set(scoped.map((c: any) => c.client_id as string)));
+    const clientIds = Array.from(new Set(own.map((c: any) => c.client_id as string)));
     const [{ data: clients, error: clientError }, { data: engagements, error: engagementError }] = await Promise.all([
       this.client.from('taxguard_clients').select('tenant_id, client_id, name').eq('tenant_id', tenantId).in('client_id', clientIds),
       this.client.from('taxguard_engagements').select('tenant_id, client_id, engagement_id, title').eq('tenant_id', tenantId).in('client_id', clientIds),
@@ -52,8 +71,9 @@ export class SupabaseAccountantCaseDirectory {
     const clientName = new Map((clients || []).filter((c: any) => c.tenant_id === tenantId).map((c: any) => [c.client_id, c.name]));
     const engagementTitle = new Map((engagements || []).filter((e: any) => e.tenant_id === tenantId).map((e: any) => [`${e.client_id}:${e.engagement_id}`, e.title]));
 
-    return scoped.map((c: any): AccountantCaseRow => ({
+    return own.map((c: any): AccountantCaseRow => ({
       id: `${c.client_id}:${c.engagement_id}:${c.tax_year}`,
+      caseId: c.case_id,
       tenantId,
       clientId: c.client_id,
       authorityClientId: c.client_id,
