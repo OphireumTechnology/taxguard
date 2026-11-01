@@ -2772,9 +2772,10 @@
         "scripts/frontend/reachability-audit.mjs"
       ],
       "tests": [
-        "src/tests/frontendReachabilityGuard.test.ts"
+        "src/tests/frontendReachabilityGuard.test.ts",
+        "src/tests/frontendProductionRouteContract.test.ts"
       ],
-      "remaining": "Static analysis of reachable source; legacy retained consumers documented.",
+      "remaining": "Static analysis of reachable source; legacy retained consumers documented. Block 101: every reachable /api call is matched to the production router that serves it (always or after cutover); the 53 call sites production never serves are reviewed in docs/development/frontend-production-route-contract.json and a new one fails the build. Request methods are not compared.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3135,7 +3136,7 @@
       "tests": [
         "src/tests/consultationRequests.test.ts"
       ],
-      "remaining": "Proposal 043 unapplied; local verification only; retention period undecided; no e-mail.",
+      "remaining": "Proposal 043 unapplied; local verification only. Block 101: the public router now has a production cutover entry (public-consultations, off until its proposals are approved) and keeps its 8 KB limit behind the production parser; retention period undecided; no e-mail.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -6334,6 +6335,26 @@
       ]
     },
     {
+      "file": "docs/development/TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md",
+      "sha256": "0a4117bb602c3db905baef129f2c4d505fa25d2344f502dd34317eb7099130f5",
+      "bytes": 20477,
+      "headings": [
+        "# TaxGuard AI: full functionality audit (Block 101)",
+        "## How the audit was done",
+        "### Two environments, two answers",
+        "## Headline findings",
+        "## Functionality matrix",
+        "### Public website",
+        "### Client portal",
+        "### Preparer, reviewer and practice manager workspaces",
+        "### Administration, security and AI",
+        "### Filing and payments",
+        "## Dependency register (what unblocks what)",
+        "## What this audit changes in the code",
+        "## Category A and B work identified (implementable now)"
+      ]
+    },
+    {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
       "sha256": "2fbab0275e08c92b0e5b2fcbc52d90b4046ffad6d00cce9f2891e5e0dc96c46b",
       "bytes": 11737,
@@ -8198,7 +8219,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "b729245e7f68e45b9485932aac71f9882fdad245ea422f50f62f0b005bedb971",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "93a3b31cf8c93711603811957c9007488008e1f06bf6b599cae194e64e510d12",
+    "src/server/productionApp.ts": "2c4f3fadf09fd1d1c598c215183a8695c45d3f0ea3d5c0ce70baf7f13cd10799",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "245f2b23a0f7ae2e871e25e8b820c928404425b276bef320d34a8442d1d37295",
@@ -8289,7 +8310,7 @@
     "src/tests/clientServiceAuthority.test.ts": "5002c2b48bd210f87c83550d9cd8a59d64abb70d434aba9675713d43d2790771",
     "src/tests/clientStageActionTruthfulness.test.tsx": "1cdc4a43bc4e5eea9e908f6d197fc3fc42f426ec95970a912ea0db0825d803a3",
     "src/tests/completeTaxGuardLifecycleStages10Through18.test.ts": "164b90ca8b5810f66415d0f605751d472c6db936cb8f2f23297a7b1c6831024d",
-    "src/tests/consultationRequests.test.ts": "09925cbd207f8d0885def228a4f6b722cec49fa314671766d27c9f39de09a812",
+    "src/tests/consultationRequests.test.ts": "005249aedc7fa129c721fab0c3494a66a5611e65a632679cd09d877c3f29ba19",
     "src/tests/contactIntake.test.ts": "7f89e6d6eba9927b4e6440da8957459b8a5b49cb87835df5757b0f029b15a007",
     "src/tests/coreRlsRoleExecution.test.ts": "dc108ce3fa32d92314362d026fb5092bd9699cd9cd56b937aecf867438bb13dd",
     "src/tests/dashboardApplicationShell.test.tsx": "bdb4ca403801e25678296f6c47479130816b8fb57b21a81f2b04eb18d6789425",
@@ -8302,6 +8323,7 @@
     "src/tests/durableLedgerSql.test.ts": "c4be374cf07f9b3d02387e95290a2ae6f0b3254980d8721918e61b546fe8b96c",
     "src/tests/environmentConfigurationIntegrity.test.ts": "4e87ea742945704733ab70d88ac9757f29182026b1c01a8ee9c17b3514275a2b",
     "src/tests/finalReleaseGateVerification.test.ts": "468bfeed5726c7b558d0ce71f0f2c6585686f6b1f6ed08a7119e2895dc1270dc",
+    "src/tests/frontendProductionRouteContract.test.ts": "c05d38e9e35047d4eb2c6b06f0eec0e18fa16f0d8dcc02244eb662ef6e721d04",
     "src/tests/frontendReachabilityGuard.test.ts": "e5987f3cefc5da4a96d2e5df200bb4cb3e5e55aa744607ed7ffcbacb49019677",
     "src/tests/healthEndpoints.test.ts": "0f689a65b46c67154c5ac4d04a475eb0385242b447db9e05cbd6ecad818eb1a3",
     "src/tests/lazyWorkspaceRouting.test.tsx": "c3c37d7e22fd803411a4c3e015e6d948215edfbfd5386b9a020e5f1a03a88140",

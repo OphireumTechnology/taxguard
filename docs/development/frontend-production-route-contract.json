@@ -1,0 +1,376 @@
+{
+ "description": "Block 101 frontend-to-production route contract. Reachable frontend calls (traced from src/main.tsx) to /api paths that no production router serves, always or after cutover. Production answers each with 503 API_NOT_RELEASED. Maintained by src/tests/frontendProductionRouteContract.test.ts; the list may only shrink unless a new entry is reviewed.",
+ "unserved": [
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/clients",
+   "line": 695,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/documents/:p/status",
+   "line": 749,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/documents/request",
+   "line": 735,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/documents/upload-deliverable",
+   "line": 742,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/notes",
+   "line": 756,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/overview",
+   "line": 691,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/tasks",
+   "line": 714,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/tasks/:p/review",
+   "line": 728,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/tasks/:p/status",
+   "line": 721,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/accountant/workspace/:p",
+   "line": 710,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/audit-logs",
+   "line": 585,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/impersonate/:p",
+   "line": 627,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/security-events",
+   "line": 589,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/service-plans/:p",
+   "line": 620,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/system-health",
+   "line": 598,
+   "category": "LOCAL_CONSOLE_NOT_RELEASED",
+   "reason": "The local super administrator console is deliberately not released in production (productionApp.ts). Production answers 503 API_NOT_RELEASED."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/users",
+   "line": 602,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/users/:p/reassign",
+   "line": 606,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/admin/users/:p/status",
+   "line": 613,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/careers/applicants",
+   "line": 545,
+   "category": "DEVELOPMENT_ONLY_FEATURE",
+   "reason": "Careers postings and applications use the development in-memory careers service. Postings load only in development builds, so a production visitor sees no postings and cannot open the application form. No durable careers backend exists; whether recruiting is in product scope is an owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/careers/applicants/:p/status",
+   "line": 549,
+   "category": "DEVELOPMENT_ONLY_FEATURE",
+   "reason": "Careers postings and applications use the development in-memory careers service. Postings load only in development builds, so a production visitor sees no postings and cannot open the application form. No durable careers backend exists; whether recruiting is in product scope is an owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/careers/apply",
+   "line": 535,
+   "category": "DEVELOPMENT_ONLY_FEATURE",
+   "reason": "Careers postings and applications use the development in-memory careers service. Postings load only in development builds, so a production visitor sees no postings and cannot open the application form. No durable careers backend exists; whether recruiting is in product scope is an owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/careers/jobs",
+   "line": 518,
+   "category": "DEVELOPMENT_ONLY_FEATURE",
+   "reason": "Careers postings and applications use the development in-memory careers service. Postings load only in development builds, so a production visitor sees no postings and cannot open the application form. No durable careers backend exists; whether recruiting is in product scope is an owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/careers/jobs/:p",
+   "line": 522,
+   "category": "DEVELOPMENT_ONLY_FEATURE",
+   "reason": "Careers postings and applications use the development in-memory careers service. Postings load only in development builds, so a production visitor sees no postings and cannot open the application form. No durable careers backend exists; whether recruiting is in product scope is an owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/documents",
+   "line": 373,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/documents/:p/review",
+   "line": 399,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/documents/:p/signed-url",
+   "line": 393,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/documents/:p/withdraw",
+   "line": 406,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/documents/upload",
+   "line": 386,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations",
+   "line": 465,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/:p/authorize-write/accountant-prepare",
+   "line": 494,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/:p/authorize-write/client",
+   "line": 488,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/:p/authorize-write/execute-commit",
+   "line": 506,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/:p/authorize-write/reviewer-approve",
+   "line": 500,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/:p/disconnect",
+   "line": 482,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/:p/sync",
+   "line": 476,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/integrations/connect",
+   "line": 469,
+   "category": "UNUSED_MEMBER",
+   "reason": "Defined in a reachable service module, but no reachable file calls this member."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/onboarding",
+   "line": 347,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/onboarding/save-step",
+   "line": 351,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/onboarding/submit",
+   "line": 358,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/security/run-suite",
+   "line": 650,
+   "category": "UNREACHED_CONTEXT_ACTION",
+   "reason": "Called only from an AppContext action that no reachable component invokes, or from its development-only initial load (guarded by import.meta.env.PROD)."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/staff-access/invitations",
+   "line": 189,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/staff-access/members",
+   "line": 187,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/staff-access/mfa-recoveries",
+   "line": 175,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/staff-access/sessions",
+   "line": 183,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/staff-access/sessions/events",
+   "line": 184,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/staff-access/sessions/revoke-others",
+   "line": 186,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/super-admin/dashboard-views",
+   "line": 572,
+   "category": "LOCAL_CONSOLE_NOT_RELEASED",
+   "reason": "The local super administrator console is deliberately not released in production (productionApp.ts). Production answers 503 API_NOT_RELEASED."
+  },
+  {
+   "file": "src/services/api.ts",
+   "path": "/api/super-admin/session",
+   "line": 571,
+   "category": "LOCAL_CONSOLE_NOT_RELEASED",
+   "reason": "The local super administrator console is deliberately not released in production (productionApp.ts). Production answers 503 API_NOT_RELEASED."
+  },
+  {
+   "file": "src/services/liveWorkflowApi.ts",
+   "path": "/api/live-workflow/eligibility",
+   "line": 236,
+   "category": "LEGACY_FALLBACK",
+   "reason": "Called only after the scoped workflow bundle fails. The legacy route is development-only; production answers 503 API_NOT_RELEASED and the screen reports the error (fails closed)."
+  },
+  {
+   "file": "src/services/liveWorkflowApi.ts",
+   "path": "/api/live-workflow/state",
+   "line": 209,
+   "category": "LEGACY_FALLBACK",
+   "reason": "Called only after the scoped workflow bundle fails. The legacy route is development-only; production answers 503 API_NOT_RELEASED and the screen reports the error (fails closed)."
+  },
+  {
+   "file": "src/services/staffInvitationApi.ts",
+   "path": "/api/staff-access/invitation",
+   "line": 30,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/staffOnboardingApi.ts",
+   "path": "/api/staff-access/onboarding/status",
+   "line": 41,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  },
+  {
+   "file": "src/services/staffRecoveryEnrollmentApi.ts",
+   "path": "/api/staff-access/mfa-recovery",
+   "line": 42,
+   "category": "DEVELOPMENT_ONLY_ROUTER",
+   "reason": "The /api/staff-access router is mounted by the development server only and refuses unless explicitly enabled against a non-production project (identity-integration-notes.md). Production staff administration, sessions, MFA recovery and invitations need a production identity design and the administrator-invitation policy (HC7): owner decision."
+  }
+ ]
+}

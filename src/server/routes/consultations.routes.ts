@@ -19,6 +19,16 @@ export interface ConsultationRouterDeps { store?: () => ConsultationStore; authe
 
 const fail = (res: Response, error: unknown, fallback: string) => error instanceof ConsultationError ? res.status(error.status).json({ code: error.code }) : res.status(503).json({ code: fallback });
 
+const BODY_LIMIT = 8 * 1024;
+/** The 8 KB limit also holds where a larger application-wide parser has already read the body (the production app). */
+const withinBodyLimit: RequestHandler = (req, res, next) => {
+  const declared = Number(req.get('content-length'));
+  const parsed = (req as Request & { _body?: boolean })._body === true;
+  if ((Number.isFinite(declared) && declared > BODY_LIMIT) || (parsed && Buffer.byteLength(JSON.stringify(req.body ?? null)) > BODY_LIMIT))
+    return res.status(413).json({ code: 'CONSULTATION_TOO_LARGE' });
+  next();
+};
+
 export function createPublicConsultationRouter(deps: ConsultationRouterDeps = {}) {
   const router = Router();
   let cached: ConsultationStore | null = null;
@@ -33,7 +43,7 @@ export function createPublicConsultationRouter(deps: ConsultationRouterDeps = {}
     next();
   });
   router.get('/consent', (_req, res) => res.json({ version: CONSULTATION_CONSENT_VERSION, text: CONSULTATION_CONSENT_TEXT }));
-  router.post('/', express.json({ limit: '8kb', strict: true }), async (req: Request, res: Response) => {
+  router.post('/', withinBodyLimit, express.json({ limit: '8kb', strict: true }), async (req: Request, res: Response) => {
     const address = req.ip || 'unknown';
     if (!limiter.allow(address)) { res.setHeader('Retry-After', '600'); return res.status(429).json({ code: 'CONSULTATION_RATE_LIMITED' }); }
     const body = req.body as Record<string, unknown> | undefined;

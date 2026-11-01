@@ -42,6 +42,8 @@ export const ROUTE_CUTOVER_CATALOG: readonly CutoverRoute[] = Object.freeze([
   { key: 'client-signatures', path: '/api/client-signatures', proposals: ['20261012250000', '20261012270000', '20261018060000', '20261018190000', '20261019100000', '20261019110000', '20261019120000', '20261019150000', '20261019170000', '20261019180000', '20261019190000', '20261019231000'], sentinelRpcs: ['taxguard_portal_signature_packages'] },
   { key: 'reassignment', path: '/api/reassignment', proposals: ['20261012250000', '20261012270000', '20261014450000'], sentinelRpcs: ['taxguard_rar_queue'] },
   { key: 'jobs', path: '/api/jobs', proposals: ['20261012250000', '20261018100000', '20261019240000'], sentinelRpcs: ['taxguard_job_list'] },
+  // Block 101: the public consultation form. Unauthenticated; the router keeps its own 8 KB body limit and rate limit.
+  { key: 'public-consultations', path: '/api/public/consultation-requests', proposals: ['20261012250000', '20261012270000', '20261014400000', '20261014430000'], sentinelRpcs: ['taxguard_consult_submit'] },
 ]);
 
 export type CutoverRefusal = 'NOT_REQUESTED' | 'UNKNOWN_ROUTE' | 'PROPOSAL_NOT_APPROVED';

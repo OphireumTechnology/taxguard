@@ -187,6 +187,14 @@ Audits completed in this cycle (documents):
   proposal composition, account security and ledger integrity. The rows now cite those tests. No status changed;
   each row still waits on an unapplied proposal. Suite 01 now follows the header account-security link for five staff
   roles; a mutation was caught. Report: `block100-register-currency.md`.
+- **Full functionality audit and frontend-to-production route contract (Block 101).** Every screen traced from UI to
+  route, authorization, store and evidence, with a local and a production status for each feature:
+  `TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md`. A new guard test matches every reachable `/api` call to the production
+  router that serves it. The 53 call sites production never serves are reviewed in
+  `frontend-production-route-contract.json`; most are development-only staff identity routes or legacy members with no
+  caller. Defect fixed: the public consultation form had no production path; it now has a cutover entry
+  (`public-consultations`, off until approved) and keeps its 8 KB limit behind the production parser (mutation
+  caught). Production staff identity administration has no route at all; recorded as an owner decision.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

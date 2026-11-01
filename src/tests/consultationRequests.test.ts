@@ -80,6 +80,26 @@ describe('public consultation requests', () => {
     expect((await fixture.pg.query<{ n: number }>(`SELECT count(*)::int AS n FROM taxguard_consultation_requests`)).rows[0].n).toBe(before);
   });
 
+  it('keeps the 8 KB limit behind a larger application-wide JSON parser, as in the production app (Block 101)', async () => {
+    const app = express();
+    app.use(express.json({ limit: '256kb' }));
+    let reached = 0;
+    app.use('/public', createPublicConsultationRouter({ store: () => { reached++; throw new Error('synthetic store'); }, tenantId: () => T, limiter: { allow: () => true } as any }));
+    const big = createServer(app); await new Promise<void>(resolve => big.listen(0, '127.0.0.1', resolve));
+    const at = 'http://127.0.0.1:' + (big.address() as AddressInfo).port + '/public';
+    try {
+      const headers = { 'content-type': 'application/json', 'idempotency-key': 'consult-limit-0001' };
+      const oversized = JSON.stringify(request({ message: 'x'.repeat(9000) }));
+      expect((await fetch(at, { method: 'POST', headers, body: oversized })).status).toBe(413);
+      // Chunked: no declared length, so the size of the already-parsed body decides.
+      const chunked = await fetch(at, { method: 'POST', headers, duplex: 'half', body: new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(oversized)); c.close(); } }) } as RequestInit);
+      expect({ status: chunked.status, body: await chunked.json() }).toEqual({ status: 413, body: { code: 'CONSULTATION_TOO_LARGE' } });
+      expect(reached).toBe(0);
+      expect((await fetch(at, { method: 'POST', headers, body: JSON.stringify(request()) })).status).not.toBe(413);
+      expect(reached).toBe(1);
+    } finally { big.closeAllConnections(); await new Promise<void>(r => big.close(() => r())); }
+  });
+
   it('limits requests per e-mail, per client fingerprint, and per address in the server process', async () => {
     for (let i = 0; i < 2; i++) expect((await post('/public', request(), undefined, `203.0.113.${10 + i}`)).status).toBe(202);
     expect((await post('/public', request(), undefined, '203.0.113.20')).body.code).toBe('CONSULTATION_RATE_LIMITED'); // 3 a day per e-mail

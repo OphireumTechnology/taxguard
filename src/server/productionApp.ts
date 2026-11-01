@@ -28,7 +28,7 @@ import { createSchedulingRouter } from './routes/appointments-durable.routes';
 import { createJobsRouter } from './routes/jobs-durable.routes';
 import { createLegalMattersRouter } from './routes/legal-durable.routes';
 import { createAuditCenterRouter } from './routes/audit-center.routes';
-import { createConsultationReviewRouter } from './routes/consultations.routes';
+import { createConsultationReviewRouter, createPublicConsultationRouter } from './routes/consultations.routes';
 import { createClientPortalRouter, createClientSignaturesRouter } from './routes/client-portal.routes';
 import { createReassignmentRouter } from './routes/reassignment.routes';
 import { runtimeProbes } from './observability/defaultProbes';
@@ -47,7 +47,7 @@ export const CUTOVER_ROUTER_FACTORIES: Readonly<Record<string, () => RequestHand
   'tax-engine': () => createTaxEngineRouter(), communications: () => createCommunicationsRouter(), scheduling: () => createSchedulingRouter(),
   'legal-matters': () => createLegalMattersRouter(), 'audit-center': () => createAuditCenterRouter(), consultations: () => createConsultationReviewRouter(),
   'client-portal': () => createClientPortalRouter(), 'client-signatures': () => createClientSignaturesRouter(), reassignment: () => createReassignmentRouter(),
-  jobs: () => createJobsRouter(),
+  jobs: () => createJobsRouter(), 'public-consultations': () => createPublicConsultationRouter(),
 });
 
 /** Shared Node/Cloud Functions boundary. Only durable APIs are released; clean frontend routes serve the SPA. */
