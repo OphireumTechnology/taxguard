@@ -148,6 +148,14 @@ Audits completed in this cycle (documents):
   Each tab falls back to its unavailable notice without the durable store. A browser journey in suite 11 lists and
   cancels a job and compares the search results with the server's; a mutation was caught. Report:
   `block92-admin-jobs-search.md`.
+- **Team workload and deadline escalation (Block 93).** User interface only. The practice manager's Workload, Team
+  Capacity, Deadlines and SLA & Escalations modules, and the administrator's Caseload & Tasks tab, gain durable panels:
+  - each staff member's recorded workload, with a lookup of any staff identifier;
+  - open deadlines by derived escalation level.
+
+  The panels hide without the durable store, so the legacy tables stay where it is off. A browser journey in suite 06
+  compares every row and count with the server's; a mutation was caught. Report:
+  `block93-team-workload-escalations.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

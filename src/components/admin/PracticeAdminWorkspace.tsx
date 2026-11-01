@@ -6,6 +6,7 @@ import { AdminOperationalPanel } from './AdminOperationalPanel';
 import { AuditCenterPanel } from './AuditCenterPanel';
 import { AdminJobQueuePanel } from './AdminJobQueuePanel';
 import { AdminPracticeSearchPanel } from './AdminPracticeSearchPanel';
+import { AdminWorkloadPanel } from './AdminWorkloadPanel';
 import { AiEmergencyStopPanel } from './AiEmergencyStopPanel';
 import { AiControlCenterPanel } from './AiControlCenterPanel';
 /**
@@ -161,7 +162,7 @@ export const PracticeAdminWorkspace: React.FC = () => {
             <div>Postgres / Supabase: <span className="text-slate-300">Not verified by this workspace</span></div>
           </div>
         </aside>)} >
-      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'users' ? <StaffAccessManagementPanel user={currentUser} authStatus={authLifecycleState} refresh={refresh} /> : activeTab === 'audit' ? <AuditCenterPanel /> : activeTab === 'jobs' ? <AdminJobQueuePanel /> : activeTab === 'search' ? <AdminPracticeSearchPanel /> : activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'users' ? <StaffAccessManagementPanel user={currentUser} authStatus={authLifecycleState} refresh={refresh} /> : activeTab === 'audit' ? <AuditCenterPanel /> : activeTab === 'jobs' ? <AdminJobQueuePanel /> : activeTab === 'workload' ? <AdminWorkloadPanel /> : activeTab === 'search' ? <AdminPracticeSearchPanel /> : activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
         ? <AiEmergencyStopPanel />
         : <AdminOperationalPanel tab={activeTab} status={readiness.status} providers={readiness.providers} onRefresh={() => setRefresh(value => value + 1)}/>}</main>
 

@@ -5237,6 +5237,18 @@
       ]
     },
     {
+      "file": "docs/development/block93-team-workload-escalations.md",
+      "sha256": "4a01528725b3f2a62eb56b51e07f29fc8cd652bf23572cd628b8830cdd71dd1b",
+      "bytes": 3088,
+      "headings": [
+        "# Block 93: durable team workload and deadline escalation for managers and administrators",
+        "## Purpose",
+        "## What is built",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6253,8 +6265,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "4852748d008cd5ea82c4a3b513fa041eabb33ed4709f171491b6a9918db1cf9a",
-      "bytes": 35240,
+      "sha256": "53568d1594c47358135ea6367dc0f8645178fa53802a2a0744d42a5211d0c5e2",
+      "bytes": 35847,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -6997,7 +7009,7 @@
     {
       "file": "docs/proposed-migrations/20261019280000_taxguard_practice_search.sql",
       "sha256": "22eb6aa70ce9fd7300fa9d7309bb36d9a0a3b224fc0b1e465ca00dcaeeb2cde7",
-      "bytes": 4530,
+      "bytes": 4587,
       "headings": []
     },
     {
@@ -8055,7 +8067,7 @@
     "src/ai/commissioningMatrix.ts": "64b85ee919c815116bd87578c1ddf8c4e56403b2cfe0fed5df0e0a90d89d181e",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/AiCommissioningView.tsx": "be88bea1d06caa7806ea9e939be9ea80ec7bd66c34736cb846899763d779b858",
-    "src/components/admin/PracticeAdminWorkspace.tsx": "6f5acc04a87a9fdd3551a008e804c4730dec9f296af0afcf8b3dcac38e7d0f29",
+    "src/components/admin/PracticeAdminWorkspace.tsx": "3bd48df6e5ce21c7fc314b822b2411c19ac989907de05379c1d5ce82ddd90c4a",
     "src/components/auth/AuthPages.tsx": "182ce7ec17de94f655f2c5d62a9099f22c8787791d0d17a4dee9c67684a70957",
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/documents/ClientDocumentVaultPanel.tsx": "3edb12f96445fcdf8f6672b07ec9863e41e6c7940f0e084f054a0bddf2a69aab",
@@ -8069,7 +8081,7 @@
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "de799cd694b9c01ce53458d176ebecd110b894b0abf83e3427dfd99166dac90c",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
-    "src/components/workspace/PracticeManagerDashboard.tsx": "f89d25c37e3066151948435ede0671df84ce79ad809fe7b7f85649c05417e996",
+    "src/components/workspace/PracticeManagerDashboard.tsx": "0db12844a18cf14ca02f9caee6e097aa3022211cf201479112aece760ea0888a",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
     "src/config/canonicalRouting.ts": "572003d8c8ab71f8606bc7c01b36adcfd17e7988a5e5217b48d708306cddb120",
     "src/config/environmentConfig.ts": "d2d39a03cabfe3e5d8c4bc6b8f116d1bd8b05e55cf196f908cb081a4a1cd46f5",

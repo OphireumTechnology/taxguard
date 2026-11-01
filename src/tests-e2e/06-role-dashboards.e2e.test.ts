@@ -65,6 +65,36 @@ describe('durable role dashboards', () => {
     await s.context.close();
   });
 
+  it('the practice manager and the administrator see the recorded team workload and deadline escalation', async () => {
+    const s = await staffLogin('e2e-mgr');
+    const t = await token(s.page);
+    const summary = (await api(t, 'GET', '/api/practice/summary')).body;
+    await openModule(s.page, 'Team Capacity');
+    const team = s.page.getByRole('table', { name: 'Team workload' });
+    if (summary.staffCaseCounts.length === 0) await sees(s.page, 'No staff member holds an active case.');
+    else await team.waitFor();
+    for (const { userId } of summary.staffCaseCounts.slice(0, 25)) {
+      const w = (await api(t, 'GET', `/api/practice/workload?userId=${encodeURIComponent(userId)}`)).body;
+      const cells = await team.getByRole('row', { name: new RegExp(`^${userId}\\b`) }).locator('td').allInnerTexts();
+      expect(cells.slice(0, 3).map(c => c.trim())).toEqual([w.role, String(w.openTasks), String(w.overdueTasks)]);
+    }
+    await openModule(s.page, 'SLA & Escalations');
+    await s.page.locator('[aria-label="Open deadlines by level"]').waitFor();
+    const d = (await api(t, 'GET', '/api/practice/deadline-escalations?minLevel=1')).body;
+    for (const [label, key] of [['Critical', 'CRITICAL'], ['Overdue', 'OVERDUE'], ['Due soon', 'DUE_SOON'], ['Approaching', 'APPROACHING']])
+      expect(await tile(s.page, 'Open deadlines by level', label)).toBe(String(d.counts[key]));
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+    const admin = await staffLogin('e2e-admin');
+    await openModule(admin.page, 'Caseload & Tasks');
+    const adminTeam = admin.page.getByRole('table', { name: 'Team workload' });
+    if (summary.staffCaseCounts.length === 0) await sees(admin.page, 'No staff member holds an active case.');
+    else await adminTeam.waitFor();
+    for (const { userId } of summary.staffCaseCounts.slice(0, 25)) await adminTeam.getByRole('row', { name: new RegExp(`^${userId}\\b`) }).waitFor();
+    expect(realErrors(admin)).toEqual([]);
+    await admin.context.close();
+  });
+
   it('the bookkeeper\'s existing panels read the durable ledger', async () => {
     const s = await staffLogin('e2e-bk');
     await s.page.getByLabel('Authorized client').selectOption(C);
