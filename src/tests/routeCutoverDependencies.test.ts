@@ -14,7 +14,22 @@ const ORDER = (JSON.parse(fs.readFileSync('docs/development/migration-execution-
 const APP = fs.readFileSync('src/server/productionApp.ts', 'utf8');
 
 const current = new Map<string, string>();
-for (const file of ORDER) for (const m of fs.readFileSync(file, 'utf8').matchAll(/CREATE OR REPLACE FUNCTION public\.(taxguard_[a-z0-9_]+)\s*\(/g)) current.set(m[1], file);
+const bodies = new Map<string, string>();
+for (const file of ORDER) for (const m of fs.readFileSync(file, 'utf8').matchAll(/CREATE OR REPLACE FUNCTION public\.(taxguard_[a-z0-9_]+)\s*\([\s\S]*?\$\$([\s\S]*?)\$\$/g)) {
+  current.set(m[1], file);
+  bodies.set(m[1], m[2]);
+}
+/** Every function reachable from the given ones through calls in their current definitions, with the caller that reached it. */
+function helpers(start: string[]) {
+  const reached = new Map<string, string>(), queue = [...start];
+  const seen = new Set(start);
+  while (queue.length) {
+    const fn = queue.pop()!;
+    for (const m of (bodies.get(fn) ?? '').matchAll(/\b(taxguard_[a-z0-9_]+)\s*\(/g))
+      if (current.has(m[1]) && !seen.has(m[1])) { seen.add(m[1]); reached.set(m[1], fn); queue.push(m[1]); }
+  }
+  return reached;
+}
 
 const importsOf = (src: string, from: string) => [...src.matchAll(/^import\s+(?!type\b)([^;]*?)from\s+'(\.[^']+)'/gms)].flatMap(m => {
   const names = m[1].trim();
@@ -70,6 +85,18 @@ describe('route cutover dependencies', () => {
         if (!route.proposals.includes(version)) missing.push(`${route.key}: ${version} (${rpc})`);
       }
     expect([...new Set(missing)].sort()).toEqual([]);
+  });
+
+  it('each cutover entry also requires the proposals behind every helper those functions call, transitively', () => {
+    const missing: string[] = [];
+    for (const route of ROUTE_CUTOVER_CATALOG)
+      for (const [helper, caller] of helpers(dependencies(route.key).map(d => d.rpc))) {
+        const file = current.get(helper)!;
+        if (!file.startsWith('docs/proposed-migrations/')) continue;
+        const version = path.basename(file).slice(0, 14);
+        if (!route.proposals.includes(version)) missing.push(`${route.key}: ${version} (${helper} <- ${caller})`);
+      }
+    expect(missing.sort()).toEqual([]);
   });
 
   it('the factory slice keeps routers that share a file apart', () => {

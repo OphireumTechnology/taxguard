@@ -174,6 +174,9 @@ Audits completed in this cycle (documents):
   function the router can call. It failed first on eight entries: stage-one, vault, billing, book-to-tax, tax-engine,
   scheduling, audit-center and client-portal. 21 proposals were added; a mutation was caught. Report:
   `block97-cutover-dependencies.md`.
+- **Cutover entries require their helpers' proposals (Block 98).** The cutover test now follows the calls in each
+  function's current definition, transitively, and requires every proposal reached. 87 helper dependencies across 14
+  entries were added; a mutation was caught. Report: `block98-cutover-helpers.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

@@ -676,7 +676,8 @@
       "implementation": [
         "src/server/routeCutover.ts",
         "docs/development/production-route-parity.md",
-        "docs/development/block97-cutover-dependencies.md"
+        "docs/development/block97-cutover-dependencies.md",
+        "docs/development/block98-cutover-helpers.md"
       ],
       "tests": [
         "src/tests/routeCutover.test.ts",

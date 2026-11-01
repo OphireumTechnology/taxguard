@@ -5295,6 +5295,18 @@
       ]
     },
     {
+      "file": "docs/development/block98-cutover-helpers.md",
+      "sha256": "fedfaf3175b054a486f0d346e2228844c4977813ff184a4b1e19154079bb1989",
+      "bytes": 2784,
+      "headings": [
+        "# Block 98: cutover entries require the proposals behind their helpers too",
+        "## Purpose",
+        "## The test",
+        "## What it found",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6311,8 +6323,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "6306538e0ee708d7379912a1eb1a4282db7536479ccbf8013e967cb553971c77",
-      "bytes": 37738,
+      "sha256": "b22f06e4e9d4b623e253416f59c38a58b17aaee2b603a6f615ba6d99a58d0417",
+      "bytes": 38052,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
