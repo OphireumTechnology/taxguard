@@ -205,8 +205,13 @@ Audits completed in this cycle (documents):
   local development session, saw an empty queue. It now reads current, active assignments from
   `taxguard_staff_assignments` at request time: a whole-client row, or a row for exactly that case's engagement and
   year. A revoked or expired assignment ends access at once (`staffMfaAccountantProductionApi.test.ts`; four mutations
-  caught). Remaining: the queue's per-row
-  stage enrichment still reads the in-memory case authority.
+  caught).
+- **Accountant queue without in-memory reads; job-queue test race (Block 103).** The accountant queue no longer
+  fetches each row's stage from the in-memory case authority (one refused call per case in production); it shows the
+  stage the durable row records. The session-isolation test keeps its token and logout cases and now checks that no
+  in-memory read happens and that only the session tenant's rows are kept (two mutations caught). Suite 11 waited for
+  the cancelled job's button with a single count, which raced the list refresh once in Block 102's matrix; it now waits
+  for the button to be removed.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

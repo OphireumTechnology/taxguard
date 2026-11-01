@@ -141,7 +141,8 @@ describe('administrative job queue and practice search', () => {
     await panel.getByText('Job cancelled.').waitFor();
     const after = (await api(adminToken, 'GET', `/api/jobs?clientId=${C}`)).body.jobs.find((j: any) => j.id === forClient.body.id);
     expect(after).toMatchObject({ status: 'CANCELLED', cancelledBy: 'e2e-admin' });
-    expect(await panel.getByRole('button', { name: `Cancel ARCHIVE_GENERATION job ${forClient.body.id}` }).count()).toBe(0);
+    // The list refreshes after the confirmation; wait for the button to go (Block 103: a single count raced the refresh).
+    await panel.getByRole('button', { name: `Cancel ARCHIVE_GENERATION job ${forClient.body.id}` }).waitFor({ state: 'detached' });
     expect(await panel.getByRole('button', { name: /^Re-queue/ }).count()).toBe(0);
     await openModule(page, 'Global Practice Search');
     const search = page.getByRole('region', { name: 'Global Practice Search' });

@@ -17,19 +17,12 @@ export function useAccountantDashboardData(user: User | null, auth: string, refr
     if (!allowed) { setState({ key: '', rows: [], loading: true, error: '' }); return; }
     const abort = new AbortController();
     setState({ key, rows: [], loading: true, error: '' });
-    api.accountant.getDashboard(abort.signal).then(async data => {
+    api.accountant.getDashboard(abort.signal).then(data => {
       if (abort.signal.aborted) return;
       const scoped = safeCases(data.cases, user!.tenantId!);
-      const enriched = await Promise.all(scoped.map(async row => {
-        if (abort.signal.aborted) return row;
-        try {
-          const current = await api.caseAuthority.getCase(row.tenantId, row.authorityClientId, row.engagementId, row.taxYear);
-          return current.tenantId === row.tenantId && current.clientId === row.authorityClientId && current.engagementId === row.engagementId && current.taxYear === row.taxYear && Number.isInteger(current.activeStage) && current.activeStage >= 1 && current.activeStage <= 18
-            ? { ...row, activeStage: current.activeStage } : row;
-        } catch { return row; }
-      }));
+      // Block 103: the durable rows carry the recorded stage; nothing is read from the in-memory case authority.
       // The durable production read model reports which fields it does not record.
-      if (!abort.signal.aborted) setState({ key, rows: enriched, loading: false, error: '', unavailableFields: Array.isArray(data.unavailableFields) ? data.unavailableFields : [] });
+      if (!abort.signal.aborted) setState({ key, rows: scoped, loading: false, error: '', unavailableFields: Array.isArray(data.unavailableFields) ? data.unavailableFields : [] });
     }).catch(() => {
       if (!abort.signal.aborted) setState({ key, rows: [], loading: false, error: 'Authorized cases could not be loaded. Retry to restore your work queue.' });
     });

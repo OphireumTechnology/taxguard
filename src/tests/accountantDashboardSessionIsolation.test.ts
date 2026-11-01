@@ -35,7 +35,7 @@ beforeEach(() => {
 
 describe('accountant dashboard session isolation', () => {
   it('invalidates queue and loading/error state when the token changes', async () => {
-    render(); await settle(); expect(render().rows[0].activeStage).toBe(6);
+    render(); await settle(); expect(render().rows[0].activeStage).toBe(5);
     const signal = harness.dashboard.mock.calls[0][0] as AbortSignal;
     harness.token = 'session-b'; const changed = render();
     expect(changed.rows).toEqual([]); expect(changed.loading).toBe(true); expect(changed.error).toBe('');
@@ -67,16 +67,16 @@ describe('accountant dashboard session isolation', () => {
     expect(harness.getCase).not.toHaveBeenCalled();
     expect(render().rows).toEqual([]);
   });
-  it('suppresses late case enrichment from the previous token', async () => {
-    let resolve!: (value: unknown) => void;
-    harness.getCase.mockImplementationOnce(() => new Promise(yes => { resolve = yes; }));
-    render(); await settle(); harness.token = 'session-b'; render(); await settle();
-    resolve({ ...authority, activeStage: 18 }); await settle();
-    expect(render().rows[0].activeStage).toBe(6);
+  // Block 103: the queue shows the stage the durable row records; the in-memory case authority is never read.
+  it('takes the stage from the durable row and never reads the in-memory case authority', async () => {
+    render(); await settle();
+    expect(render().rows.map(r => r.activeStage)).toEqual([5]);
+    expect(harness.getCase).not.toHaveBeenCalled();
   });
-  it('preserves exact scope checks when enriching the stage', async () => {
-    harness.getCase.mockResolvedValue({ ...authority, clientId: 'other-client', activeStage: 18 });
-    render(); await settle(); expect(render().rows[0].activeStage).toBe(5);
+  it('keeps only rows of the session tenant', async () => {
+    harness.dashboard.mockResolvedValue({ cases: [row, { ...row, id: 'case-x', tenantId: 'tenant-x' }] });
+    render(); await settle();
+    expect(render().rows.map(r => r.id)).toEqual(['case-a']);
   });
   it('reports sanitized queue failure without retaining cases', async () => {
     render(); await settle(); harness.dashboard.mockRejectedValue(new Error('private provider details'));

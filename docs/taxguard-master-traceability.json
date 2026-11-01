@@ -6336,8 +6336,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md",
-      "sha256": "66eddc16af61e9e408a100821de85337088319408c9d67f0db8641d7860bfc17",
-      "bytes": 20807,
+      "sha256": "a6246c077313de9b7d35b6be23015cbadb3dd67f3895d08e26f2ecdb6eeef7f3",
+      "bytes": 20644,
       "headings": [
         "# TaxGuard AI: full functionality audit (Block 101)",
         "## How the audit was done",
@@ -6372,8 +6372,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "5fb70f987ca54e318300a7cb102a6c67c3391ceb8b1ea79faeb2b689c1c59b94",
-      "bytes": 41190,
+      "sha256": "8ce20c5808daf2628f74628e7873f78d0230994b7164acc6964bc8bcbd8ba265",
+      "bytes": 41713,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
