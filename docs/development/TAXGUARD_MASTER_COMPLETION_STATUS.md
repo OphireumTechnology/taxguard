@@ -177,6 +177,11 @@ Audits completed in this cycle (documents):
 - **Cutover entries require their helpers' proposals (Block 98).** The cutover test now follows the calls in each
   function's current definition, transitively, and requires every proposal reached. 87 helper dependencies across 14
   entries were added; a mutation was caught. Report: `block98-cutover-helpers.md`.
+- **Accessibility checks for the new panels (Block 99).** Browser tests only. Suite 16 now audits the manager's
+  Workload, Team Capacity and SLA & Escalations modules and the administrator's three new tabs. It also audits the
+  practice operations panel with search results and an open reassignment form, and checks each at 375 px. No defect
+  was found; a mutation was caught. Automated checks only; no screen-reader pass is claimed. Report:
+  `block99-new-panels-accessibility.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

@@ -5296,14 +5296,26 @@
     },
     {
       "file": "docs/development/block98-cutover-helpers.md",
-      "sha256": "fedfaf3175b054a486f0d346e2228844c4977813ff184a4b1e19154079bb1989",
-      "bytes": 2784,
+      "sha256": "a9381b21da7585d0ce070e3da69087e170c40145b2f1cacb2d35624a1e61fd6f",
+      "bytes": 2861,
       "headings": [
         "# Block 98: cutover entries require the proposals behind their helpers too",
         "## Purpose",
         "## The test",
         "## What it found",
         "## Not covered"
+      ]
+    },
+    {
+      "file": "docs/development/block99-new-panels-accessibility.md",
+      "sha256": "86fe125f6fe8eefa723e0c16ee856e1fa8e81d39759a84909e7f2249e751b2b8",
+      "bytes": 1858,
+      "headings": [
+        "# Block 99: automated accessibility and phone-width checks for the Block 90–93 panels",
+        "## Purpose",
+        "## What is added",
+        "## Evidence",
+        "## What this does not show"
       ]
     },
     {
@@ -6323,8 +6335,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "b22f06e4e9d4b623e253416f59c38a58b17aaee2b603a6f615ba6d99a58d0417",
-      "bytes": 38052,
+      "sha256": "2fc7370b7f1cdb476a312757b33f55f549eeaa185e0f380bd9ef45aaf95f2704",
+      "bytes": 38537,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",

@@ -20,9 +20,10 @@ describe('automated accessibility audit', () => {
   });
 
   const plan: Array<[string, string[]]> = [
-    ['e2e-mgr', ['Clients & Engagements', 'Case Workflow', 'Document Review', 'Document Requests', 'Billing', 'Appointments', 'Consultation Requests', 'Reassignment Requests', 'Tax Rules']],
+    ['e2e-mgr', ['Clients & Engagements', 'Case Workflow', 'Document Review', 'Document Requests', 'Billing', 'Appointments', 'Consultation Requests', 'Reassignment Requests', 'Tax Rules',
+      'Workload', 'Team Capacity', 'SLA & Escalations']],
     ['e2e-bk', ['Ledger Workspace', 'Transactions']],
-    ['e2e-admin', ['Compliance Audit Log']],
+    ['e2e-admin', ['Compliance Audit Log', 'Durable Job Queue', 'Global Practice Search', 'Caseload & Tasks']],
     ['e2e-acct', []],
     ['e2e-rev', []],
   ];
@@ -52,6 +53,26 @@ describe('automated accessibility audit of expanded forms and views', () => {
     }
     expect(await auditAccessibility(s.page), 'manager Tax Rules, forms expanded').toEqual([]);
     await s.context.close();
+  });
+
+  it('finds no defects in the practice operations panel with search results, or in an open task reassignment form', async () => {
+    const acct = await staffLogin('e2e-acct');
+    await acct.page.locator('[aria-label="Workload counts"]').waitFor();
+    await acct.page.getByLabel('Search clients, cases, tasks and document requests').fill(C);
+    await acct.page.getByRole('button', { name: 'Search', exact: true }).click();
+    await acct.page.getByText(/match|No records you may see match/).first().waitFor();
+    expect(await auditAccessibility(acct.page), 'accountant practice operations with results').toEqual([]);
+    await acct.context.close();
+    const mgr = await staffLogin('e2e-mgr');
+    await openModule(mgr.page, 'Clients & Engagements');
+    await mgr.page.getByRole('button', { name: /Synthetic Client One/ }).click();
+    const reassign = mgr.page.getByRole('button', { name: 'Reassign', exact: true }).first();
+    if (await reassign.count()) {
+      await reassign.click();
+      await mgr.page.getByRole('form', { name: /^Reassign / }).waitFor();
+    }
+    expect(await auditAccessibility(mgr.page), 'manager client detail with a reassignment form').toEqual([]);
+    await mgr.context.close();
   });
 
   it('finds no defects in the audit center security view', async () => {
@@ -141,6 +162,24 @@ describe('keyboard and focus in the staff billing workspace', () => {
       await s.context.close();
     }
   });
+  it('keeps the Block 90-93 panels within a 375 px viewport', async () => {
+    const acct = await staffLogin('e2e-acct');
+    await acct.page.setViewportSize({ width: 375, height: 812 });
+    await acct.page.locator('[aria-label="Workload counts"]').waitFor();
+    expect(await pageOverflow(acct.page), 'accountant practice operations').toBeLessThanOrEqual(0);
+    await acct.context.close();
+    for (const module of ['Team Capacity', 'SLA & Escalations']) {
+      const s = await openAtPhoneWidth('e2e-mgr', module);
+      expect(await pageOverflow(s.page), module).toBeLessThanOrEqual(0);
+      await s.context.close();
+    }
+    for (const module of ['Durable Job Queue', 'Global Practice Search', 'Caseload & Tasks']) {
+      const s = await openAtPhoneWidth('e2e-admin', module);
+      expect(await pageOverflow(s.page), module).toBeLessThanOrEqual(0);
+      await s.context.close();
+    }
+  });
+
   it('keeps the audit center, including the security view, within a 375 px viewport', async () => {
     const s = await openAtPhoneWidth('e2e-admin', 'Compliance Audit Log');
     const center = s.page.getByRole('region', { name: 'Audit center' });
