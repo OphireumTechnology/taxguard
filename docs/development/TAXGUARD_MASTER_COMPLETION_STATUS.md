@@ -165,6 +165,10 @@ Audits completed in this cycle (documents):
   vault, tax engine, book-to-tax, durable ledger) and 7 have none (records, filing, monitoring, planning, renewal,
   archive, AI review). Of 147 refused routes: 28 replaced, 73 partly replaced, 46 with no durable route; every one of
   the 46 waits on a provider, a policy or commissioning. Report: `block95-case-authority-map.md`.
+- **Active clients and the practice cutover entry (Block 96).** Review-only proposal `20261019290000` adds the
+  active-client count to the durable practice summary, with a tile. The practice cutover entry did not require
+  `20261012320000` and `20261018090000`, behind `my-work` and `summary`. It now does, with a pinning test. PostgreSQL
+  2 tests and a mutation; the browser summary journey covers the tile. Report: `block96-active-clients-cutover.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

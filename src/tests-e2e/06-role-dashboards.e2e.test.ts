@@ -57,6 +57,7 @@ describe('durable role dashboards', () => {
     const sum = (await api(await token(s.page), 'GET', '/api/practice/summary')).body;
     const active = sum.casesByStage.reduce((n: number, x: any) => n + x.active, 0);
     expect(await tile(s.page, 'Recorded practice figures', 'Active cases')).toBe(String(active));
+    expect(await tile(s.page, 'Recorded practice figures', 'Active clients')).toBe(String(sum.activeClients));
     expect(await tile(s.page, 'Recorded practice figures', 'Documents awaiting review')).toBe(String(sum.documentsAwaitingReview));
     expect(await tile(s.page, 'Recorded practice figures', 'Open invoices')).toBe(String(sum.receivables.openInvoices));
     expect(await tile(s.page, 'Recorded practice figures', 'Balance due')).toBe('$' + sum.receivables.balanceDue);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "c3d47f371893f8b0dd948d6c8193c91d9e1a00b957e5e1046eadb857d0a993fd",
+  "executionPlanSha256": "f79dc8f3ce47c7c768ea01d150581832256b2a4995c0435daccde426f36c0c9a",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6618,6 +6618,57 @@
         "--   case             case id or the client's name; the actor's scope over the case's engagement and year",
         "--   task             title; the task's assignee or creator, or the actor's scope over its case, engagement and year",
         "--   document_request title; the actor's scope over the request's engagement and year"
+      ]
+    },
+    {
+      "order": 121,
+      "file": "docs/proposed-migrations/20261019290000_taxguard_summary_active_clients.sql",
+      "kind": "proposal",
+      "version": "20261019290000",
+      "sha256": "a3658567fe0424d20042477d682592959bb7a24c0e59c287581783d58e729cfe",
+      "validTimestamp": false,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+      ],
+      "referencedDependencies": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ],
+      "declaredObjects": [
+        "taxguard_dash_practice_summary"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_dash_practice_summary",
+          "previousFile": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [
+        "-- Rollback (development): re-apply 20261012320000's taxguard_dash_practice_summary."
+      ],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION public.taxguard_dash_practice_summary(text,text,integer) FROM PUBLIC, anon, authenticated;",
+        "GRANT EXECUTE ON FUNCTION public.taxguard_dash_practice_summary(text,text,integer) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 1,
+      "notValidConstraints": 0,
+      "header": [
+        "-- PROPOSAL (Block 96, active clients in the practice summary). REVIEW ONLY; NOT APPLIED anywhere external.",
+        "-- Requires 20261012320000, which holds the current taxguard_dash_practice_summary, and 20261012250000",
+        "-- (taxguard_clients status, taxguard_tax_years).",
+        "--",
+        "-- The in-memory practice analytics reported an active-client count that the durable practice summary did not",
+        "-- (Block 89 coverage map, operations-analytics). The summary now adds activeClients: clients with status active, and",
+        "-- for a requested tax year those with an engagement covering that year, with its definition. Manager-only, as before.",
+        "-- Identical to the current definition except for the activeClients figure and its definition.",
+        "-- Rollback (development): re-apply 20261012320000's taxguard_dash_practice_summary.",
+        "-- Current definition: 20261012320000. Changed: adds activeClients and its definition."
       ]
     }
   ]

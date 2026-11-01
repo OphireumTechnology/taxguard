@@ -53,7 +53,7 @@ shared practice-store module: `20261012250000`, `320000`, `20261018090000` and `
 
 | Path | Router file | Proposals it depends on (current definitions) | Cutover requirement |
 |---|---|---|---|
-| `/api/practice` | `practice.routes.ts` | 250000, 320000, 20261018090000, 100000 | Proposals approved and applied; practice-manager capability map reviewed |
+| `/api/practice` | `practice.routes.ts` | 250000, 320000, 20261018090000, 100000, 20261019230000, 20261019250000–20261019290000 | Proposals approved and applied; practice-manager capability map reviewed |
 | `/api/stage-one` | `onboarding-durable.routes.ts` | plus 20261018030000 | Approved § 7216 consent version |
 | `/api/cases` | `cases.routes.ts` | plus 260000, 20261018105000 | Case liveness and restaff proposals applied |
 | `/api/vault` | `vault.routes.ts` | 270000, 310000, 20261014500000, 20261015030851, 050000, 20261016040000, 20261018060000, 080000 | Private bucket; malware scanner provider with callback secret |

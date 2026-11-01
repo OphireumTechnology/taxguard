@@ -25,6 +25,7 @@ export function PracticeSummaryPanel({ taxYear }: { taxYear?: number }) {
     {d && <>
       <p>As of {d.asOf}. Hover a figure for its definition.</p>
       <ul className="tg-manager-kpis" aria-label="Recorded practice figures">
+        {tile('Active clients', d.activeClients, d.definitions.activeClients)}
         {tile('Active cases', d.casesByStage.reduce((n, s) => n + s.active, 0), d.definitions.casesByStage)}
         {tile('On hold', d.casesByStage.reduce((n, s) => n + s.onHold, 0), d.definitions.casesByStage)}
         {tile('Deadlines this week', d.deadlines.dueThisWeek, d.definitions.deadlines)}

@@ -101,6 +101,15 @@ describe('production app', () => {
     const conclusions = await fetch(origin + '/api/tax-engine/cases/case-1/conclusions', { method: 'POST', headers: { Accept: 'application/json', 'content-type': 'application/json' }, body: '{}' });
     expect(conclusions.status).toBe(503);
   });
+  it('the practice cutover requires the dashboards behind my-work and summary, and every Block 84-96 practice proposal', () => {
+    const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'practice')!;
+    expect(route.proposals).toEqual(expect.arrayContaining(['20261012320000', '20261018090000', '20261019250000', '20261019260000', '20261019270000',
+      '20261019280000', '20261019290000']));
+    expect(route.sentinelRpcs).toContain('taxguard_dash_my_work');
+    expect(planCutover('practice', route.proposals.filter(v => v !== '20261012320000')).refused)
+      .toContainEqual({ key: 'practice', reason: 'PROPOSAL_NOT_APPROVED', missingProposals: ['20261012320000'] });
+  });
+
   it('the tax-engine cutover requires the research, diagnostics, risk, lineage and conclusion proposals', () => {
     const route = ROUTE_CUTOVER_CATALOG.find(r => r.key === 'tax-engine')!;
     expect(route.proposals).toEqual(expect.arrayContaining(['20261018150000', '20261018160000', '20261018170000', '20261018190000', '20261019100000']));

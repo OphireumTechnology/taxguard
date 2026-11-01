@@ -44,7 +44,7 @@ export interface MyWork { actorRole: string;
   entriesAwaitingMyReview: Array<{ entryId: string; clientId: string; entryNumber: string; description: string; postingDate: string }>;
   entriesReturnedToMe: Array<{ entryId: string; clientId: string; entryNumber: string; description: string }>;
   bookToTaxAwaitingReview: number; definitions: Record<string, string> }
-export interface PracticeSummary { taxYear: number | null; asOf: string; casesByStage: Array<{ stage: number; active: number; onHold: number }>;
+export interface PracticeSummary { taxYear: number | null; asOf: string; activeClients: number; casesByStage: Array<{ stage: number; active: number; onHold: number }>;
   deadlines: { dueThisWeek: number; overdue: number }; tasks: { open: number; overdue: number; waitingOnClient: number; readyForReview: number };
   documentRequests: { open: number; submitted: number; overdue: number; requiredOutstanding: number }; documentsAwaitingReview: number; documentsAwaitingScan: number;
   receivables: { openInvoices: number; balanceDue: string; pastDue: number; awaitingApproval: number }; staffCaseCounts: Array<{ userId: string; asPreparer: number; asReviewer: number }>;

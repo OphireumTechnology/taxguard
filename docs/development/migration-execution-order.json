@@ -843,6 +843,13 @@
         "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
         "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
       ]
+    },
+    {
+      "file": "docs/proposed-migrations/20261019290000_taxguard_summary_active_clients.sql",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+      ]
     }
   ]
 }

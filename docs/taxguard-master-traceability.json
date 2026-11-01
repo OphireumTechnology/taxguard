@@ -5271,6 +5271,18 @@
       ]
     },
     {
+      "file": "docs/development/block96-active-clients-cutover.md",
+      "sha256": "93bbd5212c0e4fcfd5c55c288bde17b317f94b55a898d0023962a22ed1947850",
+      "bytes": 2834,
+      "headings": [
+        "# Block 96: active clients in the practice summary, and a gap in the practice cutover entry",
+        "## 1. Active clients in the practice summary",
+        "## 2. The practice cutover entry was missing two proposals",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -5564,8 +5576,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "e7c6ee1c66e5d6c7adb62c2ef50e1d712dec482b77452a9317c4bb8e5549f2ef",
-      "bytes": 25015,
+      "sha256": "2f2e70db99443c72b26764b900810e7f07abfa7dc0a73b025093aad66568df37",
+      "bytes": 25173,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -6134,8 +6146,8 @@
     },
     {
       "file": "docs/development/production-route-parity.md",
-      "sha256": "fce7772852bced2b71cc818eef156171fab670b6d7333c70b97e231016c54e5e",
-      "bytes": 10235,
+      "sha256": "38c3801f89a4b242b4c9c436ecb31aa33f979fe0456bfbdc2588bc9b371362fc",
+      "bytes": 10284,
       "headings": [
         "# Production route parity (verified inventory, 2026-10-19)",
         "## How the two entry points relate",
@@ -6287,8 +6299,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "d37ab7c4efa57043a6b15c9d55b8071f260cd33b11d36c37626cd1549aefa763",
-      "bytes": 36791,
+      "sha256": "b02a703089b8a1dd14ef95503507167c1802744f7e53e241eedb32b60eb7b142",
+      "bytes": 37247,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -7032,6 +7044,12 @@
       "file": "docs/proposed-migrations/20261019280000_taxguard_practice_search.sql",
       "sha256": "22eb6aa70ce9fd7300fa9d7309bb36d9a0a3b224fc0b1e465ca00dcaeeb2cde7",
       "bytes": 4587,
+      "headings": []
+    },
+    {
+      "file": "docs/proposed-migrations/20261019290000_taxguard_summary_active_clients.sql",
+      "sha256": "a3658567fe0424d20042477d682592959bb7a24c0e59c287581783d58e729cfe",
+      "bytes": 6430,
       "headings": []
     },
     {
