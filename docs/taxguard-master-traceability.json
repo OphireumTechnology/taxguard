@@ -2315,7 +2315,7 @@
       "tests": [
         "src/tests/adminOperationalTruthfulness.test.tsx"
       ],
-      "remaining": "Durable staff/job/billing/audit/retention views and approved administrative grants.",
+      "remaining": "Durable staff/billing/retention views and approved administrative grants. Block 92: the job queue and practice search tabs read the durable stores (development only; proposals unapplied).",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -5225,6 +5225,18 @@
       ]
     },
     {
+      "file": "docs/development/block92-admin-jobs-search.md",
+      "sha256": "aa1651b2a6140c04f22866fcdaee0f2d90424d21d60231ef6fcf893ad11ef97b",
+      "bytes": 3035,
+      "headings": [
+        "# Block 92: administrator job queue and practice search",
+        "## Purpose",
+        "## What is built",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6241,8 +6253,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "610b794d760c030f21b196d8e877871c2f8d863a4578fe9d4e6e4b1ad9981c0d",
-      "bytes": 34653,
+      "sha256": "4852748d008cd5ea82c4a3b513fa041eabb33ed4709f171491b6a9918db1cf9a",
+      "bytes": 35240,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8043,7 +8055,7 @@
     "src/ai/commissioningMatrix.ts": "64b85ee919c815116bd87578c1ddf8c4e56403b2cfe0fed5df0e0a90d89d181e",
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/AiCommissioningView.tsx": "be88bea1d06caa7806ea9e939be9ea80ec7bd66c34736cb846899763d779b858",
-    "src/components/admin/PracticeAdminWorkspace.tsx": "c6a9d511d0ac49c2d627108f7166a3b9bff11e3cb5fa5b2be5c6b961532b5a02",
+    "src/components/admin/PracticeAdminWorkspace.tsx": "6f5acc04a87a9fdd3551a008e804c4730dec9f296af0afcf8b3dcac38e7d0f29",
     "src/components/auth/AuthPages.tsx": "182ce7ec17de94f655f2c5d62a9099f22c8787791d0d17a4dee9c67684a70957",
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/documents/ClientDocumentVaultPanel.tsx": "3edb12f96445fcdf8f6672b07ec9863e41e6c7940f0e084f054a0bddf2a69aab",

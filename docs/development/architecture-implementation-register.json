@@ -688,19 +688,24 @@
       "id": "OPS-JOB-QUEUE",
       "name": "Durable background job queue",
       "category": "Operations",
-      "status": "INTEGRATION_VERIFIED",
+      "status": "BROWSER_VERIFIED",
       "implementation": [
         "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
         "src/server/routes/jobs-durable.routes.ts",
         "src/server/taxguard/operations/durableJobWorker.ts",
-        "docs/development/block82-durable-job-queue.md"
+        "docs/development/block82-durable-job-queue.md",
+        "src/services/jobService.ts",
+        "src/components/admin/AdminJobQueuePanel.tsx",
+        "docs/development/block92-admin-jobs-search.md"
       ],
       "tests": [
         "src/tests-db/durableJobQueue.db.test.ts",
-        "src/tests/productionRouteInventory.test.ts"
+        "src/tests/productionRouteInventory.test.ts",
+        "src/tests/adminJobsSearchPanels.test.tsx",
+        "src/tests-e2e/11-appointments-audit-legal.e2e.test.ts"
       ],
       "persistence": "durable proposal, development-only router behind the route cutover gate",
-      "remainingGap": "Proposal 20261019240000 is review-only and the jobs cutover route is not mounted in production. No worker process, provider or AI agent is commissioned, so nothing runs a job. The in-memory /api/operations/jobs routes stay refused in production until they are retired."
+      "remainingGap": "Proposal 20261019240000 is review-only and the jobs cutover route is not mounted in production. No worker process, provider or AI agent is commissioned, so nothing runs a job. The administrator panel lists, re-queues and cancels; clients cannot see jobs (owner decision pending). The in-memory /api/operations/jobs routes stay refused in production until they are retired."
     },
     {
       "id": "OPS-TASK-REASSIGNMENT",
@@ -763,19 +768,24 @@
       "id": "OPS-PRACTICE-SEARCH",
       "name": "Durable practice search",
       "category": "Operations",
-      "status": "INTEGRATION_VERIFIED",
+      "status": "BROWSER_VERIFIED",
       "implementation": [
         "docs/proposed-migrations/20261019280000_taxguard_practice_search.sql",
         "src/server/routes/practice.routes.ts",
         "src/server/taxguard/practice/practiceStore.ts",
-        "docs/development/block88-practice-search.md"
+        "docs/development/block88-practice-search.md",
+        "src/components/admin/AdminPracticeSearchPanel.tsx",
+        "src/components/workspace/PracticeOperationsPanel.tsx"
       ],
       "tests": [
         "src/tests-db/practiceSearch.db.test.ts",
-        "src/tests/productionRouteInventory.test.ts"
+        "src/tests/productionRouteInventory.test.ts",
+        "src/tests/adminJobsSearchPanels.test.tsx",
+        "src/tests-e2e/11-appointments-audit-legal.e2e.test.ts",
+        "src/tests-e2e/06-role-dashboards.e2e.test.ts"
       ],
       "persistence": "durable proposal, development-only router behind the route cutover gate",
-      "remainingGap": "Proposal 20261019280000 is review-only and the practice cutover route is not mounted in production. Invoices are not searched (Codex Phase 15 billing). No user interface calls the route."
+      "remainingGap": "Proposal 20261019280000 is review-only and the practice cutover route is not mounted in production. Invoices are not searched (Codex Phase 15 billing). Search is on the staff practice operations panel and the administrator's Global Practice Search tab."
     },
     {
       "id": "UI-PRACTICE-OPERATIONS",

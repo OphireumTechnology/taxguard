@@ -123,3 +123,36 @@ describe('administrative audit center', () => {
     expect((await api(mgrToken, 'GET', `/api/audit-center/security-summary?${range}`)).status).toBe(403);
   });
 });
+
+describe('administrative job queue and practice search', () => {
+  it('lists recorded jobs, cancels one in the UI, and searches the practice as the server does', async () => {
+    const adminToken = await apiLogin('e2e-admin');
+    const practiceWide = await api(adminToken, 'POST', '/api/jobs', { jobType: 'REPORT_GENERATION', payload: { report: 'synthetic-e2e' } });
+    const forClient = await api(adminToken, 'POST', '/api/jobs', { jobType: 'ARCHIVE_GENERATION', payload: { archive: 'synthetic-e2e' }, clientId: C });
+    expect([practiceWide.status, forClient.status]).toEqual([201, 201]);
+    const admin = await staffLogin('e2e-admin');
+    const { page } = admin;
+    await openModule(page, 'Durable Job Queue');
+    const panel = page.getByRole('region', { name: 'Durable Job Queue' });
+    const listed = (await api(adminToken, 'GET', '/api/jobs')).body;
+    await panel.getByText(`${listed.total} recorded job${listed.total === 1 ? '' : 's'}`).waitFor();
+    for (const job of [practiceWide.body, forClient.body]) await panel.getByRole('button', { name: `Cancel ${job.jobType} job ${job.id}` }).waitFor();
+    await panel.getByRole('button', { name: `Cancel ARCHIVE_GENERATION job ${forClient.body.id}` }).click();
+    await panel.getByText('Job cancelled.').waitFor();
+    const after = (await api(adminToken, 'GET', `/api/jobs?clientId=${C}`)).body.jobs.find((j: any) => j.id === forClient.body.id);
+    expect(after).toMatchObject({ status: 'CANCELLED', cancelledBy: 'e2e-admin' });
+    expect(await panel.getByRole('button', { name: `Cancel ARCHIVE_GENERATION job ${forClient.body.id}` }).count()).toBe(0);
+    expect(await panel.getByRole('button', { name: /^Re-queue/ }).count()).toBe(0);
+    await openModule(page, 'Global Practice Search');
+    const search = page.getByRole('region', { name: 'Global Practice Search' });
+    const found = (await api(adminToken, 'GET', `/api/practice/search?q=${encodeURIComponent(C)}&limit=50`)).body;
+    await search.getByLabel('Search clients, cases, tasks and document requests').fill(C);
+    await search.getByRole('button', { name: 'Search' }).click();
+    if (found.matches.length === 0) await search.getByText('No records match').waitFor();
+    else for (const m of found.matches) await search.getByRole('row').filter({ hasText: m.label }).first().waitFor();
+    expect(realErrors(admin)).toEqual([]);
+    await admin.context.close();
+    const acctToken2 = await apiLogin('e2e-acct');
+    expect((await api(acctToken2, 'GET', '/api/jobs')).body).toEqual({ code: 'JOB_SCOPE_REQUIRED' });
+  });
+});

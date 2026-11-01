@@ -57,7 +57,7 @@ const roleRows = [
   ['BOOKKEEPER', 'src/components/workspace/BookkeeperDashboard.tsx', 'src/tests/bookkeeperDashboardAuthority.test.ts', 'Durable accounting/category/reconciliation/period close/reporting provider and human controls.'],
   ['PRACTICE-MANAGER', 'src/components/workspace/PracticeManagerDashboard.tsx', 'src/tests/practiceManagerAuthority.test.ts', 'Capacity/SLA/event contracts and durable history. Scoped case-team reassignment exists only as review-only proposal 20261018105000 (caseRestaff.db, POST /api/cases/:caseId/team, Case team form); not live until approved and applied.'],
   ['CLIENT-SERVICE', 'src/components/workspace/ClientServiceDashboard.tsx', 'src/tests/clientServiceAuthority.test.ts', 'Scoped booking/send/read-receipt/escalation contracts and audited durable actions.'],
-  ['ADMIN', 'src/components/admin/PracticeAdminWorkspace.tsx', 'src/tests/adminOperationalTruthfulness.test.tsx', 'Durable staff/job/billing/audit/retention views and approved administrative grants.'],
+  ['ADMIN', 'src/components/admin/PracticeAdminWorkspace.tsx', 'src/tests/adminOperationalTruthfulness.test.tsx', 'Durable staff/billing/retention views and approved administrative grants. Block 92: the job queue and practice search tabs read the durable stores (development only; proposals unapplied).'],
 ];
 for (const [id, file, test, remaining] of roleRows) {
   add(`ROLE-${id}-READ`, `${id} bounded shell/read states/session isolation`, valid, [file], [test], 'Bounded recorded read functionality only; production commissioning and browser acceptance separate.');
