@@ -215,6 +215,9 @@ Audits completed in this cycle (documents):
   the post-cancel refresh put the job's former state back. Only the newest request now sets the list
   (`latestRequestGate.ts`; two mutations caught), and the journey waits for the button to be removed instead of
   counting it once.
+  The PostgreSQL security-event burst test failed once in this matrix (39 of 40 recorded): its 40 simultaneous
+  events straddled a clock-minute boundary, so they fell into two one-minute windows (19 + 20). The limit is unchanged;
+  the test now starts its burst at least 15 seconds before the next minute.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

@@ -25,6 +25,10 @@ const record = (fp: string) => db.connect().then(async c => {
 describe('security events on a real PostgreSQL server', () => {
   it('records exactly 20 of 40 simultaneous events from one source and writes one repeated-requests marker', async () => {
     const fp = 'a1'.repeat(16);
+    // The limit counts per clock minute (each transaction's now()). A burst that straddles a minute boundary splits across
+    // two windows (Block 103 matrix: 19 + 20 recorded), so start it at least 15 seconds before the next minute.
+    const seconds = Number((await db.pool.query(`SELECT extract(second FROM now())::float AS s`)).rows[0].s);
+    if (seconds > 45) await new Promise(r => setTimeout(r, (61 - seconds) * 1000));
     const results = await Promise.all(Array.from({ length: 40 }, () => record(fp)));
     expect(results.filter(r => r === 'RECORDED')).toHaveLength(20);
     expect(results.filter(r => r === 'SUPPRESSED')).toHaveLength(20);
