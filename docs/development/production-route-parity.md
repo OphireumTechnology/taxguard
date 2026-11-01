@@ -72,6 +72,8 @@ shared practice-store module: `20261012250000`, `320000`, `20261018090000` and `
 | `/api/jobs` | `jobs-durable.routes.ts` | 250000, 20261018100000, 20261019240000 | No worker process is commissioned; claims and results go through `DurableJobWorker` only |
 | `/api/staff-access` | `staff-access.routes.ts` | direct table reads (no RPC) | Staff directory policy reviewed |
 
+The proposal lists above are a summary. The authoritative list for each route is its entry in `src/server/routeCutover.ts`, which `src/tests/routeCutoverDependencies.test.ts` checks against the database functions the router can call (Block 97).
+
 ## Cutover gate (implemented)
 
 `src/server/routeCutover.ts` is wired into `createProductionApp`. Fourteen of the routers above are catalogued with

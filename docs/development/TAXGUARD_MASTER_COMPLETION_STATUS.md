@@ -169,6 +169,11 @@ Audits completed in this cycle (documents):
   active-client count to the durable practice summary, with a tile. The practice cutover entry did not require
   `20261012320000` and `20261018090000`, behind `my-work` and `summary`. It now does, with a pinning test. PostgreSQL
   2 tests and a mutation; the browser summary journey covers the tile. Report: `block96-active-clients-cutover.md`.
+- **Cutover entries require their router's proposals (Block 97).** A new offline test reads each cutover router and the
+  stores it imports, and requires the entry to list the proposal holding the current definition of every database
+  function the router can call. It failed first on eight entries: stage-one, vault, billing, book-to-tax, tax-engine,
+  scheduling, audit-center and client-portal. 21 proposals were added; a mutation was caught. Report:
+  `block97-cutover-dependencies.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

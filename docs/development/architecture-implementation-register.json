@@ -675,12 +675,14 @@
       "status": "PARTIAL",
       "implementation": [
         "src/server/routeCutover.ts",
-        "docs/development/production-route-parity.md"
+        "docs/development/production-route-parity.md",
+        "docs/development/block97-cutover-dependencies.md"
       ],
       "tests": [
         "src/tests/routeCutover.test.ts",
         "src/tests/caseAuthorityProductionDurability.test.ts",
-        "src/tests/practiceOperationsProductionDurability.test.ts"
+        "src/tests/practiceOperationsProductionDurability.test.ts",
+        "src/tests/routeCutoverDependencies.test.ts"
       ],
       "remainingGap": "Durable proposals are review-only. Production refuses every process-local authority (Blocks 39-41); no durable router is mounted in production. Block 66 tax conclusions exist only in the durable store (no process-local adapter); the tax-engine cutover now requires every proposal its routes use."
     },
