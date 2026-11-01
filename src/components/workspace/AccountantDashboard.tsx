@@ -16,6 +16,7 @@ import {
 } from './accountantDashboardModel';
 import './accountantDashboard.css';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
+import { PracticeOperationsPanel } from './PracticeOperationsPanel';
 import { CaseWorkflowPanel } from './CaseWorkflowPanel';
 import { StaffDocumentReviewPanel } from '../documents/StaffDocumentReviewPanel';
 import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
@@ -151,6 +152,7 @@ export function AccountantDashboard() {
       {loading && !inspecting && <p className="tg-acct-sr-status" role="status">Loading authorized cases and workflow…</p>}
 
       {!inspecting && <DurableMyWorkPanel />}
+      {!inspecting && <PracticeOperationsPanel />}
       {/* Durable case workflow and document review, limited by the server to this preparer's assignments. */}
       {!inspecting && <CaseWorkflowPanel />}
       {!inspecting && <StaffDocumentReviewPanel />}

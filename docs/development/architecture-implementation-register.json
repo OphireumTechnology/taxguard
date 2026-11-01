@@ -775,6 +775,22 @@
       "remainingGap": "Proposal 20261019280000 is review-only and the practice cutover route is not mounted in production. Invoices are not searched (Codex Phase 15 billing). No user interface calls the route."
     },
     {
+      "id": "UI-PRACTICE-OPERATIONS",
+      "name": "Practice operations panel (workload, escalations, notifications, search)",
+      "category": "Experience",
+      "status": "BROWSER_VERIFIED",
+      "implementation": [
+        "src/components/workspace/PracticeOperationsPanel.tsx",
+        "src/services/practiceService.ts",
+        "docs/development/block90-practice-operations-panel.md"
+      ],
+      "tests": [
+        "src/tests/practiceOperationsPanel.test.tsx",
+        "src/tests-e2e/06-role-dashboards.e2e.test.ts"
+      ],
+      "remainingGap": "Development-only: the durable practice routes are behind the route cutover gate and their proposals are review-only. No task reassignment screen, no manager view of another member's workload, and no screen-reader review."
+    },
+    {
       "id": "REC-AUDIT-LEDGER",
       "name": "Audit ledger and security events",
       "category": "Records",

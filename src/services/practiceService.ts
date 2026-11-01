@@ -74,7 +74,32 @@ export const practiceService = {
     request('POST', c(clientId) + '/deadlines', deadline, key),
   resolveDeadline: (clientId: string, deadlineId: string, status: 'MET' | 'WAIVED', reason?: string) =>
     request('POST', c(clientId) + '/deadlines/' + encodeURIComponent(deadlineId) + '/resolve', { status, ...(reason ? { reason } : {}) }),
+  /** Block 84: hand a task to another staff member, or clear its assignee with null. */
+  reassignTask: (clientId: string, taskId: string, assignedUserId: string | null, version: number, reason?: string) =>
+    request<{ taskId: string; assignedUserId: string | null; version: number; changed: boolean }>('POST', c(clientId) + '/tasks/' + encodeURIComponent(taskId) + '/reassign',
+      { assignedUserId, version, ...(reason ? { reason } : {}) }),
+  /** Block 84: the signed-in staff member's workload (another member's only for managers). */
+  workload: (userId?: string) => request<Workload>('GET', '/workload' + (userId ? '?userId=' + encodeURIComponent(userId) : '')),
+  /** Block 85: open deadlines in scope with an escalation level derived when read. */
+  deadlineEscalations: (minLevel = 0, clientId?: string) => request<DeadlineEscalations>('GET', '/deadline-escalations?' +
+    new URLSearchParams({ minLevel: String(minLevel), ...(clientId ? { clientId } : {}) })),
+  /** Block 86: the signed-in staff member's in-app notifications. */
+  notifications: (unreadOnly = false) => request<StaffNotifications>('GET', '/notifications' + (unreadOnly ? '?unreadOnly=true' : '')),
+  markNotificationRead: (notificationId: string) => request<{ notificationId: string; readAt: string }>('POST', '/notifications/' + encodeURIComponent(notificationId) + '/read'),
+  /** Block 88: clients, cases, tasks and document requests the actor may see. */
+  search: (q: string, limit = 25) => request<PracticeSearch>('GET', '/search?' + new URLSearchParams({ q, limit: String(limit) })),
 };
+export interface Workload { userId: string; role: string; assignedClients: number; assignedEngagements: number; clientWideAssignments: number; openTasks: number; overdueTasks: number;
+  byStatus: Record<string, number>; definitions: Record<string, string> }
+export type EscalationLevelName = 'NORMAL' | 'APPROACHING' | 'DUE_SOON' | 'OVERDUE' | 'CRITICAL';
+export interface DeadlineEscalations { evaluatedAt: string; counts: Record<EscalationLevelName, number>;
+  deadlines: Array<{ deadlineId: string; clientId: string; caseId: string | null; taxYear: number | null; title: string; category: string; authorityType: string; dueDate: string;
+    level: number; levelName: EscalationLevelName; hoursUntilDue: number }>;
+  thresholds: { approachingHours: number; dueSoonHours: number; criticalOverdueHours: number; statutoryOverdueIsCritical: boolean; source: string }; definitions: Record<string, string> }
+export interface StaffNotifications { unread: number; notifications: Array<{ notificationId: string; kind: 'TASK_ASSIGNED'; clientId: string; taskId: string; createdBy: string;
+  createdAt: string; readAt: string | null; available: boolean; task: { title: string; status: string; assignedToMe: boolean } | null }> }
+export interface PracticeSearch { query: string; totalMatches: number; searched: string[];
+  matches: Array<{ entityType: 'client' | 'case' | 'task' | 'document_request'; id: string; clientId: string; label: string; taxYear: number | null; status: string }> }
 export const DEADLINE_CATEGORIES = ['client_request', 'internal_prep', 'review', 'signature', 'filing', 'estimated_payment', 'extension', 'notice_response',
   'bookkeeping_close', 'renewal'] as const;
 export const DEADLINE_AUTHORITIES = ['INTERNAL', 'CLIENT_COMMITMENT', 'PROVIDER', 'ESTIMATED', 'MANUAL', 'STATUTORY'] as const;

@@ -7,6 +7,7 @@ import { useDashboardInspection } from '../layout/dashboardInspection';
 import { REVIEW_FILTERS, REVIEW_TABS, REVIEWER_STAGES, reviewFilter, reviewerDecisionBlock } from './reviewerDashboardModel';
 import { ReviewEmpty, ReviewerExceptionPanel, ReviewerQualityPanel, ReviewerReadPanel } from './ReviewerCasePanels';
 import { DurableMyWorkPanel } from './DurableMyWorkPanel';
+import { PracticeOperationsPanel } from './PracticeOperationsPanel';
 import { QualityControlQueuePanel } from './QualityControlQueuePanel';
 import { ReturnReviewQueuePanel } from './ReturnReviewQueuePanel';
 import { FinalAuthorizationQueuePanel } from './FinalAuthorizationQueuePanel';
@@ -61,6 +62,7 @@ export function ReviewerDashboard() {
     <div className="tg-reviewer">
       <div className="tg-review-kpis">{kpis.map((label,i)=><button key={label} className={'tg-review-kpi tg-review-kpi-'+i} disabled={data.queue.status!=='ready'} aria-pressed={filter===label} onClick={()=>setFilter(label)}><span>{label}</span><strong>{data.queue.status==='ready'?rows.filter(r=>reviewFilter(r,label,today)).length:'—'}</strong><small>{label==='High Risk'?'Critical return diagnostics':label==='Overdue'?'Recorded deadlines · SLA unavailable':'View authorized cases'}</small></button>)}</div>
       {!inspecting && <DurableMyWorkPanel heading="My durable review queue" />}
+      {!inspecting && <PracticeOperationsPanel />}
       {!inspecting && <ReturnReviewQueuePanel />}
       {!inspecting && <QualityControlQueuePanel />}
       {!inspecting && <FinalAuthorizationQueuePanel />}

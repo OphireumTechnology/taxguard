@@ -126,6 +126,16 @@ Audits completed in this cycle (documents):
   durable practice summary and the escalation view. Of 147 refused routes: 28 replaced, 102 partly replaced, 17 with no
   durable route. Every remaining gap needs one of: owner approval of proposals (case authority), owner policy (six
   questions), providers, or tax-content review. Report: `block89-remaining-work.md`.
+- **Practice operations panel (Block 90).** User interface only. The accountant and reviewer dashboards gain a panel
+  showing:
+  - their own workload;
+  - deadlines due soon or overdue, with the default thresholds labelled as not a reviewed policy;
+  - their task notifications, with mark-read;
+  - a search of the practice records they may see.
+
+  All figures come from the Block 84–88 durable routes; there are no placeholder figures, and the panel is hidden
+  without the durable store. Unit 3 tests. A browser journey in suite 06 compares every figure with the server's for
+  the same session, and a mutation was caught. Report: `block90-practice-operations-panel.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

@@ -26,6 +26,28 @@ describe('durable role dashboards', () => {
     await s.context.close();
   });
 
+  it('practice operations show the server\'s workload, notifications and search for the signed-in staff member', async () => {
+    const s = await staffLogin('e2e-acct');
+    await sees(s.page, 'Practice operations');
+    await s.page.locator('[aria-label="Workload counts"]').waitFor();
+    const t = await token(s.page);
+    const [w, n, d] = await Promise.all([api(t, 'GET', '/api/practice/workload'), api(t, 'GET', '/api/practice/notifications'),
+      api(t, 'GET', '/api/practice/deadline-escalations?minLevel=2')]);
+    expect(await tile(s.page, 'Workload counts', 'Open tasks')).toBe(String(w.body.openTasks));
+    expect(await tile(s.page, 'Workload counts', 'Overdue tasks')).toBe(String(w.body.overdueTasks));
+    expect(await tile(s.page, 'Workload counts', 'Assigned clients')).toBe(String(w.body.assignedClients));
+    expect((await s.page.getByLabel('Unread notifications').innerText()).trim()).toBe(`(${n.body.unread} unread)`);
+    for (const x of d.body.deadlines) await sees(s.page, x.title);
+    if (d.body.deadlines.length === 0) await sees(s.page, 'No deadline in your scope is due within');
+    const found = (await api(t, 'GET', `/api/practice/search?q=${encodeURIComponent(C)}`)).body;
+    await s.page.getByLabel('Search clients, cases, tasks and document requests').fill(C);
+    await s.page.getByRole('button', { name: 'Search', exact: true }).click();
+    if (found.matches.length === 0) await sees(s.page, 'No records you may see match');
+    else for (const m of found.matches) await s.page.locator('[aria-label="Search results"] li', { hasText: m.label }).first().waitFor();
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+  });
+
   it('the practice manager sees the recorded practice summary', async () => {
     const s = await staffLogin('e2e-mgr');
     await ensureStaffed(await token(s.page));

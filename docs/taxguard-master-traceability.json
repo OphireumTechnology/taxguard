@@ -5201,6 +5201,18 @@
       ]
     },
     {
+      "file": "docs/development/block90-practice-operations-panel.md",
+      "sha256": "1efd1c899d713f300d7b401961a6b5668e137e11b87b2b6bb6ba54cb297bef9c",
+      "bytes": 3067,
+      "headings": [
+        "# Block 90: practice operations panel",
+        "## Purpose",
+        "## What is built",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6217,8 +6229,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "fc0cbefe45c80e760737b9497bcbbd3d723cbfb5fc2c0b68f0f662825c56cc67",
-      "bytes": 33531,
+      "sha256": "37afd09af1d76ab29a8a7036737a39b61a6ab28ee3d6f2a0f11e27a6dbd07240",
+      "bytes": 34207,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8029,7 +8041,7 @@
     "src/components/portal/dashboard/ClientNotificationsPanel.tsx": "873fdc578ab2eea2b5df6e2cf7c066ce9d9fab983e2c214d1eb0c9be1e82d4df",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
-    "src/components/workspace/AccountantDashboard.tsx": "d062efd4e46f0d85b2fc11ef58fd8814fd16356f6f678b4e7096bfa61d4232b5",
+    "src/components/workspace/AccountantDashboard.tsx": "d97e60628eec38811b74f6619dbc313202fa3830b7d42933299c8b3378f686b8",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "de799cd694b9c01ce53458d176ebecd110b894b0abf83e3427dfd99166dac90c",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
