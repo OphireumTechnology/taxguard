@@ -53,7 +53,8 @@ helpers. The file was restored afterwards.
 
 ## Not covered
 
-- **Dynamic SQL.** Calls built inside `EXECUTE` strings are not followed. None were found among the reached functions'
-  calls, but the scan reads text, not a parse tree.
+- **Dynamic SQL.** Calls built inside `EXECUTE` strings would not be followed. None of the 497 current function
+  definitions uses `EXECUTE`; it appears only in setup blocks that create triggers and grants. The scan reads text,
+  not a parse tree.
 - **Tables and triggers.** The test follows functions only. Tables, triggers and grants are ordered by the migration
   manifest's dependencies, which the composition test applies in full.
