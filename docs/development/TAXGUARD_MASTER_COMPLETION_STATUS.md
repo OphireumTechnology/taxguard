@@ -156,6 +156,10 @@ Audits completed in this cycle (documents):
   The panels hide without the durable store, so the legacy tables stay where it is off. A browser journey in suite 06
   compares every row and count with the server's; a mutation was caught. Report:
   `block93-team-workload-escalations.md`.
+- **Browser evidence in four traceability rows (Block 94).** Register only. Billing, document vault, staff account
+  security and ledger workflows said "browser NOT VERIFIED". They now name the local synthetic journeys that cover them
+  (suites 01, 02, 03, 06 and 08), and keep independent browser acceptance as NOT VERIFIED. Report:
+  `block94-traceability-browser-evidence.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

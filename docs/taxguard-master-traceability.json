@@ -3553,7 +3553,7 @@
       "tests": [
         "src/tests/billingHttp.test.ts"
       ],
-      "remaining": "Proposal 028 unapplied; sandbox payment provider only (E04); no sales tax rules; browser NOT VERIFIED.",
+      "remaining": "Proposal 028 unapplied; sandbox payment provider only (E04); no sales tax rules. Local synthetic browser journeys: suite 02 (an accountant drafts and submits, a different manager approves and the invoice is numbered; the client pays with the sandbox test card exactly once; a manager records an outside refund exactly once and the client never sees its reason). Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3572,7 +3572,7 @@
       "tests": [
         "src/tests/documentVaultHttp.test.ts"
       ],
-      "remaining": "Proposal 027 unapplied; scanner and OCR not commissioned (E02); retention execution absent; browser NOT VERIFIED.",
+      "remaining": "Proposal 027 unapplied; scanner and OCR not commissioned (E02); retention execution absent. Local synthetic browser journeys: suite 02 (portal upload stays quarantined until a fake-scanner verdict; independent staff acceptance and client download; a public replacement reason while staff notes stay hidden; OCR proposals accepted, corrected or rejected in Document Review and never shown to the client). Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3667,7 +3667,7 @@
       "tests": [
         "src/tests/durableLedgerHttp.test.ts"
       ],
-      "remaining": "Synthetic HTTP cycle against PGlite; book-to-tax, document matching, sync and bookkeeper dashboard not durable; browser NOT VERIFIED.",
+      "remaining": "Synthetic HTTP cycle against PGlite; document matching and accounting sync have no durable implementation (Block 81 inventory: DURABLE_FEATURE_NOT_AVAILABLE with the durable ledger). Local synthetic browser journeys: suite 03 (a balanced entry waits for an independent reviewer; reviewer approval, return and correction with self-approval refused; bank categorization and reconciliation to zero variance; book-to-tax approval) and suite 06 (the bookkeeper panels read the durable ledger). Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3724,7 +3724,7 @@
       "tests": [
         "src/tests/staffAccountSecurityPage.test.tsx"
       ],
-      "remaining": "Development-only API; linked from Accountant navigation only; browser NOT VERIFIED.",
+      "remaining": "Development-only API; linked from Accountant navigation only. Local synthetic browser journeys: suite 01 (the page renders and durable session management stays closed for local sessions) and suite 08 (durable sessions are listed and revoked through the real server; the browser page renders, but its tools report that they are not enabled without browser provider configuration). Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -5249,6 +5249,16 @@
       ]
     },
     {
+      "file": "docs/development/block94-traceability-browser-evidence.md",
+      "sha256": "fe064567b87b5ae3b481327525693cbf9255163a5d3cd0a1d3e267838fe52272",
+      "bytes": 2189,
+      "headings": [
+        "# Block 94: browser evidence in four traceability rows",
+        "## Purpose",
+        "## What does not change"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6265,8 +6275,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "53568d1594c47358135ea6367dc0f8645178fa53802a2a0744d42a5211d0c5e2",
-      "bytes": 35847,
+      "sha256": "bb405801552e190a1741bb1dbd650f72e360bd3ddada7fec83746f98848b9b9f",
+      "bytes": 36227,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
