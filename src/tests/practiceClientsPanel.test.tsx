@@ -49,6 +49,11 @@ describe('practice service client', () => {
   });
   it('maps refusal codes to guidance and keeps unknown failures generic', () => {
     expect(practiceMessage(new PracticeRequestError(409, 'ASSIGNMENT_SEGREGATION_OF_DUTIES'))).toMatch(/preparer and reviewer/);
+    // Block 91: task reassignment refusals.
+    expect(practiceMessage(new PracticeRequestError(404, 'TASK_NOT_FOUND'))).toMatch(/not in your scope/);
+    expect(practiceMessage(new PracticeRequestError(403, 'TASK_ACTION_NOT_AUTHORIZED'))).toMatch(/creator or its current assignee/);
+    expect(practiceMessage(new PracticeRequestError(400, 'TASK_ASSIGNEE_NOT_AUTHORIZED'))).toMatch(/can see this client/);
+    expect(practiceMessage(new PracticeRequestError(400, 'TASK_STATUS_TRANSITION_INVALID'))).toMatch(/cannot be changed/);
     expect(practiceMessage(new PracticeRequestError(500, 'SOMETHING_INTERNAL'))).toBe('The practice service did not confirm this action. Refresh and try again.');
     expect(ENGAGEMENT_TRANSITIONS.completed).toBeUndefined();
   });

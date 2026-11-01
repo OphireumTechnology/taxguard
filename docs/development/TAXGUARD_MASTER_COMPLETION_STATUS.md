@@ -136,6 +136,10 @@ Audits completed in this cycle (documents):
   All figures come from the Block 84–88 durable routes; there are no placeholder figures, and the panel is hidden
   without the durable store. Unit 3 tests. A browser journey in suite 06 compares every figure with the server's for
   the same session, and a mutation was caught. Report: `block90-practice-operations-panel.md`.
+- **Task reassignment screen (Block 91).** User interface only. Each open task in the manager's client detail has a
+  Reassign control: the client's team or "Unassigned", an optional reason, and the loaded version. The server's
+  refusals are worded. A browser journey in suite 02 reassigns a task and checks the stored assignee and version and
+  the new assignee's notification; a mutation was caught. Report: `block91-task-reassignment-ui.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

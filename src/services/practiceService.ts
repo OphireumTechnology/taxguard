@@ -123,6 +123,10 @@ const MESSAGES: Record<string, string> = {
   DEADLINE_ALREADY_RESOLVED: 'This deadline was already met or waived.',
   DEADLINE_NOT_FOUND: 'That deadline was not found or is not assigned to you.',
   DEADLINE_WAIVER_NOT_AUTHORIZED: 'Only a practice manager can waive a deadline, and statutory deadlines cannot be waived.',
+  TASK_NOT_FOUND: 'That task was not found or is not in your scope.',
+  TASK_ACTION_NOT_AUTHORIZED: "Only a practice manager, the task's creator or its current assignee can change this task.",
+  TASK_ASSIGNEE_NOT_AUTHORIZED: 'That person is not an active staff member who can see this client.',
+  TASK_STATUS_TRANSITION_INVALID: 'Completed and cancelled tasks cannot be changed.',
 };
 export function practiceMessage(error: unknown): string {
   if (error instanceof PracticeRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];

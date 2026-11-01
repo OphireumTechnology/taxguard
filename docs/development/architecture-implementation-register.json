@@ -706,19 +706,22 @@
       "id": "OPS-TASK-REASSIGNMENT",
       "name": "Task reassignment and staff workload",
       "category": "Operations",
-      "status": "INTEGRATION_VERIFIED",
+      "status": "BROWSER_VERIFIED",
       "implementation": [
         "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
         "src/server/routes/practice.routes.ts",
         "src/server/taxguard/practice/practiceStore.ts",
-        "docs/development/block84-task-reassignment-workload.md"
+        "docs/development/block84-task-reassignment-workload.md",
+        "src/components/workspace/PracticeClientsPanel.tsx",
+        "docs/development/block91-task-reassignment-ui.md"
       ],
       "tests": [
         "src/tests-db/taskReassignmentWorkload.db.test.ts",
-        "src/tests/productionRouteInventory.test.ts"
+        "src/tests/productionRouteInventory.test.ts",
+        "src/tests-e2e/02-practice-documents-billing.e2e.test.ts"
       ],
       "persistence": "durable proposal, development-only router behind the route cutover gate",
-      "remainingGap": "Proposal 20261019250000 is review-only and the practice cutover route is not mounted in production. No user interface calls the new routes yet. The in-memory reassign and workload routes stay refused in production until they are retired."
+      "remainingGap": "Proposal 20261019250000 is review-only and the practice cutover route is not mounted in production. Reassignment is in the manager's client detail only; the workload view is in the staff practice operations panel. The in-memory reassign and workload routes stay refused in production until they are retired."
     },
     {
       "id": "OPS-DEADLINE-ESCALATION",

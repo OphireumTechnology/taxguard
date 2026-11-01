@@ -43,6 +43,31 @@ describe('clients, engagements and team (practice manager UI)', () => {
       .toEqual([['bookkeeper', 'e2e-bk'], ['preparer', 'e2e-acct'], ['reviewer', 'e2e-rev']]);
     expect(realErrors(mgr)).toEqual([]);
   });
+
+  it('reassigns a task in the client detail; the new assignee is notified and the change is versioned', async () => {
+    const { page } = mgr;
+    const TITLE = 'Synthetic E2E task to hand off';
+    const add = page.locator('form', { has: page.getByRole('button', { name: 'Add task' }) });
+    await add.getByLabel('Task').fill(TITLE);
+    await add.getByLabel('Assignee').fill('e2e-acct');
+    await add.getByRole('button', { name: 'Add task' }).click();
+    await sees(page, 'Task created.');
+    const row = page.locator('li', { hasText: TITLE });
+    await row.getByRole('button', { name: 'Reassign' }).click();
+    const form = page.getByRole('form', { name: `Reassign ${TITLE}` });
+    await expect(form.getByRole('button', { name: 'Save assignee' }).isDisabled()).resolves.toBe(true);
+    await form.getByLabel('New assignee').selectOption('e2e-rev');
+    await form.getByLabel('Reason (optional)').fill('Synthetic hand-off to the reviewer');
+    await form.getByRole('button', { name: 'Save assignee' }).click();
+    await sees(page, 'Task reassigned to e2e-rev.');
+    await sees(page, `${TITLE} · OPEN · e2e-rev`);
+    const task = (await api(mgrToken, 'GET', `/api/practice/clients/${C}`)).body.tasks.find((t: any) => t.title === TITLE);
+    expect(task).toMatchObject({ assignedUserId: 'e2e-rev', version: 2 });
+    const reviewer = (await api(await apiLogin('e2e-rev'), 'GET', '/api/practice/notifications')).body;
+    expect(reviewer.notifications.find((n: any) => n.taskId === task.taskId)).toMatchObject({ kind: 'TASK_ASSIGNED', createdBy: 'e2e-mgr', available: true,
+      task: { title: TITLE, assignedToMe: true } });
+    expect(realErrors(mgr)).toEqual([]);
+  });
 });
 
 describe('documents: upload, quarantine, scan and independent review', () => {

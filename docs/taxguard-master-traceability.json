@@ -5213,6 +5213,18 @@
       ]
     },
     {
+      "file": "docs/development/block91-task-reassignment-ui.md",
+      "sha256": "620f0cae294fab7e3d9e9f8072426bac6306f87ef03d39074e6687990ca2393d",
+      "bytes": 2621,
+      "headings": [
+        "# Block 91: task reassignment in the client detail",
+        "## Purpose",
+        "## What is built",
+        "## Evidence",
+        "## Not covered"
+      ]
+    },
+    {
       "file": "docs/development/blocks-69-72-design.md",
       "sha256": "c4b9868ee132afedc23b254cb6c3aaa6c03b2dc2c1c05141e66dcbe1b3e85754",
       "bytes": 8041,
@@ -6229,8 +6241,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "37afd09af1d76ab29a8a7036737a39b61a6ab28ee3d6f2a0f11e27a6dbd07240",
-      "bytes": 34207,
+      "sha256": "610b794d760c030f21b196d8e877871c2f8d863a4578fe9d4e6e4b1ad9981c0d",
+      "bytes": 34653,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8118,7 +8130,7 @@
     "src/tests-db/concurrency.db.test.ts": "a631b70043342fab5233cd3c645c9eef542757a72b8a435e4ce34eef7bcf2f54",
     "src/tests-db/durableJobQueue.db.test.ts": "ebd5614cc22bb97bed30162ea830c8e3080482fc0a86ec3a961bca95d6a8bcad",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
-    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "ebfe940b1a4e29cf0a2970c8b19a232461c5a1f8bc2e340f05d0aa604c09f2f5",
+    "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "fb6e36ef2bdd60a0764ef5dc9f16750b4e97f0572d3fb68581542afa3f5550b1",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "912f15683a8e761a21fbf8f6b125db127da44c967f57af1761f1ca36309a4bfd",
     "src/tests-e2e/15-phase12c-recovery.e2e.test.ts": "99440f4ab572a8a9e119ac5cc4cf755730676fb85ebeb1024fe13573f5917ff7",

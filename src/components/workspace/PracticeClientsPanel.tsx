@@ -21,6 +21,7 @@ export function PracticeClientsPanel() {
   const [teamForm, setTeamForm] = useState({ engagementId: '', taxYear: '', role: 'preparer', userId: '', reason: '' });
   const [noteBody, setNoteBody] = useState('');
   const [taskForm, setTaskForm] = useState({ title: '', assignedUserId: '', dueDate: '' });
+  const [reassign, setReassign] = useState<{ taskId: string; userId: string; reason: string } | null>(null);
   const [statusReason, setStatusReason] = useState('');
   const [yearForms, setYearForms] = useState<Record<string, string>>({});
   const blankDeadline = { title: '', category: 'internal_prep', dueDate: '', authorityType: 'INTERNAL', sourceCitation: '', taxYear: '' };
@@ -111,7 +112,20 @@ export function PracticeClientsPanel() {
         </form>
         <h4>Tasks</h4>
         <ul>{d.tasks.map(t => <li key={t.taskId}>{t.title} · {t.status} · {t.assignedUserId || 'unassigned'}{t.dueDate ? ` · due ${t.dueDate.slice(0, 10)}` : ''}
-          {!['COMPLETED', 'CANCELLED'].includes(t.status) && <button type="button" disabled={busy} onClick={() => run('task-status', () => practiceService.setTaskStatus(d.client.clientId, t.taskId, 'COMPLETED', t.version), 'Task completed.')}>Mark complete</button>}</li>)}</ul>
+          {!['COMPLETED', 'CANCELLED'].includes(t.status) && <button type="button" disabled={busy} onClick={() => run('task-status', () => practiceService.setTaskStatus(d.client.clientId, t.taskId, 'COMPLETED', t.version), 'Task completed.')}>Mark complete</button>}
+          {!['COMPLETED', 'CANCELLED'].includes(t.status) && reassign?.taskId !== t.taskId && <button type="button" disabled={busy}
+            onClick={() => setReassign({ taskId: t.taskId, userId: t.assignedUserId ?? '', reason: '' })}>Reassign</button>}
+          {reassign?.taskId === t.taskId && <form aria-label={`Reassign ${t.title}`} onSubmit={e => { e.preventDefault();
+            void run('task-reassign', () => practiceService.reassignTask(d.client.clientId, t.taskId, reassign.userId || null, t.version, reassign.reason.trim() || undefined),
+              reassign.userId ? `Task reassigned to ${reassign.userId}.` : 'Task unassigned.').then(ok => { if (ok) setReassign(null); }); }}>
+            <label>New assignee<select value={reassign.userId} onChange={e => setReassign({ ...reassign, userId: e.target.value })}>
+              <option value="">Unassigned</option>
+              {[...new Set([...d.team.map(m => m.userId), ...(t.assignedUserId ? [t.assignedUserId] : [])])].sort().map(u => <option key={u} value={u}>{u}</option>)}
+            </select></label>
+            <label>Reason (optional)<input maxLength={500} value={reassign.reason} onChange={e => setReassign({ ...reassign, reason: e.target.value })} /></label>
+            <button disabled={busy || reassign.userId === (t.assignedUserId ?? '')}>Save assignee</button>
+            <button type="button" onClick={() => setReassign(null)}>Cancel</button>
+          </form>}</li>)}</ul>
         <form onSubmit={e => { e.preventDefault(); void run('task', () => practiceService.createTask(d.client.clientId, { title: taskForm.title, assignedUserId: taskForm.assignedUserId || undefined,
             dueDate: taskForm.dueDate ? new Date(taskForm.dueDate + 'T00:00:00Z').toISOString() : undefined }, keyFor('task')), 'Task created.')
           .then(ok => { if (ok) setTaskForm({ title: '', assignedUserId: '', dueDate: '' }); }); }}>
