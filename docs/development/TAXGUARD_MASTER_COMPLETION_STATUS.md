@@ -160,6 +160,11 @@ Audits completed in this cycle (documents):
   security and ledger workflows said "browser NOT VERIFIED". They now name the local synthetic journeys that cover them
   (suites 01, 02, 03, 06 and 08), and keep independent browser acceptance as NOT VERIFIED. Report:
   `block94-traceability-browser-evidence.md`.
+- **Case-authority routes mapped one by one (Block 95).** Register only. The 74 process-local case-authority routes are
+  split into 15 areas, each naming its durable replacement or what it needs. 8 areas are partly replaced (cases,
+  vault, tax engine, book-to-tax, durable ledger) and 7 have none (records, filing, monitoring, planning, renewal,
+  archive, AI review). Of 147 refused routes: 28 replaced, 73 partly replaced, 46 with no durable route; every one of
+  the 46 waits on a provider, a policy or commissioning. Report: `block95-case-authority-map.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

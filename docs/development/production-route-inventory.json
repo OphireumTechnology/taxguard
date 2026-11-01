@@ -56,7 +56,7 @@
       ]
     },
     {
-      "id": "case-authority-scoped",
+      "id": "case-authority-case-stages",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
       "coverage": "PARTIAL",
@@ -69,83 +69,264 @@
         "POST /api/cases/:caseId/notes",
         "POST /api/cases/:caseId/team"
       ],
-      "gap": "The cases router covers the case list, detail, stage moves, holds, notes and team. The other scoped case-authority operations were not reviewed route by route and have no named durable route; durable case authority is next priority 1.",
-      "reason": "Scoped case operations read and write the process-local authority adapter (TransactionalDocumentDatabase). Durable case authority is next priority 1 and needs owner-approved proposals.",
+      "gap": "Stage moves go through the cases router (advance, return, hold) under its stage evidence rules. Stage evaluation and invalidation, activation and free-form case updates have no durable route.",
+      "reason": "The case, its stages and stage history, stage transitions, blocks, reopening and activation on the process-local authority adapter.",
       "routes": [
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/approvals/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive/manifest/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/artifacts/:kind/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/evidence/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/feedback/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ocr/:fieldId",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/repeat/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/:id",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures/:id",
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages",
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage",
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/history",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers",
-        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers/:id",
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/cases",
         "PATCH /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear",
-        "PATCH /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring/:id",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/activate",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ai-review",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive/manifest",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/block",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/ocr",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/release",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/scan",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/evidence",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/exceptions",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/exceptions/:id/resolve",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/feedback",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id/ack",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id/submit",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ocr/:fieldId/review",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/:id/resolve",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/run",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records/:id/resolve-duplicate",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals/:id/carry-forward",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reopen",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/repeat",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports/generate",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions/:id/resolve",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/:id/certify",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/generate",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviews",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures/:id/events",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/block",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/evaluate",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/invalidate",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/reopen",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/transition",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/transition"
+      ]
+    },
+    {
+      "id": "case-authority-documents",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/vault/clients/:clientId/documents",
+        "POST /api/vault/clients/:clientId/documents",
+        "GET /api/vault/clients/:clientId/documents/:documentId",
+        "POST /api/vault/clients/:clientId/documents/:documentId/versions/:version/review",
+        "POST /api/vault/clients/:clientId/documents/:documentId/versions/:version/download",
+        "POST /api/vault/clients/:clientId/extractions/:fieldId/verify"
+      ],
+      "gap": "Scanning runs through the development-only scan callback router with no scanner commissioned. There is no separate release step: the vault releases a document by independent staff review.",
+      "reason": "Case documents, scanning, release and OCR field review on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ocr/:fieldId",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/ocr",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/release",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/documents/:id/scan",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ocr/:fieldId/review"
+      ]
+    },
+    {
+      "id": "case-authority-evidence",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/tax-engine/cases/:caseId/evidence-trace",
+        "GET /api/tax-engine/conclusions/:conclusionId/trace"
+      ],
+      "gap": "Evidence is held as vault documents and cited calculation inputs, traced from conclusions; there is no separate evidence record to create.",
+      "reason": "Case evidence records on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/evidence/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/evidence"
+      ]
+    },
+    {
+      "id": "case-authority-records",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "The Stage 04 authoritative record operation and duplicate resolution have no durable route; they need the reviewed-fact adapter and an authorized record operation (STAGE-04-PRODUCT).",
+      "reason": "Stage 04 records and duplicate resolution on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/records/:id/resolve-duplicate"
+      ]
+    },
+    {
+      "id": "case-authority-reconciliations",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/bookkeeping/reconciliations",
+        "POST /api/bookkeeping/reconciliations/start",
+        "POST /api/bookkeeping/reconciliations/:id/clear",
+        "POST /api/bookkeeping/reconciliations/:id/finalize"
+      ],
+      "gap": "Reconciliation is the durable ledger's, which waits for the ledger switch (proposal 024). Case-level reconciliation runs have no route of their own.",
+      "reason": "Stage 05 reconciliation runs and resolution on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/:id/resolve",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reconciliations/run"
+      ]
+    },
+    {
+      "id": "case-authority-exceptions",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/tax-engine/cases/:caseId/diagnostics",
+        "POST /api/tax-engine/cases/:caseId/diagnostics/run",
+        "POST /api/tax-engine/diagnostics/:diagnosticId/acknowledge"
+      ],
+      "gap": "Blocking findings are durable diagnostics with acknowledgement. Free-form exceptions and Stage 14 notice resolutions have no durable route.",
+      "reason": "Exceptions and their resolutions on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/exceptions",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/exceptions/:id/resolve",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/resolutions/:id/resolve"
+      ]
+    },
+    {
+      "id": "case-authority-workpapers",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/book-to-tax/clients/:clientId/:taxYear/:family",
+        "POST /api/book-to-tax/clients/:clientId/:taxYear/:family/workpapers",
+        "POST /api/book-to-tax/clients/:clientId/workpapers/:workpaperId/:decision(approve|reject)"
+      ],
+      "gap": "Workpapers are book-to-tax workpapers with independent review. General case workpapers have no durable route.",
+      "reason": "Case workpapers on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers/:id",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/workpapers"
+      ]
+    },
+    {
+      "id": "case-authority-returns",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/tax-engine/cases/:caseId/returns",
+        "POST /api/tax-engine/cases/:caseId/returns",
+        "GET /api/tax-engine/returns/:returnVersionId",
+        "POST /api/tax-engine/returns/:returnVersionId/:action(submit|approve|return)",
+        "GET /api/tax-engine/returns/:returnVersionId/final-authorizations",
+        "POST /api/tax-engine/returns/:returnVersionId/final-authorization"
+      ],
+      "gap": "The tax-engine routes replace them under independent review, QC and final authorization. Final authorization fails closed until the owner's QC and authorization policies are set.",
+      "reason": "Return generation, review, certification and approvals on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/approvals/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/:id/certify",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/returns/generate",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviews"
+      ]
+    },
+    {
+      "id": "case-authority-signatures",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/tax-engine/returns/:returnVersionId/signature-context",
+        "GET /api/tax-engine/returns/:returnVersionId/signature-packages",
+        "POST /api/tax-engine/returns/:returnVersionId/signature-package"
+      ],
+      "gap": "The signature package is prepared without signing. Signing and signature events need an e-signature provider and the owner's e-signature policy.",
+      "reason": "Signature requests and signing events on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/signatures/:id/events"
+      ]
+    },
+    {
+      "id": "case-authority-filing-feedback",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "IRS transmission, acknowledgements and government feedback need an authorized transmitter and providers (Stages 12, 13 and 16); production filing is not activated.",
+      "reason": "Filing, submission, acknowledgement and government feedback on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/feedback/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/feedback",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id/ack",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/filings/:id/submit"
+      ]
+    },
+    {
+      "id": "case-authority-monitoring",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "Stage 15 monitoring needs verified status, deadline and SLA providers and an SLA policy. Deadline escalation (Block 85) covers recorded deadlines only.",
+      "reason": "Stage 15 monitoring records on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring",
+        "PATCH /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/monitoring"
+      ]
+    },
+    {
+      "id": "case-authority-planning",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "Stage 08 planning needs reviewed facts, authoritative rules and an approved advisory policy.",
+      "reason": "Stage 08 tax planning on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/planning"
+      ]
+    },
+    {
+      "id": "case-authority-renewal-repeat",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "Stages 17 and 18 need scoped engagement and consent renewal and an annual rollover contract. Adding a tax year to an engagement is the only durable action.",
+      "reason": "Stage 17 renewals, carry-forward and Stage 18 repeat on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/repeat/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/renewals/:id/carry-forward",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/repeat"
+      ]
+    },
+    {
+      "id": "case-authority-archive-reports",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "Archiving needs the owner's retention policy. Report generation and artifact retrieval have no durable route.",
+      "reason": "Archive manifests, artifacts and reports on the process-local authority adapter.",
+      "routes": [
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive/manifest/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/artifacts/:kind/:id",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports",
+        "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports/:id",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/archive/manifest",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reports/generate"
+      ]
+    },
+    {
+      "id": "case-authority-ai-review",
+      "kind": "VOLATILE_REFUSED",
+      "code": "DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED",
+      "coverage": "NONE",
+      "gap": "No AI agent is commissioned; AI review on a case waits for commissioning under the governance controls.",
+      "reason": "AI review of a case on the process-local authority adapter.",
+      "routes": [
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/ai-review"
       ]
     },
     {

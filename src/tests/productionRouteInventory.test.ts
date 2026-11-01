@@ -138,8 +138,9 @@ describe('production route inventory', () => {
       expect(replacements.length > 0, g.id).toBe(g.coverage !== 'NONE');
       expect((g.gap ?? '').length >= 20, g.id).toBe(g.coverage !== 'REPLACED');
       expect(replacements.filter(r => !known.has(r)), `${g.id}: replacement routes that do not exist`).toEqual([]);
-      expect(replacements.filter(r => g.routes.includes(r) || inventory().groups.some(o => o.kind in REFUSED && o.routes.includes(r))),
-        `${g.id}: a replacement must not itself be refused`).toEqual([]);
+      // A durable-gated route (a durable adapter waiting for its switch) may replace in-memory work; an in-memory one may not.
+      expect(replacements.filter(r => g.routes.includes(r) || inventory().groups.some(o => o.kind in REFUSED && o.kind !== 'DURABLE_GATED' && o.routes.includes(r))),
+        `${g.id}: a replacement must not itself be refused over in-memory state or a missing provider`).toEqual([]);
     }
   });
 
