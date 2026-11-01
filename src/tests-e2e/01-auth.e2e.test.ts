@@ -106,4 +106,14 @@ describe('session boundaries', () => {
     expect(realErrors(s)).toEqual([]);
     await s.context.close();
   });
+
+  // Block 100: the page is reached from the workspace header of every staff role, not only the accountant's navigation.
+  it.each(['e2e-mgr', 'e2e-acct', 'e2e-rev', 'e2e-bk', 'e2e-admin'])('reaches the account security page from the %s workspace header', async who => {
+    const s = await staffLogin(who);
+    await s.page.getByRole('link', { name: 'Account security and sessions' }).click();
+    await s.page.waitForURL(url => url.pathname === '/staff/account-security');
+    expect(await sees(s.page, 'Account security')).toBe(true);
+    expect(realErrors(s)).toEqual([]);
+    await s.context.close();
+  });
 });

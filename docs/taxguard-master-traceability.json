@@ -3646,9 +3646,11 @@
         "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
       ],
       "tests": [
-        "src/tests/durableLedgerSql.test.ts"
+        "src/tests/durableLedgerSql.test.ts",
+        "src/tests-db/concurrency.db.test.ts",
+        "src/tests-db/ledgerWriteRetries.db.test.ts"
       ],
-      "remaining": "Proposal 024 unapplied; PGlite single-connection only (multi-connection concurrency unverified); commissioning and migration approval required.",
+      "remaining": "Proposal 024 unapplied; commissioning and migration approval required. Multi-connection behaviour is verified on local PostgreSQL (Block 100 register correction): simultaneous postings get gap-free numbers, a replayed idempotency key creates one entry, one of two simultaneous reviewers decides, no posting lands after a concurrent hard close, and concurrent identical retries return one entry. No hosted database exercised.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3686,7 +3688,7 @@
       "tests": [
         "src/tests/ledgerIntegrityAndPeriodClose.test.ts"
       ],
-      "remaining": "In-memory engine (not durable); no database schema for the ledger; legacy accountant journal routes remain a separate ledger; browser execution NOT VERIFIED.",
+      "remaining": "In-memory engine (not durable); the durable database ledger is the separate LEDGER-DURABLE row (proposal 024, unapplied) and its browser journeys are under LEDGER-WORKFLOWS; legacy accountant journal routes remain a separate ledger; browser execution of this in-memory engine NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3705,7 +3707,7 @@
       "tests": [
         "src/tests/proposalCompositionSecurity.test.ts"
       ],
-      "remaining": "Local PGlite only; proposals unapplied; multi-connection concurrency unverified.",
+      "remaining": "Proposals unapplied; local only. Composition on a real local PostgreSQL server (src/tests-db/composition.db.test.ts: dependency order, idempotent re-apply, RLS, pinned search_path, no anon/authenticated execution) and multi-connection concurrency on that composition (src/tests-db/concurrency.db.test.ts, catalogConcurrency.db.test.ts) are verified (Block 100 register correction). No hosted database exercised.",
       "releaseClassification": "COMPLETE AND VALIDATED",
       "functionality": "Named bounded function exists; full product integration is not implied",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3724,7 +3726,7 @@
       "tests": [
         "src/tests/staffAccountSecurityPage.test.tsx"
       ],
-      "remaining": "Development-only API; linked from Accountant navigation only. Local synthetic browser journeys: suite 01 (the page renders and durable session management stays closed for local sessions) and suite 08 (durable sessions are listed and revoked through the real server; the browser page renders, but its tools report that they are not enabled without browser provider configuration). Independent browser acceptance NOT VERIFIED.",
+      "remaining": "Development-only API. Linked from the workspace header of every staff role (not client roles); Block 100 browser journey in suite 01 follows that link for the manager, accountant, reviewer, bookkeeper and administrator. Local synthetic browser journeys: suite 01 (the page renders and durable session management stays closed for local sessions) and suite 08 (durable sessions are listed and revoked through the real server; the browser page renders, but its tools report that they are not enabled without browser provider configuration). Independent browser acceptance NOT VERIFIED.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -3741,9 +3743,10 @@
         "src/server/staffSessionManagement.ts"
       ],
       "tests": [
-        "src/tests/staffSessionManagementHttp.test.ts"
+        "src/tests/staffSessionManagementHttp.test.ts",
+        "src/tests-db/concurrency.db.test.ts"
       ],
-      "remaining": "Proposal 023 tested in PGlite through HTTP/service; unapplied, development-only router, no device metadata, staff-wide security page and multi-connection PostgreSQL unverified.",
+      "remaining": "Proposal 023 unapplied; development-only router; no device metadata. Racing own and administrator revocations on local PostgreSQL connections converge to every session revoked, and exhausted lock retries fail closed (Block 100 register correction); the staff-wide security page is the STAFF-ACCOUNT-SECURITY row. No hosted database exercised.",
       "releaseClassification": "HUMAN GOVERNANCE APPROVAL REQUIRED",
       "functionality": "Incomplete; see remaining boundary",
       "automatedEvidence": "Referenced tests included in local full-suite validation; not independent release acceptance",
@@ -4852,6 +4855,19 @@
         "## API and UI",
         "## Tests",
         "## Limitations"
+      ]
+    },
+    {
+      "file": "docs/development/block100-register-currency.md",
+      "sha256": "bca4022c4891da45c8929e8f47062a3dfd64993e6fa5ef25aa9f0c738c1b220a",
+      "bytes": 2674,
+      "headings": [
+        "# Block 100: register corrections where tests already existed, and an account-security browser journey",
+        "## Purpose",
+        "## Register corrections",
+        "## Browser journey",
+        "## Evidence",
+        "## What this does not show"
       ]
     },
     {
@@ -6335,8 +6351,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "2fc7370b7f1cdb476a312757b33f55f549eeaa185e0f380bd9ef45aaf95f2704",
-      "bytes": 38537,
+      "sha256": "f90b440acfde66e31dbc9b77b14ce65c8751013c71fbf109550376709774acf7",
+      "bytes": 39071,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8230,6 +8246,7 @@
     "src/tests-db/concurrency.db.test.ts": "a631b70043342fab5233cd3c645c9eef542757a72b8a435e4ce34eef7bcf2f54",
     "src/tests-db/durableJobQueue.db.test.ts": "ebd5614cc22bb97bed30162ea830c8e3080482fc0a86ec3a961bca95d6a8bcad",
     "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
+    "src/tests-db/ledgerWriteRetries.db.test.ts": "e741caf8e54e940bf279dadf70be7776d2d1756fad01cb5a966d156f91347383",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "fb6e36ef2bdd60a0764ef5dc9f16750b4e97f0572d3fb68581542afa3f5550b1",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
     "src/tests-e2e/14-phase12b-frontend.e2e.test.ts": "912f15683a8e761a21fbf8f6b125db127da44c967f57af1761f1ca36309a4bfd",
