@@ -6,6 +6,8 @@ import { clearStoredToken, setStoredToken } from '../services/api';
 import { JOB_STATUSES, jobActions, jobMessage, JobRequestError, jobService } from '../services/jobService';
 import { AdminJobQueuePanel } from '../components/admin/AdminJobQueuePanel';
 import { AdminPracticeSearchPanel } from '../components/admin/AdminPracticeSearchPanel';
+import { latestRequestGate } from '../hooks/latestRequestGate';
+import fs from 'node:fs';
 
 // Block 92 administrator panels for the durable job queue (Block 82) and practice search (Block 88). The server rules are
 // covered on PostgreSQL (durableJobQueue, practiceSearch); the panels in the browser by suite 11.
@@ -30,6 +32,23 @@ describe('administrator job queue and search panels', () => {
     expect(jobMessage(new JobRequestError(404, 'JOB_NOT_FOUND'))).toMatch(/not in your scope/);
     expect(jobMessage(new JobRequestError(403, 'SOMETHING'))).toBe('Your role is not authorized for this action.');
     expect(jobMessage(new Error('x'))).toBe('The job queue did not confirm this action. Refresh and try again.');
+  });
+
+  // Block 103: an older list response that arrives after a newer one is dropped, so a cancelled job is not shown again.
+  it('applies only the newest of overlapping list requests', async () => {
+    const gate = latestRequestGate();
+    const applied: string[] = [];
+    const settle = (ticket: number, label: string, after: number) => new Promise<void>(r => setTimeout(() => { if (gate.isLatest(ticket)) applied.push(label); r(); }, after));
+    const first = gate.begin(), second = gate.begin();
+    await Promise.all([settle(first, 'initial list (job open)', 20), settle(second, 'list after cancel', 1)]);
+    expect(applied).toEqual(['list after cancel']);
+    expect(gate.isLatest(second)).toBe(true);
+    expect(gate.isLatest(gate.begin()) && !gate.isLatest(second)).toBe(true);
+  });
+  it('the job queue panel sets its list only through the gate', () => {
+    const src = fs.readFileSync('src/components/admin/AdminJobQueuePanel.tsx', 'utf8');
+    expect(src).toMatch(/\.then\(r => \{ if \(gate\.isLatest\(request\)\) setState\(\{ status: 'ready'/);
+    expect(src).toMatch(/\.catch\(e => \{ if \(gate\.isLatest\(request\)\) setState\(\{ status:/);
   });
 
   it('render loading or an empty search first, never sample records', () => {

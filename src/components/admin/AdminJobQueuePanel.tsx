@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { latestRequestGate } from '../../hooks/latestRequestGate';
 import { JOB_STATUSES, jobActions, jobMessage, JobRequestError, jobService, type DurableJob, type JobStatus } from '../../services/jobService';
 
 const PAGE = 25;
@@ -17,12 +18,16 @@ export function AdminJobQueuePanel() {
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Only the newest list request may set the list: an older response that arrives later (for example the first load,
+  // after the refresh that follows a cancel) would otherwise show a job's former state (Block 103).
+  const gate = useRef(latestRequestGate()).current;
   const load = useCallback(() => {
+    const request = gate.begin();
     setState(s => ({ ...s, status: 'loading' }));
     jobService.list({ ...(status ? { status } : {}), limit: PAGE, offset })
-      .then(r => setState({ status: 'ready', total: r.total, jobs: r.jobs }))
-      .catch(e => setState({ status: e instanceof JobRequestError && e.status === 503 ? 'off' : 'error' }));
-  }, [status, offset]);
+      .then(r => { if (gate.isLatest(request)) setState({ status: 'ready', total: r.total, jobs: r.jobs }); })
+      .catch(e => { if (gate.isLatest(request)) setState({ status: e instanceof JobRequestError && e.status === 503 ? 'off' : 'error' }); });
+  }, [status, offset, gate]);
   useEffect(() => { load(); }, [load]);
 
   const act = async (job: DurableJob, action: 'retry' | 'cancel') => {

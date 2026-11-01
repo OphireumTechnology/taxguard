@@ -209,9 +209,12 @@ Audits completed in this cycle (documents):
 - **Accountant queue without in-memory reads; job-queue test race (Block 103).** The accountant queue no longer
   fetches each row's stage from the in-memory case authority (one refused call per case in production); it shows the
   stage the durable row records. The session-isolation test keeps its token and logout cases and now checks that no
-  in-memory read happens and that only the session tenant's rows are kept (two mutations caught). Suite 11 waited for
-  the cancelled job's button with a single count, which raced the list refresh once in Block 102's matrix; it now waits
-  for the button to be removed.
+  in-memory read happens and that only the session tenant's rows are kept (two mutations caught). Suite 11's job-queue
+  journey failed in Block 102's and Block 103's matrices: after "Job cancelled." the cancelled job kept its Cancel
+  button. **Defect fixed:** the administrator job queue applied every list response, so an older one arriving after
+  the post-cancel refresh put the job's former state back. Only the newest request now sets the list
+  (`latestRequestGate.ts`; two mutations caught), and the journey waits for the button to be removed instead of
+  counting it once.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;
