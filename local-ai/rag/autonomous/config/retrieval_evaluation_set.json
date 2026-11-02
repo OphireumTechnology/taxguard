@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "note": "Test questions for measuring retrieval. Written by the development assistant from the documents' own text, not by a tax professional. Each evidence phrase is checked against the document at run time. A pass means the right passage was found, not that the tax content is correct.",
+  "cases": [
+    {"id": "Q01", "domain": "TAX_PREPARATION", "question": "What is the social security wage base limit for employers?", "source": "IRS_I941", "evidence": "social security wage base limit is $184,500"},
+    {"id": "Q02", "domain": "TAX_PREPARATION", "question": "What is the backup withholding rate on reportable payments?", "source": "IRS_IW9", "evidence": "backup withholding rate is 24%"},
+    {"id": "Q03", "domain": "TAX_PREPARATION", "question": "Which form do I use to ask for a monthly payment plan when I cannot pay my tax in full?", "source": "IRS_I9465", "evidence": "request a monthly payment plan"},
+    {"id": "Q04", "domain": "TAX_PREPARATION", "question": "What should an employee do on the withholding certificate if they hold more than one job?", "source": "IRS_FW4", "evidence": "Step 2: Multiple Jobs or Spouse Works"},
+    {"id": "Q05", "domain": "FEDERAL_TAX", "question": "Where on the 2025 schedules is the deduction for qualified tips claimed?", "source": "IRS_F1040S1A", "evidence": "No Tax on Tips"},
+    {"id": "Q06", "domain": "FEDERAL_TAX", "question": "Which schedule reports alternative minimum tax, and what form must be attached?", "source": "IRS_F1040S2", "evidence": "Alternative minimum tax. Attach Form 6251"},
+    {"id": "Q07", "domain": "FEDERAL_TAX", "question": "Where is the foreign tax credit reported, and when is Form 1116 attached?", "source": "IRS_F1040S3", "evidence": "Foreign tax credit. Attach Form 1116"},
+    {"id": "Q08", "domain": "FEDERAL_TAX", "question": "Which form appoints a representative to act before the IRS under a power of attorney?", "source": "IRS_F2848", "evidence": "Power of Attorney and Declaration of Representative"},
+    {"id": "Q09", "domain": "FEDERAL_TAX", "question": "How do individuals figure and pay estimated tax?", "source": "IRS_F1040ES", "evidence": "figure and pay your estimated"},
+    {"id": "Q10", "domain": "FEDERAL_TAX", "question": "How did the standard deduction amount change for 2025?", "source": "IRS_I1040GI", "evidence": "Standard deduction amount"},
+    {"id": "Q11", "domain": "FEDERAL_TAX", "question": "What is the election made on Form 4547 for a Trump Account?", "source": "IRS_I4547", "evidence": "Trump Account"},
+    {"id": "Q12", "domain": "FEDERAL_TAX", "question": "How does a business report a change of its responsible party?", "source": "IRS_ISS4", "evidence": "report changes to your responsible party"},
+    {"id": "Q13", "domain": "FEDERAL_TAX", "question": "Where can I find the tax table for preparing a 2025 return?", "source": "IRS_P1040", "evidence": "For use in preparing 2025 Returns"},
+    {"id": "Q14", "domain": "FEDERAL_TAX", "question": "When is an ITIN not needed for estimated tax payments or an extension?", "source": "IRS_IW7", "evidence": "ITIN not needed for Forms 4868"},
+    {"id": "Q15", "domain": "EFILE_COMPLIANCE", "question": "Can a taxpayer direct a refund by direct deposit onto a credit card account?", "source": "IRS_P1345", "evidence": "may not designate refunds for Direct Deposit to credit card accounts"},
+    {"id": "Q16", "domain": "EFILE_COMPLIANCE", "question": "When must the taxpayer sign the e-file signature authorization form?", "source": "IRS_P1345", "evidence": "must sign and date the Form 8878 or Form 8879"},
+    {"id": "Q17", "domain": "EFILE_COMPLIANCE", "question": "What are the assurance testing guidelines for individual returns in Modernized e-File?", "source": "IRS_P1436", "evidence": "Assurance Testing System"},
+    {"id": "Q18", "domain": "EFILE_COMPLIANCE", "question": "What are the assurance testing guidelines for business submissions in Modernized e-File?", "source": "IRS_P5078", "evidence": "Business Submissions"},
+    {"id": "Q19", "domain": "EFILE_COMPLIANCE", "question": "What are the responsibilities of an Electronic Return Originator?", "source": "IRS_P3112", "evidence": "Electronic Return Originator"},
+    {"id": "Q20", "domain": "EFILE_COMPLIANCE", "question": "How are information returns filed electronically through the FIRE system?", "source": "IRS_P1220", "evidence": "Filing Information Returns Electronically"},
+    {"id": "Q21", "domain": "EFILE_COMPLIANCE", "question": "What is required to participate in the Combined Federal/State Filing Program?", "source": "IRS_P1220", "evidence": "Combined Federal/State Filing Program"},
+    {"id": "Q22", "domain": "EFILE_COMPLIANCE", "question": "How are MeF XML schema files structured for software developers?", "source": "IRS_P4164", "evidence": "XML Schema File Structures"},
+    {"id": "Q23", "domain": "EFILE_COMPLIANCE", "question": "What is the transmission perfection period for rejected returns?", "source": "IRS_P4163", "evidence": "Transmission Perfection Period"},
+    {"id": "Q24", "domain": "EFILE_COMPLIANCE", "question": "Which A2A web services does Modernized e-File provide?", "source": "IRS_P5830", "evidence": "A2A Web Services"},
+    {"id": "Q25", "domain": "EFILE_COMPLIANCE", "question": "How should a Modernized e-File submission be composed?", "source": "IRS_P5446", "evidence": "Submission Composition Guide"},
+    {"id": "Q26", "domain": "DATA_SECURITY", "question": "What authentication should tax preparers require for anyone accessing customer information?", "source": "IRS_P4557", "evidence": "Implement multi-factor authentication"},
+    {"id": "Q27", "domain": "DATA_SECURITY", "question": "Which federal rule must tax professionals comply with to protect customer data?", "source": "IRS_P4557", "evidence": "FTC Safeguards Rule"},
+    {"id": "Q28", "domain": "DATA_SECURITY", "question": "How can a tax preparer spot data theft at their business?", "source": "IRS_P4557", "evidence": "Spot Data Theft"},
+    {"id": "Q29", "domain": "AI_GOVERNANCE", "question": "What makes an AI system trustworthy according to the AI Risk Management Framework?", "source": "NIST_NIST_AI_100_1", "evidence": "Trustworthy AI systems"},
+    {"id": "Q30", "domain": "AI_GOVERNANCE", "question": "What are the functions of the AI RMF Core?", "source": "NIST_NIST_AI_100_1", "evidence": "AI RMF Core"}
+  ],
+  "out_of_scope": [
+    {"id": "N01", "question": "How do I bake sourdough bread at home?"},
+    {"id": "N02", "question": "What franchise tax does California charge an LLC?"},
+    {"id": "N03", "question": "How are cryptocurrency exchanges licensed in Singapore?"},
+    {"id": "N04", "question": "How do I enroll in a Medicare Part D drug plan?"},
+    {"id": "N05", "question": "What is the capital of Australia?"}
+  ]
+}

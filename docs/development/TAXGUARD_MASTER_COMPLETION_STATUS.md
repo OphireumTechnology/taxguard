@@ -237,6 +237,8 @@ Audits completed in this cycle (documents):
   and it withholds upstream names, internal endpoints, paths and credentials from ordinary users rather than rewriting them,
   so a true sentence cannot become a false one. The local adapter and the legacy proposal route use it. Remaining references
   are listed in `block106-white-label-references.md`.
+- **OPHIR source in Git (Block 107).** The reviewed Steps 116 to 120 source, tests and configuration templates are tracked through an explicit allowlist; documents,
+  databases, models, reports, logs and identity files stay out, and a test asks Git itself. Older OPHIR scripts remain untracked until reviewed. Activates nothing. See `ophir-source-tracking.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

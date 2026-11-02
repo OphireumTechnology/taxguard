@@ -95,5 +95,34 @@ qa/synthetic-shell/artifacts/
 qa/migration-review/
 qa/acceptance-results/
 
-# Local AI runtime, model weights, logs and data stay on this machine.
-/local-ai/
+# Local AI runtime, model weights, documents, databases, reports and logs stay on this machine.
+# Only the reviewed OPHIR source below is tracked. Add a file here only after reviewing it.
+/local-ai/*
+!/local-ai/rag/
+/local-ai/rag/*
+!/local-ai/rag/autonomous/
+/local-ai/rag/autonomous/*
+!/local-ai/rag/autonomous/scripts/
+!/local-ai/rag/autonomous/tests/
+!/local-ai/rag/autonomous/config/
+/local-ai/rag/autonomous/scripts/*
+/local-ai/rag/autonomous/tests/*
+/local-ai/rag/autonomous/config/*
+!/local-ai/rag/autonomous/scripts/verify_research_candidates.py
+!/local-ai/rag/autonomous/scripts/acquire_verified_documents.py
+!/local-ai/rag/autonomous/scripts/process_knowledge.py
+!/local-ai/rag/autonomous/scripts/evaluate_knowledge.py
+!/local-ai/rag/autonomous/scripts/research_discovery.py
+!/local-ai/rag/autonomous/tests/test_verify_research_candidates.py
+!/local-ai/rag/autonomous/tests/test_acquire_verified_documents.py
+!/local-ai/rag/autonomous/tests/test_process_knowledge.py
+!/local-ai/rag/autonomous/tests/test_evaluate_knowledge.py
+!/local-ai/rag/autonomous/tests/mutate_verify_research_candidates.py
+!/local-ai/rag/autonomous/tests/mutate_acquire_verified_documents.py
+!/local-ai/rag/autonomous/tests/mutate_process_knowledge.py
+!/local-ai/rag/autonomous/tests/mutate_evaluate_knowledge.py
+!/local-ai/rag/autonomous/tests/live_interrupt_resume.py
+!/local-ai/rag/autonomous/config/candidate_decisions.json
+!/local-ai/rag/autonomous/config/retrieval_evaluation_set.json
+!/local-ai/rag/autonomous/config/authoritative_research_curriculum.json
+!/local-ai/rag/autonomous/config/policy.example.json

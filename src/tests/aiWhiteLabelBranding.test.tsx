@@ -85,9 +85,6 @@ describe('true provenance', () => {
     const notices = fs.readFileSync('docs/THIRD_PARTY_AI_NOTICES.md', 'utf8');
     for (const text of ['did not create or train', 'does not exclusively own', 'Qwen team, Alibaba Cloud', 'Apache License 2.0', 'Ollama Inc.', 'MIT License']) expect(notices).toContain(text);
   });
-  it('local AI files stay out of Git', () => {
-    expect(fs.readFileSync('.gitignore', 'utf8')).toMatch(/^\/local-ai\/$/m);
-  });
   it('the administrator view shows provenance, and says plainly when the runtime is down', () => {
     const report: LocalModelReport = { branding: AI_BRAND, provenance: LOCAL_MODEL_PROVENANCE as any, runtime: { status: 'UNAVAILABLE', endpoint: 'http://127.0.0.1:11434' } };
     const html = renderToStaticMarkup(<LocalModelReportView report={report} />);
