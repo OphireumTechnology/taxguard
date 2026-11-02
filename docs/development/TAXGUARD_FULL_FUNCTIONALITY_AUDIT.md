@@ -35,6 +35,15 @@ Statuses use the directive's terms:
 - a blocked item names its unblocking category: C database approval, D professional policy, E external provider,
   F tax-content validation.
 
+### Correction (Block 104)
+
+The first version of this audit took its browser evidence from the default suites only and did not count the seven
+provider suites in `src/tests-e2e/provider`. It wrongly listed Stage 01 as having no completing browser journey;
+provider suite 14 runs it end to end with synthetic consent wording. The rows above and below now count those suites.
+Rows not changed by this correction were not otherwise re-verified.
+
+This audit traces screens to routes. It does not yet cover every button, form and filter on each screen.
+
 ## Headline findings
 
 1. **What production serves today.** Of the 222 production `/api` routes:
@@ -91,13 +100,13 @@ Abbreviations: **OP** operational, **PART** partial, **BLK** blocked, **PH** pla
 | Pricing | public pricing | OP (informational) | OP | none | none | `CONTROL-FRONTEND-HONEST-PUBLIC-FORMS` | No payment by design | P3 | none |
 | Tax forms library | `taxForms/TaxFormsLibrary.tsx` | OP | OP | `/api/tax-forms` · static catalog | Practice staff | route inventory (STATELESS) | none | P3 | none |
 | Careers | `public/CareersPage.tsx` | PART (in-memory) | PH | development in-memory careers service | Public apply; recruiter review | none durable | No durable postings or applications | P3 | Owner: is recruiting in scope? |
-| Staff and client sign-in | `auth/AuthPages.tsx`, Supabase bridge | OP (local password and authenticator; provider emulation) | BLK (E) | `/api/auth/supabase-session` · `taxguard_sessions` | AAL2 for staff | suites 01, 08 | Real non-production identity project | P1 | Owner: provision a non-production Supabase project |
+| Staff and client sign-in | `auth/AuthPages.tsx`, Supabase bridge | OP (local password and authenticator; provider emulation) | BLK (E) | `/api/auth/supabase-session` · `taxguard_sessions` | AAL2 for staff | suites 01, 08; provider suites 11 (client MFA), 15 (session restore) | Real non-production identity project | P1 | Owner: provision a non-production Supabase project |
 
 ### Client portal
 
 | Feature | Location | Local | Production | Backend · database | Authorization | Evidence | Missing work | Priority | Next action |
 |---|---|---|---|---|---|---|---|---|---|
-| Stage 01 onboarding | `onboarding/DurableStageOnePanel.tsx` | PART (no completing browser journey) | BLK (C) | cutover `stage-one` · `taxguard_onb_*` | Own client | suite 18 (reads and isolation only); `clientOnboarding.db.test.ts`, `caseOnboardingGate.db.test.ts` | Browser journey of a client completing Stage 01; identity verification policy (D) | P1 | Category A: add the Stage 01 browser journey; approve stage-one proposals |
+| Stage 01 onboarding | `onboarding/DurableStageOnePanel.tsx` | OP | BLK (C) | cutover `stage-one` · `taxguard_onb_*` | Own client | provider suite 14 (form, synthetic consent, submit, change request, verified document, approval, Stage 02 opens); suite 18; `clientOnboarding.db.test.ts`, `caseOnboardingGate.db.test.ts`; `stageOneLiveClientBoundary.test.ts` | Approved consent wording and identity verification policy (D): only synthetic wording has been exercised | P1 | Owner: approve consent wording; approve stage-one proposals |
 | Stage 02 collection and questionnaire | `collection/DurableClientCollectionWorkspace.tsx` | OP | OP (DURABLE routes) | `/api/stage-two-three` · durable collection | Own client, engagement-scoped | suite 13; route inventory | Real storage and scanner for uploads | P1 | Provider: scanner (E02) |
 | Stages 03–08 status | `ClientCaseStageView.tsx` | OP (read-only, C3) | BLK (C) | cutover `client-portal` · `taxguard_portal_case_stages` | Own client | suite 15 (13A) | none for reads | P2 | Approve client-portal proposals |
 | Stages 09–18 | `TaxStageStatusView.tsx` | BLK (D/E/F) | BLK | none (truthful status only) | n/a | `clientStageActionTruthfulness.test.tsx` | Preparation, signing, filing, acknowledgements | P0 for the product, blocked | See the dependency register |
@@ -119,7 +128,7 @@ Abbreviations: **OP** operational, **PART** partial, **BLK** blocked, **PH** pla
 | Client directory, engagements, team, tasks | `PracticeClientsPanel.tsx` | OP | BLK (C) | cutover `practice` | Tenant, assignment and year scope | suites 02, 04 | Staff client creation and representatives (D) | P1 | Approve practice proposals |
 | My work, workload, deadline escalation, notifications, search | `PracticeOperationsPanel.tsx`, `TeamWorkloadPanel.tsx`, `DeadlineEscalationsPanel.tsx` | OP | BLK (C) | cutover `practice` | Scoped | suites 06, 16 | Escalation thresholds are placeholders pending policy (D) | P2 | Owner thresholds |
 | Accountant dashboard and case detail | `AccountantDashboard.tsx` | OP (Block 102) | PART: queue answers; case detail BLK (C) | `/api/accountant/dashboard` (DURABLE, now with the case id); case detail from cutover `cases` and `tax-engine` | AAL2 staff; the record must match the selected case | `accountantCaseDetail.test.ts`; suite 07 (Block 102 journey); `staffMfaAccountantProductionApi.test.ts` | General case workpapers have no durable record | P3 | none (Block 103 removed the queue's in-memory stage enrichment) |
-| Case workflow (18 stages, transitions) | `CaseWorkflowPanel.tsx` | OP (stages 01–08) | BLK (C, D) | cutover `cases` · `taxguard_case_*` | Assignment and maker-checker | suite 03 | Stages 09–18 attestable-stage policy | P0, blocked | Owner policy H-series |
+| Case workflow (18 stages, transitions) | `CaseWorkflowPanel.tsx` | OP (stages 01–08) | BLK (C, D) | cutover `cases` · `taxguard_case_*` | Assignment and maker-checker | suite 03; provider suite 14 (stages 01 to 08, Stage 09 stays blocked) | Stages 09–18 attestable-stage policy | P0, blocked | Owner policy H-series |
 | Document review | `StaffDocumentReviewPanel.tsx` | OP | BLK (C) | cutover `vault` | Independent reviewer | suite 02 | OCR provider (E) | P1 | Approve vault proposals |
 | Tax rules, research, form mapping, draft return, verification, risk, QC, final authorization, comparison | `TaxRulesPanel.tsx`, `Case*Panel.tsx`, `QualityControlQueuePanel.tsx`, `FinalAuthorizationQueuePanel.tsx` | PART (structure only) | BLK (C, D, F) | cutover `tax-engine` (25 proposals) | Independent approval; eligibility and designation under owner policies; fails closed | suite 07; tax DB suites | No real rule content; QC and final-authorization policy | P0, blocked | Tax-content review (F); owner policy (D) |
 | Ledger, reconciliation, book-to-tax | `BookkeeperLedgerWorkspace.tsx`, `BookToTaxPanel.tsx` | OP | BLK (C) | `/api/bookkeeping` (DURABLE_GATED), cutover `book-to-tax` | Forced independent review | suite 03; ledger DB suites | Firm categories (H07); accounting sync (E) | P1 | Approve proposals 024, 029 and 030 |
@@ -132,13 +141,13 @@ Abbreviations: **OP** operational, **PART** partial, **BLK** blocked, **PH** pla
 
 | Feature | Location | Local | Production | Backend · database | Authorization | Evidence | Missing work | Priority | Next action |
 |---|---|---|---|---|---|---|---|---|---|
-| Staff directory, invitations, membership | `StaffAccessManagementPanel.tsx` | OP (development router) | NI | `/api/staff-access` (development only) | Administrator, AAL2, recent sign-in | suite 08 | **No production route**; HC7 policy | P1 | Decision package: production staff identity (C, D) |
+| Staff directory, invitations, membership | `StaffAccessManagementPanel.tsx` | OP (development router) | NI | `/api/staff-access` (development only) | Administrator, AAL2, recent sign-in | suite 08; provider suites 10, 12 | **No production route**; HC7 policy | P1 | Decision package: production staff identity (C, D) |
 | Staff sessions and account security | `StaffSessionsPanel.tsx`, `StaffAccountSecurityPage.tsx` | OP | NI | `/api/staff-access` | Own sessions; administrator step-up | suites 01, 08; `concurrency.db.test.ts` | No production route | P1 | Same decision package |
-| MFA recovery and re-enrolment | `StaffMfaRecoveryPanel.tsx` | OP (provider emulation) | NI | `/api/staff-access` | Independent approval | suite 08 | Real non-production provider (E); no production route | P1 | Same decision package |
+| MFA recovery and re-enrolment | `StaffMfaRecoveryPanel.tsx` | OP (provider emulation) | NI | `/api/staff-access` | Independent approval | suite 08; provider suite 09 | Real non-production provider (E); no production route | P1 | Same decision package |
 | Audit center and security view | `AuditCenterPanel.tsx` | OP | BLK (C) | cutover `audit-center` | Administrator only; redacted | suites 11, 16 | Append-only trigger proposal | P2 | Approve proposals 041 and 046 |
 | Durable job queue | `AdminJobQueuePanel.tsx` | OP | BLK (C) | cutover `jobs` | Operational administrator | suite 11 | Operations-role access policy (D) | P2 | Approve proposal 20261019240000 |
 | Route cutover status | `/api/route-cutover` | OP | OP | `productionApp.ts` | Operational administrator | `routeCutover.test.ts` | none | P3 | none |
-| AI control center (commissioning readiness, decisions, emergency stop) | `AiControlCenterPanel.tsx` and related | OP (read-only) | OP (DURABLE reads; nothing commissioned) | `/api/ai-governance` | Administrator | route inventory; AI governance tests | All 61 agents DRAFT; no provider | P0 for AI, blocked | Owner: AI commissioning (not authorized) |
+| AI control center (commissioning readiness, decisions, emergency stop) | `AiControlCenterPanel.tsx` and related | OP (read-only) | OP (DURABLE reads; nothing commissioned) | `/api/ai-governance` | Administrator | route inventory; AI governance tests; provider suite 13 (uncommissioned agents refused) | All 61 agents DRAFT; no provider | P0 for AI, blocked | Owner: AI commissioning (not authorized) |
 | Super administrator console | `SuperAdminConsole.tsx` | PART (local) | NI by design | local console routes | Local super administrator | none in production | Not released by design | P3 | none |
 | Health and diagnostics | `/api/health*` | OP | OP | diagnostics | Administrator for details | route inventory | Log shipping and alert routing (E) | P2 | Provider |
 
@@ -181,10 +190,12 @@ Abbreviations: **OP** operational, **PART** partial, **BLK** blocked, **PH** pla
    versions by case id, and the workpapers tab says plainly that general case workpapers have no durable record.
    Block 103 removed the queue's per-row stage enrichment from the in-memory case authority; the durable rows carry
    the stage.
-2. **Stage 01 browser journey.** A client completing Stage 01 through the durable onboarding panel has database and
-   HTTP evidence but no browser journey.
+2. **Stage 01 live client boundary: done in Block 104.** A prospective client, or a client with no e-mail on record,
+   was not treated as live, so the wizard offered the demonstration environment selector and a browser-held dossier. Every
+   client role is now live. An uncalled function holding a fabricated signer, IP address and consent version was removed.
 3. **Legacy `api.ts` members and AppContext actions with no caller** (34 call sites). The repository's unreachable-code
    rule asks for an owner deletion decision. The evidence is in the contract file, categories UNUSED_MEMBER and
    UNREACHED_CONTEXT_ACTION.
 
-Item 2 is the next development priority.
+The next development priority is the control-level pass the route trace did not cover: the reachability audit's leads
+for buttons without handlers, simulated values and other evidence patterns (`scripts/frontend/reachability-audit.mjs`).

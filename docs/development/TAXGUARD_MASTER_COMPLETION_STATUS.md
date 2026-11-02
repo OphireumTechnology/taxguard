@@ -218,6 +218,13 @@ Audits completed in this cycle (documents):
   The PostgreSQL security-event burst test failed once in this matrix (39 of 40 recorded): its 40 simultaneous
   events straddled a clock-minute boundary, so they fell into two one-minute windows (19 + 20). The limit is unchanged;
   the test now starts its burst at least 15 seconds before the next minute.
+- **Stage 01 live client boundary and audit correction (Block 104).** **Defect fixed:** the Stage 01 wizard treated only
+  role `client` with an e-mail as live, so a prospective client, or a client with no e-mail on record, was offered the
+  demonstration environment selector and a browser-held dossier instead of the durable panel. Every client role is now
+  live and fails closed to "not available" if the server refuses. An uncalled function holding a fabricated signer, IP
+  address and consent version was removed (`stageOneLiveClientBoundary.test.ts`; two mutations caught). The functionality
+  audit is corrected: it had not counted the provider browser suites, and Stage 01 already has a complete browser journey
+  in provider suite 14, so no duplicate was written.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

@@ -64,6 +64,15 @@ interface StageOneIdentityWizardProps {
   onNavigateToDashboard?: () => void;
 }
 
+/**
+ * Every signed-in client role is LIVE, including a prospective client and a client with no e-mail on record: none of them
+ * may reach the demonstration environment selector or a browser-held dossier (Block 104). Only the artest2026
+ * demonstration account is not live.
+ */
+export function isLiveClientUser(user: { role?: string; email?: string | null } | null | undefined): boolean {
+  return (user?.role === 'client' || user?.role === 'prospective_client') && (user.email ?? '').toLowerCase() !== 'artest2026';
+}
+
 export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
   initialClientId,
   taxYear = 2025,
@@ -79,11 +88,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
    * A normal authenticated client is LIVE.
    * artest2026 remains the demonstration account.
    */
-  const isLiveClient =
-    currentUser?.role === 'client' &&
-    Boolean(currentUser?.id) &&
-    Boolean(currentUser?.email) &&
-    currentUser.email.toLowerCase() !== 'artest2026';
+  const isLiveClient = isLiveClientUser(currentUser);
 
   const authenticatedClientId = currentUser?.clientId;
 
@@ -348,73 +353,6 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
     } finally {
       setIsSubmittingGate(false);
     }
-  };
-
-  // Test Happy Path: Autofill compliant data
-  const handleAutofillCompliant = () => {
-    if (isLiveClient) return;
-    if (!dossier) return;
-    const updated: StageOneDossier = {
-      ...dossier,
-      legalName: 'Palmetto Peak Ventures LLC',
-      dbaName: 'Palmetto Peak Ventures',
-      taxpayerType: 'entity',
-      entityClassification: 'llc',
-      tinType: 'ein',
-      maskedTIN: 'XX-XXX8842',
-      tinLast4: '8842',
-      residentialOrPrincipalAddress: {
-        street: '1201 Main Street, Suite 1500',
-        city: 'Columbia',
-        state: 'SC',
-        zip: '29201',
-        country: 'United States'
-      },
-      mailingAddress: {
-        street: '1201 Main Street, Suite 1500',
-        city: 'Columbia',
-        state: 'SC',
-        zip: '29201',
-        country: 'United States'
-      },
-      mailingSameAsResidential: true,
-      authorizedRep: {
-        fullName: 'Eleanor Vance',
-        title: 'Managing Member & Majority Owner',
-        email: 'eleanor.vance@palmetto-demo.com',
-        phone: '(803) 777-4411',
-        relationshipOrCapacity: 'Authorized Member-Manager',
-        hasPowerOfAttorney: true
-      },
-      supportingDocs: [
-        {
-          id: 'doc_auto_id_01',
-          name: 'SC_Articles_of_Organization_PalmettoPeak.pdf',
-          category: 'articles_of_org',
-          sha256Hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-          uploadedAt: new Date().toISOString(),
-          fileSize: '1.8 MB',
-          verified: true
-        }
-      ],
-      duplicateCheck: {
-        timestamp: new Date().toISOString(),
-        status: 'CLEARED',
-        matches: [],
-        routedToReview: false
-      },
-      engagementConsent: {
-        irc7216ConsentAccepted: true,
-        termsAndScopeAccepted: true,
-        pricingScheduleAcknowledged: true,
-        electronicSignatureConsentAccepted: true,
-        signerFullName: 'Eleanor Vance',
-        signedAt: new Date().toISOString(),
-        ipAddress: '192.168.1.42 (Encrypted Portal)',
-        consentVersion: '2025.1-IRC7216'
-      }
-    };
-    updateDossier(updated);
   };
 
   if (onboardingAvailability === 'durable') {
