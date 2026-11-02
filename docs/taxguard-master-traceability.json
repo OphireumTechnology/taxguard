@@ -6373,8 +6373,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "e6c38bfef2da7b68cf6601138481a9fd6b8360b3b6d202348f3aafbd5d0e805d",
-      "bytes": 43108,
+      "sha256": "ae2ffe5e33a74cc47511f0d3452ba703e6adc6894164607fbe6bac0a056f4b4c",
+      "bytes": 43906,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8036,6 +8036,14 @@
       ]
     },
     {
+      "file": "docs/THIRD_PARTY_AI_NOTICES.md",
+      "sha256": "35a2665cf288017dc3a37bf133c0372b59c0c0d839f5bca72e6b45b1f0521281",
+      "bytes": 1145,
+      "headings": [
+        "# Third-party AI notices"
+      ]
+    },
+    {
       "file": "supabase/migrations/20260928000000_taxguard_core_schema.sql",
       "sha256": "168f9766b3afa275bd05a30a64318c5b18c4f863083a247b2f121003a33329eb",
       "bytes": 24018,
@@ -8151,7 +8159,7 @@
     "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "26bda55eed8422400e43d9c358414b639346e46828912b74b69610904bc49f86",
+    "package.json": "57b5a39f6f183a41489dd417916ecb5403aa9332b813fad2983ab416284ffa23",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "b0e5408e01d6927c1a0252ff3d34ac316497ea45487d8c65f80997f04e1a8a98",
     "qa/playwright.synthetic.config.mjs": "c3ccd5411de6800c47a306a511481dedf4b1b86cc706a942e1f0e018d52b199c",
@@ -8191,7 +8199,7 @@
     "src/components/portal/dashboard/ClientNotificationsPanel.tsx": "873fdc578ab2eea2b5df6e2cf7c066ce9d9fab983e2c214d1eb0c9be1e82d4df",
     "src/components/public/PlanRequestDialog.tsx": "0f6b864b9fdcba35356ad8f3f2c4810bc534b8858b2807842c967f7b64717d7a",
     "src/components/workflow/LiveClientWorkflowRouter.tsx": "368f3fa46a626b1743326e1c8764e8210b7b82e306bb024ab83f53404e86bb31",
-    "src/components/workspace/AccountantDashboard.tsx": "fb038e848d32b560cc4e258ebabdaeaaf5190238c099efadd32f1c603f02dd0f",
+    "src/components/workspace/AccountantDashboard.tsx": "4a35a3581b7142210d04188590c19c42bf3715b444e44964bac8a8d282b23b1b",
     "src/components/workspace/AccountantWorkspace.tsx": "b79b8cd398e25a03e49630f67ab38e05662f8370c3a1e5f0cf3e2f0d686fefee",
     "src/components/workspace/BookkeeperDashboard.tsx": "de799cd694b9c01ce53458d176ebecd110b894b0abf83e3427dfd99166dac90c",
     "src/components/workspace/ClientServiceDashboard.tsx": "a3b7ce70f97ba0af1b012ba9fc253cf23d4e32115d79e50e5387bd371570e88d",
@@ -8204,9 +8212,9 @@
     "src/server/ai/capabilities/GovernedCapabilityExecutor.ts": "7d9ed0170cd95372555e2398e44a41427fe5c1292f2256c64353afa1aa1d23c1",
     "src/server/ai/capabilities/ScopedReadRepository.ts": "c4c738163414daf292c20d13b395ea0e43c6ea2a822bea18c677faefe7f80f40",
     "src/server/ai/documents/DocumentDuplicateAdvisory.ts": "70a562e16382f8c3d2cff8340b2d67cfb0af47b85ff827c42c117f2f590b4919",
-    "src/server/ai/gateway/GovernedAIGateway.ts": "7b4d0f1dcdee39b54f8ca8f91d058a99812b7edf71ef2c9d87c133483aeb0a81",
+    "src/server/ai/gateway/GovernedAIGateway.ts": "3103821196b5eeee41e3d2d427cca1edcc38e3e7388bfbab99d1e9ec3e00fc1c",
     "src/server/ai/gateway/structuredOutput.ts": "843474d91d33fd46c35f5611db6238857609e79a4460345c3bd052a71d5e3efa",
-    "src/server/ai/governance/ControlCenterReadService.ts": "ac2bed110d42845483851f0a256a2bd71db3f848a63daeae9bcecaca4d47372e",
+    "src/server/ai/governance/ControlCenterReadService.ts": "9a965ef2c0f39100d0455e74a8ad4dc05ecbe21ff7ef4515800a8684cb6ff0b5",
     "src/server/ai/governance/GovernanceControlPlane.ts": "54a1b29d3cefc5010d5d65a80aa1e7ac9e8a959f2c9d5c79deec0b849a10114a",
     "src/server/ai/ledger/ExecutionLedgerService.ts": "877c96b3c13a85f487aa0e065a3920e54df3b6774e3d42435c36c4690def3305",
     "src/server/ai/orchestration/A00Orchestrator.ts": "9d63b273e979e7efbd9d4ed2a517599eeb8d0513ffbbe49a2b8b3f59cb85cf7f",
@@ -8258,7 +8266,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "093beac40faafffb61c1eb85a6ef3f0d1cd18f4f664f7c5cd4d121f9d3a22e49",
+    "src/services/api.ts": "8004a0c24e39f776ed6082547c4d2714f79c59062ab5f9d6b865d83f48f2ce1c",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",

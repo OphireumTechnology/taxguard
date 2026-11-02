@@ -1,3 +1,6 @@
+import { AI_BRAND } from '../../../config/aiBranding';
+import { readLocalRuntimeStatus } from '../gateway/LocalOllamaProviderAdapter';
+import { LOCAL_MODEL_PROVENANCE } from '../localModelProvenance';
 import { findCanonicalAgent } from '../../../ai/registry';
 import type { SessionAuthority, VerifiedIdentity } from './contracts';
 import { GovernanceError } from './contracts';
@@ -115,6 +118,15 @@ export class ControlCenterReadService {
             stop_reason: global ? 'GLOBAL' : stoppedAgents.has(a.agent_id) ? 'AGENT' : modelStopped ? 'MODEL' : null };
         }) };
     });
+  }
+
+  /**
+   * Local model diagnostics and true provenance, for governance roles only: the role is re-verified before the runtime is
+   * read. Read-only; the runtime is on this machine and no prompt or client data is involved.
+   */
+  async localModel(token: string) {
+    await this.read(token, async () => true);
+    return { branding: AI_BRAND, provenance: LOCAL_MODEL_PROVENANCE, runtime: await readLocalRuntimeStatus() };
   }
 
   /**

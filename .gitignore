@@ -94,3 +94,6 @@ _hardening_backup_*/
 qa/synthetic-shell/artifacts/
 qa/migration-review/
 qa/acceptance-results/
+
+# Local AI runtime, model weights, logs and data stay on this machine.
+/local-ai/

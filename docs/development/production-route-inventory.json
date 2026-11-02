@@ -734,6 +734,7 @@
         "GET /api/ai-governance/control-center/commissioning",
         "GET /api/ai-governance/control-center/decisions",
         "GET /api/ai-governance/control-center/evaluations",
+        "GET /api/ai-governance/control-center/local-model",
         "GET /api/ai-governance/control-center/registry",
         "GET /api/ai-governance/control-center/runs",
         "GET /api/ai-governance/control-center/security-events",

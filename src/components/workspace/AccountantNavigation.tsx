@@ -1,3 +1,4 @@
+import { AI_BRAND } from '../../config/aiBranding';
 import React from 'react';
 import {
   Activity, AlarmClock, AlertTriangle, BadgeCheck, BarChart3, Bot, Briefcase, Calculator, CalendarClock,
@@ -32,7 +33,7 @@ export const ACCOUNTANT_NAV_SECTIONS: NavSection[] = [
     { label: 'File to IRS/State', icon: Send }, { label: 'Track Status', icon: Activity },
   ] },
   { id: 'tools', label: 'Tools', icon: Wrench, items: [
-    { label: 'AI Assistant', icon: Bot }, { label: 'Form Library', icon: Library },
+    { label: AI_BRAND.assistant, icon: Bot }, { label: 'Form Library', icon: Library },
     { label: 'State Tax Rules', icon: Landmark }, { label: 'Calculators', icon: Calculator, disabledReason: UNAVAILABLE },
     { label: 'Checklists', icon: ListChecks }, { label: 'Templates', icon: LayoutTemplate, disabledReason: UNAVAILABLE },
     { label: 'Account Security', icon: ShieldCheck },

@@ -225,6 +225,13 @@ Audits completed in this cycle (documents):
   address and consent version was removed (`stageOneLiveClientBoundary.test.ts`; two mutations caught). The functionality
   audit is corrected: it had not counted the provider browser suites, and Stage 01 already has a complete browser journey
   in provider suite 14, so no duplicate was written.
+- **Local model adapter and white-label branding (Block 105).** Local inference adapter (`LocalOllamaProviderAdapter`):
+  loopback only, redirects refused, no cloud fallback, no tools, one request at a time, unknown usage reported as unknown;
+  gateway dispatch stays test-only. Ordinary screens use the brand (`src/config/aiBranding.ts`: Ophir AI, Ophir Model,
+  Ophireum Technology); true provenance and licences stay available to governance roles (`Local model` tab) and in
+  `docs/THIRD_PARTY_AI_NOTICES.md`. The built bundle is scanned for upstream names, endpoints and paths
+  (`npm run security:white-label`). The legacy AI route now shows provider and model to administrators only. No agent is
+  commissioned; the worker, durable inference queue and operations dashboard are not built yet.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

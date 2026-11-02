@@ -11,7 +11,7 @@ export class GovernedAIGateway {
   /** Transport is entirely unavailable by default; only isolated tests may inject adapters. */
   constructor(private readonly resolver:ModelPromptResolver,private readonly store:GatewayStore,testAdapters?:Record<string,ProviderAdapter>){
     if(testAdapters&&process.env.NODE_ENV!=='test')throw new GovernanceError('AI_TEST_EXECUTION_FORBIDDEN');
-    if(testAdapters&&Object.entries(testAdapters).some(([key,a])=>!['TEST','OPENAI'].includes(key)||a.provider!==key))throw new GovernanceError('AI_PROVIDER_UNAPPROVED');
+    if(testAdapters&&Object.entries(testAdapters).some(([key,a])=>!['TEST','OPENAI','LOCAL_OLLAMA'].includes(key)||a.provider!==key))throw new GovernanceError('AI_PROVIDER_UNAPPROVED');
     this.adapters=testAdapters?Object.freeze({...testAdapters}):null;
   }
   async execute(token:string,context:ChildContext,signal?:AbortSignal):Promise<GatewayResult>{

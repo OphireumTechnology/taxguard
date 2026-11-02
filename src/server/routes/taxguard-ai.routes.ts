@@ -29,24 +29,26 @@ function correlationId(): string {
   ).toUpperCase();
 }
 
+/** Underlying provider and model names are administrator diagnostics, not user-facing content. */
+const technicalDetails = (req: AuthenticatedRequest) => req.user?.role === 'admin' || req.user?.role === 'super_admin';
+const withoutTechnicalDetails = <T extends object>(proposal: T) => {
+  const { provider: _provider, model: _model, ...rest } = proposal as T & { provider?: unknown; model?: unknown };
+  return rest;
+};
+
 router.get(
   '/health',
   authenticateToken,
-  (_req, res) => {
+  (req: AuthenticatedRequest, res) => {
     res.status(200).json({
       service:
         'taxguard-ai',
 
-      provider:
-        'GOOGLE_GEMINI',
+      ...(technicalDetails(req) ? { provider: 'GOOGLE_GEMINI', model: TaxGuardGeminiGateway.model } : {}),
 
       configured:
         TaxGuardGeminiGateway
           .isConfigured(),
-
-      model:
-        TaxGuardGeminiGateway
-          .model,
 
       governance: {
         isAiProposedOnly:
@@ -133,7 +135,8 @@ router.post(
         correlationId:
           id,
 
-        proposal
+        // The provider and model stay in the audit record above; only administrators see them here.
+        proposal: technicalDetails(req as AuthenticatedRequest) ? proposal : withoutTechnicalDetails(proposal)
       });
     } catch (error) {
       const message = error instanceof Error && /^TAXGUARD_AI_[A-Z_]+$/.test(error.message)
