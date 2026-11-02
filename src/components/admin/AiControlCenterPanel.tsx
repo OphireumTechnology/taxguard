@@ -98,7 +98,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       .catch(error => setState(current => ({ ...current, appending: false, message: controlCenterErrorMessage(error) })));
   };
 
-  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['evaluations', 'Evaluations'], ['local-model', 'Local model'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['architecture', 'Architecture overview']];
+  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['evaluations', 'Evaluations'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['local-model', 'Local model'], ['architecture', 'Architecture overview']];
   const select = (id: PanelView) => { setView(id); setFilters({}); };
   const onTabKey = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
