@@ -7,6 +7,7 @@ import {
   type AuthenticatedRequest
 } from '../auth';
 
+import { filterModelText } from '../ai/userFacingModelText';
 import {
   TaxGuardGeminiGateway,
   TaxGuardAiPolicy,
@@ -31,9 +32,9 @@ function correlationId(): string {
 
 /** Underlying provider and model names are administrator diagnostics, not user-facing content. */
 const technicalDetails = (req: AuthenticatedRequest) => req.user?.role === 'admin' || req.user?.role === 'super_admin';
-const withoutTechnicalDetails = <T extends object>(proposal: T) => {
+const withoutTechnicalDetails = <T extends { proposal: string }>(proposal: T) => {
   const { provider: _provider, model: _model, ...rest } = proposal as T & { provider?: unknown; model?: unknown };
-  return rest;
+  return { ...rest, proposal: filterModelText(proposal.proposal, 'USER').text };
 };
 
 router.get(

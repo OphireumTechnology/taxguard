@@ -232,6 +232,11 @@ Audits completed in this cycle (documents):
   `docs/THIRD_PARTY_AI_NOTICES.md`. The built bundle is scanned for upstream names, endpoints and paths
   (`npm run security:white-label`). The legacy AI route now shows provider and model to administrators only. No agent is
   commissioned; the worker, durable inference queue and operations dashboard are not built yet.
+- **Strict white-label enforcement (Block 106).** A deterministic filter outside the model (`userFacingModelText.ts`) removes
+  reasoning traces and refuses text with an unfinished trace. It never shows a claim that the operator authored the weights,
+  and it withholds upstream names, internal endpoints, paths and credentials from ordinary users rather than rewriting them,
+  so a true sentence cannot become a false one. The local adapter and the legacy proposal route use it. Remaining references
+  are listed in `block106-white-label-references.md`.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

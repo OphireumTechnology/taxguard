@@ -187,7 +187,7 @@ stagingRouter.post('/records/:id/post', authenticateToken, requireAccountant, (r
     confidence: record.confidenceScore,
     status: 'confirmed',
     vendorOrPayee: record.description,
-    matchedRule: `AI Staging Pipeline (${record.aiModelVersion}) -> Approved by ${req.user?.name}`,
+    matchedRule: `AI Staging Pipeline -> Approved by ${req.user?.name}`,
     source: 'document_extraction',
     reviewerNotes: `Posted from Staging Record #${record.id} sourced from ${record.sourceDocumentName}`
   });

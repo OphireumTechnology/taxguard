@@ -1,6 +1,7 @@
 import { GovernanceError } from '../governance/contracts';
 import type { ProviderAdapter, ProviderRequest, ProviderResponse } from './contracts';
 import { ProviderNotSentError } from './contracts';
+import { filterModelText } from '../userFacingModelText';
 
 /**
  * Local inference through an Ollama runtime on this machine. The endpoint must be plain HTTP on a loopback address and
@@ -64,10 +65,13 @@ export class LocalOllamaProviderAdapter implements ProviderAdapter {
       if (!response.ok) throw new GovernanceError('AI_PROVIDER_FAILURE', 503);
       let body: any;
       try { body = await response.json(); } catch { throw new GovernanceError('AI_PROVIDER_FAILURE', 503); }
-      const text = typeof body?.message?.content === 'string' ? body.message.content : '';
+      // Reasoning is requested off above; a trace that still arrives in the content is removed, and the separate reasoning
+      // field is never read. Anything the filter withholds does not count as an answer.
+      const filtered = filterModelText(body?.message?.content, 'ADMINISTRATOR');
+      const text = filtered.withheld ? '' : filtered.text;
       const toolCalls = Array.isArray(body?.message?.tool_calls) && body.message.tool_calls.length > 0;
       const input = count(body?.prompt_eval_count), output = count(body?.eval_count);
-      return { status: body?.done === true && body?.done_reason === 'stop' && !toolCalls ? 'completed' : 'incomplete', text,
+      return { status: body?.done === true && body?.done_reason === 'stop' && !toolCalls && !filtered.withheld ? 'completed' : 'incomplete', text,
         usage: input === null || output === null ? null : { input_tokens: input, output_tokens: output, total_tokens: input + output } };
     } finally { this.active--; }
   }

@@ -4872,6 +4872,19 @@
       ]
     },
     {
+      "file": "docs/development/block106-white-label-references.md",
+      "sha256": "039150b3e789e144ac50d3c80ee41b01d33923f407b5d62718a75d2ff4975716",
+      "bytes": 2763,
+      "headings": [
+        "# Block 106: remaining references to third-party AI technology",
+        "## Kept on purpose (authorized records and notices)",
+        "## Internal code, not sent to users",
+        "## In source, removed from the build",
+        "## Development data",
+        "## Requires an owner decision"
+      ]
+    },
+    {
       "file": "docs/development/block66-browser-verification.md",
       "sha256": "ad307b48eb32dd93751c67254d05f76fd5a2c57e3fc23a449b44417b59ca8c80",
       "bytes": 5744,
@@ -6373,8 +6386,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "ae2ffe5e33a74cc47511f0d3452ba703e6adc6894164607fbe6bac0a056f4b4c",
-      "bytes": 43906,
+      "sha256": "57ee9e1e561c1f816489a0c7fef97ef7f12343524138606a298f4abeeba006e2",
+      "bytes": 44461,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",

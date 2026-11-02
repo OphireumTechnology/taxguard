@@ -130,6 +130,7 @@ describe('administrator diagnostics route', () => {
 
 describe('legacy AI route', () => {
   const src = fs.readFileSync('src/server/routes/taxguard-ai.routes.ts', 'utf8');
+  it('filters model text for ordinary users', () => { expect(src).toContain("proposal: filterModelText(proposal.proposal, 'USER').text"); });
   it('shows provider and model only to administrators, and keeps them in the audit record', () => {
     expect(src).toContain("...(technicalDetails(req) ? { provider: 'GOOGLE_GEMINI', model: TaxGuardGeminiGateway.model } : {})");
     expect(src).toContain('proposal: technicalDetails(req as AuthenticatedRequest) ? proposal : withoutTechnicalDetails(proposal)');
