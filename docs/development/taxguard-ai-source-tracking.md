@@ -1,11 +1,11 @@
-# OPHIR source in Git
+# TaxGuard AI Knowledge Engine source in Git
 
-OPHIR runs from `local-ai/rag` in `D:\\TaxGuard\\Development\\123`. Its reviewed source is tracked here so it has history and a backup. Everything it produces or
+The TaxGuard AI Knowledge Engine runs from `local-ai/rag` in `D:\\TaxGuard\\Development\\123`. Its reviewed source is tracked here so it has history and a backup. Everything it produces or
 downloads stays on the machine.
 
 ## Tracked
 
-An explicit allowlist in `.gitignore`, enforced by `src/tests/ophirSourceTracking.test.ts`:
+An explicit allowlist in `.gitignore`, enforced by `src/tests/taxguardAiSourceTracking.test.ts`:
 
 - Steps 116 to 120: `research_discovery.py`, `verify_research_candidates.py`, `acquire_verified_documents.py`, `process_knowledge.py`, `evaluate_knowledge.py`, and `compare_retrieval.py`, which compares retrieval methods.
 - Step 121: `source_registry.py`, `tax_year_intelligence.py`, and `knowledge_status_export.py`, which writes the counts-only status file for the AI Command Center.
@@ -14,7 +14,7 @@ An explicit allowlist in `.gitignore`, enforced by `src/tests/ophirSourceTrackin
 
 ## Never tracked
 
-Model weights, the Ollama runtime, downloaded and quarantined documents, SQLite databases, reports, logs, reviews, reviewer and administrator identity files, `.venv`, and the live `policy.json`.
+Model weights, the model runtime, downloaded and quarantined documents, SQLite databases, reports, logs, reviews, reviewer and administrator identity files, `.venv`, and the live `policy.json`.
 
 ## Not yet reviewed
 

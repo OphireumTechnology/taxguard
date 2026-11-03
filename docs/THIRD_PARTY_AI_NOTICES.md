@@ -1,6 +1,6 @@
 # Third-party AI notices
 
-Ophir AI and Ophir Model are the names under which Ophireum Technology operates a private, locally hosted AI model. They are
+TaxGuard AI is developed and operated by Ophireum Technology. TaxGuard AI and TaxGuard Model are the names of its private, locally hosted AI. They are
 a brand and a configuration. **Ophireum Technology did not create or train the underlying model weights or the inference
 software, and does not exclusively own them.**
 
@@ -9,7 +9,7 @@ software, and does not exclusively own them.**
 | Model weights | Qwen3 8B (`qwen3:8b`, Q4_K_M) | Qwen team, Alibaba Cloud | Apache License 2.0 |
 | Inference engine | Ollama 0.40.13 | Ollama Inc. | MIT License |
 
-`ophir-model:8b` is the same weights with an operator-written system prompt and temperature setting. No weights were changed
+`taxguard-model:8b` is the same weights with an operator-written system prompt and temperature setting. No weights were changed
 or retrained.
 
 The licence text of the installed model can be read on the machine with `ollama show qwen3:8b --license`. The weights are

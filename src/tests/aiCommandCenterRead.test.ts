@@ -22,7 +22,7 @@ let pg: PGlite, db: any, server: Server, origin: string;
 const runtimeSeen: string[] = [];
 const service = (knowledge?: () => Promise<any>, runtime?: () => Promise<any>) => new ControlCenterReadService(fixtureAuthority, db,
   knowledge ?? (async () => ({ status: 'UNAVAILABLE', code: 'KNOWLEDGE_STATUS_NOT_FOUND' })),
-  runtime ?? (async () => { runtimeSeen.push('read'); return { status: 'AVAILABLE', endpoint: 'http://127.0.0.1:11434', version: '0.40.13', models: [{ name: 'ophir-model:8b', sizeBytes: 1 }, { name: 'qwen3:8b', sizeBytes: 1 }], loaded: [] }; }));
+  runtime ?? (async () => { runtimeSeen.push('read'); return { status: 'AVAILABLE', endpoint: 'http://127.0.0.1:11434', version: '0.40.13', models: [{ name: 'taxguard-model:8b', sizeBytes: 1 }, { name: 'qwen3:8b', sizeBytes: 1 }], loaded: [] }; }));
 const call = (token: string | null, method = 'GET', route = '/control-center/command-center') => fetch(origin + route, { method, headers: token ? { authorization: 'Bearer ' + token } : {} });
 
 beforeAll(async () => {
@@ -66,7 +66,7 @@ describe('command center read', () => {
 
   it('never returns the address, version, vendor or model tag', async () => {
     const text = await (await call('admin')).text();
-    expect(text).not.toMatch(/11434|127\.0\.0\.1|0\.40\.13|ollama|qwen|ophir(?!eum)|"endpoint"/i);
+    expect(text).not.toMatch(/11434|127\.0\.0\.1|0\.40\.13|ollama|qwen|taxguard-model|ophir(?!eum)|"endpoint"/i);
     const body = JSON.parse(text);
     expect(body.inference).toEqual({ status: 'AVAILABLE', model_installed: true, model_loaded: false });
   });

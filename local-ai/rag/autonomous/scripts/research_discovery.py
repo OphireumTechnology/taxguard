@@ -101,7 +101,7 @@ def fetch_page(url):
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "OPHIR-Research-Discovery/1.0",
+            "User-Agent": "TaxGuardAI-Research-Discovery/1.0",
             "Accept": "text/html",
         }
     )
@@ -244,7 +244,7 @@ def main():
         encoding="utf-8"
     )
 
-    print("OPHIR STEP 116 — RESEARCH DISCOVERY")
+    print("TAXGUARD AI STEP 116 — RESEARCH DISCOVERY")
     print("=" * 50)
     print("Official pages inspected:", inspected)
     print("Research candidates:", len(candidates))
@@ -271,7 +271,7 @@ def main():
             "FAIL: No official HTML sources inspected"
         )
 
-    print("OPHIR STEP 116 DISCOVERY COMPLETE")
+    print("TAXGUARD AI STEP 116 DISCOVERY COMPLETE")
 
 if __name__ == "__main__":
     main()

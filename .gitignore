@@ -96,8 +96,11 @@ qa/migration-review/
 qa/acceptance-results/
 
 # Local AI runtime, model weights, documents, databases, reports and logs stay on this machine.
-# Only the reviewed OPHIR source below is tracked. Add a file here only after reviewing it.
+# Only the reviewed TaxGuard AI Knowledge Engine source below is tracked. Add a file here only after reviewing it.
 /local-ai/*
+!/local-ai/powershell/
+/local-ai/powershell/*
+!/local-ai/powershell/*.ps1
 !/local-ai/rag/
 /local-ai/rag/*
 !/local-ai/rag/autonomous/

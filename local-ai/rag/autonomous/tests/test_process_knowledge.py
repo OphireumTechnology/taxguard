@@ -564,7 +564,7 @@ class SafetyGuards(unittest.TestCase):
         self.state = Path(self.directory.name)
         for name in p.PROTECTED:
             connection = sqlite3.connect(self.state / name)
-            if name == "ophir_semantic_memory.sqlite3":
+            if name == "taxguard_semantic_memory.sqlite3":
                 connection.executescript("CREATE TABLE document_reviews(a); CREATE TABLE review_evidence(a); CREATE TABLE knowledge_chunks(approval_status TEXT);")
             else:
                 connection.execute("CREATE TABLE t(a)")
@@ -580,10 +580,10 @@ class SafetyGuards(unittest.TestCase):
         return p.protected_snapshot(self.state, (self.audit,))
 
     def before(self):
-        return {"protected": self.snapshot(), "models": {"ophir-model:8b": "abc"}}
+        return {"protected": self.snapshot(), "models": {"taxguard-model:8b": "abc"}}
 
     TASKS = {t: "Disabled" for t in p.GUARDED_TASKS}
-    MODELS = {"ophir-model:8b": "abc"}
+    MODELS = {"taxguard-model:8b": "abc"}
 
     def test_unchanged_state_passes_and_reading_changes_nothing(self):
         before = self.before()
@@ -600,7 +600,7 @@ class SafetyGuards(unittest.TestCase):
 
     def test_a_new_approval_record_stops_processing(self):
         before = self.before()
-        connection = sqlite3.connect(self.state / "ophir_semantic_memory.sqlite3")
+        connection = sqlite3.connect(self.state / "taxguard_semantic_memory.sqlite3")
         connection.execute("INSERT INTO document_reviews VALUES(1)")
         connection.commit(); connection.close()
         with self.assertRaises(p.SafetyStop):
@@ -620,7 +620,7 @@ class SafetyGuards(unittest.TestCase):
 
     def test_a_changed_or_missing_model_stops_processing(self):
         before = self.before()
-        for models in ({"ophir-model:8b": "changed"}, {}):
+        for models in ({"taxguard-model:8b": "changed"}, {}):
             with self.subTest(models), self.assertRaises(p.SafetyStop):
                 p.assert_guards(before, self.snapshot(), self.TASKS, models)
 

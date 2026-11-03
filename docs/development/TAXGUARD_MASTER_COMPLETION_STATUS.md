@@ -238,7 +238,7 @@ Audits completed in this cycle (documents):
   so a true sentence cannot become a false one. The local adapter and the legacy proposal route use it. Remaining references
   are listed in `block106-white-label-references.md`.
 - **OPHIR source in Git (Block 107).** The reviewed Steps 116 to 120 source, tests and configuration templates are tracked through an explicit allowlist; documents,
-  databases, models, reports, logs and identity files stay out, and a test asks Git itself. Older OPHIR scripts remain untracked until reviewed. Activates nothing. See `ophir-source-tracking.md`.
+  databases, models, reports, logs and identity files stay out, and a test asks Git itself. Older OPHIR scripts remain untracked until reviewed. Activates nothing. See `taxguard-ai-source-tracking.md`.
 - **AI Command Center (Block 108).** `/admin/master/ai`, read-only, for governance roles; the server re-verifies the role on every read through `GET /api/ai-governance/control-center/command-center`.
   Governance figures are read from the database. Knowledge figures come from a counts-only status file written by `knowledge_status_export.py` (path from `AI_KNOWLEDGE_STATUS_FILE`, or the default under
   `local-ai`), rebuilt field by field by the server; anything unexpected reports the status as unavailable. Module and lifecycle statuses cite repository evidence, and a test checks each path. It has
@@ -246,6 +246,8 @@ Audits completed in this cycle (documents):
 - **Private access, reference image, sources and claims (Block 109).** The owner's master-plan image is served only through an authenticated, role-checked endpoint, never from a public folder.
   Staging research sources updated to the owner's approval of 2026-11-03; only IRS, NIST and Treasury can be fetched today. Compliance and authorization claims on the website are recorded in
   `compliance-claims-review.md` and must be substantiated, corrected or removed before public deployment; a test keeps the register complete.
+- **TaxGuard AI rename (Block 110).** The product is TaxGuard AI, developed and operated by Ophireum Technology. Earlier entries keep the names used at the time. `taxguard-model:8b` shares the
+  weights of the earlier tag. The company name, reviewer identities, locked evaluation artifacts and historical records are unchanged, and the third-party notices remain.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

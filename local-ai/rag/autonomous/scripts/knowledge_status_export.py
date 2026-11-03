@@ -64,7 +64,7 @@ def build_status(state_dir, reports_dir, registry, tasks_enabled, now):
     acquisition = read_only(state_dir / "acquisition.sqlite3")
     pipeline = read_only(state_dir / "knowledge_pipeline.sqlite3")
     evaluation = read_only(state_dir / "knowledge_evaluation.sqlite3")
-    memory = read_only(state_dir / "ophir_semantic_memory.sqlite3")
+    memory = read_only(state_dir / "taxguard_semantic_memory.sqlite3")
     try:
         staged = [r[0] for r in pipeline.execute("SELECT source_id FROM documents")]
         run = evaluation.execute("SELECT run_id FROM runs ORDER BY run_id DESC LIMIT 1").fetchone()

@@ -1,4 +1,4 @@
-"""OPHIR Step 119: quarantined documents to staged, embedded knowledge. Staging only.
+"""TaxGuard AI Step 119: quarantined documents to staged, embedded knowledge. Staging only.
 
 Reads the Step 118 acquisition database as its inventory and writes only state/knowledge_pipeline.sqlite3. It never writes the four
 protected databases, never approves anything, and never changes a model. Downloaded documents are untrusted data: their text is
@@ -64,8 +64,8 @@ BATCH_PAUSE_SECONDS = 0.25
 EMBED_RETRIES = 3
 MIN_FREE_GPU_MIB = 1500
 WORKLOAD_CHECK_EVERY = 10
-GUARDED_MODELS = ("ophir-model:8b", "qwen3:8b", "taxguard-private:8b")
-GUARDED_TASKS = ("OphirAutonomousLearning", "OphirStagingLearning")
+GUARDED_MODELS = ("taxguard-model:8b", "ophir-model:8b", "qwen3:8b", "taxguard-private:8b")
+GUARDED_TASKS = ("TaxGuardAutonomousLearning", "TaxGuardStagingLearning", "OphirAutonomousLearning", "OphirStagingLearning")
 REQUIRED_REGISTRY_STATE = ("QUARANTINED_STRUCTURE_CHECKED", "NOT_ESTABLISHED", "NOT_APPROVED")
 BLOCKING_ACTIONS = ("/Launch", "/GoToE")
 
@@ -651,7 +651,7 @@ def protected_snapshot(state=STATE, approval_files=APPROVAL_FILES):
             snapshot["integrity"][name] = connection.execute("PRAGMA integrity_check").fetchone()[0]
         finally:
             connection.close()
-    connection = sqlite3.connect(f"file:{(Path(state) / 'ophir_semantic_memory.sqlite3').as_posix()}?mode=ro", uri=True)
+    connection = sqlite3.connect(f"file:{(Path(state) / 'taxguard_semantic_memory.sqlite3').as_posix()}?mode=ro", uri=True)
     try:
         for label, query in (("document_reviews", "SELECT count(*) FROM document_reviews"), ("review_evidence", "SELECT count(*) FROM review_evidence"),
                              ("approved_chunks", "SELECT count(*) FROM knowledge_chunks WHERE approval_status='APPROVED'")):

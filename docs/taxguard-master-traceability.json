@@ -5710,19 +5710,6 @@
       ]
     },
     {
-      "file": "docs/development/ophir-source-tracking.md",
-      "sha256": "56b92edd6695e0ab3cad67663502bd32f81880c581b6feb056bf2a8867a7849d",
-      "bytes": 1837,
-      "headings": [
-        "# OPHIR source in Git",
-        "## Tracked",
-        "## Never tracked",
-        "## Not yet reviewed",
-        "## Running the tests",
-        "## Status"
-      ]
-    },
-    {
       "file": "docs/development/phase10-operations.md",
       "sha256": "d785b5c554af4cf99d2fa7bd3957b5ddb666a35cf9c615c3741381bef402e102",
       "bytes": 7019,
@@ -6374,6 +6361,19 @@
       ]
     },
     {
+      "file": "docs/development/taxguard-ai-source-tracking.md",
+      "sha256": "8c2ecc7fb651829a657fe015e57141205d078f56e5807b8e2e645126673b5940",
+      "bytes": 1891,
+      "headings": [
+        "# TaxGuard AI Knowledge Engine source in Git",
+        "## Tracked",
+        "## Never tracked",
+        "## Not yet reviewed",
+        "## Running the tests",
+        "## Status"
+      ]
+    },
+    {
       "file": "docs/development/TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md",
       "sha256": "f1657dce96a96267eeb0cc5cd775d3494877765fab275a2923b5046929548a07",
       "bytes": 21905,
@@ -6412,8 +6412,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "1d4dae72df64124af33b3c849029fcf76fc01581d166971b82d53b0dd1bd2973",
-      "bytes": 46138,
+      "sha256": "a1ab0fb2cfe8a53824b683db54aae5fce876291f57e48c4a73bc712dcb884acc",
+      "bytes": 46508,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8076,8 +8076,8 @@
     },
     {
       "file": "docs/THIRD_PARTY_AI_NOTICES.md",
-      "sha256": "35a2665cf288017dc3a37bf133c0372b59c0c0d839f5bca72e6b45b1f0521281",
-      "bytes": 1145,
+      "sha256": "f6964f3b51c5f1548ff5f54ccb8c06489461136723ff3dab2528e6edfd4f2a16",
+      "bytes": 1174,
       "headings": [
         "# Third-party AI notices"
       ]
@@ -8251,9 +8251,9 @@
     "src/server/ai/capabilities/GovernedCapabilityExecutor.ts": "7d9ed0170cd95372555e2398e44a41427fe5c1292f2256c64353afa1aa1d23c1",
     "src/server/ai/capabilities/ScopedReadRepository.ts": "c4c738163414daf292c20d13b395ea0e43c6ea2a822bea18c677faefe7f80f40",
     "src/server/ai/documents/DocumentDuplicateAdvisory.ts": "70a562e16382f8c3d2cff8340b2d67cfb0af47b85ff827c42c117f2f590b4919",
-    "src/server/ai/gateway/GovernedAIGateway.ts": "3103821196b5eeee41e3d2d427cca1edcc38e3e7388bfbab99d1e9ec3e00fc1c",
+    "src/server/ai/gateway/GovernedAIGateway.ts": "66e820a7ff6c847de2e9fc5bcdddb118b5b066030b57715e38821e0484adde79",
     "src/server/ai/gateway/structuredOutput.ts": "843474d91d33fd46c35f5611db6238857609e79a4460345c3bd052a71d5e3efa",
-    "src/server/ai/governance/ControlCenterReadService.ts": "c78e25c05f4fc79a1c6f7a4ec9b1df981b6a1af0c3818f739dfaa16e4efa6b59",
+    "src/server/ai/governance/ControlCenterReadService.ts": "d5cd3006eeecbf930ed7079690cfd4edb0a5d80799936fae8383164480168f28",
     "src/server/ai/governance/GovernanceControlPlane.ts": "54a1b29d3cefc5010d5d65a80aa1e7ac9e8a959f2c9d5c79deec0b849a10114a",
     "src/server/ai/ledger/ExecutionLedgerService.ts": "877c96b3c13a85f487aa0e065a3920e54df3b6774e3d42435c36c4690def3305",
     "src/server/ai/orchestration/A00Orchestrator.ts": "9d63b273e979e7efbd9d4ed2a517599eeb8d0513ffbbe49a2b8b3f59cb85cf7f",

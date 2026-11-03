@@ -56,16 +56,16 @@ describe('browser-facing content', () => {
     try {
       expect(scanBundle(path.join(dir, 'missing')).status).toBe('NOT_BUILT');
       expect(scanBundle(dir).status).toBe('FAIL'); // nothing scanned
-      fs.writeFileSync(path.join(dir, 'a.js'), 'const note="philanthropic giving; Ophir AI";');
+      fs.writeFileSync(path.join(dir, 'a.js'), 'const note="philanthropic giving; TaxGuard AI; Ophireum Technology";');
       expect(scanBundle(dir)).toMatchObject({ status: 'PASS', scanned: 1, findings: [] });
-      for (const leak of ['Qwen3 8B', 'qwen3:8b', 'ollama', 'gemini-flash', 'gpt-4o', 'http://127.0.0.1:11434', 'local-ai/models', 'D:\\TaxGuard\\x']) {
+      for (const leak of ['Ophir AI', 'ophir-model:8b', 'Qwen3 8B', 'qwen3:8b', 'ollama', 'gemini-flash', 'gpt-4o', 'http://127.0.0.1:11434', 'local-ai/models', 'D:\\TaxGuard\\x']) {
         fs.writeFileSync(path.join(dir, 'b.js'), `const x=${JSON.stringify(leak)};`);
         expect(scanBundle(dir).status, leak).toBe('FAIL');
       }
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
   it('the shared brand module holds only the brand', () => {
-    expect(AI_BRAND).toEqual({ assistant: 'Ophir AI', model: 'Ophir Model', operator: 'Ophireum Technology', privateNetwork: 'LDL Dhenze Residential Building Private Network' });
+    expect(AI_BRAND).toEqual({ assistant: 'TaxGuard AI', model: 'TaxGuard Model', operator: 'Ophireum Technology', privateNetwork: 'LDL Dhenze Residential Building Private Network' });
     expect(Object.isFrozen(AI_BRAND)).toBe(true);
   });
   it('the accountant workspace labels the assistant with the brand', () => {
@@ -76,7 +76,7 @@ describe('browser-facing content', () => {
 
 describe('true provenance', () => {
   it('states the real creators and licences, and the operator only as operator', () => {
-    expect(LOCAL_MODEL_ID).toBe('ophir-model:8b');
+    expect(LOCAL_MODEL_ID).toBe('taxguard-model:8b');
     expect(LOCAL_MODEL_PROVENANCE.baseModel).toMatchObject({ identifier: 'qwen3:8b', creator: 'Qwen team, Alibaba Cloud', licence: 'Apache License 2.0' });
     expect(LOCAL_MODEL_PROVENANCE.inferenceEngine).toMatchObject({ name: 'Ollama', licence: 'MIT License' });
     expect(LOCAL_MODEL_PROVENANCE.operatorRole).toMatch(/Did not create the underlying weights or software and does not exclusively own them/);
@@ -90,7 +90,7 @@ describe('true provenance', () => {
     const html = renderToStaticMarkup(<LocalModelReportView report={report} />);
     for (const text of ['Qwen3 8B', 'Alibaba Cloud', 'Apache License 2.0', 'Ollama', 'does not exclusively own', 'Nothing is sent to any other provider']) expect(html).toContain(text);
     const up = renderToStaticMarkup(<LocalModelReportView report={{ ...report, runtime: { status: 'AVAILABLE', endpoint: 'http://127.0.0.1:11434', version: '0.0', models: [{ name: LOCAL_MODEL_ID, sizeBytes: 1 }], loaded: [] } }} />);
-    expect(up).toContain('ophir-model:8b: installed'); expect(up).toContain('No model is loaded in memory');
+    expect(up).toContain('taxguard-model:8b: installed'); expect(up).toContain('No model is loaded in memory');
   });
 });
 

@@ -5,8 +5,8 @@
  * names no upstream model, engine, endpoint or path.
  */
 export const AI_BRAND = Object.freeze({
-  assistant: 'Ophir AI',
-  model: 'Ophir Model',
+  assistant: 'TaxGuard AI',
+  model: 'TaxGuard Model',
   operator: 'Ophireum Technology',
   privateNetwork: 'LDL Dhenze Residential Building Private Network',
 });

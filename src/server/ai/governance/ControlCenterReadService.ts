@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { AI_BRAND } from '../../../config/aiBranding';
-import { readLocalRuntimeStatus } from '../gateway/LocalOllamaProviderAdapter';
+import { readLocalRuntimeStatus } from '../gateway/LocalInferenceProviderAdapter';
 import { LOCAL_MODEL_ID, LOCAL_MODEL_PROVENANCE } from '../localModelProvenance';
 import { COMMAND_CENTER_LIFECYCLE, COMMAND_CENTER_MODULES, COMMAND_CENTER_SECTIONS, MASTER_PLAN_IMAGE } from '../commandCenter/commandCenterManifest';
 import { readKnowledgeStatus, type KnowledgeStatusResult } from '../commandCenter/knowledgeStatus';

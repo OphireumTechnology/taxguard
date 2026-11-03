@@ -293,9 +293,16 @@ class Recovery(Base):
 
     def test_stale_temporaries_are_removed_and_others_kept(self):
         (self.quarantine / (a.TEMP_PREFIX + "abc.tmp")).write_bytes(b"x")
+        (self.quarantine / ".ophir_acq_old.tmp").write_bytes(b"x")
         (self.quarantine / "keep.pdf").write_bytes(b"x")
-        self.assertEqual(a.remove_stale_temporaries(self.quarantine), 1)
+        self.assertEqual(a.remove_stale_temporaries(self.quarantine), 2)
         self.assertEqual(self.files(), ["keep.pdf"])
+
+    def test_source_ids_name_the_real_publisher(self):
+        self.assertEqual(a.source_id_for("https://www.irs.gov/pub/irs-pdf/p17.pdf"), "IRS_P17")
+        self.assertEqual(a.source_id_for("https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf"), "NIST_NIST_AI_600_1")
+        self.assertEqual(a.source_id_for("https://home.treasury.gov/system/files/131/x.pdf"), "TREASURY_X")
+        self.assertEqual(a.source_id_for("https://example.test/x.pdf"), "UNKNOWN_X")
 
     def test_tampered_or_missing_quarantine_files_are_detected(self):
         out = self.one(server())

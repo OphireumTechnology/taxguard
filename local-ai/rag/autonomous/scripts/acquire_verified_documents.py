@@ -1,4 +1,4 @@
-"""OPHIR Step 118: controlled acquisition of verified documents into quarantine.
+"""TaxGuard AI Step 118: controlled acquisition of verified documents into quarantine.
 
 Fetches only documents Step 117 marked ELIGIBLE_FOR_ACQUISITION. Everything fetched is untrusted data: it is stored, hashed and
 recorded, never opened as instructions, and never approved here. The registry cannot hold an approved document, and this script
@@ -40,14 +40,14 @@ QUARANTINE = AUTONOMOUS.parent / "online/quarantine"
 
 # Narrower than verification: public-domain U.S. government PDF hosts only. FASB content is licensed and is never fetched here.
 ACQUISITION_HOSTS = frozenset({"www.irs.gov", "nvlpubs.nist.gov"})
-TEMP_PREFIX = ".ophir_acq_"
+TEMP_PREFIX = ".taxguard_acq_"
 MAX_REDIRECTS = 2
 PER_DOCUMENT_SECONDS = 180
 REQUEST_TIMEOUT = 45
 PAUSE_SECONDS = 2.0
 OFFLINE_AFTER_FAILURES = 3
 STALE_LOCK_SECONDS = 2 * 3600
-USER_AGENT = "OPHIR-Research-Acquisition/1.0"
+USER_AGENT = "TaxGuardAI-Research-Acquisition/1.0"
 ACTIVE_CONTENT = (b"/JavaScript", b"/JS", b"/Launch", b"/EmbeddedFile", b"/OpenAction", b"/AA", b"/SubmitForm", b"/ImportData", b"/RichMedia", b"/XFA")
 
 
@@ -247,9 +247,12 @@ def open_registry(path=REGISTRY):
     return connection
 
 
+SOURCE_PREFIXES = {"www.irs.gov": "IRS", "home.treasury.gov": "TREASURY", "nvlpubs.nist.gov": "NIST", "www.nist.gov": "NIST"}
+
+
 def source_id_for(url):
     stem = urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1][:-4]
-    prefix = "IRS" if urllib.parse.urlsplit(url).hostname == "www.irs.gov" else "NIST"
+    prefix = SOURCE_PREFIXES.get(urllib.parse.urlsplit(url).hostname, "UNKNOWN")
     return prefix + "_" + re.sub(r"[^A-Z0-9]+", "_", stem.upper()).strip("_")
 
 
@@ -358,9 +361,11 @@ def check_registered_files(registry, quarantine):
 
 def remove_stale_temporaries(quarantine):
     removed = 0
-    for path in Path(quarantine).glob(TEMP_PREFIX + "*.tmp"):
-        path.unlink()
-        removed += 1
+    # The earlier prefix is still recognized, so a leftover from before the rename is cleaned up too.
+    for prefix in (TEMP_PREFIX, ".ophir_acq_"):
+        for path in Path(quarantine).glob(prefix + "*.tmp"):
+            path.unlink()
+            removed += 1
     return removed
 
 

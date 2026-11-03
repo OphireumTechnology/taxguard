@@ -4,16 +4,16 @@ import { ProviderNotSentError } from './contracts';
 import { filterModelText } from '../userFacingModelText';
 
 /**
- * Local inference through an Ollama runtime on this machine. The endpoint must be plain HTTP on a loopback address and
+ * Local inference through the model runtime on this machine (named in localModelProvenance.ts). The endpoint must be plain HTTP on a loopback address and
  * redirects are refused, so a request cannot leave the machine. There is no fallback: when the runtime is unavailable the
  * call fails, and nothing is sent to any other provider. No tools are offered to the model, and a reply that asks for one
  * is not accepted. Like the other adapters this has no live dispatch: GovernedAIGateway refuses transport outside tests
  * until the owner commissions it, and invoke() refuses on its own as well.
  */
-export const LOCAL_OLLAMA_DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
+export const LOCAL_INFERENCE_DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
 
-export function localEndpoint(endpoint: string = LOCAL_OLLAMA_DEFAULT_ENDPOINT): string {
+export function localEndpoint(endpoint: string = LOCAL_INFERENCE_DEFAULT_ENDPOINT): string {
   let url: URL;
   try { url = new URL(endpoint); } catch { throw new GovernanceError('AI_LOCAL_ENDPOINT_REFUSED'); }
   if (url.protocol !== 'http:' || !LOOPBACK.has(url.hostname) || url.username || url.password || (url.pathname !== '/' && url.pathname !== '') || url.search || url.hash)
@@ -22,7 +22,7 @@ export function localEndpoint(endpoint: string = LOCAL_OLLAMA_DEFAULT_ENDPOINT):
 }
 
 type Fetch = typeof fetch;
-export interface LocalOllamaOptions { endpoint?: string; maxConcurrent?: number; fetchImpl?: Fetch }
+export interface LocalInferenceOptions { endpoint?: string; maxConcurrent?: number; fetchImpl?: Fetch }
 
 /** Connection failures where the runtime conclusively received nothing. */
 const NOT_SENT_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EADDRNOTAVAIL', 'EHOSTUNREACH']);
@@ -32,14 +32,14 @@ const notSent = (error: unknown) => {
 };
 const count = (value: unknown): number | null => Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : null;
 
-export class LocalOllamaProviderAdapter implements ProviderAdapter {
-  readonly provider = 'LOCAL_OLLAMA';
+export class LocalInferenceProviderAdapter implements ProviderAdapter {
+  readonly provider = 'LOCAL_INFERENCE';
   private readonly endpoint: string;
   private readonly maxConcurrent: number;
   private readonly fetchImpl: Fetch;
   private active = 0;
 
-  constructor(options: LocalOllamaOptions = {}) {
+  constructor(options: LocalInferenceOptions = {}) {
     this.endpoint = localEndpoint(options.endpoint);
     this.maxConcurrent = options.maxConcurrent ?? 1;
     if (!Number.isInteger(this.maxConcurrent) || this.maxConcurrent < 1 || this.maxConcurrent > 8) throw new GovernanceError('AI_LOCAL_CONCURRENCY_INVALID');
@@ -90,7 +90,7 @@ export function processorOf(sizeBytes: number | null, vramBytes: number | null):
 }
 
 /** Reads the runtime's own version, installed models and loaded models. Read-only; no prompt or client data is involved. */
-export async function readLocalRuntimeStatus(options: Pick<LocalOllamaOptions, 'endpoint' | 'fetchImpl'> & { timeoutMs?: number } = {}): Promise<LocalRuntimeStatus> {
+export async function readLocalRuntimeStatus(options: Pick<LocalInferenceOptions, 'endpoint' | 'fetchImpl'> & { timeoutMs?: number } = {}): Promise<LocalRuntimeStatus> {
   const endpoint = localEndpoint(options.endpoint), get = options.fetchImpl ?? fetch;
   const read = async (path: string) => {
     const response = await get(endpoint + path, { redirect: 'error', signal: AbortSignal.timeout(options.timeoutMs ?? 2000) });

@@ -1,4 +1,4 @@
-"""OPHIR Step 120: evaluates staged knowledge and builds a review queue. It can recommend; it can never approve.
+"""TaxGuard AI Step 120: evaluates staged knowledge and builds a review queue. It can recommend; it can never approve.
 
 Reads the Step 119 pipeline and Step 118 acquisition databases read-only and writes only state/knowledge_evaluation.sqlite3 and its report.
 The evaluation database has no way to record an approval: a queue item can only be awaiting a person, and no recommendation means approved.
@@ -39,7 +39,7 @@ REPORT = AUTONOMOUS / "reports/knowledge_evaluation_latest.json"
 
 QUERY_PREFIX = "search_query: "
 DOCUMENT_PREFIX = "search_document: "
-ANSWER_MODEL = "ophir-model:8b"
+ANSWER_MODEL = "taxguard-model:8b"
 TOP_K = 5
 RECOMPUTE_SAMPLE = 32
 MIN_CONSISTENCY = 0.999

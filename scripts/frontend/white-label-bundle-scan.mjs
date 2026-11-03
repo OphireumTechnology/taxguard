@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const FORBIDDEN = /\b(qwen\d*|ollama|llamacpp|alibaba|openai|chatgpt|gpt-\d[\w.-]*|gemini|anthropic|claude)\b|127\.0\.0\.1:11434|localhost:11434|local-ai[\\/]|[A-Z]:[\\/]+TaxGuard/i;
+export const FORBIDDEN = /\b(ophir|qwen\d*|ollama|llamacpp|alibaba|openai|chatgpt|gpt-\d[\w.-]*|gemini|anthropic|claude)\b|127\.0\.0\.1:11434|localhost:11434|local-ai[\\/]|[A-Z]:[\\/]+TaxGuard/i;
 const TEXT = /\.(js|mjs|css|html|json|txt|map|svg|webmanifest)$/i;
 
 export function scanBundle(dir = 'dist') {

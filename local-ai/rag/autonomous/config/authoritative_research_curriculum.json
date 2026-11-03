@@ -1,6 +1,6 @@
 ﻿{
     "schema_version":  1,
-    "name":  "OPHIR TAXGUARD RESEARCH CURRICULUM",
+    "name":  "TAXGUARD AI RESEARCH CURRICULUM",
     "architecture_reference":  "TaxGuard AI Architecture Overview",
     "mode":  "AUTONOMOUS_RESEARCH_STAGING_ONLY",
     "policies":  {

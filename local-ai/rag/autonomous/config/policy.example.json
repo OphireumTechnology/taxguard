@@ -1,10 +1,10 @@
 {
-  "name": "OPHIR_AUTONOMOUS_LEARNING",
+  "name": "TAXGUARD_AI_LEARNING_ENGINE",
   "discovery": "daily",
   "max_documents_per_run": 50,
   "approval": "tiered",
   "storage": "<local path to local-ai/rag>",
-  "model": "ophir-model:8b",
+  "model": "taxguard-model:8b",
   "inference": "local_only",
   "enabled": false,
   "allow_public_internet_downloads": true,

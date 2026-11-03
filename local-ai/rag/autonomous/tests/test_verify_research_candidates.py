@@ -213,7 +213,7 @@ class Probe(unittest.TestCase):
         opener = self.Opener(self.error(500))
         v.probe_url(GOOD, resolver=lambda h: None, opener=opener)
         self.assertEqual(opener.request.get_method(), "HEAD")
-        self.assertIn("OPHIR", opener.request.get_header("User-agent"))
+        self.assertIn("TaxGuardAI", opener.request.get_header("User-agent"))
 
     def test_network_failure_is_unreachable_not_success(self):
         out = v.probe_url(GOOD, resolver=lambda h: None, opener=self.Opener(OSError("offline")))
@@ -264,7 +264,7 @@ class Storage(unittest.TestCase):
             connection.commit(); connection.close()
             versions, problems = v.existing_versions(directory)
             self.assertEqual(versions[GOOD], [{"database": "learning_staging.sqlite3", "sha256": "a" * 64}])
-            self.assertEqual([p["database"] for p in problems], ["ophir_semantic_memory.sqlite3"])
+            self.assertEqual([p["database"] for p in problems], ["taxguard_semantic_memory.sqlite3"])
 
 
 class Coverage(unittest.TestCase):

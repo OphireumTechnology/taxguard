@@ -1,4 +1,4 @@
-"""OPHIR Step 117: verify research candidates. Downloads nothing, approves nothing and writes to no database.
+"""TaxGuard AI Step 117: verify research candidates. Downloads nothing, approves nothing and writes to no database.
 
 Decides which discovered candidates may go on to controlled acquisition (Step 118). A URL that passes these checks is only
 eligible to be fetched: authenticity stays NOT_ESTABLISHED, because nothing has been downloaded or hashed. Tax year, publication
@@ -32,7 +32,7 @@ CURRICULUM = AUTONOMOUS / "config/authoritative_research_curriculum.json"
 REPORT = AUTONOMOUS / "reports/research_verification_latest.json"
 DECISIONS = AUTONOMOUS / "config/candidate_decisions.json"
 STATE = AUTONOMOUS / "state"
-PROTECTED = ("ophir_semantic_memory.sqlite3", "learning_staging.sqlite3", "learning_extraction.sqlite3", "learning_embeddings.sqlite3")
+PROTECTED = ("taxguard_semantic_memory.sqlite3", "learning_staging.sqlite3", "learning_extraction.sqlite3", "learning_embeddings.sqlite3")
 
 # Fixed here on purpose: discovery output can never add a host. Each host may serve documents only under these paths.
 SOURCES = {
@@ -202,7 +202,7 @@ def probe_url(url, resolver=_public_addresses, opener=None, timeout=20):
         return {"outcome": "DNS_REFUSED"}
     if opener is None:
         opener = urllib.request.build_opener(_NoRedirect, urllib.request.HTTPSHandler(context=ssl.create_default_context()))
-    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "OPHIR-Research-Verification/1.0", "Accept": "application/pdf"})
+    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "TaxGuardAI-Research-Verification/1.0", "Accept": "application/pdf"})
     try:
         with opener.open(request, timeout=timeout) as response:
             headers = response.headers
@@ -220,7 +220,7 @@ def existing_versions(state_dir=STATE):
     """url -> recorded hashes, read-only. An unreadable database is reported rather than treated as having no versions."""
     versions, problems = {}, []
     for database, table, url_column, hash_column in (("learning_staging.sqlite3", "discovered_documents", "source_url", "sha256"),
-                                                     ("ophir_semantic_memory.sqlite3", "knowledge_chunks", "source_url", "source_sha256")):
+                                                     ("taxguard_semantic_memory.sqlite3", "knowledge_chunks", "source_url", "source_sha256")):
         path = Path(state_dir) / database
         try:
             connection = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)

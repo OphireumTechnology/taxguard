@@ -41,7 +41,7 @@ def build(directory):
     evaluation.execute("INSERT INTO document_evaluations VALUES('20261102T170315Z','HOLD',?)", (json.dumps(checks[0]),))
     evaluation.commit()
     evaluation.close()
-    memory = sqlite3.connect(state / "ophir_semantic_memory.sqlite3")
+    memory = sqlite3.connect(state / "taxguard_semantic_memory.sqlite3")
     memory.executescript("CREATE TABLE knowledge_chunks(approval_status TEXT); INSERT INTO knowledge_chunks VALUES('PENDING_REVIEW'),('PENDING_REVIEW'),('APPROVED'),('REJECTED');")
     memory.commit()
     memory.close()

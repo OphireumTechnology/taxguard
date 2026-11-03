@@ -2,15 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GovernanceError } from '../server/ai/governance/contracts';
 import { ProviderNotSentError, type ProviderRequest } from '../server/ai/gateway/contracts';
 import { COUNTS_REVIEW_SCHEMA } from '../server/ai/gateway/structuredOutput';
-import { localEndpoint, LocalOllamaProviderAdapter, processorOf, readLocalRuntimeStatus } from '../server/ai/gateway/LocalOllamaProviderAdapter';
+import { localEndpoint, LocalInferenceProviderAdapter, processorOf, readLocalRuntimeStatus } from '../server/ai/gateway/LocalInferenceProviderAdapter';
 
 // The local inference adapter with an injected transport. Nothing here reaches a runtime; the live checks are opt-in in
-// localOllamaLive.test.ts. Synthetic values only.
+// localInferenceLive.test.ts. Synthetic values only.
 const request: ProviderRequest = { model: 'synthetic-model:1', instructions: 'Synthetic instructions.', schema: COUNTS_REVIEW_SCHEMA as any,
   input: { purpose: 'IDENTIFY_REVIEW_QUESTIONS' as any, taxYear: 2025, evidenceCount: 2 }, max_output_tokens: 64 };
 const reply = (over: Record<string, unknown> = {}, status = 200) => new Response(JSON.stringify({ done: true, done_reason: 'stop', prompt_eval_count: 11, eval_count: 7,
   message: { role: 'assistant', content: '{"status":"ADVISORY"}' }, ...over }), { status });
-const adapter = (fetchImpl: any, maxConcurrent?: number) => new LocalOllamaProviderAdapter({ fetchImpl, maxConcurrent });
+const adapter = (fetchImpl: any, maxConcurrent?: number) => new LocalInferenceProviderAdapter({ fetchImpl, maxConcurrent });
 const signal = () => new AbortController().signal;
 const code = async (work: Promise<unknown>) => work.then(() => 'NO_ERROR', e => e?.code ?? e?.message);
 afterEach(() => { vi.unstubAllEnvs(); });
