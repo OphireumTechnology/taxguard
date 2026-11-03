@@ -6378,6 +6378,21 @@
       ]
     },
     {
+      "file": "docs/development/TAXGUARD_AI_MASTER_DEVELOPMENT_DIRECTIVE.md",
+      "sha256": "cfc15d425b949097420ffa695c5d0b65ce251b8eb0b4ed163b2859df8215e387",
+      "bytes": 4763,
+      "headings": [
+        "# TaxGuard AI master development directive",
+        "## Scope",
+        "## Project isolation",
+        "## Rules that never bend",
+        "## Identity and truthful claims",
+        "## Research sources",
+        "## Development workflow",
+        "## Current priorities"
+      ]
+    },
+    {
       "file": "docs/development/TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md",
       "sha256": "f1657dce96a96267eeb0cc5cd775d3494877765fab275a2923b5046929548a07",
       "bytes": 21905,
