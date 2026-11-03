@@ -18,9 +18,13 @@ describe('OPHIR source tracking', () => {
 
   it('tracks exactly the reviewed source', () => {
     const files = tracked();
-    expect(files.length).toBe(18);
+    expect(files.length).toBe(22);
     for (const file of files) expect(ignored(file), file).toBe(false);
     expect(files).toContain('local-ai/rag/autonomous/scripts/evaluate_knowledge.py');
+    expect(files).toContain('local-ai/rag/autonomous/scripts/compare_retrieval.py');
+    expect(files).toContain('local-ai/rag/autonomous/tests/test_compare_retrieval.py');
+    expect(files).toContain('local-ai/rag/autonomous/tests/mutate_compare_retrieval.py');
+    expect(files).toContain('local-ai/rag/autonomous/config/retrieval_heldout_set.json');
     expect(files).toContain('local-ai/rag/autonomous/config/policy.example.json');
   });
 

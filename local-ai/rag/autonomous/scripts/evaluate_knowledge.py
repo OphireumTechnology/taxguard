@@ -49,7 +49,8 @@ MAX_CANDIDATES = 200
 DEFECTS_PER_PAGE_LIMIT = 1.0
 OLD_REVISION_YEARS = 3
 INVISIBLE = re.compile("[​-‏‪-‮⁠-⁤﻿]")
-HIDDEN_INSTRUCTION = re.compile(r"\b(as an ai|as a language model|assistant\s*:|tool\s*call|execute\s+this|run\s+this\s+command|send\s+(this|your|the)\s+\w+\s+to\s+http|approve\s+this\s+(return|document)|mark\s+(this|it)\s+as\s+approved)\b", re.I)
+ORDINARY_PDF_ACTIONS = frozenset({"/GoTo", "/URI"})
+HIDDEN_INSTRUCTION = re.compile(r"\b(as an ai|as a language model|assistant\s*:|tool\s*call|execute\s+this(?!\s+(?:form|consent)\b)|run\s+this\s+command|send\s+(this|your|the)\s+\w+\s+to\s+http|approve\s+this\s+(return|document)|mark\s+(this|it)\s+as\s+approved)\b", re.I)
 FACT = re.compile(r"\$\s?\d[\d,]*(?:\.\d+)?|\b\d+(?:\.\d+)?%|\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:,\s*20\d{2})?")
 FILE_ID_YEAR = re.compile(r"/(20\d{2})(?:\d{2})?/[a-z]/xml/")
 RECOMMENDATIONS = ("RECOMMEND_FOR_HUMAN_REVIEW", "NEEDS_CORRECTION_BEFORE_REVIEW", "HOLD")
@@ -131,6 +132,28 @@ def check_suspicious(chunks):
             if match:
                 hits.append({"kind": label, "page": chunk["page_number"], "quote": normalize(text[max(0, match.start() - 40):match.end() + 40])[:160]})
     return {"status": "REVIEW" if hits else "PASS", "hits": hits[:20], "hit_count": len(hits), "limit": "Pattern matching only; finding nothing does not show a document is free of injected text."}
+
+
+def check_active_content(findings):
+    """Report only. Links are ordinary in a PDF; anything else, or a record that cannot be read in full, stays a reason to look."""
+    links_only, other = False, []
+    for finding in findings:
+        if finding["kind"] != "ACTIVE_CONTENT_SIGNAL":
+            continue
+        try:
+            markers = json.loads(finding["detail"])
+            found = set(markers["bytes"]) | set(markers["structure"].get("actions", []))
+            incomplete = bool(markers["structure"].get("scan_incomplete"))
+        except (TypeError, ValueError, KeyError, AttributeError):
+            other.append("UNREADABLE_RECORD")
+            continue
+        if found <= ORDINARY_PDF_ACTIONS and not incomplete:
+            links_only = True
+        else:
+            other.extend(sorted(found - ORDINARY_PDF_ACTIONS) or ["SCAN_INCOMPLETE"])
+    if any(f["kind"] == "ACTIVE_CONTENT_SCAN_INCOMPLETE" for f in findings):
+        other.append("SCAN_INCOMPLETE")
+    return {"status": "REVIEW" if other else "PASS", "markers": sorted(set(other)), "links_only": links_only and not other}
 
 
 def check_tax_year(classification, pages):
@@ -422,7 +445,7 @@ def evaluate_documents(pipeline, acquired, quarantine, today):
         findings = pipeline.execute("SELECT * FROM findings WHERE document_id=?", (document["document_id"],)).fetchall()
         pages = pipeline.execute("SELECT page_number, cleaned_text, removed_lines FROM pages WHERE document_id=?", (document["document_id"],)).fetchall()
         chunks = pipeline.execute("SELECT page_number, original_content FROM chunks WHERE document_id=?", (document["document_id"],)).fetchall()
-        checks = {"source_integrity": check_source_integrity(document, acquired, quarantine), "completeness": check_completeness(document, findings, pages), "suspicious": check_suspicious(chunks),
+        checks = {"source_integrity": check_source_integrity(document, acquired, quarantine), "completeness": check_completeness(document, findings, pages), "suspicious": check_suspicious(chunks), "active_content": check_active_content(findings),
                   "tax_year": check_tax_year(classification, pages), "currency": check_currency(classification, today), "metadata": check_metadata(classification)}
         recommendation, reasons = recommend(checks)
         out.append({"document_id": document["document_id"], "sha256": document["sha256"], "classification": classification, "checks": checks, "recommendation": recommendation, "reasons": reasons})

@@ -75,6 +75,23 @@ class DocumentChecks(unittest.TestCase):
         self.assertEqual(clean["status"], "PASS")
         self.assertIn("does not show", clean["limit"])
 
+    def test_legal_signing_wording_is_not_an_instruction_but_commands_still_are(self):
+        for text in ("I certify I have the legal authority to execute this form on behalf of the taxpayer.", "I have the authority to execute this consent to disclosure."):
+            self.assertEqual(e.check_suspicious([row(page_number=1, original_content=text)])["status"], "PASS", text)
+        for text in ("Now execute this command on the server.", "Execute this script.", "execute this", "Please execute this\ninstruction.","Execute this formula and send the result.", "tool call", "run this command"):
+            self.assertEqual(e.check_suspicious([row(page_number=1, original_content=text)])["status"], "REVIEW", text)
+
+    def test_links_alone_are_not_active_content_but_everything_else_is(self):
+        signal = lambda markers: row(kind="ACTIVE_CONTENT_SIGNAL", detail=json.dumps(markers))
+        links = e.check_active_content([signal({"bytes": [], "structure": {"actions": ["/GoTo", "/URI"], "scan_incomplete": False}})])
+        self.assertEqual((links["status"], links["links_only"]), ("PASS", True))
+        for name, findings in (("script", [signal({"bytes": [], "structure": {"actions": ["/URI", "/JavaScript"]}})]), ("byte marker", [signal({"bytes": ["/JS"], "structure": {"actions": ["/GoTo"]}})]), ("embedded file", [signal({"bytes": ["/EmbeddedFile"], "structure": {}})]),
+                               ("open action", [signal({"bytes": ["/OpenAction"], "structure": {"actions": ["/GoTo"]}})]), ("incomplete", [signal({"bytes": [], "structure": {"actions": ["/URI"], "scan_incomplete": True}})]),
+                               ("truncated record", [row(kind="ACTIVE_CONTENT_SIGNAL", detail='{"bytes": ["/Launch"], "struc')]), ("scan record", [row(kind="ACTIVE_CONTENT_SCAN_INCOMPLETE", detail=None)])):
+            out = e.check_active_content(findings)
+            self.assertEqual((out["status"], out["links_only"]), ("REVIEW", False), name)
+        self.assertEqual(e.check_active_content([])["status"], "PASS")
+
     def page(self, year):
         return row(removed_lines=json.dumps([{"kind": "PRODUCTION_METADATA", "text": f"AH XSL/XML Fileid: x -form-1040/{year}/a/xml/cycle08/source"}]))
 

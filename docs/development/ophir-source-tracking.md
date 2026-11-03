@@ -7,9 +7,9 @@ downloads stays on the machine.
 
 An explicit allowlist in `.gitignore`, enforced by `src/tests/ophirSourceTracking.test.ts`:
 
-- Steps 116 to 120: `research_discovery.py`, `verify_research_candidates.py`, `acquire_verified_documents.py`, `process_knowledge.py`, `evaluate_knowledge.py`.
+- Steps 116 to 120: `research_discovery.py`, `verify_research_candidates.py`, `acquire_verified_documents.py`, `process_knowledge.py`, `evaluate_knowledge.py`, and `compare_retrieval.py`, which compares retrieval methods.
 - Their tests and mutation runners.
-- Configuration: the curriculum, owner candidate decisions, the retrieval question set, and `policy.example.json`, a template of the live `policy.json` without its local path.
+- Configuration: the curriculum, owner candidate decisions, the two retrieval question sets, and `policy.example.json`, a template of the live `policy.json` without its local path.
 
 ## Never tracked
 
@@ -21,7 +21,7 @@ The other scripts in `autonomous/scripts`, including `admin_authorization.py`, `
 
 ## Running the tests
 
-From `local-ai/rag/autonomous`, using the environment that has `numpy` and `pypdf`:
+From `local-ai/rag/autonomous`, using the environment that has `numpy`, `pypdf` and `rank-bm25`:
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
