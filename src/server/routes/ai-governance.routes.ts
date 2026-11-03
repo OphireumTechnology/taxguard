@@ -27,6 +27,11 @@ export function createAiGovernanceRouter(getPlane:()=>GovernanceControlPlane=get
   router.get('/control-center/evaluations',authenticateToken,readOnly((s,t)=>s.evaluations(t)));
   router.get('/control-center/local-model',authenticateToken,readOnly((s,t)=>s.localModel(t)));
   router.get('/control-center/command-center',authenticateToken,readOnly((s,t)=>s.commandCenter(t)));
+  router.get('/control-center/command-center/master-plan-image',authenticateToken,async(req:AuthenticatedRequest,res:any)=>{
+    res.setHeader('Cache-Control','no-store');
+    try { const image=await getControlCenter().masterPlanImage(req.token??''); res.setHeader('Content-Type','image/png'); res.setHeader('X-Content-Type-Options','nosniff'); res.send(image); }
+    catch(error) { const known=error instanceof GovernanceError; res.status(known?error.status:503).json({code:known?error.code:'AI_CONTROL_CENTER_UNAVAILABLE'}); }
+  });
   router.post('/evaluate',authenticateToken,async(req:AuthenticatedRequest,res)=>{
     res.setHeader('Cache-Control','no-store');
     try {

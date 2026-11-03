@@ -5443,6 +5443,19 @@
       ]
     },
     {
+      "file": "docs/development/compliance-claims-review.md",
+      "sha256": "eb87875e851a2385bea415330ffa1831de433edae67b44a4aae4b02947fde5c2",
+      "bytes": 3313,
+      "headings": [
+        "# Compliance claims review",
+        "## Result",
+        "## Why the wording matters",
+        "## Flagged claims, most serious first",
+        "## Related statements, not counted as claims",
+        "## What is needed"
+      ]
+    },
+    {
       "file": "docs/development/document-requests.md",
       "sha256": "ab6daab3682b5614a9d0bc35fb9ab28223a1e6c629c64e056425056644db8ddb",
       "bytes": 4538,
@@ -6399,8 +6412,8 @@
     },
     {
       "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "fc254f3f1943623d9239faa56738b7dec1fbc456ee2a18254b78c69cb6fd3444",
-      "bytes": 45612,
+      "sha256": "1d4dae72df64124af33b3c849029fcf76fc01581d166971b82d53b0dd1bd2973",
+      "bytes": 46138,
       "headings": [
         "# TaxGuard AI master completion status",
         "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
@@ -8240,7 +8253,7 @@
     "src/server/ai/documents/DocumentDuplicateAdvisory.ts": "70a562e16382f8c3d2cff8340b2d67cfb0af47b85ff827c42c117f2f590b4919",
     "src/server/ai/gateway/GovernedAIGateway.ts": "3103821196b5eeee41e3d2d427cca1edcc38e3e7388bfbab99d1e9ec3e00fc1c",
     "src/server/ai/gateway/structuredOutput.ts": "843474d91d33fd46c35f5611db6238857609e79a4460345c3bd052a71d5e3efa",
-    "src/server/ai/governance/ControlCenterReadService.ts": "51a7154cfc6fc7468c5c6b89f57c668f726100662fda98cc1db0ef734be7c6cb",
+    "src/server/ai/governance/ControlCenterReadService.ts": "c78e25c05f4fc79a1c6f7a4ec9b1df981b6a1af0c3818f739dfaa16e4efa6b59",
     "src/server/ai/governance/GovernanceControlPlane.ts": "54a1b29d3cefc5010d5d65a80aa1e7ac9e8a959f2c9d5c79deec0b849a10114a",
     "src/server/ai/ledger/ExecutionLedgerService.ts": "877c96b3c13a85f487aa0e065a3920e54df3b6774e3d42435c36c4690def3305",
     "src/server/ai/orchestration/A00Orchestrator.ts": "9d63b273e979e7efbd9d4ed2a517599eeb8d0513ffbbe49a2b8b3f59cb85cf7f",
@@ -8292,7 +8305,7 @@
     "src/server/taxguard/stageTwelveServerGate.ts": "efe0616bd2544b52ff8e04dacd7200e63f9e822183c75c640419964d9d26ebb5",
     "src/server/taxguard/stageTwoServerGate.ts": "810661f400800123896cd0e6a0ebcfc2857c8301cb77e4ccfbccd4130bf744da",
     "src/server/taxguard/transactionalDatabase.ts": "278c78abbaae208975c02ca38156c3f68a915a1b5e0a1c82e35fcba0c5696c97",
-    "src/services/api.ts": "887422b96d37b55e8e77fd42f0a5d42a9d24584ea1d7a5dc7afcfab54de89712",
+    "src/services/api.ts": "d9bcc00d3a4f79d9e3cb717552414df570f99ad986c5e8c41ad33eda536ba555",
     "src/services/clearLegacyWorkflowHints.ts": "0a8c71eb1be5c6070e6118fe1d3468f24238c12e30bd424393ca10573786a416",
     "src/supabase/clientMfa.ts": "6c4048119e5627301581780e947bd4fe4b66f7c8ecb824020cfaf3c2c70bce37",
     "src/taxguard/calculation/TaxCalculationContract.ts": "f141423cd4bd088618cdd64b6ea76956666db74d3e56621ac2aa93d424a7e863",

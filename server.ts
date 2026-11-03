@@ -854,6 +854,13 @@ async function startServer() {
           'spa'
       });
 
+    // The development server can serve any file in the repository. Reference designs stay private, as they are in production.
+    app.use((req, res, next) => {
+      let requested = req.originalUrl;
+      try { requested = decodeURIComponent(requested); } catch { /* the raw form is checked below */ }
+      if (/design-reference/i.test(requested)) { res.sendStatus(404); return; }
+      next();
+    });
     app.use(
       vite.middlewares
     );

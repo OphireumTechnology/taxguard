@@ -243,6 +243,9 @@ Audits completed in this cycle (documents):
   Governance figures are read from the database. Knowledge figures come from a counts-only status file written by `knowledge_status_export.py` (path from `AI_KNOWLEDGE_STATUS_FILE`, or the default under
   `local-ai`), rebuilt field by field by the server; anything unexpected reports the status as unavailable. Module and lifecycle statuses cite repository evidence, and a test checks each path. It has
   no write action, and nothing here is deployed. Also adds the research source registry and tax-year rules (Steps 121.02 and 121.04). Without a governance database the page fails closed.
+- **Private access, reference image, sources and claims (Block 109).** The owner's master-plan image is served only through an authenticated, role-checked endpoint, never from a public folder.
+  Staging research sources updated to the owner's approval of 2026-11-03; only IRS, NIST and Treasury can be fetched today. Compliance and authorization claims on the website are recorded in
+  `compliance-claims-review.md` and must be substantiated, corrected or removed before public deployment; a test keeps the register complete.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

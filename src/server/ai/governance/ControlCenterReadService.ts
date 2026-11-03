@@ -1,7 +1,9 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { AI_BRAND } from '../../../config/aiBranding';
 import { readLocalRuntimeStatus } from '../gateway/LocalOllamaProviderAdapter';
 import { LOCAL_MODEL_ID, LOCAL_MODEL_PROVENANCE } from '../localModelProvenance';
-import { COMMAND_CENTER_LIFECYCLE, COMMAND_CENTER_MODULES, COMMAND_CENTER_SECTIONS } from '../commandCenter/commandCenterManifest';
+import { COMMAND_CENTER_LIFECYCLE, COMMAND_CENTER_MODULES, COMMAND_CENTER_SECTIONS, MASTER_PLAN_IMAGE } from '../commandCenter/commandCenterManifest';
 import { readKnowledgeStatus, type KnowledgeStatusResult } from '../commandCenter/knowledgeStatus';
 import { findCanonicalAgent } from '../../../ai/registry';
 import type { SessionAuthority, VerifiedIdentity } from './contracts';
@@ -153,6 +155,13 @@ export class ControlCenterReadService {
         : { status: 'UNAVAILABLE' as const }).catch(() => ({ status: 'UNAVAILABLE' as const })),
     ]);
     return { checked_at: new Date().toISOString(), sections: COMMAND_CENTER_SECTIONS, modules: COMMAND_CENTER_MODULES, lifecycle: COMMAND_CENTER_LIFECYCLE, governance, knowledge, inference };
+  }
+
+  /** The owner's master-plan image. It is served only here, after the role check, and never from a public folder. */
+  async masterPlanImage(token: string): Promise<Buffer> {
+    await this.read(token, async () => true);
+    try { return await fs.readFile(path.resolve(process.cwd(), MASTER_PLAN_IMAGE)); }
+    catch { return deny('AI_COMMAND_CENTER_IMAGE_UNAVAILABLE', 404); }
   }
 
   /**

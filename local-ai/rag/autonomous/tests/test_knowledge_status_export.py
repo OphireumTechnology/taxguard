@@ -84,7 +84,7 @@ class Export(unittest.TestCase):
 
     def test_source_coverage_reports_gaps(self):
         out = self.status()["sources"]
-        self.assertEqual(out["active"], 3)
+        self.assertEqual((out["active"], out["approved_not_enabled"], out["proposed"]), (4, 3, 2))
         self.assertIn("IRS_P17", out["named_missing"])
         self.assertNotIn("IRS_P1345", out["named_missing"])
 

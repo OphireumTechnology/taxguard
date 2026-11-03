@@ -42,7 +42,7 @@ export function parseKnowledgeStatus(raw: unknown) {
   const runId = evaluation.run_id === null ? null : typeof evaluation.run_id === 'string' && RUN_ID.test(evaluation.run_id) ? evaluation.run_id : fail();
   return {
     generated_utc: timestamp(source.generated_utc),
-    sources: { ...counts(sources, ['registered', 'active', 'proposed', 'blocked', 'named_total', 'named_staged']), named_missing: ids(sources.named_missing), categories_without_documents: ids(sources.categories_without_documents) },
+    sources: { ...counts(sources, ['registered', 'active', 'approved_not_enabled', 'proposed', 'blocked', 'named_total', 'named_staged']), named_missing: ids(sources.named_missing), categories_without_documents: ids(sources.categories_without_documents) },
     discovery: counts(source.discovery, ['candidates_checked', 'verified', 'rejected']),
     quarantine: counts(source.quarantine, ['documents', 'approved']),
     extraction: counts(source.extraction, ['documents', 'pages', 'findings', 'defect_findings']),

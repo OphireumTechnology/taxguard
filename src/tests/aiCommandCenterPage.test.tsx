@@ -10,7 +10,7 @@ import { COMMAND_CENTER_LIFECYCLE, COMMAND_CENTER_MODULES, COMMAND_CENTER_SECTIO
 // in src/tests-e2e/19-ai-command-center.e2e.test.ts.
 const side = { document_recall_at_1: 8, document_recall_at_3: 13, document_recall_at_5: 15, passage_recall_at_1: 1, passage_recall_at_3: 5, passage_recall_at_5: 6, cited_evidence_passage: 9, answered_without_evidence: 8, invented_citations: 0, correctly_refused: 9, search_median_ms: 1.16 };
 const snapshot = {
-  generated_utc: '2026-11-03T03:46:38.000Z', sources: { registered: 11, active: 3, proposed: 6, blocked: 2, named_total: 7, named_staged: 4, named_missing: ['IRS_P17'], categories_without_documents: ['ACCOUNTING'] },
+  generated_utc: '2026-11-03T03:46:38.000Z', sources: { registered: 11, active: 4, approved_not_enabled: 3, proposed: 2, blocked: 2, named_total: 7, named_staged: 4, named_missing: ['IRS_P17'], categories_without_documents: ['ACCOUNTING'] },
   discovery: { candidates_checked: 73, verified: 44, rejected: 0 }, quarantine: { documents: 38, approved: 0 }, extraction: { documents: 38, pages: 1258, findings: 1079, defect_findings: 542 }, chunks: { total: 3751, held_from_embedding: 0, embeddings: 3658 },
   review: { queue_awaiting: 104, staging: { pending: 3751, approved: 0, rejected: 0 }, production: { pending: 1488, approved: 0, rejected: 0, superseded: 0 } }, evaluation: { run_id: '20261103T025825Z', recommend_for_human_review: 34, needs_correction: 4, hold: 0 },
   comparison: { outcome: 'RETAIN_BASELINE', questions: 21, refusal_items: 10, baseline: side, improved: { ...side, passage_recall_at_5: 2 }, generated_utc: '2026-11-03T02:57:41.000Z' },
@@ -69,6 +69,13 @@ describe('AI Command Center page', () => {
     const html = show('architecture');
     for (const section of COMMAND_CENTER_SECTIONS) expect(html).toContain(section.name);
     for (const m of COMMAND_CENTER_MODULES) expect(text(html)).toContain(m.name.replace(/&/g, '&amp;'));
+  });
+
+  it('offers the reference image only on request, and says it is not a record of what exists', () => {
+    const html = show('architecture');
+    expect(html).toContain('Show the master plan reference image');
+    expect(html).not.toContain('<img');
+    expect(show('knowledge')).not.toContain('reference image');
   });
 
   it('collapses a module until it is opened, using a real button', () => {

@@ -98,6 +98,50 @@ describe('authorization', () => {
   });
 });
 
+describe('the private reference image', () => {
+  const IMAGE = ENDPOINT + '/master-plan-image';
+  const fetchImage = (token: string | null) => fetch(ORIGIN + IMAGE, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+
+  it('reaches only a governance role, as a PNG that is not stored', async () => {
+    const allowed = await fetchImage(tokens[ADMIN]);
+    expect(allowed.status).toBe(200);
+    expect(allowed.headers.get('content-type')).toContain('image/png');
+    expect(allowed.headers.get('cache-control')).toBe('no-store');
+    expect(Buffer.from(await allowed.arrayBuffer()).subarray(1, 4).toString()).toBe('PNG');
+    expect((await fetchImage(null)).status).toBe(401);
+    expect((await fetchImage(tokens[ACCOUNTANT])).status).toBe(403);
+    expect((await fetchImage(tokens[REVIEWER])).status).toBe(403);
+  });
+
+  it('is not served as a public file', async () => {
+    const file = 'taxguard-ai-web-development-master-plan.png';
+    const onDisk = path.resolve('design-reference', file).replace(/\\/g, '/');
+    for (const url of [`/design-reference/${file}`, `/${file}`, `/assets/${file}`, `/DESIGN-REFERENCE/${file}`, `/%64esign-reference/${file}`, `/design-reference%2F${file}`, `/@fs/${onDisk}`, `/design-reference/dashboard-masterplan.png`]) {
+      const response = await fetch(ORIGIN + url);
+      expect(response.headers.get('content-type') ?? '', url).not.toContain('image/');
+    }
+  });
+
+  it('loads on the page only when asked for', async () => {
+    const s = await adminOnCenter();
+    expect(s.api.filter(r => r.path.endsWith('/master-plan-image'))).toEqual([]);
+    await s.page.getByRole('button', { name: 'Show the master plan reference image' }).click();
+    const image = s.page.getByRole('img', { name: /Web Development Master Plan/ });
+    await image.waitFor();
+    expect(await image.evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await shot(s, 'master-plan-image-desktop');
+    await s.page.getByRole('button', { name: 'Hide the master plan reference image' }).click();
+    expect(await s.page.getByRole('img', { name: /Web Development Master Plan/ }).count()).toBe(0);
+    await s.context.close();
+  });
+
+  it('asks search engines not to index the page', async () => {
+    const s = await adminOnCenter();
+    expect(await s.page.locator('meta[name="robots"]').getAttribute('content')).toBe('noindex, nofollow');
+    await s.context.close();
+  });
+});
+
 describe('the page', () => {
   it('opens from the address with governance figures read from the database', async () => {
     const s = await adminOnCenter();

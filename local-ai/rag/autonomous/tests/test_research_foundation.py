@@ -14,7 +14,7 @@ REAL = s.load()
 
 
 def source(**changes):
-    return {"id": "X", "publisher": "P", "category": "C", "authority_class": "A", "hosts": ["docs.example.gov"], "document_paths": ["/docs/"], "status": "ACTIVE", "access": "OPEN_PUBLIC", "notes": "", **changes}
+    return {"id": "X", "publisher": "P", "category": "C", "authority_class": "A", "hosts": ["docs.example.gov"], "document_paths": ["/docs/"], "status": "ACTIVE", "access": "OPEN_PUBLIC", "owner_approved_on": "2026-11-03", "notes": "", **changes}
 
 
 def registry(*sources):
@@ -40,6 +40,9 @@ class Validation(unittest.TestCase):
         self.assertRefused("BAD_HOST", registry(source(hosts=["*.example.gov"])))
         self.assertRefused("BAD_HOST", registry(source(hosts=["Docs.Example.gov"])))
         self.assertRefused("UNKNOWN_STATE", registry(source(status="APPROVED")))
+        self.assertRefused("NO_OWNER_APPROVAL", registry(source(owner_approved_on=None)))
+        self.assertRefused("NO_OWNER_APPROVAL", registry(source(status="APPROVED_NOT_ENABLED", access="ACCESS_TERMS_UNVERIFIED", document_paths=[], owner_approved_on=None)))
+        self.assertRefused("INACTIVE_SOURCE_HAS_PATHS", registry(source(status="APPROVED_NOT_ENABLED", access="ACCESS_TERMS_UNVERIFIED")))
         self.assertRefused("DUPLICATE_SOURCE", registry(source(), source(hosts=["other.example.gov"])))
         self.assertRefused("HOST_LISTED_TWICE", registry(source(), source(id="Y")))
 
@@ -56,8 +59,10 @@ class Validation(unittest.TestCase):
                 self.assertIn(host, SOURCES)
                 self.assertLessEqual(set(item["document_paths"]), set(SOURCES[host]["document_paths"]), host)
 
-    def test_only_three_sources_are_active(self):
-        self.assertEqual(sorted(x["id"] for x in REAL["sources"] if x["status"] == "ACTIVE"), ["IRS", "NIST_PUBS", "NIST_SITE"])
+    def test_only_owner_approved_sources_are_active(self):
+        self.assertEqual(sorted(x["id"] for x in REAL["sources"] if x["status"] == "ACTIVE"), ["IRS", "NIST_PUBS", "NIST_SITE", "TREASURY"])
+        self.assertEqual(sorted(x["id"] for x in REAL["sources"] if x["status"] == "APPROVED_NOT_ENABLED"), ["ECFR", "NIST_CSRC", "SEC"])
+        self.assertEqual(sorted(x["id"] for x in REAL["sources"] if x["status"] == "PROPOSED"), ["US_CODE", "US_TAX_COURT"])
 
     def test_ranking_is_not_claimed(self):
         self.assertIn("not a ranking", REAL["authority_class_note"])
@@ -71,12 +76,13 @@ class FetchDecision(unittest.TestCase):
     def test_allowed(self):
         self.assertEqual(self.decide("https://www.irs.gov/pub/irs-pdf/p17.pdf"), (True, "ALLOWED"))
         self.assertEqual(self.decide("https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf"), (True, "ALLOWED"))
+        self.assertEqual(self.decide("https://home.treasury.gov/system/files/131/x.pdf"), (True, "ALLOWED"))
 
     def test_refused_with_a_reason(self):
         for url, code in (("http://www.irs.gov/pub/irs-pdf/p17.pdf", "NOT_HTTPS"), ("https://www.irs.gov/newsroom", "PATH_NOT_ALLOWED"), ("https://irs.gov/pub/irs-pdf/p17.pdf", "HOST_NOT_IN_REGISTRY"),
                           ("https://www.irs.gov.evil.example/pub/irs-pdf/p17.pdf", "HOST_NOT_IN_REGISTRY"), ("https://evil.www.irs.gov/pub/irs-pdf/p17.pdf", "HOST_NOT_IN_REGISTRY"), ("https://user@www.irs.gov/pub/irs-pdf/p17.pdf", "UNUSUAL_URL_AUTHORITY"),
                           ("https://www.irs.gov:8443/pub/irs-pdf/p17.pdf", "UNUSUAL_URL_AUTHORITY"), ("https://www.irs.gov/pub/irs-pdf/../../secret", "PATH_TRAVERSAL"), ("https://www.irs.gov/pub/irs-pdf/%2e%2e/%2e%2e/secret", "PATH_TRAVERSAL"),
-                          ("https://www.fasb.org/page/x", "LICENSE_REQUIRED"), ("https://www.sec.gov/files/x.pdf", "SOURCE_NOT_ACTIVE"), ("https://www.ecfr.gov/current/title-26", "SOURCE_NOT_ACTIVE"), ("https://www.ustaxcourt.gov/x.pdf", "SOURCE_NOT_ACTIVE"),
+                          ("https://www.fasb.org/page/x", "LICENSE_REQUIRED"), ("https://www.sec.gov/files/x.pdf", "SOURCE_NOT_ACTIVE"), ("https://www.ecfr.gov/current/title-26", "SOURCE_NOT_ACTIVE"), ("https://www.ustaxcourt.gov/x.pdf", "SOURCE_NOT_ACTIVE"), ("https://home.treasury.gov/news/press-releases/x", "PATH_NOT_ALLOWED"), ("https://uscode.house.gov/x.pdf", "SOURCE_NOT_ACTIVE"),
                           ("https://[bad/x", "MALFORMED_URL"), ("https://www.irs.gov:notaport/pub/irs-pdf/x.pdf", "MALFORMED_URL"), ("ftp://www.irs.gov/pub/irs-pdf/p17.pdf", "NOT_HTTPS"), ("", "NOT_HTTPS")):
             self.assertEqual(self.decide(url), (False, code), url)
 

@@ -18,6 +18,7 @@ ALLOWED_HOSTS = {
     "www.irs.gov",
     "www.nist.gov",
     "nvlpubs.nist.gov",
+    "home.treasury.gov",
     "www.ecfr.gov",
     "uscode.house.gov",
     "www.fasb.org",

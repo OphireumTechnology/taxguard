@@ -44,7 +44,7 @@ def _status_counts(connection, table, column):
 def registry_section(registry, staged):
     coverage = source_registry.coverage(registry, staged)
     states = Counter(s["status"] for s in registry["sources"])
-    return {"registered": len(registry["sources"]), "active": states["ACTIVE"], "proposed": states["PROPOSED"], "blocked": states["BLOCKED"], "named_total": len(coverage["named_documents"]),
+    return {"registered": len(registry["sources"]), "active": states["ACTIVE"], "approved_not_enabled": states["APPROVED_NOT_ENABLED"], "proposed": states["PROPOSED"], "blocked": states["BLOCKED"], "named_total": len(coverage["named_documents"]),
             "named_staged": sum(1 for d in coverage["named_documents"] if d["staged"]), "named_missing": coverage["named_missing"], "categories_without_documents": coverage["categories_without_staged_documents"]}
 
 

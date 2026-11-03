@@ -16,6 +16,10 @@ describe('without a governance database', () => {
     expect(await response.text()).not.toMatch(/modules|lifecycle|snapshot/);
   });
 
+  it('refuses the private reference image without a session', async () => {
+    expect((await fetch(ORIGIN + ENDPOINT + '/master-plan-image')).status).toBe(401);
+  });
+
   it('answers unavailable to an administrator, with no figures', async () => {
     const response = await api(await apiLogin('e2e-admin'), 'GET', ENDPOINT);
     expect(response.status).toBe(503);

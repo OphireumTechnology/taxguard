@@ -868,6 +868,13 @@ export const api = {
       const suffix = params.toString() ? `?${params.toString()}` : '';
       return request<Record<string, unknown>>(`/api/ai-governance/control-center/${view}${suffix}`, {signal});
     },
+    /** The private reference image: sent with the session, and refused like any other Control Center read. */
+    getAiCommandCenterMasterPlanImage: async (signal?: AbortSignal): Promise<Blob> => {
+      const token = getStoredToken();
+      const response = await fetch(apiEndpoint('/api/ai-governance/control-center/command-center/master-plan-image'), { signal, headers: token ? { Authorization: `Bearer ${token}`, 'x-session-token': token } : {} });
+      if (!response.ok) throw Object.assign(new Error('The reference image could not be loaded.'), { status: response.status });
+      return response.blob();
+    },
     activateAiKillSwitch: async (payload: { scope: 'GLOBAL'; reason: string } | { scope: 'AGENT'; agent_id: string; reason: string }
       | { scope: 'MODEL'; model_id: string; model_version: string; reason: string } | { scope: 'TOOL'; tool_id: string; reason: string }
       | { scope: 'WORKFLOW'; workflow_stage: number; reason: string }) => {

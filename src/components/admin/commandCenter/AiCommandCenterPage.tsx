@@ -17,7 +17,7 @@ export interface LifecycleStage { id: string; name: string; status: LifecycleSta
 type Side = Record<'document_recall_at_1' | 'document_recall_at_3' | 'document_recall_at_5' | 'passage_recall_at_1' | 'passage_recall_at_3' | 'passage_recall_at_5' | 'cited_evidence_passage' | 'answered_without_evidence' | 'invented_citations' | 'correctly_refused' | 'search_median_ms', number>;
 export interface KnowledgeSnapshot {
   generated_utc: string;
-  sources: { registered: number; active: number; proposed: number; blocked: number; named_total: number; named_staged: number; named_missing: string[]; categories_without_documents: string[] };
+  sources: { registered: number; active: number; approved_not_enabled: number; proposed: number; blocked: number; named_total: number; named_staged: number; named_missing: string[]; categories_without_documents: string[] };
   discovery: { candidates_checked: number; verified: number; rejected: number };
   quarantine: { documents: number; approved: number };
   extraction: { documents: number; pages: number; findings: number; defect_findings: number };
@@ -121,7 +121,7 @@ function KnowledgeSection({ report }: { report: CommandCenterReport }) {
   const s = report.knowledge.snapshot;
   return <div className="space-y-4">
     <p className="text-sm text-slate-700">Staging counts from the knowledge status file written {when(s.generated_utc)}. Staging only.</p>
-    <Card title="Research pipeline"><Metrics label="Research pipeline" items={[['Sources registered', s.sources.registered], ['Sources active', s.sources.active], ['Candidates checked', s.discovery.candidates_checked], ['Candidates verified', s.discovery.verified], ['Documents in quarantine', s.quarantine.documents], ['Documents extracted', s.extraction.documents], ['Pages', s.extraction.pages], ['Chunks', s.chunks.total], ['Embeddings', s.chunks.embeddings], ['Chunks held from embedding', s.chunks.held_from_embedding]]} /></Card>
+    <Card title="Research pipeline"><Metrics label="Research pipeline" items={[['Sources registered', s.sources.registered], ['Sources active', s.sources.active], ['Approved, not yet enabled', s.sources.approved_not_enabled], ['Candidates checked', s.discovery.candidates_checked], ['Candidates verified', s.discovery.verified], ['Documents in quarantine', s.quarantine.documents], ['Documents extracted', s.extraction.documents], ['Pages', s.extraction.pages], ['Chunks', s.chunks.total], ['Embeddings', s.chunks.embeddings], ['Chunks held from embedding', s.chunks.held_from_embedding]]} /></Card>
     <Card title="Human review"><Metrics label="Human review" items={[['Queue items awaiting a person', s.review.queue_awaiting], ['Staged chunks pending', s.review.staging.pending], ['Staged chunks approved', s.review.staging.approved], ['Staged chunks rejected', s.review.staging.rejected], ['Memory chunks pending', s.review.production.pending], ['Memory chunks approved', s.review.production.approved], ['Memory chunks rejected', s.review.production.rejected]]} /></Card>
     <Card title="Tax-year coverage">{s.tax_year ? <Metrics label="Tax-year coverage" items={[['Tied to a stated tax year', s.tax_year.tax_year_editions], ['Tied to a revision date', s.tax_year.revision_editions], ['Dated publications', s.tax_year.dated_publications], ['No date found', s.tax_year.undated], ['Date conflicts for review', s.tax_year.conflicts]]} /> : <Unavailable what="Tax-year coverage" />}</Card>
     <Card title="Source and quality warnings"><Metrics label="Source and quality warnings" items={[['Source integrity failures', s.warnings.integrity_failures], ['Suspicious documents', s.warnings.suspicious_documents], ['Documents with active content', s.warnings.active_content_documents], ['Extraction findings', s.extraction.findings], ['Extraction defects', s.extraction.defect_findings], ['Named documents staged', `${s.sources.named_staged} of ${s.sources.named_total}`]]} />
@@ -158,8 +158,33 @@ function GovernanceSection({ report }: { report: CommandCenterReport }) {
   return <Metrics label="AI governance" items={[['Agents recorded', sum(governance.agents_by_status)], ['Runs awaiting human review', governance.runs_by_status.REVIEW_REQUIRED ?? 0], ['Failed runs', governance.runs_by_status.FAILED ?? 0], ['Security events, last 24 hours', governance.security_events_24h], ['Global emergency stop', governance.global_stop ? 'Active' : 'Not active'], ['Active stops', governance.active_stops]]} />;
 }
 
+/** The owner's reference image, fetched with the session only when asked for. It describes the intended system, so the statuses below remain the record of what exists. */
+function MasterPlanImage() {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<{ url?: string; failed?: boolean }>({});
+  useEffect(() => {
+    if (!open) return;
+    const abort = new AbortController();
+    let url: string | undefined;
+    api.caseAuthority.getAiCommandCenterMasterPlanImage(abort.signal)
+      .then(blob => { if (abort.signal.aborted) return; url = URL.createObjectURL(blob); setState({ url }); })
+      .catch(() => { if (!abort.signal.aborted) setState({ failed: true }); });
+    return () => { abort.abort(); if (url) URL.revokeObjectURL(url); setState({}); };
+  }, [open]);
+  return <div className="space-y-2">
+    <button type="button" aria-expanded={open} onClick={() => setOpen(value => !value)} className="rounded-lg border border-[#0B1F3A] px-3 py-1.5 text-sm font-semibold text-[#0B1F3A] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-700">{open ? 'Hide' : 'Show'} the master plan reference image</button>
+    {open && <figure className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+      {state.failed ? <p role="alert" className="text-sm text-slate-900">The reference image could not be loaded.</p>
+        : state.url ? <img src={state.url} alt="TaxGuard AI Web Development Master Plan: users and roles, the web application, application services, the Knowledge Engine with human governance, the private inference service, data stores and the seven-stage development lifecycle." className="h-auto w-full" />
+        : <p role="status" className="text-sm text-slate-900">Loading the reference image…</p>}
+      <figcaption className="text-sm text-slate-700">The owner's reference design. It shows the intended system, including benefits and connections that do not exist yet. The statuses below are the record of what exists today.</figcaption>
+    </figure>}
+  </div>;
+}
+
 function Architecture({ report }: { report: CommandCenterReport }) {
   return <div className="space-y-4">
+    <MasterPlanImage />
     <p className="text-sm text-slate-700">Select a module for its description, status, evidence and approval gate. Implemented means built and tested locally. Nothing here is deployed.</p>
     <ul aria-label="Status key" className="flex flex-wrap gap-2">{(Object.keys(STATUS_LABEL) as ModuleStatus[]).map(s => <li key={s}><Badge status={s} label={`${STATUS_LABEL[s]}: ${report.modules.filter(m => m.status === s).length}`} /></li>)}</ul>
     {report.sections.map(section => <Card key={section.id} title={section.name}><p className="text-sm text-slate-700">{section.summary}</p><ModuleList section={section.id} report={report} /></Card>)}
@@ -213,6 +238,14 @@ export function CommandCenterView({ report, onRefresh, initialView = 'architectu
 
 export function AiCommandCenterPage() {
   const [state, setState] = useState<{ report?: CommandCenterReport; message?: string }>({});
+  // Private page: asks search engines not to index it, even if the address ever becomes known.
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
   const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     const abort = new AbortController();

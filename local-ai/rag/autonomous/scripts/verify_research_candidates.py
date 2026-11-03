@@ -39,6 +39,7 @@ SOURCES = {
     "www.irs.gov": {"organization": "Internal Revenue Service", "document_paths": ("/pub/irs-pdf/", "/pub/irs-prior/", "/pub/irs-drop/", "/pub/irs-irbs/")},
     "www.nist.gov": {"organization": "National Institute of Standards and Technology", "document_paths": ("/system/files/documents/",)},
     "nvlpubs.nist.gov": {"organization": "National Institute of Standards and Technology", "document_paths": ("/nistpubs/",)},
+    "home.treasury.gov": {"organization": "U.S. Department of the Treasury", "document_paths": ("/system/files/",)},
     "www.ecfr.gov": {"organization": "Electronic Code of Federal Regulations", "document_paths": ()},
     "uscode.house.gov": {"organization": "Office of the Law Revision Counsel, U.S. House of Representatives", "document_paths": ()},
     "www.fasb.org": {"organization": "Financial Accounting Standards Board", "document_paths": ()},

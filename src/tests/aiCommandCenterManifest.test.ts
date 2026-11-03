@@ -9,7 +9,7 @@ import { parseKnowledgeStatus, readKnowledgeStatus } from '../server/ai/commandC
 const side = { document_recall_at_1: 8, document_recall_at_3: 13, document_recall_at_5: 15, passage_recall_at_1: 1, passage_recall_at_3: 5, passage_recall_at_5: 6, cited_evidence_passage: 9, answered_without_evidence: 8, invented_citations: 0, correctly_refused: 9, search_median_ms: 1.16 };
 const valid = () => ({
   schema_version: 1, generated_utc: '2026-11-03T03:46:38.575249+00:00', mode: 'STAGING_ONLY',
-  sources: { registered: 11, active: 3, proposed: 6, blocked: 2, named_total: 7, named_staged: 4, named_missing: ['IRS_P17'], categories_without_documents: ['ACCOUNTING'] },
+  sources: { registered: 11, active: 4, approved_not_enabled: 3, proposed: 2, blocked: 2, named_total: 7, named_staged: 4, named_missing: ['IRS_P17'], categories_without_documents: ['ACCOUNTING'] },
   discovery: { candidates_checked: 73, verified: 44, rejected: 0 }, quarantine: { documents: 38, approved: 0 }, extraction: { documents: 38, pages: 1258, findings: 1079, defect_findings: 542 }, chunks: { total: 3751, held_from_embedding: 0, embeddings: 3658 },
   review: { queue_awaiting: 104, staging: { pending: 3751, approved: 0, rejected: 0 }, production: { pending: 1488, approved: 0, rejected: 0, superseded: 0 } },
   evaluation: { run_id: '20261103T025825Z', recommend_for_human_review: 34, needs_correction: 4, hold: 0 },

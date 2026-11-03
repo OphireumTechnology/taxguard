@@ -7,7 +7,7 @@ import urllib.parse
 from pathlib import Path
 
 REGISTRY = Path(__file__).resolve().parents[1] / "config/research_source_registry.json"
-STATUSES = {"ACTIVE", "PROPOSED", "BLOCKED"}
+STATUSES = {"ACTIVE", "APPROVED_NOT_ENABLED", "PROPOSED", "BLOCKED"}
 ACCESS = {"OPEN_PUBLIC", "ACCESS_TERMS_UNVERIFIED", "LICENSE_REQUIRED"}
 
 
@@ -27,6 +27,8 @@ def validate(registry):
         seen.add(name)
         if source["status"] not in STATUSES or source["access"] not in ACCESS:
             raise RegistryError(f"UNKNOWN_STATE:{name}")
+        if source["status"] in ("ACTIVE", "APPROVED_NOT_ENABLED") and not source.get("owner_approved_on"):
+            raise RegistryError(f"NO_OWNER_APPROVAL:{name}")
         if source["access"] == "LICENSE_REQUIRED" and source["status"] != "BLOCKED":
             raise RegistryError(f"LICENSED_SOURCE_NOT_BLOCKED:{name}")
         if source["status"] == "ACTIVE" and (source["access"] != "OPEN_PUBLIC" or not source["document_paths"] or not source["hosts"]):

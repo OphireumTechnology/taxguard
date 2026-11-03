@@ -10,6 +10,7 @@ SCRIPTS = HERE.parent / "scripts"
 TEST = "tests/test_research_foundation.py"
 MUTATIONS = {
     "source_registry.py": {
+        "approval not required": ('if source["status"] in ("ACTIVE", "APPROVED_NOT_ENABLED") and not source.get("owner_approved_on"):', 'if False:'),
         "expansion allowed": ('if registry.get("automatic_source_expansion") is not False:', 'if False:'),
         "licensed source may be open": ('if source["access"] == "LICENSE_REQUIRED" and source["status"] != "BLOCKED":', 'if False:'),
         "active source needs nothing": ('if source["status"] == "ACTIVE" and (source["access"] != "OPEN_PUBLIC" or not source["document_paths"] or not source["hosts"]):', 'if False:'),
