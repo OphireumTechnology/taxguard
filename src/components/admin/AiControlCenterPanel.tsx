@@ -111,6 +111,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
     <section aria-labelledby="ai-control-center-heading" className="space-y-4 text-xs text-slate-200">
       <header className="flex items-center justify-between">
         <h2 id="ai-control-center-heading" className="text-base font-bold text-white">AI Control Center</h2>
+        <a href="/admin/master/ai" className="underline text-slate-200">Open AI Command Center</a>
         <button type="button" onClick={() => setRefresh(value => value + 1)} className="flex items-center gap-1 text-slate-300"><RefreshCw aria-hidden="true" className="w-3.5 h-3.5" />Refresh</button>
       </header>
       <div role="tablist" aria-label="Control center views" className="flex flex-wrap gap-2">

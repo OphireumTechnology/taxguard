@@ -239,6 +239,10 @@ Audits completed in this cycle (documents):
   are listed in `block106-white-label-references.md`.
 - **OPHIR source in Git (Block 107).** The reviewed Steps 116 to 120 source, tests and configuration templates are tracked through an explicit allowlist; documents,
   databases, models, reports, logs and identity files stay out, and a test asks Git itself. Older OPHIR scripts remain untracked until reviewed. Activates nothing. See `ophir-source-tracking.md`.
+- **AI Command Center (Block 108).** `/admin/master/ai`, read-only, for governance roles; the server re-verifies the role on every read through `GET /api/ai-governance/control-center/command-center`.
+  Governance figures are read from the database. Knowledge figures come from a counts-only status file written by `knowledge_status_export.py` (path from `AI_KNOWLEDGE_STATUS_FILE`, or the default under
+  `local-ai`), rebuilt field by field by the server; anything unexpected reports the status as unavailable. Module and lifecycle statuses cite repository evidence, and a test checks each path. It has
+  no write action, and nothing here is deployed. Also adds the research source registry and tax-year rules (Steps 121.02 and 121.04). Without a governance database the page fails closed.
 - **Draft return preparation (Block 68).** Review-only proposals `20261019115000` (approval authority: separate
   verified eligibility, function designation and case assignment under owner-approved policies; fail closed) and
   `20261019120000` (versioned return templates and return versions assembled only from current Block 67 mappings;

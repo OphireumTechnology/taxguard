@@ -77,6 +77,7 @@ export type PageRoute =
   | 'admin_dashboard'
   | 'admin_portal'
   | 'super_admin_console'
+  | 'ai_command_center'
   | 'tax_forms_library'
   | 'staff_account_security'
   | 'live_calendar'
@@ -248,6 +249,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clean === 'staff/workspace') return 'staff';
     if (clean === 'staff/login') return 'staff_login';
     if (clean === 'staff/super-admin') return 'super_admin_console';
+    if (clean === 'admin/master/ai') return 'ai_command_center';
     if (clean === 'staff/forms') return 'tax_forms_library';
     if (clean === 'staff/account-security') return 'staff_account_security';
     if (clean === 'client/login') return 'client_login';
@@ -527,6 +529,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         targetPath = '/staff/forms';
       } else if (page === 'staff_account_security') {
         targetPath = '/staff/account-security';
+      } else if (page === 'ai_command_center') {
+        targetPath = '/admin/master/ai';
       } else if (page === 'super_admin_console') {
         targetPath = '/staff/super-admin';
         if (currentPathname === '/staff/super-admin' && window.location.search) targetPath += window.location.search;

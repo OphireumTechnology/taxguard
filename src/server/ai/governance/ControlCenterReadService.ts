@@ -1,6 +1,8 @@
 import { AI_BRAND } from '../../../config/aiBranding';
 import { readLocalRuntimeStatus } from '../gateway/LocalOllamaProviderAdapter';
-import { LOCAL_MODEL_PROVENANCE } from '../localModelProvenance';
+import { LOCAL_MODEL_ID, LOCAL_MODEL_PROVENANCE } from '../localModelProvenance';
+import { COMMAND_CENTER_LIFECYCLE, COMMAND_CENTER_MODULES, COMMAND_CENTER_SECTIONS } from '../commandCenter/commandCenterManifest';
+import { readKnowledgeStatus, type KnowledgeStatusResult } from '../commandCenter/knowledgeStatus';
 import { findCanonicalAgent } from '../../../ai/registry';
 import type { SessionAuthority, VerifiedIdentity } from './contracts';
 import { GovernanceError } from './contracts';
@@ -62,7 +64,7 @@ function safeDetails(details: unknown): Record<string, string | number | boolean
 }
 
 export class ControlCenterReadService {
-  constructor(private readonly sessions: SessionAuthority, private readonly db: TransactionalSql) {}
+  constructor(private readonly sessions: SessionAuthority, private readonly db: TransactionalSql, private readonly knowledgeStatus: () => Promise<KnowledgeStatusResult> = readKnowledgeStatus, private readonly runtimeStatus: () => ReturnType<typeof readLocalRuntimeStatus> = readLocalRuntimeStatus) {}
 
   private async read<T>(token: string, work: (sql: SqlConnection, identity: VerifiedIdentity) => Promise<T>): Promise<T> {
     const identity = await verifyGovernanceIdentity(this.sessions, token);
@@ -127,6 +129,30 @@ export class ControlCenterReadService {
   async localModel(token: string) {
     await this.read(token, async () => true);
     return { branding: AI_BRAND, provenance: LOCAL_MODEL_PROVENANCE, runtime: await readLocalRuntimeStatus() };
+  }
+
+  /**
+   * The AI Command Center: the evidence-backed module list and live figures, for governance roles only. Read-only: it
+   * grants, approves and starts nothing. Each source fails on its own and is reported UNAVAILABLE rather than estimated.
+   * The inference report carries no address, version or vendor name; those stay in the restricted local-model view.
+   */
+  async commandCenter(token: string) {
+    const governance = await this.read(token, async (sql, identity) => {
+      const tenant = identity.tenant_id;
+      const grouped = (rows: { key: string; n: number }[]) => Object.fromEntries(rows.map(r => [r.key, Number(r.n)]));
+      const agents = (await sql.query<{ key: string; n: number }>('SELECT status AS key,count(*)::int AS n FROM ai_agents GROUP BY status')).rows;
+      const runs = (await sql.query<{ key: string; n: number }>('SELECT status AS key,count(*)::int AS n FROM ai_runs WHERE tenant_id=$1 GROUP BY status', [tenant])).rows;
+      const stops = (await sql.query<{ scope: string }>('SELECT scope FROM ai_kill_switches WHERE tenant_id=$1 AND enabled', [tenant])).rows;
+      const events = (await sql.query<{ n: number }>("SELECT count(*)::int AS n FROM ai_security_events WHERE tenant_id=$1 AND created_at>=now()-interval '24 hours'", [tenant])).rows;
+      return { agents_by_status: grouped(agents), runs_by_status: grouped(runs), global_stop: stops.some(s => s.scope === 'GLOBAL'), active_stops: stops.length, security_events_24h: Number(events[0]?.n ?? 0) };
+    });
+    const [knowledge, inference] = await Promise.all([
+      this.knowledgeStatus().catch((): KnowledgeStatusResult => ({ status: 'UNAVAILABLE', code: 'KNOWLEDGE_STATUS_NOT_FOUND' })),
+      this.runtimeStatus().then(runtime => runtime.status === 'AVAILABLE'
+        ? { status: 'AVAILABLE' as const, model_installed: runtime.models?.some(m => m.name === LOCAL_MODEL_ID) ?? false, model_loaded: runtime.loaded?.some(m => m.name === LOCAL_MODEL_ID) ?? false }
+        : { status: 'UNAVAILABLE' as const }).catch(() => ({ status: 'UNAVAILABLE' as const })),
+    ]);
+    return { checked_at: new Date().toISOString(), sections: COMMAND_CENTER_SECTIONS, modules: COMMAND_CENTER_MODULES, lifecycle: COMMAND_CENTER_LIFECYCLE, governance, knowledge, inference };
   }
 
   /**

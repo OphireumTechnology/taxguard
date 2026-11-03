@@ -44,6 +44,7 @@ const PracticeAdminWorkspace = lazy(() => import('./components/admin/PracticeAdm
 const TaxFormsLibrary = lazy(() => import('./components/taxForms/TaxFormsLibrary').then(m => ({ default: m.TaxFormsLibrary })));
 const StaffAccountSecurityPage = lazy(() => import('./components/auth/StaffAccountSecurityPage').then(m => ({ default: m.StaffAccountSecurityPage })));
 const SuperAdminConsole = lazy(() => import('./components/admin/SuperAdminConsole').then(m => ({ default: m.SuperAdminConsole })));
+const AiCommandCenterPage = lazy(() => import('./components/admin/commandCenter/AiCommandCenterPage').then(m => ({ default: m.AiCommandCenterPage })));
 const LiveClientWorkflowRouter = lazy(() => import('./components/workflow/LiveClientWorkflowRouter').then(m => ({ default: m.LiveClientWorkflowRouter })));
 import {
   CANONICAL_ROUTES,
@@ -218,6 +219,7 @@ const AppContent: React.FC = () => {
       'admin_dashboard',
       'admin_portal',
       'super_admin_console',
+      'ai_command_center',
       'tax_forms_library',
       'staff_account_security'
     ].includes(currentPage);
@@ -245,7 +247,7 @@ const AppContent: React.FC = () => {
         return;
       }
       // Super administrators land on their console (role verified by the server session).
-      if (isSuperAdministrator(currentUser.role) && currentPage !== 'super_admin_console' && currentPage !== 'tax_forms_library') {
+      if (isSuperAdministrator(currentUser.role) && currentPage !== 'super_admin_console' && currentPage !== 'ai_command_center' && currentPage !== 'tax_forms_library') {
         setCurrentPage('super_admin_console');
         return;
       }
@@ -403,6 +405,13 @@ const AppContent: React.FC = () => {
       return <TaxFormsLibrary />;
     }
 
+    if (currentPage === 'ai_command_center') {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
+      // The page shows only what the server returns, and the server re-verifies the governance role on every read.
+      return <AiCommandCenterPage />;
+    }
+
     if (currentPage === 'super_admin_console') {
       if (isInitializingAuth) return renderAuthInitializingState();
       if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') return <StaffLoginPage />;
@@ -476,6 +485,7 @@ const AppContent: React.FC = () => {
     'admin_dashboard',
     'admin_portal',
     'super_admin_console',
+    'ai_command_center',
     'tax_forms_library',
     'staff_account_security',
     'live_calendar',
