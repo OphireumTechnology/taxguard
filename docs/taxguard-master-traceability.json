@@ -5444,13 +5444,17 @@
     },
     {
       "file": "docs/development/compliance-claims-review.md",
-      "sha256": "eb87875e851a2385bea415330ffa1831de433edae67b44a4aae4b02947fde5c2",
-      "bytes": 3313,
+      "sha256": "8da9d331d7f534d45cbcaf5ad3eb44c045718b2175528f616583c343cdea1dbc",
+      "bytes": 5848,
       "headings": [
         "# Compliance claims review",
         "## Result",
-        "## Why the wording matters",
-        "## Flagged claims, most serious first",
+        "## Why this wording is a concern",
+        "## Reach",
+        "## Claims and proposed wording",
+        "### Priority 1: government authorization",
+        "### Priority 2: Circular 230",
+        "### Priority 3: other standards",
         "## Related statements, not counted as claims",
         "## What is needed"
       ]
@@ -6362,8 +6366,8 @@
     },
     {
       "file": "docs/development/taxguard-ai-source-tracking.md",
-      "sha256": "8c2ecc7fb651829a657fe015e57141205d078f56e5807b8e2e645126673b5940",
-      "bytes": 1891,
+      "sha256": "9f47240aa484600fcac9f7e3028720d992d9c92995139fb54697f0c1cc978df5",
+      "bytes": 1962,
       "headings": [
         "# TaxGuard AI Knowledge Engine source in Git",
         "## Tracked",

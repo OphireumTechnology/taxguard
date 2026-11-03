@@ -8,7 +8,7 @@ downloads stays on the machine.
 An explicit allowlist in `.gitignore`, enforced by `src/tests/taxguardAiSourceTracking.test.ts`:
 
 - Steps 116 to 120: `research_discovery.py`, `verify_research_candidates.py`, `acquire_verified_documents.py`, `process_knowledge.py`, `evaluate_knowledge.py`, and `compare_retrieval.py`, which compares retrieval methods.
-- Step 121: `source_registry.py`, `tax_year_intelligence.py`, and `knowledge_status_export.py`, which writes the counts-only status file for the AI Command Center.
+- Step 121: `source_registry.py`, `tax_year_intelligence.py`, and `knowledge_status_export.py`, which writes the counts-only status file for the AI Command Center, and `sec_source_adapter.py`, which is disabled and which nothing runs.
 - Their tests and mutation runners.
 - Configuration: the curriculum, owner candidate decisions, the research source registry, the two retrieval question sets, and `policy.example.json`, a template of the live `policy.json` without its local path.
 

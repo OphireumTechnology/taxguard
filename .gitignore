@@ -118,6 +118,10 @@ qa/acceptance-results/
 !/local-ai/rag/autonomous/scripts/research_discovery.py
 !/local-ai/rag/autonomous/scripts/compare_retrieval.py
 !/local-ai/rag/autonomous/scripts/source_registry.py
+!/local-ai/rag/autonomous/scripts/sec_source_adapter.py
+!/local-ai/rag/autonomous/tests/test_sec_source_adapter.py
+!/local-ai/rag/autonomous/tests/mutate_sec_source_adapter.py
+!/local-ai/rag/autonomous/config/sec_source.example.json
 !/local-ai/rag/autonomous/scripts/tax_year_intelligence.py
 !/local-ai/rag/autonomous/scripts/knowledge_status_export.py
 !/local-ai/rag/autonomous/tests/test_research_foundation.py

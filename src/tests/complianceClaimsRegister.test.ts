@@ -25,9 +25,21 @@ describe('compliance claims register', () => {
   it('treats every recorded claim as unsubstantiated until evidence is on file', () => {
     for (const claim of REGISTER.claims) expect(claim.status, claim.file).toBe('FLAGGED_NOT_SUBSTANTIATED');
   });
-  it('keeps the written review beside the register', () => {
+  it('keeps the written review beside the register, covering every file', () => {
     const review = fs.readFileSync('docs/development/compliance-claims-review.md', 'utf8');
     expect(review).toContain('before public deployment');
     expect(review).toContain('not legal advice');
+    for (const claim of REGISTER.claims) expect(review, claim.file).toContain(claim.file.replace('src/components/', '').replace('src/', ''));
+  });
+  it('allows no flagged claim on a public page without evidence and compliance approval', () => {
+    const isPublic = (file: string) => /^src\/components\/(public|layout\/Public)|\/(Navbar|Footer|SEOHead)\.tsx$/.test(file);
+    expect(Object.keys(found()).filter(isPublic)).toEqual([]);
+  });
+  it('records no decision until a person has made one', () => {
+    for (const claim of REGISTER.claims) expect((claim as any).decision, claim.file).toBe('PENDING_OWNER_AND_COMPLIANCE_REVIEW');
+    expect((REGISTER as any).claim_count).toBe(REGISTER.claims.reduce((sum, c) => sum + c.count, 0));
+  });
+  it('still shows the e-file provider claim to be unsupported by the product itself', () => {
+    expect(fs.readFileSync('src/taxForms/capabilities.ts', 'utf8')).toContain('no e-file transmitter is integrated');
   });
 });

@@ -3,58 +3,16 @@
   "reviewed_on": "2026-11-03",
   "claims": [
     {
-      "file": "src/components/consultation/VirtualConsultationRoom.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "CIRCULAR 230 COMPLIANT"
-      ]
-    },
-    {
-      "file": "src/components/layout/PortalLayout.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "Circular 230 Compliant"
-      ]
-    },
-    {
-      "file": "src/components/portal/DocumentUpload.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "Pub 4557 Compliant"
-      ]
-    },
-    {
-      "file": "src/components/portal/StageOneIdentityWizard.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "Circular 230 and Section 7216 compliant"
-      ]
-    },
-    {
       "file": "src/components/portal/dashboard/ClientWelcomePanel.tsx",
       "count": 1,
       "category": "AUTHORIZATION",
       "status": "FLAGGED_NOT_SUBSTANTIATED",
       "examples": [
         "IRS Authorized e-File"
-      ]
-    },
-    {
-      "file": "src/components/portal/dashboard/RightContextRail.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "§ 7216 Protected"
-      ]
+      ],
+      "priority": 1,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     },
     {
       "file": "src/components/portal/dashboard/SecurityReliabilityPanel.tsx",
@@ -65,43 +23,10 @@
         "Circular 230 & IRC § 7216 compliant",
         "IRS Authorized e-File",
         "§ 7216 Protected"
-      ]
-    },
-    {
-      "file": "src/components/portal/layout/PortalSidebar.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "Pub 4557 Compliant"
-      ]
-    },
-    {
-      "file": "src/components/portal/modals/HelpModal.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "Circular 230 Protected"
-      ]
-    },
-    {
-      "file": "src/components/portal/modals/UploadModal.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "Circular 230 Compliant"
-      ]
-    },
-    {
-      "file": "src/components/portal/views/DocumentsView.tsx",
-      "count": 1,
-      "category": "COMPLIANCE",
-      "status": "FLAGGED_NOT_SUBSTANTIATED",
-      "examples": [
-        "compliant with IRS Circular 230"
-      ]
+      ],
+      "priority": 1,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     },
     {
       "file": "src/components/portal/views/TaxReturnView.tsx",
@@ -111,7 +36,10 @@
       "examples": [
         "IRS Authorized e-File",
         "adhering to AICPA standards and IRS Circular 230"
-      ]
+      ],
+      "priority": 1,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     },
     {
       "file": "src/demo/mockData.ts",
@@ -120,16 +48,82 @@
       "status": "FLAGGED_NOT_SUBSTANTIATED",
       "examples": [
         "IRS Authorized E-File"
-      ]
+      ],
+      "priority": 1,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     },
     {
-      "file": "src/demo/views/client/ClientLenderPackageSection.tsx",
+      "file": "src/components/consultation/VirtualConsultationRoom.tsx",
       "count": 1,
       "category": "COMPLIANCE",
       "status": "FLAGGED_NOT_SUBSTANTIATED",
       "examples": [
-        "§ 7216 Compliant"
-      ]
+        "CIRCULAR 230 COMPLIANT"
+      ],
+      "priority": 2,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/layout/PortalLayout.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "Circular 230 Compliant"
+      ],
+      "priority": 2,
+      "reach": "PRODUCTION_FRONTEND",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/StageOneIdentityWizard.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "Circular 230 and Section 7216 compliant"
+      ],
+      "priority": 2,
+      "reach": "PRODUCTION_FRONTEND",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/modals/HelpModal.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "Circular 230 Protected"
+      ],
+      "priority": 2,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/modals/UploadModal.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "Circular 230 Compliant"
+      ],
+      "priority": 2,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/views/DocumentsView.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "compliant with IRS Circular 230"
+      ],
+      "priority": 2,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     },
     {
       "file": "src/taxguard/TaxGuardApp.tsx",
@@ -138,7 +132,10 @@
       "status": "FLAGGED_NOT_SUBSTANTIATED",
       "examples": [
         "Circular 230 Compliant"
-      ]
+      ],
+      "priority": 2,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     },
     {
       "file": "src/taxguard/components/TaxGuardDisclaimer.tsx",
@@ -147,7 +144,60 @@
       "status": "FLAGGED_NOT_SUBSTANTIATED",
       "examples": [
         "§ 7216 & Circular 230 Protected"
-      ]
+      ],
+      "priority": 2,
+      "reach": "PRODUCTION_FRONTEND",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/DocumentUpload.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "Pub 4557 Compliant"
+      ],
+      "priority": 3,
+      "reach": "PRODUCTION_FRONTEND",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/dashboard/RightContextRail.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "§ 7216 Protected"
+      ],
+      "priority": 3,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/components/portal/layout/PortalSidebar.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "Pub 4557 Compliant"
+      ],
+      "priority": 3,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
+    },
+    {
+      "file": "src/demo/views/client/ClientLenderPackageSection.tsx",
+      "count": 1,
+      "category": "COMPLIANCE",
+      "status": "FLAGGED_NOT_SUBSTANTIATED",
+      "examples": [
+        "§ 7216 Compliant"
+      ],
+      "priority": 3,
+      "reach": "NOT_REACHED",
+      "decision": "PENDING_OWNER_AND_COMPLIANCE_REVIEW"
     }
-  ]
+  ],
+  "claim_count": 19,
+  "proposed_wording": "compliance-claims-review.md"
 }
