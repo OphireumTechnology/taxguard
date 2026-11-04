@@ -256,7 +256,7 @@ export const AboutPage: React.FC = () => {
               Community & Impact: Building Stronger Futures
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              At DESTRIA TAX SERVICES LLC, we believe that stronger individuals and businesses create stronger communities. 
+              At DESTRIA TAX SERVICES LLC, we believe that stronger individuals and businesses create stronger communities.
               We are committed to financial education, empowerment, and supporting initiatives that help families and entrepreneurs build better futures.
             </p>
           </div>
