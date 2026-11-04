@@ -10,205 +10,205 @@ interface PageMetadata {
 
 const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
   home: {
-    title: 'A/R Tax Services, LLC | Tax Preparation, Advisory & Wealth Planning',
-    description: 'Professional tax preparation, business accounting, strategic tax advisory, and wealth coordination in Columbia, South Carolina.',
+    title: 'DESTRIA TAX SERVICES LLC | Tax Preparation, Advisory & Wealth Planning',
+    description: 'DESTRIA TAX SERVICES LLC provides intelligent tax preparation, strategic corporate accounting, and wealth planning powered by experienced CPA professionals and advanced AI intelligence.',
     canonicalPath: '/',
     ogType: 'website'
   },
   services: {
-    title: 'Tax Preparation & Accounting Services | A/R Tax Services, LLC',
-    description: 'Comprehensive tax preparation (1040, 1120S, 1065), year-round business bookkeeping, IRS notice resolution, and estate planning coordination.',
+    title: 'Intelligent Tax & Accounting Services | DESTRIA TAX SERVICES LLC',
+    description: 'Comprehensive tax preparation (1040, 1120S, 1065), year-round business bookkeeping, IRS notice resolution, and AI-accelerated audit preparation.',
     canonicalPath: '/services',
     ogType: 'website'
   },
   tax_strategies: {
-    title: 'Tax Reduction Strategies & Planning Catalog | A/R Tax Services, LLC',
+    title: 'Tax Reduction Strategies & Planning Catalog | DESTRIA TAX SERVICES LLC',
     description: 'Explore 16 strategic tax reduction domains: Section 199A QBI, S-Corp optimization, cost segregation, real estate 1031s, and executive planning.',
     canonicalPath: '/tax-strategies',
     ogType: 'website'
   },
   industries: {
-    title: 'Specialized Commercial Industry Practices | A/R Tax Services, LLC',
+    title: 'Specialized Commercial Industry Practices | DESTRIA TAX SERVICES LLC',
     description: 'Tailored tax and accounting frameworks for construction, real estate syndications, medical practices, legal professionals, and tech businesses.',
     canonicalPath: '/industries',
     ogType: 'website'
   },
   about: {
-    title: 'About Our Firm & Practice Principles | A/R Tax Services, LLC',
-    description: 'Learn about A/R Tax Services, LLC: our client-first heritage, practice values, strict confidentiality, and dedication to South Carolina taxpayers.',
+    title: 'About Our Firm & Practice Principles | DESTRIA TAX SERVICES LLC',
+    description: 'Learn about DESTRIA TAX SERVICES LLC: our client-first heritage, dual-layer CPA & AI review architecture, and fiduciary dedication.',
     canonicalPath: '/about',
     ogType: 'website'
   },
   founder: {
-    title: 'Desmond Hinds, Founder & CEO | A/R Tax Services, LLC',
-    description: 'Executive biography and leadership philosophy of Desmond Hinds, Founder and Senior Managing Accountant of A/R Tax Services, LLC.',
+    title: 'Leadership & Practice Vision | DESTRIA TAX SERVICES LLC',
+    description: 'Executive biography and practice leadership of DESTRIA TAX SERVICES LLC.',
     canonicalPath: '/founder',
     ogType: 'profile'
   },
   pricing: {
-    title: 'Transparent Pricing & Engagement Plans | A/R Tax Services, LLC',
+    title: 'Transparent Pricing & Engagement Plans | DESTRIA TAX SERVICES LLC',
     description: 'Clear, upfront pricing for individual returns, small business packages, and ongoing advisory retainers. No surprise billing or hidden fees.',
     canonicalPath: '/pricing',
     ogType: 'website'
   },
   book_consultation: {
-    title: 'Schedule a Consultation | A/R Tax Services, LLC',
-    description: 'Book a strategy session with Founder Desmond Hinds or our senior tax advisory team. Virtual, phone, or in-office appointments available.',
+    title: 'Schedule an Advisory Consultation | DESTRIA TAX SERVICES LLC',
+    description: 'Book an intelligent strategy session with our senior tax advisory team. Virtual, phone, or in-office appointments available.',
     canonicalPath: '/book-consultation',
     ogType: 'website'
   },
   resources: {
-    title: 'Tax Resources, Deadlines & FAQ | A/R Tax Services, LLC',
+    title: 'Tax Resources, Deadlines & FAQ | DESTRIA TAX SERVICES LLC',
     description: 'Essential filing deadlines, downloadable document preparation checklists, tax bracket references, and answers to common taxpayer questions.',
     canonicalPath: '/resources',
     ogType: 'website'
   },
   careers: {
-    title: 'Careers & Professional Opportunities | A/R Tax Services, LLC',
-    description: 'Join our accounting and tax advisory team in Columbia, SC. Explore open positions for tax preparers, senior accountants, and client managers.',
+    title: 'Careers & Professional Opportunities | DESTRIA TAX SERVICES LLC',
+    description: 'Join our modern accounting and tax advisory team. Explore open positions for tax preparers, senior accountants, and client managers.',
     canonicalPath: '/careers',
     ogType: 'website'
   },
   job_detail: {
-    title: 'Career Opportunity Details | A/R Tax Services, LLC',
-    description: 'Review role responsibilities, qualifications, compensation structure, and application instructions for open positions at A/R Tax Services, LLC.',
+    title: 'Career Opportunity Details | DESTRIA TAX SERVICES LLC',
+    description: 'Review role responsibilities, qualifications, compensation structure, and application instructions for open positions at DESTRIA TAX SERVICES LLC.',
     canonicalPath: '/careers/job',
     ogType: 'website'
   },
   contact: {
-    title: 'Contact Our Columbia, SC Office | A/R Tax Services, LLC',
-    description: 'Get in touch with A/R Tax Services, LLC. Call 678-205-9486, email info@artaxservices.com, or submit a message to our Columbia, SC team.',
+    title: 'Contact Our Office | DESTRIA TAX SERVICES LLC',
+    description: 'Get in touch with DESTRIA TAX SERVICES LLC. Call 678-205-9486, email contact@destriatax.com, or submit a message to our Columbia, SC team.',
     canonicalPath: '/contact',
     ogType: 'website'
   },
   privacy: {
-    title: 'Privacy Policy & GLBA Notice | A/R Tax Services, LLC',
+    title: 'Privacy Policy & GLBA Notice | DESTRIA TAX SERVICES LLC',
     description: 'Our commitment to protecting nonpublic personal financial information under the Gramm-Leach-Bliley Act and IRC Section 7216.',
     canonicalPath: '/privacy',
     ogType: 'website'
   },
   terms: {
-    title: 'Terms of Service & Client Engagement | A/R Tax Services, LLC',
+    title: 'Terms of Service & Client Engagement | DESTRIA TAX SERVICES LLC',
     description: 'Terms governing public website access, consultation scheduling, client portal usage, and professional engagement responsibilities.',
     canonicalPath: '/terms',
     ogType: 'website'
   },
   disclaimers: {
-    title: 'Professional & Statutory Disclaimers | A/R Tax Services, LLC',
+    title: 'Professional & Statutory Disclaimers | DESTRIA TAX SERVICES LLC',
     description: 'Important legal and regulatory notices: IRS non-affiliation, outcome disclaimers, Circular 230 disclosure, and professional credentials.',
     canonicalPath: '/disclaimers',
     ogType: 'website'
   },
   security: {
-    title: 'Security Architecture & Data Safeguards | A/R Tax Services, LLC',
+    title: 'Security Architecture & Data Safeguards | DESTRIA TAX SERVICES LLC',
     description: 'Administrative, technical, and operational safeguards designed to protect sensitive client documents and financial records.',
     canonicalPath: '/security',
     ogType: 'website'
   },
   accessibility: {
-    title: 'Accessibility Statement (WCAG 2.1 AA) | A/R Tax Services, LLC',
+    title: 'Accessibility Statement (WCAG 2.1 AA) | DESTRIA TAX SERVICES LLC',
     description: 'Our commitment to digital accessibility, keyboard operability, screen reader support, and WCAG 2.1 Level AA compliance.',
     canonicalPath: '/accessibility',
     ogType: 'website'
   },
   cookies: {
-    title: 'Cookie Policy & Privacy Preferences | A/R Tax Services, LLC',
-    description: 'Information about strictly necessary cookies, preferences, and privacy controls at A/R Tax Services, LLC.',
+    title: 'Cookie Policy & Privacy Preferences | DESTRIA TAX SERVICES LLC',
+    description: 'Information about strictly necessary cookies, preferences, and privacy controls at DESTRIA TAX SERVICES LLC.',
     canonicalPath: '/cookies',
     ogType: 'website'
   },
   portals: {
-    title: 'Secure Client & Staff Portals | A/R Tax Services, LLC',
+    title: 'Secure Client & Staff Portals | DESTRIA TAX SERVICES LLC',
     description: 'Access encrypted portals for clients, accounting professionals, reviewers, and administrative leadership.',
     canonicalPath: '/portals',
     ogType: 'website'
   },
   public_v2: {
-    title: 'A/R Tax Services, LLC | Corporate Advisory Experience',
+    title: 'DESTRIA TAX SERVICES LLC | Corporate Advisory Experience',
     description: 'Dedicated financial advisory, tax optimization, and corporate accounting services for businesses and individuals.',
     canonicalPath: '/v2',
     ogType: 'website'
   },
   live_calendar: {
-    title: 'Live Appointment Booking | A/R Tax Services, LLC',
-    description: 'Direct interactive scheduling for consultation sessions with A/R Tax Services, LLC.',
+    title: 'Live Appointment Booking | DESTRIA TAX SERVICES LLC',
+    description: 'Direct interactive scheduling for consultation sessions with DESTRIA TAX SERVICES LLC.',
     canonicalPath: '/calendar',
     ogType: 'website'
   },
   virtual_consultation_room: {
-    title: 'Virtual Consultation Room | A/R Tax Services, LLC',
+    title: 'Virtual Consultation Room | DESTRIA TAX SERVICES LLC',
     description: 'Secure, encrypted virtual advisory room for client consultations.',
     canonicalPath: '/meeting',
     ogType: 'website'
   },
   portal: {
-    title: 'Client Portal | A/R Tax Services, LLC',
+    title: 'Client Portal | DESTRIA TAX SERVICES LLC',
     description: 'Encrypted client portal for tax document exchange, return reviews, e-signatures, and real-time filing status tracking.',
     canonicalPath: '/portal',
     ogType: 'website'
   },
   client_portal: {
-    title: 'Client Portal | A/R Tax Services, LLC',
+    title: 'Client Portal | DESTRIA TAX SERVICES LLC',
     description: 'Encrypted client portal for tax document exchange, return reviews, e-signatures, and real-time filing status tracking.',
     canonicalPath: '/portal',
     ogType: 'website'
   },
   client_login: {
-    title: 'Client Portal Sign In | A/R Tax Services, LLC',
+    title: 'Client Portal Sign In | DESTRIA TAX SERVICES LLC',
     description: 'Secure client sign-in for tax organizers, documents, and status tracking.',
     canonicalPath: '/portal/login',
     ogType: 'website'
   },
   client_register: {
-    title: 'Client Account Registration | A/R Tax Services, LLC',
-    description: 'Register for a new secure client account with A/R Tax Services, LLC.',
+    title: 'Client Account Registration | DESTRIA TAX SERVICES LLC',
+    description: 'Register for a new secure client account with DESTRIA TAX SERVICES LLC.',
     canonicalPath: '/portal/register',
     ogType: 'website'
   },
   staff: {
-    title: 'Staff Portal | A/R Tax Services, LLC',
+    title: 'Staff Portal | DESTRIA TAX SERVICES LLC',
     description: 'Authorized workspace for accountants, reviewers, and practice staff.',
     canonicalPath: '/staff',
     ogType: 'website'
   },
   staff_login: {
-    title: 'Staff Portal Sign In | A/R Tax Services, LLC',
+    title: 'Staff Portal Sign In | DESTRIA TAX SERVICES LLC',
     description: 'Authorized sign-in for accountants, reviewers, and practice staff.',
     canonicalPath: '/staff/login',
     ogType: 'website'
   },
   admin_portal: {
-    title: 'Practice Management Portal | A/R Tax Services, LLC',
-    description: 'Authorized administrative and practice management portal for A/R Tax Services, LLC personnel.',
+    title: 'Practice Management Portal | DESTRIA TAX SERVICES LLC',
+    description: 'Authorized administrative and practice management portal for DESTRIA TAX SERVICES LLC personnel.',
     canonicalPath: '/admin',
     ogType: 'website'
   },
   staff_account_security: {
-    title: 'Account Security | A/R Tax Services, LLC',
+    title: 'Account Security | DESTRIA TAX SERVICES LLC',
     description: 'Session and security history management for authorized practice staff.',
     canonicalPath: '/staff/account-security',
     ogType: 'website'
   },
   tax_forms_library: {
-    title: 'Tax Forms Library | A/R Tax Services, LLC',
+    title: 'Tax Forms Library | DESTRIA TAX SERVICES LLC',
     description: 'Reference catalog of federal, state and local tax forms for authorized practice staff.',
     canonicalPath: '/staff/forms',
     ogType: 'website'
   },
   super_admin_console: {
-    title: 'Super Administrator Console | A/R Tax Services, LLC',
+    title: 'Super Administrator Console | DESTRIA TAX SERVICES LLC',
     description: 'Authorized super administrator console.',
     canonicalPath: '/staff/super-admin',
     ogType: 'website'
   },
   admin_dashboard: {
-    title: 'Executive Admin Dashboard | A/R Tax Services, LLC',
+    title: 'Executive Admin Dashboard | DESTRIA TAX SERVICES LLC',
     description: 'Firm operations, workflow queues, and practice analytics dashboard.',
     canonicalPath: '/admin/dashboard',
     ogType: 'website'
   },
   not_found: {
-    title: 'Page Not Found | A/R Tax Services, LLC',
+    title: 'Page Not Found | DESTRIA TAX SERVICES LLC',
     description: 'The requested page could not be located. Explore our core tax preparation, accounting, and advisory services.',
     canonicalPath: '/404',
     ogType: 'website'
@@ -220,7 +220,7 @@ export const SEOHead: React.FC = () => {
 
   useEffect(() => {
     const meta = PAGE_METADATA_MAP[currentPage] || PAGE_METADATA_MAP.home;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://artaxservices.com';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://destriatax.com';
     const canonicalUrl = `${origin}${meta.canonicalPath}`;
 
     // 1. Update Document Title
@@ -245,11 +245,13 @@ export const SEOHead: React.FC = () => {
     setMetaTag('meta[property="og:description"]', 'property', 'og:description', meta.description);
     setMetaTag('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMetaTag('meta[property="og:type"]', 'property', 'og:type', meta.ogType || 'website');
-    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'A/R Tax Services, LLC');
+    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'DESTRIA TAX SERVICES LLC');
+    setMetaTag('meta[property="og:image"]', 'property', 'og:image', `${origin}/branding/destria-logo-original.png`);
 
     // 4. Twitter Tags
     setMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', meta.title);
     setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', meta.description);
+    setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', `${origin}/branding/destria-logo-original.png`);
 
     // 5. Canonical Link
     let canonicalLink = document.querySelector('link[rel="canonical"]');

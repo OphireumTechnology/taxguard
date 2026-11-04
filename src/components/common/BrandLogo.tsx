@@ -18,9 +18,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   showSubtitleOnMobile = false,
   hideTaglineOnCompact = false
 }) => {
-  // Dimensions calibrated to meet official specification:
-  // Desktop header: ~48-58px high
-  // Mobile header: ~38-46px high
   const sizeConfig = {
     sm: {
       imgClass: 'h-9 w-9 sm:h-10 sm:w-10',
@@ -29,10 +26,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       subClass: 'text-[8px] sm:text-[9px]'
     },
     md: {
-      imgClass: 'h-10 w-10 sm:h-[50px] sm:w-[50px]',
-      dimPx: 50,
+      imgClass: 'h-11 w-11 sm:h-12 sm:w-12',
+      dimPx: 48,
       titleClass: 'text-sm sm:text-base font-bold',
-      subClass: 'text-[8.5px] sm:text-[10px]'
+      subClass: 'text-[8.5px] sm:text-[9.5px]'
     },
     lg: {
       imgClass: 'h-14 w-14 sm:h-16 sm:w-16',
@@ -50,19 +47,15 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   const logoImage = (
     <div className="relative flex-shrink-0 flex items-center justify-center">
-      <picture>
-        <source srcSet={BRAND_ASSETS.logoWebp} type="image/webp" />
-        <img
-          src={BRAND_ASSETS.logoPng}
-          alt="A/R Tax Services, LLC Official Logo"
-          width={sizeConfig.dimPx}
-          height={sizeConfig.dimPx}
-          loading="eager"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          className={`${sizeConfig.imgClass} object-contain transition-transform duration-200 group-hover:scale-[1.02] drop-shadow-[0_2px_10px_rgba(201,154,61,0.25)]`}
-        />
-      </picture>
+      <img
+        src={BRAND_ASSETS.destriaLogo}
+        alt="DESTRIA TAX SERVICES LLC Official Logo"
+        width={sizeConfig.dimPx}
+        height={sizeConfig.dimPx}
+        loading="eager"
+        decoding="async"
+        className={`${sizeConfig.imgClass} object-contain rounded-full transition-transform duration-200 group-hover:scale-[1.03] shadow-[0_2px_12px_rgba(201,154,53,0.3)] ring-1 ring-[#C99A35]/30`}
+      />
     </div>
   );
 
@@ -71,7 +64,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       <div 
         onClick={onClick} 
         className={`inline-flex items-center justify-center select-none ${onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''} ${className}`}
-        title="A/R Tax Services, LLC"
+        title="DESTRIA TAX SERVICES LLC"
       >
         {logoImage}
       </div>
@@ -82,26 +75,26 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     <div 
       onClick={onClick} 
       className={`inline-flex items-center gap-2.5 sm:gap-3.5 select-none min-w-0 ${onClick ? 'cursor-pointer group' : ''} ${className}`}
-      title="A/R Tax Services, LLC - Preserving Wealth. Building Legacies."
+      title="DESTRIA TAX SERVICES LLC - Tax Preparation, Advisory & Wealth Planning"
     >
       {logoImage}
 
       <div className="flex flex-col text-left min-w-0 justify-center">
-        <div className="flex items-baseline gap-1">
+        <div className="flex items-baseline gap-1.5">
           <span 
-            className={`font-serif tracking-wider text-white ${sizeConfig.titleClass} group-hover:text-[#E2BD67] transition-colors leading-tight whitespace-nowrap`}
-            style={{ fontSize: 'clamp(0.875rem, 1.2vw + 0.5rem, 1.125rem)' }}
+            className={`font-serif tracking-wider text-white ${sizeConfig.titleClass} group-hover:text-[#E5B552] transition-colors leading-tight whitespace-nowrap font-semibold`}
+            style={{ fontSize: 'clamp(0.875rem, 1.2vw + 0.5rem, 1.15rem)' }}
           >
-            A/R TAX SERVICES
+            DESTRIA
           </span>
-          <span className="text-[#C99A3D] font-sans font-semibold text-[10px] sm:text-xs tracking-wider">
-            LLC
+          <span className="text-[#C99A35] font-sans font-semibold text-[10px] sm:text-xs tracking-wider">
+            TAX SERVICES LLC
           </span>
         </div>
         
         {variant !== 'compact' && (
           <span 
-            className={`font-sans tracking-[0.14em] uppercase text-[#C99A3D] font-medium ${sizeConfig.subClass} leading-tight mt-0.5 whitespace-nowrap ${
+            className={`font-sans tracking-[0.12em] uppercase text-[#C99A35] font-medium ${sizeConfig.subClass} leading-tight mt-0.5 whitespace-nowrap ${
               showSubtitleOnMobile 
                 ? 'block' 
                 : hideTaglineOnCompact 
@@ -109,7 +102,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
                   : 'hidden sm:block'
             }`}
           >
-            Preserving Wealth. Building Legacies.
+            Tax Preparation, Advisory &amp; Wealth Planning
           </span>
         )}
       </div>

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 04: Record Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 04: Record Workspace
  * Displays authoritative recorded tax facts (Wages, Interest, Dividends, Business/1099,
  * Deductions, Withholdings) derived from validated evidence with strict provenance tracking.
  */
@@ -128,7 +128,7 @@ export const StageFourRecordView: React.FC<StageFourRecordViewProps> = ({
             <p className="text-slate-200">Review your recorded source totals below. If you received another document, upload it in Stage 02.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Accountants verify statutory categorization, schedule ties, and state apportionment.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

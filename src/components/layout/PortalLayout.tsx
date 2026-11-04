@@ -95,7 +95,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 type="button"
                 onClick={() => setCurrentPage('home')}
                 className="flex items-center gap-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C99A3D] rounded-lg p-1"
-                aria-label="A/R Tax Services Portal Home"
+                aria-label="DESTRIA TAX SERVICES LLC Portal Home"
               >
                 <BrandLogo size="sm" variant="compact" />
               </button>
@@ -209,7 +209,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5 text-[#C99A3D]" />
             <span>
-              &copy; {new Date().getFullYear()} A/R Tax Services, LLC &bull; Confidential Client & Practice Portal
+              &copy; {new Date().getFullYear()} DESTRIA TAX SERVICES LLC &bull; Confidential Client & Practice Portal
             </span>
           </div>
 

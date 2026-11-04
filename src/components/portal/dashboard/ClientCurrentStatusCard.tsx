@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Prominent "YOUR CURRENT STATUS" Card
  *
  * Implements:
@@ -69,7 +69,7 @@ export const ClientCurrentStatusCard: React.FC<ClientCurrentStatusCardProps> = (
   let heading = 'DOCUMENTS NEEDED';
   let plainExplanation = `Please upload the ${missingCount} remaining document${missingCount > 1 ? 's' : ''}.`;
   let clientAction = `Upload the ${missingCount} required document${missingCount > 1 ? 's' : ''} to complete your intake file.`;
-  let staffAction = 'A/R Tax Services intake team is monitoring document receipts.';
+  let staffAction = 'DESTRIA TAX SERVICES LLC intake team is monitoring document receipts.';
   let blockingIssue: string | null = null;
   let whatHappensNext = 'Once all requested documents are received, our CPA team performs technical review.';
   let primaryButtonText = 'Upload Missing Documents';
@@ -111,7 +111,7 @@ export const ClientCurrentStatusCard: React.FC<ClientCurrentStatusCardProps> = (
       badgeText = 'ALL DOCUMENTS RECEIVED';
       badgeColor = 'bg-emerald-950 text-emerald-300 border-emerald-500/40';
       heading = 'ALL REQUESTED DOCUMENTS RECEIVED';
-      plainExplanation = 'A/R Tax Services is reviewing your documents.';
+      plainExplanation = 'DESTRIA TAX SERVICES LLC is reviewing your documents.';
       clientAction = 'No action needed from you right now.';
       isNoActionNeeded = true;
       staffAction = 'Elena Rostova, CPA is reviewing extractions and verifying document requirements.';
@@ -266,7 +266,7 @@ export const ClientCurrentStatusCard: React.FC<ClientCurrentStatusCardProps> = (
             <div className="p-3.5 rounded-xl bg-[#071A2E] border border-slate-800">
               <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#D4A843]" />
-                <span>What A/R Tax Services is doing</span>
+                <span>What DESTRIA TAX SERVICES LLC is doing</span>
               </div>
               <p className="mt-1.5 text-slate-300">
                 {staffAction}

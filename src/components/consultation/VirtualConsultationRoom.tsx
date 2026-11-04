@@ -501,7 +501,7 @@ export const VirtualConsultationRoom: React.FC<VirtualConsultationRoomProps> = (
               Consultation Concluded
             </h2>
             <p className="text-xs text-[#52657B] mt-1">
-              Thank you for meeting with A/R Tax Services, LLC. All reviewed documents and notes have been archived to your secure portal.
+              Thank you for meeting with DESTRIA TAX SERVICES LLC. All reviewed documents and notes have been archived to your secure portal.
             </p>
           </div>
 

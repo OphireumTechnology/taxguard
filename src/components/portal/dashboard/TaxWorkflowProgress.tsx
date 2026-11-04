@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Master Tax Workflow Progress (7-Stage Workflow Stepper)
  *
  * Implements Section 6 of Client Dashboard Architecture:

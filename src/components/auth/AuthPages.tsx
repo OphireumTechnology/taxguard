@@ -980,7 +980,7 @@ export const StaffLoginPage: React.FC = () => {
         </div>
         <h1 className="font-serif text-3xl font-extrabold text-white">Staff Practice Portal</h1>
         <p className="text-xs text-slate-300">
-          A/R Tax Services, LLC practitioner workspace and single-use staff onboarding invitations.
+          DESTRIA TAX SERVICES LLC practitioner workspace and single-use staff onboarding invitations.
         </p>
       </div>
 
@@ -1085,7 +1085,7 @@ export const StaffLoginPage: React.FC = () => {
                   type="text"
                   required
                   autoComplete="username"
-                  placeholder="practitioner@artaxservices.com"
+                  placeholder="practitioner@destriatax.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); clearStaleError(); setMfaStep(false); setMfaCode(''); }}
                   className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"

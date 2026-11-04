@@ -10,7 +10,7 @@ import { AdminWorkloadPanel } from './AdminWorkloadPanel';
 import { AiEmergencyStopPanel } from './AiEmergencyStopPanel';
 import { AiControlCenterPanel } from './AiControlCenterPanel';
 /**
- * A/R Tax Services, LLC — Practice Administration Console
+ * DESTRIA TAX SERVICES LLC — Practice Administration Console
  * Reported provider configuration, guarded staff administration and unavailable integrations.
  */
 

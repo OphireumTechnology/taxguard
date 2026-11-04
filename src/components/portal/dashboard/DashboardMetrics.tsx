@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Dashboard Summary Metrics Cards
  *
  * Implements Section 10 of Client Dashboard Architecture:

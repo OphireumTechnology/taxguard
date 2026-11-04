@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 16: Archive Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 16: Archive Workspace
  * Permanent Retention & Multi-Year Immutable Return Vault
  *
  * Implements:
@@ -146,7 +146,7 @@ export const StageSixteenArchiveView: React.FC<StageSixteenArchiveViewProps> = (
             <p className="text-slate-200">Download copies of filed returns and workpapers or request historical engagement packages whenever needed.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Maintaining encrypted SHA-256 tamper-evident records adhering to applicable professional standards and legal hold requirements.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

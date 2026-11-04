@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Stage 02: Accounting Document Intake & Extraction Agent View
  *
  * Client UI for collecting accounting/tax documents:
@@ -10,7 +10,7 @@
  * - Drag-and-drop ingestion
  * - Import Queue with real-time classification, relevance & duplicate tracking
  * - Review queue for extracted documents
- * - Built in the Premium A/R Tax Services Corporate Palette (#06182B, #0D2745, #D4A843)
+ * - Built in the Premium DESTRIA TAX SERVICES LLC Corporate Palette (#06182B, #0D2745, #D4A843)
  */
 
 import React, { useState, useRef, useMemo } from 'react';

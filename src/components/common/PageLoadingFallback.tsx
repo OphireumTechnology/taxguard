@@ -14,7 +14,7 @@ export const PageLoadingFallback: React.FC = () => {
         Loading secure workspace...
       </p>
       <p className="text-xs text-slate-400 mt-1">
-        A/R Tax Services, LLC
+        DESTRIA TAX SERVICES LLC
       </p>
     </div>
   );

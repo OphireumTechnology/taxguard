@@ -200,7 +200,7 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
       });
       if (operationScope.current === operationKey) {
         setSuccessMessage(
-          `Formal amendment request for ${amendmentFieldLabel} recorded. It is currently pending review by A/R Tax Services CPAs.`
+          `Formal amendment request for ${amendmentFieldLabel} recorded. It is currently pending review by DESTRIA TAX SERVICES LLC CPAs.`
         );
         setAmendmentModalOpen(false);
         setActiveSection('amendments');

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 15: Monitor Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 15: Monitor Workspace
  * Post-filing monitoring: estimated tax vouchers (Form 1040-ES), quarterly deadlines,
  * payment schedules, and compliance reminders.
  */
@@ -65,7 +65,7 @@ export const StageFifteenMonitorView: React.FC<StageFifteenMonitorViewProps> = (
             <p className="text-slate-200">Mark your quarterly estimated tax deadlines to avoid statutory underpayment penalties under IRC § 6654.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Calculates quarterly safe-harbor payment vouchers and sends proactive reminder notices.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

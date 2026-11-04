@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 13: Government Feedback Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 13: Government Feedback Workspace
  * Official IRS and State Agency Acknowledgment & Feedback Tracking.
  * Strictly adheres to Phase 15:
  * NO SIMULATED GOVERNMENT RESPONSES. Truthful status reflects genuine agency transmission states.
@@ -57,7 +57,7 @@ export const StageThirteenFeedbackView: React.FC<StageThirteenFeedbackViewProps>
             <p className="text-slate-200">No action required until official agency acceptance or rejection diagnostics are received.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Monitors the IRS MeF transmitter queue for official electronic acceptance acknowledgments.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

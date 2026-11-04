@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 07: Report Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 07: Report Workspace
  * Statutory Financial Deliverables, Workpapers & Presentation Packages
  *
  * Implements:
@@ -137,7 +137,7 @@ export const StageSevenReportView: React.FC<StageSevenReportViewProps> = ({
             <p className="text-slate-200">Review compiled financial packages. No client action required unless discrepancies are noted.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Our CPA team compiles reconciliation workpapers into certified tax lead schedules.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

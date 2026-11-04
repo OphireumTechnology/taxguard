@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Accountant Tax Case Review Workspace & Side-by-Side Verification
  *
  * Implements:

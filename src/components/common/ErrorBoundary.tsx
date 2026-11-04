@@ -52,7 +52,7 @@ function sanitizeSensitiveData(input: string): string {
 }
 
 /**
- * Enterprise Production-Grade Error Boundary for A/R Tax Services, LLC.
+ * Enterprise Production-Grade Error Boundary for DESTRIA TAX SERVICES LLC.
  * Catches unhandled runtime exceptions, React rendering faults, and chunk load failures.
  * Sanitizes all output to ensure zero leakage of stack traces, internal paths, tokens, or PII.
  */
@@ -229,7 +229,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
       if (errorCategory === 'chunk') {
         title = 'Application Update Available';
-        description = 'A newer version of the A/R Tax Services portal is available. Please reload the workspace to update your secure session.';
+        description = 'A newer version of the DESTRIA TAX SERVICES LLC portal is available. Please reload the workspace to update your secure session.';
       } else if (errorCategory === 'network') {
         title = 'Network Connection Interrupted';
         description = 'Unable to establish a secure connection to firm backend servers. Please verify your internet connection and retry.';
@@ -339,8 +339,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <div className="border-t border-[#1E3A5F] pt-4">
               <p className="text-[11px] text-slate-400">
                 Need direct assistance? Contact client concierge at{' '}
-                <a href="mailto:info@artaxservices.com" className="text-[#C6A15B] hover:underline font-medium">
-                  info@artaxservices.com
+                <a href="mailto:info@destriatax.com" className="text-[#C6A15B] hover:underline font-medium">
+                  info@destriatax.com
                 </a>{' '}
                 or call (803) 555-0199.
               </p>

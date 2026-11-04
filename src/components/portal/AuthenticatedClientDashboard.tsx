@@ -714,9 +714,9 @@ export const AuthenticatedClientDashboard: React.FC<AuthenticatedClientDashboard
             </p>
             <div className="space-y-3 text-xs">
               <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-800 space-y-1">
-                <div className="font-bold text-white">A/R Tax Services, LLC</div>
+                <div className="font-bold text-white">DESTRIA TAX SERVICES LLC</div>
                 <div className="text-slate-300">Columbia, South Carolina, USA</div>
-                <div className="text-slate-400">Direct Inquiries: <a href="mailto:info@artaxservices.com">info@artaxservices.com</a> &bull; <a href="tel:678-205-9486">678-205-9486</a></div>
+                <div className="text-slate-400">Direct Inquiries: <a href="mailto:info@destriatax.com">info@destriatax.com</a> &bull; <a href="tel:678-205-9486">678-205-9486</a></div>
               </div>
             </div>
           </div>

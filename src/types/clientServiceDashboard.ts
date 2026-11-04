@@ -1,8 +1,50 @@
-export interface ClientServiceCase {id:string;clientId:string;engagementId:string;taxYear:number;stage:number;status:string;documents:Record<string,number>}
-export interface ClientServiceRequest {id:string;caseKey:string;type:string;status:string;priority:string;createdAt?:string;dueDate?:string}
-export interface ClientServiceThread {id:string;caseKey:string;category:string;status:string;lastMessageAt?:string;messageCount:number;unread:number}
-export interface ClientServiceFollowUp {id:string;caseKey:string;type:string;status:string;priority:string;createdAt?:string;dueDate?:string;owner?:string}
-export interface ClientServiceEscalation {id:string;caseKey:string;category:string;status:string;level:number;dueDate:string;createdAt?:string}
-export interface ClientServiceSnapshot {tenantId:string;cases:ClientServiceCase[];requests:ClientServiceRequest[];threads:ClientServiceThread[];followUps:ClientServiceFollowUp[];escalations:ClientServiceEscalation[];capabilities:{appointments:false;mutations:false;sla:false;ai:false;privateDocuments:false}}
-export interface ClientServiceConversation {tenantId:string;caseKey:string;threadId:string;messages:Array<{id:string;role:string;content:string;read:boolean;createdAt:string}>}
-export interface ClientServiceRequestDetail {tenantId:string;caseKey:string;requestId:string;title:string;description?:string;status:string}
+export interface ClientServiceRequest {
+  id: string;
+  clientId: string;
+  clientName: string;
+  category: string;
+  subject: string;
+  status: 'open' | 'in_progress' | 'waiting_on_client' | 'resolved';
+  priority: 'normal' | 'high' | 'urgent';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientServiceRequestDetail extends ClientServiceRequest {
+  description: string;
+  assignedStaffId?: string;
+  assignedStaffName?: string;
+  messages: Array<{
+    id: string;
+    senderName: string;
+    senderRole: string;
+    content: string;
+    createdAt: string;
+  }>;
+}
+
+export interface ClientServiceConversation {
+  id: string;
+  clientId: string;
+  clientName: string;
+  unreadCount: number;
+  lastMessage: string;
+  lastMessageTime: string;
+}
+
+export interface ClientServiceCase {
+  id: string;
+  clientId: string;
+  clientName: string;
+  taxYear: number;
+  status: string;
+  stageName: string;
+}
+
+export interface ClientServiceSnapshot {
+  openInquiriesCount: number;
+  unassignedRequestsCount: number;
+  slaBreachedCount: number;
+  activeRequests: ClientServiceRequest[];
+  recentConversations: ClientServiceConversation[];
+}

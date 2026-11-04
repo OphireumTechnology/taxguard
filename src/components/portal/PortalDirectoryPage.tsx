@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Production Portal Directory
+ * DESTRIA TAX SERVICES LLC — Production Portal Directory
  * Authoritative role-based entry point for Clients, Staff, Reviewers, and Practice Administrators.
  */
 
@@ -100,7 +100,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#0D2745] border border-slate-700/60 text-[#D4A843]">
             <Building2 className="w-3.5 h-3.5" />
-            <span>A/R Tax Services, LLC &bull; TaxGuard Secure Operating System</span>
+            <span>DESTRIA TAX SERVICES LLC &bull; TaxGuard Secure Operating System</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight">
             Professional Practice &amp; Client Portals
@@ -204,7 +204,7 @@ export const PortalDirectoryPage: React.FC<PortalDirectoryPageProps> = ({ onNavi
       </div>
 
       <footer className="mt-12 text-center text-xs text-slate-500 font-mono">
-        &copy; {new Date().getFullYear()} A/R Tax Services, LLC &bull; Columbia, SC &bull; Confidential &amp; Proprietary
+        &copy; {new Date().getFullYear()} DESTRIA TAX SERVICES LLC &bull; Columbia, SC &bull; Confidential &amp; Proprietary
       </footer>
     </div>
   );

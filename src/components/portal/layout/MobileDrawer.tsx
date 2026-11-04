@@ -58,7 +58,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 {currentUser?.name || 'Client Tax Center'}
               </div>
               <div className="text-[10px] text-slate-400">
-                A/R Tax Services Portal
+                DESTRIA TAX SERVICES LLC Portal
               </div>
             </div>
           </div>

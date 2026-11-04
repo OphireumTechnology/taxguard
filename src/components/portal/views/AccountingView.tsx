@@ -87,7 +87,7 @@ export const AccountingView: React.FC = () => {
       }
       setNotice({
         type: 'info',
-        message: 'Provisional write authorization granted to A/R Tax Services CPAs. All modifications require independent maker-checker review before posting.'
+        message: 'Provisional write authorization granted to DESTRIA TAX SERVICES LLC CPAs. All modifications require independent maker-checker review before posting.'
       });
     } else {
       setNotice({
@@ -347,7 +347,7 @@ export const AccountingView: React.FC = () => {
             <span>Accounting Ledger Modification Permissions (Stage 1 Authorization)</span>
           </div>
           <p className="text-xs text-slate-300 mt-0.5">
-            By default, all accounting feeds are strictly read-only. Granting permission allows certified A/R Tax Services CPAs to draft adjusting entries for your approval.
+            By default, all accounting feeds are strictly read-only. Granting permission allows certified DESTRIA TAX SERVICES LLC CPAs to draft adjusting entries for your approval.
           </p>
         </div>
 

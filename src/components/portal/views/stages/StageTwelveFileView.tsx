@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 12: File Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 12: File Workspace
  * Electronic Filing Orchestration & Gateway Transmission Boundary.
  * Strictly adheres to Phase 14:
  * Internal states: READY_FOR_FILING, PROVIDER_BLOCKED, SUBMITTED, ACKNOWLEDGED, ACCEPTED, REJECTED.
@@ -63,7 +63,7 @@ export const StageTwelveFileView: React.FC<StageTwelveFileViewProps> = ({
             <p className="text-slate-200">No action needed. Once your signed Form 8879 is recorded in Stage 11, transmitters handle submission.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Generating schemas, validating electronic filing checksums, and staging submission manifests.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

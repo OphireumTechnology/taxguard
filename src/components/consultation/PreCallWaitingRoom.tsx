@@ -400,7 +400,7 @@ export const PreCallWaitingRoom: React.FC<PreCallWaitingRoomProps> = ({
             </BrandedButton>
 
             <p className="text-[11px] text-[#718096] text-center">
-              Session is encrypted peer-to-peer. A/R Tax Services, LLC &bull; Columbia, SC
+              Session is encrypted peer-to-peer. DESTRIA TAX SERVICES LLC &bull; Columbia, SC
             </p>
           </div>
         </div>

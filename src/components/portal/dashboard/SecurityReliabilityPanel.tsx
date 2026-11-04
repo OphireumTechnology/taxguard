@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Security & Reliability Trust Indicators Panel
  *
  * Implements Section 24 of Client Dashboard Architecture:

@@ -1,6 +1,6 @@
 import {DurableClientCollectionWorkspace} from './DurableClientCollectionWorkspace';
 /**
- * A/R Tax Services, LLC - Stage 02 Collection Workspace
+ * DESTRIA TAX SERVICES LLC - Stage 02 Collection Workspace
  * Unified 18-Stage Tax Operating Workflow —  Milestone M2 / Stage 02: Collect
  *
  * Implements:
@@ -454,7 +454,7 @@ const LegacyStageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePro
                   : readiness.rejectedCount > 0
                   ? (readiness.nextAction?.message || 'One or more documents could not be accepted.')
                   : readiness.missingCount === 0
-                  ? (readiness.nextAction?.message || "We've received everything currently requested. A/R Tax Services is reviewing your documents.")
+                  ? (readiness.nextAction?.message || "We've received everything currently requested. DESTRIA TAX SERVICES LLC is reviewing your documents.")
                   : 'Upload the documents required to prepare your return.'}
               </div>
               <p className="text-xs text-[#A9B7C8]">
@@ -463,7 +463,7 @@ const LegacyStageTwoCollectionWorkspace: React.FC<StageTwoCollectionWorkspacePro
                   : readiness.rejectedCount > 0
                   ? (readiness.nextAction?.supportingText || 'Please review the rejection reason and upload an updated document.')
                   : readiness.missingCount === 0
-                  ? (readiness.nextAction?.supportingText || 'A/R Tax Services is reviewing your documents. No additional documents are required from you right now.')
+                  ? (readiness.nextAction?.supportingText || 'DESTRIA TAX SERVICES LLC is reviewing your documents. No additional documents are required from you right now.')
                   : 'Submit your W-2s, 1099s, bank statements, and relevant tax schedules to complete Stage 02.'}
               </p>
             </div>

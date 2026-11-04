@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Stage One Identity Verification Wizard
+ * DESTRIA TAX SERVICES LLC - Stage One Identity Verification Wizard
  * Entry point: Registration -> Stage One Onboard (Unified 18-Stage Operating Workflow)
  * Features:
  * - Internal Client ID tracking
@@ -1385,7 +1385,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 Federal law strictly prohibits tax return preparers from disclosing or using tax return information for purposes other than tax return preparation, unless expressly consented to by the taxpayer in writing.
               </p>
               <p>
-                By executing this consent, you authorize <strong>A/R Tax Services, LLC</strong> to securely utilize your accounting records, prior year returns, and submitted workpapers for the sole purpose of preparing, analyzing, and filing authorized federal and state tax filings, bookkeeping reconciliations, and strategic planning models.
+                By executing this consent, you authorize <strong>DESTRIA TAX SERVICES LLC</strong> to securely utilize your accounting records, prior year returns, and submitted workpapers for the sole purpose of preparing, analyzing, and filing authorized federal and state tax filings, bookkeeping reconciliations, and strategic planning models.
               </p>
               <p>
                 Your confidential tax information will never be sold, disclosed to unauthorized third parties, or exported outside our encrypted US-based data infrastructure.
@@ -1410,7 +1410,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                   className="mt-0.5 rounded text-[#C6A15B] focus:ring-[#C6A15B]"
                 />
                 <span>
-                  <strong>IRC § 7216 Consent:</strong> I formally authorize A/R Tax Services, LLC to process confidential tax return information under Treas. Reg. § 301.7216-3.
+                  <strong>IRC § 7216 Consent:</strong> I formally authorize DESTRIA TAX SERVICES LLC to process confidential tax return information under Treas. Reg. § 301.7216-3.
                 </span>
               </label>
 

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 18: Repeat Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 18: Repeat Workspace
  * Multi-Year Tax Lifecycle Continuity & Institutional Knowledge Preservation
  *
  * Implements:
@@ -315,7 +315,7 @@ export const StageEighteenRepeatView: React.FC<StageEighteenRepeatViewProps> = (
           <div className="max-w-md mx-auto space-y-2">
             <h3 className="text-base font-bold text-white">No Prior Tax Year Cycles Completed</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              As you complete filings with A/R Tax Services, each sealed engagement cycle will be preserved here for statutory 7-year multi-year audit compliance.
+              As you complete filings with DESTRIA TAX SERVICES LLC, each sealed engagement cycle will be preserved here for statutory 7-year multi-year audit compliance.
             </p>
           </div>
         </div>

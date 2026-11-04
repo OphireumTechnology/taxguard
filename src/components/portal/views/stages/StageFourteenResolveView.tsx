@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 14: Resolve Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 14: Resolve Workspace
  * Filing rejection remediation, agency notice intake, and resolution provenance.
  * Preserves complete audit trail of all correspondence and amendments.
  */
@@ -57,7 +57,7 @@ export const StageFourteenResolveView: React.FC<StageFourteenResolveViewProps> =
             <p className="text-slate-200">If you receive an IRS CP-notice or state letter, upload it here for immediate CPA defense analysis.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Enrolled agents and CPAs review agency requests, draft responses, and reconcile discrepancies.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

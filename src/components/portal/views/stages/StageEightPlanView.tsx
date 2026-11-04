@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 08: Plan Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 08: Plan Workspace
  * Multi-year tax planning and advisory scenarios.
  * Strictly separates CURRENT AUTHORITATIVE RETURN DATA from PLANNING SCENARIOS / PROJECTIONS.
  * AI planning suggestions are advisory proposals only and require professional review.
@@ -93,7 +93,7 @@ export const StageEightPlanView: React.FC<StageEightPlanViewProps> = ({
             <p className="text-slate-200">Review the advisory scenarios below and discuss with your CPA during your annual consultation.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Modeling tax brackets, contribution ceilings, and statutory phase-outs for the upcoming tax years.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

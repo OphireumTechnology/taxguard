@@ -30,25 +30,25 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             <BrandLogo size="md" />
             <p className="text-slate-400 text-sm leading-relaxed max-w-md pt-2">
-              Preserving Wealth. Building Legacies. Delivering boutique, client-first tax preparation, 
-              strategic business tax advisory, and wealth coordination for individuals, entrepreneurs, and families.
+              Intelligent Tax Preparation, Advisory &amp; Wealth Planning. Combining elite human CPA expertise 
+              with advanced AI financial intelligence for individuals, entrepreneurs, and forward-thinking enterprises.
             </p>
 
             <div className="space-y-2.5 pt-2 text-sm text-slate-300">
               <div className="flex items-center gap-3">
-                <MapPin className="w-4 h-4 text-[#C99A32] flex-shrink-0" />
+                <MapPin className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Columbia, South Carolina, USA</span>
               </div>
               <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-[#C99A32] flex-shrink-0" />
-                <a href="tel:678-205-9486" className="hover:text-[#D7AC4A] transition-colors font-medium">
+                <Phone className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <a href="tel:678-205-9486" className="hover:text-[#E5B552] transition-colors font-medium">
                   678-205-9486
                 </a>
               </div>
               <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-[#C99A32] flex-shrink-0" />
-                <a href="mailto:info@artaxservices.com" className="hover:text-[#D7AC4A] transition-colors">
-                  info@artaxservices.com
+                <Mail className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <a href="mailto:contact@destriatax.com" className="hover:text-[#E5B552] transition-colors">
+                  contact@destriatax.com
                 </a>
               </div>
             </div>
@@ -111,7 +111,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li>
                 <button onClick={() => handleNav('about')} className="hover:text-white transition-colors">
-                  About A/R Tax Services
+                  About DESTRIA TAX SERVICES LLC
                 </button>
               </li>
               <li>
@@ -220,16 +220,16 @@ export const Footer: React.FC = () => {
         {/* Professional Disclaimers & Statutory Regulatory Architecture */}
         <div className="py-6 text-xs text-slate-300 leading-relaxed border-b border-[#1A365D] space-y-2.5">
           <p>
-            <strong className="text-[#E8C66A]">IRS Non-Affiliation:</strong> A/R Tax Services, LLC is not affiliated with, endorsed by, or sponsored by the Internal Revenue Service.
+            <strong className="text-[#E8C66A]">IRS Non-Affiliation:</strong> DESTRIA TAX SERVICES LLC is not affiliated with, endorsed by, or sponsored by the Internal Revenue Service.
           </p>
           <p>
-            <strong className="text-[#E8C66A]">Professional Credentials:</strong> Tax preparation services are provided by authorized professionals holding active IRS Preparer Tax Identification Numbers (PTIN). Formal CPA attestations and Enrolled Agent representation services are coordinated in compliance with applicable federal and state regulatory standards.
+            <strong className="text-[#E8C66A]">Professional Credentials:</strong> Tax preparation and advisory services are provided by authorized professionals holding active IRS Preparer Tax Identification Numbers (PTIN). Formal CPA attestations and representation services are coordinated in strict compliance with Circular 230 and applicable state board standards.
           </p>
           <p>
             <strong className="text-[#E8C66A]">No Guarantee:</strong> Tax outcomes depend on individual taxpayer facts, applicable law, substantiating documentation, and governmental interpretation. No particular tax result, refund, savings amount, audit outcome, or governmental determination is guaranteed.
           </p>
           <p>
-            <strong className="text-[#E8C66A]">Financial Privacy (GLBA Notice):</strong> A/R Tax Services, LLC protects nonpublic personal financial information in accordance with the Gramm-Leach-Bliley Act (GLBA) and Internal Revenue Code Section 7216. Review our{' '}
+            <strong className="text-[#E8C66A]">Financial Privacy (GLBA Notice):</strong> DESTRIA TAX SERVICES LLC protects nonpublic personal financial information in accordance with the Gramm-Leach-Bliley Act (GLBA) and Internal Revenue Code Section 7216. Review our{' '}
             <button onClick={() => handleNav('privacy')} className="text-[#E8C66A] underline hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]">
               Privacy Policy
             </button>{' '}
@@ -246,7 +246,7 @@ export const Footer: React.FC = () => {
         {/* Bottom copyright & attribution */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div>
-            © {new Date().getFullYear()} A/R Tax Services, LLC. All rights reserved.
+            © {new Date().getFullYear()} DESTRIA TAX SERVICES LLC. All rights reserved.
           </div>
           <div className="flex items-center gap-3 text-slate-400">
             <button onClick={() => handleNav('privacy')} className="hover:text-[#E8C66A] transition-colors focus:outline-none focus-visible:underline">Privacy Policy</button>

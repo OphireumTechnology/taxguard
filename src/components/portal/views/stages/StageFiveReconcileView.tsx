@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 05: Reconcile Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 05: Reconcile Workspace
  * Comprehensive tie-out reconciliation between source documents, accounting ledgers,
  * and recorded tax return figures. Never hides unexplained variances.
  */
@@ -123,7 +123,7 @@ export const StageFiveReconcileView: React.FC<StageFiveReconcileViewProps> = ({
             <p className="text-slate-200">Nothing required from you unless an unexplained variance is flagged by the CPA reviewer.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
             <p className="text-slate-200">Cross-checking withholding, estimated tax vouchers, and W-2/1099 box allocations.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">

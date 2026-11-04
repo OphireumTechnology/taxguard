@@ -351,7 +351,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
         {!isCollapsed && (
           <div className="px-3 py-2 rounded-xl bg-[#040E1B] border border-[#0B2748] text-[10px] text-slate-400 space-y-0.5">
             <div className="font-bold text-slate-300">IRS Registered ERO</div>
-            <div>A/R Tax Services, LLC</div>
+            <div>DESTRIA TAX SERVICES LLC</div>
             <div className="text-[#C99A3D] font-mono">Pub 4557 Compliant</div>
           </div>
         )}

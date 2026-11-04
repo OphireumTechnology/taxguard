@@ -54,7 +54,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         `Category: ${(docItem.category || 'TAX_DOCUMENT').toUpperCase()}\n` +
         `Encrypted Vault Verified: AES-256\n` +
         `Timestamp: ${new Date().toISOString()}\n` +
-        `Firm: A/R Tax Services, LLC (Columbia, SC)`
+        `Firm: DESTRIA TAX SERVICES LLC (Columbia, SC)`
       ], { type: 'text/plain' });
       const u = URL.createObjectURL(blob);
       const a = document.createElement('a');

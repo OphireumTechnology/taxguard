@@ -28,29 +28,27 @@ export const PublicV2Logo: React.FC<PublicV2LogoProps> = ({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
-      aria-label="A/R Tax Services, LLC Home"
+      aria-label="DESTRIA TAX SERVICES LLC Home"
     >
-      <div className="relative flex-shrink-0 flex items-center justify-center bg-white">
+      <div className="relative flex-shrink-0 flex items-center justify-center">
         <img
-          src={BRAND_ASSETS.logoMonochromeHeader}
-          srcSet={`${BRAND_ASSETS.logoMonochromeHeader} 1x, ${BRAND_ASSETS.logoMonochrome} 2x`}
-          alt="A/R Tax Services, LLC — Black-and-White Corporate Logo"
+          src={BRAND_ASSETS.destriaLogo}
+          alt="DESTRIA TAX SERVICES LLC Circular Logo"
           width={dimensions.px}
           height={dimensions.px}
           loading="eager"
           decoding="async"
-          referrerPolicy="no-referrer"
-          className={`${dimensions.img} object-contain filter grayscale contrast-125`}
+          className={`${dimensions.img} object-contain rounded-full shadow-sm`}
         />
       </div>
 
       {showText && (
-        <div className="flex flex-col leading-none">
-          <span className={`tracking-tight text-black uppercase font-mono ${dimensions.title}`}>
-            A/R Tax Services
+        <div className="flex flex-col leading-none text-left">
+          <span className={`tracking-tight text-white uppercase font-serif ${dimensions.title}`}>
+            DESTRIA
           </span>
-          <span className={`tracking-widest text-neutral-600 uppercase font-sans mt-0.5 ${dimensions.sub}`}>
-            LLC · Accounting & Tax
+          <span className={`tracking-widest text-[#C99A35] uppercase font-sans mt-0.5 ${dimensions.sub} font-semibold`}>
+            Tax Services LLC
           </span>
         </div>
       )}

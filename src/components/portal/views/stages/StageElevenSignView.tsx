@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 11: Sign Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 11: Sign Workspace
  * Form 8879 IRS e-File Signature Authorization boundary.
  * Strictly adheres to Phase 13:
  * If no commissioned provider exists: display NOT_CONFIGURED / PROVIDER_BLOCKED.
@@ -68,8 +68,8 @@ export const StageElevenSignView: React.FC<StageElevenSignViewProps> = ({
             <p className="text-slate-200">Sign your Form 8879 authorization once the secure statutory signature provider is commissioned.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is A/R Tax doing?</span>
-            <p className="text-slate-200">A/R Tax Services verifies identity authentication compliance per IRS Pub 1345 rules.</p>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. What is DESTRIA doing?</span>
+            <p className="text-slate-200">DESTRIA TAX SERVICES LLC verifies identity authentication compliance per IRS Pub 1345 rules.</p>
           </div>
           <div className="p-3.5 bg-[#071A2E] rounded-xl border border-slate-800 space-y-1">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">4. What happens next?</span>

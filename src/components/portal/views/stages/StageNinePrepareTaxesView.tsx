@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 09: Prepare Taxes Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 09: Prepare Taxes Workspace
  * Official Form 1040 and state tax preparation calculation engine.
  * Deterministic computation derived strictly from certified Stage 04 records and Stage 05 reconciliations.
  */

@@ -302,7 +302,7 @@ export const ClientOnboardingWizard: React.FC<Props> = ({ onComplete }) => {
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>A/R Tax Services, LLC • Confidential Client Intake</span>
+              <span>DESTRIA TAX SERVICES LLC • Confidential Client Intake</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold font-serif tracking-tight text-white">
               Client Onboarding & Engagement Dossier
@@ -1146,7 +1146,7 @@ export const ClientOnboardingWizard: React.FC<Props> = ({ onComplete }) => {
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-3 font-sans max-h-60 overflow-y-auto leading-relaxed">
               <p className="font-bold text-slate-900 text-sm">A/R TAX SERVICES, LLC — PROFESSIONAL ENGAGEMENT AGREEMENT (v2026.1)</p>
               <p>
-                This agreement establishes the professional relationship between A/R Tax Services, LLC (&ldquo;Firm&rdquo;) and the Client named herein for tax preparation, review, and advisory services. The Firm will prepare federal and state tax returns based on representations and documentation furnished by the Client.
+                This agreement establishes the professional relationship between DESTRIA TAX SERVICES LLC (&ldquo;Firm&rdquo;) and the Client named herein for tax preparation, review, and advisory services. The Firm will prepare federal and state tax returns based on representations and documentation furnished by the Client.
               </p>
               <p>
                 <strong>Client Responsibility:</strong> You certify that you have provided complete and accurate records, including all gross receipts, 1099 statements, W-2s, and digital asset transactions. You maintain final legal responsibility for the accuracy of your returns under penalties of perjury.
@@ -1159,7 +1159,7 @@ export const ClientOnboardingWizard: React.FC<Props> = ({ onComplete }) => {
             {/* Required Consent Checkboxes */}
             <div className="space-y-2.5">
               {[
-                { id: 'engagementLetterAcknowledged', label: 'I acknowledge and agree to the A/R Tax Services, LLC Engagement Terms and Scope of Work.' },
+                { id: 'engagementLetterAcknowledged', label: 'I acknowledge and agree to the DESTRIA TAX SERVICES LLC Engagement Terms and Scope of Work.' },
                 { id: 'scopeAcknowledged', label: 'I understand that tax return preparation relies strictly on complete and truthful records supplied by me.' },
                 { id: 'pricingAcknowledged', label: 'I accept the firm pricing schedule, consultation retainers, and transparent billing policy.' },
                 { id: 'privacyNoticeAcknowledged', label: 'I acknowledge receipt of the Gramm-Leach-Bliley Act (GLBA) & IRC § 7216 Privacy Disclosure.' },

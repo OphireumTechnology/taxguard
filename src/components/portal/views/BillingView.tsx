@@ -55,7 +55,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
       `Payment Method: Authorized Electronic Remittance\n` +
       `Status: FULLY SETTLED / NO OUTSTANDING BALANCE\n` +
       `=======================================================\n` +
-      `A/R Tax Services, LLC • Columbia, SC • (843) 555-0199\n`;
+      `DESTRIA TAX SERVICES LLC • Columbia, SC • (843) 555-0199\n`;
 
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);

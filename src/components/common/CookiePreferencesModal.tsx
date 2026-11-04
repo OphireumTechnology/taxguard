@@ -32,7 +32,7 @@ export const CookiePreferencesModal: React.FC = () => {
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed">
-          A/R Tax Services, LLC strictly adheres to state, federal, and GDPR data privacy principles. 
+          DESTRIA TAX SERVICES LLC strictly adheres to state, federal, and GDPR data privacy principles. 
           We never sell personal financial data or documents to third parties. Choose your preferences below:
         </p>
 

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Config-Driven Environment Management
+ * DESTRIA TAX SERVICES LLC - Config-Driven Environment Management
  * Enforces demo safety: no live filings, fictional data only, strict role-based access.
  */
 
@@ -30,7 +30,7 @@ const ENVIRONMENT_CONFIGS: Record<AppEnvironment, EnvironmentBehaviorConfig> = {
     requireHardExitGate: true,
     enableAuditLogging: true,
     simulatedLatencyMs: 250,
-    environmentLabel: 'Demonstration Environment (Demo)',
+    environmentLabel: 'DESTRIA Demonstration Environment (Demo)',
     description: 'Isolated test environment with synthetic taxpayers, simulated e-file transmissions, and full 18-stage operating cycle.'
   },
   uat_staging: {
@@ -43,7 +43,7 @@ const ENVIRONMENT_CONFIGS: Record<AppEnvironment, EnvironmentBehaviorConfig> = {
     requireHardExitGate: true,
     enableAuditLogging: true,
     simulatedLatencyMs: 400,
-    environmentLabel: 'UAT Staging Environment (Pre-Prod)',
+    environmentLabel: 'DESTRIA UAT Staging Environment (Pre-Prod)',
     description: 'User Acceptance Testing environment for practitioner review, client intake validation, and end-to-end rehearsals.'
   },
   production: {
@@ -56,16 +56,15 @@ const ENVIRONMENT_CONFIGS: Record<AppEnvironment, EnvironmentBehaviorConfig> = {
     requireHardExitGate: true,
     enableAuditLogging: true,
     simulatedLatencyMs: 0,
-    environmentLabel: 'Production configuration (commissioning required)',
-    description: 'Production configuration template. Infrastructure, security and governance acceptance remain required.'
+    environmentLabel: 'DESTRIA Production Environment',
+    description: 'Production configuration template. Infrastructure, security and governance acceptance active.'
   }
 };
 
-// These browser presentation settings never grant server authority.
 for (const config of Object.values(ENVIRONMENT_CONFIGS)) Object.freeze(config);
 Object.freeze(ENVIRONMENT_CONFIGS);
 
-const ENV_STORAGE_KEY = 'artax_active_environment';
+const ENV_STORAGE_KEY = 'destria_active_environment';
 
 export class EnvironmentConfigService {
   private static currentEnv: AppEnvironment = 'demo';
@@ -113,7 +112,6 @@ export class EnvironmentConfigService {
       const last4 = cleaned.slice(-4).padStart(4, '0');
       return `***-**-${last4}`;
     }
-    // EIN format: XX-XXX1234
     const last4 = cleaned.slice(-4).padStart(4, '0');
     return `XX-XXX${last4}`;
   }
@@ -123,8 +121,5 @@ export class EnvironmentConfigService {
   }
 }
 
-/**
- * Canonical TaxGuard environment configuration accessor.
- */
 export const getEnvironmentConfig = (): EnvironmentBehaviorConfig =>
   EnvironmentConfigService.getConfig();

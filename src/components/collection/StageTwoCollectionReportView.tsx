@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Stage 02 Collection Report View
+ * DESTRIA TAX SERVICES LLC - Stage 02 Collection Report View
  * Section 44: Comprehensive Accountant Collection Report
  *
  * Displays:

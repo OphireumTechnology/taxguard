@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES LLC - TaxGuard AI
  * Right-Side Context Rail
  *
  * Implements:
@@ -183,7 +183,7 @@ export const RightContextRail: React.FC<RightContextRailProps> = ({
             {latestMessageSnippet ? (
               <p className="line-clamp-2 italic">&ldquo;{latestMessageSnippet}&rdquo;</p>
             ) : (
-              <p className="text-slate-400">Direct encrypted line to your A/R Tax Services engagement team.</p>
+              <p className="text-slate-400">Direct encrypted line to your DESTRIA TAX SERVICES LLC engagement team.</p>
             )}
           </div>
 
