@@ -16,7 +16,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           Privacy Policy
         </h1>
         <p className="text-xs text-slate-400">
-          Last Updated & Reviewed: January 2026 • Governing Entity: A/R Tax Services, LLC (Columbia, SC)
+          Governing Entity: DESTRIA TAX SERVICES LLC (Columbia, SC)
         </p>
       </div>
 
@@ -24,7 +24,7 @@ export const PrivacyPolicyPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">1. Commitment to Client Confidentiality</h2>
           <p>
-            A/R Tax Services, LLC (“we”, “our”, or “the Firm”) is deeply committed to safeguarding the nonpublic personal financial information (NPI) of our clients, prospective clients, and web portal visitors. In accordance with the Gramm-Leach-Bliley Act (GLBA), the Internal Revenue Code Section 7216, the California Consumer Privacy Act (CCPA), and applicable GDPR principles for international stakeholders, we maintain stringent physical, electronic, and procedural safeguards.
+            DESTRIA TAX SERVICES LLC (“we”, “our”, or “the Firm”) is deeply committed to safeguarding the nonpublic personal financial information (NPI) of our clients, prospective clients, and web portal visitors. In accordance with the Gramm-Leach-Bliley Act (GLBA), the Internal Revenue Code Section 7216, the California Consumer Privacy Act (CCPA), and applicable GDPR principles for international stakeholders, we maintain stringent physical, electronic, and procedural safeguards.
           </p>
         </section>
 
@@ -51,7 +51,7 @@ export const PrivacyPolicyPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">4. Encryption & Technical Safeguards</h2>
           <p>
-            All electronic documents submitted through the A/R Tax Services portal are encrypted using 256-bit Advanced Encryption Standard (AES) at rest and TLS 1.3 during transit. Multi-factor authentication (MFA) and granular role-based access control (RBAC) restrict document access solely to assigned accountants and client account owners.
+            All electronic documents submitted through the DESTRIA Tax Services portal are encrypted using 256-bit Advanced Encryption Standard (AES) at rest and TLS 1.3 during transit. Multi-factor authentication (MFA) and granular role-based access control (RBAC) restrict document access solely to assigned accountants and client account owners.
           </p>
         </section>
 
@@ -66,7 +66,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           <h2 className="font-serif text-xl font-bold text-white">6. Privacy Inquiries</h2>
           <p>
             If you have questions regarding this Privacy Policy or our security protocols, please contact:<br />
-            <strong>A/R Tax Services, LLC</strong><br />
+            <strong>DESTRIA TAX SERVICES LLC</strong><br />
             Attention: Privacy & Compliance Officer<br />
             Columbia, South Carolina, USA<br />
             Phone: <a href="tel:678-205-9486" className="text-[#C6A15B]">678-205-9486</a><br />

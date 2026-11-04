@@ -148,7 +148,7 @@ export const HomePage: React.FC = () => {
                   <div className="flex items-center gap-2.5">
                     <BrandLogo variant="emblem" size="sm" />
                     <div>
-                      <div className="text-xs font-bold text-white tracking-wider">A/R TAX SERVICES, LLC</div>
+                      <div className="text-xs font-bold text-white tracking-wider">DESTRIA TAX SERVICES LLC</div>
                       <div className="text-[10px] text-[#E2BD67]">Founder: Desmond Hinds</div>
                     </div>
                   </div>
@@ -214,7 +214,7 @@ export const HomePage: React.FC = () => {
             Our Foundation
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            The Four Pillars of A/R Tax Services
+            The Four Pillars of DESTRIA Tax Services
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
             Guided by principle, executed with precision. Every advisory engagement is anchored in these foundational commitments.
