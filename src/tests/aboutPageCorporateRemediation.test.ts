@@ -47,7 +47,7 @@ describe('About Page Corporate Image Remediation Suite', () => {
     });
 
     it('provides accessible and descriptive alt text', () => {
-      expect(aboutPageSource).toContain('alt="A/R Tax Services professional tax and accounting advisory workspace"');
+      expect(aboutPageSource).toContain('alt="DESTRIA Tax Services professional tax and accounting advisory workspace"');
     });
 
     it('enforces 16:9 aspect ratio and object-cover to prevent layout shift', () => {
@@ -63,7 +63,7 @@ describe('About Page Corporate Image Remediation Suite', () => {
     });
 
     it('preserves approved hero headline and value proposition', () => {
-      expect(aboutPageSource).toContain('About A/R Tax Services, LLC');
+      expect(aboutPageSource).toContain('About DESTRIA TAX SERVICES LLC');
       expect(aboutPageSource).toContain('Your Trusted Partner in Tax and Financial Solutions');
       expect(aboutPageSource).toContain('Delivering client-focused tax preparation');
     });
