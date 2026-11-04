@@ -151,7 +151,7 @@ export const ClientAdvisorySection: React.FC<ClientAdvisorySectionProps> = ({
       <div className="bg-white rounded-lg border border-[#D8DCE2] p-5 shadow-xs">
         <div className="pb-3 border-b border-[#D8DCE2]">
           <h2 className="text-sm font-bold text-[#061A2F]">Three Strategic Scenario Comparison</h2>
-          <p className="text-xs text-[#667085]">Evaluated by A/R Tax Services, LLC for 2025/2026</p>
+          <p className="text-xs text-[#667085]">Evaluated by DESTRIA TAX SERVICES LLC for 2025/2026</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
@@ -315,7 +315,7 @@ export const ClientAdvisorySection: React.FC<ClientAdvisorySectionProps> = ({
             </div>
 
             <div className="pt-3 border-t border-[#D8DCE2] text-[10px] text-[#667085]">
-              IRC § 162 & § 199A compliance evaluated by A/R Tax Services, LLC.
+              IRC § 162 & § 199A compliance evaluated by DESTRIA TAX SERVICES LLC.
             </div>
           </div>
         </div>

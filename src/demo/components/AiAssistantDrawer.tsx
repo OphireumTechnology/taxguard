@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Role-Specific Demonstration AI Assistant Drawer
+ * DESTRIA TAX SERVICES LLC - Role-Specific Demonstration AI Assistant Drawer
  * Deterministic, compliant simulated AI intelligence panel.
  */
 

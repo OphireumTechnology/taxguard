@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Client Authorized Contacts & Power of Attorney
+ * DESTRIA TAX SERVICES LLC - Client Authorized Contacts & Power of Attorney
  * Compliance with Sections 4 & 24: Entity signing authorities, Form 2848 representatives,
  * and access authorizations.
  */

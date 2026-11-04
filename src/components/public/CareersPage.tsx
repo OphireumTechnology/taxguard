@@ -133,7 +133,7 @@ export const CareersPage: React.FC = () => {
             <span>Join Our Mission</span>
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
-            Careers at A/R Tax Services, LLC
+            Careers at DESTRIA TAX SERVICES LLC
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Build a rewarding career empowering individuals and businesses. Join our collaborative, 
@@ -361,7 +361,7 @@ export const CareersPage: React.FC = () => {
                       rows={3}
                       value={coverLetter}
                       onChange={(e) => setCoverLetter(e.target.value)}
-                      placeholder="Share a brief overview of your tax/accounting background and why you wish to join A/R Tax Services..."
+                      placeholder="Share a brief overview of your tax/accounting background and why you wish to join DESTRIA TAX SERVICES LLC..."
                       className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg p-3 text-white focus:outline-none focus:border-[#C6A15B]"
                     />
                   </div>

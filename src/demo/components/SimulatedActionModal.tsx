@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Simulated Action Modal
+ * DESTRIA TAX SERVICES LLC - Simulated Action Modal
  * Manages interactive simulated operations with clear demonstration labeling.
  */
 
@@ -186,7 +186,7 @@ export const SimulatedActionModal: React.FC<SimulatedActionModalProps> = ({
                     className="mt-0.5 border border-black rounded-none text-black focus:ring-0"
                   />
                   <span>
-                    I confirm that I have reviewed the draft return and authorize A/R Tax Services, LLC to execute simulated electronic filing in this demonstration environment.
+                    I confirm that I have reviewed the draft return and authorize DESTRIA TAX SERVICES LLC to execute simulated electronic filing in this demonstration environment.
                   </span>
                 </label>
               </div>

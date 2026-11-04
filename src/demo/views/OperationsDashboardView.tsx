@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Practice Operations Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Practice Operations Demonstration Workspace
  * Firmwide workflow board, Staff capacity matrix, Filing season bottleneck alerts, Deadlines.
  */
 
@@ -39,7 +39,7 @@ export const OperationsDashboardView: React.FC<OperationsDashboardViewProps> = (
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Practice Operations Command
+            DESTRIA TAX SERVICES LLC • Practice Operations Command
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Firmwide Workflow &amp; Capacity Command Center

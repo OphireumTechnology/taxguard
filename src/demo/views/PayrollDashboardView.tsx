@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Payroll Specialist Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Payroll Specialist Demonstration Workspace
  * Payroll registers, IRS Form 941/940 liabilities, W-2 & 1099 wage filings.
  */
 
@@ -35,7 +35,7 @@ export const PayrollDashboardView: React.FC<PayrollDashboardViewProps> = ({
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Corporate Payroll &amp; Employment Tax Practice
+            DESTRIA TAX SERVICES LLC • Corporate Payroll &amp; Employment Tax Practice
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Payroll Compliance &amp; Form 941 Workpaper Workspace

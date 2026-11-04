@@ -16,7 +16,7 @@ export const TermsOfServicePage: React.FC = () => {
           Terms of Service
         </h1>
         <p className="text-xs text-slate-400">
-          Effective Date: January 2026 • A/R Tax Services, LLC (Columbia, SC)
+          Effective Date: January 2026 • DESTRIA TAX SERVICES LLC (Columbia, SC)
         </p>
       </div>
 
@@ -24,7 +24,7 @@ export const TermsOfServicePage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">1. Scope of Engagement</h2>
           <p>
-            By accessing the website, scheduling consultations, utilizing the client portal, or engaging A/R Tax Services, LLC (“the Firm”), you agree to be bound by these Terms of Service. Individual tax return preparation, corporate entity filings, and bookkeeping engagements are further governed by your specific signed Engagement Letter.
+            By accessing the website, scheduling consultations, utilizing the client portal, or engaging DESTRIA TAX SERVICES LLC (“the Firm”), you agree to be bound by these Terms of Service. Individual tax return preparation, corporate entity filings, and bookkeeping engagements are further governed by your specific signed Engagement Letter.
           </p>
         </section>
 
@@ -46,7 +46,7 @@ export const TermsOfServicePage: React.FC = () => {
           <div className="p-4 rounded-xl bg-[#0D2340] border border-[#C6A15B]/40 text-slate-200 space-y-2">
             <strong>No Guarantee of Specific Tax Refund:</strong>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Federal and state tax outcomes are strictly dictated by applicable statutes, tax brackets, and client-provided facts. A/R Tax Services, LLC makes no representation or guarantee that a client will receive a refund, nor that liabilities will be eliminated.
+              Federal and state tax outcomes are strictly dictated by applicable statutes, tax brackets, and client-provided facts. DESTRIA TAX SERVICES LLC makes no representation or guarantee that a client will receive a refund, nor that liabilities will be eliminated.
             </p>
           </div>
         </section>

@@ -1,4 +1,4 @@
-/* Tax Forms Library — A/R Tax Services brand: deep navy, gold accents, blue interactive elements. */
+/* Tax Forms Library — DESTRIA TAX SERVICES LLC brand: deep navy, gold accents, blue interactive elements. */
 .tg-forms{--f-bg:#06182B;--f-card:#0D2745;--f-raised:#102D4F;--f-border:rgba(148,163,184,.22);--f-gold:#D4A843;--f-blue:#1A7FD4;--f-blue-strong:#0068BD;--f-text:#F8FAFC;--f-text-2:#B4C2D3;
   background:var(--f-bg);color:var(--f-text);min-height:100dvh;padding:20px;font-size:13px;display:flex;flex-direction:column;gap:14px}
 .tg-forms :is(button,input,select,a):focus-visible{outline:2px solid var(--f-gold);outline-offset:2px}

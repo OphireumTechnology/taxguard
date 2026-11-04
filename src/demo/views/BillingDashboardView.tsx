@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Billing & Collections Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Billing & Collections Demonstration Workspace
  * Engagement fees, Accounts Receivable aging, Retainers, and simulated payments.
  */
 
@@ -56,7 +56,7 @@ export const BillingDashboardView: React.FC<BillingDashboardViewProps> = ({
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Practice Revenue &amp; Treasury Management
+            DESTRIA TAX SERVICES LLC • Practice Revenue &amp; Treasury Management
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Invoicing, Retainers &amp; Accounts Receivable Workspace

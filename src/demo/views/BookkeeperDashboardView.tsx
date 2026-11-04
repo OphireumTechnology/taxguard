@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Bookkeeper Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Bookkeeper Demonstration Workspace
  * Bank feed categorization, Reconciliation with zero-variance verification, Month-End Close.
  */
 
@@ -54,7 +54,7 @@ export const BookkeeperDashboardView: React.FC<BookkeeperDashboardViewProps> = (
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Client Accounting &amp; Advisory Services (CAS)
+            DESTRIA TAX SERVICES LLC • Client Accounting &amp; Advisory Services (CAS)
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Bookkeeping &amp; General Ledger Reconciliation Workspace

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - System Administrator Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - System Administrator Demonstration Workspace
  * Role session tokens, Rate-limit lockouts, Integration Registry, Reset Demo Data,
  * and Administrator-Controlled Role Access Tester across all 29 practice roles.
  */
@@ -87,7 +87,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Enterprise Architecture &amp; Security Administration
+            DESTRIA TAX SERVICES LLC • Enterprise Architecture &amp; Security Administration
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             System Administration &amp; Sandbox Controls

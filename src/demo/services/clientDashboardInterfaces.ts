@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Provider-Neutral Client Dashboard Architecture
+ * DESTRIA TAX SERVICES LLC - Provider-Neutral Client Dashboard Architecture
  * Interfaces for modular service layer supporting interchangeable Demo and Production adapters.
  */
 

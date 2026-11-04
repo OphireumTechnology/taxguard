@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Demonstration Authentication Service
+ * DESTRIA TAX SERVICES LLC - Demonstration Authentication Service
  * Strictly manages role-based temporary demonstration credentials and sessions.
  * Enforces rate-limiting simulation, lockout windows, and role-session isolation.
  */

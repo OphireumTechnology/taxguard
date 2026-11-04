@@ -28,7 +28,7 @@ export const FounderPage: React.FC = () => {
             Meet Desmond Hinds
           </h1>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Founder &amp; Chief Executive Officer &bull; A/R Tax Services, LLC &bull; Columbia, South Carolina, USA
+            Founder &amp; Chief Executive Officer &bull; DESTRIA TAX SERVICES LLC &bull; Columbia, South Carolina, USA
           </p>
         </div>
       </section>
@@ -101,7 +101,7 @@ export const FounderPage: React.FC = () => {
               </blockquote>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Desmond established A/R Tax Services, LLC to bring high-touch, executive-tier tax strategy and financial governance to individuals, growing businesses, and families who want more than transactional return preparation.
+                Desmond established DESTRIA TAX SERVICES LLC to bring high-touch, executive-tier tax strategy and financial governance to individuals, growing businesses, and families who want more than transactional return preparation.
               </p>
             </div>
 
@@ -112,13 +112,13 @@ export const FounderPage: React.FC = () => {
               </h3>
               <div className="space-y-4 text-xs sm:text-sm text-slate-200 leading-relaxed">
                 <p>
-                  Desmond Hinds is the Founder and Chief Executive Officer of A/R Tax Services, LLC, a professional firm serving individuals, families, entrepreneurs, and businesses with reliable tax preparation, accounting, financial planning, and business consulting solutions.
+                  Desmond Hinds is the Founder and Chief Executive Officer of DESTRIA TAX SERVICES LLC, a professional firm serving individuals, families, entrepreneurs, and businesses with reliable tax preparation, accounting, financial planning, and business consulting solutions.
                 </p>
                 <p>
                   Guided by integrity, accuracy, confidentiality, and a client-first approach, Desmond established the company to simplify complex financial responsibilities and help clients make informed decisions with confidence.
                 </p>
                 <p>
-                  His leadership combines technical attention to detail with personalized service. Through A/R Tax Services, LLC, he is committed to protecting each client’s financial interests, identifying opportunities for growth, and building lasting professional relationships based on trust.
+                  His leadership combines technical attention to detail with personalized service. Through DESTRIA TAX SERVICES LLC, he is committed to protecting each client’s financial interests, identifying opportunities for growth, and building lasting professional relationships based on trust.
                 </p>
               </div>
             </div>

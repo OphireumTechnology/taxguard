@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Client Dashboard Demo Services
+ * DESTRIA TAX SERVICES LLC - Client Dashboard Demo Services
  * Implements the concrete service classes and exports type definitions
  * for the 8 modular Client Portal sections.
  */
@@ -406,9 +406,9 @@ export class DemoOverviewService implements IOverviewService {
       documentsRequiringAttention: 2,
       missingInformationCount: 1,
       assignedTeam: [
-        { name: 'Elena Rostova, CPA', role: 'Senior Tax Reviewer & Managing CPA', email: 'elena.rostova@artaxservices.com' },
-        { name: 'David Vance, EA', role: 'Staff Tax Preparer & Enrolled Agent', email: 'david.vance@artaxservices.com' },
-        { name: 'Sarah Jenkins', role: 'Client Service Manager', email: 'sarah.jenkins@artaxservices.com' }
+        { name: 'Elena Rostova, CPA', role: 'Senior Tax Reviewer & Managing CPA', email: 'elena.rostova@destriatax.com' },
+        { name: 'David Vance, EA', role: 'Staff Tax Preparer & Enrolled Agent', email: 'david.vance@destriatax.com' },
+        { name: 'Sarah Jenkins', role: 'Client Service Manager', email: 'sarah.jenkins@destriatax.com' }
       ]
     };
   }
@@ -818,7 +818,7 @@ export class DemoReturnReviewService implements IReturnReviewService {
     taxYear: 2025,
     version: '1.2 (Technical Review Certified)',
     status: 'Ready for Signature',
-    preparer: 'David Vance, EA (A/R Tax Services)',
+    preparer: 'David Vance, EA (DESTRIA TAX SERVICES LLC)',
     certifiedBy: 'Elena Rostova, CPA (License #SC-28419)',
     grossReceipts: 742500,
     totalDeductions: 382450,

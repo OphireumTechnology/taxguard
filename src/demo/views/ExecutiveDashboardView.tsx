@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Firm Owner & Executive Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Firm Owner & Executive Demonstration Workspace
  * Practice realization rates, Revenue pacing, Firm capacity utilization, High-level KPIs.
  */
 
@@ -17,7 +17,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({ 
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Executive Leadership &amp; Managing Partner Practice
+            DESTRIA TAX SERVICES LLC • Executive Leadership &amp; Managing Partner Practice
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Executive Practice Intelligence &amp; Realization Briefing

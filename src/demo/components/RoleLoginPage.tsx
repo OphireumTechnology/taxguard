@@ -1,5 +1,5 @@
 ﻿/**
- * A/R Tax Services, LLC - Role-Based Practice & Client Login Page
+ * DESTRIA TAX SERVICES LLC - Role-Based Practice & Client Login Page
  * Official brand identity: Deep Navy (#06172C, #0A2544, #0D2340), Classic Gold (#C99A32, #E8C66A).
  * Includes official company logo, company name, rate limiting, and password visibility toggle.
  */
@@ -344,7 +344,7 @@ export const RoleLoginPage: React.FC<RoleLoginPageProps> = ({
         {/* Security Assurance Line */}
             <div className="flex items-center gap-2 text-[11px] text-slate-300 pt-0.5">
               <ShieldCheck className="w-4 h-4 text-[#C99A32] flex-shrink-0" />
-              <span>'Secure client authentication through A/R Tax Services TaxGuard.'</span>
+              <span>'Secure client authentication through DESTRIA TAX SERVICES LLC TaxGuard.'</span>
             </div>
 
                         <div className="text-center pt-1">

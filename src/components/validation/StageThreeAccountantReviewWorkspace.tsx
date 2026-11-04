@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 03 Accountant Document Review Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 03 Accountant Document Review Workspace
  *
  * Dedicated professional document-validation workspace supporting Stage 03 (Validate).
  * (Distinct from Stage 06 Tax/Workpaper Review).

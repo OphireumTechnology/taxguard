@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Accountant Dashboard Navigation Architecture
+ * DESTRIA TAX SERVICES LLC - Accountant Dashboard Navigation Architecture
  * Strict compliance with the 20-item information architecture specification.
  */
 

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Personalized Documents & Multi-State Compliance Engine
+ * DESTRIA TAX SERVICES LLC - Personalized Documents & Multi-State Compliance Engine
  * Federal + CA, NY, NC, SC, VA, TN, FL, NJ
  *
  * Implements:
@@ -2203,7 +2203,7 @@ export function generatePersonalizedChecklist(
       title: `${stateRule.name} Individual Income Tax Exemption Confirmation`,
       category: 'State Specific',
       whyWeNeedIt: `Confirms ${stateRule.name} imposes NO state personal income tax on wages or personal earnings. No state individual return will be prepared.`,
-      whereCanIFindIt: 'Generated automatically by A/R Tax Services compliance engine.',
+      whereCanIFindIt: 'Generated automatically by DESTRIA TAX SERVICES LLC compliance engine.',
       whyAmIAsked: `You are a resident of ${stateRule.name}.`,
       source: 'Other',
       appliesTo: intake.residenceState,

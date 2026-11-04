@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Authoritative Pre-Filing Gate Registry Service
+ * DESTRIA TAX SERVICES LLC - Authoritative Pre-Filing Gate Registry Service
  * 
  * Provides the single source of truth for the 7 Pre-Filing Hard-Stop Gates,
  * Maker-Checker Separation of Duties, Concurrency & Idempotency Guards,

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Unified Demonstration Dashboard Shell
+ * DESTRIA TAX SERVICES LLC - Unified Demonstration Dashboard Shell
  * Strict black-and-white minimalist architecture.
  * Shared across all 12 protected practice roles.
  */
@@ -364,7 +364,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
             {!sidebarCollapsed ? (
               <div className="min-w-0">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-[#D7AC4A] font-semibold">
-                  A/R Tax Services, LLC
+                  DESTRIA TAX SERVICES LLC
                 </div>
                 <div className="text-sm font-bold text-[#F7F4ED] truncate">
                   {roleConfig.title}
@@ -559,7 +559,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
             <div className="relative w-4/5 max-w-xs bg-[#061A2F] text-white border-r border-[#1A365D] flex flex-col h-full z-10 shadow-2xl">
               <div className="p-4 border-b border-[#1A365D] flex items-center justify-between bg-[#031323]">
                 <div>
-                  <div className="text-[10px] font-mono uppercase text-[#D7AC4A]">A/R Tax Services, LLC</div>
+                  <div className="text-[10px] font-mono uppercase text-[#D7AC4A]">DESTRIA TAX SERVICES LLC</div>
                   <div className="text-xs font-bold text-white">{roleConfig.title}</div>
                 </div>
                 <button

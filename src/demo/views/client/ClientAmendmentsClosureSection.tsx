@@ -300,7 +300,7 @@ export const ClientAmendmentsClosureSection: React.FC<ClientAmendmentsClosureSec
             <ShieldCheck className="w-5 h-5 text-[#061A2F] flex-shrink-0 mt-0.5" />
             <div>
               <strong className="text-[#061A2F] block mb-0.5">Statutory 7-Year Document Retention Requirement:</strong>
-              Under Treasury Circular 230 and IRC § 6001, corporate records, general ledgers, bank statements, and tax returns must be retained for a minimum of 7 years post-dissolution. A/R Tax Services, LLC maintains an encrypted, immutable archive of all dissolved entity files.
+              Under Treasury Circular 230 and IRC § 6001, corporate records, general ledgers, bank statements, and tax returns must be retained for a minimum of 7 years post-dissolution. DESTRIA TAX SERVICES LLC maintains an encrypted, immutable archive of all dissolved entity files.
             </div>
           </div>
         </div>

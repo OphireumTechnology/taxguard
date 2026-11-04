@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - AI Document Processing Pipeline & Structured Output
+ * DESTRIA TAX SERVICES LLC - AI Document Processing Pipeline & Structured Output
  * Compliance with Sections 12-17: 14-stage pipeline, confidence badges, duplicate detection,
  * quality flags, structured JSON preview, and client correction workflow.
  */

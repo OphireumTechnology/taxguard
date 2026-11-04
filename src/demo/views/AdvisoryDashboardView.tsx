@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Tax Strategy & Advisory Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Tax Strategy & Advisory Demonstration Workspace
  * Entity structuring, S-Corp Reasonable Compensation modeling, Multi-state nexus, R&D tax credit studies.
  */
 
@@ -44,7 +44,7 @@ export const AdvisoryDashboardView: React.FC<AdvisoryDashboardViewProps> = ({
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Advanced Strategic Tax Planning Practice
+            DESTRIA TAX SERVICES LLC • Advanced Strategic Tax Planning Practice
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Tax Strategy &amp; Entity Advisory Modeler

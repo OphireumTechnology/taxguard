@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Initial Seed Data for Client Dashboard
+ * DESTRIA TAX SERVICES LLC - Initial Seed Data for Client Dashboard
  * Provides realistic demonstration data for all 8 client sections.
  */
 
@@ -100,7 +100,7 @@ export const INITIAL_CLIENT_EXPENSES: ClientExpenseRecord[] = [
     clientId: 'cli_perotti',
     taxYear: 2025,
     date: '2025-06-20',
-    vendor: 'A/R Tax Services, LLC',
+    vendor: 'DESTRIA TAX SERVICES LLC',
     amount: 4500.00,
     entity: 'Perotti Capital Holdings LLC',
     businessPurpose: 'Entity Tax Preparation & Regulatory Compliance',

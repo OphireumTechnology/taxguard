@@ -157,7 +157,7 @@ export const StaffOnboardingWizard: React.FC = () => {
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>A/R Tax Services, LLC • Staff Credentialing</span>
+              <span>DESTRIA TAX SERVICES LLC • Staff Credentialing</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold font-serif text-white">
               Professional Staff Onboarding & Verification

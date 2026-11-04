@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Intake & Client Services Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Intake & Client Services Demonstration Workspace
  * Lead pipeline, Conflict of Interest checks, Engagement letter proposals, Client onboarding.
  */
 
@@ -35,7 +35,7 @@ export const IntakeDashboardView: React.FC<IntakeDashboardViewProps> = ({
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Client Onboarding &amp; Intake Practice
+            DESTRIA TAX SERVICES LLC • Client Onboarding &amp; Intake Practice
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Client Intake &amp; Conflict Clearance Workspace

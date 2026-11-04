@@ -97,7 +97,7 @@ export const IndustriesPage: React.FC = () => {
             Industry-Specific Tax & Accounting Solutions
           </h1>
           <p className="text-sm sm:text-base text-slate-300 max-w-3xl leading-relaxed">
-            Every commercial sector operates under distinct regulatory pressures, statutory depreciation rules, and revenue recognition standards. A/R Tax Services provides bespoke advisory frameworks tailored to the unique economic realities of your trade.
+            Every commercial sector operates under distinct regulatory pressures, statutory depreciation rules, and revenue recognition standards. DESTRIA TAX SERVICES LLC provides bespoke advisory frameworks tailored to the unique economic realities of your trade.
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Role-Specific Demonstration AI Engine
+ * DESTRIA TAX SERVICES LLC - Role-Specific Demonstration AI Engine
  * Provides deterministic mock AI assistant interactions strictly labeled as simulated.
  * Complies with IRS Section 7216 disclosure standards and human-review mandates.
  */
@@ -310,7 +310,7 @@ export class DemoAIService {
         prompt: prompt || 'Role-specific operational guidance',
         timestamp: new Date().toISOString(),
         assistantTitle: `${role.replace(/-/g, ' ').toUpperCase()} AI Assistant (Demonstration)`,
-        summary: `Demonstration operational intelligence for ${role.replace(/-/g, ' ')} at A/R Tax Services, LLC.`,
+        summary: `Demonstration operational intelligence for ${role.replace(/-/g, ' ')} at DESTRIA TAX SERVICES LLC.`,
         details: [
           'All guidance provided is simulated demonstration content reflecting firm standard operating procedures.',
           'Workflow tasks must comply with statutory requirements, firm review gates, and professional quality control.'

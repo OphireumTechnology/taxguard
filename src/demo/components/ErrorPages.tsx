@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Standardized Enterprise Error Pages
+ * DESTRIA TAX SERVICES LLC - Standardized Enterprise Error Pages
  * Strict black-and-white presentation with clear plain-language explanations and developer notice.
  */
 

@@ -17,7 +17,7 @@ const CONTEXTUAL_PROMPTS: Record<string, { title: string; suggestions: string[];
     suggestions: [
       'What is my immediate required action?',
       'Why is my engagement at Stage 10 (Approve)?',
-      'Who is on my assigned A/R Tax Services team?'
+      'Who is on my assigned DESTRIA TAX SERVICES LLC team?'
     ]
   },
   vault: {
@@ -115,7 +115,7 @@ export const ClientAssistantModal: React.FC<ClientAssistantModalProps> = ({
       const lower = q.toLowerCase();
 
       if (lower.includes('8879') || lower.includes('sign')) {
-        reply = 'Form 8879-S is the IRS e-file signature authorization for S-Corporations. Signing authorizes A/R Tax Services, LLC to electronically transmit Form 1120-S to the IRS. In this demo, signing records a simulated certified signature without submitting real data.';
+        reply = 'Form 8879-S is the IRS e-file signature authorization for S-Corporations. Signing authorizes DESTRIA TAX SERVICES LLC to electronically transmit Form 1120-S to the IRS. In this demo, signing records a simulated certified signature without submitting real data.';
       } else if (lower.includes('correction') || lower.includes('error')) {
         reply = 'You can request return corrections directly from the Return Review tab using the "Request Return Correction" form. This notifies your assigned CPA review team and logs an immutable audit event.';
       } else if (lower.includes('file') || lower.includes('format')) {

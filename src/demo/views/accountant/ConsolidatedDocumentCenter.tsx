@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Consolidated Client Document Result & Document Center
+ * DESTRIA TAX SERVICES LLC - Consolidated Client Document Result & Document Center
  * Section 7, 8, 9, 10: Complete document registry, 34 metadata fields, search, filters,
  * split-screen visual preview, AI extraction analysis, and human-in-the-loop override controls.
  */

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Staff & Client Portals Directory
+ * DESTRIA TAX SERVICES LLC - Staff & Client Portals Directory
  * Canonical directory of all 29 practice roles grouped by 7 operational stages.
  * Strict black-and-white minimalist design with zero credential exposure.
  */
@@ -270,7 +270,7 @@ export const PortalDirectoryView: React.FC<PortalDirectoryViewProps> = ({
             </button>
             <div>
               <div className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">
-                A/R Tax Services, LLC • Practice Portals
+                DESTRIA TAX SERVICES LLC • Practice Portals
               </div>
               <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight text-black">
                 Staff &amp; Client Portals Directory

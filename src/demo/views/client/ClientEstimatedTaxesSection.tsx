@@ -264,7 +264,7 @@ export const ClientEstimatedTaxesSection: React.FC<ClientEstimatedTaxesSectionPr
         <Info className="w-5 h-5 text-[#C99A32] flex-shrink-0 mt-0.5" />
         <div>
           <strong className="text-[#061A2F] block mb-0.5">Direct Agency Payment Policy:</strong>
-          Payment must be made directly by the taxpayer with the taxing authority (IRS or South Carolina Department of Revenue). A/R Tax Services, LLC does not debit your bank account for estimated tax liabilities. Keep all EFTPS and SCDOR confirmation receipts for end-of-year return preparation.
+          Payment must be made directly by the taxpayer with the taxing authority (IRS or South Carolina Department of Revenue). DESTRIA TAX SERVICES LLC does not debit your bank account for estimated tax liabilities. Keep all EFTPS and SCDOR confirmation receipts for end-of-year return preparation.
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 ﻿/**
- * A/R Tax Services, LLC - Client / Taxpayer Demonstration Dashboard
+ * DESTRIA TAX SERVICES LLC - Client / Taxpayer Demonstration Dashboard
  * Comprehensive 35+ function taxpayer portal with strict black-and-white theme.
  */
 
@@ -404,7 +404,7 @@ export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({
             {currentTab === 'support' && 'Client Support, Tax Knowledge Base & Contacts'}
           </h2>
           <p className="text-xs text-[#667085]">
-            A/R Tax Services, LLC • Client Demonstration Portal
+            DESTRIA TAX SERVICES LLC • Client Demonstration Portal
           </p>
         </div>
 
@@ -901,7 +901,7 @@ export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({
           Advisory &amp; Privacy Notice
         </p>
         <p>
-          Client engagement files, draft returns, and electronic signature authorizations are access-controlled. Tax outcomes depend strictly on individual client documentation, statutory provisions, and regulatory determinations. A/R Tax Services, LLC is an independent firm and does not guarantee specific refund or examination determinations.
+          Client engagement files, draft returns, and electronic signature authorizations are access-controlled. Tax outcomes depend strictly on individual client documentation, statutory provisions, and regulatory determinations. DESTRIA TAX SERVICES LLC is an independent firm and does not guarantee specific refund or examination determinations.
         </p>
       </div>
 

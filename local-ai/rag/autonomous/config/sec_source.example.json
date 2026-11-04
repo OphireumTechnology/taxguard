@@ -1,9 +1,0 @@
-{
-  "note": "SEC source adapter settings. Disabled. Before activation: a person confirms SEC.gov's automated-access guidance and records the date; the owner supplies an organization-controlled mailbox and a person confirms it is authorized and monitored; the owner records activation; and the registry entry is made ACTIVE with document paths.",
-  "enabled": false,
-  "organization": "Ophireum Technology",
-  "contact_email": "",
-  "guidance_verified_on": "",
-  "contact_verified_on": "",
-  "owner_activation_on": ""
-}

@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Accountant Bookkeeping & General Ledger Command Center
+ * DESTRIA TAX SERVICES LLC — Accountant Bookkeeping & General Ledger Command Center
  * Integrated workspace for Bank Feeds, Transaction Review, General Ledger,
  * Bank Reconciliation, Trial Balance, Financial Statements, and Book-to-Tax.
  */

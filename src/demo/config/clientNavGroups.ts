@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Unified Client Dashboard Navigation Architecture
+ * DESTRIA TAX SERVICES LLC - Unified Client Dashboard Navigation Architecture
  * Strict Section 4 compliance: 9 expandable groups and 38 functions.
  */
 

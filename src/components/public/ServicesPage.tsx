@@ -219,7 +219,7 @@ export const ServicesPage: React.FC = () => {
             <div className="p-4 rounded-xl bg-[#07172B] border border-[#C6A15B]/30 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-[#C6A15B] flex-shrink-0 mt-0.5" />
               <div className="text-xs text-slate-300 leading-relaxed">
-                <strong className="text-white">Notice Concerning Legal Services:</strong> A/R Tax Services, LLC provides financial guidance, tax structuring, and administrative document coordination. We do not provide formal legal representation, nor do accounting personnel draft binding legal instruments without licensed legal counsel. All formal wills, trusts, and powers of attorney are executed in referral coordination with properly licensed attorneys in South Carolina.
+                <strong className="text-white">Notice Concerning Legal Services:</strong> DESTRIA TAX SERVICES LLC provides financial guidance, tax structuring, and administrative document coordination. We do not provide formal legal representation, nor do accounting personnel draft binding legal instruments without licensed legal counsel. All formal wills, trusts, and powers of attorney are executed in referral coordination with properly licensed attorneys in South Carolina.
               </div>
             </div>
 

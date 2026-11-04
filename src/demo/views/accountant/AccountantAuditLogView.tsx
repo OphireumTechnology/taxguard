@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Accountant Immutable Audit Trail View
+ * DESTRIA TAX SERVICES LLC - Accountant Immutable Audit Trail View
  * Section 13: Full audit trail with User, Role, Action, Record, Result, Reason, Timestamp, and Session ID.
  */
 

@@ -245,7 +245,7 @@ export const TaxStrategiesPage: React.FC = () => {
                   <source srcSet={BRAND_ASSETS.taxStrategyWorkspaceWebp} type="image/webp" />
                   <img
                     src={BRAND_ASSETS.taxStrategyWorkspaceJpg}
-                    alt="A/R Tax Services professional tax strategy and financial analysis workspace"
+                    alt="DESTRIA TAX SERVICES LLC professional tax strategy and financial analysis workspace"
                     width={1280}
                     height={720}
                     loading="eager"

@@ -16,7 +16,7 @@ export const SecurityDataHandlingPage: React.FC = () => {
           Security & Data Handling
         </h1>
         <p className="text-xs text-slate-400">
-          SOC-Aligned Technical & Operational Measures • A/R Tax Services, LLC
+          SOC-Aligned Technical & Operational Measures • DESTRIA TAX SERVICES LLC
         </p>
       </div>
 
@@ -25,14 +25,14 @@ export const SecurityDataHandlingPage: React.FC = () => {
         <div className="p-4 rounded-xl bg-[#0D2340] border border-[#C6A15B]/40 text-slate-200 space-y-1.5">
           <strong className="text-white block font-semibold">Security Governance Statement:</strong>
           <p className="text-xs text-slate-300 leading-relaxed">
-            A/R Tax Services, LLC uses administrative, technical, and organizational safeguards designed to protect client information. No system can eliminate every security risk. We continually assess and enhance our controls to protect taxpayer confidentiality.
+            DESTRIA TAX SERVICES LLC uses administrative, technical, and organizational safeguards designed to protect client information. No system can eliminate every security risk. We continually assess and enhance our controls to protect taxpayer confidentiality.
           </p>
         </div>
 
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">1. Strong Cryptographic Controls</h2>
           <p>
-            Tax returns, Social Security numbers, bank routing information, and business accounting books represent high-sensitivity assets. A/R Tax Services, LLC protects client data through rigorous standards:
+            Tax returns, Social Security numbers, bank routing information, and business accounting books represent high-sensitivity assets. DESTRIA TAX SERVICES LLC protects client data through rigorous standards:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="p-4 rounded-xl bg-[#0D2340] border border-[#1E3A5F] space-y-1.5">

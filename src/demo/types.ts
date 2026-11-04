@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Role-Based Demonstration Environment
+ * DESTRIA TAX SERVICES LLC - Role-Based Demonstration Environment
  * Central Type Definitions and Contracts
  */
 
@@ -76,7 +76,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_intake_taylor',
       name: 'Taylor Brooks',
       title: 'Client Intake Coordinator',
-      email: 't.brooks@artaxservices.com'
+      email: 't.brooks@destriatax.com'
     },
     description: 'Manage prospective leads, conflict checks, client qualification, onboarding checklists, engagement proposals, and scheduling.'
   },
@@ -90,7 +90,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_bk_samuel',
       name: 'Samuel Rivera',
       title: 'Senior Bookkeeper',
-      email: 's.rivera@artaxservices.com'
+      email: 's.rivera@destriatax.com'
     },
     description: 'Chart of accounts, transaction categorization, bank feeds, accounts payable/receivable, and reconciliation preparation.'
   },
@@ -104,7 +104,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_pay_morgan',
       name: 'Morgan Vance',
       title: 'Payroll Compliance Specialist',
-      email: 'm.vance@artaxservices.com'
+      email: 'm.vance@destriatax.com'
     },
     description: 'Employee/contractor records, compensation schedules, payroll calculations, quarterly payroll returns (941/940), and W-2/1099 filing preparation.'
   },
@@ -118,7 +118,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_acc_marcus',
       name: 'Marcus Vance, EA',
       title: 'Senior Tax Preparer',
-      email: 'm.vance.ea@artaxservices.com'
+      email: 'm.vance.ea@destriatax.com'
     },
     description: 'Trial balance mapping, Form 1040/1065/1120-S workpapers, book-to-tax adjustments, depreciation, and return preparation.'
   },
@@ -132,7 +132,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_rev_elena',
       name: 'Elena Rostova, CPA',
       title: 'Director of Tax Review & Compliance',
-      email: 'e.rostova@artaxservices.com'
+      email: 'e.rostova@destriatax.com'
     },
     description: 'Maker-checker audit gates, source-to-return traceability, technical tax positions, period-lock approval, and return release certification.'
   },
@@ -146,7 +146,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_adv_desmond',
       name: 'Desmond Hinds, MSA',
       title: 'Founder & Principal Tax Strategist',
-      email: 'd.hinds@artaxservices.com'
+      email: 'd.hinds@destriatax.com'
     },
     description: 'Scenario modeling, entity selection, R&D credits, state tax nexus, cash-flow forecasting, and client wealth action plans.'
   },
@@ -160,7 +160,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_bill_claire',
       name: 'Claire Dupont',
       title: 'Billing & Collections Manager',
-      email: 'c.dupont@artaxservices.com'
+      email: 'c.dupont@destriatax.com'
     },
     description: 'Engagement pricing, retainers, invoices, simulated payment confirmations, accounts receivable aging, and fee collection tracking.'
   },
@@ -174,7 +174,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_comp_arthur',
       name: 'Arthur Sterling, CISA',
       title: 'Chief Compliance & Security Officer',
-      email: 'a.sterling@artaxservices.com'
+      email: 'a.sterling@destriatax.com'
     },
     description: 'Section 7216 consent registry, PTIN/EFIN tracking, access reviews, audit logs, retention schedules, and AI processing governance.'
   },
@@ -188,7 +188,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ops_patricia',
       name: 'Patricia Chen',
       title: 'Director of Firm Operations',
-      email: 'p.chen@artaxservices.com'
+      email: 'p.chen@destriatax.com'
     },
     description: 'Firmwide workflow board, staff capacity, bottleneck alerts, deadline calendars, service-level monitoring, and filing season command center.'
   },
@@ -202,7 +202,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_adm_greg',
       name: 'Gregory Scott',
       title: 'Senior Systems Administrator',
-      email: 'g.scott@artaxservices.com'
+      email: 'g.scott@destriatax.com'
     },
     description: 'User access controls, temporary access management, route permissions, integration registry, system health, and demo data management.'
   },
@@ -216,7 +216,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_exec_desmond',
       name: 'Desmond Hinds, Founder',
       title: 'Managing Principal & Firm Owner',
-      email: 'founder@artaxservices.com'
+      email: 'founder@destriatax.com'
     },
     description: 'Executive KPIs, firm revenue, work-in-progress, staff utilization, client retention, filing season metrics, and strategic growth.'
   },
@@ -230,7 +230,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_rec_alicia',
       name: 'Alicia Mendoza',
       title: 'Client Reception & Scheduling Coordinator',
-      email: 'a.mendoza@artaxservices.com'
+      email: 'a.mendoza@destriatax.com'
     },
     description: 'Receive inquiries, register prospective clients, maintain inquiry source, schedule consultations, manage appointments and callback queues.'
   },
@@ -244,7 +244,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_eng_brandon',
       name: 'Brandon Cole',
       title: 'Senior Engagement Manager',
-      email: 'b.cole@artaxservices.com'
+      email: 'b.cole@destriatax.com'
     },
     description: 'Convert accepted proposals into engagements, assign engagement IDs, configure jurisdictions and deadlines, manage scope and change orders.'
   },
@@ -258,7 +258,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ver_claudia',
       name: 'Claudia Vance',
       title: 'Identity & Verification Specialist',
-      email: 'c.vance@artaxservices.com'
+      email: 'c.vance@destriatax.com'
     },
     description: 'Review identity submissions, entity formation documents, address matching, EIN verification, ownership % and dependent records.'
   },
@@ -272,7 +272,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_doc_derek',
       name: 'Derek Shaw',
       title: 'Document Intake Specialist',
-      email: 'd.shaw@artaxservices.com'
+      email: 'd.shaw@destriatax.com'
     },
     description: 'Review uploaded files, split packages, detect duplicates, classify tax forms/notices, index documents and maintain chain of custody.'
   },
@@ -286,7 +286,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ent_fiona',
       name: 'Fiona Gallagher',
       title: 'Accounting Data Entry Specialist',
-      email: 'f.gallagher@artaxservices.com'
+      email: 'f.gallagher@destriatax.com'
     },
     description: 'Enter cash transactions, bills, deposits, vendor/customer records, match source receipts, mileage logs, and submit batches to Bookkeeping.'
   },
@@ -300,7 +300,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ap_grant',
       name: 'Grant Holloway',
       title: 'Accounts Payable Specialist',
-      email: 'g.holloway@artaxservices.com'
+      email: 'g.holloway@destriatax.com'
     },
     description: 'Receive vendor bills, detect duplicate invoices, suggest expense coding, prepare payment batches, AP aging, and track W-9/1099 compliance.'
   },
@@ -314,7 +314,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ar_heather',
       name: 'Heather Lin',
       title: 'Accounts Receivable Specialist',
-      email: 'h.lin@artaxservices.com'
+      email: 'h.lin@destriatax.com'
     },
     description: 'Prepare client invoices, apply retainers, record simulated payments, track AR aging, send reminders, and manage payment plans.'
   },
@@ -328,7 +328,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_qc_isabel',
       name: 'Isabel Thorpe',
       title: 'Quality Control Specialist',
-      email: 'i.thorpe@artaxservices.com'
+      email: 'i.thorpe@destriatax.com'
     },
     description: 'Inspect completed accounting/tax workpapers, verify source-to-return traceability, confirm maker-checker separation, and verify release gates.'
   },
@@ -342,7 +342,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ero_julian',
       name: 'Julian Mercer, ERO',
       title: 'Filing & ERO Operations Manager',
-      email: 'j.mercer@artaxservices.com'
+      email: 'j.mercer@destriatax.com'
     },
     description: 'Verify 7-point release gates, run schema diagnostics, create submission batches, transmit returns (simulated), and track submission IDs.'
   },
@@ -356,7 +356,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_ack_kendra',
       name: 'Kendra Washington',
       title: 'Government Acknowledgement Specialist',
-      email: 'k.washington@artaxservices.com'
+      email: 'k.washington@destriatax.com'
     },
     description: 'Receive simulated federal & state acknowledgements, match submission IDs, record acceptances/rejections, and route correction cases.'
   },
@@ -370,7 +370,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_cor_liam',
       name: 'Liam O’Connor',
       title: 'Notice & Correspondence Specialist',
-      email: 'l.oconnor@artaxservices.com'
+      email: 'l.oconnor@destriatax.com'
     },
     description: 'Log IRS/state notices, classify notice types, compare against acknowledgements, draft response cases, and manage deadlines.'
   },
@@ -384,7 +384,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_res_miranda',
       name: 'Miranda Cruz, EA',
       title: 'Tax Resolution Specialist',
-      email: 'm.cruz.ea@artaxservices.com'
+      email: 'm.cruz.ea@destriatax.com'
     },
     description: 'Form 2848 representation, transcript analysis, penalty abatement, installment agreements, OIC, lien/levy relief, and appeal hearings.'
   },
@@ -398,7 +398,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_aud_nathan',
       name: 'Nathaniel Drake, CPA',
       title: 'Audit Defense Specialist',
-      email: 'n.drake.cpa@artaxservices.com'
+      email: 'n.drake.cpa@destriatax.com'
     },
     description: 'Manage examination cases, track Information Document Requests (IDRs), issue workpapers, examiner meetings, and protest/appeals.'
   },
@@ -412,7 +412,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_amd_olivia',
       name: 'Olivia Sterling',
       title: 'Amendment Specialist',
-      email: 'o.sterling@artaxservices.com'
+      email: 'o.sterling@destriatax.com'
     },
     description: 'Receive amendment requests, preserve original filed returns, compare original vs amended amounts, route to preparer and reviewer.'
   },
@@ -426,7 +426,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_rec_preston',
       name: 'Preston Bailey',
       title: 'Records & Archive Manager',
-      email: 'p.bailey@artaxservices.com'
+      email: 'p.bailey@destriatax.com'
     },
     description: 'Receive completed engagements, verify archive checklists, preserve final returns, apply 7-year retention schedules, and roll forward.'
   },
@@ -440,7 +440,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_cs_quinn',
       name: 'Quinn Adams',
       title: 'Client Success Specialist',
-      email: 'q.adams@artaxservices.com'
+      email: 'q.adams@destriatax.com'
     },
     description: 'Deliver completed records, post-engagement surveys, service feedback, annual renewals, recurring CAS enrollment, and workflow reactivation.'
   },
@@ -454,7 +454,7 @@ export const DEMO_ROLES: Record<DemoRole, DemoRoleConfig> = {
       id: 'usr_sup_ross',
       name: 'Ross Martinez',
       title: 'Application Support Specialist',
-      email: 'r.martinez@artaxservices.com'
+      email: 'r.martinez@destriatax.com'
     },
     description: 'Technical support tickets, login issues, session resets, sanitized error monitoring, system announcements, and mock service status.'
   }

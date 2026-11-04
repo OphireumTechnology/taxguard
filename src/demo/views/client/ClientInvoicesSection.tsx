@@ -119,7 +119,7 @@ export const ClientInvoicesSection: React.FC<ClientInvoicesSectionProps> = ({
               <span className="text-[10px] font-mono text-[#D7AC4A] uppercase tracking-wider font-bold bg-[#061A2F] px-2 py-0.5 rounded">
                 Section 6 of 8
               </span>
-              <span className="text-xs font-mono text-[#667085]">A/R Tax Services, LLC Billing</span>
+              <span className="text-xs font-mono text-[#667085]">DESTRIA TAX SERVICES LLC Billing</span>
             </div>
             <h1 className="text-xl font-black text-[#061A2F] mt-1">
               Fee Invoices & Billing
@@ -315,7 +315,7 @@ export const ClientInvoicesSection: React.FC<ClientInvoicesSectionProps> = ({
               <div className="p-3 bg-[#FBFAF7] rounded border border-[#E5E7EB] space-y-2">
                 <div className="flex justify-between font-mono">
                   <span className="text-[#667085]">Firm Name:</span>
-                  <span className="font-bold text-[#061A2F]">A/R Tax Services, LLC</span>
+                  <span className="font-bold text-[#061A2F]">DESTRIA TAX SERVICES LLC</span>
                 </div>
                 <div className="flex justify-between font-mono">
                   <span className="text-[#667085]">Client Entity:</span>

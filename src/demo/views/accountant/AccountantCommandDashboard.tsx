@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Accountant Command Dashboard
+ * DESTRIA TAX SERVICES LLC - Accountant Command Dashboard
  * Section 6 & 59: Tax Preparation Center, Key Metrics, Workpaper Status, Prior-Year Changes, and Quick Actions.
  */
 

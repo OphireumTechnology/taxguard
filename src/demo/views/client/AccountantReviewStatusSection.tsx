@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Accountant Review Status & Notes Workspace
+ * DESTRIA TAX SERVICES LLC - Accountant Review Status & Notes Workspace
  * Compliance with Sections 18, 19 & 30: Document review state, reviewer sign-off,
  * and strict isolation between private practitioner notes and client-visible notes.
  */

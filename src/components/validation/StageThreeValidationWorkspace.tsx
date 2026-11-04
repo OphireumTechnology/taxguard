@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC — Stage 03 Validation Workspace
+ * DESTRIA TAX SERVICES LLC — Stage 03 Validation Workspace
  * Unified 18-Stage Tax Operating Workflow — Milestone M3 / Stage 03: Validate
  *
  * Implements Sprint 1 Capabilities (Canonical TG-VAL Feature IDs):

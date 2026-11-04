@@ -71,7 +71,7 @@ export const ContactPage: React.FC = () => {
             <span>Direct Client Support</span>
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
-            Connect With A/R Tax Services
+            Connect With DESTRIA TAX SERVICES LLC
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Our Columbia, South Carolina advisory team is ready to answer your questions, 

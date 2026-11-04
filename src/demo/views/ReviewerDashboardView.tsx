@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Senior Reviewer / CPA / EA Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Senior Reviewer / CPA / EA Demonstration Workspace
  * Strict Maker-Checker QC enforcement, return certification, and variance diagnostics.
  */
 
@@ -133,7 +133,7 @@ export const ReviewerDashboardView: React.FC<ReviewerDashboardViewProps> = ({
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Director of Quality Control &amp; Technical Tax Positions
+            DESTRIA TAX SERVICES LLC • Director of Quality Control &amp; Technical Tax Positions
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Senior Reviewer &amp; CPA Quality Certification Workspace

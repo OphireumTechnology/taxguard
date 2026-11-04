@@ -216,7 +216,7 @@ export const ClientBankConnectionsSection: React.FC<ClientBankConnectionsSection
                 READ-ONLY DATA ACCESS — FUND TRANSFERS ARE NOT AVAILABLE.
               </h2>
               <p className="text-xs text-slate-300 mt-0.5">
-                This platform links directly with financial aggregators strictly to obtain electronic transaction feeds and statement PDFs for bookkeeping and reconciliation. A/R Tax Services, LLC never has access to your banking passwords and cannot initiate payments, wires, or account transfers.
+                This platform links directly with financial aggregators strictly to obtain electronic transaction feeds and statement PDFs for bookkeeping and reconciliation. DESTRIA TAX SERVICES LLC never has access to your banking passwords and cannot initiate payments, wires, or account transfers.
               </p>
             </div>
           </div>
@@ -431,7 +431,7 @@ export const ClientBankConnectionsSection: React.FC<ClientBankConnectionsSection
                     <span>Statutory Data Access Disclosure</span>
                   </div>
                   <p className="text-[11px] text-[#4B5563] leading-relaxed">
-                    By proceeding, you authorize A/R Tax Services, LLC to receive <strong>read-only transaction histories and statement copies</strong> from <strong>{selectedInstitution}</strong>.
+                    By proceeding, you authorize DESTRIA TAX SERVICES LLC to receive <strong>read-only transaction histories and statement copies</strong> from <strong>{selectedInstitution}</strong>.
                   </p>
                   <ul className="text-[11px] list-disc list-inside text-[#667085] space-y-0.5">
                     <li>Zero-Credential Architecture: Bank credentials are never seen or stored.</li>

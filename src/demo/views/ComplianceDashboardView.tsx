@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Compliance & Security Demonstration Workspace
+ * DESTRIA TAX SERVICES LLC - Compliance & Security Demonstration Workspace
  * IRC § 7216 Consents, PTIN/EFIN Credentials, Immutable Audit Trail, Retention Schedule.
  */
 
@@ -49,7 +49,7 @@ export const ComplianceDashboardView: React.FC<ComplianceDashboardViewProps> = (
       <div className="border border-neutral-300 p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase text-neutral-500">
-            A/R Tax Services, LLC • Ethics, Compliance &amp; Information Security
+            DESTRIA TAX SERVICES LLC • Ethics, Compliance &amp; Information Security
           </div>
           <h2 className="text-base font-bold text-black uppercase">
             Regulatory Compliance &amp; Immutable Audit Trail Workspace

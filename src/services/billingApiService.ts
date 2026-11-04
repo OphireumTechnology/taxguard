@@ -57,19 +57,30 @@ export const billingApiService = {
     { serviceCode: 'TAX_1120S', name: 'S-Corporation Form 1120-S Preparation', baseFee: '650.00' },
     { serviceCode: 'BK_MONTHLY', name: 'Monthly Bookkeeping & Reconciliation', baseFee: '199.00' }
   ],
-  invoices: async (clientId?: string): Promise<Invoice[]> => INITIAL_INVOICES,
+  invoices: async (clientId?: string, signal?: AbortSignal): Promise<{ items: any[] }> => {
+    const list = INITIAL_INVOICES.map(inv => ({
+      ...inv,
+      invoiceId: inv.id,
+      invoiceNumber: inv.invoiceNumber || `INV-${inv.id}`,
+      balanceDue: inv.amount - (inv.amountPaid || 0),
+      status: (inv.status || 'ISSUED').toUpperCase()
+    }));
+    return { items: list };
+  },
   getInvoices: async (clientId?: string): Promise<Invoice[]> => INITIAL_INVOICES,
   createInvoice: async (data: Partial<Invoice>): Promise<{ success: boolean; invoice: Invoice }> => ({
     success: true,
     invoice: { ...(INITIAL_INVOICES[0] as any), ...data, id: 'inv_' + Date.now() }
   }),
   processPayment: async (invoiceId: string, paymentMethodId?: string): Promise<{ success: boolean }> => ({ success: true }),
+  paySandbox: async (clientId: string, invoiceId: string, amount: number, card: string, idempotencyKey: string): Promise<{ success: boolean }> => ({ success: true }),
+  document: async (clientId: string, invoiceId: string): Promise<Blob> => new Blob(['%PDF-1.4 Mock Invoice Document'], { type: 'application/pdf' }),
   createDraft: async (...args: any[]) => ({ success: true }),
   submitDraft: async (...args: any[]) => ({ success: true }),
   approveDraft: async (...args: any[]) => ({ success: true }),
   recordPayment: async (...args: any[]) => ({ success: true }),
   issueRefund: async (...args: any[]) => ({ success: true }),
-  downloadPdf: async (...args: any[]) => new Blob()
+  downloadPdf: async (...args: any[]) => new Blob(['%PDF-1.4 Mock PDF'], { type: 'application/pdf' })
 };
 
 export const billingApi = billingApiService;

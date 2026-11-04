@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Accountant Tax Preparation & Review Center Types
+ * DESTRIA TAX SERVICES LLC - Accountant Tax Preparation & Review Center Types
  * Comprehensive data contracts for consolidated documents, workpapers,
  * AI extractions, exceptions, hard-stop readiness, and demo filing records.
  */

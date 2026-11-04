@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Accountant Admin, Team, AI Configuration & Practice Settings
+ * DESTRIA TAX SERVICES LLC - Accountant Admin, Team, AI Configuration & Practice Settings
  * Sections 14, 15, 16, 17, 18, 19, 20: Practice Management, Team, Roles, AI Thresholds, and Demo Environment.
  */
 
@@ -376,14 +376,14 @@ export const AccountantAdminViews: React.FC<AccountantAdminViewsProps> = ({ view
               Firm Licensing, EFIN &amp; Electronic Transmitter Settings
             </h2>
             <p className={`text-xs ${textSecondary} mt-0.5`}>
-              A/R Tax Services, LLC practice registration credentials.
+              DESTRIA TAX SERVICES LLC practice registration credentials.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div className="p-3 border rounded space-y-1">
               <span className="text-[10px] text-neutral-500 uppercase block">Firm Legal Name</span>
-              <strong className="text-neutral-900 dark:text-white">A/R Tax Services, LLC</strong>
+              <strong className="text-neutral-900 dark:text-white">DESTRIA TAX SERVICES LLC</strong>
             </div>
             <div className="p-3 border rounded space-y-1">
               <span className="text-[10px] text-neutral-500 uppercase block">Firm Address</span>

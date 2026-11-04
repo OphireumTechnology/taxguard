@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Client Dashboard Adapters
+ * DESTRIA TAX SERVICES LLC - Client Dashboard Adapters
  * Provides Demo and Production adapter implementations for all 8 client sections.
  * Guarantees zero external network or banking calls in demo mode.
  */
@@ -158,9 +158,9 @@ export class DemoClientDashboardAdapter implements IClientDashboardService {
       outstandingBalance: totalBalance,
       recentNotificationsCount: unreadNotifications,
       assignedTeam: {
-        managingPrincipal: { name: 'Desmond Hinds, MSA', email: 'desmond.hinds@artaxservices.com' },
-        seniorReviewer: { name: 'Elena Rostova, CPA', email: 'elena.rostova@artaxservices.com' },
-        taxPreparer: { name: 'Marcus Vance, EA', email: 'marcus.vance@artaxservices.com' }
+        managingPrincipal: { name: 'Desmond Hinds, MSA', email: 'desmond.hinds@destriatax.com' },
+        seniorReviewer: { name: 'Elena Rostova, CPA', email: 'elena.rostova@destriatax.com' },
+        taxPreparer: { name: 'Marcus Vance, EA', email: 'marcus.vance@destriatax.com' }
       }
     };
   }

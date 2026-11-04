@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Central Accountant Tax Preparation & Review Center Service
+ * DESTRIA TAX SERVICES LLC - Central Accountant Tax Preparation & Review Center Service
  * Stateful, reactive, auditable engine powering consolidated document processing,
  * workpapers, AI extractions, hard-stop gate validations, and demo filing records.
  */

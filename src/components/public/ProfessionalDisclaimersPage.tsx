@@ -16,7 +16,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
           Professional Disclaimers
         </h1>
         <p className="text-xs text-slate-400">
-          Statutory Regulatory Disclosures • A/R Tax Services, LLC (Columbia, SC)
+          Statutory Regulatory Disclosures • DESTRIA TAX SERVICES LLC (Columbia, SC)
         </p>
       </div>
 
@@ -28,7 +28,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
             <span>Primary Professional Practice Disclosure</span>
           </div>
           <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-            <strong>A/R Tax Services, LLC</strong> provides professional tax return preparation, business bookkeeping, and strategic tax planning advisory services. The Firm, its owners, and staff do not provide legal counsel, formal judicial representation, registered investment advisory services, or independent CPA attestation/audit opinions.
+            <strong>DESTRIA TAX SERVICES LLC</strong> provides professional tax return preparation, business bookkeeping, and strategic tax planning advisory services. The Firm, its owners, and staff do not provide legal counsel, formal judicial representation, registered investment advisory services, or independent CPA attestation/audit opinions.
           </p>
         </section>
 
@@ -39,7 +39,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
             The content, tools, calculators, checklists, and guides on this website are provided solely for general educational and informational purposes. Accessing this website, submitting an inquiry form, or scheduling a preliminary consultation does not create an accountant-client, fiduciary, or confidential advisory relationship.
           </p>
           <p>
-            A formal professional-client relationship is created only when you and A/R Tax Services, LLC mutually execute a written Engagement Letter detailing the specific scope of services, fee arrangements, and mutual obligations.
+            A formal professional-client relationship is created only when you and DESTRIA TAX SERVICES LLC mutually execute a written Engagement Letter detailing the specific scope of services, fee arrangements, and mutual obligations.
           </p>
         </section>
 
@@ -47,7 +47,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">2. No Guaranteed Refund or Savings Amount</h2>
           <p>
-            No statement, communication, or marketing material from A/R Tax Services, LLC shall be construed as a guarantee of a specific tax refund, tax credit eligibility, or elimination of tax liability. Federal and state tax obligations are determined strictly by the statutory provisions of the Internal Revenue Code, applicable state and local tax codes, and the factual, verifiable financial records supplied by the taxpayer.
+            No statement, communication, or marketing material from DESTRIA TAX SERVICES LLC shall be construed as a guarantee of a specific tax refund, tax credit eligibility, or elimination of tax liability. Federal and state tax obligations are determined strictly by the statutory provisions of the Internal Revenue Code, applicable state and local tax codes, and the factual, verifiable financial records supplied by the taxpayer.
           </p>
         </section>
 
@@ -55,7 +55,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">3. Estate Planning, Legal &amp; Investment Coordination</h2>
           <p>
-            Any discussions, worksheets, or guidance concerning estate planning, business entity formations, wills, trusts, and powers of attorney provided by A/R Tax Services, LLC are strictly educational, organizational, and tax-evaluative in nature.
+            Any discussions, worksheets, or guidance concerning estate planning, business entity formations, wills, trusts, and powers of attorney provided by DESTRIA TAX SERVICES LLC are strictly educational, organizational, and tax-evaluative in nature.
           </p>
           <p>
             We do not draft formal legal instruments, execute wills or trusts, or practice law. All legal documents and formal entity covenants should be drafted and reviewed by independent, properly licensed legal counsel. Similarly, we do not sell securities or act as registered investment advisors; financial planning coordination is conducted in partnership with client-designated licensed financial professionals.
@@ -66,7 +66,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">4. Computational Tools &amp; Technology Notice</h2>
           <p>
-            A/R Tax Services, LLC employs modern practice management software, encrypted transmission protocols, and analytical computational tools to assist with data organization, receipt scanning, and arithmetic consistency.
+            DESTRIA TAX SERVICES LLC employs modern practice management software, encrypted transmission protocols, and analytical computational tools to assist with data organization, receipt scanning, and arithmetic consistency.
           </p>
           <p>
             Automated tools and algorithms never make final filing determinations. All tax classifications, deduction evaluations, statutory elections, and return filings are directly reviewed, substantiated, and finalized by qualified professional tax preparers.
@@ -93,11 +93,11 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
         <section className="space-y-3 border-t border-[#1E3A5F] pt-6">
           <h2 className="font-serif text-xl font-bold text-white">7. IRS Non-Affiliation &amp; Regulatory Credentials</h2>
           <p>
-            A/R Tax Services, LLC is an independent commercial firm and is not affiliated with, endorsed by, or sponsored by the Internal Revenue Service or any state department of revenue.
+            DESTRIA TAX SERVICES LLC is an independent commercial firm and is not affiliated with, endorsed by, or sponsored by the Internal Revenue Service or any state department of revenue.
           </p>
           <div className="p-4 rounded-xl bg-[#07172B] border border-[#1E3A5F] space-y-1.5 text-xs text-slate-300">
             <p>
-              <strong className="text-white">Professional Credential Standards:</strong> A/R Tax Services, LLC is a professional tax preparation, bookkeeping, and advisory practice. Tax preparation services are provided by authorized professionals holding active IRS Preparer Tax Identification Numbers (PTIN). Formal CPA attestations and Enrolled Agent representation services are coordinated in compliance with applicable federal and state regulatory standards.
+              <strong className="text-white">Professional Credential Standards:</strong> DESTRIA TAX SERVICES LLC is a professional tax preparation, bookkeeping, and advisory practice. Tax preparation services are provided by authorized professionals holding active IRS Preparer Tax Identification Numbers (PTIN). Formal CPA attestations and Enrolled Agent representation services are coordinated in compliance with applicable federal and state regulatory standards.
             </p>
             <p>
               <strong className="text-white">Firm Location:</strong> Columbia, South Carolina, USA • <a href="tel:678-205-9486" className="text-[#C6A15B]">678-205-9486</a>
