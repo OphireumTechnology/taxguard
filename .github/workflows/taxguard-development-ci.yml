@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - recovery/destria-from-verified-baseline
       - codex/taxguard-phase10-staging-readiness
     paths:
       - 'src/**'
