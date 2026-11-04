@@ -3,48 +3,48 @@ import { useApp } from '../../context/AppContext';
 import { TESTIMONIALS_DATA } from '../../data/mockData';
 import { BrandLogo } from '../common/BrandLogo';
 import { BRAND_ASSETS } from '../../utils/assets';
-import { FounderPortrait, ServiceCardImage, EditorialSplitImage } from './images';
+import { ServiceCardImage, EditorialSplitImage } from './images';
 import { 
   ShieldCheck, 
   Clock, 
   Users, 
   Lock, 
   ArrowRight, 
-  CheckCircle2, 
-  FileCheck2, 
   Building2, 
   TrendingUp, 
   Scale, 
   Calendar, 
   Download, 
   Check, 
-  Star,
-  ChevronRight,
-  UploadCloud,
-  FileSpreadsheet,
-  Workflow,
-  MapPin,
-  Briefcase,
-  Layers,
-  FileText
+  Star, 
+  ChevronRight, 
+  UploadCloud, 
+  FileSpreadsheet, 
+  Workflow, 
+  MapPin, 
+  FileCheck2,
+  Cpu,
+  Sparkles,
+  FileCheck,
+  CheckCircle2
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const { setCurrentPage } = useApp();
 
   useEffect(() => {
-    console.log('[DIAGNOSTIC] Premium Homepage mounted successfully');
+    console.log('[DIAGNOSTIC] DESTRIA TAX SERVICES LLC Homepage mounted successfully');
   }, []);
 
   return (
-    <div className="space-y-24 sm:space-y-28 lg:space-y-32 pb-24 text-slate-100 selection:bg-[#C99A3D] selection:text-[#06172C]">
+    <div className="space-y-24 sm:space-y-28 lg:space-y-32 pb-24 text-slate-100 selection:bg-[#C99A35] selection:text-[#071D3A]">
       
-      {/* 1. HERO SECTION: EXECUTIVE ADVISORY SHOWCASE */}
+      {/* 1. HERO SECTION: DESTRIA EXECUTIVE & AI TAX INTELLIGENCE SHOWCASE */}
       <section className="relative pt-6 pb-16 sm:pt-10 sm:pb-20 md:pt-14 md:pb-24 overflow-hidden" aria-label="Introduction and Overview">
         {/* Architectural atmospheric glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-25" aria-hidden="true">
-          <div className="absolute -top-24 left-1/4 w-[28rem] h-[28rem] rounded-full bg-[#C99A3D] blur-[140px]" />
-          <div className="absolute top-1/3 right-10 w-[30rem] h-[30rem] rounded-full bg-[#1E3A5F] blur-[160px]" />
+          <div className="absolute -top-24 left-1/4 w-[28rem] h-[28rem] rounded-full bg-[#C99A35] blur-[140px]" />
+          <div className="absolute top-1/3 right-10 w-[30rem] h-[30rem] rounded-full bg-[#1677C8] blur-[160px]" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -52,19 +52,19 @@ export const HomePage: React.FC = () => {
             
             {/* Left Column: Authoritative Positioning & Clear Conversion Path */}
             <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2340] border border-[#C99A3D]/40 text-[#E2BD67] text-xs font-semibold tracking-wide shadow-sm">
-                <ShieldCheck className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                <span>Professional Tax &amp; Strategic Advisory &bull; Columbia, South Carolina</span>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2745] border border-[#C99A35]/40 text-[#E5B552] text-xs font-semibold tracking-wide shadow-sm">
+                <Cpu className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <span>Dual-Engine Financial Intelligence &bull; CPA Authority + AI Acceleration</span>
               </div>
 
               <div className="space-y-4">
                 <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-[44px] xl:text-[52px] font-extrabold tracking-tight text-white leading-[1.15] break-words">
-                  Discreet, Strategic Tax Advisory for{' '}
-                  <span className="block text-[#E2BD67] mt-1">Founders, Executives &amp; Families.</span>
+                  Intelligent Tax Preparation, Advisory &amp;{' '}
+                  <span className="block text-[#E5B552] mt-1">Wealth Planning for Leaders.</span>
                 </h1>
 
                 <p className="text-base sm:text-lg text-slate-300 max-w-2xl font-normal leading-relaxed">
-                  Precision tax preparation, proactive liability reduction, and comprehensive financial structuring tailored for business owners, corporate leaders, and individuals with complex financial lives. Grounded in integrity, discretion, and enduring client partnerships.
+                  DESTRIA TAX SERVICES LLC combines seasoned CPA tax authority with private AI verification technology. We deliver high-precision tax preparation, forward-looking deduction optimization, and bank-grade audit resilience for founders, corporate executives, and high-net-worth families.
                 </p>
               </div>
 
@@ -72,11 +72,11 @@ export const HomePage: React.FC = () => {
               <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <button
                   onClick={() => setCurrentPage('book_consultation')}
-                  className="px-7 py-4 rounded-xl font-bold text-sm text-[#07172B] bg-gradient-to-r from-[#C99A3D] via-[#E2BD67] to-[#C99A3D] hover:brightness-105 shadow-xl transition-all flex items-center justify-center gap-2.5 group whitespace-nowrap active:scale-[0.99]"
+                  className="px-7 py-4 rounded-xl font-bold text-sm text-[#071D3A] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 shadow-xl transition-all flex items-center justify-center gap-2.5 group whitespace-nowrap active:scale-[0.99]"
                   id="hero-schedule-btn"
                 >
-                  <Calendar className="w-4 h-4 text-[#07172B]" />
-                  <span>Schedule a Confidential Consultation</span>
+                  <Calendar className="w-4 h-4 text-[#071D3A]" />
+                  <span>Schedule Confidential Consultation</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
 
@@ -86,115 +86,120 @@ export const HomePage: React.FC = () => {
                     e.preventDefault();
                     setCurrentPage('portal');
                   }}
-                  className="px-6 py-4 rounded-xl font-semibold text-sm text-slate-100 bg-[#0D2340] hover:bg-[#132E52] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="px-6 py-4 rounded-xl font-semibold text-sm text-slate-100 bg-[#0D2745] hover:bg-[#133860] border border-[#1677C8]/40 hover:border-[#C99A35]/60 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                   id="hero-portal-btn"
                   role="link"
                 >
-                  <Lock className="w-4 h-4 text-[#C99A3D]" />
+                  <Lock className="w-4 h-4 text-[#C99A35]" />
                   <span>Secure Client Portal</span>
                 </a>
               </div>
 
-              {/* 4 Trust & Governance Indicators (Factual, Verified Standards) */}
-              <div className="pt-6 border-t border-[#1E3A5F]/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* 4 Trust & Governance Indicators */}
+              <div className="pt-6 border-t border-slate-700/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2340] text-[#C99A3D] border border-[#1E3A5F] flex-shrink-0">
+                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#C99A35] border border-slate-700 flex-shrink-0">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white leading-none">Confidential</div>
-                    <span className="text-[11px] text-slate-400">Strict Privacy</span>
+                    <div className="text-xs font-semibold text-white leading-none">Dual-Layer Review</div>
+                    <span className="text-[11px] text-slate-400">CPA + AI Logic</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2340] text-[#C99A3D] border border-[#1E3A5F] flex-shrink-0">
+                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#C99A35] border border-slate-700 flex-shrink-0">
                     <Clock className="w-4 h-4" />
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-white leading-none">Year-Round</div>
-                    <span className="text-[11px] text-slate-400">Active Guidance</span>
+                    <span className="text-[11px] text-slate-400">Strategic Advisory</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2340] text-[#C99A3D] border border-[#1E3A5F] flex-shrink-0">
+                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#C99A35] border border-slate-700 flex-shrink-0">
                     <Users className="w-4 h-4" />
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-white leading-none">Direct Access</div>
-                    <span className="text-[11px] text-slate-400">Dedicated Advisers</span>
+                    <span className="text-[11px] text-slate-400">Dedicated Advisor</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2340] text-[#C99A3D] border border-[#1E3A5F] flex-shrink-0">
+                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#C99A35] border border-slate-700 flex-shrink-0">
                     <Lock className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white leading-none">TLS Protected</div>
-                    <span className="text-[11px] text-slate-400">Encrypted Vault</span>
+                    <div className="text-xs font-semibold text-white leading-none">SOC-2 &amp; TLS</div>
+                    <span className="text-[11px] text-slate-400">Private Vault</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Editorial Hero Photography Showcase */}
+            {/* Right Column: Authoritative Official Destria Emblem & Showcase */}
             <div className="lg:col-span-5 relative">
-              <figure className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#0D2340] to-[#07172B] border border-[#C99A3D]/40 p-4 sm:p-5 shadow-2xl space-y-4">
+              <figure className="relative rounded-3xl bg-gradient-to-b from-[#0D2745] to-[#071D3A] border-2 border-[#C99A35]/50 p-6 sm:p-7 shadow-2xl space-y-5">
                 
                 {/* Firm Identifier Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-[#1E3A5F]">
-                  <div className="flex items-center gap-2.5">
-                    <BrandLogo variant="emblem" size="sm" />
+                <div className="flex items-center justify-between pb-3 border-b border-slate-700/80">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={BRAND_ASSETS.destriaLogo} 
+                      alt="DESTRIA TAX SERVICES LLC" 
+                      className="w-10 h-10 rounded-full shadow-md ring-1 ring-[#C99A35]"
+                    />
                     <div>
                       <div className="text-xs font-bold text-white tracking-wider">DESTRIA TAX SERVICES LLC</div>
-                      <div className="text-[10px] text-[#E2BD67]">Founder: Desmond Hinds</div>
+                      <div className="text-[10px] text-[#E5B552]">TAX PREPARATION, ADVISORY &amp; WEALTH PLANNING</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2.5 py-1 rounded bg-[#07172B] text-[#E2BD67] border border-[#C99A3D]/40">
-                    2025/2026 Advisory
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#071D3A] text-[#E5B552] border border-[#C99A35]/40">
+                    Active Practice
                   </span>
                 </div>
 
-                {/* Master Editorial Hero Image - CEO Corporate Portrait */}
-                <div className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden border border-[#1E3A5F] bg-[#07172B] shadow-inner">
+                {/* Master Official Circular Logo Feature */}
+                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-[#C99A35]/30 bg-[#FFFFFF] p-6 shadow-inner flex items-center justify-center">
                   <img
-                    id="home-hero-ceo-portrait"
-                    src="/ceo/123456789-desmond.png?v=20260922-1"
-                    alt="Desmond Hinds, Founder and Chief Executive Officer of A/R Tax Services, LLC"
-                    className="home-ceo-image"
+                    id="home-hero-destria-logo"
+                    src={BRAND_ASSETS.destriaLogo}
+                    alt="DESTRIA TAX SERVICES LLC - Official Circular Emblem with D, Tax Document, and AI Neural Circuit"
+                    className="w-full h-full object-contain drop-shadow-xl"
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
                   />
                 </div>
 
-                {/* Practice Office & Advisory Status Strip (Cleanly positioned outside the photograph) */}
+                {/* Practice Location & Status Strip */}
                 <div className="flex items-center justify-between text-xs text-slate-300 px-0.5 pt-0.5">
                   <div className="flex items-center gap-1.5 text-slate-300">
-                    <MapPin className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
-                    <span className="text-[11px] sm:text-xs">Columbia, SC Practice Office</span>
+                    <MapPin className="w-3.5 h-3.5 text-[#C99A35] flex-shrink-0" />
+                    <span className="text-[11px] sm:text-xs">Columbia, SC &bull; Nationwide Client Support</span>
                   </div>
-                  <span className="text-[10px] sm:text-[11px] font-semibold text-[#E2BD67] px-2 py-0.5 rounded bg-[#07172B] border border-[#C99A3D]/40">
-                    Private Advisory
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-[#E5B552] px-2 py-0.5 rounded bg-[#071D3A] border border-[#C99A35]/40">
+                    AI + Human CPA
                   </span>
                 </div>
 
                 {/* Firm Mission Banner */}
-                <div className="p-3.5 rounded-xl bg-[#07172B] border border-[#1E3A5F]">
-                  <div className="text-[11px] font-bold text-[#E2BD67] tracking-wider uppercase">
-                    More Than Taxes. A Strategic Financial Path.
+                <div className="p-3.5 rounded-xl bg-[#071D3A] border border-slate-700">
+                  <div className="text-[11px] font-bold text-[#E5B552] tracking-wider uppercase flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#C99A35]" />
+                    <span>Intelligent Tax Acceleration</span>
                   </div>
                   <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    Customized planning to legally minimize liabilities, maintain uncompromised statutory compliance, and preserve generational wealth.
+                    Automated document OCR, Schedule M-1 / M-3 book-to-tax cross-validation, and audit trace records reviewed by credentialed practitioners.
                   </p>
                 </div>
 
                 {/* Direct Action Link to Services */}
                 <button
                   onClick={() => setCurrentPage('services')}
-                  className="w-full py-3 rounded-xl text-xs font-bold text-[#07172B] bg-[#C99A3D] hover:bg-[#E2BD67] transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl text-xs font-bold text-[#071D3A] bg-[#C99A35] hover:bg-[#E5B552] transition-colors flex items-center justify-center gap-2"
                   id="hero-explore-plans-btn"
                 >
                   <span>Explore Practice Capabilities</span>
@@ -207,81 +212,81 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. THE FOUR BRAND PILLARS */}
+      {/* 2. THE FOUR FOUNDATIONAL PILLARS OF DESTRIA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Core Advisory Principles">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12 sm:mb-16">
-          <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
+          <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
             Our Foundation
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            The Four Pillars of DESTRIA Tax Services
+            The Four Pillars of DESTRIA
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            Guided by principle, executed with precision. Every advisory engagement is anchored in these foundational commitments.
+            Guided by principle, executed with technological precision. Every client engagement is anchored in these foundational commitments.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Pillar 1: Growth */}
-          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2340]/60 border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all group flex flex-col justify-between">
+          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2745]/60 border border-slate-700 hover:border-[#C99A35]/60 transition-all group flex flex-col justify-between">
             <div>
-              <div className="w-12 h-12 rounded-xl bg-[#07172B] border border-[#1E3A5F] flex items-center justify-center text-[#C99A3D] mb-5 group-hover:scale-105 transition-transform shadow-inner">
+              <div className="w-12 h-12 rounded-xl bg-[#071D3A] border border-slate-700 flex items-center justify-center text-[#C99A35] mb-5 group-hover:scale-105 transition-transform shadow-inner">
                 <TrendingUp className="w-6 h-6" />
               </div>
               <h3 className="font-serif text-xl font-bold text-white mb-2">Growth</h3>
-              <div className="text-xs font-semibold text-[#E2BD67] mb-2.5 uppercase tracking-wider">
-                Creating Opportunities
+              <div className="text-xs font-semibold text-[#E5B552] mb-2.5 uppercase tracking-wider">
+                Unlocking Capital Efficiency
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                We proactively uncover legitimate tax opportunities, entity advantages, and deductions that maximize capital retention and foster business expansion.
+                We uncover high-value deductions, entity advantages, and research &amp; development tax credits that preserve working capital for business expansion.
               </p>
             </div>
           </div>
 
           {/* Pillar 2: Protection */}
-          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2340]/60 border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all group flex flex-col justify-between">
+          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2745]/60 border border-slate-700 hover:border-[#C99A35]/60 transition-all group flex flex-col justify-between">
             <div>
-              <div className="w-12 h-12 rounded-xl bg-[#07172B] border border-[#1E3A5F] flex items-center justify-center text-[#C99A3D] mb-5 group-hover:scale-105 transition-transform shadow-inner">
+              <div className="w-12 h-12 rounded-xl bg-[#071D3A] border border-slate-700 flex items-center justify-center text-[#C99A35] mb-5 group-hover:scale-105 transition-transform shadow-inner">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <h3 className="font-serif text-xl font-bold text-white mb-2">Protection</h3>
-              <div className="text-xs font-semibold text-[#E2BD67] mb-2.5 uppercase tracking-wider">
-                Safeguarding What Matters
+              <div className="text-xs font-semibold text-[#E5B552] mb-2.5 uppercase tracking-wider">
+                Audit Trace Verification
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Through meticulous multi-tier review standards, audit readiness, and compliant accounting practices, we insulate your assets from avoidable exposures.
+                Through our multi-tier human CPA verification and automated mathematical cross-checks, every line item is substantiated for complete audit resilience.
               </p>
             </div>
           </div>
 
-          {/* Pillar 3: People */}
-          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2340]/60 border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all group flex flex-col justify-between">
+          {/* Pillar 3: Technology */}
+          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2745]/60 border border-slate-700 hover:border-[#C99A35]/60 transition-all group flex flex-col justify-between">
             <div>
-              <div className="w-12 h-12 rounded-xl bg-[#07172B] border border-[#1E3A5F] flex items-center justify-center text-[#C99A3D] mb-5 group-hover:scale-105 transition-transform shadow-inner">
-                <Users className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-xl bg-[#071D3A] border border-slate-700 flex items-center justify-center text-[#C99A35] mb-5 group-hover:scale-105 transition-transform shadow-inner">
+                <Cpu className="w-6 h-6" />
               </div>
-              <h3 className="font-serif text-xl font-bold text-white mb-2">People</h3>
-              <div className="text-xs font-semibold text-[#E2BD67] mb-2.5 uppercase tracking-wider">
-                Empowering Clients
+              <h3 className="font-serif text-xl font-bold text-white mb-2">Technology</h3>
+              <div className="text-xs font-semibold text-[#E5B552] mb-2.5 uppercase tracking-wider">
+                AI Financial Acceleration
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Taxes should never feel opaque or overwhelming. We translate complex tax codes into clear, actionable strategies that give clients complete peace of mind.
+                Intelligent source document OCR, automated general ledger reconciliation, and instant discrepancies identification ensure error-free tax packages.
               </p>
             </div>
           </div>
 
           {/* Pillar 4: Legacy */}
-          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2340]/60 border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all group flex flex-col justify-between">
+          <div className="p-6 sm:p-7 rounded-2xl bg-[#0D2745]/60 border border-slate-700 hover:border-[#C99A35]/60 transition-all group flex flex-col justify-between">
             <div>
-              <div className="w-12 h-12 rounded-xl bg-[#07172B] border border-[#1E3A5F] flex items-center justify-center text-[#C99A3D] mb-5 group-hover:scale-105 transition-transform shadow-inner">
+              <div className="w-12 h-12 rounded-xl bg-[#071D3A] border border-slate-700 flex items-center justify-center text-[#C99A35] mb-5 group-hover:scale-105 transition-transform shadow-inner">
                 <Building2 className="w-6 h-6" />
               </div>
               <h3 className="font-serif text-xl font-bold text-white mb-2">Legacy</h3>
-              <div className="text-xs font-semibold text-[#E2BD67] mb-2.5 uppercase tracking-wider">
-                Building Generations
+              <div className="text-xs font-semibold text-[#E5B552] mb-2.5 uppercase tracking-wider">
+                Multi-Generational Wealth
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Enduring wealth extends far beyond a single filing deadline. We coordinate long-term financial frameworks designed to protect and pass down prosperity.
+                We coordinate long-term trust, estate, and gift tax frameworks designed to transfer family and enterprise prosperity with minimal tax exposure.
               </p>
             </div>
           </div>
@@ -292,19 +297,19 @@ export const HomePage: React.FC = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Practice Capabilities">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 sm:mb-16 gap-6">
           <div className="space-y-3 max-w-2xl">
-            <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
+            <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
               Core Capabilities
             </span>
             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
-              Comprehensive Tax &amp; Advisory Services
+              Intelligent Tax Preparation &amp; Strategic Advisory
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
-              End-to-end tax preparation, corporate compliance, and wealth preservation tailored for discerning individuals and growing business entities.
+              Full-cycle tax preparation, corporate compliance, and wealth preservation tailored for discerning individuals and growing business enterprises.
             </p>
           </div>
           <button
             onClick={() => setCurrentPage('services')}
-            className="text-xs font-bold text-[#E2BD67] hover:text-white flex items-center gap-1.5 transition-colors self-start md:self-end py-2"
+            className="text-xs font-bold text-[#E5B552] hover:text-white flex items-center gap-1.5 transition-colors self-start md:self-end py-2"
           >
             <span>View Full Service Catalog</span>
             <ArrowRight className="w-4 h-4" />
@@ -313,289 +318,172 @@ export const HomePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           {/* Card 1: Tax Advisory and Planning */}
-          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2745] border border-slate-700 hover:border-[#C99A35]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.taxAdvisoryPlanningJpg}
                 webpSrc={BRAND_ASSETS.taxAdvisoryPlanningWebp}
                 alt="Professional tax advisor discussing strategic tax planning with a client"
                 categoryBadge="Tax Advisory & Strategy"
-                icon={<Workflow className="w-5 h-5 text-[#C99A3D]" />}
+                icon={<Workflow className="w-5 h-5 text-[#C99A35]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Tax Advisory and Planning</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Tax Advisory &amp; Strategic Planning</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Strategic federal and multistate tax planning engineered to legally minimize liabilities, model future transactions, and optimize entity structures.
               </p>
             </div>
-            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-[#1E3A5F]/80">
+            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Strategic Entity Selection &amp; Tax Structuring (LLC, S-Corp, C-Corp)</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Quarterly Tax Projections &amp; Estimated Payment Schedules</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                <span>Prior-Year Return Diagnostic &amp; Formal Amendments (1040X)</span>
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <span>Section 199A QBI &amp; State Pass-Through Entity Tax (PTET) Optimization</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>IRS Transcript Review &amp; Statutory Resolution Guidance</span>
               </li>
             </ul>
           </div>
 
           {/* Card 2: Business and Corporate Services */}
-          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2745] border border-slate-700 hover:border-[#C99A35]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.corporateBusinessAdvisoryJpg}
                 webpSrc={BRAND_ASSETS.corporateBusinessAdvisoryWebp}
                 alt="Business professionals reviewing corporate financial and advisory matters"
                 categoryBadge="Corporate & Enterprise"
-                icon={<Building2 className="w-5 h-5 text-[#C99A3D]" />}
+                icon={<Building2 className="w-5 h-5 text-[#C99A35]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Business and Corporate Services</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Corporate Compliance &amp; Entity Filings</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Comprehensive compliance and filing services for enterprise owners, partnerships, and growing companies across multiple state jurisdictions.
+                Comprehensive compliance and filing services for enterprise owners, partnerships, and operating companies across multiple state jurisdictions.
               </p>
             </div>
-            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-[#1E3A5F]/80">
+            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Form 1120-S (S-Corporation) &amp; Form 1065 (Partnership) Filings</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Multistate Corporate Nexus &amp; Apportionment Analysis</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                <span>Executive Compensation &amp; Owner Reasonable Salary Reviews</span>
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <span>Owner Reasonable Compensation Study &amp; Executive Payroll Review</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                <span>Corporate State Filings &amp; Annual Franchise Reporting</span>
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <span>Electronic K-1 Distribution via Encrypted Client Portal</span>
               </li>
             </ul>
           </div>
 
           {/* Card 3: Wealth, Estate and Asset Protection */}
-          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2745] border border-slate-700 hover:border-[#C99A35]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.estateLegacyPlanningJpg}
                 webpSrc={BRAND_ASSETS.estateLegacyPlanningWebp}
                 alt="Advisor consulting with clients on wealth, estate and asset protection planning"
                 categoryBadge="Asset Protection & Legacy"
-                icon={<Scale className="w-5 h-5 text-[#C99A3D]" />}
+                icon={<Scale className="w-5 h-5 text-[#C99A35]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Wealth, Estate and Asset Protection</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Wealth, Estate &amp; Asset Protection</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Coordinating with estate attorneys and family fiduciaries to ensure assets transfer with minimal tax friction and maximum structural protection.
               </p>
             </div>
-            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-[#1E3A5F]/80">
+            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Revocable &amp; Irrevocable Trust Tax Organization</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Estate &amp; Gift Tax Advisory &amp; Form 706 / 709 Preparation</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Succession Planning &amp; Intergenerational Wealth Transfer</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Seamless Collaboration with Licensed Estate Legal Counsel</span>
               </li>
             </ul>
           </div>
 
           {/* Card 4: Meticulous Tax Preparation */}
-          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/60 transition-all flex flex-col justify-between space-y-6 group">
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0D2745] border border-slate-700 hover:border-[#C99A35]/60 transition-all flex flex-col justify-between space-y-6 group">
             <div className="space-y-4">
               <ServiceCardImage
                 src={BRAND_ASSETS.meticulousTaxPrepJpg}
                 webpSrc={BRAND_ASSETS.meticulousTaxPrepWebp}
                 alt="Tax professional carefully reviewing tax documents and financial records"
                 categoryBadge="Accuracy & Compliance"
-                icon={<FileCheck2 className="w-5 h-5 text-[#C99A3D]" />}
+                icon={<FileCheck2 className="w-5 h-5 text-[#C99A35]" />}
               />
-              <h3 className="font-serif text-2xl font-bold text-white">Meticulous Tax Preparation</h3>
+              <h3 className="font-serif text-2xl font-bold text-white">Meticulous Individual Tax Filings</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Exhaustive review standards applied to every individual and business return. Every line item is substantiated for total audit resilience.
+                Exhaustive review standards applied to every individual return. Every line item is verified for complete audit protection and maximum legitimate deductions.
               </p>
             </div>
-            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-[#1E3A5F]/80">
+            <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Form 1040 Federal &amp; 50-State Income Tax Returns</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                <span>Multi-Tier Professional Quality &amp; Accuracy Verification</span>
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <span>Multi-Tier Dual Review (CPA Verification + AI Mathematical Engine)</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Complex Schedule C, Schedule E (Real Estate) &amp; K-1 Pass-Throughs</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                <span>Secure Electronic Filing (IRS e-file) with Confirmation Tracking</span>
+                <Check className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
+                <span>Authorized IRS e-File Transmission with Real-Time Acceptance Tracking</span>
               </li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* 4. FOUNDER & LEADERSHIP SPOTLIGHT: DESMOND HINDS */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Executive Leadership">
-        <div className="rounded-3xl bg-gradient-to-br from-[#0B2748] to-[#06172C] border border-[#C99A3D]/40 p-6 sm:p-10 lg:p-12 shadow-2xl space-y-8">
-          
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#1E3A5F]/80 pb-6">
-            <div>
-              <span className="inline-block text-xs font-bold tracking-widest text-[#E2BD67] uppercase mb-1">
-                A MESSAGE FROM OUR FOUNDER
-              </span>
-              <h2 className="font-serif text-3xl sm:text-4xl lg:text-[40px] font-bold text-white tracking-tight leading-tight">
-                Personal Guidance. Enduring Financial Confidence.
-              </h2>
-              <div className="text-sm font-semibold text-[#E2BD67] mt-1">
-                Desmond Hinds &bull; Founder &amp; CEO, A/R Tax Services, LLC &bull; Columbia, South Carolina
-              </div>
-            </div>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#06172C] border border-[#C99A3D]/50 text-[11px] font-bold tracking-widest text-[#E2BD67] uppercase shadow-sm self-start sm:self-center">
-              <span className="w-2 h-2 rounded-full bg-[#C99A3D]" />
-              PRACTICE LEADER
-            </div>
-          </div>
-
-          {/* Executive Spotlight Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch pt-2">
-            
-            {/* Authentic Executive Portrait Column with Official Corporate Signage */}
-            <div className="lg:col-span-5 flex flex-col justify-center">
-              <FounderPortrait
-                size="lg"
-                variant="portrait"
-                priority={false}
-                caption="Desmond Hinds • Founder & Chief Executive Officer"
-                className="w-full"
-              />
-            </div>
-
-            {/* Narrative, Welcome Message & Verified Credentials */}
-            <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
-              <div className="space-y-5">
-                {/* Firm Mission & Tagline Plaque */}
-                <div className="p-4 sm:p-5 rounded-xl bg-[#06172C]/90 border-l-4 border-[#C99A3D] text-[#F8F6F1] shadow-md">
-                  <div className="text-base sm:text-lg font-serif italic leading-relaxed text-white">
-                    &ldquo;People &bull; Plans &bull; Progress&rdquo;
-                  </div>
-                  <div className="text-xs font-semibold text-[#E2BD67] mt-1.5">
-                    &mdash; Desmond Hinds, Founder &amp; Chief Executive Officer
-                  </div>
-                </div>
-
-                {/* Welcoming Supporting Message from Desmond Hinds */}
-                <div className="space-y-3.5 text-xs sm:text-sm text-slate-200 leading-relaxed max-w-[72ch]">
-                  <p>
-                    &ldquo;Welcome to A/R Tax Services, LLC. We understand that every individual, family, and business has a distinct financial story. Our commitment is to provide attentive, confidential, and carefully considered tax support built around your circumstances, responsibilities, and long-term objectives.
-                  </p>
-                  <p>
-                    Whether you are managing a growing enterprise, coordinating complex family interests, planning across generations, or seeking greater clarity in your financial affairs, our goal is to give you a professional environment where your concerns are heard and your next steps are approached with care.
-                  </p>
-                  <p>
-                    We value enduring relationships founded on preparation, transparency, discretion, and trust. We look forward to learning about your priorities and helping you move forward with greater confidence.&rdquo;
-                  </p>
-                </div>
-
-                {/* Verified Professional Credentials */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  <div className="p-3.5 rounded-xl bg-[#06172C]/70 border border-[#1E3A5F]">
-                    <div className="text-[11px] font-bold text-[#E2BD67] uppercase tracking-wider">IRS Registered</div>
-                    <div className="text-[11px] text-slate-300 mt-1">AFSP Registered Tax Return Preparer</div>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#06172C]/70 border border-[#1E3A5F]">
-                    <div className="text-[11px] font-bold text-[#E2BD67] uppercase tracking-wider">Software Certified</div>
-                    <div className="text-[11px] text-slate-300 mt-1">Certified QuickBooks ProAdvisor</div>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#06172C]/70 border border-[#1E3A5F]">
-                    <div className="text-[11px] font-bold text-[#E2BD67] uppercase tracking-wider">Advanced Candidacy</div>
-                    <div className="text-[11px] text-slate-300 mt-1">Enrolled Agent (EA) Candidate</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Direct Action Card with Specified CTAs */}
-              <div className="bg-[#06172C]/80 p-5 sm:p-6 rounded-2xl border border-[#C99A3D]/40 shadow-lg space-y-4">
-                <div>
-                  <div className="text-xs font-bold text-[#E2BD67] tracking-wider uppercase mb-1">
-                    Confidential Client Onboarding &amp; Consultation
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Schedule a private advisory session to review corporate positioning, multi-tier tax strategy, or prior-year returns with our leadership.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={() => setCurrentPage('book_consultation')}
-                    className="h-12 px-6 rounded-xl font-bold text-xs sm:text-sm text-[#06172C] bg-gradient-to-r from-[#C99A3D] to-[#E2BD67] hover:brightness-105 transition-all shadow-md flex items-center justify-center gap-2 whitespace-nowrap flex-1"
-                    id="founder-book-btn"
-                  >
-                    <Calendar className="w-4 h-4 text-[#06172C] flex-shrink-0" />
-                    <span>Schedule a Confidential Consultation</span>
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage('founder')}
-                    className="h-12 px-6 rounded-xl font-semibold text-xs sm:text-sm text-slate-100 bg-[#0B2748]/70 hover:bg-[#0B2748] border border-[#C99A3D]/40 hover:border-[#C99A3D] transition-colors flex items-center justify-center whitespace-nowrap"
-                    id="founder-profile-btn"
-                  >
-                    <span>Meet Our Founder</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 5. CLIENT EXPERIENCE & CONSULTATION METHODOLOGY */}
+      {/* 4. METHODOLOGY: THE DESTRIA 5-STAGE ADVISORY PROCESS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Advisory Methodology">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
           
-          {/* Left Column: Image of Discreet One-on-One Consultation Experience */}
           <div className="lg:col-span-5 order-2 lg:order-1">
             <EditorialSplitImage
               srcJpg={BRAND_ASSETS.privateConsultationExpJpg}
               srcWebp={BRAND_ASSETS.privateConsultationExpWebp}
-              alt="Professional tax advisor and client in a confidential consultation discussing structured tax strategy in an elegant office"
-              caption="Confidential One-on-One Consultation"
+              alt="Professional tax advisor and client in a confidential consultation discussing structured tax strategy"
+              caption="Confidential One-on-One Advisory"
               tag="Personal Attention"
               aspectRatio="4/3"
             />
           </div>
 
-          {/* Right Column: 5-Step Clear Advisory Journey */}
           <div className="lg:col-span-7 order-1 lg:order-2 space-y-6">
             <div className="space-y-3">
-              <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
+              <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
                 Methodology
               </span>
               <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                Our Structured Consultation Process
+                Our Structured Advisory Journey
               </h2>
               <p className="text-sm text-slate-300 leading-relaxed">
-                Structured, transparent, and responsive from initial document intake to finalized e-filing and year-round advisory support.
+                Structured, transparent, and responsive from initial document intake to finalized e-filing and year-round strategic advisory.
               </p>
             </div>
 
@@ -603,35 +491,35 @@ export const HomePage: React.FC = () => {
               {[
                 {
                   step: '01',
-                  title: 'Confidential Consultation Request',
-                  desc: 'Request your consultation online or connect with our Columbia, SC office directly. We accommodate virtual, phone, or in-person appointments.'
+                  title: 'Confidential Consultation & Scope Definition',
+                  desc: 'Schedule your initial consultation online. We accommodate virtual video meetings, direct phone conferences, or private in-person appointments.'
                 },
                 {
                   step: '02',
-                  title: 'In-Depth Discovery & Document Review',
-                  desc: 'We examine prior returns, corporate entities, income streams, and long-term financial goals to identify immediate risk areas and opportunities.'
+                  title: 'Secure Document Vault & Intelligent OCR Ingestion',
+                  desc: 'Upload prior returns, W-2s, 1099s, and financial statements. Our private OCR system indexes line items and highlights potential omissions.'
                 },
                 {
                   step: '03',
-                  title: 'Customized Strategic Plan',
-                  desc: 'Our professionals design a tailored tax blueprint addressing deductions, compliance obligations, and entity-level optimizations.'
+                  title: 'Tailored Tax Reduction Blueprint',
+                  desc: 'Our credentialed practitioners design a customized tax plan evaluating entity elections, timing deductions, and available statutory tax credits.'
                 },
                 {
                   step: '04',
-                  title: 'Meticulous Preparation & Secondary Audit',
-                  desc: 'Your returns are prepared and verified through a rigorous internal quality check before authorized electronic transmission.'
+                  title: 'Dual-Layer Review & Attestation Audit',
+                  desc: 'Your returns undergo rigorous dual-layer quality verification (human CPA authorization plus mathematical model validation) prior to client signoff.'
                 },
                 {
                   step: '05',
-                  title: 'Proactive Year-Round Guidance',
-                  desc: 'We remain accessible throughout the year for quarterly estimates, life events, corporate expansions, and official tax correspondence.'
+                  title: 'Year-Round Proactive Advisory',
+                  desc: 'We remain your trusted partners throughout the year for quarterly estimates, entity restructuring, real estate acquisitions, and IRS correspondence.'
                 }
               ].map((item, idx) => (
                 <div 
                   key={idx}
-                  className="p-4 sm:p-4.5 rounded-xl bg-[#0D2340]/60 border border-[#1E3A5F] flex items-start gap-4 hover:border-[#C99A3D]/40 transition-colors"
+                  className="p-4 sm:p-4.5 rounded-xl bg-[#0D2745]/60 border border-slate-700 flex items-start gap-4 hover:border-[#C99A35]/40 transition-colors"
                 >
-                  <div className="font-serif text-lg font-bold text-[#E2BD67] w-8 flex-shrink-0 pt-0.5">
+                  <div className="font-serif text-lg font-bold text-[#E5B552] w-8 flex-shrink-0 pt-0.5">
                     {item.step}
                   </div>
                   <div className="space-y-1">
@@ -646,14 +534,13 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. BOOKKEEPING, FINANCIAL REPORTING & SECURE COLLABORATION */}
+      {/* 5. BOOKKEEPING, FINANCIAL REPORTING & SECURE COLLABORATION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Bookkeeping and Secure Collaboration">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
           
-          {/* Left: Explanation of Real Integrations and Secure Workflow */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-3">
-              <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
+              <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
                 Seamless Connectivity &amp; Reporting
               </span>
               <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
@@ -665,30 +552,30 @@ export const HomePage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
-              <div className="p-4 rounded-xl bg-[#0D2340] border border-[#1E3A5F]">
+              <div className="p-4 rounded-xl bg-[#0D2745] border border-slate-700">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-400 mb-2" />
                 <div className="text-xs font-bold text-white">QuickBooks Online</div>
                 <div className="text-[11px] text-slate-400 mt-1">Direct chart of accounts sync</div>
               </div>
-              <div className="p-4 rounded-xl bg-[#0D2340] border border-[#1E3A5F]">
+              <div className="p-4 rounded-xl bg-[#0D2745] border border-slate-700">
                 <TrendingUp className="w-5 h-5 text-sky-400 mb-2" />
                 <div className="text-xs font-bold text-white">Xero Accounting</div>
                 <div className="text-[11px] text-slate-400 mt-1">General ledger &amp; reconciliation</div>
               </div>
-              <div className="p-4 rounded-xl bg-[#0D2340] border border-[#1E3A5F]">
+              <div className="p-4 rounded-xl bg-[#0D2745] border border-slate-700">
                 <Download className="w-5 h-5 text-amber-400 mb-2" />
                 <div className="text-xs font-bold text-white">Secure Bank Feeds</div>
                 <div className="text-[11px] text-slate-400 mt-1">CSV &amp; PDF statement intake</div>
               </div>
             </div>
 
-            <div className="p-4.5 rounded-xl bg-[#07172B] border border-[#1E3A5F] space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#E2BD67]">
+            <div className="p-4.5 rounded-xl bg-[#071D3A] border border-slate-700 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#E5B552]">
                 <Lock className="w-4 h-4" />
-                <span>Confidential Document Transfer &amp; Multi-Tier Review</span>
+                <span>Confidential Document Transfer &amp; Dual-Review Controls</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                All uploaded documents (W-2, 1099, K-1, profit &amp; loss statements) are transmitted using transport layer encryption (TLS). Every financial return undergoes rigorous manual verification by an authorized preparer prior to any filing.
+                All client documents (W-2, 1099, K-1, P&amp;L statements) are encrypted in transit and at rest. Every return undergoes rigorous manual verification by an authorized preparer prior to any filing.
               </p>
             </div>
 
@@ -699,23 +586,22 @@ export const HomePage: React.FC = () => {
                   e.preventDefault();
                   setCurrentPage('portal');
                 }}
-                className="px-6 py-3.5 rounded-xl font-bold text-xs text-[#07172B] bg-[#C99A3D] hover:bg-[#E2BD67] transition-all flex items-center gap-2"
+                className="px-6 py-3.5 rounded-xl font-bold text-xs text-[#071D3A] bg-[#C99A35] hover:bg-[#E5B552] transition-all flex items-center gap-2 shadow-md"
                 id="portal-upload-btn"
                 role="link"
               >
-                <span>Upload Documents via Client Portal</span>
+                <span>Access Secure Client Portal</span>
                 <UploadCloud className="w-4 h-4" />
               </a>
             </div>
           </div>
 
-          {/* Right: Bookkeeping and Financial Workspace Image */}
           <div className="lg:col-span-5">
             <EditorialSplitImage
               srcJpg={BRAND_ASSETS.bookkeepingReportingJpg}
               srcWebp={BRAND_ASSETS.bookkeepingReportingWebp}
-              alt="Executive financial reporting and accounting workstation with financial ledger, balance sheet analysis, and digital integration"
-              caption="Financial Reporting & Reconciliation"
+              alt="Executive financial reporting and accounting workstation with financial ledger and digital integration"
+              caption="Financial Reporting &amp; Reconciliation"
               tag="Accounting Oversight"
               aspectRatio="4/3"
             />
@@ -724,148 +610,17 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 7. PRIVATE ADVISORY ENGAGEMENTS (Credible Overview, No Public Price Tags) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Advisory Engagement Models">
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-12 sm:mb-16">
-          <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
-            Client Engagements
-          </span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Tailored Engagement Structures
-          </h2>
-          <p className="text-sm text-slate-300 leading-relaxed">
-            Every client's financial blueprint is unique. Engagements are tailored to your entity complexity and filings required, with personalized proposals presented inside the secure client portal.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          {/* Tier 1 */}
-          <div className="p-8 rounded-3xl bg-[#0D2340]/70 border border-[#1E3A5F] flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div>
-                <span className="text-xs font-bold text-[#E2BD67] tracking-wider uppercase">Individual &amp; Family</span>
-                <h3 className="font-serif text-2xl font-bold text-white mt-1">Individual Tax Advisory</h3>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Designed for professionals, property owners, and high-earning households requiring thorough multi-state or complex schedule filing.
-              </p>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-3 border-t border-[#1E3A5F]/70">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Form 1040 Federal &amp; State Filings</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Schedule C &amp; Schedule E (Rental Real Estate)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Comprehensive Deduction Substantiation</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Prior-Year Review &amp; Analysis</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => setCurrentPage('book_consultation')}
-              className="w-full py-3.5 rounded-xl text-xs font-bold text-slate-100 bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] hover:border-[#C99A3D] transition-all"
-            >
-              Inquire About Individual Filing
-            </button>
-          </div>
-
-          {/* Tier 2 (Highlighted) */}
-          <div className="p-8 rounded-3xl bg-gradient-to-b from-[#0D2340] to-[#07172B] border-2 border-[#C99A3D] shadow-2xl relative flex flex-col justify-between space-y-6">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#C99A3D] text-[#07172B] text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full shadow-md">
-              Most Requested
-            </div>
-            <div className="space-y-4 pt-1">
-              <div>
-                <span className="text-xs font-bold text-[#E2BD67] tracking-wider uppercase">Business &amp; Founders</span>
-                <h3 className="font-serif text-2xl font-bold text-white mt-1">Corporate &amp; Entity Advisory</h3>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Specialized compliance and strategic quarterly positioning for LLCs, S-Corporations, and partnerships seeking capital efficiency.
-              </p>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-3 border-t border-[#1E3A5F]/70">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Form 1120-S &amp; Form 1065 Returns</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Quarterly Estimated Tax Management</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Multi-State Apportionment Review</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Year-End Accounting Synchronization</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => setCurrentPage('book_consultation')}
-              className="w-full py-3.5 rounded-xl text-xs font-bold text-[#07172B] bg-[#C99A3D] hover:bg-[#E2BD67] transition-all shadow-md"
-            >
-              Request Corporate Consultation
-            </button>
-          </div>
-
-          {/* Tier 3 */}
-          <div className="p-8 rounded-3xl bg-[#0D2340]/70 border border-[#1E3A5F] flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div>
-                <span className="text-xs font-bold text-[#E2BD67] tracking-wider uppercase">Comprehensive Oversight</span>
-                <h3 className="font-serif text-2xl font-bold text-white mt-1">Executive Advisory Retainer</h3>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Ongoing year-round strategic oversight for high-net-worth clients, multiple entities, and intergenerational trust coordination.
-              </p>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-3 border-t border-[#1E3A5F]/70">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Year-Round Priority Advisor Access</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Entity Restructuring &amp; Tax Modeling</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>Estate &amp; Attorney Legal Coordination</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#C99A3D] flex-shrink-0" />
-                  <span>IRS Notice Defense &amp; Representation</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => setCurrentPage('book_consultation')}
-              className="w-full py-3.5 rounded-xl text-xs font-bold text-slate-100 bg-[#07172B] hover:bg-[#132E52] border border-[#1E3A5F] hover:border-[#C99A3D] transition-all"
-            >
-              Inquire About Executive Advisory
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. CLIENT PERSPECTIVES & TESTIMONIALS */}
+      {/* 6. CLIENT TESTIMONIALS & PERSPECTIVES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Client Perspectives">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12 sm:mb-16">
-          <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
+          <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
             Client Perspectives
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Real Relationships. Tangible Results.
+            Enduring Client Partnerships
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            What business owners, executives, and families say about working with A/R Tax Services, LLC.
+            What business owners, executives, and families say about working with DESTRIA TAX SERVICES LLC.
           </p>
         </div>
 
@@ -873,10 +628,10 @@ export const HomePage: React.FC = () => {
           {TESTIMONIALS_DATA.slice(0, 3).map((item) => (
             <div 
               key={item.id}
-              className="p-7 sm:p-8 rounded-2xl bg-[#0D2340]/60 border border-[#1E3A5F] flex flex-col justify-between space-y-4 hover:border-[#C99A3D]/40 transition-colors"
+              className="p-7 sm:p-8 rounded-2xl bg-[#0D2745]/60 border border-slate-700 flex flex-col justify-between space-y-4 hover:border-[#C99A35]/40 transition-colors"
             >
               <div className="space-y-3">
-                <div className="flex items-center gap-1 text-[#C99A3D]">
+                <div className="flex items-center gap-1 text-[#C99A35]">
                   {[...Array(item.rating)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
@@ -886,10 +641,10 @@ export const HomePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-[#1E3A5F]/70 flex items-center justify-between">
+              <div className="pt-4 border-t border-slate-700/70 flex items-center justify-between">
                 <div>
                   <h3 className="font-serif text-sm font-bold text-white">{item.name}</h3>
-                  <p className="text-[11px] text-[#E2BD67]">{item.company}</p>
+                  <p className="text-[11px] text-[#E5B552]">{item.company}</p>
                 </div>
                 <span className="text-[10px] text-slate-400 font-medium">{item.location}</span>
               </div>
@@ -898,11 +653,10 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 9. FINAL EXECUTIVE CALL TO ACTION */}
+      {/* 7. FINAL EXECUTIVE CALL TO ACTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Call to Action">
-        <div className="relative rounded-3xl overflow-hidden border border-[#C99A3D]/50 shadow-2xl">
+        <div className="relative rounded-3xl overflow-hidden border border-[#C99A35]/50 shadow-2xl">
           
-          {/* Executive Suite Background Image with Restrained Navy Overlay */}
           <div className="absolute inset-0 z-0" aria-hidden="true">
             <picture className="w-full h-full block" aria-hidden="true">
               <source srcSet={BRAND_ASSETS.executiveConsultationSuiteWebp} type="image/webp" />
@@ -915,43 +669,41 @@ export const HomePage: React.FC = () => {
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover object-center"
-                referrerPolicy="no-referrer"
               />
             </picture>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#06172C] via-[#06172C]/90 to-[#06172C]/85" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#071D3A] via-[#071D3A]/90 to-[#071D3A]/85" />
           </div>
 
           <div className="relative z-10 p-8 sm:p-14 lg:p-18 text-center max-w-3xl mx-auto space-y-6">
-            <span className="text-xs font-bold tracking-widest text-[#E2BD67] uppercase">
+            <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
               Begin Your Engagement
             </span>
             <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              &ldquo;Your Financial Goals Are Within Reach.&rdquo;
+              &ldquo;Your Financial Future Deserves Intelligent Leadership.&rdquo;
             </h2>
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
-              Take the first step toward disciplined tax strategy, financial protection, and generational wealth preservation. Schedule a confidential consultation with Desmond Hinds and the A/R Tax Services team today.
+              Take the first step toward disciplined tax strategy, audit-grade compliance, and generational wealth preservation. Connect with DESTRIA TAX SERVICES LLC today.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => setCurrentPage('book_consultation')}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-sm text-[#07172B] bg-[#C99A3D] hover:bg-[#E2BD67] transition-all shadow-xl active:scale-[0.99]"
+                className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-sm text-[#071D3A] bg-[#C99A35] hover:bg-[#E5B552] transition-all shadow-xl active:scale-[0.99]"
                 id="cta-schedule-btn"
               >
-                Schedule Your Confidential Consultation
+                Schedule Confidential Consultation
               </button>
               <button
                 onClick={() => setCurrentPage('contact')}
-                className="w-full sm:w-auto px-7 py-4 rounded-xl font-semibold text-sm text-white bg-[#0D2340] hover:bg-[#132E52] border border-[#1E3A5F] hover:border-[#C99A3D]/50 transition-all"
+                className="w-full sm:w-auto px-7 py-4 rounded-xl font-semibold text-sm text-white bg-[#0D2745] hover:bg-[#133860] border border-slate-700 hover:border-[#C99A35]/50 transition-all"
                 id="cta-contact-btn"
               >
                 Contact Our Columbia Office
               </button>
             </div>
 
-            {/* Factual, Verified Legal Disclaimer */}
-            <div className="pt-6 border-t border-[#1E3A5F]/70 text-[11px] text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              General Information Notice: The information presented on this website is for general educational purposes and does not constitute individualized tax, legal, or investment advice. Specific advice requires a formal client engagement agreement. A/R Tax Services, LLC is a private tax preparation and financial consulting firm based in Columbia, South Carolina.
+            <div className="pt-6 border-t border-slate-700/70 text-[11px] text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              General Information Notice: The information presented on this website is for general educational purposes and does not constitute individualized tax, legal, or investment advice. Specific advice requires a formal client engagement agreement. DESTRIA TAX SERVICES LLC is a registered tax preparation and financial consulting practice.
             </div>
           </div>
         </div>
@@ -960,6 +712,3 @@ export const HomePage: React.FC = () => {
     </div>
   );
 };
-
-
-
