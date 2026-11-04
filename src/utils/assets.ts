@@ -10,6 +10,11 @@ export function getAssetUrl(path: string): string {
 }
 
 export const BRAND_ASSETS = {
+  // DESTRIA logo files retained from the verified brand integration.
+  destriaLogo: getAssetUrl('branding/destria-logo-original.png'),
+  destriaLogoHeader: getAssetUrl('branding/destria-logo-header.png'),
+  destriaEmblem: getAssetUrl('branding/destria-emblem-icon.png'),
+  destriaFavicon: getAssetUrl('branding/destria-favicon.png'),
   logoPng: getAssetUrl('images/ar-tax-services-logo.png'),
   logoWebp: getAssetUrl('images/ar-tax-services-logo.webp'),
   logoMonochrome: getAssetUrl('images/ar-tax-logo-monochrome.png'),
