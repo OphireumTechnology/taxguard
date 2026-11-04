@@ -1,6 +1,18 @@
 name: Deploy TaxGuard Production to GitHub Pages
 
 on:
+  push:
+    branches:
+      - release/destria-verified-pages
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/**'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,11 +31,11 @@ jobs:
       contents: read
 
     steps:
-      - name: Require main branch
+      - name: Require approved release branch
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "::error::Production deployment is restricted to main."
+          if [[ "$GITHUB_REF" != "refs/heads/main" && "$GITHUB_REF" != "refs/heads/release/destria-verified-pages" ]]; then
+            echo "::error::Production deployment is restricted to main or the approved validated DESTRIA release branch."
             exit 1
           fi
 
