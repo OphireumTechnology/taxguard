@@ -4,24 +4,24 @@ import { TESTIMONIALS_DATA } from '../../data/mockData';
 import { BrandLogo } from '../common/BrandLogo';
 import { BRAND_ASSETS } from '../../utils/assets';
 import { ServiceCardImage, EditorialSplitImage } from './images';
-import { 
-  ShieldCheck, 
-  Clock, 
-  Users, 
-  Lock, 
-  ArrowRight, 
-  Building2, 
-  TrendingUp, 
-  Scale, 
-  Calendar, 
-  Download, 
-  Check, 
-  Star, 
-  ChevronRight, 
-  UploadCloud, 
-  FileSpreadsheet, 
-  Workflow, 
-  MapPin, 
+import {
+  ShieldCheck,
+  Clock,
+  Users,
+  Lock,
+  ArrowRight,
+  Building2,
+  TrendingUp,
+  Scale,
+  Calendar,
+  Download,
+  Check,
+  Star,
+  ChevronRight,
+  UploadCloud,
+  FileSpreadsheet,
+  Workflow,
+  MapPin,
   FileCheck2,
   Cpu,
   Sparkles,
@@ -38,7 +38,7 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-24 sm:space-y-28 lg:space-y-32 pb-24 text-slate-100 selection:bg-[#C99A35] selection:text-[#071D3A]">
-      
+
       {/* 1. HERO SECTION: DESTRIA EXECUTIVE & AI TAX INTELLIGENCE SHOWCASE */}
       <section className="relative pt-6 pb-16 sm:pt-10 sm:pb-20 md:pt-14 md:pb-24 overflow-hidden" aria-label="Introduction and Overview">
         {/* Architectural atmospheric glow */}
@@ -49,7 +49,7 @@ export const HomePage: React.FC = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
-            
+
             {/* Left Column: Authoritative Positioning & Clear Conversion Path */}
             <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2745] border border-[#C99A35]/40 text-[#E5B552] text-xs font-semibold tracking-wide shadow-sm">
@@ -142,13 +142,13 @@ export const HomePage: React.FC = () => {
             {/* Right Column: Authoritative Official Destria Emblem & Showcase */}
             <div className="lg:col-span-5 relative">
               <figure className="relative rounded-3xl bg-gradient-to-b from-[#0D2745] to-[#071D3A] border-2 border-[#C99A35]/50 p-6 sm:p-7 shadow-2xl space-y-5">
-                
+
                 {/* Firm Identifier Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-slate-700/80">
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={BRAND_ASSETS.destriaLogo} 
-                      alt="DESTRIA TAX SERVICES LLC" 
+                    <img
+                      src={BRAND_ASSETS.destriaLogo}
+                      alt="DESTRIA TAX SERVICES LLC"
                       className="w-10 h-10 rounded-full shadow-md ring-1 ring-[#C99A35]"
                     />
                     <div>
@@ -462,7 +462,7 @@ export const HomePage: React.FC = () => {
       {/* 4. METHODOLOGY: THE DESTRIA 5-STAGE ADVISORY PROCESS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Advisory Methodology">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
-          
+
           <div className="lg:col-span-5 order-2 lg:order-1">
             <EditorialSplitImage
               srcJpg={BRAND_ASSETS.privateConsultationExpJpg}
@@ -515,7 +515,7 @@ export const HomePage: React.FC = () => {
                   desc: 'We remain your trusted partners throughout the year for quarterly estimates, entity restructuring, real estate acquisitions, and IRS correspondence.'
                 }
               ].map((item, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="p-4 sm:p-4.5 rounded-xl bg-[#0D2745]/60 border border-slate-700 flex items-start gap-4 hover:border-[#C99A35]/40 transition-colors"
                 >
@@ -537,7 +537,7 @@ export const HomePage: React.FC = () => {
       {/* 5. BOOKKEEPING, FINANCIAL REPORTING & SECURE COLLABORATION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Bookkeeping and Secure Collaboration">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
-          
+
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-3">
               <span className="text-xs font-bold tracking-widest text-[#E5B552] uppercase">
@@ -626,7 +626,7 @@ export const HomePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {TESTIMONIALS_DATA.slice(0, 3).map((item) => (
-            <div 
+            <div
               key={item.id}
               className="p-7 sm:p-8 rounded-2xl bg-[#0D2745]/60 border border-slate-700 flex flex-col justify-between space-y-4 hover:border-[#C99A35]/40 transition-colors"
             >
@@ -656,7 +656,7 @@ export const HomePage: React.FC = () => {
       {/* 7. FINAL EXECUTIVE CALL TO ACTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Call to Action">
         <div className="relative rounded-3xl overflow-hidden border border-[#C99A35]/50 shadow-2xl">
-          
+
           <div className="absolute inset-0 z-0" aria-hidden="true">
             <picture className="w-full h-full block" aria-hidden="true">
               <source srcSet={BRAND_ASSETS.executiveConsultationSuiteWebp} type="image/webp" />
