@@ -35,6 +35,8 @@ export interface User {
   isVerified?: boolean;
   onboardingStatus?: string;
   onboardingStep?: number;
+  /** Timestamp of completed onboarding, when reported by the authoritative workflow. */
+  onboardingCompletedAt?: string;
   createdAt?: string;
   lastLoginAt?: string;
   updatedAt?: string;
