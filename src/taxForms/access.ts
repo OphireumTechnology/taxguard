@@ -1,7 +1,22 @@
-import type { User } from '../types';
+import type { AuthLifecycleState } from '../supabase/auth';
 
-export function canReadTaxFormsLibrary(user: User | null | undefined, authState?: string): boolean {
-  if (!user) return false;
-  const staffRoles = ['accountant', 'reviewer', 'senior_reviewer', 'bookkeeper', 'practice_manager', 'operations', 'admin', 'super_admin', 'super_administrator'];
-  return staffRoles.includes(user.role);
+const STAFF_ROLES = new Set([
+  'accountant',
+  'senior_reviewer',
+  'reviewer',
+  'bookkeeper',
+  'practice_manager',
+  'operations',
+  'admin',
+  'super_admin',
+  'super_administrator',
+  'staff'
+]);
+
+export function canReadTaxFormsLibrary(
+  user: { role?: string } | null | undefined,
+  _authLifecycleState?: AuthLifecycleState
+): boolean {
+  if (!user?.role) return false;
+  return STAFF_ROLES.has(user.role.toLowerCase());
 }

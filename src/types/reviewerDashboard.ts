@@ -1,40 +1,69 @@
-export type ReviewScope = 'federal' | 'state' | 'compliance' | 'book_to_tax' | 'all';
-
-export interface ReviewerQueueCase {
-  id: string;
+export interface ReviewScope {
+  tenantId: string;
   clientId: string;
-  clientName: string;
+  engagementId: string;
   taxYear: number;
-  stage: number;
-  status: string;
-  assignedAccountantName: string;
-  assignedReviewerName?: string;
-  riskScore?: number;
-  updatedAt: string;
+}
+
+export interface ReturnDiagnostic {
+  id?: string;
+  code?: string;
+  severity: string;
+  message?: string;
+  resolved: boolean;
+  [key: string]: any;
 }
 
 export interface ReviewerReturn {
-  id: string;
-  caseId: string;
-  version: number;
-  formType: string;
+  id?: string;
+  tenantId: string;
+  clientId: string;
+  engagementId: string;
   taxYear: number;
+  createdBy: string;
   status: string;
-  summaryMetrics?: Record<string, number | string>;
+  preparerCertifiedBy?: string;
+  diagnostics?: ReturnDiagnostic[];
+  [key: string]: any;
+}
+
+export interface ReviewerQueueCase {
+  id: string;
+  scope: ReviewScope;
+  reviewerUid: string;
+  preparerUid?: string;
+  activeStage: number;
+  caseStatus: string;
+  reviewStatus: string;
+  highRisk?: boolean;
+  openExceptions: number;
+  dueDate?: string;
+  clientName?: string;
+  [key: string]: any;
+}
+
+export interface ReviewerSnapshot {
+  scope: ReviewScope;
+  decisionsAvailable: boolean;
+  independentReviewer: boolean;
+  case: {
+    reviewerUid: string;
+    preparerUid: string;
+    status: string;
+    activeStage: number;
+    openExceptions: number;
+    [key: string]: any;
+  };
+  returns?: ReviewerReturn[];
+  artifacts?: ReviewerArtifact[];
+  [key: string]: any;
 }
 
 export interface ReviewerArtifact {
   id: string;
-  title: string;
+  name: string;
   type: string;
   status: string;
   url?: string;
-}
-
-export interface ReviewerSnapshot {
-  pendingReviewCount: number;
-  approvedCount: number;
-  flaggedCount: number;
-  activeCases: ReviewerQueueCase[];
-  recentArtifacts?: ReviewerArtifact[];
+  [key: string]: any;
 }

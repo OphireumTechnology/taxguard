@@ -1,3 +1,22 @@
+export interface GeneratedDocumentRequirement {
+  id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  status?: string;
+  [key: string]: any;
+}
+
+export interface StoredQuestionnaireRecord {
+  id: string;
+  clientId: string;
+  taxYear: number;
+  tenantId?: string;
+  answers?: Record<string, any>;
+  status?: string;
+  [key: string]: any;
+}
+
 export interface TaxQuestionnaireCategory {
   id: string;
   name: string;

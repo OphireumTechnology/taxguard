@@ -46,8 +46,14 @@ export interface CaseQueueItem {
   clientName: string;
   taxYear: number;
   stage: number;
+  activeStage?: number;
   status: string;
   myRole?: string;
+  returnFamily?: string | null;
+  blockedDependency?: string | null;
+  awaitingReviewer?: boolean;
+  nextDeadline?: string | null;
+  [key: string]: any;
 }
 
 export interface CaseDetail {
@@ -57,22 +63,68 @@ export interface CaseDetail {
     clientName: string;
     taxYear: number;
     stage: number;
+    activeStage: number;
+    version?: number;
+    preparerUid?: string;
+    reviewerUid?: string;
+    returnFamily?: string | null;
     status: string;
     assignedPreparerUid?: string;
     assignedReviewerUid?: string;
+    engagementId?: string;
+    [key: string]: any;
   };
-  stages: Array<{ stage: number; status: string; approvedAt?: string }>;
+  stages: Array<{ stage: number; status: string; approvedAt?: string; [key: string]: any }>;
   returns?: any[];
   stagePolicy?: {
-    requiredChecks: string[];
-    dependencies: string[];
+    requiredChecks?: string[];
+    dependencies?: string[];
+    checklist?: string[];
+    evidence?: string;
+    [key: string]: any;
   };
+  events: Array<{
+    action: string;
+    toStage: number;
+    evidenceType?: string;
+    reason?: string;
+    actorUid?: string;
+    at: string;
+    [key: string]: any;
+  }>;
+  [key: string]: any;
 }
 
 export const caseService = {
-  queue: async (filter?: any): Promise<{ items: CaseQueueItem[] }> => ({ items: [] }),
-  detail: async (caseId: string): Promise<CaseDetail | null> => null,
-  advanceStage: async (caseId: string, payload: any) => ({ success: true }),
-  returnStage: async (caseId: string, payload: any) => ({ success: true }),
-  restaff: async (caseId: string, payload: any) => ({ success: true })
+  queue: async (_filter?: any): Promise<{ items: CaseQueueItem[] }> => ({ items: [] }),
+  detail: async (caseId: string): Promise<CaseDetail> => ({
+    case: {
+      caseId,
+      clientId: 'user_client_1',
+      clientName: 'Michael Perotti',
+      engagementId: 'eng_001',
+      taxYear: 2025,
+      stage: 1,
+      activeStage: 1,
+      version: 1,
+      preparerUid: 'usr_staff_desmond',
+      reviewerUid: 'usr_staff_elena',
+      returnFamily: '1040',
+      status: 'ACTIVE'
+    },
+    stages: [],
+    stagePolicy: {
+      requiredChecks: [],
+      dependencies: [],
+      checklist: [],
+      evidence: 'VERIFIED'
+    },
+    events: []
+  }),
+  advance: async (..._args: any[]) => ({ success: true }),
+  advanceStage: async (..._args: any[]) => ({ success: true }),
+  returnTo: async (..._args: any[]) => ({ success: true }),
+  returnStage: async (..._args: any[]) => ({ success: true }),
+  hold: async (..._args: any[]) => ({ success: true }),
+  restaff: async (..._args: any[]) => ({ success: true })
 };

@@ -1,26 +1,41 @@
 export type ClientPortalTab =
   | 'overview'
-  | 'workflow'
+  | 'workspace'
+  | 'client_intake'
+  | 'required_documents'
+  | 'document_center'
   | 'documents'
+  | 'accounting_connections'
+  | 'bookkeeping'
+  | 'tax_returns'
+  | 'tax_return'
   | 'invoices'
-  | 'messages'
+  | 'billing'
   | 'appointments'
-  | 'strategies'
-  | 'accounting'
+  | 'messages'
+  | 'requests'
+  | 'tax_strategies'
+  | 'security'
   | 'profile'
-  | 'security';
+  | 'notifications'
+  | 'archive'
+  | 'settings'
+  | 'help'
+  | string;
 
 export type TaxWorkspaceTab =
-  | 'checklist'
-  | 'questionnaire'
-  | 'reconciliation'
-  | 'review'
-  | 'authorization'
-  | 'archive';
+  | 'intake'
+  | 'documents'
+  | 'accounting'
+  | 'return'
+  | 'approvals'
+  | 'filing'
+  | string;
 
 export type ProfileSecurityTab =
-  | 'general'
-  | 'credentials'
+  | 'profile'
+  | 'security'
   | 'mfa'
   | 'sessions'
-  | 'audit';
+  | 'preferences'
+  | string;

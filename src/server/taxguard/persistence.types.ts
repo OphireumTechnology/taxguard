@@ -26,4 +26,5 @@ export interface ProviderReadinessInfo {
   status: 'CONFIGURED' | 'NOT_CONFIGURED' | 'ERROR';
   description?: string;
   lastCheckedAt?: string;
+  lastChecked?: string;
 }

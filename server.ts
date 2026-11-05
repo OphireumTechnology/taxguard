@@ -3,7 +3,17 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { createServer as createViteServer } from 'vite';
 
-const PORT = Number(process.env.PORT) || 3000;
+function resolvePort(): number {
+  const portIndex = process.argv.indexOf('--port');
+  if (portIndex !== -1 && process.argv[portIndex + 1]) {
+    return Number(process.argv[portIndex + 1]);
+  }
+  if (process.env.APP_PORT) {
+    return Number(process.env.APP_PORT);
+  }
+  return 3000;
+}
+const PORT = resolvePort();
 const app = express();
 
 app.disable('x-powered-by');
@@ -95,7 +105,8 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: {
-        middlewareMode: true
+        middlewareMode: true,
+        hmr: false
       },
       appType: 'spa'
     });

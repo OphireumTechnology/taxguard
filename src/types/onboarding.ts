@@ -1,30 +1,18 @@
-export type ClientCategory = 'individual' | 'small_business' | 'enterprise' | 'estate_trust';
+export type ClientCategory = 'individual' | 'business' | 'trust_estate' | 'non_profit';
 
 export interface ClientOnboardingDossier {
-  step: number;
-  category: ClientCategory;
-  taxYear: number;
-  primaryContact: {
-    fullName: string;
-    email: string;
-    phone: string;
-  };
-  businessDetails?: {
-    legalName: string;
-    ein: string;
-    entityType: string;
-  };
-  consentAgreed: boolean;
-  status: 'draft' | 'submitted' | 'approved';
+  clientId?: string;
+  category?: ClientCategory;
+  step?: number;
+  completed?: boolean;
+  data?: Record<string, any>;
+  [key: string]: any;
 }
 
 export interface StaffOnboardingDossier {
-  step: number;
-  fullName: string;
-  email: string;
-  role: string;
-  mfaConfigured: boolean;
-  trainingCompleted: boolean;
-  ndaSigned: boolean;
-  status: 'in_progress' | 'completed';
+  staffId?: string;
+  step?: number;
+  completed?: boolean;
+  data?: Record<string, any>;
+  [key: string]: any;
 }

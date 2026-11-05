@@ -1,50 +1,70 @@
+export type StaffMembershipAction = 'suspend' | 'deactivate' | 'reactivate';
+
 export interface StaffMemberRecord {
   uid: string;
-  email: string;
   name: string;
+  email: string;
   role: string;
-  status: 'active' | 'suspended' | 'invited' | string;
-  mfaEnrolled?: boolean;
-  lastLoginAt?: string;
-  createdAt?: string;
+  status: string;
+  createdAt: string;
+  invitedBy: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  statusChangedBy: string | null;
+  statusChangedAt: string | null;
+  mfaReenrollmentRequired: boolean;
+  actions: {
+    approve: boolean;
+    suspend: boolean;
+    deactivate: boolean;
+    reactivate: boolean;
+    [key: string]: boolean;
+  };
 }
 
 export interface StaffInvitationRecord {
-  invitationId: string;
+  id: string;
   email: string;
   role: string;
-  status: 'pending' | 'accepted' | 'revoked' | 'expired';
-  invitedBy?: string;
-  expiresAt: string;
+  legalFirstName: string;
+  legalLastName: string;
+  status: 'pending' | 'accepted' | 'revoked';
   createdAt: string;
+  expiresAt: string;
+  invitedBy: string;
+  acceptedUid: string | null;
+  acceptedAt: string | null;
+  revokedBy: string | null;
+  revokedAt: string | null;
+  actions: {
+    revoke: boolean;
+    [key: string]: boolean;
+  };
+}
+
+export interface StaffDirectoryPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  source: 'durable' | string;
 }
 
 export interface StaffDirectoryQuery {
-  page?: number;
-  pageSize?: number;
+  limit?: number;
+  cursor?: string;
   role?: string;
   status?: string;
-  search?: string;
-}
-
-export interface StaffDirectoryPage {
-  items: StaffMemberRecord[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 export interface StaffInvitationIssueInput {
   email: string;
-  name: string;
+  legalFirstName: string;
+  legalLastName: string;
   role: string;
 }
 
 export interface StaffInvitationIssueResult {
-  success: boolean;
-  invitationId?: string;
-  invitationUrl?: string;
-  error?: string;
+  id: string;
+  token: string;
+  expiresAt: string;
+  delivery: string;
 }
-
-export type StaffMembershipAction = 'suspend' | 'activate' | 'revoke' | 'reassign';

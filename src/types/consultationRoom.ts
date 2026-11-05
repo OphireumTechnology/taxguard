@@ -1,34 +1,39 @@
 export interface MeetingParticipant {
   id: string;
   name: string;
-  role: string;
-  avatarUrl?: string;
-  isMuted?: boolean;
-  isVideoOn?: boolean;
+  role: 'host' | 'client' | 'guest' | string;
+  joinedAt?: string;
+  audioMuted?: boolean;
+  videoMuted?: boolean;
+  [key: string]: any;
 }
 
 export interface MeetingDocumentReview {
   id: string;
-  documentName: string;
-  totalPages: number;
-  currentPage: number;
-  watermarkText: string;
-  downloadRestricted: boolean;
+  name: string;
+  url?: string;
+  watermarkText?: string;
+  pageCount?: number;
+  currentPage?: number;
+  [key: string]: any;
 }
 
 export interface MeetingChatMessage {
   id: string;
+  senderId: string;
   senderName: string;
-  senderRole: string;
-  content: string;
+  message: string;
   timestamp: string;
+  isHost?: boolean;
+  [key: string]: any;
 }
 
 export interface ConsultationRoom {
-  roomId: string;
-  roomName: string;
-  status: 'waiting' | 'active' | 'ended';
-  participants: MeetingParticipant[];
-  activeDocument?: MeetingDocumentReview;
-  messages: MeetingChatMessage[];
+  id: string;
+  name?: string;
+  appointmentId?: string;
+  status: 'scheduled' | 'active' | 'ended' | string;
+  hostId?: string;
+  participants?: MeetingParticipant[];
+  [key: string]: any;
 }

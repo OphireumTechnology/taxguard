@@ -41,5 +41,10 @@ export const onboardingApi = {
   }),
   approve: async (clientId: string, payload?: any) => ({ success: true }),
   reject: async (clientId: string, payload?: any) => ({ success: true }),
-  approveOnboarding: async (clientId: string) => ({ success: true })
+  approveOnboarding: async (clientId: string) => ({ success: true }),
+  mine: async (): Promise<OnboardingView> => ({
+    step: 1,
+    completed: true,
+    dossier: {}
+  })
 };

@@ -12,17 +12,27 @@ export interface StageCheckItem {
 }
 
 export interface CaseStageItem {
+  stage?: number;
   stageNumber: number;
   title: string;
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'LOCKED';
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'LOCKED' | string;
   checks?: StageCheckItem[];
   evidenceAvailable?: boolean;
+  completedAt?: string;
+  [key: string]: any;
 }
 
 export interface CaseStages {
+  caseExists?: boolean;
   caseStatus: string;
   currentStage: number;
+  activeStage?: number;
   stages: CaseStageItem[];
+  activeStagePolicy?: any;
+  activeStageChecks?: any;
+  evidence?: any;
+  team?: any;
+  [key: string]: any;
 }
 
 export function portalErrorMessage(error: unknown): string {

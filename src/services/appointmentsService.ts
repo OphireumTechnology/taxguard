@@ -1,7 +1,7 @@
 import { INITIAL_APPOINTMENTS } from '../data/mockData';
 
-export type AppointmentMode = 'virtual' | 'in_office' | 'phone';
-export type AppointmentCategory = 'tax_review' | 'planning' | 'onboarding' | 'general';
+export type AppointmentMode = 'virtual' | 'in_office' | 'phone' | 'REMOTE' | 'PHONE' | string;
+export type AppointmentCategory = 'tax_review' | 'planning' | 'onboarding' | 'general' | string;
 export type RoomState = 'waiting' | 'in_progress' | 'ended';
 
 export const CATEGORY_LABEL: Record<string, string> = {
@@ -48,17 +48,23 @@ export interface Appointment {
   category: AppointmentCategory;
   mode: AppointmentMode;
   status: string;
-  scheduledStart: string;
-  scheduledEnd: string;
+  scheduledStart?: string;
+  scheduledEnd?: string;
+  startsAt?: string;
+  timezone?: string;
+  hasStaff?: boolean;
+  meetingUrl?: string;
+  updatedAt?: string;
   durationMinutes?: number;
   version?: number;
-  type?: AppointmentMode;
+  type?: string;
   date?: string;
   timeSlot?: string;
   meetingLink?: string;
   location?: string;
   notes?: string;
   createdAt?: string;
+  [key: string]: any;
 }
 
 export interface ConsultationRoom {

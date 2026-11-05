@@ -10,18 +10,34 @@ export interface StaffRecoveryRequestInput {
 export interface StaffRecoveryRecord {
   requestId: string;
   targetUid: string;
-  targetEmail?: string;
-  targetName?: string;
+  targetName: string | null;
+  targetRole: string | null;
+  makerUid: string;
+  checkerUid: string | null;
   reasonCategory: StaffRecoveryReasonCategory;
   reason: string;
-  status: 'pending' | 'leased' | 'reset_verified' | 'enrollment_verified' | 'completed' | 'failed';
-  requestedBy?: string;
+  status: 'pending_approval' | 'approved' | 'completed' | 'cancelled';
   createdAt: string;
-  completedAt?: string | null;
+  approvedAt: string | null;
+  jobId: string | null;
+  jobStatus: string | null;
+  jobAttempts: number | null;
+  jobLastError: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
+  cancelledAt: string | null;
+  resetAvailability: 'unavailable' | 'verified';
+  actions: {
+    approve: boolean;
+    complete: boolean;
+    cancel: boolean;
+    retry: boolean;
+    [key: string]: boolean;
+  };
 }
 
 export interface StaffRecoveryQuery {
-  cursor?: string | null;
-  status?: string;
   limit?: number;
+  cursor?: string;
+  status?: string;
 }

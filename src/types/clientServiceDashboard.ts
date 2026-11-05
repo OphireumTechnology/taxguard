@@ -1,50 +1,51 @@
 export interface ClientServiceRequest {
   id: string;
-  clientId: string;
-  clientName: string;
-  category: string;
-  subject: string;
-  status: 'open' | 'in_progress' | 'waiting_on_client' | 'resolved';
-  priority: 'normal' | 'high' | 'urgent';
-  createdAt: string;
-  updatedAt: string;
+  caseKey: string;
+  status: 'OPEN' | 'VIEWED' | 'RESPONDED' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED' | string;
+  dueDate?: string;
+  createdAt?: string;
+  title?: string;
+  description?: string;
+  [key: string]: any;
 }
 
-export interface ClientServiceRequestDetail extends ClientServiceRequest {
-  description: string;
-  assignedStaffId?: string;
-  assignedStaffName?: string;
-  messages: Array<{
-    id: string;
-    senderName: string;
-    senderRole: string;
-    content: string;
-    createdAt: string;
-  }>;
+export interface ClientServiceFollowUp {
+  id: string;
+  caseKey: string;
+  status: string;
+  dueDate?: string;
+  [key: string]: any;
 }
 
 export interface ClientServiceConversation {
   id: string;
-  clientId: string;
-  clientName: string;
-  unreadCount: number;
-  lastMessage: string;
-  lastMessageTime: string;
+  caseKey?: string;
+  unread: number;
+  subject?: string;
+  lastMessage?: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
+
+export interface ClientServiceRequestDetail extends ClientServiceRequest {
+  details?: Record<string, any>;
+  attachments?: any[];
 }
 
 export interface ClientServiceCase {
   id: string;
-  clientId: string;
+  caseKey: string;
   clientName: string;
-  taxYear: number;
   status: string;
-  stageName: string;
+  [key: string]: any;
 }
 
 export interface ClientServiceSnapshot {
-  openInquiriesCount: number;
-  unassignedRequestsCount: number;
-  slaBreachedCount: number;
-  activeRequests: ClientServiceRequest[];
-  recentConversations: ClientServiceConversation[];
+  tenantId?: string;
+  requests: ClientServiceRequest[];
+  followUps: ClientServiceFollowUp[];
+  threads: ClientServiceConversation[];
+  escalations: any[];
+  cases?: ClientServiceCase[];
+  [key: string]: any;
 }

@@ -1,3 +1,5 @@
+export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
+
 export type CapabilityKey =
   | 'dataEntry'
   | 'calculation'
@@ -16,8 +18,8 @@ export type LibraryGroupId =
   | 'nonprofits-990'
   | 'estate-tax-706'
   | 'gift-tax-709'
-  | 'state-local'
-  | 'search-reference';
+  | 'search-reference'
+  | 'state-local';
 
 export type StateTaxCategoryId =
   | 'individual-income'
@@ -26,27 +28,32 @@ export type StateTaxCategoryId =
   | 'sales-and-use'
   | 'franchise-tax';
 
-export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
+export interface StateCategoryInfo {
+  applicability: Applicability;
+  note?: string;
+  byYear?: Record<number, Applicability>;
+}
 
 export interface StateJurisdiction {
   code: string;
   name: string;
   agencyName: string;
-  categories: Record<
-    StateTaxCategoryId,
-    {
-      applicability: Applicability;
-      byYear?: Record<number, Applicability>;
-    }
-  >;
+  agencyUrl?: string;
+  agencyCheck: {
+    checkedOn: string;
+    result: string;
+  };
+  verification: {
+    method: string;
+  };
+  categories: Record<string, StateCategoryInfo>;
 }
 
-export const BLOCKED_LABEL = 'Blocked';
+export const BLOCKED_LABEL = 'Blocked / Not Supported';
 
 export const READINESS_LADDER = [
   'Cataloged / Reference Only',
   'Field Mapped',
   'Calculation Certified',
-  'Quality Controlled',
   'E-File Verified'
-] as const;
+];

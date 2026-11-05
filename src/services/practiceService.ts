@@ -29,18 +29,77 @@ export function practiceMessage(err: unknown): string {
   return 'Practice operation error';
 }
 
+export interface MyWorkCase {
+  id?: string;
+  caseId: string;
+  clientId: string;
+  clientName?: string;
+  taxYear: number;
+  stage?: number;
+  activeStage: number;
+  status: string;
+  myRole: string;
+  evidence?: string;
+  awaitingMe: boolean;
+  [key: string]: any;
+}
+
+export interface MyWorkDocument {
+  id?: string;
+  documentId: string;
+  version: number | string;
+  fileName: string;
+  clientId: string;
+  taxYear: number;
+  clientName?: string;
+  [key: string]: any;
+}
+
+export interface MyWorkRequest {
+  requestId: string;
+  title: string;
+  clientId: string;
+  taxYear: number;
+  overdue?: boolean;
+  [key: string]: any;
+}
+
+export interface MyWorkEntry {
+  entryId: string;
+  entryNumber: string;
+  description: string;
+  clientId: string;
+  [key: string]: any;
+}
+
 export interface MyWork {
-  cases: Array<{ id: string; clientName: string; stage: number; awaitingMe: boolean }>;
-  documentsToReview: Array<{ id: string; fileName: string; clientName: string }>;
-  reconciliationTasks: Array<{ id: string; description: string }>;
-  tasks: Array<{ id: string; title: string }>;
+  cases: MyWorkCase[];
+  documentsToReview: MyWorkDocument[];
+  reconciliationTasks: Array<{ id: string; description: string; [key: string]: any }>;
+  tasks: Array<{ id: string; title: string; [key: string]: any }>;
+  requestsOutstanding: MyWorkRequest[];
+  entriesAwaitingMyReview: any[];
+  entriesReturnedToMe: MyWorkEntry[];
+  bookToTaxAwaitingReview: number;
   definitions: {
     cases: string;
     documentsToReview: string;
-    reconciliationTasks: string;
-    tasks: string;
+    reconciliationTasks?: string;
+    tasks?: string;
+    requestsOutstanding: string;
+    entriesAwaitingMyReview: string;
+    entriesReturnedToMe: string;
+    bookToTaxAwaitingReview: string;
+    [key: string]: any;
   };
+  [key: string]: any;
 }
+
+export type EscalationLevelName = 'INFO' | 'WARNING' | 'CRITICAL' | 'URGENT' | string;
+export type DeadlineEscalations = any;
+export type PracticeSearch = any;
+export type StaffNotifications = any;
+export type PracticeSummary = any;
 
 export interface PracticeClientRow {
   clientId: string;
@@ -48,28 +107,69 @@ export interface PracticeClientRow {
   companyName: string;
   status: string;
   activeEngagements?: number;
+  clientType?: string;
+  engagements?: any[];
+  team?: any[];
+  openTasks?: number;
+  nextDeadline?: string;
+  [key: string]: any;
 }
 
 export interface PracticeClientDetail {
-  client: { clientId: string; name: string; companyName: string; status: string };
+  client: { clientId: string; name: string; companyName: string; status: string; clientType?: string; [key: string]: any };
   engagements: any[];
-  team: Array<{ userId: string; name: string; role: string }>;
+  team: Array<{ userId: string; name: string; role: string; assignmentId?: string; engagementId?: string; taxYear?: number; [key: string]: any }>;
   tasks: any[];
   deadlines: any[];
   notes: any[];
+  activity?: any[];
+  [key: string]: any;
+}
+
+export interface Workload {
+  userId?: string;
+  role: string;
+  openTasks: number;
+  overdueTasks: number;
+  byStatus: Record<string, number>;
+  assignedClients: number;
+  assignedEngagements: number;
+  clientWideAssignments: number;
+  definitions?: any;
+  [key: string]: any;
 }
 
 export const practiceService = {
   myWork: async (): Promise<MyWork> => ({
-    cases: INITIAL_ENGAGEMENTS.map(e => ({ id: e.id, clientName: e.clientName, stage: 3, awaitingMe: true })),
+    cases: INITIAL_ENGAGEMENTS.map(e => ({
+      id: e.id,
+      caseId: e.id,
+      clientId: e.clientId || 'client_001',
+      clientName: e.clientName,
+      taxYear: e.taxYear || 2025,
+      stage: 3,
+      activeStage: 3,
+      status: e.status || 'ACTIVE',
+      myRole: 'preparer',
+      evidence: 'VERIFIED',
+      awaitingMe: true
+    })),
     documentsToReview: [],
     reconciliationTasks: [],
     tasks: [],
+    requestsOutstanding: [],
+    entriesAwaitingMyReview: [],
+    entriesReturnedToMe: [],
+    bookToTaxAwaitingReview: 0,
     definitions: {
       cases: 'Tax preparation cases assigned to current staff',
       documentsToReview: 'Uploaded documents pending preparer review',
       reconciliationTasks: 'Bookkeeping reconciliation items',
-      tasks: 'Operational action items'
+      tasks: 'Operational action items',
+      requestsOutstanding: 'Document requests pending client response',
+      entriesAwaitingMyReview: 'Accounting ledger entries awaiting review',
+      entriesReturnedToMe: 'Entries returned for correction',
+      bookToTaxAwaitingReview: 'Book-to-tax reconciliation items awaiting review'
     }
   }),
   summary: async (taxYear?: number) => ({
@@ -77,30 +177,49 @@ export const practiceService = {
     openEngagementsCount: 28,
     unassignedCasesCount: 2,
     onTrackRate: 94,
-    byRole: { accountant: 12, reviewer: 4, bookkeeper: 3 }
+    byRole: { accountant: 12, reviewer: 4, bookkeeper: 3 },
+    staffCaseCounts: [
+      { userId: 'usr_staff_desmond', activeCases: 6 },
+      { userId: 'usr_staff_elena', activeCases: 4 }
+    ]
   }),
   getClients: async () => INITIAL_USERS.filter(u => u.role === 'client'),
-  listClients: async (filter?: any): Promise<{ items: PracticeClientRow[]; next: string | null }> => ({
+  listClients: async (_filter?: any): Promise<{ items: PracticeClientRow[]; next: string | null; nextCursor: string | null }> => ({
     items: INITIAL_USERS.filter(u => u.role === 'client').map(c => ({
       clientId: c.id,
       name: c.name,
       companyName: c.companyName || '',
-      status: c.status
+      status: c.status,
+      clientType: 'entity',
+      engagements: [],
+      team: [],
+      openTasks: 0,
+      nextDeadline: '2026-04-15'
     })),
-    next: null
+    next: null,
+    nextCursor: null
   }),
   clientDetail: async (clientId: string): Promise<PracticeClientDetail> => ({
-    client: { clientId, name: 'Michael Perotti', companyName: 'Perotti Holdings', status: 'ACTIVE' },
+    client: { clientId, name: 'Michael Perotti', companyName: 'Perotti Holdings', status: 'ACTIVE', clientType: 'entity' },
     engagements: [],
-    team: [{ userId: 'usr_staff_desmond', name: 'Desmond Hinds', role: 'accountant' }],
+    team: [{ userId: 'usr_staff_desmond', name: 'Desmond Hinds', role: 'accountant', assignmentId: 'asg_1', engagementId: 'eng_001', taxYear: 2025 }],
     tasks: [],
     deadlines: [],
-    notes: []
+    notes: [],
+    activity: []
   }),
-  workload: async (userId?: string) => ({
-    activeCases: 6,
+  workload: async (userId?: string): Promise<Workload> => ({
+    userId,
+    role: 'accountant',
     openTasks: 4,
-    dueThisWeek: 2
+    overdueTasks: 1,
+    byStatus: {
+      READY_FOR_REVIEW: 2,
+      WAITING_ON_CLIENT: 1
+    },
+    assignedClients: 8,
+    assignedEngagements: 12,
+    clientWideAssignments: 2
   }),
   deadlineEscalations: async (minLevel?: number) => [],
   notifications: async () => [],

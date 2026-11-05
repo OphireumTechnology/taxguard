@@ -1,3 +1,7 @@
-export async function getSecureDownloadUrl(path: string): Promise<string> {
-  return path || '#';
+export async function getSecureDownloadUrl(documentId: string): Promise<string> {
+  return `/api/documents/download/${encodeURIComponent(documentId)}`;
 }
+
+export const storageService = {
+  getSecureDownloadUrl
+};

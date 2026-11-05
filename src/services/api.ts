@@ -1,4 +1,4 @@
-import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS } from '../data/mockData';
+import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS, INITIAL_SERVICE_PLANS } from '../data/mockData';
 
 export const SESSION_TOKEN_CHANGED_EVENT = 'taxguard:session-token-changed';
 
@@ -58,14 +58,55 @@ async function safeFetch<T>(url: string, options?: RequestInit, fallback?: T): P
 
 export const api = {
   auth: {
-    login: async (creds: any) => ({ user: INITIAL_USERS[0], token: 'tok_mock_session' }),
+    login: async (creds: any, _pass?: string, _code?: string) => ({ user: INITIAL_USERS[0], token: 'tok_mock_session' }),
     getCurrentUser: async () => INITIAL_USERS[0],
+    getMe: async () => INITIAL_USERS[0],
+    supabaseSession: async (payload: any) => {
+      const token = typeof payload === 'string' ? payload : (payload?.accessToken || 'tok_mock_session');
+      return {
+        token,
+        user: INITIAL_USERS[0],
+        tenantId: 'tenant_default',
+        clientId: 'user_client_1',
+        engagementId: 'eng_001',
+        taxYear: 2025,
+        caseId: 'case_001',
+        activeStage: 1 as 1 | 2 | 3,
+        stageStates: {},
+        resumed: false,
+        redirectPage: 'portal',
+        onboardingAvailability: { status: 'available' },
+        workflow: { activeStage: 1, stage1: { status: 'COMPLETED' } },
+        eligibility: { activeStage: 1 }
+      };
+    },
     logout: async () => { clearStoredToken(); }
   },
   admin: {
     getUsers: async () => INITIAL_USERS,
     getAuditLogs: async () => INITIAL_AUDIT_LOGS,
-    updateUserStatus: async (uid: string, status: string) => ({ success: true })
+    updateUserStatus: async (uid: string, status: string) => ({ success: true }),
+    updatePlanPrice: async (planId: string, newPrice: number, _changeReason?: string, _currency?: string) => {
+      const target = INITIAL_SERVICE_PLANS.find(p => p.id === planId) || INITIAL_SERVICE_PLANS[0];
+      return {
+        success: true,
+        message: 'Plan price updated.',
+        plan: { ...target, id: planId, price: newPrice }
+      };
+    },
+    setUserStatus: async (userId: string, nextStatus: string, _reason?: string, _confirmation?: boolean) => {
+      const target = INITIAL_USERS.find(u => u.id === userId) || INITIAL_USERS[0];
+      return {
+        success: true,
+        message: 'User status updated.',
+        user: { ...target, id: userId, status: nextStatus as any }
+      };
+    },
+    reassignClient: async (clientId: string, accountantId: string, reviewerId?: string, _reason?: string) => ({
+      success: true,
+      message: 'Client reassigned successfully.',
+      client: { id: clientId, accountantId, reviewerId }
+    })
   },
   superAdmin: {
     getSecurityOverview: async () => ({
@@ -89,13 +130,17 @@ export const api = {
     submitRecovery: async (input: any) => ({ success: true, requestId: 'req_' + Date.now() }),
     issueInvitation: async (input: any) => ({ success: true, invitationId: 'inv_' + Date.now() }),
     revokeInvitation: async () => ({ success: true }),
-    reassignClients: async () => ({ success: true })
+    reassignClients: async () => ({ success: true }),
+    members: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
+    invitations: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
+    recoveries: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' })
   },
   caseAuthority: {
     getMatrix: async () => ({ records: [], status: 'ACTIVE' }),
     getEvaluation: async () => ({ evaluations: [] }),
     getEmergencyStop: async () => ({ engaged: false }),
-    triggerEmergencyStop: async () => ({ engaged: true })
+    triggerEmergencyStop: async () => ({ engaged: true }),
+    getProviderReadiness: async (_signal?: AbortSignal) => ({ providers: [] })
   },
   room: {
     getRoom: async (roomId: string) => ({ roomId, status: 'waiting', participants: [] }),
@@ -112,11 +157,42 @@ export const api = {
       invoices: INITIAL_INVOICES
     }),
     getQuestionnaire: async () => ({ answered: 10, total: 25, categories: [] }),
-    submitQuestionnaire: async () => ({ success: true })
+    submitQuestionnaire: async () => ({ success: true }),
+    read: async <T = any>(resource?: string, clientId?: string, taxYear?: number, _signal?: AbortSignal): Promise<T> => {
+      const cId = clientId || 'user_client_1';
+      const year = taxYear || 2025;
+      if (resource === 'requests') {
+        return { requests: [] } as unknown as T;
+      }
+      if (resource === 'requirements') {
+        return { requirements: [] } as unknown as T;
+      }
+      return {
+        clientId: cId,
+        tenantId: 'tenant_default',
+        taxYear: year,
+        questionnaire: {
+          id: 'q_' + cId,
+          clientId: cId,
+          taxYear: year,
+          tenantId: 'tenant_default',
+          status: 'completed',
+          answers: {},
+          updatedAt: new Date().toISOString()
+        }
+      } as unknown as T;
+    }
   },
   profile: {
     getProfile: async () => INITIAL_USERS[0],
-    updateProfile: async (data: any) => ({ success: true, profile: { ...INITIAL_USERS[0], ...data } })
+    getAuthoritative: async (_profileData?: any, _signal?: AbortSignal) => ({
+      ...INITIAL_USERS[0],
+      clientId: INITIAL_USERS[0].clientId || INITIAL_USERS[0].id,
+      tenantId: INITIAL_USERS[0].tenantId || 'tenant_default'
+    }),
+    updateProfile: async (data: any) => ({ success: true, profile: { ...INITIAL_USERS[0], ...data } }),
+    updateOrdinary: async (data: any) => ({ success: true, profile: { ...INITIAL_USERS[0], ...data } }),
+    requestAmendment: async (_data: any) => ({ success: true, requestId: 'amd_' + Date.now() })
   },
   taxForms: {
     getCatalog: async (signal?: AbortSignal) => ({
@@ -140,8 +216,11 @@ export const api = {
       coreCategories: [
         { id: 'individual-1040', label: 'Individual Income Tax' },
         { id: 's-corporations-1120s', label: 'S-Corporation Returns' }
-      ]
-    })
+      ],
+      catalogTaxYears: [2024, 2025],
+      stateCategories: [],
+      preparationPipeline: []
+    } as any)
   },
   reviewer: {
     getQueue: async () => ({
@@ -149,11 +228,45 @@ export const api = {
       approvedCount: 14,
       flaggedCount: 1,
       activeCases: []
-    })
+    }),
+    getDashboard: async (_arg1?: AbortSignal | number, _arg2?: AbortSignal) => ({ cases: [] }),
+    getWorkspace: async (caseIdOrScope: any, _signal?: AbortSignal) => {
+      const scope = typeof caseIdOrScope === 'object' && caseIdOrScope !== null
+        ? caseIdOrScope
+        : { tenantId: 'tenant_default', clientId: 'user_client_1', engagementId: 'eng_001', taxYear: 2025 };
+      return {
+        scope,
+        decisionsAvailable: false,
+        independentReviewer: false,
+        case: { reviewerUid: 'user_reviewer', preparerUid: 'user_accountant', status: 'ACTIVE', activeStage: 1, openExceptions: 0 }
+      };
+    },
+    decide: async (..._args: any[]) => ({ success: true, version: 1 })
   },
   accountant: {
     getCases: async () => INITIAL_ENGAGEMENTS,
-    getWorkpapers: async () => []
+    getWorkpapers: async () => [],
+    getDashboard: async (_arg1?: AbortSignal | number, _arg2?: AbortSignal) => ({
+      cases: [
+        {
+          id: 'case_001',
+          tenantId: 'tenant_default',
+          clientId: 'user_client_1',
+          clientName: 'Michael Perotti',
+          engagementId: 'eng_001',
+          authorityClientId: 'user_client_1',
+          taxYear: 2025,
+          status: 'in_preparation',
+          priority: 'normal',
+          dueDate: '2026-04-15',
+          serviceTitle: 'Form 1040 Individual Income Tax',
+          documents: [],
+          activeStage: 4
+        }
+      ],
+      workpapers: [],
+      unavailableFields: []
+    })
   },
   bookkeeper: {
     getSnapshot: async () => ({
@@ -161,6 +274,22 @@ export const api = {
       unreconciledTransactionsCount: 4,
       pendingPeriodCloses: 1,
       activeFeedsCount: 8,
+      clients: []
+    }),
+    getDashboard: async (client?: string, year?: number, period?: string, _signal?: AbortSignal) => ({
+      scope: {
+        tenantId: 'tenant_default',
+        clientId: client || 'user_client_1',
+        taxYear: year || 2025,
+        periodId: period
+      },
+      tenantId: 'tenant_default',
+      transactions: [],
+      reconciliations: []
+    }),
+    getClients: async (_signal?: AbortSignal) => ({
+      tenantId: 'tenant_default',
+      clientIds: ['user_client_1'],
       clients: []
     })
   },
@@ -171,6 +300,34 @@ export const api = {
       slaBreachedCount: 0,
       activeRequests: [],
       recentConversations: []
+    }),
+    getDashboard: async (_year?: number, _signal?: AbortSignal) => ({
+      tenantId: 'tenant_default',
+      cases: [],
+      requests: [],
+      followUps: [],
+      threads: [],
+      escalations: []
+    }),
+    conversation: async (id: string, caseId?: string, _taxYear?: number, _signal?: AbortSignal) => ({
+      id,
+      threadId: id,
+      tenantId: 'tenant_default',
+      caseKey: caseId || '',
+      unread: 0,
+      messages: []
+    }),
+    requestDetail: async (id: string, caseId?: string, _taxYear?: number, _signal?: AbortSignal) => ({
+      id,
+      requestId: id,
+      tenantId: 'tenant_default',
+      caseKey: caseId || '',
+      status: 'OPEN'
+    }),
+    search: async (_q: string, _year?: number, _signal?: AbortSignal) => ({
+      tenantId: 'tenant_default',
+      matches: [],
+      results: []
     })
   },
   practiceManager: {
@@ -180,17 +337,45 @@ export const api = {
       escalationCount: 0,
       teamWorkloadUtilization: 78,
       cases: []
-    })
+    }),
+    getDashboard: async (_year?: number, _signal?: AbortSignal) => ({ tenantId: 'tenant_default', cases: [], deadlines: [], staff: [] })
   },
   careers: {
-    getJobs: async () => INITIAL_JOBS,
-    submitApplication: async (app: any) => ({ success: true })
+    getJobs: async () => Object.assign([...INITIAL_JOBS], { jobs: INITIAL_JOBS }),
+    getApplicants: async () => [],
+    submitApplication: async (_app: any) => ({ success: true }),
+    apply: async (_app: any) => ({ success: true, applicantId: 'app_' + Date.now(), message: 'Application submitted.' }),
+    updateApplicant: async (appId: string, update: any) => ({
+      success: true,
+      applicant: { id: appId, ...update }
+    })
   },
   onboarding: {
     getStatus: async () => ({ currentStep: 1, isComplete: false, taxYear: 2025 }),
-    submitStep: async (step: number, data: any) => ({ success: true })
+    getState: async () => ({ currentStep: 1, isComplete: false, taxYear: 2025 }),
+    submitStep: async (step: number, _data: any) => ({ success: true }),
+    saveStep: async (stepData: any) => ({
+      success: true,
+      state: { step: 1, totalSteps: 5, completed: false, data: stepData },
+      progress: {
+        percentComplete: 20,
+        missingRequirements: [],
+        nextAction: 'Continue'
+      }
+    }),
+    submitDossier: async () => ({
+      success: true,
+      state: { step: 5, totalSteps: 5, completed: true, data: {} }
+    })
   },
   security: {
-    runAudit: async () => ({ passed: true, checks: [] })
+    runAudit: async () => ({ passed: true, checks: [] }),
+    runNegativeTests: async () => ({
+      passed: true,
+      results: [
+        { id: 'sec_1', name: 'SQL Injection Prevention', status: 'pass', message: 'Parameterized queries verified', timestamp: new Date().toISOString() },
+        { id: 'sec_2', name: 'Cross-Tenant Isolation', status: 'pass', message: 'Tenant boundary enforcement verified', timestamp: new Date().toISOString() }
+      ]
+    })
   }
 };

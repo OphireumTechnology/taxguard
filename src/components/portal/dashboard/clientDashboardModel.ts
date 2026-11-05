@@ -61,7 +61,7 @@ export function scopeEngagements(rows: Engagement[], scope: ClientScope) {
 export function threadSummaries(threads: CommThread[], scope: ClientScope): Message[] {
   return threads.filter(t => t.clientId === scope.clientId).map(t => ({ id: t.threadId, clientId: t.clientId, subject: t.subject, content: t.subject,
     senderId: t.awaitingStaffReply ? scope.userId : 'advisor-team', senderName: 'Your advisor team', senderRole: (t.awaitingStaffReply ? 'client' : 'accountant') as Message['senderRole'],
-    recipientId: t.awaitingStaffReply ? undefined : scope.userId, createdAt: t.lastMessageAt, isRead: t.unread === 0 }));
+    recipientId: t.awaitingStaffReply ? undefined : scope.userId, createdAt: t.lastMessageAt || new Date().toISOString(), timestamp: t.lastMessageAt || new Date().toISOString(), isRead: t.unread === 0 } as Message));
 }
 export function scopeMessages(rows: Message[], engagements: Engagement[], scope: ClientScope) {
   const validEngagements = new Set(engagements.filter(e => e.taxYear === scope.taxYear).map(e => e.id));
@@ -115,7 +115,7 @@ export function billingInvoiceSummaries(rows: Array<Record<string, any>>, scope:
     const open = i.status !== 'PAID';
     const overdue = open && i.dueDate && Date.parse(i.dueDate + 'T23:59:59Z') < now;
     return { id: i.invoiceId, invoiceNumber: i.invoiceNumber ?? 'Invoice', clientId: i.clientId, description: open ? `Balance due${i.dueDate ? ' by ' + i.dueDate : ''} (total ${i.total})` : 'Paid in full',
-      amount: Number(open ? i.balanceDue : i.total), currency: i.currency, status: open ? (overdue ? 'overdue' : 'unpaid') : 'paid' } as Invoice;
+      amount: Number(open ? i.balanceDue : i.total), currency: i.currency, status: open ? (overdue ? 'overdue' : 'unpaid') : 'paid' } as unknown as Invoice;
   }).filter(i => Number.isFinite(i.amount));
 }
 /** Durable engagements per tax year (proposal 044) in the dashboard's engagement shape. */
