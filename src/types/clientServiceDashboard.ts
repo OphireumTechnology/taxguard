@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 export interface ClientServiceRequest {
   id: string;
   caseKey: string;
@@ -5,47 +10,38 @@ export interface ClientServiceRequest {
   dueDate?: string;
   createdAt?: string;
   title?: string;
-  description?: string;
-  [key: string]: any;
-}
-
-export interface ClientServiceFollowUp {
-  id: string;
-  caseKey: string;
-  status: string;
-  dueDate?: string;
-  [key: string]: any;
-}
-
-export interface ClientServiceConversation {
-  id: string;
-  caseKey?: string;
-  unread: number;
-  subject?: string;
-  lastMessage?: string;
-  updatedAt?: string;
-  [key: string]: any;
-}
-
-export interface ClientServiceRequestDetail extends ClientServiceRequest {
-  details?: Record<string, any>;
-  attachments?: any[];
+  priority?: string;
 }
 
 export interface ClientServiceCase {
   id: string;
+  clientId: string;
+  engagementId: string;
+  taxYear: number;
+  documents: any[];
+  clientName?: string;
+  serviceTitle?: string;
+}
+
+export interface ClientServiceConversation {
+  threadId: string;
+  tenantId: string;
   caseKey: string;
-  clientName: string;
-  status: string;
-  [key: string]: any;
+  messages: any[];
+}
+
+export interface ClientServiceRequestDetail {
+  requestId: string;
+  tenantId: string;
+  caseKey: string;
+  details?: Record<string, any>;
 }
 
 export interface ClientServiceSnapshot {
-  tenantId?: string;
+  tenantId: string;
   requests: ClientServiceRequest[];
-  followUps: ClientServiceFollowUp[];
-  threads: ClientServiceConversation[];
+  followUps: Array<{ status: string; caseKey: string; dueDate?: string }>;
+  threads: Array<{ unread: number }>;
   escalations: any[];
-  cases?: ClientServiceCase[];
-  [key: string]: any;
+  cases: ClientServiceCase[];
 }

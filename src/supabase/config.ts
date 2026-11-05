@@ -1,29 +1,30 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { createClient } from '@supabase/supabase-js';
+
+const metaEnv = (import.meta as any)?.env || {};
+const supabaseUrl = metaEnv.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = metaEnv.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+
 export const isSupabaseConfigured = (): boolean => {
-  const env = (import.meta as any)?.env || {};
-  return Boolean(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY);
+  return Boolean(
+    metaEnv.VITE_SUPABASE_URL &&
+    metaEnv.VITE_SUPABASE_ANON_KEY &&
+    !metaEnv.VITE_SUPABASE_URL.includes('placeholder')
+  );
 };
 
 export const isStaffIdentityDevelopmentConfigured = (): boolean => {
-  return true;
+  return false;
 };
 
-// Lightweight mock supabase client for client-side when not connecting to external service
-export const supabase = {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    getSession: async () => ({ data: { session: null }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    signOut: async () => ({ error: null }),
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
   },
-  from: () => ({
-    select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }), data: [] }) }),
-    insert: async () => ({ data: null, error: null }),
-    update: async () => ({ data: null, error: null }),
-    delete: async () => ({ data: null, error: null }),
-  }),
-  storage: {
-    from: () => ({
-      createSignedUrl: async () => ({ data: { signedUrl: '#' }, error: null }),
-      upload: async () => ({ data: { path: '' }, error: null }),
-    }),
-  },
-};
+});

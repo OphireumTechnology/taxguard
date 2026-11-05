@@ -1,14 +1,30 @@
-import type { CapabilityKey, LibraryGroupId, StateJurisdiction, StateTaxCategoryId } from './types';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export interface FormCapability {
+import type {
+  CapabilityKey,
+  LibraryGroupId,
+  StateJurisdiction,
+  StateTaxCategoryId
+} from './types';
+
+export interface FormCapabilityDetail {
   status: 'available' | 'prototype' | 'not_implemented' | 'blocked';
   note: string;
 }
 
-export interface FormVersion {
+export interface FormVersionHistory {
   taxYear: number;
   revision?: string;
   note: string;
+}
+
+export interface FormSourceVerification {
+  status: 'verified' | 'unverified' | 'pending';
+  method: string;
+  checkedOn?: string;
 }
 
 export interface FormView {
@@ -17,50 +33,35 @@ export interface FormView {
   officialName: string;
   groups: LibraryGroupId[];
   taxYears: number[];
+  classification: string;
   readiness: string;
   preparation: string;
-  classification: string;
   entityCategory: string;
   officialSourceUrl: string;
-  instructionsNote: string;
-  source: {
-    status: 'verified' | 'unverified';
-    method: string;
-    checkedOn?: string;
-  };
+  instructionsNote?: string;
+  source: FormSourceVerification;
   schedules: string[];
   requiredDocuments: string[];
   notes?: string;
-  capabilities: Record<CapabilityKey, FormCapability>;
-  versionHistory: FormVersion[];
+  capabilities: Record<CapabilityKey, FormCapabilityDetail>;
+  versionHistory: FormVersionHistory[];
 }
 
-export interface LibraryGroup {
-  id: LibraryGroupId;
-  label: string;
-}
-
-export interface CoreCategory {
-  id: LibraryGroupId;
-  title: string;
-  scope: string;
-}
-
-export interface PreparationPipelineStep {
+export interface PreparationPipelineItem {
   id: string;
   label: string;
   workflowStages: number[];
-  status: 'operational' | 'prototype' | 'not_implemented' | 'blocked';
+  status: string;
   evidence: string;
 }
 
 export interface LibraryCatalog {
   disclaimer?: string;
   catalogTaxYears: number[];
+  groups: Array<{ id: LibraryGroupId; label: string }>;
+  coreCategories: Array<{ id: LibraryGroupId; label: string; title?: string; scope?: string }>;
+  stateCategories: Array<{ id: StateTaxCategoryId; label: string }>;
   federalForms: FormView[];
   states: StateJurisdiction[];
-  groups: LibraryGroup[];
-  coreCategories: CoreCategory[];
-  stateCategories: { id: StateTaxCategoryId; label: string }[];
-  preparationPipeline: PreparationPipelineStep[];
+  preparationPipeline: PreparationPipelineItem[];
 }

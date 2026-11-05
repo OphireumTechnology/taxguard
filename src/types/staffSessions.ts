@@ -1,17 +1,17 @@
-export type SessionRevocationReason =
-  | 'security_incident'
-  | 'lost_or_stolen_device'
-  | 'offboarding'
-  | 'role_change'
-  | 'administrative_review';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export const SESSION_REVOCATION_REASONS: SessionRevocationReason[] = [
+export const SESSION_REVOCATION_REASONS = [
   'security_incident',
   'lost_or_stolen_device',
   'offboarding',
   'role_change',
   'administrative_review'
-];
+] as const;
+
+export type SessionRevocationReason = typeof SESSION_REVOCATION_REASONS[number];
 
 export interface DurableSessionRecord {
   sessionId: string;
@@ -20,4 +20,7 @@ export interface DurableSessionRecord {
   expiresAt: string;
   assuranceLevel: 'aal1' | 'aal2';
   current: boolean;
+  userAgent?: string;
+  ipAddress?: string;
+  revocationReason?: SessionRevocationReason | null;
 }

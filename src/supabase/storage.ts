@@ -1,7 +1,8 @@
-export async function getSecureDownloadUrl(documentId: string): Promise<string> {
-  return `/api/documents/download/${encodeURIComponent(documentId)}`;
-}
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export const storageService = {
-  getSecureDownloadUrl
-};
+export async function getSecureDownloadUrl(documentId: string): Promise<string> {
+  return `/api/documents/${encodeURIComponent(documentId)}/download`;
+}

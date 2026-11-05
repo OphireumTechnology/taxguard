@@ -1,4 +1,7 @@
-export type StaffMembershipAction = 'suspend' | 'deactivate' | 'reactivate';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 export interface StaffMemberRecord {
   uid: string;
@@ -18,7 +21,6 @@ export interface StaffMemberRecord {
     suspend: boolean;
     deactivate: boolean;
     reactivate: boolean;
-    [key: string]: boolean;
   };
 }
 
@@ -38,11 +40,10 @@ export interface StaffInvitationRecord {
   revokedAt: string | null;
   actions: {
     revoke: boolean;
-    [key: string]: boolean;
   };
 }
 
-export interface StaffDirectoryPage<T> {
+export interface StaffDirectoryPage<T = StaffMemberRecord | StaffInvitationRecord> {
   items: T[];
   nextCursor: string | null;
   source: 'durable' | string;
@@ -51,20 +52,24 @@ export interface StaffDirectoryPage<T> {
 export interface StaffDirectoryQuery {
   limit?: number;
   cursor?: string;
-  role?: string;
+  search?: string;
   status?: string;
 }
 
 export interface StaffInvitationIssueInput {
   email: string;
+  role: string;
   legalFirstName: string;
   legalLastName: string;
-  role: string;
 }
 
 export interface StaffInvitationIssueResult {
-  id: string;
-  token: string;
-  expiresAt: string;
-  delivery: string;
+  success: boolean;
+  invitationId?: string;
+  error?: string;
+}
+
+export interface StaffMembershipAction {
+  action: 'approve' | 'suspend' | 'deactivate' | 'reactivate';
+  reason?: string;
 }

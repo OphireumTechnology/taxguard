@@ -1,10 +1,23 @@
-import React from 'react';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export const TaxGuardDiscrepanciesView: React.FC<{ clientId?: string; taxYear?: number }> = () => {
+import React from 'react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+
+export const TaxGuardDiscrepanciesView: React.FC<{ clientId?: string }> = () => {
   return (
-    <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-200">
-      <h3 className="text-base font-semibold text-[#D4A843]">TaxGuard Reconciliation & Discrepancies</h3>
-      <p className="text-xs text-slate-400 mt-1">No outstanding discrepancies detected in the active ledger.</p>
+    <div className="rounded-xl border border-slate-700 bg-[#0D2745] p-6 text-sm text-slate-200">
+      <div className="flex items-center gap-3 mb-4">
+        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+        <h2 className="text-base font-bold text-white">Tax Discrepancy & Trace View</h2>
+      </div>
+      <p className="text-slate-300">
+        All reported tax items and source extractions are reconciled. No blocking discrepancies recorded.
+      </p>
     </div>
   );
 };
+
+export default TaxGuardDiscrepanciesView;

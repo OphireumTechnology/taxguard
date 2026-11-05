@@ -1,42 +1,35 @@
-import { isSupabaseConfigured, supabase } from './config';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { supabase, isSupabaseConfigured } from './config';
 
 export class ClientMfaError extends Error {
-  code?: string;
-  constructor(message: string, code?: string) {
+  constructor(message: string, public code?: string) {
     super(message);
     this.name = 'ClientMfaError';
-    this.code = code;
   }
-}
-
-export function clientMfaErrorText(code?: string): string {
-  switch (code) {
-    case 'MFA_CODE_INVALID':
-      return 'The code entered is invalid or expired. Check your authenticator and try again.';
-    case 'MFA_ENROLLMENT_DISABLED':
-      return 'Authenticator setup is disabled for this environment.';
-    case 'RATE_LIMITED':
-      return 'Too many attempts. Please wait a few minutes before trying again.';
-    default:
-      return 'Could not complete authenticator action. Please try again.';
-  }
-}
-
-export function clientMfaEnrollmentAvailable(): boolean {
-  return isSupabaseConfigured() && !import.meta.env.PROD;
-}
-
-export interface ClientMfaStatus {
-  state: 'READY' | 'UNAVAILABLE' | 'NO_PROVIDER_SESSION' | 'ERROR';
-  currentLevel?: 'aal1' | 'aal2' | 'unknown';
-  verifiedFactors?: number;
-  pendingFactors?: number;
 }
 
 export interface ClientTotpEnrollment {
   factorId: string;
-  secret: string;
   qrCode: string;
+  secret: string;
+}
+
+export interface ClientMfaStatus {
+  state: 'READY' | 'UNAVAILABLE' | 'NO_PROVIDER_SESSION' | 'ERROR';
+  currentLevel: 'aal1' | 'aal2' | 'unknown';
+  verifiedFactors: number;
+  pendingFactors?: number;
+}
+
+export const clientMfaEnrollmentAvailable = false;
+
+export function clientMfaErrorText(error: any): string {
+  if (typeof error === 'string') return error;
+  return error?.message || 'Authenticator operation failed. Please try again.';
 }
 
 export async function readClientMfaStatus(): Promise<ClientMfaStatus> {
@@ -44,73 +37,72 @@ export async function readClientMfaStatus(): Promise<ClientMfaStatus> {
     return {
       state: 'UNAVAILABLE',
       currentLevel: 'unknown',
-      verifiedFactors: 0
+      verifiedFactors: 0,
     };
   }
   try {
-    const sessionRes = await supabase.auth.getSession();
-    if (!sessionRes.data?.session) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
       return {
         state: 'NO_PROVIDER_SESSION',
         currentLevel: 'unknown',
-        verifiedFactors: 0
+        verifiedFactors: 0,
       };
     }
-    const factors = (sessionRes.data.session.user as any)?.factors || [];
-    const verified = factors.filter((f: any) => f.status === 'verified').length;
-    const pending = factors.filter((f: any) => f.status === 'unverified').length;
-    const aal = (sessionRes.data.session.user as any)?.aal || (verified > 0 ? 'aal2' : 'aal1');
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error || !data) {
+      return {
+        state: 'ERROR',
+        currentLevel: 'unknown',
+        verifiedFactors: 0,
+      };
+    }
+    const verified = data.totp?.filter((f: any) => f.status === 'verified').length || 0;
+    const pending = data.totp?.filter((f: any) => f.status === 'unverified').length || 0;
+    const aal = sessionData.session.user?.app_metadata?.aal || (verified > 0 ? 'aal2' : 'aal1');
+
     return {
       state: 'READY',
       currentLevel: aal === 'aal2' ? 'aal2' : 'aal1',
       verifiedFactors: verified,
-      pendingFactors: pending
+      pendingFactors: pending,
     };
   } catch {
     return {
       state: 'ERROR',
       currentLevel: 'unknown',
-      verifiedFactors: 0
+      verifiedFactors: 0,
     };
   }
 }
 
 export async function beginClientTotpEnrollment(): Promise<ClientTotpEnrollment> {
-  if (isSupabaseConfigured() && (supabase.auth as any).mfa?.enroll) {
-    const { data, error } = await (supabase.auth as any).mfa.enroll({
-      factorType: 'totp',
-      friendlyName: 'Client Authenticator'
-    });
-    if (error) throw new ClientMfaError(error.message, (error as any).code);
-    return {
-      factorId: data.id,
-      qrCode: data.totp.qr_code,
-      secret: data.totp.secret
-    };
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: 'totp',
+    issuer: 'DESTRIA TAX SERVICES LLC',
+  });
+  if (error || !data) {
+    throw new ClientMfaError(error?.message || 'Failed to start authenticator enrollment');
   }
   return {
-    factorId: 'client-factor-' + Math.random().toString(36).substring(2, 9),
-    qrCode: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23071A2E"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23D4A843" font-size="12">QR Code Placeholder</text></svg>',
-    secret: 'HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ'
+    factorId: data.id,
+    qrCode: data.totp.qr_code,
+    secret: data.totp.secret,
   };
 }
 
-export async function confirmClientTotpEnrollment(factorId: string, code: string): Promise<void> {
-  if (isSupabaseConfigured() && (supabase.auth as any).mfa?.challengeAndVerify) {
-    const { error } = await (supabase.auth as any).mfa.challengeAndVerify({
-      factorId,
-      code
-    });
-    if (error) throw new ClientMfaError(error.message, 'MFA_CODE_INVALID');
-    return;
-  }
-  if (!code || code.length !== 6) {
-    throw new ClientMfaError('Code must be 6 digits.', 'MFA_CODE_INVALID');
-  }
+export async function cancelClientTotpEnrollment(factorId: string): Promise<void> {
+  await supabase.auth.mfa.unenroll({ factorId }).catch(() => {});
 }
 
-export async function cancelClientTotpEnrollment(factorId: string): Promise<void> {
-  if (isSupabaseConfigured() && (supabase.auth as any).mfa?.unenroll) {
-    await (supabase.auth as any).mfa.unenroll({ factorId }).catch(() => {});
-  }
+export async function confirmClientTotpEnrollment(factorId: string, code: string): Promise<void> {
+  const challenge = await supabase.auth.mfa.challenge({ factorId });
+  if (challenge.error) throw new ClientMfaError(challenge.error.message);
+
+  const verify = await supabase.auth.mfa.verify({
+    factorId,
+    challengeId: challenge.data.id,
+    code,
+  });
+  if (verify.error) throw new ClientMfaError(verify.error.message);
 }

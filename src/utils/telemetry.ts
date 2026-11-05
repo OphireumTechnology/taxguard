@@ -1,5 +1,19 @@
-export function reportClientError(error: Error | unknown, context?: Record<string, unknown>): void {
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export function reportClientError(
+  error: Error,
+  incidentId?: string,
+  extra?: Record<string, unknown>
+): void {
   if (process.env.NODE_ENV !== 'production') {
-    console.error('[Telemetry Client Error]', error, context);
+    console.warn('[Telemetry Error Report]', {
+      incidentId,
+      errorName: error.name,
+      errorMessage: error.message,
+      extra
+    });
   }
 }

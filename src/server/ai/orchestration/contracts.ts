@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import type { AICaseScope, AgentId } from '../../../ai/types';
 
 export type ReviewTask =
@@ -13,9 +18,15 @@ export interface OrchestrationRequest {
 }
 
 export interface ChildContext {
+  root_id?: string;
   operation_id: string;
+  attempt?: number;
   agent_id: AgentId;
-  evidence_source_ids: string[];
+  scope?: AICaseScope;
+  workflow_stage?: number;
+  purpose?: string;
+  evidence_source_ids: readonly string[] | string[];
+  decision_id?: string;
 }
 
 export interface AdvisoryResult {
@@ -28,7 +39,7 @@ export interface AdvisoryResult {
   finding_codes: string[];
 }
 
-export type AdvisoryHandler = (ctx: ChildContext) => Promise<AdvisoryResult>;
+export type AdvisoryHandler = (ctx: ChildContext, signal?: AbortSignal) => Promise<AdvisoryResult>;
 
 export interface CaseReadiness {
   status: 'READY' | 'NOT_READY' | 'NOT_DIAGNOSED' | 'UNAVAILABLE';
@@ -42,26 +53,42 @@ export interface CaseReadinessGate {
 }
 
 export interface OperationEvent {
-  event_id: string;
-  event_type: string;
-  payload: any;
-  timestamp: string;
+  operation_id: string | null;
+  agent_id: string;
+  attempt: number;
+  status: 'PLANNED' | 'AUTHORIZED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'RETRY_SCHEDULED' | 'RESULT_RECORDED' | 'RETRY_REQUIRED' | 'TIMED_OUT' | 'CANCELLED' | 'UNAVAILABLE' | 'DENIED' | string;
+  purpose: string | null;
+  decision_id: string | null;
+  reason_code: string;
+  output_hash: string | null;
 }
 
 export interface RootRecord {
-  request_id: string;
-  tenant_id: string;
-  status: string;
+  root_id: string;
+  identity: { uid: string; tenant_id: string; [key: string]: any };
+  scope: AICaseScope;
+  case_record_id: string;
+  workflow_stage: number;
+  request_key: string;
+  input_hash: string;
+  coordinator_decision_id: string;
 }
 
 export interface OrchestrationResult {
-  request_id: string;
+  root_id: string;
   status: string;
-  readiness: CaseReadiness;
-  results: AdvisoryResult[];
+  children: any[];
+  human_review_required?: boolean;
+  action_executed?: boolean;
+  external_submission_allowed?: boolean;
+  case_readiness?: CaseReadiness;
+  readiness?: CaseReadiness;
+  results?: AdvisoryResult[];
 }
 
 export interface OrchestrationLedger {
-  record(event: OperationEvent): Promise<void>;
-  getRootRecord(requestId: string): Promise<RootRecord | null>;
+  begin(root: RootRecord): Promise<void>;
+  append(root: RootRecord, event: OperationEvent): Promise<void>;
+  record?(event: OperationEvent): Promise<void>;
+  getRootRecord?(requestId: string): Promise<RootRecord | null>;
 }

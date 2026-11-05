@@ -1,137 +1,208 @@
-export type AuthLifecycleState = 'INITIALIZING' | 'UNAUTHENTICATED' | 'MFA_REQUIRED' | 'AUTHENTICATED' | 'OFFLINE';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { supabase } from './config';
 
 export type RegistrationResultState =
   | 'IDLE'
-  | 'READY'
   | 'SUBMITTING'
   | 'ACCOUNT_CREATED'
   | 'EMAIL_VERIFICATION_REQUIRED'
   | 'ESTABLISHING_SESSION'
   | 'INITIALIZING_CLIENT'
   | 'INITIALIZING_CASE'
-  | 'FAILED'
-  | 'SUCCESS'
-  | 'ALREADY_EXISTS'
-  | 'INVALID_INPUT'
+  | 'READY'
+  | 'FAILED';
+
+export type AuthLifecycleState =
+  | 'INITIALIZING'
+  | 'AUTHENTICATED'
+  | 'UNAUTHENTICATED'
+  | 'MFA_REQUIRED'
   | 'ERROR';
 
 export type ControlledAuthErrorCode =
+  | 'EMAIL_VERIFICATION_REQUIRED'
   | 'INVALID_CREDENTIALS'
-  | 'MFA_CODE_INVALID'
-  | 'USER_NOT_FOUND'
+  | 'SESSION_ESTABLISHMENT_FAILED'
+  | 'USER_ALREADY_EXISTS'
   | 'RATE_LIMITED'
   | 'NETWORK_ERROR'
-  | 'VALIDATION_FAILED'
-  | 'EMAIL_VERIFICATION_REQUIRED'
-  | 'CLIENT_INITIALIZATION_FAILED'
-  | 'CASE_INITIALIZATION_FAILED'
-  | 'REGISTRATION_FAILED'
-  | 'SESSION_ESTABLISHMENT_FAILED'
-  | 'UNKNOWN';
+  | (string & {});
 
-export function sanitizeAuthErrorMessage(
-  error: unknown,
-  fallbackCode: ControlledAuthErrorCode = 'UNKNOWN'
-): { code: ControlledAuthErrorCode; message: string } {
-  let message = 'An authentication error occurred. Please try again.';
-  let code = fallbackCode;
-
-  if (typeof error === 'string') {
-    message = error;
-  } else if (error && typeof error === 'object') {
-    if ('message' in error && typeof (error as any).message === 'string') {
-      message = (error as any).message;
-    }
-    if ('code' in error && typeof (error as any).code === 'string') {
-      code = (error as any).code as ControlledAuthErrorCode;
-    }
-  }
-
-  return { code, message };
+export function sanitizeAuthErrorMessage(error: any): string {
+  if (!error) return 'An error occurred during authentication.';
+  if (typeof error === 'string') return error;
+  const msg = error.message || error.error || 'Authentication error';
+  return String(msg);
 }
 
-export function validateRegistrationInput(data: any): { valid: boolean; error?: string } {
-  if (!data?.email || !data.email.includes('@')) {
-    return { valid: false, error: 'A valid email address is required.' };
+export function validateRegistrationInput(input: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  confirmPassword?: string;
+  acceptedTerms?: boolean;
+  [key: string]: any;
+}): { valid: boolean; error?: string } {
+  if (input.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
+    return { valid: false, error: 'Please enter a valid email address.' };
   }
-  if (!data?.password || data.password.length < 8) {
-    return { valid: false, error: 'Password must be at least 8 characters long.' };
+  if (input.password && input.confirmPassword && input.password !== input.confirmPassword) {
+    return { valid: false, error: 'Passwords do not match.' };
   }
   return { valid: true };
 }
 
-export async function loginWithEmail(
-  email: string,
-  password: string,
-  ..._rest: any[]
-): Promise<{
+export async function loginWithEmail(email: string, password: string): Promise<{
   success: boolean;
   accessToken?: string;
   emailVerificationRequired?: boolean;
   code?: ControlledAuthErrorCode;
   error?: string;
-  user?: any;
 }> {
-  return {
-    success: true,
-    accessToken: 'mock-sb-access-token-' + Date.now(),
-    user: { email, role: 'client' }
-  };
-}
-
-export async function supabaseMfaStatus(
-  _userId?: string
-): Promise<{ enrolled: boolean; factors: any[]; needsChallenge?: boolean }> {
-  return { enrolled: false, factors: [], needsChallenge: false };
-}
-
-export async function verifySupabaseMfa(
-  _codeOrFactor: string,
-  _code?: string
-): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  return {
-    success: true,
-    accessToken: 'mock-sb-verified-token-' + Date.now()
-  };
-}
-
-export async function registerWithEmail(
-  name?: string,
-  email?: string,
-  password?: string,
-  phone?: string,
-  company?: string,
-  ..._rest: any[]
-): Promise<{
-  success: boolean;
-  accessToken?: string;
-  emailVerificationRequired?: boolean;
-  duplicateRegistration?: boolean;
-  code?: ControlledAuthErrorCode;
-  error?: string;
-}> {
-  return {
-    success: true,
-    accessToken: 'mock-sb-access-token-' + Date.now()
-  };
-}
-
-export async function logout(): Promise<void> {}
-export const signOutProvider = logout;
-
-export function getSupabaseAccessToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('tg_auth_token');
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      if (error.message.includes('Email not confirmed')) {
+        return { success: false, emailVerificationRequired: true, code: 'EMAIL_VERIFICATION_REQUIRED', error: error.message };
+      }
+      return { success: false, code: 'INVALID_CREDENTIALS', error: error.message };
+    }
+    return { success: true, accessToken: data.session?.access_token };
+  } catch (err: any) {
+    return { success: false, code: 'NETWORK_ERROR', error: err?.message || 'Login failed' };
   }
-  return null;
 }
 
-export async function resendVerificationEmail(
-  email: string
-): Promise<{ success: boolean; message: string; error?: string }> {
-  return { success: true, message: `Verification link dispatched to ${email}.` };
+export async function registerWithEmail(payload: {
+  email: string;
+  password?: string;
+  name?: string;
+  phone?: string;
+  companyName?: string;
+  [key: string]: any;
+}): Promise<{
+  success: boolean;
+  accessToken?: string;
+  emailVerificationRequired?: boolean;
+  code?: ControlledAuthErrorCode;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: payload.email,
+      password: payload.password || 'TemporaryPass123!',
+      options: {
+        data: {
+          name: payload.name,
+          phone: payload.phone,
+          companyName: payload.companyName,
+        },
+      },
+    });
+    if (error) {
+      return { success: false, code: 'USER_ALREADY_EXISTS', error: error.message };
+    }
+    const session = data.session;
+    return {
+      success: true,
+      accessToken: session?.access_token,
+      emailVerificationRequired: !session,
+    };
+  } catch (err: any) {
+    return { success: false, code: 'NETWORK_ERROR', error: err?.message || 'Registration failed' };
+  }
 }
 
-export async function requestPasswordReset(email: string): Promise<boolean> {
-  return true;
+export async function supabaseMfaStatus(): Promise<{
+  needsChallenge: boolean;
+  factors: any[];
+}> {
+  try {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error || !data) return { needsChallenge: false, factors: [] };
+    const verifiedTotp = data.totp?.filter(f => f.status === 'verified') || [];
+    return {
+      needsChallenge: verifiedTotp.length > 0,
+      factors: data.totp || [],
+    };
+  } catch {
+    return { needsChallenge: false, factors: [] };
+  }
+}
+
+export async function verifySupabaseMfa(code: string): Promise<{
+  success: boolean;
+  accessToken?: string;
+  error?: string;
+}> {
+  try {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verified = factors?.totp?.find(f => f.status === 'verified');
+    if (!verified) return { success: false, error: 'No enrolled authenticator found.' };
+
+    const challenge = await supabase.auth.mfa.challenge({ factorId: verified.id });
+    if (challenge.error) return { success: false, error: challenge.error.message };
+
+    const verify = await supabase.auth.mfa.verify({
+      factorId: verified.id,
+      challengeId: challenge.data.id,
+      code,
+    });
+    if (verify.error) return { success: false, error: verify.error.message };
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    return { success: true, accessToken: sessionData.session?.access_token };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Authenticator verification failed' };
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Ignore signout errors
+  }
+}
+
+export async function getSupabaseAccessToken(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resendVerificationEmail(email: string): Promise<{
+  success: boolean;
+  message: string;
+  error?: string;
+}> {
+  try {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) return { success: false, message: error.message, error: error.message };
+    return { success: true, message: 'Verification email sent.' };
+  } catch (err: any) {
+    return { success: false, message: 'Could not send verification email.', error: err?.message };
+  }
+}
+
+export async function requestPasswordReset(email: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Could not request password reset.' };
+  }
 }

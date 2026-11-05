@@ -1,74 +1,164 @@
-import { INITIAL_DOCUMENTS } from '../data/mockData';
-import type { DocumentItem } from '../types';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export const ACCEPTED_TYPES = ['.pdf', '.png', '.jpg', '.jpeg', '.xlsx', '.csv'];
+export const ACCEPTED_TYPES = [
+  '.pdf',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.tiff',
+  '.csv',
+  '.xlsx'
+] as const;
 
 export const DOCUMENT_CATEGORIES = [
-  'tax_form_w2',
-  'tax_form_1099',
-  'balance_sheet',
-  'legal_document',
-  'prior_year_return',
+  'income',
+  'expense',
+  'deduction',
   'bank_statement',
+  'id_verification',
+  'prior_return',
   'other'
 ] as const;
 
-export type VaultDocument = DocumentItem;
-
 export interface VaultExtraction {
+  fieldId: string;
+  fieldName: string;
+  extractedValue: string;
+  confidence: number;
+  status: 'PENDING' | 'ACCEPTED' | 'CORRECTED' | 'REJECTED';
+  version: number;
+}
+
+export interface VaultDocument {
   documentId: string;
-  fields: Array<{ key: string; label: string; value: string; confidence: number }>;
+  clientId: string;
+  taxYear: number;
+  engagementId: string;
+  title: string;
+  fileName: string;
+  category: string;
+  status: string;
+  version: number;
+  rowVersion?: number;
+  uploadedAt: string;
+  canReview?: boolean;
 }
 
 export class VaultRequestError extends Error {
-  code?: string;
-  constructor(message: string, code?: string) {
-    super(message);
+  constructor(public status: number, public code: string) {
+    super(code);
     this.name = 'VaultRequestError';
-    this.code = code;
   }
+}
+
+export function newVaultKey(): string {
+  return 'vkey_' + Math.random().toString(36).substring(2, 12);
 }
 
 export function documentStatusText(status: string): string {
-  switch (status) {
-    case 'approved': return 'Verified & Approved';
-    case 'accountant_reviewing': return 'Accountant Reviewing';
-    case 'needs_review': return 'Needs Review';
-    case 'rejected': return 'Rejected';
-    default: return 'Pending Review';
+  if (!status) return 'Unknown';
+  return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+export function vaultMessage(e: any): string {
+  if (!e) return 'Vault operation failed.';
+  if (typeof e === 'string') return e;
+  if (e instanceof VaultRequestError) {
+    if (e.code === 'DOCUMENT_VAULT_UNAVAILABLE') return 'Document vault is currently offline.';
+    return `Vault error: ${e.code}`;
   }
-}
-
-export function newVaultKey(clientId: string, fileName: string): string {
-  return `${clientId}/${Date.now()}-${fileName}`;
-}
-
-export function vaultMessage(msg: string): string {
-  return msg;
+  return e.message || 'Vault operation failed.';
 }
 
 export const vaultService = {
-  getDocuments: async (clientId?: string): Promise<VaultDocument[]> => {
-    return INITIAL_DOCUMENTS;
-  },
-  uploadDocument: async (file: File, category: string, clientId?: string): Promise<VaultDocument> => {
+  list: async (clientId: string): Promise<{ items: VaultDocument[] }> => {
     return {
-      id: 'doc_' + Date.now(),
-      clientId: clientId || 'user_client_1',
-      fileName: file.name,
-      fileSize: `${(file.size / 1024).toFixed(1)} KB`,
-      fileType: file.type || 'application/pdf',
-      category,
-      taxYear: 2025,
-      status: 'pending',
-      uploadedAt: new Date().toISOString(),
+      items: [
+        {
+          documentId: 'doc_w2_2025',
+          clientId,
+          taxYear: 2025,
+          engagementId: 'eng_001',
+          title: 'Form W-2 Wage and Tax Statement',
+          fileName: 'w2_perotti_2025.pdf',
+          category: 'income',
+          status: 'VERIFIED',
+          version: 1,
+          rowVersion: 1,
+          uploadedAt: '2026-01-20T14:22:00Z',
+          canReview: true,
+        },
+        {
+          documentId: 'doc_1099_2025',
+          clientId,
+          taxYear: 2025,
+          engagementId: 'eng_001',
+          title: 'Form 1099-NEC Nonemployee Compensation',
+          fileName: '1099_nec_consulting.pdf',
+          category: 'income',
+          status: 'PENDING_REVIEW',
+          version: 1,
+          rowVersion: 1,
+          uploadedAt: '2026-02-05T09:15:00Z',
+          canReview: true,
+        }
+      ]
+    };
+  },
+
+  uploadTargets: async (clientId: string): Promise<{ items: Array<{ engagementId: string; title: string; taxYear: number }> }> => {
+    return {
+      items: [
+        { engagementId: 'eng_001', title: '2025 Form 1040 Individual Income Tax', taxYear: 2025 },
+        { engagementId: 'eng_002', title: '2024 Form 1040 Individual Prior Filing', taxYear: 2024 }
+      ]
+    };
+  },
+
+  upload: async (
+    clientId: string,
+    file: File,
+    meta: { engagementId: string; taxYear: number; category?: string; documentId?: string },
+    _vaultKey?: string
+  ): Promise<{ success: boolean; documentId: string; version: number }> => {
+    return {
+      success: true,
+      documentId: meta.documentId || 'doc_' + Math.random().toString(36).substring(2, 9),
       version: 1
     };
   },
-  deleteDocument: async (id: string): Promise<{ success: boolean }> => {
+
+  download: async (clientId: string, documentId: string, _version?: number): Promise<{ url: string }> => {
+    return {
+      url: `/api/documents/${encodeURIComponent(documentId)}/download`
+    };
+  },
+
+  reviewQueue: async (): Promise<{ items: any[] }> => {
+    return { items: [] };
+  },
+
+  detail: async (clientId: string, documentId: string): Promise<{ extractions: VaultExtraction[] }> => {
+    return { extractions: [] };
+  },
+
+  verifyField: async (clientId: string, fieldId: string, status: string, correctedValue?: string): Promise<{ success: boolean }> => {
     return { success: true };
   },
-  verifyDocument: async (id: string): Promise<{ success: boolean }> => {
+
+  review: async (
+    clientId: string,
+    documentId: string,
+    version: number,
+    action: string,
+    rowVersion: any,
+    note?: string,
+    clientReason?: string
+  ): Promise<{ success: boolean }> => {
     return { success: true };
   }
 };

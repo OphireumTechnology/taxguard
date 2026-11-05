@@ -1,12 +1,18 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 export type USEntityType =
   | 'individual'
-  | 'llc'
-  | 's_corp'
-  | 'c_corp'
+  | 'single_member_llc'
+  | 'multi_member_llc'
+  | 's_corporation'
+  | 'c_corporation'
   | 'partnership'
   | 'trust_estate'
   | 'non_profit'
-  | string;
+  | (string & {});
 
 export type USStateCode =
   | 'AL' | 'AK' | 'AZ' | 'AR' | 'CA' | 'CO' | 'CT' | 'DE' | 'FL' | 'GA'
@@ -14,7 +20,7 @@ export type USStateCode =
   | 'MA' | 'MI' | 'MN' | 'MS' | 'MO' | 'MT' | 'NE' | 'NV' | 'NH' | 'NJ'
   | 'NM' | 'NY' | 'NC' | 'ND' | 'OH' | 'OK' | 'OR' | 'PA' | 'RI' | 'SC'
   | 'SD' | 'TN' | 'TX' | 'UT' | 'VT' | 'VA' | 'WA' | 'WV' | 'WI' | 'WY'
-  | 'DC' | string;
+  | 'DC';
 
 export interface OwnerOrOfficer {
   id: string;
@@ -22,49 +28,40 @@ export interface OwnerOrOfficer {
   title: string;
   ownershipPercentage: number;
   ssnOrEin?: string;
-  email?: string;
-  phone?: string;
-  isAuthorizedSigner?: boolean;
-  [key: string]: any;
-}
-
-export interface SetupArea {
-  id: string;
-  name: string;
-  status: string;
-  statusLabel?: string;
-  badgeVariant?: string;
-  description?: string;
-  requiredForSubmission?: boolean;
-  completionPercentage?: number;
-  [key: string]: any;
+  address?: string;
 }
 
 export interface FullClientIntakeDossier {
   id: string;
   clientId: string;
-  clientName: string;
-  legalBusinessName?: string;
-  dbaName?: string;
+  clientName?: string;
   entityType: USEntityType;
+  businessName?: string;
+  dba?: string;
+  ein?: string;
+  incorporationState?: USStateCode;
   taxYear: number;
-  primaryJurisdiction: string;
-  assignedAccountantName?: string;
-  assignedAccountantId?: string;
-  currentEngagementTitle?: string;
-  percentComplete: number;
-  currentSectionStep: number;
-  status: string;
-  setupAreas?: SetupArea[];
+  contactName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: USStateCode;
+  zip: string;
   owners?: OwnerOrOfficer[];
-  [key: string]: any;
+  hasPayroll?: boolean;
+  hasInventory?: boolean;
+  accountingSoftware?: string;
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'in_progress' | string;
+  submittedAt?: string;
+  intakeNotes?: string;
 }
 
 export interface GovernedResearchRule {
   id: string;
   entityType: string;
   taxYear: number;
-  jurisdictionLevel: string;
+  jurisdictionLevel: 'federal' | 'state';
   jurisdictionCode: string;
   triggerCondition: string;
   requiredDocumentName: string;
@@ -78,10 +75,37 @@ export interface GovernedResearchRule {
 
 export interface AccountingStagingRecord {
   id: string;
-  date: string;
-  description: string;
-  amount: number;
-  account?: string;
-  status: string;
+  clientId: string;
+  clientName?: string;
+  sourceDocumentId?: string;
+  sourceDocumentName?: string;
+  sourcePageNumber?: number;
+  recordType?: string;
+  date?: string;
+  period?: string;
+  description?: string;
+  amount?: number;
+  debitAmount?: number;
+  creditAmount?: number;
+  suggestedAccountCode?: string;
+  suggestedAccountName?: string;
+  confidenceScore?: number;
+  aiModelVersion?: string;
+  status?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  isDuplicateFlag?: boolean;
+  auditTrail?: Array<{
+    action: string;
+    actor: string;
+    timestamp: string;
+    notes?: string;
+  }>;
+  accountName?: string;
+  balance?: number;
+  asOfDate?: string;
+  reconciled?: boolean;
+  notes?: string;
   [key: string]: any;
 }
+

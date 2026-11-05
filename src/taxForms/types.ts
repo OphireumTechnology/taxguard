@@ -1,4 +1,7 @@
-export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 export type CapabilityKey =
   | 'dataEntry'
@@ -9,6 +12,8 @@ export type CapabilityKey =
   | 'efile'
   | 'filingReady';
 
+export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
+
 export type LibraryGroupId =
   | 'individual-1040'
   | 'estates-trusts-1041'
@@ -18,17 +23,19 @@ export type LibraryGroupId =
   | 'nonprofits-990'
   | 'estate-tax-706'
   | 'gift-tax-709'
+  | 'state-local'
   | 'search-reference'
-  | 'state-local';
+  | (string & {});
 
 export type StateTaxCategoryId =
   | 'individual-income'
   | 'corporate-income'
   | 'pass-through-entity'
   | 'sales-and-use'
-  | 'franchise-tax';
+  | 'franchise-tax'
+  | (string & {});
 
-export interface StateCategoryInfo {
+export interface StateCategoryApplicability {
   applicability: Applicability;
   note?: string;
   byYear?: Record<number, Applicability>;
@@ -39,14 +46,14 @@ export interface StateJurisdiction {
   name: string;
   agencyName: string;
   agencyUrl?: string;
-  agencyCheck: {
+  agencyCheck?: {
     checkedOn: string;
     result: string;
   };
-  verification: {
+  verification?: {
     method: string;
   };
-  categories: Record<string, StateCategoryInfo>;
+  categories: Record<string, StateCategoryApplicability>;
 }
 
 export const BLOCKED_LABEL = 'Blocked / Not Supported';
@@ -55,5 +62,8 @@ export const READINESS_LADDER = [
   'Cataloged / Reference Only',
   'Field Mapped',
   'Calculation Certified',
-  'E-File Verified'
-];
+  'Validation Enforced',
+  'PDF Generation',
+  'E-File Verified',
+  'Filing Ready'
+] as const;

@@ -1,34 +1,27 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 export type AppointmentTypeCode =
-  | 'new_client_consultation'
-  | 'founder_consultation'
-  | 'individual_tax_consultation'
-  | 'business_tax_consultation'
-  | 'tax_planning_session'
-  | 'bookkeeping_consultation'
-  | 'payroll_consultation'
-  | 'irs_notice_consultation'
-  | 'accounting_software_setup'
-  | 'document_review'
-  | 'return_review'
-  | 'follow_up_meeting'
-  | 'internal_staff_meeting'
-  | string;
+  | 'INITIAL_CONSULTATION'
+  | 'TAX_PLANNING_SESSION'
+  | 'ANNUAL_FILING_REVIEW'
+  | 'AUDIT_DEFENSE_REVIEW'
+  | (string & {});
 
 export interface AvailableTimeSlot {
   id: string;
   date: string;
   startTime: string;
   endTime: string;
-  available: boolean;
-  staffId?: string;
-  staffName?: string;
-  [key: string]: any;
+  available?: boolean;
 }
 
 export interface CalendarConnection {
-  provider: 'google' | 'outlook' | 'apple' | string;
-  connected: boolean;
+  id: string;
+  provider: 'google' | 'microsoft' | 'apple' | string;
   email?: string;
-  lastSynced?: string;
-  [key: string]: any;
+  status: 'connected' | 'disconnected' | 'pending';
+  lastSyncedAt?: string;
 }

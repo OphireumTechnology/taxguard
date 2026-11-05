@@ -1,22 +1,22 @@
-import type { AuthLifecycleState } from '../supabase/auth';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-const STAFF_ROLES = new Set([
-  'accountant',
-  'senior_reviewer',
-  'reviewer',
-  'bookkeeper',
-  'practice_manager',
-  'operations',
-  'admin',
-  'super_admin',
-  'super_administrator',
-  'staff'
-]);
-
-export function canReadTaxFormsLibrary(
-  user: { role?: string } | null | undefined,
-  _authLifecycleState?: AuthLifecycleState
-): boolean {
-  if (!user?.role) return false;
-  return STAFF_ROLES.has(user.role.toLowerCase());
+export function canReadTaxFormsLibrary(currentUser: any, _authLifecycleState?: string): boolean {
+  if (!currentUser) return false;
+  const role = currentUser.role;
+  const staffRoles = [
+    'accountant',
+    'senior_reviewer',
+    'reviewer',
+    'bookkeeper',
+    'practice_manager',
+    'operations',
+    'admin',
+    'super_admin',
+    'super_administrator',
+    'staff'
+  ];
+  return staffRoles.includes(role) || (typeof role === 'string' && role !== 'client');
 }

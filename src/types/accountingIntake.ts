@@ -1,34 +1,26 @@
-export type AccountingDocumentClassification =
-  | 'bank_statement'
-  | 'credit_card_statement'
-  | 'payroll_summary'
-  | 'w2'
-  | '1099'
-  | 'invoice'
-  | 'receipt'
-  | 'tax_return'
-  | 'general_ledger'
-  | 'trial_balance'
-  | 'unknown'
-  | string;
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export interface AccountingDocumentClassification {
+  id: string;
+  category: string;
+  confidence: number;
+  label: string;
+}
 
 export interface CanonicalAccountingExtractionEnvelope {
-  documentId?: string;
-  classification: AccountingDocumentClassification;
+  id: string;
+  documentId: string;
+  extractedData: Record<string, any>;
   confidence: number;
-  extractedFields: Record<string, any>;
-  lineItems?: any[];
-  warnings?: string[];
-  [key: string]: any;
 }
 
 export interface AccountingReviewQueueItem {
   id: string;
-  documentId: string;
-  clientId: string;
-  taxYear: number;
-  status: 'pending' | 'reviewed' | 'rejected' | string;
-  classification: AccountingDocumentClassification;
-  notes?: string;
-  [key: string]: any;
+  documentTitle: string;
+  status: string;
+  receivedAt: string;
+  priority: string;
 }

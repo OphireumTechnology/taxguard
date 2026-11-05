@@ -1,31 +1,33 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 export interface BookkeeperTransaction {
   id: string;
-  date?: string;
-  description?: string;
-  amount?: number;
+  date: string;
+  description: string;
+  amount: number;
+  account: string;
   classification: string;
   reconciliation: string;
-  duplicate?: string;
-  [key: string]: any;
+  duplicate: string;
 }
 
-export interface BookkeeperException {
-  id?: string;
+export interface BookkeeperReconciliationException {
+  id: string;
   status: string;
   description?: string;
-  [key: string]: any;
 }
 
 export interface BookkeeperReconciliation {
-  id?: string;
-  status?: string;
-  exceptions: BookkeeperException[];
-  [key: string]: any;
+  id: string;
+  accountName: string;
+  period: string;
+  exceptions: BookkeeperReconciliationException[];
 }
 
 export interface BookkeeperSnapshot {
-  tenantId?: string;
   transactions: BookkeeperTransaction[];
   reconciliations: BookkeeperReconciliation[];
-  [key: string]: any;
 }
