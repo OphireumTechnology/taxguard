@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -32,13 +30,12 @@ jobs:
             exit 1
           fi
 
-      # Temporary recovery deployment: the workflow runs on the allowed main
-      # branch but builds a pinned, fully validated recovery snapshot.
-      # Do not retarget to main until its full TypeScript/test suite is green.
-      - name: Checkout verified DESTRIA release snapshot
+      # Build the exact approved main commit that triggered this run.
+      # Typecheck, tests, production config and artifact checks must all pass
+      # before the deploy job can publish anything.
+      - name: Checkout triggering main commit
         uses: actions/checkout@v4
         with:
-          ref: e58cc2027e88f1427599df9e47eaa6c0d307f182
           persist-credentials: false
 
       - name: Setup Node.js
