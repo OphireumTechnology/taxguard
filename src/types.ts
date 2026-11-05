@@ -37,6 +37,7 @@ export interface User {
   onboardingStep?: number;
   createdAt?: string;
   lastLoginAt?: string;
+  updatedAt?: string;
 }
 
 export type DocumentStatus =
