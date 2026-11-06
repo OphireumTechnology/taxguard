@@ -42,7 +42,7 @@ export const FounderPortrait: React.FC<FounderPortraitProps> = ({
       >
         <img
           id="ceo-official-portrait"
-          src="/ceo/Executive%20Portrait%20with%20Destria.png"
+          src="/ceo/Executive%20Portrait%20with%20Destria.png?v=destria-20261107-2"
           alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES LLC"
           className="ceo-photo"
           loading={priority ? 'eager' : 'lazy'}
