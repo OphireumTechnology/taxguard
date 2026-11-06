@@ -167,7 +167,7 @@ export const HomePage: React.FC = () => {
                     id="home-hero-destria-logo"
                     src={BRAND_ASSETS.destriaLogo}
                     alt="DESTRIA TAX SERVICES LLC - Official Circular Emblem with D, Tax Document, and AI Neural Circuit"
-                    className="w-full h-full object-contain drop-shadow-xl"
+                    className="w-full h-full rounded-full object-contain drop-shadow-xl"
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
