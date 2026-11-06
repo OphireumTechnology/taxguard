@@ -348,17 +348,39 @@ export interface TaxStrategyWorkflowStep {
 
 export interface TaxStrategyRecord {
   id: string;
-  title: string;
+  strategyName: string;
   category: StrategyCategory;
-  categoryLabel: string;
-  shortDescription: string;
-  fullOverview: string;
-  estimatedSavingsRange: string;
-  applicabilityCriteria: string[];
-  keyBenefits: string[];
-  implementationSteps: TaxStrategyWorkflowStep[];
-  irsCodeReferences: string[];
-  caseStudyExample: string;
+  plainLanguageSummary: string;
+  eligibleTaxpayerType: string;
+  taxObjective: string;
+  applicableTaxYear: string;
+  jurisdiction: string;
+  requiredDocuments: string[];
+  workflowChecklist: Array<{
+    id: string;
+    step: string;
+    requiredRole: string;
+  }>;
+  potentialBenefits: string[];
+  materialRisksAndLimitations: string[];
+  officialAuthority: {
+    title: string;
+    codeCitation: string;
+    url: string;
+  };
+  status: 'draft' | 'active' | 'approved' | 'archived';
+  assignedProfessional: string;
+  clientSuitabilityAssessment: string;
+  professionalReviewRequirement: boolean;
+  approvalHistory: Array<{
+    version: string;
+    approvedBy: string;
+    approvedDate: string;
+    notes: string;
+  }>;
+  expirationDate: string;
+  lastReviewedDate: string;
+  version: string;
 }
 
 export type TaxStrategy = TaxStrategyRecord;
