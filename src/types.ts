@@ -1,22 +1,28 @@
 export type UserRole =
-  | 'client'
   | 'prospective_client'
+  | 'client'
+  | 'consultant'
+  | 'operations'
+  | 'practice_manager'
+  | 'bookkeeper'
   | 'accountant'
   | 'reviewer'
   | 'senior_reviewer'
-  | 'bookkeeper'
-  | 'practice_manager'
-  | 'operations'
-  | 'admin'
-  | 'super_admin'
+  | 'managing_consultant'
+  | 'founder'
+  | 'administrator'
   | 'super_administrator'
-  | 'recruiter';
+  | 'legal_specialist'
+  | 'firm_manager'
+  | 'recruiter'
+  | 'admin'
+  | 'super_admin';
 
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: UserRole | string;
+  role: UserRole;
   phone?: string;
   title?: string;
   credentials?: string[];
@@ -24,6 +30,8 @@ export interface User {
   clientType?: 'individual' | 'business';
   clientId?: string;
   tenantId?: string;
+  /** Server-authorized client scope; never derive permissions from this client-side field. */
+  authorizedClientIds?: string[];
   assignedAccountantId?: string;
   assignedAccountantName?: string;
   assignedReviewerId?: string;
@@ -33,8 +41,11 @@ export interface User {
   isVerified?: boolean;
   onboardingStatus?: string;
   onboardingStep?: number;
+  /** Timestamp of completed onboarding, when reported by the authoritative workflow. */
+  onboardingCompletedAt?: string;
   createdAt?: string;
   lastLoginAt?: string;
+  updatedAt?: string;
 }
 
 export type DocumentStatus =
@@ -168,6 +179,8 @@ export interface Invoice {
   servicePlanId?: string;
   description: string;
   amount: number;
+  /** Amount received against this invoice, if available from the billing source. */
+  amountPaid?: number;
   currency: string;
   status: 'paid' | 'pending' | 'overdue' | 'cancelled';
   issuedDate: string;
@@ -323,11 +336,22 @@ export interface IndustrySolutionRecord {
 }
 
 export type StrategyCategory =
-  | 'business_structure'
+  | 'individuals'
+  | 'families'
+  | 'self_employed'
+  | 'small_businesses'
+  | 's_corporations'
+  | 'c_corporations'
+  | 'partnerships'
   | 'real_estate'
-  | 'retirement_wealth'
-  | 'tax_credits'
-  | 'compliance';
+  | 'retirement'
+  | 'estates_trusts'
+  | 'charitable_planning'
+  | 'payroll_benefits'
+  | 'credits_incentives'
+  | 'state_local_tax'
+  | 'international'
+  | 'year_end_planning'
 
 export interface TaxStrategyWorkflowStep {
   step: number;
@@ -337,17 +361,39 @@ export interface TaxStrategyWorkflowStep {
 
 export interface TaxStrategyRecord {
   id: string;
-  title: string;
+  strategyName: string;
   category: StrategyCategory;
-  categoryLabel: string;
-  shortDescription: string;
-  fullOverview: string;
-  estimatedSavingsRange: string;
-  applicabilityCriteria: string[];
-  keyBenefits: string[];
-  implementationSteps: TaxStrategyWorkflowStep[];
-  irsCodeReferences: string[];
-  caseStudyExample: string;
+  plainLanguageSummary: string;
+  eligibleTaxpayerType: string;
+  taxObjective: string;
+  applicableTaxYear: string;
+  jurisdiction: string;
+  requiredDocuments: string[];
+  workflowChecklist: Array<{
+    id: string;
+    step: string;
+    requiredRole: string;
+  }>;
+  potentialBenefits: string[];
+  materialRisksAndLimitations: string[];
+  officialAuthority: {
+    title: string;
+    codeCitation: string;
+    url: string;
+  };
+  status: 'draft' | 'under_review' | 'approved' | 'active' | 'archived';
+  assignedProfessional: string;
+  clientSuitabilityAssessment: string;
+  professionalReviewRequirement: boolean;
+  approvalHistory: Array<{
+    version: string;
+    approvedBy: string;
+    approvedDate: string;
+    notes: string;
+  }>;
+  expirationDate: string;
+  lastReviewedDate: string;
+  version: string;
 }
 
 export type TaxStrategy = TaxStrategyRecord;

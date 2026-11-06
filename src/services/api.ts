@@ -1,3 +1,6 @@
+import { createSessionApi } from './sessionApi';
+import { createStaffAccessClient } from './staffAccessClient';
+import { createAiGovernanceClient } from './aiGovernanceClient';
 import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS, INITIAL_SERVICE_PLANS } from '../data/mockData';
 
 export const SESSION_TOKEN_CHANGED_EVENT = 'taxguard:session-token-changed';
@@ -57,31 +60,7 @@ async function safeFetch<T>(url: string, options?: RequestInit, fallback?: T): P
 }
 
 export const api = {
-  auth: {
-    login: async (creds: any, _pass?: string, _code?: string) => ({ user: INITIAL_USERS[0], token: 'tok_mock_session' }),
-    getCurrentUser: async () => INITIAL_USERS[0],
-    getMe: async () => INITIAL_USERS[0],
-    supabaseSession: async (payload: any) => {
-      const token = typeof payload === 'string' ? payload : (payload?.accessToken || 'tok_mock_session');
-      return {
-        token,
-        user: INITIAL_USERS[0],
-        tenantId: 'tenant_default',
-        clientId: 'user_client_1',
-        engagementId: 'eng_001',
-        taxYear: 2025,
-        caseId: 'case_001',
-        activeStage: 1 as 1 | 2 | 3,
-        stageStates: {},
-        resumed: false,
-        redirectPage: 'portal',
-        onboardingAvailability: { status: 'available' },
-        workflow: { activeStage: 1, stage1: { status: 'COMPLETED' } },
-        eligibility: { activeStage: 1 }
-      };
-    },
-    logout: async () => { clearStoredToken(); }
-  },
+  auth: createSessionApi(getStoredToken, storeToken, clearStoredToken),
   admin: {
     getUsers: async () => INITIAL_USERS,
     getAuditLogs: async () => INITIAL_AUDIT_LOGS,
@@ -117,25 +96,9 @@ export const api = {
     }),
     rotateTotp: async () => ({ success: true })
   },
-  staffAccess: {
-    getDirectory: async (q?: any) => ({
-      items: INITIAL_USERS.filter(u => u.role !== 'client'),
-      total: INITIAL_USERS.filter(u => u.role !== 'client').length,
-      page: 1,
-      pageSize: 50
-    }),
-    getSessions: async () => [],
-    revokeSession: async () => ({ success: true }),
-    getRecoveryQueue: async () => ({ items: [], nextCursor: null, source: 'durable' }),
-    submitRecovery: async (input: any) => ({ success: true, requestId: 'req_' + Date.now() }),
-    issueInvitation: async (input: any) => ({ success: true, invitationId: 'inv_' + Date.now() }),
-    revokeInvitation: async () => ({ success: true }),
-    reassignClients: async () => ({ success: true }),
-    members: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
-    invitations: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
-    recoveries: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' })
-  },
+  staffAccess: createStaffAccessClient(getStoredToken),
   caseAuthority: {
+    ...createAiGovernanceClient(getStoredToken),
     getMatrix: async () => ({ records: [], status: 'ACTIVE' }),
     getEvaluation: async () => ({ evaluations: [] }),
     getEmergencyStop: async () => ({ engaged: false }),

@@ -87,9 +87,9 @@ app.get('/api/client-portal/overview', (_req, res) => {
   });
 });
 
-// Catch-all API fallback for unimplemented endpoints to prevent crash
+// Unimplemented APIs must never confirm a mutation or security operation.
 app.all('/api/*', (req, res) => {
-  res.json({ success: true, path: req.path, message: 'DESTRIA TAX SERVICES LLC API Operational' });
+  res.status(501).json({ success: false, code: 'API_NOT_IMPLEMENTED', message: 'This API operation is unavailable.' });
 });
 
 // Serve Public Static Assets
