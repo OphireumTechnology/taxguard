@@ -368,7 +368,7 @@ export interface TaxStrategyRecord {
     codeCitation: string;
     url: string;
   };
-  status: 'draft' | 'active' | 'approved' | 'archived';
+  status: 'draft' | 'under_review' | 'approved' | 'active' | 'archived';
   assignedProfessional: string;
   clientSuitabilityAssessment: string;
   professionalReviewRequirement: boolean;
