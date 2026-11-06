@@ -43,4 +43,3 @@ export function validatePasswordStrength(password: string): {
     message: errors[0]
   };
 }
-
