@@ -26,6 +26,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --include=dev --include=optional
+      - name: Lint full source
+        run: npm run lint
       - name: Typecheck full source
         run: npm run typecheck
       - name: Run regression tests
