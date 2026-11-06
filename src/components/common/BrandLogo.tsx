@@ -56,7 +56,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         height={sizeConfig.dimPx}
         loading="eager"
         decoding="async"
-        className={`${sizeConfig.imgClass} object-contain transition-transform duration-200 group-hover:scale-[1.02]`}
+        className={`${sizeConfig.imgClass} rounded-full object-contain transition-transform duration-200 group-hover:scale-[1.02]`}
       />
     </div>
   );
