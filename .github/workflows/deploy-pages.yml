@@ -38,7 +38,7 @@ jobs:
       - name: Checkout verified DESTRIA logo release snapshot
         uses: actions/checkout@v4
         with:
-          ref: 92b00b8b5440020e7503fe14e6ab61e273f7b579
+          ref: 06a11c4bce3598d2d7afdbbc49d572ae19e54e2b
           persist-credentials: false
 
       - name: Setup Node.js
