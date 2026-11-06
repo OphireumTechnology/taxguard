@@ -1,22 +1,28 @@
 export type UserRole =
-  | 'client'
   | 'prospective_client'
+  | 'client'
+  | 'consultant'
+  | 'operations'
+  | 'practice_manager'
+  | 'bookkeeper'
   | 'accountant'
   | 'reviewer'
   | 'senior_reviewer'
-  | 'bookkeeper'
-  | 'practice_manager'
-  | 'operations'
-  | 'admin'
-  | 'super_admin'
+  | 'managing_consultant'
+  | 'founder'
+  | 'administrator'
   | 'super_administrator'
-  | 'recruiter';
+  | 'legal_specialist'
+  | 'firm_manager'
+  | 'recruiter'
+  | 'admin'
+  | 'super_admin';
 
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: UserRole | string;
+  role: UserRole;
   phone?: string;
   title?: string;
   credentials?: string[];

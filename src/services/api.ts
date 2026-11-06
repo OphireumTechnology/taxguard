@@ -1,3 +1,4 @@
+import { createSessionApi } from './sessionApi';
 import { createStaffAccessClient } from './staffAccessClient';
 import { createAiGovernanceClient } from './aiGovernanceClient';
 import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS, INITIAL_SERVICE_PLANS } from '../data/mockData';
@@ -59,31 +60,7 @@ async function safeFetch<T>(url: string, options?: RequestInit, fallback?: T): P
 }
 
 export const api = {
-  auth: {
-    login: async (creds: any, _pass?: string, _code?: string) => ({ user: INITIAL_USERS[0], token: 'tok_mock_session' }),
-    getCurrentUser: async () => INITIAL_USERS[0],
-    getMe: async () => INITIAL_USERS[0],
-    supabaseSession: async (payload: any) => {
-      const token = typeof payload === 'string' ? payload : (payload?.accessToken || 'tok_mock_session');
-      return {
-        token,
-        user: INITIAL_USERS[0],
-        tenantId: 'tenant_default',
-        clientId: 'user_client_1',
-        engagementId: 'eng_001',
-        taxYear: 2025,
-        caseId: 'case_001',
-        activeStage: 1 as 1 | 2 | 3,
-        stageStates: {},
-        resumed: false,
-        redirectPage: 'portal',
-        onboardingAvailability: { status: 'available' },
-        workflow: { activeStage: 1, stage1: { status: 'COMPLETED' } },
-        eligibility: { activeStage: 1 }
-      };
-    },
-    logout: async () => { clearStoredToken(); }
-  },
+  auth: createSessionApi(getStoredToken, storeToken, clearStoredToken),
   admin: {
     getUsers: async () => INITIAL_USERS,
     getAuditLogs: async () => INITIAL_AUDIT_LOGS,
