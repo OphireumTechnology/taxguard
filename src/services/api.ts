@@ -1,3 +1,4 @@
+import { createStaffAccessClient } from './staffAccessClient';
 import { createAiGovernanceClient } from './aiGovernanceClient';
 import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS, INITIAL_SERVICE_PLANS } from '../data/mockData';
 
@@ -118,24 +119,7 @@ export const api = {
     }),
     rotateTotp: async () => ({ success: true })
   },
-  staffAccess: {
-    getDirectory: async (q?: any) => ({
-      items: INITIAL_USERS.filter(u => u.role !== 'client'),
-      total: INITIAL_USERS.filter(u => u.role !== 'client').length,
-      page: 1,
-      pageSize: 50
-    }),
-    getSessions: async () => [],
-    revokeSession: async () => ({ success: true }),
-    getRecoveryQueue: async () => ({ items: [], nextCursor: null, source: 'durable' }),
-    submitRecovery: async (input: any) => ({ success: true, requestId: 'req_' + Date.now() }),
-    issueInvitation: async (input: any) => ({ success: true, invitationId: 'inv_' + Date.now() }),
-    revokeInvitation: async () => ({ success: true }),
-    reassignClients: async () => ({ success: true }),
-    members: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
-    invitations: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
-    recoveries: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' })
-  },
+  staffAccess: createStaffAccessClient(getStoredToken),
   caseAuthority: {
     ...createAiGovernanceClient(getStoredToken),
     getMatrix: async () => ({ records: [], status: 'ACTIVE' }),
