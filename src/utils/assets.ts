@@ -6,6 +6,7 @@
 export const BRAND_ASSETS = {
   destriaLogo: '/branding/destria-logo-original.png',
   destriaLogoHeader: '/branding/destria-logo-header.png',
+  destriaEmblem: '/branding/destria-emblem-icon.png',
   destriaEmblemIcon: '/branding/destria-emblem-icon.png',
   destriaFavicon: '/branding/destria-favicon.png',
 

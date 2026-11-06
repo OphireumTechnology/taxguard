@@ -1,3 +1,4 @@
+import { createAiGovernanceClient } from './aiGovernanceClient';
 import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS, INITIAL_SERVICE_PLANS } from '../data/mockData';
 
 export const SESSION_TOKEN_CHANGED_EVENT = 'taxguard:session-token-changed';
@@ -136,6 +137,7 @@ export const api = {
     recoveries: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' })
   },
   caseAuthority: {
+    ...createAiGovernanceClient(getStoredToken),
     getMatrix: async () => ({ records: [], status: 'ACTIVE' }),
     getEvaluation: async () => ({ evaluations: [] }),
     getEmergencyStop: async () => ({ engaged: false }),
