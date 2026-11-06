@@ -323,11 +323,22 @@ export interface IndustrySolutionRecord {
 }
 
 export type StrategyCategory =
-  | 'business_structure'
+  | 'individuals'
+  | 'families'
+  | 'self_employed'
+  | 'small_businesses'
+  | 's_corporations'
+  | 'c_corporations'
+  | 'partnerships'
   | 'real_estate'
-  | 'retirement_wealth'
-  | 'tax_credits'
-  | 'compliance';
+  | 'retirement'
+  | 'estates_trusts'
+  | 'charitable_planning'
+  | 'payroll_benefits'
+  | 'credits_incentives'
+  | 'state_local_tax'
+  | 'international'
+  | 'year_end_planning'
 
 export interface TaxStrategyWorkflowStep {
   step: number;
