@@ -35,10 +35,10 @@ jobs:
       # Temporary recovery deployment: the workflow runs on the allowed main
       # branch but builds a pinned, fully validated recovery snapshot.
       # Do not retarget to main until its full TypeScript/test suite is green.
-      - name: Checkout verified DESTRIA release snapshot
+      - name: Checkout verified DESTRIA logo release snapshot
         uses: actions/checkout@v4
         with:
-          ref: e58cc2027e88f1427599df9e47eaa6c0d307f182
+          ref: c261cc82ffe287c99a4586bbf03194833637f14a
           persist-credentials: false
 
       - name: Setup Node.js
