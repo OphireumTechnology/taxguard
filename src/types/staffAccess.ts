@@ -58,18 +58,16 @@ export interface StaffDirectoryQuery {
 
 export interface StaffInvitationIssueInput {
   email: string;
-  role: string;
+  role: 'accountant' | 'reviewer' | 'senior_reviewer' | 'bookkeeper' | 'practice_manager' | 'operations' | 'admin';
   legalFirstName: string;
   legalLastName: string;
 }
 
 export interface StaffInvitationIssueResult {
-  success: boolean;
-  invitationId?: string;
-  error?: string;
+  id: string;
+  token: string;
+  expiresAt: string;
+  delivery: 'administrator_handoff';
 }
 
-export interface StaffMembershipAction {
-  action: 'approve' | 'suspend' | 'deactivate' | 'reactivate';
-  reason?: string;
-}
+export type StaffMembershipAction = 'suspend' | 'deactivate' | 'reactivate';
