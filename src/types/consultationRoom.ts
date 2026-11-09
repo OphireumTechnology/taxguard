@@ -1,36 +1,37 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-export interface ConsultationRoom {
-  id: string;
-  title: string;
-  hostId: string;
-  participantCount?: number;
-  status: 'waiting' | 'in_progress' | 'completed';
-}
-
 export interface MeetingParticipant {
   id: string;
   name: string;
   role: string;
-  isMuted?: boolean;
-  isVideoOn?: boolean;
+  isHost?: boolean;
+  avatar?: string;
+  hasAudio?: boolean;
+  hasVideo?: boolean;
 }
 
 export interface MeetingDocumentReview {
   id: string;
   title: string;
-  url?: string;
-  watermarkText?: string;
+  url: string;
   pageCount?: number;
   currentPage?: number;
+  [key: string]: any;
 }
 
 export interface MeetingChatMessage {
   id: string;
-  sender: string;
+  senderId: string;
+  senderName: string;
   message: string;
   timestamp: string;
+}
+
+export interface ConsultationRoom {
+  id: string;
+  title: string;
+  status: string;
+  participants: MeetingParticipant[];
+  documents: MeetingDocumentReview[];
+  messages: MeetingChatMessage[];
+  scheduledAt?: string;
+  [key: string]: any;
 }

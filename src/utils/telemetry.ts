@@ -1,19 +1,18 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * Telemetry reporting utility.
+ * Sanitized client error reporting.
  */
-
 export function reportClientError(
   error: Error,
   incidentId?: string,
-  extra?: Record<string, unknown>
+  metadata?: Record<string, unknown>
 ): void {
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[Telemetry Error Report]', {
+  if (import.meta.env?.DEV) {
+    console.warn('[Telemetry] Client error reported:', {
       incidentId,
-      errorName: error.name,
-      errorMessage: error.message,
-      extra
+      name: error?.name,
+      message: error?.message,
+      ...metadata
     });
   }
 }

@@ -1,26 +1,33 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-export interface AccountingDocumentClassification {
-  id: string;
-  category: string;
-  confidence: number;
-  label: string;
-}
+export type AccountingDocumentClassification =
+  | 'BANK_STATEMENT'
+  | 'CREDIT_CARD_STATEMENT'
+  | 'INVOICE'
+  | 'RECEIPT'
+  | 'PAYROLL_REPORT'
+  | 'TAX_DOCUMENT'
+  | 'OTHER_ACCOUNTING'
+  | 'NON_ACCOUNTING'
+  | string;
 
 export interface CanonicalAccountingExtractionEnvelope {
-  id: string;
-  documentId: string;
-  extractedData: Record<string, any>;
-  confidence: number;
+  documentId?: string;
+  vendorName?: string;
+  invoiceDate?: string;
+  totalAmount?: number;
+  taxAmount?: number;
+  currency?: string;
+  lineItems?: Array<{ description: string; amount: number; quantity?: number }>;
+  extractedFields?: Record<string, any>;
+  confidence?: number;
+  [key: string]: any;
 }
 
 export interface AccountingReviewQueueItem {
   id: string;
-  documentTitle: string;
+  documentId: string;
+  filename: string;
   status: string;
-  receivedAt: string;
-  priority: string;
+  classification: AccountingDocumentClassification;
+  reviewNotes?: string;
+  [key: string]: any;
 }

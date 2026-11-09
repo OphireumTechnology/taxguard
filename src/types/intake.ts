@@ -1,67 +1,53 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+export type USStateCode =
+  | 'AL' | 'AK' | 'AZ' | 'AR' | 'CA' | 'CO' | 'CT' | 'DE' | 'DC' | 'FL'
+  | 'GA' | 'HI' | 'ID' | 'IL' | 'IN' | 'IA' | 'KS' | 'KY' | 'LA' | 'ME'
+  | 'MD' | 'MA' | 'MI' | 'MN' | 'MS' | 'MO' | 'MT' | 'NE' | 'NV' | 'NH'
+  | 'NJ' | 'NM' | 'NY' | 'NC' | 'ND' | 'OH' | 'OK' | 'OR' | 'PA' | 'RI'
+  | 'SC' | 'SD' | 'TN' | 'TX' | 'UT' | 'VT' | 'VA' | 'WA' | 'WV' | 'WI'
+  | 'WY' | string;
 
 export type USEntityType =
   | 'individual'
+  | 'sole_proprietorship'
   | 'single_member_llc'
   | 'multi_member_llc'
   | 's_corporation'
   | 'c_corporation'
   | 'partnership'
+  | 'nonprofit'
   | 'trust_estate'
-  | 'non_profit'
-  | (string & {});
-
-export type USStateCode =
-  | 'AL' | 'AK' | 'AZ' | 'AR' | 'CA' | 'CO' | 'CT' | 'DE' | 'FL' | 'GA'
-  | 'HI' | 'ID' | 'IL' | 'IN' | 'IA' | 'KS' | 'KY' | 'LA' | 'ME' | 'MD'
-  | 'MA' | 'MI' | 'MN' | 'MS' | 'MO' | 'MT' | 'NE' | 'NV' | 'NH' | 'NJ'
-  | 'NM' | 'NY' | 'NC' | 'ND' | 'OH' | 'OK' | 'OR' | 'PA' | 'RI' | 'SC'
-  | 'SD' | 'TN' | 'TX' | 'UT' | 'VT' | 'VA' | 'WA' | 'WV' | 'WI' | 'WY'
-  | 'DC';
+  | string;
 
 export interface OwnerOrOfficer {
-  id: string;
+  id?: string;
   name: string;
   title: string;
   ownershipPercentage: number;
   ssnOrEin?: string;
-  address?: string;
+  [key: string]: any;
 }
 
 export interface FullClientIntakeDossier {
-  id: string;
-  clientId: string;
-  clientName?: string;
-  entityType: USEntityType;
-  businessName?: string;
-  dba?: string;
-  ein?: string;
-  incorporationState?: USStateCode;
-  taxYear: number;
-  contactName: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: USStateCode;
-  zip: string;
+  id?: string;
+  clientId?: string;
+  taxYear?: number;
+  status?: string;
+  entityType?: USEntityType;
+  businessProfile?: any;
+  personalProfile?: any;
   owners?: OwnerOrOfficer[];
-  hasPayroll?: boolean;
-  hasInventory?: boolean;
+  taxFilingStatus?: string;
   accountingSoftware?: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'in_progress' | string;
-  submittedAt?: string;
-  intakeNotes?: string;
+  priorYearFiled?: boolean;
+  notes?: string;
+  [key: string]: any;
 }
 
 export interface GovernedResearchRule {
   id: string;
   entityType: string;
   taxYear: number;
-  jurisdictionLevel: 'federal' | 'state';
+  jurisdictionLevel: string;
   jurisdictionCode: string;
   triggerCondition: string;
   requiredDocumentName: string;
@@ -76,36 +62,22 @@ export interface GovernedResearchRule {
 export interface AccountingStagingRecord {
   id: string;
   clientId: string;
-  clientName?: string;
-  sourceDocumentId?: string;
-  sourceDocumentName?: string;
-  sourcePageNumber?: number;
-  recordType?: string;
-  date?: string;
-  period?: string;
-  description?: string;
-  amount?: number;
-  debitAmount?: number;
-  creditAmount?: number;
-  suggestedAccountCode?: string;
-  suggestedAccountName?: string;
-  confidenceScore?: number;
-  aiModelVersion?: string;
-  status?: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  isDuplicateFlag?: boolean;
-  auditTrail?: Array<{
-    action: string;
-    actor: string;
-    timestamp: string;
-    notes?: string;
-  }>;
-  accountName?: string;
-  balance?: number;
-  asOfDate?: string;
-  reconciled?: boolean;
-  notes?: string;
+  clientName: string;
+  sourceDocumentId: string;
+  sourceDocumentName: string;
+  sourcePageNumber: number;
+  recordType: string;
+  date: string;
+  period: string;
+  description: string;
+  amount: number;
+  debitAmount: number;
+  creditAmount: number;
+  suggestedAccountCode: string;
+  suggestedAccountName: string;
+  confidenceScore: number;
+  aiModelVersion: string;
+  status: string;
+  reviewedBy?: string | null;
   [key: string]: any;
 }
-

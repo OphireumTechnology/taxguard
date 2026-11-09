@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export interface ReviewScope {
   tenantId: string;
   clientId: string;
@@ -13,38 +8,40 @@ export interface ReviewScope {
 export interface ReviewerQueueCase {
   id: string;
   reviewerUid: string;
-  activeStage: number;
+  preparerUid: string;
   caseStatus: string;
   reviewStatus: string;
+  activeStage: number;
   highRisk: boolean;
   openExceptions: number;
   dueDate?: string;
   scope: ReviewScope;
-  clientName?: string;
 }
 
-export interface ReviewDiagnostic {
-  id: string;
-  severity: 'INFO' | 'WARNING' | 'CRITICAL_BLOCKING';
-  message: string;
+export interface ReviewerReturnDiagnostic {
+  severity: string;
   resolved: boolean;
+  code?: string;
+  message?: string;
 }
 
-export interface ReviewerReturn extends ReviewScope {
-  id: string;
+export interface ReviewerReturn {
   status: string;
   createdBy: string;
   preparerCertifiedBy?: string;
-  diagnostics?: ReviewDiagnostic[];
+  tenantId: string;
+  clientId: string;
+  engagementId: string;
+  taxYear: number;
+  diagnostics?: ReviewerReturnDiagnostic[];
 }
 
 export interface ReviewerArtifact {
   id: string;
-  title: string;
+  name: string;
   type: string;
   url?: string;
   uploadedAt: string;
-  status: string;
 }
 
 export interface ReviewerSnapshot {
@@ -52,10 +49,13 @@ export interface ReviewerSnapshot {
   decisionsAvailable: boolean;
   independentReviewer: boolean;
   case: {
-    reviewerUid: string;
-    preparerUid: string;
     status: string;
     activeStage: number;
+    reviewerUid: string;
+    preparerUid: string;
     openExceptions: number;
   };
+  returns?: ReviewerReturn[];
+  queue?: ReviewerQueueCase[];
+  artifacts?: ReviewerArtifact[];
 }

@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export const SESSION_REVOCATION_REASONS = [
   'security_incident',
   'lost_or_stolen_device',
@@ -20,7 +15,4 @@ export interface DurableSessionRecord {
   expiresAt: string;
   assuranceLevel: 'aal1' | 'aal2';
   current: boolean;
-  userAgent?: string;
-  ipAddress?: string;
-  revocationReason?: SessionRevocationReason | null;
 }

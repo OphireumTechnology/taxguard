@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export type CapabilityKey =
   | 'dataEntry'
   | 'calculation'
@@ -25,7 +20,7 @@ export type LibraryGroupId =
   | 'gift-tax-709'
   | 'state-local'
   | 'search-reference'
-  | (string & {});
+  | string;
 
 export type StateTaxCategoryId =
   | 'individual-income'
@@ -33,37 +28,31 @@ export type StateTaxCategoryId =
   | 'pass-through-entity'
   | 'sales-and-use'
   | 'franchise-tax'
-  | (string & {});
-
-export interface StateCategoryApplicability {
-  applicability: Applicability;
-  note?: string;
-  byYear?: Record<number, Applicability>;
-}
+  | string;
 
 export interface StateJurisdiction {
   code: string;
   name: string;
   agencyName: string;
   agencyUrl?: string;
-  agencyCheck?: {
-    checkedOn: string;
-    result: string;
-  };
-  verification?: {
-    method: string;
-  };
-  categories: Record<string, StateCategoryApplicability>;
+  agencyCheck: { checkedOn: string; result: string };
+  verification: { method: string };
+  categories: Record<
+    string,
+    {
+      applicability: Applicability;
+      note?: string;
+      byYear?: Record<number, Applicability>;
+    }
+  >;
 }
 
-export const BLOCKED_LABEL = 'Blocked / Not Supported';
+export const BLOCKED_LABEL = 'Blocked';
 
 export const READINESS_LADDER = [
   'Cataloged / Reference Only',
   'Field Mapped',
   'Calculation Certified',
-  'Validation Enforced',
-  'PDF Generation',
-  'E-File Verified',
-  'Filing Ready'
+  'Review Certified',
+  'E-File Verified'
 ] as const;

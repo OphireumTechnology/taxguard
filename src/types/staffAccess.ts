@@ -1,7 +1,14 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+export interface StaffDirectoryPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  source: 'durable';
+}
+
+export interface StaffDirectoryQuery {
+  limit?: number;
+  cursor?: string;
+  status?: string;
+}
 
 export interface StaffMemberRecord {
   uid: string;
@@ -43,19 +50,6 @@ export interface StaffInvitationRecord {
   };
 }
 
-export interface StaffDirectoryPage<T = StaffMemberRecord | StaffInvitationRecord> {
-  items: T[];
-  nextCursor: string | null;
-  source: 'durable' | string;
-}
-
-export interface StaffDirectoryQuery {
-  limit?: number;
-  cursor?: string;
-  search?: string;
-  status?: string;
-}
-
 export interface StaffInvitationIssueInput {
   email: string;
   role: string;
@@ -64,12 +58,10 @@ export interface StaffInvitationIssueInput {
 }
 
 export interface StaffInvitationIssueResult {
-  success: boolean;
-  invitationId?: string;
-  error?: string;
+  id: string;
+  token: string;
+  delivery: string;
+  expiresAt: string;
 }
 
-export interface StaffMembershipAction {
-  action: 'approve' | 'suspend' | 'deactivate' | 'reactivate';
-  reason?: string;
-}
+export type StaffMembershipAction = 'approve' | 'suspend' | 'deactivate' | 'reactivate' | 'revoke';

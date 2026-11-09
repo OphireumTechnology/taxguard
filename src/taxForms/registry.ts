@@ -1,9 +1,5 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import type {
+  Applicability,
   CapabilityKey,
   LibraryGroupId,
   StateJurisdiction,
@@ -15,39 +11,37 @@ export interface FormCapabilityDetail {
   note: string;
 }
 
-export interface FormVersionHistory {
+export interface FormVersionHistoryItem {
   taxYear: number;
   revision?: string;
   note: string;
-}
-
-export interface FormSourceVerification {
-  status: 'verified' | 'unverified' | 'pending';
-  method: string;
-  checkedOn?: string;
 }
 
 export interface FormView {
   id: string;
   formNumber: string;
   officialName: string;
+  classification: string;
+  entityCategory: string;
   groups: LibraryGroupId[];
   taxYears: number[];
-  classification: string;
   readiness: string;
   preparation: string;
-  entityCategory: string;
-  officialSourceUrl: string;
-  instructionsNote?: string;
-  source: FormSourceVerification;
   schedules: string[];
   requiredDocuments: string[];
+  officialSourceUrl: string;
+  instructionsNote?: string;
   notes?: string;
+  source: {
+    status: string;
+    method: string;
+    checkedOn?: string;
+  };
   capabilities: Record<CapabilityKey, FormCapabilityDetail>;
-  versionHistory: FormVersionHistory[];
+  versionHistory: FormVersionHistoryItem[];
 }
 
-export interface PreparationPipelineItem {
+export interface PreparationPipelineStep {
   id: string;
   label: string;
   workflowStages: number[];
@@ -56,12 +50,12 @@ export interface PreparationPipelineItem {
 }
 
 export interface LibraryCatalog {
-  disclaimer?: string;
-  catalogTaxYears: number[];
-  groups: Array<{ id: LibraryGroupId; label: string }>;
-  coreCategories: Array<{ id: LibraryGroupId; label: string; title?: string; scope?: string }>;
-  stateCategories: Array<{ id: StateTaxCategoryId; label: string }>;
   federalForms: FormView[];
   states: StateJurisdiction[];
-  preparationPipeline: PreparationPipelineItem[];
+  groups: Array<{ id: LibraryGroupId; label: string }>;
+  coreCategories: Array<{ id: LibraryGroupId; title: string; scope: string }>;
+  stateCategories: Array<{ id: StateTaxCategoryId; label: string }>;
+  catalogTaxYears: number[];
+  disclaimer?: string;
+  preparationPipeline: PreparationPipelineStep[];
 }

@@ -1,34 +1,40 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export type ClientPortalTab =
   | 'overview'
+  | 'workspace'
+  | 'client_intake'
+  | 'required_documents'
+  | 'document_center'
   | 'documents'
-  | 'returns'
-  | 'invoices'
+  | 'accounting_connections'
+  | 'integrations'
+  | 'tax_strategies'
+  | 'tax_return'
+  | 'reports'
+  | 'approvals'
   | 'messages'
-  | 'appointments'
-  | 'profile'
-  | 'accounting'
-  | 'strategies'
   | 'requests'
-  | 'security'
-  | (string & {});
+  | 'appointments'
+  | 'calendar'
+  | 'notifications'
+  | 'billing'
+  | 'profile_security'
+  | 'onboarding'
+  | string;
 
 export type TaxWorkspaceTab =
-  | 'checklist'
-  | 'stages'
-  | 'workpapers'
-  | 'vault'
-  | 'history'
-  | (string & {});
+  | 'intake'
+  | 'documents'
+  | 'accounting'
+  | 'return'
+  | 'reports'
+  | 'advisory'
+  | string;
 
 export type ProfileSecurityTab =
-  | 'overview'
-  | 'sessions'
+  | 'profile'
+  | 'security'
   | 'mfa'
-  | 'password'
-  | 'logs'
-  | (string & {});
+  | 'sessions'
+  | 'notifications'
+  | 'preferences'
+  | string;

@@ -1,25 +1,20 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+export interface ReviewSubmission {
+  evidencePackage: any;
+  title: string;
+  description: string;
+  itemType: string;
+  severity: string;
+  riskLevel: string;
+  assignedRole: string;
+}
 
 export class HumanReviewBridge {
-  static async queueForHumanReview(item: {
-    evidenceId: string;
-    proposal: any;
-    priority?: string;
-  }): Promise<{ queueId: string; status: string }> {
+  static submit(submission: ReviewSubmission) {
     return {
-      queueId: 'q_' + Math.random().toString(36).substring(2, 9),
-      status: 'QUEUED'
-    };
-  }
-
-  static submit(params: any): { queueItemId: string; status: string; [key: string]: any } {
-    return {
-      queueItemId: 'item_' + Math.random().toString(36).substring(2, 9),
-      status: 'QUEUED',
-      ...params
+      queueItemId: `rev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      ...submission,
+      status: 'PENDING',
+      submittedAt: new Date().toISOString(),
     };
   }
 }

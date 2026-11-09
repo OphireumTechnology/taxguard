@@ -1,37 +1,30 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export interface PracticeManagerCase {
   id: string;
   status: string;
+  stage: number;
+  owners: string[];
   dueDates: string[];
   waiting: boolean;
   review: boolean;
-  owners: string[];
-  stage: number;
   updatedAt?: string;
   clientName?: string;
-  serviceTitle?: string;
+  engagementTitle?: string;
 }
 
 export interface PracticeManagerDeadline {
-  id?: string;
+  id: string;
+  dueDate: string;
   status: string;
   escalation: number;
-  dueDate?: string;
-  clientName?: string;
+  title?: string;
 }
 
 export interface PracticeManagerStaff {
   id: string;
   name: string;
-  role?: string;
-  assigned?: number;
-  due?: number;
-  overdue?: number;
-  review?: number;
+  role: string;
+  email?: string;
+  capacity?: number;
 }
 
 export interface PracticeManagerSnapshot {

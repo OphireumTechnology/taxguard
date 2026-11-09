@@ -1,16 +1,15 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import type { EvidencePackage } from '../types';
 
 export interface AiReasoningProviderRequest {
-  evidence: any;
   purpose: string;
   promptPurpose?: string;
   taxYear?: number;
   knowledgeSourceIds?: string[];
   ruleEvaluationIds?: string[];
   findingIds?: string[];
+  evidencePackage?: EvidencePackage;
+  package?: EvidencePackage;
+  [key: string]: any;
 }
 
 export interface AiReasoningProviderResponse {
@@ -18,31 +17,32 @@ export interface AiReasoningProviderResponse {
   issueSpots: string[];
   recommendations: string[];
   confidence: string;
-  proposalId?: string;
-  createdAt?: string;
 }
 
 export interface AiReasoningProvider {
-  model?: string;
-  reason: (request: AiReasoningProviderRequest) => Promise<AiReasoningProviderResponse>;
+  model: string;
+  reason(request: AiReasoningProviderRequest): Promise<AiReasoningProviderResponse>;
 }
 
 export class AIReasoningGateway {
   static async reason(
-    provider: any,
-    evidencePackage: any,
+    provider: AiReasoningProvider,
+    evidencePackage: EvidencePackage,
     purpose: string
-  ): Promise<AiReasoningProviderResponse> {
-    if (provider && typeof provider.reason === 'function') {
-      return provider.reason({ evidence: evidencePackage, purpose, promptPurpose: purpose });
-    }
+  ): Promise<AiReasoningProviderResponse & { proposalId: string; createdAt: string }> {
+    const res = await provider.reason({
+      purpose,
+      promptPurpose: purpose,
+      evidencePackage,
+      package: evidencePackage,
+      taxYear: evidencePackage.taxYear,
+      knowledgeSourceIds: evidencePackage.knowledgeSourceIds,
+      ruleEvaluationIds: evidencePackage.ruleEvaluationIds,
+    });
     return {
-      explanation: 'Governed rule-based review completed without discrepancy.',
-      issueSpots: [],
-      recommendations: ['Maintain current evidence records.'],
-      confidence: 'HIGH_CONFIDENCE',
-      proposalId: 'prop_' + Math.random().toString(36).substring(2, 9),
-      createdAt: new Date().toISOString()
+      ...res,
+      proposalId: `prop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      createdAt: new Date().toISOString(),
     };
   }
 }

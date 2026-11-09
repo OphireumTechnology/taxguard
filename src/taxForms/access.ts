@@ -1,13 +1,15 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+export function canReadTaxFormsLibrary(
+  user: { role?: string; status?: string } | null | undefined,
+  _authLifecycleState?: string
+): boolean {
+  if (!user) {
+    return false;
+  }
 
-export function canReadTaxFormsLibrary(currentUser: any, _authLifecycleState?: string): boolean {
-  if (!currentUser) return false;
-  const role = currentUser.role;
-  const staffRoles = [
+  const staffRoles = new Set([
     'accountant',
+    'tax_preparer',
+    'cpa',
     'senior_reviewer',
     'reviewer',
     'bookkeeper',
@@ -15,8 +17,8 @@ export function canReadTaxFormsLibrary(currentUser: any, _authLifecycleState?: s
     'operations',
     'admin',
     'super_admin',
-    'super_administrator',
-    'staff'
-  ];
-  return staffRoles.includes(role) || (typeof role === 'string' && role !== 'client');
+    'super_administrator'
+  ]);
+
+  return Boolean(user.role && staffRoles.has(user.role.toLowerCase()));
 }
