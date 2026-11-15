@@ -160,6 +160,8 @@ export interface RequiredDocumentChecklistItem {
 
 export interface Appointment {
   id: string;
+  /** Optional label carried by legacy and canonical appointment records. */
+  title?: string;
   clientId: string;
   clientName?: string;
   clientEmail?: string;
