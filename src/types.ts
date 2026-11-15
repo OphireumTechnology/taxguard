@@ -339,6 +339,7 @@ export interface JobApplicationResult {
 export interface ServicePlanUpdateResult {
   success: boolean;
   message?: string;
+  plan?: ServicePlan;
   planId?: string;
   error?: string;
 }
@@ -346,6 +347,7 @@ export interface ServicePlanUpdateResult {
 export interface UserStatusUpdateResult {
   success: boolean;
   message?: string;
+  user?: User;
   userId?: string;
   error?: string;
 }
@@ -353,6 +355,7 @@ export interface UserStatusUpdateResult {
 export interface ClientReassignmentResult {
   success: boolean;
   message?: string;
+  client?: User;
   clientId?: string;
   newAccountantId?: string;
   error?: string;
