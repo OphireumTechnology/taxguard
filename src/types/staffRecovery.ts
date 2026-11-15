@@ -3,6 +3,20 @@ export type StaffRecoveryReasonCategory =
   | 'compromised_factor'
   | 'device_replacement';
 
+export type StaffRecoveryStatus =
+  | 'pending_approval'
+  | 'approved'
+  | 'completed'
+  | 'cancelled';
+
+export type StaffRecoveryJobStatus =
+  | 'pending'
+  | 'leased'
+  | 'reset_verified'
+  | 'enrollment_verified'
+  | 'completed'
+  | 'failed';
+
 export interface StaffRecoveryRequestInput {
   requestId: string;
   targetUid: string;
@@ -10,39 +24,36 @@ export interface StaffRecoveryRequestInput {
   reason: string;
 }
 
+export interface StaffRecoveryQuery {
+  status?: StaffRecoveryStatus | string;
+  limit?: number;
+  cursor?: string;
+}
+
 export interface StaffRecoveryRecord {
   requestId: string;
   targetUid: string;
-  targetName?: string;
-  targetEmail?: string;
-  targetRole?: string;
-  makerUid?: string;
-  checkerUid?: string | null;
+  targetName: string | null;
+  targetRole: string | null;
+  makerUid: string;
+  checkerUid: string | null;
   reasonCategory: StaffRecoveryReasonCategory;
   reason: string;
-  status: string;
-  jobId?: string | null;
-  jobStatus: 'pending' | 'leased' | 'reset_verified' | 'enrollment_verified' | 'completed' | 'failed' | null;
-  jobAttempts?: number;
-  jobLastError?: string | null;
+  status: StaffRecoveryStatus;
   createdAt: string;
-  approvedAt?: string | null;
-  completedAt?: string | null;
-  completedBy?: string | null;
-  cancelledAt?: string | null;
-  resetAvailability?: string;
-  updatedAt?: string;
+  approvedAt: string | null;
+  jobId: string | null;
+  jobStatus: StaffRecoveryJobStatus | null;
+  jobAttempts: number | null;
+  jobLastError: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
+  cancelledAt: string | null;
+  resetAvailability: 'unavailable' | 'verified';
   actions: {
     approve: boolean;
     complete: boolean;
     cancel: boolean;
     retry: boolean;
-    [key: string]: any;
   };
-}
-
-export interface StaffRecoveryQuery {
-  limit?: number;
-  cursor?: string;
-  status?: string;
 }

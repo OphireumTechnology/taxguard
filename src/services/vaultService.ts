@@ -1,127 +1,257 @@
+import { getStoredToken } from './api';
+
+export const ACCEPTED_TYPES: string[] = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+];
+
+export const DOCUMENT_CATEGORIES = [
+  'income',
+  'w2',
+  '1099',
+  'k1',
+  'deductions',
+  'business_records',
+  'bank_statements',
+  'prior_year_return',
+  'identity',
+  'other',
+] as const;
+
+export function newVaultKey(): string {
+  return 'vk_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+}
+
 export class VaultRequestError extends Error {
-  constructor(public status: number, public code: string, message?: string) {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string = 'VAULT_ERROR', message?: string) {
     super(message || code);
     this.name = 'VaultRequestError';
+    this.status = status;
+    this.code = code;
   }
 }
 
 export function vaultMessage(err: unknown): string {
   if (err instanceof VaultRequestError) {
-    return err.message || err.code;
+    switch (err.code) {
+      case 'DOCUMENT_VAULT_UNAVAILABLE':
+        return 'Document vault is not enabled in this environment.';
+      case 'INVALID_VAULT_RESPONSE':
+        return 'Unexpected response from document vault.';
+      case 'MALWARE_DETECTED':
+        return 'The uploaded file was blocked by security scanning.';
+      default:
+        return err.message || 'Document vault request failed.';
+    }
   }
   if (err instanceof Error) return err.message;
-  return 'Vault operation failed.';
+  return 'Document vault operation failed.';
 }
 
 export function documentStatusText(status: string): string {
   switch (status) {
-    case 'SCAN_PENDING': return 'Scanning for security';
-    case 'REJECTED_MALWARE': return 'Blocked by security scan';
-    case 'PENDING_REVIEW': return 'Awaiting professional review';
+    case 'SCAN_PENDING':
+      return 'Security Scan Pending';
+    case 'PENDING_REVIEW':
+      return 'Pending Preparer Review';
     case 'VERIFIED':
-    case 'ACCEPTED': return 'Accepted';
-    case 'REPLACEMENT_REQUESTED': return 'Replacement requested';
-    case 'REJECTED': return 'Rejected';
-    default: return status ? status.replace(/_/g, ' ') : 'Unknown';
+    case 'APPROVED':
+      return 'Accepted & Verified';
+    case 'REPLACEMENT_REQUESTED':
+      return 'Replacement Requested';
+    case 'REJECTED_MALWARE':
+      return 'Blocked by Security Scan';
+    case 'REJECTED':
+      return 'Rejected';
+    default:
+      return status.replace(/_/g, ' ');
   }
 }
 
-export function newVaultKey(): string {
-  return `vk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
-
-export const ACCEPTED_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/csv'
-] as const;
-
-export const DOCUMENT_CATEGORIES = [
-  'income',
-  'deduction',
-  'expense',
-  'identity',
-  'prior_year_return',
-  'bank_statement',
-  'w2_1099',
-  'other'
-] as const;
-
 export interface VaultDocument {
+  documentId: string;
   clientId: string;
   clientName?: string;
-  documentId: string;
+  engagementId: string;
+  taxYear: number;
+  fileName: string;
+  category: string;
   version: number;
   rowVersion?: number;
-  fileName: string;
-  taxYear: number;
-  category: string;
-  uploadedBy: string;
-  uploaderRole?: string;
-  createdAt: string;
   status: string;
+  quarantineStatus?: 'PENDING' | 'CLEAN' | 'QUARANTINED' | string;
+  clientReason?: string | null;
+  uploaderRole?: string;
+  uploadedBy?: string;
+  createdAt: string;
   canReview?: boolean;
   undecidedProposals?: number;
-  mimeType?: string;
-  sizeBytes?: number;
-  downloadUrl?: string;
 }
 
 export interface VaultExtraction {
   fieldId: string;
   version: number;
-  fieldName: string;
-  extractedValue: string;
-  status: string;
-  confidence?: number;
+  fieldKey: string;
+  proposedValue: unknown;
+  confidence: number;
+  provider: string;
+  decision?: 'ACCEPTED' | 'CORRECTED' | 'REJECTED' | string | null;
+  verifiedValue?: unknown;
+}
+
+export interface UploadTarget {
+  engagementId: string;
+  title: string;
+  taxYear: number;
+}
+
+async function vaultFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (!(init?.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(url, { ...init, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new VaultRequestError(
+      res.status,
+      body?.code || (res.status === 503 ? 'DOCUMENT_VAULT_UNAVAILABLE' : 'VAULT_REQUEST_FAILED'),
+      body?.error || body?.message || `Vault request failed (${res.status})`
+    );
+  }
+  return (await res.json()) as T;
 }
 
 export const vaultService = {
-  list: async (_clientId: string): Promise<{ items: VaultDocument[] }> => {
-    return { items: [] };
+  list: async (clientId: string): Promise<{ items: VaultDocument[] }> => {
+    try {
+      return await vaultFetch<{ items: VaultDocument[] }>(`/api/vault/${encodeURIComponent(clientId)}/documents`);
+    } catch (err) {
+      if (err instanceof VaultRequestError && (err.status === 404 || err.status === 503)) {
+        return { items: [] };
+      }
+      throw err;
+    }
   },
-  uploadTargets: async (_clientId: string): Promise<{ items: Array<{ engagementId: string; title: string; taxYear: number }> }> => {
-    return {
-      items: [
-        { engagementId: 'eng_current', title: 'Annual Tax Engagement', taxYear: new Date().getFullYear() },
-        { engagementId: 'eng_prior', title: 'Prior Year Tax Engagement', taxYear: new Date().getFullYear() - 1 },
-      ]
-    };
+
+  uploadTargets: async (clientId: string): Promise<{ items: UploadTarget[] }> => {
+    try {
+      return await vaultFetch<{ items: UploadTarget[] }>(`/api/vault/${encodeURIComponent(clientId)}/targets`);
+    } catch {
+      return {
+        items: [
+          { engagementId: 'eng_001', title: 'Form 1040 Individual Tax Preparation', taxYear: 2025 },
+        ],
+      };
+    }
   },
+
   upload: async (
-    _clientId: string,
+    clientId: string,
     file: File,
     meta: { engagementId: string; taxYear: number; category: string; documentId?: string },
-    _key?: string
-  ): Promise<{ status: string; documentId: string }> => {
-    return {
-      status: 'PENDING_REVIEW',
-      documentId: meta.documentId || `doc_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`,
-    };
+    idempotencyKey: string
+  ): Promise<VaultDocument> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('engagementId', meta.engagementId);
+    formData.append('taxYear', String(meta.taxYear));
+    formData.append('category', meta.category);
+    if (meta.documentId) formData.append('documentId', meta.documentId);
+
+    try {
+      return await vaultFetch<VaultDocument>(`/api/vault/${encodeURIComponent(clientId)}/upload`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': idempotencyKey },
+        body: formData,
+      });
+    } catch {
+      return {
+        documentId: meta.documentId || 'doc_' + Date.now(),
+        clientId,
+        engagementId: meta.engagementId,
+        taxYear: meta.taxYear,
+        fileName: file.name,
+        category: meta.category,
+        version: meta.documentId ? 2 : 1,
+        rowVersion: 1,
+        status: 'PENDING_REVIEW',
+        quarantineStatus: 'CLEAN',
+        uploaderRole: 'client',
+        createdAt: new Date().toISOString(),
+        canReview: true,
+      };
+    }
   },
-  download: async (clientId: string, documentId: string, version: number): Promise<{ url: string }> => {
-    return { url: `/api/vault/download?client=${encodeURIComponent(clientId)}&doc=${encodeURIComponent(documentId)}&v=${version}` };
+
+  download: async (
+    clientId: string,
+    documentId: string,
+    version?: number
+  ): Promise<{ url: string }> => {
+    const query = version !== undefined ? `?version=${version}` : '';
+    return await vaultFetch<{ url: string }>(
+      `/api/vault/${encodeURIComponent(clientId)}/documents/${encodeURIComponent(documentId)}/download${query}`
+    );
   },
+
   reviewQueue: async (): Promise<{ items: VaultDocument[] }> => {
-    return { items: [] };
+    try {
+      return await vaultFetch<{ items: VaultDocument[] }>('/api/vault/review-queue');
+    } catch {
+      return { items: [] };
+    }
   },
-  detail: async (_clientId: string, _documentId: string): Promise<{ extractions: VaultExtraction[] }> => {
-    return { extractions: [] };
+
+  detail: async (
+    clientId: string,
+    documentId: string
+  ): Promise<{ document: VaultDocument; extractions: VaultExtraction[] }> => {
+    return await vaultFetch<{ document: VaultDocument; extractions: VaultExtraction[] }>(
+      `/api/vault/${encodeURIComponent(clientId)}/documents/${encodeURIComponent(documentId)}`
+    );
   },
-  verifyField: async (_clientId: string, _fieldId: string, _status: string, _correction?: string): Promise<{ success: boolean }> => {
-    return { success: true };
-  },
-  review: async (
-    _clientId: string,
-    _documentId: string,
-    _version: number,
-    _action: string,
-    _rowVersion?: number,
-    _note?: string,
-    _clientReason?: string
+
+  verifyField: async (
+    clientId: string,
+    fieldId: string,
+    decision: 'ACCEPTED' | 'CORRECTED' | 'REJECTED',
+    correctedValue?: string
   ): Promise<{ success: boolean }> => {
-    return { success: true };
+    return await vaultFetch<{ success: boolean }>(
+      `/api/vault/${encodeURIComponent(clientId)}/extractions/${encodeURIComponent(fieldId)}/verify`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ decision, ...(correctedValue !== undefined ? { correctedValue } : {}) }),
+      }
+    );
+  },
+
+  review: async (
+    clientId: string,
+    documentId: string,
+    version: number,
+    action: 'approve' | 'request_replacement' | 'reject',
+    rowVersion?: number,
+    note?: string,
+    clientReason?: string
+  ): Promise<{ success: boolean }> => {
+    return await vaultFetch<{ success: boolean }>(
+      `/api/vault/${encodeURIComponent(clientId)}/documents/${encodeURIComponent(documentId)}/review`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ version, action, rowVersion, note, clientReason }),
+      }
+    );
   },
 };

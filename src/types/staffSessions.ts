@@ -3,10 +3,10 @@ export const SESSION_REVOCATION_REASONS = [
   'lost_or_stolen_device',
   'offboarding',
   'role_change',
-  'administrative_review'
+  'administrative_review',
 ] as const;
 
-export type SessionRevocationReason = typeof SESSION_REVOCATION_REASONS[number];
+export type SessionRevocationReason = (typeof SESSION_REVOCATION_REASONS)[number];
 
 export interface DurableSessionRecord {
   sessionId: string;

@@ -33,7 +33,7 @@ export interface CommThread {
   unread?: number;
   lastMessageAt?: string;
   awaitingStaffReply?: boolean;
-  status?: 'ACTIVE' | 'ARCHIVED';
+  status?: 'ACTIVE' | 'RESOLVED' | 'ARCHIVED';
   [key: string]: any;
 }
 
@@ -41,13 +41,15 @@ export interface CommMessage {
   messageId: string;
   senderName: string;
   senderRole: string;
+  senderKind?: string;
+  own?: boolean;
   body: string;
   createdAt: string;
   visibility: MessageVisibility;
 }
 
 export const communicationsService = {
-  getMessages: async (engagementId?: string): Promise<Message[]> => INITIAL_MESSAGES,
+  getMessages: async (_engagementId?: string): Promise<Message[]> => INITIAL_MESSAGES,
   sendMessage: async (msg: Partial<Message>): Promise<{ success: boolean; message: Message }> => {
     const newMsg: Message = {
       ...(INITIAL_MESSAGES[0] as any),
@@ -57,29 +59,48 @@ export const communicationsService = {
     };
     return { success: true, message: newMsg };
   },
-  threads: async (clientId?: string, _signal?: AbortSignal): Promise<CommThread[]> => [
+  threads: async (_clientId?: string, _signal?: AbortSignal): Promise<CommThread[]> => [
     { threadId: 'thr_1', subject: '2025 Tax Return Preparation Updates', category: 'GENERAL', updatedAt: new Date().toISOString(), unreadCount: 0 }
   ],
   inbox: async (_signal?: AbortSignal): Promise<CommThread[]> => [
     { threadId: 'thr_1', subject: '2025 Tax Return Preparation Updates', category: 'GENERAL', updatedAt: new Date().toISOString(), unreadCount: 0 }
   ],
-  thread: async (clientId: string, threadId: string): Promise<{ thread: CommThread & { unread: number }; messages: CommMessage[] }> => ({
+  thread: async (_clientId: string, threadId: string): Promise<{ thread: CommThread & { unread: number }; messages: CommMessage[] }> => ({
     thread: { threadId, subject: '2025 Tax Return Preparation Updates', category: 'GENERAL', updatedAt: new Date().toISOString(), unread: 0 },
     messages: [
-      { messageId: 'm1', senderName: 'Desmond Hinds', senderRole: 'accountant', body: 'Welcome to your secure client communications portal.', createdAt: new Date().toISOString(), visibility: 'CLIENT_VISIBLE' }
+      { messageId: 'm1', senderName: 'Desmond Hinds', senderRole: 'accountant', senderKind: 'STAFF', own: false, body: 'Welcome to your secure client communications portal.', createdAt: new Date().toISOString(), visibility: 'CLIENT_VISIBLE' }
     ]
   }),
-  createThread: async (...args: any[]) => ({ success: true, threadId: 'thr_' + Date.now() }),
+  createThread: async (...args: any[]): Promise<{ success: boolean; threadId: string; thread: CommThread }> => {
+    const threadId = 'thr_' + Date.now();
+    const subject = typeof args[1] === 'string' ? args[1] : 'New Conversation';
+    const category = (args[2] || 'GENERAL') as ThreadCategory;
+    return {
+      success: true,
+      threadId,
+      thread: {
+        threadId,
+        clientId: typeof args[0] === 'string' ? args[0] : undefined,
+        subject,
+        category,
+        updatedAt: new Date().toISOString(),
+        unread: 0,
+        status: 'ACTIVE'
+      }
+    };
+  },
   post: async (_clientId: string, _threadId: string, body: string, _key?: string, visibility: MessageVisibility = 'CLIENT_VISIBLE'): Promise<CommMessage> => ({
     messageId: 'msg_' + Date.now(),
     senderName: 'Client Contact',
     senderRole: 'client',
+    senderKind: 'CLIENT',
+    own: true,
     body,
     createdAt: new Date().toISOString(),
     visibility
   }),
   markRead: async (_clientId: string, _threadId: string): Promise<boolean> => true,
   setStatus: async (_clientId: string, _threadId: string, _status: string): Promise<boolean> => true,
-  reply: async (...args: any[]) => ({ success: true }),
-  archiveThread: async (...args: any[]) => ({ success: true })
+  reply: async (..._args: any[]) => ({ success: true }),
+  archiveThread: async (..._args: any[]) => ({ success: true })
 };

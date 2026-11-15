@@ -1,18 +1,14 @@
-/**
- * Telemetry reporting utility.
- * Sanitized client error reporting.
- */
 export function reportClientError(
   error: Error,
   incidentId?: string,
-  metadata?: Record<string, unknown>
+  metadata?: { componentStack?: string; route?: string }
 ): void {
-  if (import.meta.env?.DEV) {
-    console.warn('[Telemetry] Client error reported:', {
+  if (import.meta.env.DEV) {
+    console.warn('[TaxGuard Telemetry]', {
       incidentId,
       name: error?.name,
       message: error?.message,
-      ...metadata
+      route: metadata?.route
     });
   }
 }

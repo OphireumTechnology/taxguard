@@ -9,6 +9,8 @@ export interface StaffInvitationDetails {
   email: string;
   role: string;
   tenantId?: string;
+  legalFirstName?: string;
+  legalLastName?: string;
 }
 
 export interface StaffInvitationApi {

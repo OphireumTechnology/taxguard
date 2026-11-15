@@ -11,23 +11,25 @@ export type AppointmentTypeCode =
   | 'document_review'
   | 'return_review'
   | 'follow_up_meeting'
-  | 'internal_staff_meeting'
-  | string;
+  | 'internal_staff_meeting';
 
 export interface AvailableTimeSlot {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  available: boolean;
-  advisorId?: string;
-  advisorName?: string;
+  slotKey: string;
+  startUtc: string;
+  endUtc: string;
+  clientLocalDisplay: string;
+  staffId: string;
+  staffName: string;
+  available?: boolean;
+  [key: string]: unknown;
 }
 
 export interface CalendarConnection {
   id: string;
-  provider: 'google' | 'outlook' | 'apple' | string;
-  connected: boolean;
-  syncEnabled?: boolean;
-  email?: string;
+  provider: 'google' | 'microsoft' | 'apple' | string;
+  email: string;
+  status: 'connected' | 'disconnected' | 'error' | string;
+  lastSyncedAt?: string;
+  calendarName?: string;
+  [key: string]: unknown;
 }

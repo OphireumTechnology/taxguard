@@ -1,11 +1,10 @@
-import { supabase, isSupabaseConfigured } from './config';
+import { isSupabaseConfigured, supabase } from './config';
 
-export interface ClientMfaStatus {
-  state: 'READY' | 'UNAVAILABLE' | 'NO_PROVIDER_SESSION' | 'ERROR';
-  currentLevel: 'aal1' | 'aal2' | 'unknown' | string;
-  verifiedFactors: number;
-  pendingFactors?: number;
-}
+export type ClientMfaStatus =
+  | { state: 'UNAVAILABLE' }
+  | { state: 'NO_PROVIDER_SESSION' }
+  | { state: 'ERROR' }
+  | { state: 'READY'; currentLevel: 'aal1' | 'aal2' | 'unknown'; verifiedFactors: number; pendingFactors: number };
 
 export interface ClientTotpEnrollment {
   factorId: string;
@@ -14,70 +13,50 @@ export interface ClientTotpEnrollment {
 }
 
 export class ClientMfaError extends Error {
-  constructor(message: string, public readonly code?: string) {
-    super(message);
-    this.name = 'ClientMfaError';
+  constructor(public readonly code: string, message?: string) {
+    super(message || code);
   }
-}
-
-export function clientMfaErrorText(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return 'An unexpected error occurred during authenticator setup.';
 }
 
 export function clientMfaEnrollmentAvailable(): boolean {
   return isSupabaseConfigured();
 }
 
-export async function readClientMfaStatus(): Promise<ClientMfaStatus> {
-  if (!isSupabaseConfigured()) {
-    return { state: 'UNAVAILABLE', currentLevel: 'unknown', verifiedFactors: 0 };
-  }
-
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session) {
-      return { state: 'NO_PROVIDER_SESSION', currentLevel: 'unknown', verifiedFactors: 0 };
-    }
-
-    const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aalError) {
-      return { state: 'ERROR', currentLevel: 'unknown', verifiedFactors: 0 };
-    }
-
-    const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
-    if (factorsError) {
-      return { state: 'ERROR', currentLevel: aal?.currentLevel || 'aal1', verifiedFactors: 0 };
-    }
-
-    const verified = factors?.totp?.filter(f => (f.status as string) === 'verified') || [];
-    const pending = factors?.totp?.filter(f => (f.status as string) === 'unverified') || [];
-
-    return {
-      state: 'READY',
-      currentLevel: aal?.currentLevel || 'aal1',
-      verifiedFactors: verified.length,
-      pendingFactors: pending.length
-    };
-  } catch {
-    return { state: 'ERROR', currentLevel: 'unknown', verifiedFactors: 0 };
+export function clientMfaErrorText(code?: string): string {
+  switch (code) {
+    case 'INVALID_CODE':
+      return 'That 6-digit code was not accepted. Check your authenticator app and try again.';
+    case 'UNAVAILABLE':
+      return 'Authenticator setup is unavailable in this environment.';
+    default:
+      return 'Unable to update your authenticator right now. Please try again.';
   }
 }
 
+export async function readClientMfaStatus(): Promise<ClientMfaStatus> {
+  if (!isSupabaseConfigured()) return { state: 'UNAVAILABLE' };
+  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+  if (sessionErr) return { state: 'ERROR' };
+  if (!sessionData?.session) return { state: 'NO_PROVIDER_SESSION' };
+
+  const [{ data: aal }, { data: factors, error: factorsErr }] = await Promise.all([
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    supabase.auth.mfa.listFactors()
+  ]);
+  if (factorsErr) return { state: 'ERROR' };
+
+  const allFactors = factors?.all || [];
+  const verifiedFactors = allFactors.filter(f => f.status === 'verified').length;
+  const pendingFactors = allFactors.filter(f => f.status !== 'verified').length;
+  const currentLevel = aal?.currentLevel === 'aal2' ? 'aal2' : aal?.currentLevel === 'aal1' ? 'aal1' : 'unknown';
+
+  return { state: 'READY', currentLevel, verifiedFactors, pendingFactors };
+}
+
 export async function beginClientTotpEnrollment(): Promise<ClientTotpEnrollment> {
-  if (!isSupabaseConfigured()) {
-    throw new ClientMfaError('Authentication provider not configured in this environment.', 'UNAVAILABLE');
-  }
-
-  const { data, error } = await supabase.auth.mfa.enroll({
-    factorType: 'totp',
-    issuer: 'DESTRIA TAX SERVICES LLC'
-  });
-
-  if (error || !data) {
-    throw new ClientMfaError(error?.message || 'Could not initiate authenticator enrollment.', error?.code);
-  }
-
+  if (!isSupabaseConfigured()) throw new ClientMfaError('UNAVAILABLE');
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+  if (error || !data) throw new ClientMfaError('ENROLL_FAILED', error?.message);
   return {
     factorId: data.id,
     qrCode: data.totp?.qr_code || '',
@@ -86,35 +65,12 @@ export async function beginClientTotpEnrollment(): Promise<ClientTotpEnrollment>
 }
 
 export async function confirmClientTotpEnrollment(factorId: string, code: string): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    throw new ClientMfaError('Authentication provider not configured in this environment.', 'UNAVAILABLE');
-  }
-
-  const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-    factorId
-  });
-
-  if (challengeError || !challenge) {
-    throw new ClientMfaError(challengeError?.message || 'Failed to challenge authenticator.', challengeError?.code);
-  }
-
-  const { error: verifyError } = await supabase.auth.mfa.verify({
-    factorId,
-    challengeId: challenge.id,
-    code: code.trim()
-  });
-
-  if (verifyError) {
-    throw new ClientMfaError(verifyError.message || 'Invalid authenticator code.', verifyError.code);
-  }
+  if (!isSupabaseConfigured()) throw new ClientMfaError('UNAVAILABLE');
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: code.trim() });
+  if (error) throw new ClientMfaError('INVALID_CODE', error.message);
 }
 
 export async function cancelClientTotpEnrollment(factorId: string): Promise<void> {
-  if (!isSupabaseConfigured() || !factorId) return;
-
-  try {
-    await supabase.auth.mfa.unenroll({ factorId });
-  } catch {
-    // Ignore cancel failure
-  }
+  if (!isSupabaseConfigured()) return;
+  await supabase.auth.mfa.unenroll({ factorId }).catch(() => {});
 }

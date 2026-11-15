@@ -18,23 +18,27 @@ export type ClientPortalTab =
   | 'notifications'
   | 'billing'
   | 'profile_security'
-  | 'onboarding'
-  | string;
+  | 'onboarding';
 
 export type TaxWorkspaceTab =
   | 'intake'
   | 'documents'
-  | 'accounting'
-  | 'return'
+  | 'books_records'
+  | 'return_review'
+  | 'filing_status'
+  | 'business_closure'
+  | 'accounting_connections'
+  | 'tax_strategies'
   | 'reports'
-  | 'advisory'
-  | string;
+  | 'collection';
 
 export type ProfileSecurityTab =
-  | 'profile'
-  | 'security'
-  | 'mfa'
-  | 'sessions'
-  | 'notifications'
-  | 'preferences'
-  | string;
+  | 'taxpayer_profile'
+  | 'business_entity'
+  | 'dependents_reps'
+  | 'storage_selection'
+  | 'devices_sessions'
+  | 'mfa_security'
+  | 'privacy_consent'
+  | 'data_export_closure'
+  | 'audit_activity';

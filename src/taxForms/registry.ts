@@ -1,17 +1,17 @@
 import type {
-  Applicability,
   CapabilityKey,
+  CapabilityStatus,
   LibraryGroupId,
   StateJurisdiction,
   StateTaxCategoryId
 } from './types';
 
-export interface FormCapabilityDetail {
-  status: 'available' | 'prototype' | 'not_implemented' | 'blocked';
-  note: string;
+export interface FormCapabilityEntry {
+  status: CapabilityStatus;
+  note?: string;
 }
 
-export interface FormVersionHistoryItem {
+export interface FormVersionHistoryEntry {
   taxYear: number;
   revision?: string;
   note: string;
@@ -31,31 +31,29 @@ export interface FormView {
   requiredDocuments: string[];
   officialSourceUrl: string;
   instructionsNote?: string;
-  notes?: string;
   source: {
-    status: string;
+    status: 'verified' | 'pending_review';
     method: string;
     checkedOn?: string;
   };
-  capabilities: Record<CapabilityKey, FormCapabilityDetail>;
-  versionHistory: FormVersionHistoryItem[];
-}
-
-export interface PreparationPipelineStep {
-  id: string;
-  label: string;
-  workflowStages: number[];
-  status: string;
-  evidence: string;
+  capabilities: Record<CapabilityKey, FormCapabilityEntry>;
+  versionHistory: FormVersionHistoryEntry[];
+  notes?: string;
 }
 
 export interface LibraryCatalog {
-  federalForms: FormView[];
-  states: StateJurisdiction[];
+  disclaimer?: string;
+  catalogTaxYears: number[];
   groups: Array<{ id: LibraryGroupId; label: string }>;
   coreCategories: Array<{ id: LibraryGroupId; title: string; scope: string }>;
   stateCategories: Array<{ id: StateTaxCategoryId; label: string }>;
-  catalogTaxYears: number[];
-  disclaimer?: string;
-  preparationPipeline: PreparationPipelineStep[];
+  federalForms: FormView[];
+  states: StateJurisdiction[];
+  preparationPipeline: Array<{
+    id: string;
+    label: string;
+    workflowStages: number[];
+    status: string;
+    evidence: string;
+  }>;
 }

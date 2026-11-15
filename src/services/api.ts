@@ -1,4 +1,22 @@
-import { INITIAL_USERS, INITIAL_ENGAGEMENTS, INITIAL_DOCUMENTS, INITIAL_APPOINTMENTS, INITIAL_INVOICES, INITIAL_JOBS, INITIAL_AUDIT_LOGS, INITIAL_SERVICE_PLANS } from '../data/mockData';
+import {
+  INITIAL_USERS,
+  INITIAL_ENGAGEMENTS,
+  INITIAL_DOCUMENTS,
+  INITIAL_APPOINTMENTS,
+  INITIAL_INVOICES,
+  INITIAL_JOBS,
+  INITIAL_AUDIT_LOGS,
+  INITIAL_SERVICE_PLANS
+} from '../data/mockData';
+import type { User, AuditLog, JobListing, Applicant, SecurityTestResult } from '../types';
+import type { BookkeeperSnapshot } from '../types/bookkeeperDashboard';
+import type { ReviewerSnapshot } from '../types/reviewerDashboard';
+import type {
+  ClientServiceSnapshot,
+  ClientServiceConversation,
+  ClientServiceRequestDetail,
+  ClientServiceCase
+} from '../types/clientServiceDashboard';
 
 export const SESSION_TOKEN_CHANGED_EVENT = 'taxguard:session-token-changed';
 
@@ -33,34 +51,11 @@ export function clearStoredToken(): void {
   }
 }
 
-const defaultHeaders = () => {
-  const token = getStoredToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
-};
-
-async function safeFetch<T>(url: string, options?: RequestInit, fallback?: T): Promise<T> {
-  try {
-    const res = await fetch(url, {
-      ...options,
-      headers: { ...defaultHeaders(), ...options?.headers }
-    });
-    if (res.ok) {
-      return (await res.json()) as T;
-    }
-  } catch {
-    // Ignore network failure and fall back
-  }
-  return fallback as T;
-}
-
 export const api = {
   auth: {
-    login: async (creds: any, _pass?: string, _code?: string) => ({ user: INITIAL_USERS[0], token: 'tok_mock_session' }),
+    login: async (_creds: any, _pass?: string, _code?: string) => ({ user: INITIAL_USERS[0], token: 'tok_mock_session' }),
     getCurrentUser: async () => INITIAL_USERS[0],
-    getMe: async () => INITIAL_USERS[0],
+    getMe: async (): Promise<{ user: User }> => ({ user: INITIAL_USERS[0] }),
     supabaseSession: async (payload: any) => {
       const token = typeof payload === 'string' ? payload : (payload?.accessToken || 'tok_mock_session');
       return {
@@ -83,9 +78,14 @@ export const api = {
     logout: async () => { clearStoredToken(); }
   },
   admin: {
-    getUsers: async () => INITIAL_USERS,
-    getAuditLogs: async () => INITIAL_AUDIT_LOGS,
-    updateUserStatus: async (uid: string, status: string) => ({ success: true }),
+    getUsers: async (): Promise<User[]> => INITIAL_USERS,
+    getAuditLogs: async (): Promise<{ auditLogs: AuditLog[] }> => ({ auditLogs: INITIAL_AUDIT_LOGS }),
+    getSystemHealth: async () => ({
+      healthStatus: 'HEALTHY',
+      serverTimestamp: new Date().toISOString(),
+      metrics: { failedLoginAttemptsTracked: 0 }
+    }),
+    updateUserStatus: async (_uid: string, _status: string) => ({ success: true }),
     updatePlanPrice: async (planId: string, newPrice: number, _changeReason?: string, _currency?: string) => {
       const target = INITIAL_SERVICE_PLANS.find(p => p.id === planId) || INITIAL_SERVICE_PLANS[0];
       return {
@@ -115,32 +115,104 @@ export const api = {
       activeSessions: 3,
       soc2Compliance: 'Passing'
     }),
-    rotateTotp: async () => ({ success: true })
+    rotateTotp: async () => ({ success: true }),
+    recordDashboardView: async (_dashboard: string) => ({ success: true }),
+    getSession: async () => ({
+      session: {
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        idleTimeoutMinutes: 30,
+        absoluteExpiresAt: new Date(Date.now() + 28800_000).toISOString()
+      },
+      secondFactor: 'TOTP'
+    })
   },
   staffAccess: {
-    getDirectory: async (q?: any) => ({
+    getDirectory: async (_q?: any) => ({
       items: INITIAL_USERS.filter(u => u.role !== 'client'),
       total: INITIAL_USERS.filter(u => u.role !== 'client').length,
       page: 1,
       pageSize: 50
     }),
-    getSessions: async () => [],
-    revokeSession: async () => ({ success: true }),
-    getRecoveryQueue: async () => ({ items: [], nextCursor: null, source: 'durable' }),
-    submitRecovery: async (input: any) => ({ success: true, requestId: 'req_' + Date.now() }),
-    issueInvitation: async (input: any) => ({ success: true, invitationId: 'inv_' + Date.now() }),
-    revokeInvitation: async () => ({ success: true }),
+    getSessions: async () => [] as any[],
+    sessions: async (_signal?: AbortSignal) => ({
+      source: 'durable',
+      items: [] as any[]
+    }),
+    revokeSession: async (_sessionId?: string, _signal?: AbortSignal) => ({ success: true, revoked: true }),
+    revokeOtherSessions: async (_signal?: AbortSignal) => ({ revokedSessions: 0 }),
+    revokeMemberSessions: async (_uid: string, _reason: string, _signal?: AbortSignal) => ({ revokedSessions: 0 }),
+    getRecoveryQueue: async () => ({ items: [] as any[], nextCursor: null, source: 'durable' }),
+    submitRecovery: async (_input: any) => ({ success: true, requestId: 'req_' + Date.now() }),
+    requestRecovery: async (input: any, _signal?: AbortSignal) => ({
+      requestId: input?.requestId || 'req_' + Date.now(),
+      targetUid: input?.targetUid || '',
+      status: 'pending_approval'
+    }),
+    approveRecovery: async (requestId: string, _signal?: AbortSignal) => ({ requestId, status: 'approved' }),
+    completeRecovery: async (requestId: string, _signal?: AbortSignal) => ({ requestId, status: 'completed' }),
+    cancelRecovery: async (requestId: string, _reason: string, _signal?: AbortSignal) => ({ requestId, status: 'cancelled' }),
+    retryRecovery: async (requestId: string, _signal?: AbortSignal) => ({ requestId, status: 'pending' }),
+    recoveryHistory: async (requestId: string, _signal?: AbortSignal) => ({
+      requestId,
+      items: [] as Array<{ action: string; actorUid: string; actorRole: string | null; at: string; details: Record<string, unknown> }>
+    }),
+    issueInvitation: async (_input: any) => ({ success: true, invitationId: 'inv_' + Date.now() }),
+    createInvitation: async (_payload: any, _signal?: AbortSignal) => ({
+      id: 'inv_' + Date.now(),
+      token: '0'.repeat(64),
+      delivery: 'administrator_handoff' as const,
+      expiresAt: new Date(Date.now() + 86400_000).toISOString(),
+      status: 'pending'
+    }),
+    revokeInvitation: async (id?: string, _signal?: AbortSignal) => ({ id: id || '', success: true, status: 'revoked' }),
+    approveMember: async (uid: string, _signal?: AbortSignal) => ({ uid, status: 'active' }),
+    changeMemberStatus: async (uid: string, action: string, _reason: string, _signal?: AbortSignal) => ({
+      uid,
+      status: action === 'suspend' ? 'suspended' : action === 'deactivate' ? 'disabled' : 'active'
+    }),
     reassignClients: async () => ({ success: true }),
-    members: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
-    invitations: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' }),
-    recoveries: async (_q?: any, _signal?: AbortSignal) => ({ items: [], nextCursor: null, source: 'durable' })
+    members: async (_q?: any, _signal?: AbortSignal) => ({ items: [] as any[], nextCursor: null, source: 'durable' }),
+    invitations: async (_q?: any, _signal?: AbortSignal) => ({ items: [] as any[], nextCursor: null, source: 'durable' }),
+    recoveries: async (_q?: any, _signal?: AbortSignal) => ({ items: [] as any[], nextCursor: null, source: 'durable' }),
+    securityEvents: async (_signal?: AbortSignal) => ({
+      items: [] as Array<{ action: string; actorUid: string; actorRole: string | null; at: string; byAdministrator: boolean; details: Record<string, unknown> }>
+    })
   },
   caseAuthority: {
-    getMatrix: async () => ({ records: [], status: 'ACTIVE' }),
-    getEvaluation: async () => ({ evaluations: [] }),
+    getMatrix: async () => ({ records: [] as any[], status: 'ACTIVE' }),
+    getEvaluation: async () => ({ evaluations: [] as any[] }),
     getEmergencyStop: async () => ({ engaged: false }),
     triggerEmergencyStop: async () => ({ engaged: true }),
-    getProviderReadiness: async (_signal?: AbortSignal) => ({ providers: [] })
+    getProviderReadiness: async (_signal?: AbortSignal) => ({ providers: [] as any[] }),
+    getAiControlCenter: async (_view: string, _query?: Record<string, string>, _signal?: AbortSignal): Promise<Record<string, any>> => ({
+      agents: [],
+      items: [],
+      by_agent: [],
+      suites: [],
+      runs: [],
+      sections: [],
+      modules: [],
+      lifecycle: [],
+      governance: { agents_by_status: {}, runs_by_status: {}, global_stop: false, active_stops: 0, security_events_24h: 0 },
+      knowledge: { status: 'UNAVAILABLE', code: 'OFFLINE' },
+      inference: { status: 'UNAVAILABLE' },
+      checked_at: new Date().toISOString(),
+      global_stop: false,
+      scoped_stops: [],
+      material_actions: 'BLOCKED',
+      framework: 'NOT_APPLIED',
+      activation: 'NOT_PERFORMED_HERE',
+      dimensions: []
+    }),
+    getAiCommandCenterMasterPlanImage: async (_signal?: AbortSignal): Promise<Blob> =>
+      new Blob([], { type: 'image/png' }),
+    listAiKillSwitches: async (_signal?: AbortSignal) => ({ kill_switches: [] as any[] }),
+    activateAiKillSwitch: async (payload: any) => ({
+      switch_id: 'sw_' + Date.now(),
+      target: payload?.agent_id || payload?.tool_id || payload?.scope || 'GLOBAL',
+      enabled: true,
+      already_active: false
+    })
   },
   room: {
     getRoom: async (roomId: string) => ({ roomId, status: 'waiting', participants: [] }),
@@ -158,7 +230,25 @@ export const api = {
     }),
     getQuestionnaire: async () => ({ answered: 10, total: 25, categories: [] }),
     submitQuestionnaire: async () => ({ success: true }),
-    read: async <T = any>(resource?: string, clientId?: string, taxYear?: number, _signal?: AbortSignal): Promise<T> => {
+    saveQuestionnaire: async (_clientId: string, _taxYear: number, _answers: any, _revision?: number, _engagementId?: string) => ({
+      success: true
+    }),
+    respond: async (_taxYear: number, _requestId: string, _content: string, _engagementId?: string) => ({
+      success: true
+    }),
+    createCollectionRequest: async (_clientId: string, _taxYear: number, _engagementId: string, _payload: any, _idempotencyKey?: string) => ({
+      success: true
+    }),
+    resolveCollectionRequest: async (_clientId: string, _taxYear: number, _engagementId: string, _requestId: string, _rowVersion?: number) => ({
+      success: true
+    }),
+    read: async <T = any>(
+      resource?: string,
+      clientId?: string,
+      taxYear?: number,
+      _signal?: AbortSignal,
+      _engagementId?: string
+    ): Promise<T> => {
       const cId = clientId || 'user_client_1';
       const year = taxYear || 2025;
       if (resource === 'requests') {
@@ -177,6 +267,7 @@ export const api = {
           taxYear: year,
           tenantId: 'tenant_default',
           status: 'completed',
+          version: 1,
           answers: {},
           updatedAt: new Date().toISOString()
         }
@@ -195,7 +286,7 @@ export const api = {
     requestAmendment: async (_data: any) => ({ success: true, requestId: 'amd_' + Date.now() })
   },
   taxForms: {
-    getCatalog: async (signal?: AbortSignal) => ({
+    getCatalog: async (_signal?: AbortSignal) => ({
       federalForms: [
         { id: '1040', formNumber: '1040', officialName: 'U.S. Individual Income Tax Return', groups: ['individual-1040'], taxYears: [2024, 2025], readiness: 'E-File Verified', schedules: ['Schedule A', 'Schedule B', 'Schedule C', 'Schedule D', 'Schedule E', 'Schedule SE'] },
         { id: '1120s', formNumber: '1120-S', officialName: 'U.S. Income Tax Return for an S Corporation', groups: ['s-corporations-1120s'], taxYears: [2024, 2025], readiness: 'E-File Verified', schedules: ['Schedule K-1', 'Form 1125-A', 'Form 8825'] },
@@ -229,8 +320,8 @@ export const api = {
       flaggedCount: 1,
       activeCases: []
     }),
-    getDashboard: async (_arg1?: AbortSignal | number, _arg2?: AbortSignal) => ({ cases: [] }),
-    getWorkspace: async (caseIdOrScope: any, _signal?: AbortSignal) => {
+    getDashboard: async (_arg1?: AbortSignal | number, _arg2?: AbortSignal) => ({ cases: [] as any[] }),
+    getWorkspace: async (caseIdOrScope: any, _signal?: AbortSignal): Promise<ReviewerSnapshot> => {
       const scope = typeof caseIdOrScope === 'object' && caseIdOrScope !== null
         ? caseIdOrScope
         : { tenantId: 'tenant_default', clientId: 'user_client_1', engagementId: 'eng_001', taxYear: 2025 };
@@ -238,14 +329,25 @@ export const api = {
         scope,
         decisionsAvailable: false,
         independentReviewer: false,
-        case: { reviewerUid: 'user_reviewer', preparerUid: 'user_accountant', status: 'ACTIVE', activeStage: 1, openExceptions: 0 }
+        case: { reviewerUid: 'user_reviewer', preparerUid: 'user_accountant', status: 'ACTIVE', activeStage: 1, openExceptions: 0 },
+        returns: [],
+        exceptions: [],
+        resolutions: [],
+        documents: [],
+        reconciliations: [],
+        stages: [],
+        records: [],
+        extractedFields: [],
+        history: [],
+        workpapers: [],
+        aiFindings: []
       };
     },
     decide: async (..._args: any[]) => ({ success: true, version: 1 })
   },
   accountant: {
     getCases: async () => INITIAL_ENGAGEMENTS,
-    getWorkpapers: async () => [],
+    getWorkpapers: async () => [] as any[],
     getDashboard: async (_arg1?: AbortSignal | number, _arg2?: AbortSignal) => ({
       cases: [
         {
@@ -276,16 +378,18 @@ export const api = {
       activeFeedsCount: 8,
       clients: []
     }),
-    getDashboard: async (client?: string, year?: number, period?: string, _signal?: AbortSignal) => ({
+    getDashboard: async (client?: string, year?: number, period?: string, _signal?: AbortSignal): Promise<BookkeeperSnapshot> => ({
       scope: {
         tenantId: 'tenant_default',
         clientId: client || 'user_client_1',
         taxYear: year || 2025,
         periodId: period
       },
-      tenantId: 'tenant_default',
+      periods: [],
       transactions: [],
-      reconciliations: []
+      reconciliations: [],
+      accounts: [],
+      journals: []
     }),
     getClients: async (_signal?: AbortSignal) => ({
       tenantId: 'tenant_default',
@@ -301,7 +405,7 @@ export const api = {
       activeRequests: [],
       recentConversations: []
     }),
-    getDashboard: async (_year?: number, _signal?: AbortSignal) => ({
+    getDashboard: async (_year?: number, _signal?: AbortSignal): Promise<ClientServiceSnapshot> => ({
       tenantId: 'tenant_default',
       cases: [],
       requests: [],
@@ -309,22 +413,25 @@ export const api = {
       threads: [],
       escalations: []
     }),
-    conversation: async (id: string, caseId?: string, _taxYear?: number, _signal?: AbortSignal) => ({
-      id,
-      threadId: id,
+    conversation: async (id: string, caseId?: string, _taxYear?: number, _signal?: AbortSignal): Promise<ClientServiceConversation> => ({
       tenantId: 'tenant_default',
       caseKey: caseId || '',
-      unread: 0,
+      threadId: id,
       messages: []
     }),
-    requestDetail: async (id: string, caseId?: string, _taxYear?: number, _signal?: AbortSignal) => ({
-      id,
-      requestId: id,
+    requestDetail: async (id: string, caseId?: string, _taxYear?: number, _signal?: AbortSignal): Promise<ClientServiceRequestDetail> => ({
       tenantId: 'tenant_default',
       caseKey: caseId || '',
+      requestId: id,
+      title: 'Information Request',
+      description: '',
       status: 'OPEN'
     }),
-    search: async (_q: string, _year?: number, _signal?: AbortSignal) => ({
+    search: async (_q: string, _year?: number, _signal?: AbortSignal): Promise<{
+      tenantId: string;
+      matches: Omit<ClientServiceCase, 'documents'>[];
+      results: any[];
+    }> => ({
       tenantId: 'tenant_default',
       matches: [],
       results: []
@@ -341,8 +448,8 @@ export const api = {
     getDashboard: async (_year?: number, _signal?: AbortSignal) => ({ tenantId: 'tenant_default', cases: [], deadlines: [], staff: [] })
   },
   careers: {
-    getJobs: async () => Object.assign([...INITIAL_JOBS], { jobs: INITIAL_JOBS }),
-    getApplicants: async () => [],
+    getJobs: async () => Object.assign([...INITIAL_JOBS], { jobs: INITIAL_JOBS }) as JobListing[] & { jobs: JobListing[] },
+    getApplicants: async (): Promise<{ applicants: Applicant[] }> => ({ applicants: [] }),
     submitApplication: async (_app: any) => ({ success: true }),
     apply: async (_app: any) => ({ success: true, applicantId: 'app_' + Date.now(), message: 'Application submitted.' }),
     updateApplicant: async (appId: string, update: any) => ({
@@ -352,14 +459,17 @@ export const api = {
   },
   onboarding: {
     getStatus: async () => ({ currentStep: 1, isComplete: false, taxYear: 2025 }),
-    getState: async () => ({ currentStep: 1, isComplete: false, taxYear: 2025 }),
-    submitStep: async (step: number, _data: any) => ({ success: true }),
+    getState: async () => ({
+      state: { currentStep: 1, completed: false, status: 'IN_PROGRESS', data: {} },
+      progress: { percentComplete: 20, missingRequirements: [] as string[], nextAction: 'Continue' }
+    }),
+    submitStep: async (step: number, _data: any) => ({ success: true, nextStep: step + 1 }),
     saveStep: async (stepData: any) => ({
       success: true,
       state: { step: 1, totalSteps: 5, completed: false, data: stepData },
       progress: {
         percentComplete: 20,
-        missingRequirements: [],
+        missingRequirements: [] as string[],
         nextAction: 'Continue'
       }
     }),
@@ -370,11 +480,11 @@ export const api = {
   },
   security: {
     runAudit: async () => ({ passed: true, checks: [] }),
-    runNegativeTests: async () => ({
+    runNegativeTests: async (): Promise<{ passed: boolean; results: SecurityTestResult[] }> => ({
       passed: true,
       results: [
-        { id: 'sec_1', name: 'SQL Injection Prevention', status: 'pass', message: 'Parameterized queries verified', timestamp: new Date().toISOString() },
-        { id: 'sec_2', name: 'Cross-Tenant Isolation', status: 'pass', message: 'Tenant boundary enforcement verified', timestamp: new Date().toISOString() }
+        { id: 'sec_1', name: 'SQL Injection Prevention', passed: true, status: 'pass', message: 'Parameterized queries verified', timestamp: new Date().toISOString() },
+        { id: 'sec_2', name: 'Cross-Tenant Isolation', passed: true, status: 'pass', message: 'Tenant boundary enforcement verified', timestamp: new Date().toISOString() }
       ]
     })
   }

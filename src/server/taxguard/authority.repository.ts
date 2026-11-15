@@ -38,6 +38,16 @@ export class TaxGuardAuthorityRepository {
       evidenceId,
       evidence: {
         evidencePackage: {
+          evidencePackageId: evidenceId,
+          clientId: scope.clientId,
+          engagementId: 'eng_default',
+          taxYear: scope.taxYear,
+          correlationId: 'corr_' + evidenceId,
+          knowledgeSourceIds: [],
+          ruleEvaluationIds: [],
+          findingIds: [],
+          aiProposalIds: [],
+          summaryCounts: {},
           evidenceId,
           scope,
           documents: [],

@@ -1,61 +1,83 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export const CONTROLLED_TAX_CATEGORIES = [
-  'W2',
-  '1099_NEC',
-  '1099_MISC',
-  '1099_INT',
-  '1099_DIV',
-  '1099_B',
-  '1098_MORTGAGE',
-  'K1',
-  'RECEIPT',
-  'BANK_STATEMENT',
-  'OTHER'
+  'W-2',
+  '1099-INT',
+  '1099-DIV',
+  '1099-B',
+  '1099-NEC',
+  '1099-MISC',
+  '1099-R',
+  '1099-K',
+  '1098',
+  '1098-T',
+  '1095-A',
+  'Schedule K-1',
+  'Form 1040 (Prior Year)',
+  'Form 1120-S',
+  'Form 1065',
+  'Bank Statement',
+  'Profit & Loss Statement',
+  'Balance Sheet',
+  'Other Supporting Schedule',
 ] as const;
 
-export type TaxDocumentCategory = typeof CONTROLLED_TAX_CATEGORIES[number] | (string & {});
+export type TaxDocumentCategory = (typeof CONTROLLED_TAX_CATEGORIES)[number];
+
+export type HumanReviewAction =
+  | 'ACCEPT'
+  | 'CORRECT'
+  | 'RECLASSIFY'
+  | 'MARK_DUPLICATE'
+  | 'MARK_SUPERSEDED'
+  | 'REQUEST_REPLACEMENT'
+  | 'ESCALATE'
+  | 'REJECT';
 
 export interface ExtractedFieldProvenance {
-  fieldKey: string;
-  fieldLabel: string;
-  rawValue: string;
-  normalizedValue: string | number;
+  fieldKey?: string;
+  fieldLabel?: string;
+  extractedValue?: unknown;
   confidence: number;
-  boundingBox?: [number, number, number, number];
-  pageNumber: number;
+  confidenceTier: 'HIGH_CONFIDENCE' | 'REVIEW_REQUIRED' | 'LOW_CONFIDENCE' | string;
+  isMaterialField?: boolean;
+  sourceReference?: string;
 }
 
 export interface DocumentIntelligenceRecord {
-  id: string;
   documentId: string;
-  clientId: string;
-  taxYear: number;
-  detectedCategory: TaxDocumentCategory;
-  confidence: number;
-  status: 'PENDING' | 'EXTRACTED' | 'REVIEWED' | 'ERROR';
-  fields: Record<string, ExtractedFieldProvenance>;
-  processedAt: string;
+  ocrState: 'PENDING_OCR' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | string;
+  ocrArtifact?: { pageCount: number };
+  aiDetectedCategory: TaxDocumentCategory | string;
+  classificationConfidence: number;
+  classificationConflict: boolean;
+  humanReviewRequired: boolean;
+  duplicateDetection: {
+    isDuplicate: boolean;
+    duplicateType?: string;
+    matchedDocumentId?: string;
+  };
+  versionIntelligence: {
+    relationship: 'ORIGINAL' | 'CORRECTED' | 'SUPERSEDED' | string;
+    versionNumber: number;
+    requiresDownstreamRevalidation?: boolean;
+  };
+  extractedData?: Record<string, ExtractedFieldProvenance | unknown>;
 }
 
 export interface HumanReviewQueueItem {
-  id: string;
-  intelligenceRecordId: string;
-  documentTitle: string;
-  clientName: string;
-  detectedCategory: TaxDocumentCategory;
-  flagReason: string;
+  reviewItemId: string;
+  documentId: string;
+  clientId: string;
+  taxYear: number;
+  filename: string;
+  originalFileName: string;
+  clientClaimedCategory: string;
+  claimedCategory: string;
+  aiDetectedCategory: TaxDocumentCategory;
+  reviewReasons: string[];
+  flaggedFields: ExtractedFieldProvenance[];
+  reason: string;
   confidence: number;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  status: 'QUEUED' | 'IN_REVIEW' | 'RESOLVED';
-  createdAt: string;
-}
-
-export interface HumanReviewAction {
-  action: 'APPROVE' | 'CORRECT' | 'REJECT' | 'RECLASSIFY';
-  corrections?: Record<string, string>;
-  notes?: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW' | string;
+  status: 'PENDING' | 'PENDING_REVIEW' | 'IN_REVIEW' | 'REVIEWED' | 'COMPLETED' | string;
+  intelligenceRecord?: DocumentIntelligenceRecord;
 }

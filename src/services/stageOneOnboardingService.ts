@@ -12,8 +12,9 @@ export interface SupportingIdDoc {
 }
 
 export interface DuplicateCheckReport {
-  status: 'CLEARED' | 'FLAGGED' | 'RESOLVED';
+  status: 'CLEARED' | 'FLAGGED' | 'RESOLVED' | 'EXACT_MATCH';
   matchedClientIds?: string[];
+  matches?: Array<{ matchedField: string; details: string; confidence: string }>;
   notes?: string;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -52,6 +53,7 @@ export interface StageOneDossier {
     city?: string;
     state?: string;
     zipCode?: string;
+    zip?: string;
   };
   supportingDocs?: SupportingIdDoc[];
   duplicateCheck?: DuplicateCheckReport;

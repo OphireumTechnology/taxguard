@@ -1,20 +1,28 @@
-export interface ReviewSubmission {
-  evidencePackage: any;
+import type { EvidencePackage } from '../types';
+
+export interface HumanReviewSubmission {
+  evidencePackage: EvidencePackage;
   title: string;
   description: string;
   itemType: string;
-  severity: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   riskLevel: string;
   assignedRole: string;
 }
 
-export class HumanReviewBridge {
-  static submit(submission: ReviewSubmission) {
+export interface HumanReviewItem extends HumanReviewSubmission {
+  queueItemId: string;
+  status: 'PENDING_REVIEW';
+  createdAt: string;
+}
+
+export const HumanReviewBridge = {
+  submit(input: HumanReviewSubmission): HumanReviewItem {
     return {
-      queueItemId: `rev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      ...submission,
-      status: 'PENDING',
-      submittedAt: new Date().toISOString(),
+      ...input,
+      queueItemId: `rev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      status: 'PENDING_REVIEW',
+      createdAt: new Date().toISOString()
     };
   }
-}
+};

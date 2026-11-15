@@ -1,4 +1,5 @@
-export interface TraceEntry {
+export interface DecisionTraceEntry {
+  traceId: string;
   clientId: string;
   engagementId: string;
   taxYear: number;
@@ -13,16 +14,23 @@ export interface TraceEntry {
   humanReviewIds: string[];
   isAiProposedOnly: boolean;
   correlationId: string;
-  traceId?: string;
-  timestamp?: string;
+  recordedAt: string;
 }
 
-export class DecisionTraceLedger {
-  static append(entry: TraceEntry): TraceEntry & { traceId: string; timestamp: string } {
-    return {
-      ...entry,
-      traceId: entry.traceId || `trace_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      timestamp: entry.timestamp || new Date().toISOString(),
+const traceBuffer: DecisionTraceEntry[] = [];
+
+export const DecisionTraceLedger = {
+  append(input: Omit<DecisionTraceEntry, 'traceId' | 'recordedAt'>): DecisionTraceEntry {
+    const entry: DecisionTraceEntry = {
+      ...input,
+      traceId: `trc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      recordedAt: new Date().toISOString()
     };
+    traceBuffer.push(entry);
+    if (traceBuffer.length > 500) traceBuffer.shift();
+    return entry;
+  },
+  list(): DecisionTraceEntry[] {
+    return [...traceBuffer];
   }
-}
+};

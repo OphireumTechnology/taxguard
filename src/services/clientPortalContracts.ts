@@ -35,13 +35,32 @@ export interface CaseStages {
   [key: string]: any;
 }
 
+export interface ConsultationHistoryItem {
+  requestId: string;
+  topic: string;
+  createdAt: string;
+  appointment?: {
+    status: string;
+    startsAt: string;
+    timezone: string;
+    mode: string;
+  } | null;
+}
+
+export interface SignaturePackageStatus {
+  packageId: string;
+  taxYear: number;
+  releasedAt: string;
+  status?: string;
+}
+
 export function portalErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return 'The client portal service encountered an unexpected error.';
 }
 
 export const clientPortalContracts = {
-  async engagements(clientId: string, signal?: AbortSignal): Promise<{ items: PortalEngagement[] }> {
+  async engagements(_clientId: string, _signal?: AbortSignal): Promise<{ items: PortalEngagement[] }> {
     return {
       items: [
         {
@@ -62,7 +81,7 @@ export const clientPortalContracts = {
     };
   },
 
-  async caseStages(clientId: string, engagementId: string, taxYear: number, signal?: AbortSignal): Promise<CaseStages> {
+  async caseStages(_clientId: string, _engagementId: string, _taxYear: number, _signal?: AbortSignal): Promise<CaseStages> {
     return {
       caseStatus: 'ACTIVE',
       currentStage: 4,
@@ -70,7 +89,11 @@ export const clientPortalContracts = {
         { stageNumber: 1, title: 'Client Onboarding & Identity Verification', status: 'COMPLETED', evidenceAvailable: true },
         { stageNumber: 2, title: 'Document Collection & Source Vault', status: 'COMPLETED', evidenceAvailable: true },
         { stageNumber: 3, title: 'Source Data Extraction & OCR Indexing', status: 'COMPLETED', evidenceAvailable: true },
-        { stageNumber: 4, title: 'Ledger Reconstruction & Book-to-Tax', status: 'IN_PROGRESS', evidenceAvailable: true,
+        {
+          stageNumber: 4,
+          title: 'Ledger Reconstruction & Book-to-Tax',
+          status: 'IN_PROGRESS',
+          evidenceAvailable: true,
           checks: [
             { code: 'postedEntries', passed: true },
             { code: 'noEntriesAwaitingReview', passed: false },
@@ -86,6 +109,17 @@ export const clientPortalContracts = {
     };
   },
 
+  async consultations(
+    _clientId: string,
+    _after?: string
+  ): Promise<{ items: ConsultationHistoryItem[]; nextCursor: string | null }> {
+    return { items: [], nextCursor: null };
+  },
+
+  async signaturePackages(_clientId: string): Promise<SignaturePackageStatus[]> {
+    return [];
+  },
+
   getStageContract: async (stageNumber: number) => ({ stage: stageNumber, title: `Stage ${stageNumber}`, canAdvance: true }),
-  signDocument: async (docId: string) => ({ success: true })
+  signDocument: async (_docId: string) => ({ success: true })
 };

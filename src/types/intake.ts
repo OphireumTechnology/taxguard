@@ -1,3 +1,14 @@
+export type USEntityType =
+  | 'individual'
+  | 'sole_proprietorship'
+  | 'llc'
+  | 'scorp'
+  | 'ccorp'
+  | 'partnership'
+  | 'nonprofit'
+  | 'trust_estate'
+  | string;
+
 export type USStateCode =
   | 'AL' | 'AK' | 'AZ' | 'AR' | 'CA' | 'CO' | 'CT' | 'DE' | 'DC' | 'FL'
   | 'GA' | 'HI' | 'ID' | 'IL' | 'IN' | 'IA' | 'KS' | 'KY' | 'LA' | 'ME'
@@ -6,48 +17,38 @@ export type USStateCode =
   | 'SC' | 'SD' | 'TN' | 'TX' | 'UT' | 'VT' | 'VA' | 'WA' | 'WV' | 'WI'
   | 'WY' | string;
 
-export type USEntityType =
-  | 'individual'
-  | 'sole_proprietorship'
-  | 'single_member_llc'
-  | 'multi_member_llc'
-  | 's_corporation'
-  | 'c_corporation'
-  | 'partnership'
-  | 'nonprofit'
-  | 'trust_estate'
-  | string;
-
 export interface OwnerOrOfficer {
-  id?: string;
-  name: string;
-  title: string;
+  id: string;
+  fullName?: string;
+  legalName?: string;
+  title?: string;
+  role?: string;
   ownershipPercentage: number;
-  ssnOrEin?: string;
-  [key: string]: any;
-}
-
-export interface FullClientIntakeDossier {
-  id?: string;
-  clientId?: string;
-  taxYear?: number;
-  status?: string;
-  entityType?: USEntityType;
-  businessProfile?: any;
-  personalProfile?: any;
-  owners?: OwnerOrOfficer[];
-  taxFilingStatus?: string;
-  accountingSoftware?: string;
-  priorYearFiled?: boolean;
-  notes?: string;
-  [key: string]: any;
+  ssnOrTinMasked?: string;
+  maskedSsnOrTin?: string;
+  email?: string;
+  phone?: string;
+  startDate?: string;
+  isUsResident?: boolean;
+  isAuthorizedSignatory?: boolean;
+  isResponsibleParty?: boolean;
+  isBoiBeneficialOwner?: boolean;
+  approvalAuthorityLevel?: string;
+  portalAccessRole?: string;
+  authorizedAccountingContact?: boolean;
+  authorizedBillingContact?: boolean;
+  isPrimaryContact?: boolean;
+  isAuthorizedSigner?: boolean;
+  distributionAmount?: number;
+  guaranteedPayments?: number;
+  [key: string]: unknown;
 }
 
 export interface GovernedResearchRule {
   id: string;
-  entityType: string;
+  entityType: USEntityType | 'all';
   taxYear: number;
-  jurisdictionLevel: string;
+  jurisdictionLevel: 'federal' | 'state' | string;
   jurisdictionCode: string;
   triggerCondition: string;
   requiredDocumentName: string;
@@ -57,6 +58,7 @@ export interface GovernedResearchRule {
   dateLastVerified: string;
   professionalApprover: string;
   ruleVersion: string;
+  [key: string]: unknown;
 }
 
 export interface AccountingStagingRecord {
@@ -65,7 +67,7 @@ export interface AccountingStagingRecord {
   clientName: string;
   sourceDocumentId: string;
   sourceDocumentName: string;
-  sourcePageNumber: number;
+  sourcePageNumber?: number;
   recordType: string;
   date: string;
   period: string;
@@ -78,6 +80,54 @@ export interface AccountingStagingRecord {
   confidenceScore: number;
   aiModelVersion: string;
   status: string;
-  reviewedBy?: string | null;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  isDuplicateFlag: boolean;
+  auditTrail: Array<{
+    action: string;
+    actor: string;
+    timestamp: string;
+    notes?: string;
+  }>;
+  [key: string]: unknown;
+}
+
+export interface FullClientIntakeDossier {
+  id: string;
+  clientId: string;
+  clientName: string;
+  legalBusinessName?: string;
+  dbaName?: string;
+  entityType: USEntityType;
+  taxYear: number;
+  primaryJurisdiction: string;
+  assignedAccountantName?: string;
+  assignedAccountantId?: string;
+  currentEngagementTitle?: string;
+  percentComplete: number;
+  currentSectionStep: number;
+  status: string;
+  setupAreas: Array<{
+    id: string;
+    name: string;
+    status: string;
+    statusLabel: string;
+    badgeVariant: string;
+    description: string;
+    requiredForSubmission: boolean;
+    completionPercentage: number;
+  }>;
+  businessProfile: Record<string, any>;
+  jurisdictions: Record<string, any>;
+  entitySpecificDetails?: Record<string, any>;
+  ownersAndContacts: OwnerOrOfficer[];
+  accountingSetup: Record<string, any>;
+  businessOperations: Record<string, any>;
+  crossBorderTriggers: Record<string, any>;
+  documentChecklist: Array<Record<string, any>>;
+  preferencesAndConsents: Record<string, any>;
+  accountantCorrections?: Array<Record<string, any>>;
+  createdAt?: string;
+  updatedAt?: string;
   [key: string]: any;
 }

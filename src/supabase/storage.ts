@@ -1,22 +1,17 @@
-import { supabase, isSupabaseConfigured } from './config';
+import { apiEndpoint } from '../config/apiEndpoint';
+import { getStoredToken } from '../services/api';
 
 export async function getSecureDownloadUrl(documentId: string): Promise<string> {
-  if (!documentId) return '#';
-  if (!isSupabaseConfigured()) {
-    return `/api/documents/${encodeURIComponent(documentId)}/download`;
+  const token = getStoredToken();
+  const res = await fetch(apiEndpoint(`/api/documents/${encodeURIComponent(documentId)}/download`), {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!res.ok) {
+    throw new Error('Secure document download is unavailable in this environment.');
   }
-
-  try {
-    const { data, error } = await supabase.storage
-      .from('taxguard-vault')
-      .createSignedUrl(documentId, 3600);
-
-    if (error || !data?.signedUrl) {
-      return `/api/documents/${encodeURIComponent(documentId)}/download`;
-    }
-
-    return data.signedUrl;
-  } catch {
-    return `/api/documents/${encodeURIComponent(documentId)}/download`;
+  const data = await res.json().catch(() => null);
+  if (!data?.url) {
+    throw new Error('Secure download URL not returned.');
   }
+  return data.url as string;
 }

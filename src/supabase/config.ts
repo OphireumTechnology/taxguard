@@ -1,75 +1,71 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-export interface SupabaseConfigResolution {
-  isConfigured: boolean;
-  issues: string[];
-  url?: string;
-  anonKey?: string;
-}
-
-export function resolveSupabaseBrowserConfig(): SupabaseConfigResolution {
-  const url = import.meta.env?.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY;
-  const issues: string[] = [];
-
-  if (!url || typeof url !== 'string' || !url.trim()) {
-    issues.push('URL_MISSING');
-  } else if (url.includes('placeholder') || url.includes('example.com')) {
-    issues.push('PLACEHOLDER_VALUE');
-  } else {
-    try {
-      const parsed = new URL(url);
-      const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
-      if (parsed.protocol !== 'https:' && !isLoopback) {
-        issues.push('URL_INSECURE');
-      }
-    } catch {
-      issues.push('URL_INVALID');
-    }
-  }
-
-  if (!anonKey || typeof anonKey !== 'string' || !anonKey.trim()) {
-    issues.push('ANON_KEY_MISSING');
-  } else if (anonKey.includes('placeholder')) {
-    issues.push('PLACEHOLDER_VALUE');
-  }
-
-  const isConfigured = issues.length === 0;
-  return {
-    isConfigured,
-    issues,
-    url: isConfigured ? url : undefined,
-    anonKey: isConfigured ? anonKey : undefined,
-  };
+function readEnv(key: string): string {
+  const val = (import.meta.env as Record<string, string | undefined>)[key];
+  return (val || '').trim();
 }
 
 export function isSupabaseConfigured(): boolean {
-  return resolveSupabaseBrowserConfig().isConfigured;
+  const url = readEnv('VITE_SUPABASE_URL');
+  const anonKey = readEnv('VITE_SUPABASE_ANON_KEY');
+  return Boolean(
+    url &&
+    anonKey &&
+    !url.includes('placeholder') &&
+    !anonKey.includes('placeholder') &&
+    !url.includes('unconfigured')
+  );
 }
 
 export function isStaffIdentityDevelopmentConfigured(): boolean {
-  return isSupabaseConfigured() && Boolean(import.meta.env?.DEV || import.meta.env?.VITE_APP_ENV === 'development');
+  if (import.meta.env.PROD) return false;
+  return readEnv('VITE_STAFF_IDENTITY_DEVELOPMENT') === 'true' || !isSupabaseConfigured();
 }
 
-const config = resolveSupabaseBrowserConfig();
+function createFailClosedSupabaseClient(): SupabaseClient {
+  const unconfiguredError = { message: 'Supabase authentication is not configured for this environment.' };
+  const stubAuth = {
+    getSession: async () => ({ data: { session: null }, error: null }),
+    getUser: async () => ({ data: { user: null }, error: null }),
+    signInWithPassword: async () => ({ data: { user: null, session: null }, error: unconfiguredError }),
+    signUp: async () => ({ data: { user: null, session: null }, error: unconfiguredError }),
+    signOut: async () => ({ error: null }),
+    resend: async () => ({ data: null, error: unconfiguredError }),
+    resetPasswordForEmail: async () => ({ data: null, error: unconfiguredError }),
+    onAuthStateChange: () => ({
+      data: {
+        subscription: {
+          id: 'stub-subscription',
+          callback: () => {},
+          unsubscribe: () => {}
+        }
+      }
+    }),
+    mfa: {
+      getAuthenticatorAssuranceLevel: async () => ({
+        data: { currentLevel: null, nextLevel: null, currentAuthenticationMethods: [] },
+        error: unconfiguredError
+      }),
+      listFactors: async () => ({ data: { all: [], totp: [], phone: [] }, error: unconfiguredError }),
+      enroll: async () => ({ data: null, error: unconfiguredError }),
+      challenge: async () => ({ data: null, error: unconfiguredError }),
+      verify: async () => ({ data: null, error: unconfiguredError }),
+      challengeAndVerify: async () => ({ data: null, error: unconfiguredError }),
+      unenroll: async () => ({ data: null, error: unconfiguredError })
+    }
+  };
 
-export const supabase: SupabaseClient = config.isConfigured
-  ? createClient(config.url!, config.anonKey!, {
+  return {
+    auth: stubAuth
+  } as unknown as SupabaseClient;
+}
+
+export const supabase: SupabaseClient = isSupabaseConfigured()
+  ? createClient(readEnv('VITE_SUPABASE_URL'), readEnv('VITE_SUPABASE_ANON_KEY'), {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
+        detectSessionInUrl: true
+      }
     })
-  : createClient('https://unconfigured.invalid', 'fail-closed-anon-key', {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-      global: {
-        fetch: async () => {
-          throw new Error('TaxGuard authentication is not configured in this environment.');
-        },
-      },
-    });
+  : createFailClosedSupabaseClient();

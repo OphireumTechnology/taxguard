@@ -7,12 +7,49 @@ export interface GeneratedDocumentRequirement {
   [key: string]: any;
 }
 
+export interface TaxQuestionnaireAnswers {
+  filingStatus: string;
+  hasDependents: boolean;
+  dependentCount: number;
+  hasW2Employment: boolean;
+  hasMultipleEmployers: boolean;
+  hasSelfEmployment: boolean;
+  hasScheduleCActivity: boolean;
+  hasPartnershipInterests: boolean;
+  hasSCorporationInterests: boolean;
+  hasCCorporationInterests: boolean;
+  hasRentalProperties: boolean;
+  hasBusinessAccountingRecords: boolean;
+  hasInterestIncome: boolean;
+  hasDividendIncome: boolean;
+  hasSecuritiesTrades: boolean;
+  hasCapitalGainsOrLosses: boolean;
+  hasDigitalAssetsOrCrypto: boolean;
+  hasRetirementDistributions: boolean;
+  hasSocialSecurityBenefits: boolean;
+  hasMarketplaceInsurance: boolean;
+  hasHSA: boolean;
+  hasEducationExpenses: boolean;
+  hasMortgageOrRealEstateTaxes: boolean;
+  hasItemizedDeductions: boolean;
+  hasEstimatedTaxPayments: boolean;
+  hasPriorYearFederalReturn: boolean;
+  hasPriorYearStateReturn: boolean;
+  hasForeignIncomeOrAssets: boolean;
+  hasForeignBankAccounts: boolean;
+  hasMultiStateIncome: boolean;
+  hasPartYearResidency: boolean;
+  stateOfResidency: string;
+  additionalStates: string[];
+  [key: string]: unknown;
+}
+
 export interface StoredQuestionnaireRecord {
   id: string;
   clientId: string;
   taxYear: number;
   tenantId?: string;
-  answers?: Record<string, any>;
+  answers?: TaxQuestionnaireAnswers;
   status?: string;
   [key: string]: any;
 }

@@ -1,13 +1,32 @@
-export interface StaffDirectoryPage<T> {
-  items: T[];
-  nextCursor: string | null;
-  source: 'durable';
+export type StaffInvitationRole =
+  | 'accountant'
+  | 'reviewer'
+  | 'senior_reviewer'
+  | 'bookkeeper'
+  | 'practice_manager'
+  | 'operations'
+  | 'admin';
+
+export type StaffMembershipAction = 'suspend' | 'deactivate' | 'reactivate';
+
+export interface StaffInvitationIssueInput {
+  email: string;
+  legalFirstName: string;
+  legalLastName: string;
+  role: StaffInvitationRole;
+}
+
+export interface StaffInvitationIssueResult {
+  id: string;
+  token: string;
+  expiresAt: string;
+  delivery: 'administrator_handoff';
 }
 
 export interface StaffDirectoryQuery {
+  status?: string;
   limit?: number;
   cursor?: string;
-  status?: string;
 }
 
 export interface StaffMemberRecord {
@@ -50,18 +69,8 @@ export interface StaffInvitationRecord {
   };
 }
 
-export interface StaffInvitationIssueInput {
-  email: string;
-  role: string;
-  legalFirstName: string;
-  legalLastName: string;
+export interface StaffDirectoryPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  source: 'durable';
 }
-
-export interface StaffInvitationIssueResult {
-  id: string;
-  token: string;
-  delivery: string;
-  expiresAt: string;
-}
-
-export type StaffMembershipAction = 'approve' | 'suspend' | 'deactivate' | 'reactivate' | 'revoke';

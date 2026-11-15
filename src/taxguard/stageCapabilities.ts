@@ -1,144 +1,174 @@
 import { CANONICAL_STAGE_LABELS } from '../server/taxguard/persistence.types';
 
-export const BLOCKED_STAGES: readonly number[] = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-
-export interface StageCapability {
+export interface StageCapabilityInfo {
   stage: number;
   name: string;
   purpose: string;
   evidence: 'SYSTEM_VERIFIED' | 'HUMAN_ATTESTED' | 'BLOCKED';
-  blockedReason?: string;
   responsibility: string;
   clientGuidance: string;
+  blockedReason?: string;
 }
 
-const STAGE_DETAILS: Record<number, Omit<StageCapability, 'stage' | 'name'>> = {
+export const BLOCKED_STAGES: number[] = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+const STAGE_CAPABILITIES: Record<number, StageCapabilityInfo> = {
   1: {
-    purpose: 'Validate taxpayer identity, engagement terms, and assign professional team.',
+    stage: 1,
+    name: CANONICAL_STAGE_LABELS[1],
+    purpose: 'Establish taxpayer identity, entity classification, and engagement authority.',
     evidence: 'SYSTEM_VERIFIED',
-    responsibility: 'System automated validation and engagement coordinator assignment.',
-    clientGuidance: 'Review your personal or business profile and confirm contact information.',
+    responsibility: 'Client completes onboarding profile; practice verifies engagement scope.',
+    clientGuidance: 'Verify your profile details and tax year selections in your portal.'
   },
   2: {
-    purpose: 'Collect required tax documents, statements, prior year returns, and questionnaires.',
-    evidence: 'HUMAN_ATTESTED',
-    responsibility: 'Client provides documents; practice manager confirms intake receipt.',
-    clientGuidance: 'Upload requested source documents to the Document Vault and complete questionnaires.',
+    stage: 2,
+    name: CANONICAL_STAGE_LABELS[2],
+    purpose: 'Collect source tax documents and supporting financial records into private storage.',
+    evidence: 'SYSTEM_VERIFIED',
+    responsibility: 'Client uploads requested records; practice tracks completeness.',
+    clientGuidance: 'Upload any requested W-2, 1099, K-1, or accounting documents in Documents.'
   },
   3: {
-    purpose: 'Verify document completeness, integrity, and extract transaction data.',
+    stage: 3,
+    name: CANONICAL_STAGE_LABELS[3],
+    purpose: 'Review uploaded source documents for completeness, legibility, and discrepancy resolution.',
     evidence: 'HUMAN_ATTESTED',
-    responsibility: 'Case reviewer verifies document completeness and clarifies discrepancies.',
-    clientGuidance: 'Review open document requests or answer clarification questions from your accountant.',
+    responsibility: 'Practice staff verify extracted fields and resolve document exceptions.',
+    clientGuidance: 'Respond to any open document replacement or clarification requests.'
   },
   4: {
-    purpose: 'Record bookkeeping transactions, classify business expenses, and balance books.',
+    stage: 4,
+    name: CANONICAL_STAGE_LABELS[4],
+    purpose: 'Post and classify accounting entries in the durable general ledger.',
     evidence: 'SYSTEM_VERIFIED',
-    responsibility: 'Bookkeeper and accounting team post entries to the general ledger.',
-    clientGuidance: 'No action needed unless your bookkeeper requests clarification on specific transactions.',
+    responsibility: 'Bookkeeper records ledger entries; system verifies balance.',
+    clientGuidance: 'Review any uncategorized transaction requests from your bookkeeper.'
   },
   5: {
-    purpose: 'Reconcile bank accounts, credit cards, loans, and review ledger balances.',
+    stage: 5,
+    name: CANONICAL_STAGE_LABELS[5],
+    purpose: 'Reconcile bank, credit, and balance sheet accounts for the engagement tax year.',
     evidence: 'SYSTEM_VERIFIED',
-    responsibility: 'Accounting specialist completes periodic reconciliations.',
-    clientGuidance: 'Provide end-of-year bank statements or merchant account reports if requested.',
+    responsibility: 'Bookkeeper completes reconciliations; reviewer inspects open items.',
+    clientGuidance: 'Provide missing monthly statements if requested.'
   },
   6: {
-    purpose: 'Conduct preliminary CPA review of workpapers, tax positions, and audit risk.',
+    stage: 6,
+    name: CANONICAL_STAGE_LABELS[6],
+    purpose: 'Perform independent professional review of workpapers and exceptions.',
     evidence: 'HUMAN_ATTESTED',
-    responsibility: 'Certified Public Accountant (CPA) conducts review.',
-    clientGuidance: 'Your designated CPA is reviewing workpapers. You will be notified if additional records are needed.',
+    responsibility: 'Assigned CPA reviewer attests workpaper completeness.',
+    clientGuidance: 'No client action needed unless your reviewer sends a message.'
   },
   7: {
-    purpose: 'Generate book-to-tax adjustments and compile financial statements.',
+    stage: 7,
+    name: CANONICAL_STAGE_LABELS[7],
+    purpose: 'Compile trial balance and book-to-tax financial reporting schedules.',
     evidence: 'HUMAN_ATTESTED',
-    responsibility: 'CPA reviews and releases final financial workpapers.',
-    clientGuidance: 'Review your preliminary year-end financial summaries in the documents tab.',
+    responsibility: 'Practice preparer and reviewer finalize statements for release.',
+    clientGuidance: 'Financial statements will appear in your portal once approved.'
   },
   8: {
-    purpose: 'Formulate tax advisory strategy, evaluate deductions, and document tax positions.',
+    stage: 8,
+    name: CANONICAL_STAGE_LABELS[8],
+    purpose: 'Document forward-looking tax strategy and planning considerations.',
     evidence: 'HUMAN_ATTESTED',
-    responsibility: 'Senior Tax Advisor and CPA document planning considerations.',
-    clientGuidance: 'Schedule a consultation meeting to discuss strategic tax recommendations.',
+    responsibility: 'Tax advisor documents strategic recommendations.',
+    clientGuidance: 'Schedule an advisory consultation to review planning opportunities.'
   },
   9: {
-    purpose: 'Prepare federal and state income tax return forms and schedules.',
+    stage: 9,
+    name: CANONICAL_STAGE_LABELS[9],
+    purpose: 'Prepare federal and state tax return drafts from verified workpapers.',
     evidence: 'BLOCKED',
-    blockedReason: 'Verified tax preparation engine is required for return computation.',
-    responsibility: 'Tax preparer and automated calculation engine.',
-    clientGuidance: 'Preparation begins once prior stage evidence and workpaper attestations are satisfied.',
+    responsibility: 'Licensed preparer and independent reviewer complete draft assembly.',
+    clientGuidance: 'Your practice prepares the return internally. Check Messages for any questions.',
+    blockedReason: 'Draft tax return preparation is managed inside the practice workspace until authorized for review.'
   },
   10: {
-    purpose: 'Partner-level quality control review and taxpayer preview authorization.',
+    stage: 10,
+    name: CANONICAL_STAGE_LABELS[10],
+    purpose: 'Independent partner quality control and final professional authorization.',
     evidence: 'BLOCKED',
-    blockedReason: 'Requires completed draft return computation from Stage 09.',
-    responsibility: 'Managing Partner / Senior CPA.',
-    clientGuidance: 'You will receive an invitation to review your completed return draft once approved.',
+    responsibility: 'Authorizing CPA completes independent sign-off.',
+    clientGuidance: 'Await notification when your return is authorized for signature.',
+    blockedReason: 'Final authorization is restricted to an independent authorizing CPA.'
   },
   11: {
-    purpose: 'Execute IRS Form 8879 and state e-file authorization signatures.',
+    stage: 11,
+    name: CANONICAL_STAGE_LABELS[11],
+    purpose: 'Deliver Form 8879 electronic filing authorization package.',
     evidence: 'BLOCKED',
-    blockedReason: 'Regulated electronic signature provider integration required.',
-    responsibility: 'Taxpayer / Authorized Officer signature.',
-    clientGuidance: 'E-signature packages will be delivered to your verified email and portal inbox.',
+    responsibility: 'Practice releases signature package; taxpayer executes authorization.',
+    clientGuidance: 'Signature packages become available once Stage 10 authorization is released.',
+    blockedReason: 'Electronic signature release is gated behind final professional authorization.'
   },
   12: {
-    purpose: 'Direct electronic transmission to the IRS Modernized e-File (MeF) system and state DORs.',
+    stage: 12,
+    name: CANONICAL_STAGE_LABELS[12],
+    purpose: 'Transmit authorized returns via IRS MeF and state e-file gateways.',
     evidence: 'BLOCKED',
-    blockedReason: 'Direct electronic transmission is not authorized in this environment.',
-    responsibility: 'Authorized E-File Provider.',
-    clientGuidance: 'Filing transmissions are handled directly by your licensed accounting firm.',
+    responsibility: 'Practice transmits authorized e-file package.',
+    clientGuidance: 'Filing confirmation will be posted once transmission is accepted.',
+    blockedReason: 'Live e-file transmission is not enabled from the client portal.'
   },
   13: {
-    purpose: 'Post-filing debrief and client feedback session.',
+    stage: 13,
+    name: CANONICAL_STAGE_LABELS[13],
+    purpose: 'Post-filing debrief and client feedback collection.',
     evidence: 'BLOCKED',
-    blockedReason: 'Dependent on successful filing transmission.',
-    responsibility: 'Client Relationship Manager.',
-    clientGuidance: 'Schedule an optional debrief call after tax filing completion.',
+    responsibility: 'Advisor schedules post-filing review.',
+    clientGuidance: 'Available after filing completion.',
+    blockedReason: 'Debrief opens once the return filing stage completes.'
   },
   14: {
-    purpose: 'Monitor IRS and state tax authority correspondence and notice tracking.',
+    stage: 14,
+    name: CANONICAL_STAGE_LABELS[14],
+    purpose: 'Monitor and resolve IRS or state agency notices.',
     evidence: 'BLOCKED',
-    blockedReason: 'Dependent on filed return processing.',
-    responsibility: 'Practice Support Team.',
-    clientGuidance: 'Upload any tax agency correspondence immediately to the Document Vault.',
+    responsibility: 'Practice tracks and responds to tax notices.',
+    clientGuidance: 'Upload any received tax notices through Documents.',
+    blockedReason: 'Notice resolution is managed by practice staff.'
   },
   15: {
-    purpose: 'Ongoing quarterly monitoring, estimated tax projections, and mid-year tax updates.',
+    stage: 15,
+    name: CANONICAL_STAGE_LABELS[15],
+    purpose: 'Ongoing compliance and estimated tax monitoring.',
     evidence: 'BLOCKED',
-    blockedReason: 'Dependent on filed return processing.',
-    responsibility: 'Tax Advisory Team.',
-    clientGuidance: 'Check back for quarterly estimated tax reminders throughout the year.',
+    responsibility: 'Practice monitors quarterly obligations.',
+    clientGuidance: 'Contact your advisor for quarterly payment adjustments.',
+    blockedReason: 'Ongoing monitoring activates after annual filing completion.'
   },
   16: {
-    purpose: 'Permanent document archival and compliance record retention.',
+    stage: 16,
+    name: CANONICAL_STAGE_LABELS[16],
+    purpose: 'Permanent encrypted archival of filed returns and workpapers.',
     evidence: 'BLOCKED',
-    blockedReason: 'Dependent on return completion and engagement close.',
-    responsibility: 'Compliance and Records Officer.',
-    clientGuidance: 'Download and archive copies of all finalized returns and workpapers for your permanent records.',
+    responsibility: 'Practice archives finalized engagement records.',
+    clientGuidance: 'Verified source documents remain available in your Document Vault.',
+    blockedReason: 'Permanent archival runs after engagement completion.'
   },
   17: {
-    purpose: 'Annual engagement review, service tier adjustment, and contract renewal.',
+    stage: 17,
+    name: CANONICAL_STAGE_LABELS[17],
+    purpose: 'Annual engagement renewal and scope confirmation.',
     evidence: 'BLOCKED',
-    blockedReason: 'Requires completion of the current annual cycle.',
-    responsibility: 'Engagement Partner.',
-    clientGuidance: 'Review your upcoming year service agreement when renewal approaches.',
+    responsibility: 'Practice issues next-year engagement letter.',
+    clientGuidance: 'Contact your advisor to renew for the upcoming tax year.',
+    blockedReason: 'Renewal opens at the start of the next tax cycle.'
   },
   18: {
-    purpose: 'Transfer prior-year basis, depreciation schedules, and carryforwards into next tax year.',
+    stage: 18,
+    name: CANONICAL_STAGE_LABELS[18],
+    purpose: 'Carry forward prior-year continuity schedules to the new cycle.',
     evidence: 'BLOCKED',
-    blockedReason: 'Requires completion of all prior stages.',
-    responsibility: 'Automated Migration System.',
-    clientGuidance: 'Your historical carryover amounts will be automatically transferred to the next tax year.',
-  },
+    responsibility: 'Practice initializes prior-year carryforwards.',
+    clientGuidance: 'Prior-year documents remain accessible in Documents.',
+    blockedReason: 'Prior-year transfer activates upon engagement renewal.'
+  }
 };
 
-export function stageCapability(stage: number): StageCapability | undefined {
-  const detail = STAGE_DETAILS[stage];
-  if (!detail) return undefined;
-  return {
-    stage,
-    name: CANONICAL_STAGE_LABELS[stage] ?? `Stage ${stage}`,
-    ...detail,
-  };
+export function stageCapability(stage: number): StageCapabilityInfo | undefined {
+  return STAGE_CAPABILITIES[stage];
 }

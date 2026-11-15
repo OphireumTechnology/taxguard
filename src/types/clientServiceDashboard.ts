@@ -1,63 +1,77 @@
+export interface ClientServiceCase {
+  id: string;
+  clientId: string;
+  engagementId: string;
+  taxYear: number;
+  stage: number;
+  status: string;
+  documents: Record<string, number>;
+}
+
 export interface ClientServiceRequest {
   id: string;
   caseKey: string;
-  status: 'OPEN' | 'VIEWED' | 'RESPONDED' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED' | string;
-  dueDate?: string;
+  type: string;
+  status: string;
+  priority: string;
   createdAt?: string;
-  title?: string;
-  clientId?: string;
+  dueDate?: string;
 }
 
 export interface ClientServiceThread {
   id: string;
+  caseKey: string;
+  category: string;
+  status: string;
   unread: number;
-  subject?: string;
-  clientId?: string;
+  lastMessageAt?: string;
 }
 
 export interface ClientServiceFollowUp {
   id: string;
   caseKey: string;
+  type: string;
   status: string;
   dueDate?: string;
-  notes?: string;
+  owner?: string;
 }
 
 export interface ClientServiceEscalation {
   id: string;
-  title: string;
-  severity?: string;
-  dueDate?: string;
-}
-
-export interface ClientServiceCase {
-  id: string;
-  clientId?: string;
-  engagementId?: string;
-  taxYear?: number;
-  clientName: string;
+  caseKey: string;
+  category: string;
+  level: number;
+  createdAt?: string;
   status: string;
-  stage: number;
-  assignedTo?: string;
 }
 
 export interface ClientServiceConversation {
-  id: string;
-  clientId: string;
-  subject: string;
-  unread: boolean;
-  messages: any[];
+  tenantId: string;
+  caseKey: string;
+  threadId: string;
+  messages: Array<{
+    id: string;
+    role: string;
+    createdAt: string;
+    content: string;
+    read: boolean;
+  }>;
 }
 
-export interface ClientServiceRequestDetail extends ClientServiceRequest {
-  clientName?: string;
+export interface ClientServiceRequestDetail {
+  tenantId: string;
+  caseKey: string;
+  requestId: string;
+  title: string;
   description?: string;
+  status: string;
 }
 
 export interface ClientServiceSnapshot {
+  tenantId: string;
+  cases: ClientServiceCase[];
   requests: ClientServiceRequest[];
   threads: ClientServiceThread[];
   followUps: ClientServiceFollowUp[];
   escalations: ClientServiceEscalation[];
-  cases?: ClientServiceCase[];
 }

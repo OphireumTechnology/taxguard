@@ -1,17 +1,16 @@
 import React from 'react';
+import { ShieldCheck } from 'lucide-react';
 
-export interface TaxGuardDiscrepanciesViewProps {
-  clientId?: string;
-  taxYear?: number;
-}
-
-export const TaxGuardDiscrepanciesView: React.FC<TaxGuardDiscrepanciesViewProps> = () => {
+export const TaxGuardDiscrepanciesView: React.FC<{ clientId?: string; taxYear?: number }> = ({ taxYear }) => {
   return (
-    <div className="p-6 rounded-2xl bg-[#0D2745] border border-slate-700/60 text-slate-200">
-      <h2 className="text-lg font-bold text-white mb-2">Discrepancy Review</h2>
-      <p className="text-sm text-slate-400">
-        No active discrepancies identified. Discrepancy checks are verified during Stage 03 document review.
+    <section className="rounded-2xl bg-[#0D2745] border border-slate-700/80 p-6 space-y-3 text-sm text-slate-200">
+      <div className="flex items-center gap-2 text-white font-bold">
+        <ShieldCheck className="w-5 h-5 text-[#D4A843]" />
+        <h2>Document &amp; Return Discrepancy Review{taxYear ? ` (${taxYear})` : ''}</h2>
+      </div>
+      <p className="text-slate-300 text-xs">
+        No unresolved discrepancies are currently flagged for your account. Any exceptions identified during professional review will appear here and in your Document Requests.
       </p>
-    </div>
+    </section>
   );
 };

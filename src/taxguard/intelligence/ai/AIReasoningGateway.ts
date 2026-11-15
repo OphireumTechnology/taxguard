@@ -1,48 +1,53 @@
 import type { EvidencePackage } from '../types';
 
 export interface AiReasoningProviderRequest {
-  purpose: string;
-  promptPurpose?: string;
-  taxYear?: number;
-  knowledgeSourceIds?: string[];
-  ruleEvaluationIds?: string[];
-  findingIds?: string[];
-  evidencePackage?: EvidencePackage;
-  package?: EvidencePackage;
-  [key: string]: any;
+  promptPurpose: string;
+  taxYear: number;
+  knowledgeSourceIds: string[];
+  ruleEvaluationIds: string[];
+  findingIds: string[];
 }
 
 export interface AiReasoningProviderResponse {
   explanation: string;
   issueSpots: string[];
   recommendations: string[];
-  confidence: string;
+  confidence: 'HIGH_CONFIDENCE' | 'MEDIUM_CONFIDENCE' | 'LOW_CONFIDENCE' | 'MISSING_CONFIDENCE';
 }
 
 export interface AiReasoningProvider {
-  model: string;
+  readonly model: string;
   reason(request: AiReasoningProviderRequest): Promise<AiReasoningProviderResponse>;
 }
 
-export class AIReasoningGateway {
-  static async reason(
+export interface AiProposal extends AiReasoningProviderResponse {
+  proposalId: string;
+  evidencePackageId: string;
+  purpose: string;
+  model: string;
+  createdAt: string;
+}
+
+export const AIReasoningGateway = {
+  async reason(
     provider: AiReasoningProvider,
     evidencePackage: EvidencePackage,
     purpose: string
-  ): Promise<AiReasoningProviderResponse & { proposalId: string; createdAt: string }> {
-    const res = await provider.reason({
-      purpose,
+  ): Promise<AiProposal> {
+    const response = await provider.reason({
       promptPurpose: purpose,
-      evidencePackage,
-      package: evidencePackage,
       taxYear: evidencePackage.taxYear,
       knowledgeSourceIds: evidencePackage.knowledgeSourceIds,
       ruleEvaluationIds: evidencePackage.ruleEvaluationIds,
+      findingIds: evidencePackage.findingIds
     });
     return {
-      ...res,
-      proposalId: `prop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      createdAt: new Date().toISOString(),
+      ...response,
+      proposalId: `prop_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      evidencePackageId: evidencePackage.evidencePackageId,
+      purpose,
+      model: provider.model,
+      createdAt: new Date().toISOString()
     };
   }
-}
+};
