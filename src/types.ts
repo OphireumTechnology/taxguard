@@ -355,7 +355,7 @@ export interface UserStatusUpdateResult {
 export interface ClientReassignmentResult {
   success: boolean;
   message?: string;
-  client?: User;
+  client?: { id: string; accountantId: string; reviewerId?: string };
   clientId?: string;
   newAccountantId?: string;
   error?: string;
