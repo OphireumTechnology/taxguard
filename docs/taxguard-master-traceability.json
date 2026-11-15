@@ -8342,7 +8342,7 @@
     "src/tests-e2e/15-phase13a-contracts.e2e.test.ts": "b681c91adb373b823fa626895859d64e173fd24aa7fb2bc3e3ae292c1f76fa35",
     "src/tests/accountantDashboardMasterplan.test.tsx": "1acb8d9f3fb2b5c9a1a92960c5fa56414504cd57c77a917f2773317e37cdb868",
     "src/tests/adminOperationalTruthfulness.test.tsx": "e97b697fbdfce468ac25d84052b098c98ff0bcce92c5d4f4dd5c43dd91d3ede7",
-    "src/tests/aiA00Orchestration.test.ts": "1b395aaa91205278d0889bdb19d0cf1a342a1dc5fe40a0dca4723eeef8f1f4fb",
+    "src/tests/aiA00Orchestration.test.ts": "b8ad911f73ca884f0dfe441af5edabd699f804703427d900088c4716110c00f5",
     "src/tests/aiArchitectureMapping.test.ts": "22439f95184443d0d1c3e0abfb7d81bd41341e64225d753583586f976491db88",
     "src/tests/aiCommissioningMatrix.test.ts": "524b419f257bf86ae31942217a322024119b3935dbdd2b629fb6777b869bde18",
     "src/tests/aiCommissioningRecords.test.ts": "376c0929fa834ad18715e79d7e7fb1974b8c081629ee7bf119d275c3596373f1",
