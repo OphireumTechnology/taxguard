@@ -14,7 +14,7 @@ import { SqlCaseReadinessGate } from '../server/ai/orchestration/SqlCaseReadines
 const cid='11111111-1111-4111-8111-111111111111',did='22222222-2222-4222-8222-222222222222',eid='33333333-3333-4333-8333-333333333333',hash='a'.repeat(64);
 let pg:PGlite,plane:GovernanceControlPlane,ledger:SqlOrchestrationLedger;
 const request=():OrchestrationRequest=>({request_id:randomUUID(),scope:{tenant_id:'tenantA',client_id:'clientA',tax_case_id:'caseA',tax_year:2025},tasks:['IDENTIFY_REVIEW_QUESTIONS'],evidence_source_ids:[eid]});
-const result=(c:ChildContext)=>({operation_id:c.operation_id,agent_id:c.agent_id,status:'ADVISORY',human_review_required:true,action_executed:false,evidence_source_ids:[eid],finding_codes:['REVIEW_REQUIRED']});
+const result=(c:ChildContext)=>({operation_id:c.operation_id,agent_id:c.agent_id,status:'ADVISORY' as const,human_review_required:true,action_executed:false,evidence_source_ids:[eid],finding_codes:['REVIEW_REQUIRED']});
 const handler=vi.fn<AdvisoryHandler>(async c=>result(c));
 const runner=(h:AdvisoryHandler=handler,l:OrchestrationLedger=ledger,timeout_ms=1000,maximum_retries=1)=>new A00Orchestrator(plane,l,{handlers:{IDENTIFY_REVIEW_QUESTIONS:h,REVIEW_EVIDENCE_COMPLETENESS:h},timeout_ms,maximum_retries});
 const denied=async(code:string,r:unknown=request(),token='valid')=>{
