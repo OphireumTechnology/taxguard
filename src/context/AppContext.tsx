@@ -203,6 +203,15 @@ interface AppContextType {
   setCookieModalOpen: (open: boolean) => void;
 }
 
+const KNOWN_USER_ROLES: ReadonlySet<string> = new Set<UserRole>([
+  'client', 'prospective_client', 'accountant', 'reviewer', 'senior_reviewer',
+  'bookkeeper', 'practice_manager', 'operations', 'admin', 'super_admin',
+  'super_administrator', 'recruiter', 'client_service', 'founder', 'administrator',
+  'consultant', 'managing_consultant', 'firm_manager', 'legal_specialist'
+]);
+const normalizeRoleForUi = (role: string): UserRole | 'guest' =>
+  KNOWN_USER_ROLES.has(role) ? role as UserRole : 'guest';
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 /**
@@ -589,7 +598,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (requestGeneration !== authGenerationRef.current || requestToken !== getStoredToken()) return;
       setCurrentUser({ ...sessionUser });
-      setCurrentRoleState(sessionUser.role);
+      setCurrentRoleState(normalizeRoleForUi(sessionUser.role));
 
       if (!import.meta.env.PROD) {
         // Operational records (legal
@@ -736,7 +745,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setCurrentUser(liveSession.user);
-    setCurrentRoleState(liveSession.user.role);
+    setCurrentRoleState(normalizeRoleForUi(liveSession.user.role));
     setAuthLifecycleState('AUTHENTICATED');
     setIsInitialized(true);
     setPendingVerificationEmail(null);
