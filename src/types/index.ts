@@ -2,10 +2,10 @@ export type UserRole =
   | 'client'
   | 'prospective_client'
   | 'accountant'
+  | 'preparer'
   | 'reviewer'
   | 'senior_reviewer'
   | 'bookkeeper'
-  | 'client_service'
   | 'practice_manager'
   | 'operations'
   | 'recruiter'
@@ -17,66 +17,47 @@ export type UserRole =
 
 export type DocumentStatus =
   | 'uploaded'
+  | 'received'
   | 'processing'
-  | 'needs_review'
-  | 'accountant_reviewing'
-  | 'approved'
-  | 'rejected'
+  | 'pending_review'
   | 'verified'
   | 'accepted'
+  | 'rejected'
   | 'missing'
   | 'requested'
-  | string;
+  | 'not_applicable';
 
 export type EngagementStatus =
-  | 'draft'
-  | 'intake_pending'
-  | 'collecting_documents'
+  | 'onboarding'
+  | 'intake'
+  | 'document_collection'
   | 'in_preparation'
-  | 'under_review'
-  | 'ready_for_signature'
+  | 'in_review'
+  | 'pending_client_approval'
+  | 'ready_to_file'
   | 'filed'
-  | 'delivered'
-  | 'archived'
-  | string;
-
-export type OnboardingState =
-  | 'not_started'
-  | 'in_progress'
-  | 'pending_review'
-  | 'approved'
   | 'completed'
-  | string
-  | {
-      currentStep?: number;
-      step?: number;
-      totalSteps?: number;
-      completed?: boolean;
-      status?: string;
-      data?: Record<string, any>;
-      [key: string]: any;
-    };
+  | 'archived';
 
 export interface User {
   id: string;
-  uid?: string;
   email: string;
   name: string;
   role: UserRole;
-  status: 'active' | 'disabled' | 'suspended' | 'pending' | string;
-  tenantId?: string;
-  clientId?: string;
-  authorizedClientIds?: string[];
   title?: string;
   credentials?: string[];
   phone?: string;
   companyName?: string;
-  clientType?: 'individual' | 'business' | string;
+  clientType?: 'individual' | 'business';
+  clientId?: string;
+  tenantId?: string;
   mfaEnabled?: boolean;
+  status: 'active' | 'inactive' | 'suspended' | 'pending' | string;
   isVerified?: boolean;
   assignedAccountantId?: string;
   assignedReviewerId?: string;
-  onboardingStatus?: OnboardingState;
+  authorizedClientIds?: string[];
+  onboardingStatus?: string;
   onboardingStep?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -84,128 +65,92 @@ export interface User {
   [key: string]: any;
 }
 
-export interface EngagementTask {
-  id: string;
-  title: string;
-  completed: boolean;
-  requiredRole: string;
-  dueDate?: string;
-  [key: string]: any;
-}
-
 export interface Engagement {
   id: string;
   clientId: string;
-  clientName?: string;
-  businessName?: string;
   taxYear: number;
-  serviceType: string;
-  serviceTitle: string;
-  status: EngagementStatus;
-  priority?: 'low' | 'normal' | 'high' | 'urgent' | string;
+  title?: string;
+  serviceType?: string;
+  entityType?: string;
+  status: EngagementStatus | string;
+  progress?: number;
   assignedAccountantId?: string;
-  assignedAccountantName?: string;
-  reviewerId?: string;
-  reviewerName?: string;
+  assignedReviewerId?: string;
   dueDate?: string;
-  progressPercent?: number;
-  internalNotes?: string;
-  clientNotes?: string;
-  createdAt?: string;
   updatedAt?: string;
-  tasks?: EngagementTask[];
+  createdAt?: string;
   [key: string]: any;
 }
 
 export interface DocumentItem {
   id: string;
   clientId: string;
-  clientName?: string;
+  engagementId?: string;
   fileName: string;
-  fileSize?: string;
-  fileType?: string;
-  category: string;
+  category?: string;
   taxYear?: number;
-  status: DocumentStatus;
-  uploadedAt: string;
-  uploadedBy?: string;
-  version?: number;
-  description?: string;
-  isAiProcessed?: boolean;
-  ocrConfidence?: number;
-  isEncrypted?: boolean;
-  extractedData?: Array<{
-    key: string;
-    label: string;
-    value: string;
-    confidence?: number;
-    reviewed?: boolean;
-    needsAttention?: boolean;
-  }>;
-  reviewedBy?: string;
-  reviewedAt?: string;
+  status: DocumentStatus | string;
+  uploadedAt?: string;
+  fileSize?: number | string;
+  mimeType?: string;
+  notes?: string;
   [key: string]: any;
 }
 
 export interface RequiredDocumentChecklistItem {
   id: string;
   title: string;
-  category: string;
-  status: 'missing' | 'requested' | 'uploaded' | 'verified' | 'not_applicable' | string;
+  category?: string;
   taxYear?: number;
-  description?: string;
   required?: boolean;
+  status: 'missing' | 'requested' | 'uploaded' | 'verified' | 'accepted' | 'not_applicable' | string;
+  description?: string;
   [key: string]: any;
 }
 
 export interface Appointment {
   id: string;
-  clientId: string;
-  clientName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
-  serviceType: string;
-  accountantId?: string;
-  accountantName?: string;
-  requestedFounder?: boolean;
-  date: string;
-  timeSlot: string;
-  type: 'virtual' | 'phone' | 'in_office' | string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | string;
+  clientId?: string;
+  staffId?: string;
+  title?: string;
+  date?: string;
+  time?: string;
+  startTime?: string;
+  endTime?: string;
+  type?: string;
+  modality?: 'video' | 'phone' | 'in_person' | string;
+  status: string;
   meetingLink?: string;
-  location?: string;
   notes?: string;
-  createdAt?: string;
   [key: string]: any;
 }
 
 export interface ServicePlan {
   id: string;
   name: string;
-  tagline: string;
+  category?: string;
   price: number;
-  billingPeriod: 'one_time' | 'monthly' | 'annual' | string;
-  isPopular?: boolean;
+  billingCycle?: string;
   description: string;
-  idealFor?: string;
   features: string[];
+  popular?: boolean;
+  badge?: string;
   [key: string]: any;
 }
 
 export interface Invoice {
   id: string;
-  invoiceNumber: string;
   clientId: string;
-  clientName?: string;
-  servicePlanId?: string;
-  description: string;
+  engagementId?: string;
+  invoiceNumber?: string;
+  title?: string;
+  description?: string;
   amount: number;
-  currency: string;
-  status: 'pending' | 'paid' | 'overdue' | 'void' | 'refunded' | string;
-  issuedDate: string;
-  dueDate: string;
+  amountCents?: number;
+  status: 'draft' | 'issued' | 'pending' | 'paid' | 'overdue' | 'void' | 'refunded' | string;
+  dueDate?: string;
+  issuedAt?: string;
   paidAt?: string;
-  paymentMethod?: string;
   [key: string]: any;
 }
 
@@ -213,76 +158,58 @@ export interface AccountingConnection {
   id: string;
   clientId: string;
   provider: string;
-  providerName: string;
-  companyName: string;
   status: 'connected' | 'disconnected' | 'error' | string;
-  lastSyncedAt?: string;
-  syncScope?: string[];
-  syncHealth?: string;
-  totalTransactionsSynced?: number;
+  lastSyncAt?: string;
+  accountCount?: number;
   [key: string]: any;
 }
 
 export interface Message {
   id: string;
+  threadId?: string;
+  clientId?: string;
   senderId: string;
-  senderName: string;
-  senderRole: string;
+  senderName?: string;
+  senderRole?: string;
   recipientId?: string;
-  engagementId?: string;
-  content: string;
-  timestamp: string;
-  isInternalOnly?: boolean;
+  subject?: string;
+  body?: string;
+  content?: string;
+  timestamp?: string;
+  createdAt?: string;
   isRead?: boolean;
   [key: string]: any;
 }
 
-export interface JobListing {
+export interface JobPosting {
   id: string;
   title: string;
   department: string;
   location: string;
   type: string;
-  workplace?: string;
-  description: string;
-  responsibilities: string[];
-  requirements: string[];
-  benefits: string[];
-  isActive: boolean;
-  status: 'open' | 'closed' | string;
+  compensation?: string;
   salaryRange?: string;
-  postedDate?: string;
-  closingDate?: string;
+  summary?: string;
+  description: string;
+  requirements: string[];
+  responsibilities?: string[];
+  status?: string;
+  postedAt?: string;
   [key: string]: any;
 }
 
-export type JobPosting = JobListing;
-
-export interface Applicant {
-  id: string;
-  jobId: string;
-  jobTitle?: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  linkedinUrl?: string;
-  resumeFileName?: string;
-  coverLetter?: string;
-  status: string;
-  appliedDate?: string;
-  appliedAt?: string;
-  notes?: string;
-  rating?: number;
-  [key: string]: any;
-}
+export type JobListing = JobPosting;
 
 export interface JobApplication {
   jobId: string;
-  fullName: string;
+  jobTitle?: string;
+  name?: string;
+  fullName?: string;
   email: string;
   phone?: string;
-  coverLetter?: string;
+  resumeUrl?: string;
   resumeFileName?: string;
+  coverLetter?: string;
   [key: string]: any;
 }
 
@@ -290,42 +217,61 @@ export interface JobApplicationResult {
   success: boolean;
   applicantId?: string;
   message?: string;
+  applicant?: Applicant;
   error?: string;
+}
+
+export interface Applicant {
+  id: string;
+  jobId: string;
+  jobTitle?: string;
+  name?: string;
+  fullName?: string;
+  email: string;
+  phone?: string;
+  status: string;
+  appliedAt?: string;
+  [key: string]: any;
 }
 
 export interface AuditLog {
   id: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  action: string;
-  resource: string;
-  details: string;
-  ipAddress?: string;
   timestamp: string;
-  severity?: 'info' | 'warning' | 'critical' | string;
+  actorId?: string;
+  actorEmail?: string;
+  actorRole?: string;
+  action: string;
+  resource?: string;
+  targetId?: string;
+  status?: string;
+  details?: string;
+  ipAddress?: string;
+  [key: string]: any;
+}
+
+export interface OnboardingState {
+  clientId?: string;
+  status?: string;
+  currentStep?: number;
+  completedSteps?: number[];
   [key: string]: any;
 }
 
 export interface LegalCoordinationRecord {
   id: string;
   clientId: string;
-  matterType: string;
-  attorneyName?: string;
-  firmName?: string;
+  matterTitle?: string;
   status: string;
-  notes?: string;
-  updatedAt?: string;
   [key: string]: any;
 }
 
 export interface SecurityTestResult {
   id: string;
   name: string;
-  passed: boolean;
-  status: 'pass' | 'fail' | string;
-  message: string;
-  timestamp: string;
+  status: 'passed' | 'failed' | 'warning' | string;
+  details?: string;
+  checkedAt?: string;
+  [key: string]: any;
 }
 
 export interface ServicePlanUpdateResult {
@@ -345,79 +291,71 @@ export interface UserStatusUpdateResult {
 export interface ClientReassignmentResult {
   success: boolean;
   message?: string;
+  client?: any;
   error?: string;
-  [key: string]: any;
-}
-
-export interface IndustrySolutionRecord {
-  id: string;
-  name: string;
-  slug: string;
-  tagline: string;
-  description: string;
-  keyChallenges: string[];
-  strategicSolutions: string[];
-  applicableForms: string[];
-  recommendedServicePlan: string;
-  clientCaseExample?: string;
-  [key: string]: any;
-}
-
-export type StrategyCategory =
-  | 'individuals'
-  | 'families'
-  | 'self_employed'
-  | 'small_businesses'
-  | 's_corporations'
-  | 'c_corporations'
-  | 'partnerships'
-  | 'real_estate'
-  | 'retirement'
-  | 'estates_trusts'
-  | 'charitable_planning'
-  | string;
-
-export interface TaxStrategyWorkflowStep {
-  stepNumber?: number;
-  title: string;
-  description: string;
-  owner?: string;
-  [key: string]: any;
-}
-
-export interface TaxStrategyRecord {
-  id: string;
-  title?: string;
-  strategyName?: string;
-  category: StrategyCategory;
-  summary?: string;
-  plainLanguageSummary?: string;
-  ircCitation?: string;
-  estimatedImpact?: string;
-  eligibility?: string[];
-  steps?: TaxStrategyWorkflowStep[];
-  [key: string]: any;
 }
 
 export interface AdvisorRequest {
   id: string;
+  clientId?: string;
   title: string;
-  question: string;
-  status: 'open' | 'answered' | 'resolved' | string;
+  description?: string;
+  status: string;
   priority?: string;
-  requestedBy?: string;
-  requestedAt?: string;
-  category?: string;
   dueDate?: string;
+  createdAt?: string;
   [key: string]: any;
 }
 
 export interface TaxStrategy {
   id: string;
   title: string;
-  ircCode?: string;
-  potentialSavings?: string;
+  category?: string;
+  estimatedSavings?: string;
   status?: string;
-  description: string;
+  description?: string;
+  [key: string]: any;
+}
+
+export type StrategyCategory = string;
+
+export interface TaxStrategyWorkflowStep {
+  id?: string;
+  step: number | string;
+  title?: string;
+  description?: string;
+  requiredRole?: string;
+  [key: string]: any;
+}
+
+export interface TaxStrategyRecord {
+  id: string;
+  strategyName?: string;
+  title?: string;
+  category: StrategyCategory;
+  plainLanguageSummary?: string;
+  summary?: string;
+  eligibility?: string;
+  estimatedImpact?: string;
+  ircCitation?: string;
+  steps?: TaxStrategyWorkflowStep[];
+  [key: string]: any;
+}
+
+export interface IndustrySolutionRecord {
+  id: string;
+  slug?: string;
+  title?: string;
+  name?: string;
+  tagline?: string;
+  subtitle?: string;
+  summary?: string;
+  description?: string;
+  challenges?: string[];
+  keyChallenges?: string[];
+  solutions?: string[];
+  strategicSolutions?: string[];
+  keyForms?: string[];
+  applicableForms?: string[];
   [key: string]: any;
 }

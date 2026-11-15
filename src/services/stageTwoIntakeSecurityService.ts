@@ -1,70 +1,61 @@
 export interface StagedSecurityDocument {
-  id: string;
-  filename: string;
-  size: number;
+  documentId: string;
+  fileName: string;
   mimeType: string;
-  sha256: string;
-  scanStatus: 'PENDING' | 'CLEAN' | 'QUARANTINED' | 'FAILED' | string;
-  pipelineStage: 'READY_FOR_OCR' | 'QUARANTINED' | 'FAILED' | string;
-  uploadedAt: string;
-  clientId: string;
-  engagementId?: string;
-  taxYear?: number;
-  requirementId?: string;
+  fileSizeBytes: number;
+  sha256Hash: string;
+  scanStatus: 'CLEAN' | 'PENDING' | 'BLOCKED' | string;
+  quarantineStatus?: 'CLEAN' | 'QUARANTINED' | 'BLOCKED' | string;
+  pipelineStage?: 'READY_FOR_OCR' | 'QUARANTINED' | 'REJECTED' | string;
+  isDuplicate: boolean;
+  duplicateOfDocumentId?: string;
+  stagedAt: string;
   [key: string]: any;
 }
 
 export class StageTwoIntakeSecurityService {
   static async computeBytesSha256(bytes: Uint8Array | ArrayBuffer): Promise<string> {
-    const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const buffer = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (typeof crypto !== 'undefined' && crypto.subtle) {
-      const digest = await crypto.subtle.digest('SHA-256', view.slice().buffer);
+      const digest = await crypto.subtle.digest(
+        'SHA-256',
+        buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer,
+      );
       return Array.from(new Uint8Array(digest))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
     }
-    return 'sha256_' + view.byteLength.toString(16).padStart(16, '0');
+    return `sha256_${buffer.byteLength.toString(16)}`;
   }
 
   static async executeIntakeSecurityPipeline(input: {
-    clientId: string;
-    engagementId: string;
-    taxYear: number;
-    filename?: string;
+    file?: File;
+    fileBytes?: Uint8Array;
     originalFilename?: string;
-    mimeType?: string;
     claimedMimeType?: string;
-    size?: number;
-    sha256?: string;
-    fileBytes?: Uint8Array | ArrayBuffer;
+    claimedCategory?: string;
+    clientId: string;
+    engagementId?: string;
+    taxYear: number;
     uploader?: string;
     uploaderSource?: string;
-    claimedCategory?: string;
     notes?: string;
-    [key: string]: any;
+    existingHashes?: string[];
   }): Promise<StagedSecurityDocument> {
-    const resolvedName = input.filename || input.originalFilename || 'document.pdf';
-    const resolvedMime = input.mimeType || input.claimedMimeType || 'application/octet-stream';
-    const resolvedBytes = input.fileBytes
-      ? input.fileBytes instanceof Uint8Array
-        ? input.fileBytes
-        : new Uint8Array(input.fileBytes)
-      : null;
-    const resolvedSha =
-      input.sha256 || (resolvedBytes ? await this.computeBytesSha256(resolvedBytes) : '0'.repeat(64));
-
+    const bytes = input.fileBytes ?? (input.file ? new Uint8Array(await input.file.arrayBuffer()) : new Uint8Array());
+    const sha256Hash = await this.computeBytesSha256(bytes);
+    const isDuplicate = Boolean(input.existingHashes?.includes(sha256Hash));
     return {
-      id: 'sec_doc_' + Date.now(),
-      filename: resolvedName,
-      size: input.size ?? resolvedBytes?.byteLength ?? 0,
-      mimeType: resolvedMime,
-      sha256: resolvedSha,
+      documentId: `sec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+      fileName: input.originalFilename || input.file?.name || 'document.pdf',
+      mimeType: input.claimedMimeType || input.file?.type || 'application/octet-stream',
+      fileSizeBytes: input.file?.size ?? bytes.byteLength,
+      sha256Hash,
       scanStatus: 'CLEAN',
+      quarantineStatus: 'CLEAN',
       pipelineStage: 'READY_FOR_OCR',
-      uploadedAt: new Date().toISOString(),
-      clientId: input.clientId,
-      engagementId: input.engagementId,
-      taxYear: input.taxYear,
+      isDuplicate,
+      stagedAt: new Date().toISOString(),
     };
   }
 }

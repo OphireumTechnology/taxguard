@@ -1,12 +1,3 @@
-export const BLOCKED_LABEL = 'Blocked / Not Supported';
-
-export const READINESS_LADDER = [
-  'Cataloged / Reference Only',
-  'Field Mapped',
-  'Calculation Certified',
-  'E-File Verified',
-] as const;
-
 export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
 
 export type CapabilityKey =
@@ -38,6 +29,16 @@ export type StateTaxCategoryId =
   | 'sales-and-use'
   | 'franchise-tax'
   | string;
+
+export const BLOCKED_LABEL = 'Blocked';
+
+export const READINESS_LADDER = [
+  'Cataloged / Reference Only',
+  'Field Mapped',
+  'Calculation Certified',
+  'Review Ready',
+  'E-File Verified',
+] as const;
 
 export interface StateJurisdiction {
   code: string;

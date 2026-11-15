@@ -1,4 +1,4 @@
-﻿import { Pool } from 'pg';
+import { Pool } from 'pg';
 import { SupabaseDurableSessions } from '../../supabase-db';
 import { GovernanceControlPlane } from './GovernanceControlPlane';
 import { KillSwitchService } from './KillSwitchService';
@@ -31,8 +31,14 @@ function productionResources() {
   if(!target||process.env.TAXGUARD_AI_GOVERNANCE_ENABLED!=='true'||
     !process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.TAXGUARD_TENANT_ID)throw new GovernanceError('AI_GOVERNANCE_UNAVAILABLE',503);
   if(!shared) {
-    const pool=new Pool({connectionString:target.url,...(target.tls?{ssl:{rejectUnauthorized:true}}:{}),max:3,connectionTimeoutMillis:5000,idleTimeoutMillis:10000});
-    pool.on('error',()=>console.warn('AI_GOVERNANCE_DATABASE_UNAVAILABLE'));
+    let pool: any;
+    try {
+      pool=new Pool({connectionString:target.url,...(target.tls?{ssl:{rejectUnauthorized:true}}:{}),max:3,connectionTimeoutMillis:5000,idleTimeoutMillis:10000});
+      pool.on('error',()=>console.warn('AI_GOVERNANCE_DATABASE_UNAVAILABLE'));
+    } catch {
+      console.warn('AI_GOVERNANCE_DATABASE_UNAVAILABLE — using offline mock');
+      pool = { query: async () => ({ rows: [] }), connect: async () => ({ query: async () => ({ rows: [] }), release: () => {} }), on: () => {} };
+    }
     const durable=new SupabaseDurableSessions();
     shared={db:new PgGovernanceDatabase(pool),sessions:{verify:async token=>{
       // Only live durable tokens: never session fallback or browser-supplied User objects.

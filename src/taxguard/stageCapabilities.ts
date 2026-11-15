@@ -1,50 +1,30 @@
-export const BLOCKED_STAGES: number[] = [11, 12];
+import { CANONICAL_STAGE_LABELS, type StageNumber } from '../server/taxguard/persistence.types';
 
 export interface StageCapabilityInfo {
   stage: number;
   name: string;
   purpose: string;
+  responsibility: string;
   evidence: 'SYSTEM_VERIFIED' | 'HUMAN_ATTESTED' | 'BLOCKED';
   blockedReason?: string;
-  responsibility: string;
   clientGuidance: string;
 }
 
-const STAGE_TITLES: Record<number, string> = {
-  1: 'Onboard & Intake',
-  2: 'Collect & Organize',
-  3: 'Validate & Verify',
-  4: 'Record Transactions',
-  5: 'Reconcile Accounts',
-  6: 'Review & Close Books',
-  7: 'Financial Reporting',
-  8: 'Tax Strategy & Planning',
-  9: 'Prepare Tax Return',
-  10: 'CPA Quality & Approval',
-  11: 'Electronic Signature',
-  12: 'E-File Transmission',
-  13: 'Client Feedback',
-  14: 'Resolution & Notices',
-  15: 'Ongoing Monitoring',
-  16: 'Compliance Archive',
-  17: 'Annual Renewal',
-  18: 'Continuity Cycle',
-};
+export const BLOCKED_STAGES: number[] = [12, 13, 14, 15];
 
 export function stageCapability(stage: number): StageCapabilityInfo | null {
   if (!Number.isInteger(stage) || stage < 1 || stage > 18) return null;
+  const label = CANONICAL_STAGE_LABELS[stage as StageNumber] ?? `Stage ${stage}`;
   const blocked = BLOCKED_STAGES.includes(stage);
   return {
     stage,
-    name: STAGE_TITLES[stage] || `Stage ${stage}`,
-    purpose: `Workflow milestone ${String(stage).padStart(2, '0')} in the TaxGuard 18-stage engagement lifecycle.`,
+    name: label,
+    purpose: `Workflow stage ${String(stage).padStart(2, '0')}: ${label}.`,
+    responsibility: stage <= 3 ? 'Client & Intake Team' : stage <= 8 ? 'Bookkeeping & Preparation Team' : 'Licensed CPA / Reviewer',
     evidence: blocked ? 'BLOCKED' : stage <= 5 ? 'SYSTEM_VERIFIED' : 'HUMAN_ATTESTED',
-    blockedReason: blocked
-      ? 'External signature and IRS MeF transmission providers are not commissioned in this environment.'
-      : undefined,
-    responsibility: stage <= 3 ? 'Client & Intake Team' : 'Assigned Tax Professional & CPA Reviewer',
+    blockedReason: blocked ? 'External filing transmission and post-filing agency monitoring require authorized production e-file commissioning.' : undefined,
     clientGuidance: blocked
-      ? 'Contact your assigned CPA advisor or review your open document checklist.'
-      : 'Check your documents and messages for any requested items from your tax team.',
+      ? 'Review your uploaded documents or message your advisor while practice review continues.'
+      : 'Check your document requests and messages for any items needed to advance this stage.',
   };
 }

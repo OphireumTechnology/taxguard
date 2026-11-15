@@ -20,32 +20,23 @@ export interface AiReasoningProvider {
   reason(request: AiReasoningProviderRequest): Promise<AiReasoningProviderResponse>;
 }
 
-export interface AiProposalRecord extends AiReasoningProviderResponse {
-  proposalId: string;
-  purpose: string;
-  createdAt: string;
-  model: string;
-}
-
 export class AIReasoningGateway {
   static async reason(
     provider: AiReasoningProvider,
     pkg: EvidencePackage,
-    purpose: string
-  ): Promise<AiProposalRecord> {
-    const response = await provider.reason({
+    purpose: string,
+  ): Promise<AiReasoningProviderResponse & { proposalId: string; createdAt: string }> {
+    const res = await provider.reason({
       promptPurpose: purpose,
       taxYear: pkg.taxYear,
-      knowledgeSourceIds: pkg.knowledgeSourceIds,
-      ruleEvaluationIds: pkg.ruleEvaluationIds,
-      findingIds: pkg.findingIds || [],
+      knowledgeSourceIds: pkg.knowledgeSourceIds ?? [],
+      ruleEvaluationIds: pkg.ruleEvaluationIds ?? [],
+      findingIds: pkg.findingIds ?? [],
     });
     return {
-      ...response,
-      proposalId: 'prop_' + Date.now(),
-      purpose,
+      ...res,
+      proposalId: `prop_${Date.now().toString(36)}`,
       createdAt: new Date().toISOString(),
-      model: provider.model,
     };
   }
 }

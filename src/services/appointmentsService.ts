@@ -152,8 +152,9 @@ const mockList: Appointment[] = INITIAL_APPOINTMENTS.map(a => {
   const endIso = new Date(Date.parse(startIso) + 60 * 60_000).toISOString();
   return {
     ...a,
+    clientId: a.clientId || '',
     appointmentId: a.id,
-    title: a.serviceType || 'Tax Consultation',
+    title: a.title || a.serviceType || 'Tax Consultation',
     category: 'CONSULTATION',
     mode: a.type === 'in_office' ? 'IN_PERSON' : a.type === 'telephone' ? 'PHONE' : 'REMOTE',
     status: String(a.status || 'CONFIRMED').toUpperCase(),

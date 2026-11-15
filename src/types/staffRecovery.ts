@@ -1,42 +1,47 @@
-export type StaffRecoveryReasonCategory = 'lost_authenticator' | 'compromised_factor' | 'device_replacement';
+export type StaffRecoveryReasonCategory =
+  | 'lost_device'
+  | 'broken_device'
+  | 'app_reset'
+  | 'account_lockout'
+  | string;
+
+export interface StaffRecoveryRecord {
+  id?: string;
+  requestId?: string;
+  staffUid?: string;
+  targetUid?: string;
+  targetName?: string;
+  targetRole?: string;
+  makerUid?: string;
+  checkerUid?: string;
+  staffEmail?: string;
+  staffName?: string;
+  reasonCategory: StaffRecoveryReasonCategory;
+  reason?: string;
+  reasonDetail?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'expired' | string;
+  createdAt: string;
+  approvedAt?: string | null;
+  updatedAt?: string;
+  jobId?: string | null;
+  jobStatus?: string | null;
+  actions?: Record<string, boolean>;
+  [key: string]: any;
+}
 
 export interface StaffRecoveryRequestInput {
-  requestId: string;
-  targetUid: string;
+  staffUid?: string;
+  targetUid?: string;
+  email?: string;
   reasonCategory: StaffRecoveryReasonCategory;
-  reason: string;
+  reason?: string;
+  reasonDetail?: string;
+  [key: string]: any;
 }
 
 export interface StaffRecoveryQuery {
-  cursor?: string;
-  limit?: number;
   status?: string;
-}
-
-export interface StaffRecoveryRecord {
-  requestId: string;
-  targetUid: string;
-  targetName: string | null;
-  targetRole: string | null;
-  makerUid: string;
-  checkerUid: string | null;
-  reasonCategory: StaffRecoveryReasonCategory;
-  reason: string;
-  status: 'pending_approval' | 'approved' | 'completed' | 'cancelled';
-  createdAt: string;
-  approvedAt: string | null;
-  jobId: string | null;
-  jobStatus: 'pending' | 'leased' | 'reset_verified' | 'enrollment_verified' | 'completed' | 'failed' | null;
-  jobAttempts: number | null;
-  jobLastError: string | null;
-  completedAt: string | null;
-  completedBy: string | null;
-  cancelledAt: string | null;
-  resetAvailability: 'unavailable' | 'verified';
-  actions: {
-    approve: boolean;
-    complete: boolean;
-    cancel: boolean;
-    retry: boolean;
-  };
+  cursor?: string | null;
+  limit?: number;
+  [key: string]: any;
 }

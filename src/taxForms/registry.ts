@@ -1,6 +1,6 @@
 import type { CapabilityKey, LibraryGroupId, StateJurisdiction, StateTaxCategoryId } from './types';
 
-export interface FormCapabilityState {
+export interface FormCapability {
   status: 'available' | 'prototype' | 'not_implemented' | 'blocked';
   note: string;
 }
@@ -21,17 +21,17 @@ export interface FormView {
   schedules: string[];
   requiredDocuments: string[];
   notes?: string;
-  capabilities: Record<CapabilityKey, FormCapabilityState>;
+  capabilities: Record<CapabilityKey, FormCapability>;
   versionHistory: Array<{ taxYear: number; revision?: string; note: string }>;
 }
 
 export interface LibraryCatalog {
   disclaimer?: string;
+  catalogTaxYears?: number[];
   federalForms: FormView[];
   states: StateJurisdiction[];
   groups: Array<{ id: LibraryGroupId; label: string }>;
-  coreCategories: Array<{ id: LibraryGroupId; label: string; title?: string; scope?: string }>;
-  catalogTaxYears: number[];
+  coreCategories: Array<{ id: LibraryGroupId; title: string; scope: string }>;
   stateCategories: Array<{ id: StateTaxCategoryId; label: string }>;
   preparationPipeline: Array<{
     id: string;

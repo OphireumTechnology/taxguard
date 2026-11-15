@@ -1,37 +1,46 @@
 export type AccountingDocumentClassification =
+  | 'FORM_W2'
+  | 'FORM_1099'
   | 'BANK_STATEMENT'
-  | 'CREDIT_CARD_STATEMENT'
   | 'INVOICE'
-  | 'RECEIPT'
-  | 'PAYROLL_REGISTER'
-  | 'TAX_FORM_W2'
-  | 'TAX_FORM_1099'
-  | 'GENERAL_LEDGER'
-  | 'TRIAL_BALANCE'
-  | 'OTHER'
+  | 'EXPENSE_RECEIPT'
+  | 'NON_ACCOUNTING'
+  | 'TAX_DOCUMENT'
+  | 'OTHER_ACCOUNTING'
   | string;
 
 export interface CanonicalAccountingExtractionEnvelope {
+  id?: string;
   documentId?: string;
-  classification: AccountingDocumentClassification;
-  taxYear: number;
-  confidence: number;
-  vendorOrInstitution?: string;
-  totalAmount?: number;
+  fileName?: string;
+  documentType?: AccountingDocumentClassification;
+  entityName?: string;
+  taxYear?: number;
   currency?: string;
-  periodStart?: string;
-  periodEnd?: string;
-  fields: Record<string, unknown>;
+  vendorName?: string;
+  payerName?: string;
+  payerTINMasked?: string;
+  invoiceNumber?: string;
+  grossAmount?: number;
+  wageAmount?: number;
+  withholdingAmount?: number;
+  classification?: AccountingDocumentClassification;
+  extractedFields?: Record<string, any>;
+  provenance?: Record<string, any>;
+  isDuplicate?: boolean;
+  duplicateOfId?: string;
+  status?: string;
   [key: string]: any;
 }
 
 export interface AccountingReviewQueueItem {
   id: string;
-  filename: string;
-  classification: AccountingDocumentClassification;
-  confidence: number;
-  reason: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
-  createdAt: string;
+  envelopeId?: string;
+  fileName: string;
+  category: string;
+  status: 'pending' | 'approved' | 'rejected' | 'needs_clarification' | string;
+  confidence?: number;
+  issues?: string[];
+  createdAt?: string;
   [key: string]: any;
 }

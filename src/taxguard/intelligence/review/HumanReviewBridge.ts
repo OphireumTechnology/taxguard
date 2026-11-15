@@ -10,18 +10,12 @@ export interface HumanReviewSubmission {
   assignedRole: string;
 }
 
-export interface HumanReviewQueueResult {
-  queueItemId: string;
-  status: string;
-  submittedAt: string;
-}
-
 export class HumanReviewBridge {
-  static submit(_input: HumanReviewSubmission): HumanReviewQueueResult {
+  static submit(input: HumanReviewSubmission): { queueItemId: string; status: string; createdAt: string } {
     return {
-      queueItemId: 'hrq_' + Date.now(),
+      queueItemId: `hrq_${Date.now().toString(36)}`,
       status: 'PENDING_REVIEW',
-      submittedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
   }
 }

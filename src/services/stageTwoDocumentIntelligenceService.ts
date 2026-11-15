@@ -1,69 +1,49 @@
-export type TaxDocumentCategory =
-  | 'W2'
-  | 'W-2'
-  | '1099'
-  | '1098'
-  | 'K1'
-  | 'BANK_STATEMENT'
-  | 'LEDGER'
-  | 'IDENTITY'
-  | 'ENTITY_ORG'
-  | 'OTHER'
-  | string;
+export const CONTROLLED_TAX_CATEGORIES = [
+  'W-2 Wage Statements',
+  '1099 Information Returns',
+  'Schedule K-1 Pass-Through',
+  'Bank & Brokerage Statements',
+  'Bookkeeping & General Ledger',
+  'Payroll & Tax Deposits',
+  'Deductions & Credits',
+  'Entity & Formation Records',
+  'Prior Year Tax Returns',
+  'IRS & State Notices',
+  'Other Supporting Documents',
+] as const;
 
-export const CONTROLLED_TAX_CATEGORIES: TaxDocumentCategory[] = [
-  'W2',
-  '1099',
-  '1098',
-  'K1',
-  'BANK_STATEMENT',
-  'LEDGER',
-  'IDENTITY',
-  'ENTITY_ORG',
-  'OTHER',
-];
+export type TaxDocumentCategory = (typeof CONTROLLED_TAX_CATEGORIES)[number] | string;
+
+export type HumanReviewAction = 'APPROVE' | 'REJECT' | 'RECLASSIFY' | 'REQUEST_REPLACEMENT' | string;
 
 export interface ExtractedFieldProvenance {
-  fieldKey: string;
-  label: string;
-  fieldLabel?: string;
+  fieldName: string;
   value: string;
-  extractedValue?: unknown;
   confidence: number;
-  sourcePage?: number;
-  verifiedByHuman?: boolean;
-  isMaterialField?: boolean;
+  pageNumber?: number;
+  sourceMethod?: string;
+  verified?: boolean;
   [key: string]: any;
 }
 
 export interface DocumentIntelligenceRecord {
   documentId: string;
-  category: TaxDocumentCategory;
+  detectedCategory: TaxDocumentCategory;
   confidence: number;
-  fields: ExtractedFieldProvenance[];
+  taxYear?: number;
+  extractedFields: ExtractedFieldProvenance[];
+  summary?: string;
+  flags?: string[];
   [key: string]: any;
 }
-
-export type HumanReviewAction =
-  | 'ACCEPT'
-  | 'CORRECT'
-  | 'RECLASSIFY'
-  | 'MARK_DUPLICATE'
-  | 'MARK_SUPERSEDED'
-  | 'REQUEST_REPLACEMENT'
-  | 'ESCALATE'
-  | 'REJECT'
-  | string;
 
 export interface HumanReviewQueueItem {
   id: string;
   documentId: string;
-  filename: string;
+  fileName: string;
   category: TaxDocumentCategory;
-  aiDetectedCategory: TaxDocumentCategory;
-  status: string;
-  reason?: string;
-  reviewReasons: string[];
-  flaggedFields: ExtractedFieldProvenance[];
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  createdAt: string;
   [key: string]: any;
 }

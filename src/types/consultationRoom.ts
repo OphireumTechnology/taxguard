@@ -1,21 +1,28 @@
+export interface ConsultationRoom {
+  id: string;
+  appointmentId?: string;
+  title?: string;
+  status: string;
+  hostId?: string;
+  startedAt?: string;
+  [key: string]: any;
+}
+
 export interface MeetingParticipant {
   id: string;
   name: string;
   role: string;
-  joined: boolean;
-  audioEnabled?: boolean;
-  videoEnabled?: boolean;
+  audioMuted?: boolean;
+  videoMuted?: boolean;
   [key: string]: any;
 }
 
 export interface MeetingDocumentReview {
   id: string;
   fileName: string;
-  documentType?: string;
-  watermarkText?: string;
   pageCount?: number;
+  watermarkText?: string;
   url?: string;
-  approved?: boolean;
   [key: string]: any;
 }
 
@@ -25,16 +32,5 @@ export interface MeetingChatMessage {
   senderName: string;
   content: string;
   timestamp: string;
-  [key: string]: any;
-}
-
-export interface ConsultationRoom {
-  roomId: string;
-  appointmentId?: string;
-  title?: string;
-  status: 'waiting' | 'active' | 'ended' | string;
-  participants: MeetingParticipant[];
-  documents?: MeetingDocumentReview[];
-  messages?: MeetingChatMessage[];
   [key: string]: any;
 }

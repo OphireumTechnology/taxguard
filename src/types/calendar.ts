@@ -1,19 +1,25 @@
 export type AppointmentTypeCode =
-  | 'initial_consultation'
-  | 'tax_strategy_review'
-  | 'business_advisory'
-  | 'founder_executive_session'
-  | 'audit_representation'
+  | 'new_client_consultation'
+  | 'founder_consultation'
+  | 'individual_tax_consultation'
+  | 'business_tax_consultation'
+  | 'tax_planning_session'
+  | 'bookkeeping_consultation'
+  | 'payroll_consultation'
+  | 'irs_notice_consultation'
+  | 'accounting_software_setup'
   | 'document_review'
+  | 'return_review'
+  | 'follow_up_meeting'
+  | 'internal_staff_meeting'
   | string;
 
 export interface AvailableTimeSlot {
   id?: string;
-  date: string;
   startTime: string;
   endTime: string;
-  label: string;
-  available: boolean;
+  date?: string;
+  available?: boolean;
   advisorId?: string;
   advisorName?: string;
   [key: string]: any;
@@ -21,9 +27,9 @@ export interface AvailableTimeSlot {
 
 export interface CalendarConnection {
   id: string;
-  provider: 'google' | 'microsoft' | 'internal' | string;
+  provider: string;
+  status: string;
   email?: string;
-  connected: boolean;
   lastSyncedAt?: string;
   [key: string]: any;
 }

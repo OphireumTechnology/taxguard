@@ -1,50 +1,48 @@
 export interface ClientServiceRequest {
-  id: string;
+  id?: string;
+  requestId?: string;
+  tenantId?: string;
   caseKey: string;
-  clientId?: string;
-  clientName?: string;
-  title: string;
-  status: 'OPEN' | 'VIEWED' | 'RESPONDED' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED' | string;
+  title?: string;
+  status: string;
   dueDate?: string;
   createdAt?: string;
   [key: string]: any;
 }
 
-export interface ClientServiceCase {
-  caseKey: string;
-  clientId: string;
-  clientName: string;
-  taxYear: number;
-  status: string;
-  stage?: number;
-  documents?: any[];
+export interface ClientServiceRequestDetail extends ClientServiceRequest {
+  description?: string;
+  clientName?: string;
+  assignedTo?: string;
   [key: string]: any;
 }
 
 export interface ClientServiceConversation {
-  tenantId: string;
-  caseKey: string;
-  threadId: string;
-  messages: Array<{ id: string; senderName: string; content: string; sentAt: string; [key: string]: any }>;
+  id?: string;
+  threadId?: string;
+  tenantId?: string;
+  caseKey?: string;
+  clientName?: string;
+  unread?: number;
+  lastMessageAt?: string;
+  messages?: Array<Record<string, any>>;
   [key: string]: any;
 }
 
-export interface ClientServiceRequestDetail {
-  tenantId: string;
+export interface ClientServiceCase {
   caseKey: string;
-  requestId: string;
-  title: string;
-  description: string;
-  status: string;
+  clientId?: string;
+  clientName?: string;
+  taxYear?: number;
+  status?: string;
   [key: string]: any;
 }
 
 export interface ClientServiceSnapshot {
-  tenantId: string;
-  cases: ClientServiceCase[];
   requests: ClientServiceRequest[];
+  threads: ClientServiceConversation[];
   followUps: Array<{ id: string; caseKey: string; status: string; dueDate?: string; [key: string]: any }>;
-  threads: Array<{ id: string; caseKey: string; unread: number; [key: string]: any }>;
-  escalations: Array<{ id: string; caseKey: string; reason?: string; [key: string]: any }>;
+  escalations: Array<{ id: string; caseKey?: string; severity?: string; [key: string]: any }>;
+  cases?: ClientServiceCase[];
   [key: string]: any;
 }
