@@ -162,7 +162,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Master Official Circular Logo Feature */}
-                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-[#C99A35]/30 bg-[#FFFFFF] p-6 shadow-inner flex items-center justify-center">
+                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-[#C99A35]/30 bg-[#071D3A] p-3 sm:p-4 shadow-inner flex items-center justify-center">
                   <img
                     id="home-hero-destria-logo"
                     src={BRAND_ASSETS.destriaLogo}
