@@ -24,6 +24,8 @@ export interface User {
   clientType?: 'individual' | 'business';
   clientId?: string;
   tenantId?: string;
+  /** Server-authorized client scope; never derive permissions from this client-side field. */
+  authorizedClientIds?: string[];
   assignedAccountantId?: string;
   assignedAccountantName?: string;
   assignedReviewerId?: string;
@@ -33,8 +35,11 @@ export interface User {
   isVerified?: boolean;
   onboardingStatus?: string;
   onboardingStep?: number;
+  /** Timestamp of completed onboarding, when reported by the authoritative workflow. */
+  onboardingCompletedAt?: string;
   createdAt?: string;
   lastLoginAt?: string;
+  updatedAt?: string;
 }
 
 export type DocumentStatus =
@@ -168,6 +173,8 @@ export interface Invoice {
   servicePlanId?: string;
   description: string;
   amount: number;
+  /** Amount received against this invoice, if available from the billing source. */
+  amountPaid?: number;
   currency: string;
   status: 'paid' | 'pending' | 'overdue' | 'cancelled';
   issuedDate: string;
