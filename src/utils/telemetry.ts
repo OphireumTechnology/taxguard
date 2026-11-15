@@ -1,14 +1,14 @@
 export function reportClientError(
   error: Error,
   incidentId?: string,
-  metadata?: { componentStack?: string; route?: string }
+  context?: Record<string, unknown>
 ): void {
   if (import.meta.env.DEV) {
-    console.warn('[TaxGuard Telemetry]', {
+    console.warn('[Telemetry] Client error captured:', {
       incidentId,
       name: error?.name,
       message: error?.message,
-      route: metadata?.route
+      ...context,
     });
   }
 }

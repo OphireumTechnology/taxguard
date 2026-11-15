@@ -1,3 +1,14 @@
+export const BLOCKED_LABEL = 'Blocked / Not Supported';
+
+export const READINESS_LADDER = [
+  'Cataloged / Reference Only',
+  'Field Mapped',
+  'Calculation Certified',
+  'E-File Verified',
+] as const;
+
+export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
+
 export type CapabilityKey =
   | 'dataEntry'
   | 'calculation'
@@ -6,10 +17,6 @@ export type CapabilityKey =
   | 'reviewReady'
   | 'efile'
   | 'filingReady';
-
-export type CapabilityStatus = 'available' | 'prototype' | 'not_implemented' | 'blocked';
-
-export type Applicability = 'applies' | 'limited' | 'does-not-apply' | 'not-confirmed';
 
 export type LibraryGroupId =
   | 'individual-1040'
@@ -21,42 +28,26 @@ export type LibraryGroupId =
   | 'estate-tax-706'
   | 'gift-tax-709'
   | 'state-local'
-  | 'search-reference';
+  | 'search-reference'
+  | string;
 
 export type StateTaxCategoryId =
   | 'individual-income'
   | 'corporate-income'
   | 'pass-through-entity'
   | 'sales-and-use'
-  | 'franchise-tax';
-
-export const READINESS_LADDER = [
-  'Cataloged / Reference Only',
-  'Field Mapped',
-  'Calculation Certified',
-  'Review Ready',
-  'E-File Verified'
-] as const;
-
-export const BLOCKED_LABEL = 'Blocked / Not Authorized';
-
-export interface StateTaxCategoryAvailability {
-  applicability: Applicability;
-  note?: string;
-  byYear?: Record<number, Applicability>;
-}
+  | 'franchise-tax'
+  | string;
 
 export interface StateJurisdiction {
   code: string;
   name: string;
   agencyName: string;
   agencyUrl: string;
-  agencyCheck: {
-    checkedOn: string;
-    result: string;
-  };
-  verification: {
-    method: string;
-  };
-  categories: Record<StateTaxCategoryId, StateTaxCategoryAvailability>;
+  agencyCheck: { checkedOn: string; result: string };
+  verification: { method: string };
+  categories: Record<
+    StateTaxCategoryId,
+    { applicability: Applicability; note?: string; byYear?: Record<number, Applicability> }
+  >;
 }

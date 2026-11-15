@@ -5,24 +5,23 @@ export interface HumanReviewSubmission {
   title: string;
   description: string;
   itemType: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severity: string;
   riskLevel: string;
   assignedRole: string;
 }
 
-export interface HumanReviewItem extends HumanReviewSubmission {
+export interface HumanReviewQueueResult {
   queueItemId: string;
-  status: 'PENDING_REVIEW';
-  createdAt: string;
+  status: string;
+  submittedAt: string;
 }
 
-export const HumanReviewBridge = {
-  submit(input: HumanReviewSubmission): HumanReviewItem {
+export class HumanReviewBridge {
+  static submit(_input: HumanReviewSubmission): HumanReviewQueueResult {
     return {
-      ...input,
-      queueItemId: `rev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      queueItemId: 'hrq_' + Date.now(),
       status: 'PENDING_REVIEW',
-      createdAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
   }
-};
+}

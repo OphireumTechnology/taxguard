@@ -17,90 +17,34 @@ export type ControlledAuthErrorCode =
   | 'VALIDATION_FAILED'
   | 'INVALID_CREDENTIALS'
   | 'EMAIL_VERIFICATION_REQUIRED'
-  | 'DUPLICATE_REGISTRATION'
   | 'REGISTRATION_FAILED'
   | 'SESSION_ESTABLISHMENT_FAILED'
   | 'CLIENT_INITIALIZATION_FAILED'
   | 'CASE_INITIALIZATION_FAILED'
-  | 'CLIENT_MFA_REQUIRED'
   | 'STAFF_MFA_REQUIRED'
   | 'STAFF_MFA_ENROLLMENT_REQUIRED'
-  | 'PROVIDER_NOT_CONFIGURED'
+  | 'CLIENT_MFA_REQUIRED'
+  | 'PROVIDER_UNCONFIGURED'
   | 'RATE_LIMITED'
-  | 'AUTH_ERROR';
+  | 'UNKNOWN_ERROR';
 
 export function sanitizeAuthErrorMessage(
   err: unknown,
-  fallbackCode: ControlledAuthErrorCode = 'AUTH_ERROR'
+  fallbackCode: ControlledAuthErrorCode = 'UNKNOWN_ERROR'
 ): { code: ControlledAuthErrorCode; message: string } {
-  const raw = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
-  const lower = raw.toLowerCase();
-  if (lower.includes('email not confirmed') || lower.includes('verification')) {
-    return {
-      code: 'EMAIL_VERIFICATION_REQUIRED',
-      message: 'Please verify your email address before signing in.'
-    };
+  const anyErr = err as { code?: ControlledAuthErrorCode; message?: string } | null;
+  const code = anyErr?.code || fallbackCode;
+  const raw = (anyErr?.message || '').trim();
+  if (!raw) {
+    return { code, message: 'Authentication could not be completed. Please try again.' };
   }
-  if (lower.includes('already registered') || lower.includes('already exists')) {
-    return {
-      code: 'DUPLICATE_REGISTRATION',
-      message: 'An account with this email address already exists.'
-    };
-  }
-  if (lower.includes('rate limit') || lower.includes('too many requests')) {
-    return {
-      code: 'RATE_LIMITED',
-      message: 'Too many authentication attempts. Please wait a few minutes and try again.'
-    };
-  }
-  if (lower.includes('invalid login credentials') || lower.includes('invalid password')) {
-    return {
-      code: 'INVALID_CREDENTIALS',
-      message: 'Invalid email or password.'
-    };
-  }
-  const errCode = (err as { code?: ControlledAuthErrorCode } | null)?.code;
-  return {
-    code: errCode || fallbackCode,
-    message: raw && raw.length < 220 ? raw : 'Authentication could not be completed. Please try again.'
-  };
+  return { code, message: raw };
 }
 
-export function validateRegistrationInput(input: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword?: string;
-  requireConfirmPassword?: boolean;
-  acceptedTerms?: boolean;
-  requireTerms?: boolean;
-  category?: string;
-  company?: string;
-}): { valid: boolean; code?: ControlledAuthErrorCode; message?: string } {
-  if (!input.firstName?.trim() || !input.lastName?.trim()) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'First name and last name are required.' };
-  }
-  if (!input.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'Please enter a valid email address.' };
-  }
-  if (!input.phone?.trim() || input.phone.replace(/\D/g, '').length < 7) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'Please enter a valid telephone number.' };
-  }
-  if (!input.password || input.password.length < 10) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'Password must be at least 10 characters long.' };
-  }
-  if (input.requireConfirmPassword && input.password !== input.confirmPassword) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'Passwords do not match.' };
-  }
-  if (input.requireTerms && !input.acceptedTerms) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'You must accept the terms of service to register.' };
-  }
-  if (input.category && input.category !== 'individual' && !input.company?.trim()) {
-    return { valid: false, code: 'VALIDATION_FAILED', message: 'Business name is required for entity accounts.' };
-  }
-  return { valid: true };
+export async function getSupabaseAccessToken(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
 }
 
 export async function loginWithEmail(
@@ -116,28 +60,51 @@ export async function loginWithEmail(
   if (!isSupabaseConfigured()) {
     return {
       success: false,
-      code: 'PROVIDER_NOT_CONFIGURED',
-      error: 'Authentication provider is not configured for this environment.'
+      code: 'PROVIDER_UNCONFIGURED',
+      error: 'Authentication is not configured for this environment.',
     };
   }
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    const sanitized = sanitizeAuthErrorMessage(error, 'INVALID_CREDENTIALS');
+  if (error || !data.session?.access_token) {
+    const msg = error?.message || 'Invalid email or password.';
+    const needsVerify = msg.toLowerCase().includes('email not confirmed');
     return {
       success: false,
-      emailVerificationRequired: sanitized.code === 'EMAIL_VERIFICATION_REQUIRED',
-      code: sanitized.code,
-      error: sanitized.message
-    };
-  }
-  if (!data?.session?.access_token) {
-    return {
-      success: false,
-      code: 'SESSION_ESTABLISHMENT_FAILED',
-      error: 'Authentication succeeded, but no access token was returned.'
+      emailVerificationRequired: needsVerify,
+      code: needsVerify ? 'EMAIL_VERIFICATION_REQUIRED' : 'INVALID_CREDENTIALS',
+      error: msg,
     };
   }
   return { success: true, accessToken: data.session.access_token };
+}
+
+export async function supabaseMfaStatus(): Promise<{ needsChallenge: boolean; factorId?: string }> {
+  if (!isSupabaseConfigured()) return { needsChallenge: false };
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const verified = factors?.totp?.find((f: any) => f.status === 'verified');
+  const needsChallenge = Boolean(verified && aal?.currentLevel !== 'aal2' && aal?.nextLevel === 'aal2');
+  return { needsChallenge, factorId: verified?.id };
+}
+
+export async function verifySupabaseMfa(code: string): Promise<{
+  success: boolean;
+  accessToken?: string;
+  error?: string;
+}> {
+  if (!isSupabaseConfigured()) return { success: false, error: 'Authentication provider unavailable.' };
+  const status = await supabaseMfaStatus();
+  if (!status.factorId) return { success: false, error: 'No verified authenticator found.' };
+  const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: status.factorId });
+  if (chErr || !challenge) return { success: false, error: chErr?.message || 'MFA challenge failed.' };
+  const { data, error } = await supabase.auth.mfa.verify({
+    factorId: status.factorId,
+    challengeId: challenge.id,
+    code,
+  });
+  if (error) return { success: false, error: error.message || 'Invalid authenticator code.' };
+  const token = (data as any)?.access_token || (await getSupabaseAccessToken());
+  return { success: true, accessToken: token || undefined };
 }
 
 export async function registerWithEmail(
@@ -157,115 +124,88 @@ export async function registerWithEmail(
   if (!isSupabaseConfigured()) {
     return {
       success: false,
-      code: 'PROVIDER_NOT_CONFIGURED',
-      error: 'Authentication provider is not configured for this environment.'
+      code: 'PROVIDER_UNCONFIGURED',
+      error: 'Registration is not available because authentication is not configured.',
     };
   }
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: {
-        full_name: name,
-        phone: phone || '',
-        company_name: companyName || ''
-      }
-    }
+    options: { data: { name, phone, companyName } },
   });
   if (error) {
-    const sanitized = sanitizeAuthErrorMessage(error, 'REGISTRATION_FAILED');
+    const dup = error.message.toLowerCase().includes('already');
     return {
       success: false,
-      duplicateRegistration: sanitized.code === 'DUPLICATE_REGISTRATION',
-      code: sanitized.code,
-      error: sanitized.message
+      duplicateRegistration: dup,
+      code: 'REGISTRATION_FAILED',
+      error: error.message,
     };
   }
-  if (!data?.session?.access_token) {
-    return {
-      success: true,
-      emailVerificationRequired: true
-    };
+  if (!data.session?.access_token) {
+    return { success: true, emailVerificationRequired: true };
   }
-  return {
-    success: true,
-    accessToken: data.session.access_token,
-    emailVerificationRequired: false
-  };
-}
-
-export async function supabaseMfaStatus(): Promise<{ needsChallenge: boolean; currentLevel?: string | null; nextLevel?: string | null }> {
-  if (!isSupabaseConfigured()) return { needsChallenge: false };
-  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const needsChallenge = Boolean(data?.nextLevel === 'aal2' && data?.currentLevel !== 'aal2');
-  return { needsChallenge, currentLevel: data?.currentLevel, nextLevel: data?.nextLevel };
-}
-
-export async function verifySupabaseMfa(
-  code: string
-): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  if (!isSupabaseConfigured()) {
-    return { success: false, error: 'Authentication provider is not configured.' };
-  }
-  const { data: factorsData, error: factorsErr } = await supabase.auth.mfa.listFactors();
-  if (factorsErr || !factorsData?.totp?.length) {
-    return { success: false, error: 'No verified authenticator factor was found.' };
-  }
-  const factor = factorsData.totp.find(f => f.status === 'verified') || factorsData.totp[0];
-  const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({
-    factorId: factor.id,
-    code: code.trim()
-  });
-  if (verifyErr) {
-    return { success: false, error: 'Invalid authenticator code.' };
-  }
-  const { data: sessionData } = await supabase.auth.getSession();
-  return {
-    success: Boolean(sessionData?.session?.access_token),
-    accessToken: sessionData?.session?.access_token
-  };
+  return { success: true, accessToken: data.session.access_token };
 }
 
 export async function logout(): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  await supabase.auth.signOut().catch(() => {});
+  await supabase.auth.signOut();
 }
 
-export async function getSupabaseAccessToken(): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
-  const { data } = await supabase.auth.getSession();
-  return data?.session?.access_token ?? null;
-}
-
-export async function resendVerificationEmail(
-  email: string
-): Promise<{ success: boolean; message: string; error?: string }> {
+export async function resendVerificationEmail(email: string): Promise<{
+  success: boolean;
+  message: string;
+  error?: string;
+}> {
   if (!isSupabaseConfigured()) {
     return { success: false, message: '', error: 'Authentication provider is not configured.' };
   }
   const { error } = await supabase.auth.resend({ type: 'signup', email });
-  if (error) {
-    return { success: false, message: '', error: sanitizeAuthErrorMessage(error).message };
-  }
-  return {
-    success: true,
-    message: `A new verification link has been dispatched to ${email}.`
-  };
+  if (error) return { success: false, message: '', error: error.message };
+  return { success: true, message: 'Verification email sent.' };
 }
 
-export async function requestPasswordReset(
-  email: string
-): Promise<{ success: boolean; message?: string; error?: string }> {
+export async function requestPasswordReset(email: string): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
   if (!isSupabaseConfigured()) {
     return { success: false, error: 'Authentication provider is not configured.' };
   }
-  const redirectTo = (import.meta.env.VITE_PASSWORD_RESET_CONTINUE_URL || import.meta.env.VITE_AUTH_RECOVERY_REDIRECT_URL || '').trim() || undefined;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
-  if (error) {
-    return { success: false, error: sanitizeAuthErrorMessage(error).message };
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) return { success: false, error: error.message };
+  return { success: true, message: 'Password recovery instructions have been sent.' };
+}
+
+export function validateRegistrationInput(input: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  confirmPassword?: string;
+  requireConfirmPassword?: boolean;
+  acceptedTerms?: boolean;
+  requireTerms?: boolean;
+  category?: string;
+  company?: string;
+}): { valid: boolean; code?: ControlledAuthErrorCode; message?: string } {
+  if (!input.firstName?.trim() || !input.lastName?.trim()) {
+    return { valid: false, code: 'VALIDATION_FAILED', message: 'First and last name are required.' };
   }
-  return {
-    success: true,
-    message: 'If an account exists for this email address, password recovery instructions have been sent.'
-  };
+  if (!input.email?.trim() || !input.email.includes('@')) {
+    return { valid: false, code: 'VALIDATION_FAILED', message: 'A valid email address is required.' };
+  }
+  if (!input.password || input.password.length < 8) {
+    return { valid: false, code: 'VALIDATION_FAILED', message: 'Password must be at least 8 characters.' };
+  }
+  if (input.requireConfirmPassword && input.password !== input.confirmPassword) {
+    return { valid: false, code: 'VALIDATION_FAILED', message: 'Passwords do not match.' };
+  }
+  if (input.requireTerms && !input.acceptedTerms) {
+    return { valid: false, code: 'VALIDATION_FAILED', message: 'Please accept the Terms of Service.' };
+  }
+  return { valid: true };
 }

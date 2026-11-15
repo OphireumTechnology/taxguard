@@ -1,21 +1,4 @@
-export type StaffRecoveryReasonCategory =
-  | 'lost_authenticator'
-  | 'compromised_factor'
-  | 'device_replacement';
-
-export type StaffRecoveryStatus =
-  | 'pending_approval'
-  | 'approved'
-  | 'completed'
-  | 'cancelled';
-
-export type StaffRecoveryJobStatus =
-  | 'pending'
-  | 'leased'
-  | 'reset_verified'
-  | 'enrollment_verified'
-  | 'completed'
-  | 'failed';
+export type StaffRecoveryReasonCategory = 'lost_authenticator' | 'compromised_factor' | 'device_replacement';
 
 export interface StaffRecoveryRequestInput {
   requestId: string;
@@ -25,9 +8,9 @@ export interface StaffRecoveryRequestInput {
 }
 
 export interface StaffRecoveryQuery {
-  status?: StaffRecoveryStatus | string;
-  limit?: number;
   cursor?: string;
+  limit?: number;
+  status?: string;
 }
 
 export interface StaffRecoveryRecord {
@@ -39,11 +22,11 @@ export interface StaffRecoveryRecord {
   checkerUid: string | null;
   reasonCategory: StaffRecoveryReasonCategory;
   reason: string;
-  status: StaffRecoveryStatus;
+  status: 'pending_approval' | 'approved' | 'completed' | 'cancelled';
   createdAt: string;
   approvedAt: string | null;
   jobId: string | null;
-  jobStatus: StaffRecoveryJobStatus | null;
+  jobStatus: 'pending' | 'leased' | 'reset_verified' | 'enrollment_verified' | 'completed' | 'failed' | null;
   jobAttempts: number | null;
   jobLastError: string | null;
   completedAt: string | null;

@@ -4,9 +4,9 @@ export interface EvidencePackage {
   engagementId: string;
   taxYear: number;
   correlationId: string;
+  aiProposalIds: string[];
   knowledgeSourceIds: string[];
   ruleEvaluationIds: string[];
-  findingIds: string[];
-  aiProposalIds: string[];
-  summaryCounts?: Record<string, number>;
+  findingIds?: string[];
+  [key: string]: any;
 }

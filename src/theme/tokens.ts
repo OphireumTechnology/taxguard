@@ -1,4 +1,4 @@
-export const DASHBOARD_THEME = {
+export const DASHBOARD_THEME: Record<string, string> = {
   bg: '#06182B',
   deep: '#071A2E',
   card: '#0D2745',
@@ -13,5 +13,5 @@ export const DASHBOARD_THEME = {
   'gold-border': 'rgba(212, 168, 67, 0.40)',
   success: '#10B981',
   warning: '#F59E0B',
-  error: '#EF4444'
-} as const;
+  error: '#EF4444',
+};
