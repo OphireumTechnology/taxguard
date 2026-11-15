@@ -61,17 +61,7 @@ app.get('/api/tax-forms', (_req, res) => {
 
 // Staff Access Directory & Management
 app.get('/api/staff-access/directory', (_req, res) => {
-  res.json({
-    items: [
-      { uid: 'usr_staff_desmond', email: 'dhinds@destriatax.com', name: 'Desmond Hinds', role: 'accountant', status: 'active', mfaEnrolled: true },
-      { uid: 'usr_staff_elena', email: 'erostova@destriatax.com', name: 'Elena Rostova, CPA', role: 'senior_reviewer', status: 'active', mfaEnrolled: true },
-      { uid: 'usr_staff_marcus', email: 'mvance@destriatax.com', name: 'Marcus Vance', role: 'accountant', status: 'active', mfaEnrolled: true },
-      { uid: 'usr_staff_admin', email: 'admin@destriatax.com', name: 'Victoria Reynolds', role: 'admin', status: 'active', mfaEnrolled: true }
-    ],
-    total: 4,
-    page: 1,
-    pageSize: 50
-  });
+  res.status(503).json({ error: 'STAFF_DIRECTORY_UNAVAILABLE', message: 'Authenticated staff directory is not configured.' });
 });
 
 app.get('/api/staff-access/sessions', (_req, res) => res.json([]));
@@ -87,9 +77,9 @@ app.get('/api/client-portal/overview', (_req, res) => {
   });
 });
 
-// Catch-all API fallback for unimplemented endpoints to prevent crash
-app.all('/api/*', (req, res) => {
-  res.json({ success: true, path: req.path, message: 'DESTRIA TAX SERVICES LLC API Operational' });
+// Fail closed for unimplemented API endpoints. Never report a successful mutation.
+app.all('/api/*', (_req, res) => {
+  res.status(404).json({ error: 'API_ENDPOINT_NOT_IMPLEMENTED' });
 });
 
 // Serve Public Static Assets
