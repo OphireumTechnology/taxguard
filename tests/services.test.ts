@@ -152,8 +152,8 @@ describe('Billing API Service Module', () => {
 
   it('retrieves client invoices and accounts receivable aging', async () => {
     const aging = await billingApiService.aging();
-    expect(aging.rows.length).toBeGreaterThan(0);
-    expect(aging.rows[0].clientName).toBeDefined();
+    expect(aging.clients.length).toBeGreaterThan(0);
+    expect(aging.clients[0].clientName).toBeDefined();
 
     const invs = await billingApi.invoices('c1');
     expect(invs.items.length).toBeGreaterThan(0);

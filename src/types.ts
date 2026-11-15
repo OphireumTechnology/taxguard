@@ -10,7 +10,14 @@ export type UserRole =
   | 'admin'
   | 'super_admin'
   | 'super_administrator'
-  | 'recruiter';
+  | 'recruiter'
+  | 'client_service'
+  | 'founder'
+  | 'administrator'
+  | 'consultant'
+  | 'managing_consultant'
+  | 'firm_manager'
+  | 'legal_specialist';
 
 export interface User {
   id: string;
@@ -21,6 +28,11 @@ export interface User {
   title?: string;
   credentials?: string[];
   companyName?: string;
+  company?: string;
+  taxFilingType?: string;
+  authorizedClientIds?: string[];
+  onboardingCompletedAt?: string | null;
+  updatedAt?: string;
   clientType?: 'individual' | 'business';
   clientId?: string;
   tenantId?: string;
@@ -39,11 +51,22 @@ export interface User {
 
 export type DocumentStatus =
   | 'pending'
+  | 'accepted'
+  | 'requested'
+  | 'uploaded'
+  | 'scanning'
+  | 'processing'
   | 'needs_review'
+  | 'pending_review'
+  | 'missing_information'
+  | 'client_action_required'
   | 'accountant_reviewing'
   | 'approved'
-  | 'rejected'
-  | 'archived';
+  | 'verified'
+  | 'needs_correction'
+  | 'delivered'
+  | 'archived'
+  | 'rejected';
 
 export interface ExtractedDataField {
   key: string;
@@ -83,8 +106,11 @@ export interface RequiredDocumentChecklistItem {
   title: string;
   description: string;
   required: boolean;
-  status: 'missing' | 'uploaded' | 'verified';
+  status: 'missing' | 'requested' | 'uploaded' | 'verified' | 'accepted' | 'completed' | 'not_applicable';
   documentId?: string;
+  taxYear?: number;
+  dueDate?: string;
+  submissionInstructions?: string;
 }
 
 export type EngagementStatus =
@@ -121,6 +147,7 @@ export interface Engagement {
   reviewerName?: string;
   dueDate: string;
   progressPercent: number;
+  progressPercentage?: number;
   internalNotes?: string;
   clientNotes?: string;
   createdAt: string;
@@ -141,7 +168,7 @@ export interface Appointment {
   date: string;
   timeSlot: string;
   type: 'virtual' | 'in_office' | 'phone';
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show' | 'rescheduled' | 'canceled_by_client' | 'canceled_by_staff';
   meetingLink?: string;
   location?: string;
   notes?: string;
@@ -198,6 +225,9 @@ export interface Message {
   engagementId?: string;
   content: string;
   timestamp: string;
+  clientId?: string;
+  createdAt?: string;
+  isInternalNote?: boolean;
   isInternalOnly?: boolean;
   isRead?: boolean;
 }
@@ -218,6 +248,7 @@ export interface JobPosting {
   salaryRange: string;
   postedDate: string;
   closingDate?: string;
+  applicantCount?: number;
 }
 
 export type JobListing = JobPosting;
@@ -232,8 +263,10 @@ export interface Applicant {
   linkedinUrl?: string;
   resumeFileName?: string;
   coverLetter?: string;
-  status: 'screening' | 'interview' | 'offer' | 'rejected' | 'hired';
-  appliedDate: string;
+  status: 'submitted' | 'screening' | 'interview' | 'offer' | 'rejected' | 'hired';
+  yearsExperience?: number;
+  appliedDate?: string;
+  appliedAt?: string;
   notes?: string;
   rating?: number;
 }
@@ -252,9 +285,13 @@ export interface AuditLog {
 }
 
 export interface OnboardingState {
-  currentStep: number;
-  isComplete: boolean;
-  taxYear: number;
+  step?: number;
+  totalSteps?: number;
+  completed?: boolean;
+  data?: Record<string, unknown>;
+  currentStep?: number;
+  isComplete?: boolean;
+  taxYear?: number;
   entityType?: string;
   verifiedIdentity?: boolean;
 }
@@ -269,17 +306,24 @@ export interface LegalCoordinationRecord {
 
 export interface SecurityTestResult {
   id: string;
+  name?: string;
   passed: boolean;
-  title: string;
-  details: string;
+  status?: 'pass' | 'fail' | 'passed' | 'failed';
+  message?: string;
+  title?: string;
+  details?: string;
   timestamp: string;
 }
 
 export interface JobApplication {
   jobId: string;
+  jobTitle: string;
   fullName: string;
   email: string;
   phone: string;
+  linkedinUrl?: string;
+  yearsExperience?: number;
+  resumeFileName?: string;
   resumeText?: string;
   coverLetter?: string;
 }
@@ -287,23 +331,31 @@ export interface JobApplication {
 export interface JobApplicationResult {
   success: boolean;
   applicationId?: string;
+  applicantId?: string;
+  message?: string;
   error?: string;
 }
 
 export interface ServicePlanUpdateResult {
   success: boolean;
+  message?: string;
+  plan?: ServicePlan;
   planId?: string;
   error?: string;
 }
 
 export interface UserStatusUpdateResult {
   success: boolean;
+  message?: string;
+  user?: User;
   userId?: string;
   error?: string;
 }
 
 export interface ClientReassignmentResult {
   success: boolean;
+  message?: string;
+  client?: { id: string; accountantId: string; reviewerId?: string };
   clientId?: string;
   newAccountantId?: string;
   error?: string;
@@ -323,40 +375,87 @@ export interface IndustrySolutionRecord {
 }
 
 export type StrategyCategory =
-  | 'business_structure'
+  | 'individuals'
+  | 'families'
+  | 'self_employed'
+  | 'small_businesses'
+  | 's_corporations'
+  | 'c_corporations'
+  | 'partnerships'
   | 'real_estate'
-  | 'retirement_wealth'
-  | 'tax_credits'
-  | 'compliance';
+  | 'retirement'
+  | 'estates_trusts'
+  | 'charitable_planning'
+  | 'payroll_benefits'
+  | 'credits_incentives'
+  | 'state_local_tax'
+  | 'international'
+  | 'year_end_planning';
 
 export interface TaxStrategyWorkflowStep {
-  step: number;
+  id: string;
+  step: string;
+  requiredRole: 'client' | 'accountant' | 'reviewer' | 'administrator';
+  completed?: boolean;
+}
+
+export interface TaxStrategyOfficialAuthority {
   title: string;
-  description: string;
+  codeCitation: string;
+  url: string;
+}
+
+export interface TaxStrategyApprovalEvent {
+  version: string;
+  approvedBy: string;
+  approvedDate: string;
+  notes?: string;
 }
 
 export interface TaxStrategyRecord {
   id: string;
-  title: string;
+  strategyName: string;
   category: StrategyCategory;
-  categoryLabel: string;
-  shortDescription: string;
-  fullOverview: string;
-  estimatedSavingsRange: string;
-  applicabilityCriteria: string[];
-  keyBenefits: string[];
-  implementationSteps: TaxStrategyWorkflowStep[];
-  irsCodeReferences: string[];
-  caseStudyExample: string;
+  plainLanguageSummary: string;
+  eligibleTaxpayerType: string;
+  taxObjective: string;
+  applicableTaxYear: string;
+  jurisdiction: string;
+  requiredDocuments: string[];
+  workflowChecklist: TaxStrategyWorkflowStep[];
+  potentialBenefits: string[];
+  materialRisksAndLimitations: string[];
+  officialAuthority: TaxStrategyOfficialAuthority;
+  status: 'draft' | 'under_review' | 'approved' | 'active' | 'archived';
+  assignedProfessional: string;
+  clientSuitabilityAssessment: string;
+  professionalReviewRequirement: boolean;
+  approvalHistory: TaxStrategyApprovalEvent[];
+  expirationDate: string;
+  lastReviewedDate: string;
+  version: string;
 }
-
-export type TaxStrategy = TaxStrategyRecord;
 
 export interface AdvisorRequest {
   id: string;
-  subject: string;
-  category: string;
-  status: 'pending' | 'in_progress' | 'resolved';
+  subject?: string;
+  category?: string;
+  clientId?: string;
+  advisorName?: string;
+  question?: string;
+  response?: string;
+  taxYear?: number;
+  status: 'pending' | 'in_progress' | 'answered' | 'resolved';
   createdAt: string;
   details?: string;
+}
+
+
+export interface TaxStrategy {
+  id: string;
+  title: string;
+  ircCode: string;
+  potentialSavings: string;
+  status: 'active' | 'in_progress' | 'recommended';
+  description: string;
 }

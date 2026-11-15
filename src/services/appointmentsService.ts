@@ -156,7 +156,7 @@ const mockList: Appointment[] = INITIAL_APPOINTMENTS.map(a => {
     appointmentId: a.id,
     title: a.title || a.serviceType || 'Tax Consultation',
     category: 'CONSULTATION',
-    mode: a.type === 'in_office' ? 'IN_PERSON' : a.type === 'telephone' ? 'PHONE' : 'REMOTE',
+    mode: a.type === 'in_office' ? 'IN_PERSON' : a.type === 'phone' ? 'PHONE' : 'REMOTE',
     status: String(a.status || 'CONFIRMED').toUpperCase(),
     scheduledStart: startIso,
     scheduledEnd: endIso,

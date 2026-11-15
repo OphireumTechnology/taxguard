@@ -10,4 +10,12 @@ try {
     if (!resolved.startsWith(root + path.sep)) throw new Error('TRACEABILITY_PATH_DENIED');
     return fs.readFileSync(resolved);
   })));
-} catch { console.error('TRACEABILITY_VERIFICATION_FAILED: regenerate and review current evidence; no release authorization.'); process.exitCode = 1; }
+} catch (error) {
+  // Preserve the integrity gate. Surface the actual failing path/error rather
+  // than hiding it behind a generic CI failure message.
+  const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : 'UNKNOWN';
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(JSON.stringify({ status: 'TRACEABILITY_VERIFICATION_FAILED', code,
+    detail: message, releaseAuthorized: false }));
+  process.exitCode = 1;
+}

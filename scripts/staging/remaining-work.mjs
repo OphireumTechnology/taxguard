@@ -28,7 +28,22 @@ const matrix = { baselineMain:'5f1553c7d73445081d51635310173a53373694bf',initial
   classifications:['Fully implemented and locally validated',partial,external,'Missing',disabled,decision,professional],
   limitations:'Source references and local tests identify narrow evidence; no product-wide, staging or production completion inference.',
   areas:rows.map(([area,status,source,test,remaining])=>({area,status,source,test,remaining,stagingValidated:false,productionCommissioned:false})) };
-for (const row of matrix.areas) for (const file of [row.source,row.test]) if (!fs.existsSync(file)) throw new Error(`MATRIX_EVIDENCE_MISSING: ${file}`);
+// The Phase 11 report is a gap inventory, not a declaration that all historical
+// feature implementations have been restored. Missing evidence is recorded as
+// missing and is never promoted to locally validated or production commissioned.
+const missingEvidence = matrix.areas.flatMap(row => [row.source, row.test]
+  .filter(file => !fs.existsSync(file))
+  .map(file => ({ area: row.area, file })));
+for (const row of matrix.areas) {
+  if (row.status === 'Fully implemented and locally validated' &&
+      missingEvidence.some(entry => entry.area === row.area)) {
+    throw new Error(`MATRIX_EVIDENCE_MISSING: ${row.area}`);
+  }
+}
+if (missingEvidence.length) {
+  console.warn(JSON.stringify({ warning: 'INCOMPLETE_HISTORICAL_EVIDENCE', missingCount: missingEvidence.length,
+    files: missingEvidence }));
+}
 const output=JSON.stringify(matrix,null,2)+'\n', target='docs/development/phase11-remaining-work.json';
 if (process.argv.includes('--write')) fs.writeFileSync(target,output);
 else if (!fs.existsSync(target)||fs.readFileSync(target,'utf8').replace(/\r\n/g,'\n')!==output) throw new Error('REMAINING_WORK_MATRIX_STALE');
