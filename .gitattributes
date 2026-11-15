@@ -23,3 +23,8 @@ supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql white
 # rewrite their original whitespace before compatibility validation.
 src/server/auth.ts whitespace=-blank-at-eol
 src/server/productionApp.ts whitespace=-blank-at-eof
+
+# Additional verified pre-rebrand modules are retained byte-exact for review.
+src/server/db.ts whitespace=-blank-at-eol
+src/server/routes/profile-amendment.routes.ts whitespace=-blank-at-eol
+src/server/staticAssetPolicy.ts whitespace=-blank-at-eof
