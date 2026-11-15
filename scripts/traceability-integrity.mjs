@@ -14,13 +14,29 @@ export function verifyTraceability(matrix, read) {
     if (row.browserAcceptance !== 'NOT VERIFIED') throw new Error('TRACEABILITY_BROWSER_EVIDENCE_REQUIRED');
     for (const file of [...row.implementation, ...row.tests]) {
       if (!permittedEvidencePath(file)) throw new Error('TRACEABILITY_PATH_DENIED');
-      const hash = createHash('sha256').update(read(file).toString('utf8').replace(/\r\n/g, '\n')).digest('hex');
-      if (matrix.evidence_versions?.[file] !== hash) throw new Error('TRACEABILITY_EVIDENCE_DRIFT');
+      let bytes;
+      try {
+        bytes = read(file);
+      } catch (error) {
+        const failure = new Error(`TRACEABILITY_EVIDENCE_UNREADABLE: ${file}`, { cause: error });
+        failure.code = 'TRACEABILITY_EVIDENCE_UNREADABLE';
+        throw failure;
+      }
+      const hash = createHash('sha256').update(bytes.toString('utf8').replace(/\r\n/g, '\n')).digest('hex');
+      if (matrix.evidence_versions?.[file] !== hash) throw new Error(`TRACEABILITY_EVIDENCE_DRIFT: ${file}`);
     }
   }
   for (const source of matrix.source_inventory) {
     if (!permittedEvidencePath(source.file) || !/^(?:docs\/|supabase\/migrations\/)/.test(source.file)) throw new Error('TRACEABILITY_PATH_DENIED');
-    if (createHash('sha256').update(read(source.file).toString('utf8').replace(/\r\n/g, '\n')).digest('hex') !== source.sha256) throw new Error('TRACEABILITY_INVENTORY_DRIFT');
+    let bytes;
+    try {
+      bytes = read(source.file);
+    } catch (error) {
+      const failure = new Error(`TRACEABILITY_INVENTORY_UNREADABLE: ${source.file}`, { cause: error });
+      failure.code = 'TRACEABILITY_INVENTORY_UNREADABLE';
+      throw failure;
+    }
+    if (createHash('sha256').update(bytes.toString('utf8').replace(/\r\n/g, '\n')).digest('hex') !== source.sha256) throw new Error(`TRACEABILITY_INVENTORY_DRIFT: ${source.file}`);
   }
   return { requirements: ids.size, agents: 61, stages: 18, status: 'PASS', browserAcceptance: 'NOT VERIFIED', releaseAuthorized: false };
 }
