@@ -47,12 +47,21 @@ describe('recorded profile evidence', () => {
     for (const category of ['authorizationDocuments', 'onboardingDocuments', 'engagementDocuments']) expect(profile.myDocuments[category]).toEqual([]);
   });
   it('reports only the exact signed recorded flags and year without granting verification or broader privacy consent', async () => {
-    setDossier({ taxYear: 2024, identityComplete: true, engagementConsent: consent, authorizedRep: { fullName: 'Synthetic Representative' } });
+    setDossier({ taxYear: 2024, legalName: 'Synthetic Taxpayer', taxpayerType: 'individual', engagementConsent: consent, authorizedRep: { fullName: 'Synthetic Representative' } });
     const profile = await (await read()).json();
     expect(profile.consentCenter.irc7216ConsentAccepted).toBe(true); expect(profile.consentCenter.eSignConsentAccepted).toBe(true);
     expect(profile.consentCenter.privacyConsentAccepted).toBe(false); expect(profile.engagement.taxYear).toBe(2024);
     expect(profile.identity.status).toBe('RECORDED_COMPLETE'); expect(profile.identity.verifiedAt).toBeNull();
     expect(profile.representative.authorizationStatus).toBe('RECORDED'); expect(profile.representative.supportingDocuments).toEqual([]);
+  });
+  it('derives identity status from the recorded fields and never from a stored identityComplete flag', async () => {
+    setDossier({ identityComplete: true });
+    expect((await (await read()).json()).identity.status).toBe('NOT_VERIFIED');
+    setDossier({ identityComplete: true, legalName: 'Synthetic Taxpayer' });
+    expect((await (await read()).json()).identity.status).toBe('NOT_VERIFIED');
+    setDossier({ identityComplete: false, legalName: 'Synthetic Taxpayer', filingStatus: 'single' });
+    const profile = await (await read()).json();
+    expect(profile.identity.status).toBe('RECORDED_COMPLETE'); expect(profile.identity.verifiedAt).toBeNull();
   });
   it.each(['missing signer', 'missing date', 'invalid date', 'string flag', 'explicit false'])('does not present accepted consent for %s', missing => {
     const record: any = { ...consent };

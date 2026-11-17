@@ -18,6 +18,7 @@ import {
 } from '../auth';
 import { SupabaseDurableSessions } from '../supabase-db';
 import { isSupabaseServerConfigured } from '../supabase';
+import { evaluateStageOneServerGate } from '../taxguard/stageOneServerGate';
 const durableProfileAuthority = () => process.env.NODE_ENV === 'production' || process.env.TAXGUARD_STAFF_ACCESS_DEVELOPMENT_ENABLED === 'true' || isSupabaseServerConfigured();
 
 export const profileAmendmentRouter = Router();
@@ -223,7 +224,9 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
       supportingDocuments: authorizationDocuments
     },
     identity: {
-      status: originalDossier.identityComplete === true ? 'RECORDED_COMPLETE' : 'NOT_VERIFIED',
+      // Derived on the server from the recorded dossier fields by the Stage 01 gate rule; a stored
+      // `identityComplete` flag is browser-submitted and is never read. Recorded is not verified (verifiedAt null).
+      status: evaluateStageOneServerGate({ dossier: originalDossier }).evidence.checks.identityComplete === true ? 'RECORDED_COMPLETE' : 'NOT_VERIFIED',
       verifiedAt: null,
       supportingDocsCount: supportingDocs.length,
       documents: supportingDocs,
