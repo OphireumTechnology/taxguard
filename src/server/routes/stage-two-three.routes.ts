@@ -643,12 +643,10 @@ stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant'
 // body and return a decision whose evidence named a server service as its source. Every input was caller-supplied
 // (an absent hardExitGatePassed even defaulted to true), so any authenticated caller could obtain a "passed" gate
 // decision for state the server never checked. They had no consumer. They are retired in every environment and
-// process nothing: stage gates are evaluated only over server-derived, persisted state
-// (serverStageGateOrchestrator via the case-authority stage evaluation route).
-export const STAGE_GATE_SNAPSHOT_RETIRED = Object.freeze({
-  code: 'STAGE_GATE_SNAPSHOT_RETIRED',
-  replacement: '/api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/evaluate'
-});
+// process nothing. No replacement is named: no server derivation of the Stage 02/03 gate inputs exists yet, and the
+// case-authority stage evaluation route also evaluates a caller-supplied snapshot (that route is refused in
+// production until a durable authority store exists; see the Issue #65 acceptance report).
+export const STAGE_GATE_SNAPSHOT_RETIRED = Object.freeze({ code: 'STAGE_GATE_SNAPSHOT_RETIRED' });
 const retiredGateSnapshotEvaluation = (_req: AuthenticatedRequest, res: Response) => {
   res.setHeader('Cache-Control', 'no-store');
   return res.status(410).json({ ...STAGE_GATE_SNAPSHOT_RETIRED });

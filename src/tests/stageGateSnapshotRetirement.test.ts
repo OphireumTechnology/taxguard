@@ -42,7 +42,8 @@ describe('caller-supplied stage gate snapshot evaluation is retired', () => {
           method: 'POST', headers: { 'content-type': 'application/json', 'x-synthetic-role': role }, body: JSON.stringify(body) });
         expect(r.status, role).toBe(410);
         const json = await r.json();
-        expect(json).toEqual({ code: 'STAGE_GATE_SNAPSHOT_RETIRED', replacement: STAGE_GATE_SNAPSHOT_RETIRED.replacement });
+        expect(json).toEqual({ code: 'STAGE_GATE_SNAPSHOT_RETIRED' });
+        expect(STAGE_GATE_SNAPSHOT_RETIRED).toEqual({ code: 'STAGE_GATE_SNAPSHOT_RETIRED' });
         expect(json).not.toHaveProperty('decision');
         expect(r.headers.get('cache-control')).toBe('no-store');
       }
