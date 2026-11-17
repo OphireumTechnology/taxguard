@@ -5,24 +5,14 @@ on:
     branches:
       - main
       - codex/taxguard-phase10-staging-readiness
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'tools/**'
-      - 'scripts/**'
-      - 'qa/**'
-      - 'supabase/**'
-      - 'docs/proposed-migrations/**'
-      - 'docs/development/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/deploy-pages.yml'
-      - '.github/workflows/taxguard-development-ci.yml'
   push:
     branches:
-      # Validate every development sync branch exactly as pushed. Pull-request runs
-      # test the merge with main, which can fail because of main alone.
+      # Validate direct AI Studio main pushes and all supported sync branches.
+      # Pull-request runs validate proposed changes before approval.
+      - main
       - 'sync/**'
+      - 'aistudio/**'
+      - 'ai-studio/**'
       - 'codex/taxguard-phase11-completion'
   workflow_dispatch:
 
@@ -60,7 +50,13 @@ jobs:
         run: npm ci --include=dev --include=optional
 
       - name: Check patch formatting
-        run: git diff --check HEAD~1 HEAD
+        shell: bash
+        run: |
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            git diff --check HEAD^ HEAD
+          else
+            git diff --check HEAD
+          fi
 
       - name: Lint
         run: npm run lint
