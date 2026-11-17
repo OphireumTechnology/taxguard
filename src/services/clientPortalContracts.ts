@@ -1,125 +1,78 @@
-export interface PortalEngagement {
-  engagementId: string;
-  title: string;
-  taxYear: number;
-  status: string;
-  engagementStatus?: string;
+/**
+ * Phase 13A client-portal contracts (C1 consultation history, C3 case stages). Every value is the
+ * server's: the browser validates shape and session continuity but never infers progression.
+ */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
+
+export class PortalContractError extends Error {
+  constructor(public readonly status: number, public readonly code: string) { super(code); }
 }
 
-export interface StageCheckItem {
-  code: string;
-  passed: boolean;
+async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new PortalContractError(401, 'AUTH_REQUIRED');
+  let response: Response;
+  try { response = await fetch(apiEndpoint(path), { cache: 'no-store', credentials: 'omit', signal, headers: { Authorization: `Bearer ${token}` } }); }
+  catch (e) { if ((e as Error)?.name === 'AbortError') throw e; throw new PortalContractError(0, 'NETWORK_UNAVAILABLE'); }
+  const data = await response.json().catch(() => null);
+  // A response that arrives after a sign-out or account switch belongs to another session.
+  if (getStoredToken() !== token) throw new PortalContractError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new PortalContractError(response.status, typeof data?.code === 'string' ? data.code : 'PORTAL_REQUEST_FAILED');
+  return data as T;
 }
 
-export interface CaseStageItem {
-  stage?: number;
-  stageNumber: number;
-  title: string;
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'LOCKED' | string;
-  checks?: StageCheckItem[];
-  evidenceAvailable?: boolean;
-  completedAt?: string;
-  [key: string]: any;
+export type StageRow = { stage: number; status: 'LOCKED' | 'IN_PROGRESS' | 'COMPLETED' | string; completedAt: string | null };
+export type CaseStages =
+  | { engagementId: string; taxYear: number; caseExists: false }
+  | { engagementId: string; taxYear: number; caseExists: true; caseStatus: string; activeStage: number; updatedAt: string;
+      activeStagePolicy: { evidence: 'SYSTEM_VERIFIED' | 'HUMAN_ATTESTED' | 'BLOCKED'; checklist: string[] } | null;
+      activeStageChecks: Record<string, boolean> | null; stages: StageRow[];
+      evidence: { verifiedDocuments: number; documentsInReview: number; documentsNeedingAction: number; openDocumentRequests: number };
+      team: { preparerAssigned: boolean; reviewerAssigned: boolean; independentReview: boolean } };
+
+export type PortalEngagement = { engagementId: string; title: string; type: string; engagementStatus: string; taxYear: number; yearStatus: string; caseStatus: string | null; activeStage: number | null };
+
+export type ConsultationHistoryItem = { requestId: string; topic: string; status: string; createdAt: string; preferredWindows: unknown;
+  appointment: null | { appointmentId: string; status: string; startsAt: string; endsAt: string; timezone: string; mode: string } };
+
+function validStages(d: any): d is CaseStages {
+  if (!d || typeof d.engagementId !== 'string' || !Number.isInteger(d.taxYear) || typeof d.caseExists !== 'boolean') return false;
+  if (!d.caseExists) return true;
+  return Number.isInteger(d.activeStage) && Array.isArray(d.stages) && d.stages.every((s: any) => Number.isInteger(s?.stage) && s.stage >= 1 && s.stage <= 8 && typeof s.status === 'string')
+    && d.evidence && typeof d.team === 'object';
 }
 
-export interface CaseStages {
-  caseExists?: boolean;
-  caseStatus: string;
-  currentStage: number;
-  activeStage?: number;
-  stages: CaseStageItem[];
-  activeStagePolicy?: any;
-  activeStageChecks?: any;
-  evidence?: any;
-  team?: any;
-  [key: string]: any;
-}
-
-export interface ConsultationHistoryItem {
-  requestId: string;
-  topic: string;
-  createdAt: string;
-  appointment?: {
-    status: string;
-    startsAt: string;
-    timezone: string;
-    mode: string;
-  } | null;
-}
-
-export interface SignaturePackageStatus {
-  packageId: string;
-  taxYear: number;
-  releasedAt: string;
-  status?: string;
-}
-
-export function portalErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return 'The client portal service encountered an unexpected error.';
-}
+/** A return released to this client for signature (Stage 11, proposal 20261019190000): status only, no figures or forms. */
+export type SignaturePackageStatus = { packageId: string; taxYear: number; releasedAt: string; status: 'AWAITING_SIGNATURE'; signature: 'NOT_AVAILABLE' };
 
 export const clientPortalContracts = {
-  async engagements(_clientId: string, _signal?: AbortSignal): Promise<{ items: PortalEngagement[] }> {
-    return {
-      items: [
-        {
-          engagementId: 'eng_2025_01',
-          title: '2025 Form 1120-S & Comprehensive Planning',
-          taxYear: 2025,
-          status: 'ACTIVE',
-          engagementStatus: 'active'
-        },
-        {
-          engagementId: 'eng_2024_01',
-          title: '2024 Corporate Tax Preparation',
-          taxYear: 2024,
-          status: 'COMPLETED',
-          engagementStatus: 'completed'
-        }
-      ]
-    };
+  engagements: (clientId: string, signal?: AbortSignal) => get<{ items: PortalEngagement[] }>(`/api/client-portal/clients/${encodeURIComponent(clientId)}/engagements`, signal),
+  async caseStages(clientId: string, engagementId: string, taxYear: number, signal?: AbortSignal): Promise<CaseStages> {
+    const d = await get<unknown>(`/api/client-portal/clients/${encodeURIComponent(clientId)}/case-stages?engagementId=${encodeURIComponent(engagementId)}&taxYear=${taxYear}`, signal);
+    if (!validStages(d)) throw new PortalContractError(502, 'INVALID_PORTAL_RESPONSE');
+    return d;
   },
-
-  async caseStages(_clientId: string, _engagementId: string, _taxYear: number, _signal?: AbortSignal): Promise<CaseStages> {
-    return {
-      caseStatus: 'ACTIVE',
-      currentStage: 4,
-      stages: [
-        { stageNumber: 1, title: 'Client Onboarding & Identity Verification', status: 'COMPLETED', evidenceAvailable: true },
-        { stageNumber: 2, title: 'Document Collection & Source Vault', status: 'COMPLETED', evidenceAvailable: true },
-        { stageNumber: 3, title: 'Source Data Extraction & OCR Indexing', status: 'COMPLETED', evidenceAvailable: true },
-        {
-          stageNumber: 4,
-          title: 'Ledger Reconstruction & Book-to-Tax',
-          status: 'IN_PROGRESS',
-          evidenceAvailable: true,
-          checks: [
-            { code: 'postedEntries', passed: true },
-            { code: 'noEntriesAwaitingReview', passed: false },
-            { code: 'ledgerBalanced', passed: true },
-            { code: 'closedReconciliation', passed: true }
-          ]
-        },
-        { stageNumber: 5, title: 'Tax Return Preparation & Model Verification', status: 'LOCKED' },
-        { stageNumber: 6, title: 'Independent Senior Review & Audit Trail', status: 'LOCKED' },
-        { stageNumber: 7, title: 'Client Authorization & Form 8879 Signature', status: 'LOCKED' },
-        { stageNumber: 8, title: 'IRS / State E-File Transmission', status: 'LOCKED' }
-      ]
-    };
+  async consultations(clientId: string, after?: string, signal?: AbortSignal) {
+    const d = await get<any>(`/api/client-portal/clients/${encodeURIComponent(clientId)}/consultations${after ? '?after=' + encodeURIComponent(after) : ''}`, signal);
+    if (!d || !Array.isArray(d.items) || d.items.some((i: any) => typeof i?.requestId !== 'string' || typeof i.status !== 'string' || typeof i.createdAt !== 'string'))
+      throw new PortalContractError(502, 'INVALID_PORTAL_RESPONSE');
+    return d as { items: ConsultationHistoryItem[]; nextCursor: string | null };
   },
-
-  async consultations(
-    _clientId: string,
-    _after?: string
-  ): Promise<{ items: ConsultationHistoryItem[]; nextCursor: string | null }> {
-    return { items: [], nextCursor: null };
+  async signaturePackages(clientId: string, signal?: AbortSignal): Promise<SignaturePackageStatus[]> {
+    const d = await get<any>(`/api/client-signatures/clients/${encodeURIComponent(clientId)}/signature-packages`, signal);
+    if (!d || d.signature !== 'NOT_AVAILABLE' || !Array.isArray(d.items) || d.items.some((i: any) => typeof i?.packageId !== 'string' || !Number.isInteger(i.taxYear)
+      || i.status !== 'AWAITING_SIGNATURE' || i.signature !== 'NOT_AVAILABLE' || typeof i.releasedAt !== 'string'))
+      throw new PortalContractError(502, 'INVALID_PORTAL_RESPONSE');
+    return d.items as SignaturePackageStatus[];
   },
-
-  async signaturePackages(_clientId: string): Promise<SignaturePackageStatus[]> {
-    return [];
-  },
-
-  getStageContract: async (stageNumber: number) => ({ stage: stageNumber, title: `Stage ${stageNumber}`, canAdvance: true }),
-  signDocument: async (_docId: string) => ({ success: true })
 };
+
+export function portalErrorMessage(e: unknown): string {
+  if (e instanceof PortalContractError) {
+    if (e.status === 401 || e.code === 'SESSION_CHANGED') return 'Your session has ended or changed. Sign in again.';
+    if (e.status === 403 || e.status === 404) return 'This information is not available for your account.';
+    if (e.code === 'PORTAL_STORE_UNAVAILABLE') return 'This information is not enabled in this environment.';
+  }
+  return 'The portal could not load this information. Try again.';
+}

@@ -1,14 +1,105 @@
-export function guardLiveWorkflowStage(first: any, second?: any): any {
-  if (typeof first === 'object' && first !== null) {
-    const stage = typeof second === 'number' ? second : 1;
-    const authStage = first.workflow?.activeStage || first.activeStage || 1;
-    const allowed = stage <= authStage;
+import {
+  LiveWorkflowAuthoritySnapshot
+} from './liveWorkflowAuthority';
+
+export type LiveWorkflowRouteDecision =
+  | {
+      allowed: true;
+      stage: 1 | 2 | 3;
+    }
+  | {
+      allowed: false;
+      redirectStage: 1 | 2 | 3;
+      reason: string;
+    };
+
+export function guardLiveWorkflowStage(
+  snapshot: LiveWorkflowAuthoritySnapshot,
+  requestedStage: 1 | 2 | 3
+): LiveWorkflowRouteDecision {
+
+  /*
+   * FAIL CLOSED.
+   *
+   * Until server authority is hydrated, later stages
+   * cannot be opened.
+   */
+
+  if (
+    snapshot.status !== 'ready' ||
+    !snapshot.workflow ||
+    !snapshot.eligibility
+  ) {
+
     return {
-      allowed,
-      reason: allowed ? '' : `Stage ${stage} is locked until prior stages are completed.`
+      allowed: false,
+      redirectStage: 1,
+      reason:
+        'Authoritative LIVE workflow state is not available.'
     };
   }
-  const requested = typeof first === 'number' ? first : 1;
-  const authoritative = typeof second === 'number' ? second : 1;
-  return requested <= authoritative;
+
+  const eligibility =
+    snapshot.eligibility.eligibility;
+
+  if (requestedStage === 1) {
+
+    return {
+      allowed: true,
+      stage: 1
+    };
+  }
+
+  if (
+    requestedStage === 2 &&
+    eligibility.stage2
+  ) {
+
+    return {
+      allowed: true,
+      stage: 2
+    };
+  }
+
+  if (
+    requestedStage === 3 &&
+    eligibility.stage3
+  ) {
+
+    return {
+      allowed: true,
+      stage: 3
+    };
+  }
+
+  /*
+   * Determine highest server-authorized stage.
+   */
+
+  if (eligibility.stage3) {
+
+    return {
+      allowed: false,
+      redirectStage: 3,
+      reason:
+        'Requested LIVE stage is not server-authorized.'
+    };
+  }
+
+  if (eligibility.stage2) {
+
+    return {
+      allowed: false,
+      redirectStage: 2,
+      reason:
+        'Stage 03 remains locked by the server.'
+    };
+  }
+
+  return {
+    allowed: false,
+    redirectStage: 1,
+    reason:
+      'Stage 02 remains locked by the server.'
+  };
 }

@@ -1,106 +1,58 @@
-import { INITIAL_MESSAGES } from '../data/mockData';
-import type { Message } from '../types';
-
-export const THREAD_CATEGORIES = ['GENERAL', 'TAX_INQUIRY', 'DOCUMENT_REQUEST', 'BILLING'] as const;
-export type ThreadCategory = typeof THREAD_CATEGORIES[number];
-export type MessageVisibility = 'CLIENT_VISIBLE' | 'INTERNAL_ONLY';
+/** Browser client for /api/communications (durable client / staff messaging, proposal 039). */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export class CommunicationRequestError extends Error {
-  status?: number;
-  constructor(message: string, status?: number) {
-    super(message);
-    this.name = 'CommunicationRequestError';
-    this.status = status;
-  }
+  constructor(public readonly status: number, public readonly code?: string) { super(code || 'COMM_REQUEST_FAILED'); }
 }
+export type ThreadCategory = 'GENERAL' | 'TAX_QUESTION' | 'DOCUMENT_QUERY' | 'INVOICING' | 'ADVISORY';
+export type ThreadStatus = 'ACTIVE' | 'RESOLVED' | 'ARCHIVED';
+export type MessageVisibility = 'CLIENT_VISIBLE' | 'INTERNAL_ONLY';
+export interface CommThread { threadId: string; clientId: string; engagementId: string | null; subject: string; category: ThreadCategory; status: ThreadStatus;
+  createdAt: string; lastMessageAt: string; messageCount: number; unread: number; awaitingStaffReply: boolean; createdBy?: string }
+export interface CommMessage { messageId: string; threadId: string; senderRole: string; senderKind: 'client' | 'staff'; own: boolean; body: string;
+  visibility: MessageVisibility; createdAt: string; senderUid?: string; replayed?: boolean }
+export const THREAD_CATEGORIES: Array<[ThreadCategory, string]> = [['GENERAL', 'General'], ['TAX_QUESTION', 'Tax question'], ['DOCUMENT_QUERY', 'Document question'],
+  ['INVOICING', 'Billing'], ['ADVISORY', 'Advisory']];
+export const newCommKey = () => 'cm-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-export function communicationErrorText(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return 'Communication service error.';
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, idempotencyKey?: string, signal?: AbortSignal): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new CommunicationRequestError(401, 'AUTH_REQUIRED');
+  const response = await fetch(apiEndpoint('/api/communications' + path), { method, cache: 'no-store', credentials: 'omit', signal,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  if (getStoredToken() !== token) throw new CommunicationRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new CommunicationRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  return data as T;
 }
-
-export function newCommKey(): string {
-  return 'comm_key_' + Math.random().toString(36).slice(2) + '_' + Date.now();
-}
-
-export interface CommThread {
-  threadId: string;
-  clientId?: string;
-  subject: string;
-  category: ThreadCategory;
-  updatedAt: string;
-  unreadCount?: number;
-  unread?: number;
-  lastMessageAt?: string;
-  awaitingStaffReply?: boolean;
-  status?: 'ACTIVE' | 'RESOLVED' | 'ARCHIVED';
-  [key: string]: any;
-}
-
-export interface CommMessage {
-  messageId: string;
-  senderName: string;
-  senderRole: string;
-  senderKind?: string;
-  own?: boolean;
-  body: string;
-  createdAt: string;
-  visibility: MessageVisibility;
-}
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
+const th = (clientId: string, threadId: string) => c(clientId) + '/threads/' + encodeURIComponent(threadId);
 
 export const communicationsService = {
-  getMessages: async (_engagementId?: string): Promise<Message[]> => INITIAL_MESSAGES,
-  sendMessage: async (msg: Partial<Message>): Promise<{ success: boolean; message: Message }> => {
-    const newMsg: Message = {
-      ...(INITIAL_MESSAGES[0] as any),
-      ...msg,
-      id: 'msg_' + Date.now(),
-      timestamp: new Date().toISOString()
-    };
-    return { success: true, message: newMsg };
-  },
-  threads: async (_clientId?: string, _signal?: AbortSignal): Promise<CommThread[]> => [
-    { threadId: 'thr_1', subject: '2025 Tax Return Preparation Updates', category: 'GENERAL', updatedAt: new Date().toISOString(), unreadCount: 0 }
-  ],
-  inbox: async (_signal?: AbortSignal): Promise<CommThread[]> => [
-    { threadId: 'thr_1', subject: '2025 Tax Return Preparation Updates', category: 'GENERAL', updatedAt: new Date().toISOString(), unreadCount: 0 }
-  ],
-  thread: async (_clientId: string, threadId: string): Promise<{ thread: CommThread & { unread: number }; messages: CommMessage[] }> => ({
-    thread: { threadId, subject: '2025 Tax Return Preparation Updates', category: 'GENERAL', updatedAt: new Date().toISOString(), unread: 0 },
-    messages: [
-      { messageId: 'm1', senderName: 'Desmond Hinds', senderRole: 'accountant', senderKind: 'STAFF', own: false, body: 'Welcome to your secure client communications portal.', createdAt: new Date().toISOString(), visibility: 'CLIENT_VISIBLE' }
-    ]
-  }),
-  createThread: async (...args: any[]): Promise<{ success: boolean; threadId: string; thread: CommThread }> => {
-    const threadId = 'thr_' + Date.now();
-    const subject = typeof args[1] === 'string' ? args[1] : 'New Conversation';
-    const category = (args[2] || 'GENERAL') as ThreadCategory;
-    return {
-      success: true,
-      threadId,
-      thread: {
-        threadId,
-        clientId: typeof args[0] === 'string' ? args[0] : undefined,
-        subject,
-        category,
-        updatedAt: new Date().toISOString(),
-        unread: 0,
-        status: 'ACTIVE'
-      }
-    };
-  },
-  post: async (_clientId: string, _threadId: string, body: string, _key?: string, visibility: MessageVisibility = 'CLIENT_VISIBLE'): Promise<CommMessage> => ({
-    messageId: 'msg_' + Date.now(),
-    senderName: 'Client Contact',
-    senderRole: 'client',
-    senderKind: 'CLIENT',
-    own: true,
-    body,
-    createdAt: new Date().toISOString(),
-    visibility
-  }),
-  markRead: async (_clientId: string, _threadId: string): Promise<boolean> => true,
-  setStatus: async (_clientId: string, _threadId: string, _status: string): Promise<boolean> => true,
-  reply: async (..._args: any[]) => ({ success: true }),
-  archiveThread: async (..._args: any[]) => ({ success: true })
+  threads: (clientId: string, signal?: AbortSignal) => request<CommThread[]>('GET', c(clientId) + '/threads', undefined, undefined, signal),
+  thread: (clientId: string, threadId: string, signal?: AbortSignal) => request<{ thread: CommThread; messages: CommMessage[] }>('GET', th(clientId, threadId), undefined, undefined, signal),
+  createThread: (clientId: string, input: { subject: string; body: string; category?: ThreadCategory; engagementId?: string; visibility?: MessageVisibility }, key: string) =>
+    request<{ thread: CommThread; message: CommMessage }>('POST', c(clientId) + '/threads', input, key),
+  post: (clientId: string, threadId: string, body: string, key: string, visibility?: MessageVisibility) =>
+    request<CommMessage>('POST', th(clientId, threadId) + '/messages', { body, ...(visibility ? { visibility } : {}) }, key),
+  markRead: (clientId: string, threadId: string) => request<{ threadId: string; unread: number }>('POST', th(clientId, threadId) + '/read'),
+  setStatus: (clientId: string, threadId: string, status: ThreadStatus) => request<CommThread & { changed: boolean }>('POST', th(clientId, threadId) + '/status', { status }),
+  inbox: (signal?: AbortSignal) => request<CommThread[]>('GET', '/inbox', undefined, undefined, signal),
 };
+
+/** Plain-language refusal for a communications error code. */
+export function communicationErrorText(error: unknown): string {
+  const code = (error as { code?: string })?.code;
+  switch (code) {
+    case 'COMM_STORE_UNAVAILABLE': return 'Messaging is not available in this environment.';
+    case 'COMM_THREAD_CLOSED': return 'This conversation is closed. Start a new conversation instead.';
+    case 'COMM_THREAD_NOT_FOUND': case 'COMM_CLIENT_NOT_FOUND': return 'This conversation is not available to you.';
+    case 'COMM_INTERNAL_STAFF_ONLY': case 'COMM_ACCESS_DENIED': case 'COMM_STAFF_REQUIRED': return 'You are not permitted to do this.';
+    case 'COMM_MANAGER_REQUIRED': return 'Only a practice manager can archive a conversation.';
+    case 'IDEMPOTENCY_KEY_REUSED': return 'This message conflicts with one already sent. Refresh and try again.';
+    case 'SESSION_CHANGED': case 'AUTH_REQUIRED': return 'Your session changed. Sign in again.';
+    default: return 'The server did not confirm this. Nothing was sent; try again.';
+  }
+}

@@ -1,191 +1,85 @@
-import { INITIAL_INVOICES } from '../data/mockData';
+/** Browser client for /api/billing (durable billing; sandbox payments only). */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export class BillingRequestError extends Error {
-  status: number;
-  code?: string;
-  constructor(message: string, status = 400, code?: string) {
-    super(message);
-    this.name = 'BillingRequestError';
-    this.status = status;
-    this.code = code;
-  }
+  constructor(public readonly status: number, public readonly code?: string) { super(code || 'BILLING_REQUEST_FAILED'); }
 }
+export interface InvoiceLine { lineNo: number; serviceCode: string; description: string; quantity: string; unitRate: string; amount: string; rateOverrideReason: string | null }
+export interface Invoice { invoiceId: string; invoiceNumber: string | null; clientId: string; status: string; subtotal: string; creditsApplied: string; total: string; amountPaid: string;
+  balanceDue: string; dueDate: string; issueDate: string | null; preparedBy: string; approvedBy: string | null; reviewNote: string | null; rowVersion: number; lines: InvoiceLine[];
+  payments: Array<{ paymentId: string; amount: string; refundedAmount: string; method: string; status: string }>; credits: Array<{ creditId: string; amount: string; reason: string; status: string; requestedBy: string }> }
+export interface AgingRow { clientId: string; clientName: string | null; totalDue: string; current: string; days1to30: string; days31to60: string; days61to90: string; over90: string; openInvoices: number }
+export const newBillingKey = () => 'bill-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-export const ISSUED_INVOICE_STATUSES: readonly string[] = ['ISSUED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'VOID'];
-
-export function newBillingKey(): string {
-  return 'bill_key_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, key?: string, expectedToken?:string,signal?:AbortSignal): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new BillingRequestError(401, 'AUTH_REQUIRED');
+  if (expectedToken!==undefined && token!==expectedToken) throw new BillingRequestError(409,'SESSION_CHANGED');
+  const response = await fetch(apiEndpoint('/api/billing' + path), { method, cache: 'no-store', credentials: 'omit',signal,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  if (getStoredToken() !== token) throw new BillingRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new BillingRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  return data as T;
 }
-
-export function billingMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return 'Billing service error.';
-}
-
-export function saveBlob(blob: Blob, fileName: string): void {
-  if (typeof window === 'undefined') return;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export interface AgingRow {
-  clientId: string;
-  clientName?: string;
-  totalDue: string;
-  current: string;
-  days1to30: string;
-  days31to60: string;
-  days61to90: string;
-  over90: string;
-  openInvoices: number;
-}
-
-export interface InvoiceLine {
-  lineNo: number;
-  description: string;
-  quantity: number | string;
-  unitRate: string;
-  amount: string;
-  rateOverrideReason?: string;
-}
-
-export interface InvoiceCredit {
-  creditId: string;
-  amount: string;
-  requestedBy: string;
-  reason: string;
-  status: string;
-}
-
-export interface InvoicePayment {
-  paymentId: string;
-  amount: string;
-  refundedAmount: string;
-  method: string;
-  status: string;
-}
-
-export interface Invoice {
-  invoiceId: string;
-  id?: string;
-  invoiceNumber?: string;
-  clientId: string;
-  status: string;
-  total: string;
-  amountPaid: string;
-  balanceDue: string;
-  issueDate?: string;
-  dueDate?: string;
-  reviewNote?: string;
-  rowVersion: number;
-  currency?: string;
-  lines: InvoiceLine[];
-  credits: InvoiceCredit[];
-  payments: InvoicePayment[];
-}
-
-const mapMockInvoices = (): Invoice[] =>
-  INITIAL_INVOICES.map((inv: any) => {
-    const amountPaid = Number(inv.amountPaid || 0);
-    const total = Number(inv.amount || 0);
-    return {
-      invoiceId: inv.id,
-      id: inv.id,
-      invoiceNumber: inv.invoiceNumber || `INV-${inv.id}`,
-      clientId: inv.clientId,
-      status: String(inv.status || 'ISSUED').toUpperCase(),
-      total: total.toFixed(2),
-      amountPaid: amountPaid.toFixed(2),
-      balanceDue: Math.max(0, total - amountPaid).toFixed(2),
-      issueDate: inv.issuedDate || inv.issueDate,
-      dueDate: inv.dueDate,
-      rowVersion: 1,
-      currency: inv.currency || 'USD',
-      lines: [
-        {
-          lineNo: 1,
-          description: inv.description || 'Tax Advisory Services',
-          quantity: 1,
-          unitRate: total.toFixed(2),
-          amount: total.toFixed(2)
-        }
-      ],
-      credits: [],
-      payments: []
-    };
-  });
-
-export const billingApiService = {
-  aging: async (): Promise<{ clients: AgingRow[]; pendingApproval: number }> => ({
-    clients: [
-      {
-        clientId: 'user_client_1',
-        clientName: 'Michael Perotti',
-        totalDue: '250.00',
-        current: '250.00',
-        days1to30: '0.00',
-        days31to60: '0.00',
-        days61to90: '0.00',
-        over90: '0.00',
-        openInvoices: 1
-      }
-    ],
-    pendingApproval: 0
-  }),
-  catalog: async (): Promise<{ items: Array<{ serviceCode: string; name: string; baseFee: string; isActive: boolean }> }> => ({
-    items: [
-      { serviceCode: 'TAX_1040', name: 'Individual Tax Preparation Form 1040', baseFee: '250.00', isActive: true },
-      { serviceCode: 'TAX_1120S', name: 'S-Corporation Form 1120-S Preparation', baseFee: '650.00', isActive: true },
-      { serviceCode: 'BK_MONTHLY', name: 'Monthly Bookkeeping & Reconciliation', baseFee: '199.00', isActive: true }
-    ]
-  }),
-  invoices: async (_clientId?: string, _signal?: AbortSignal): Promise<{ items: Invoice[] }> => ({
-    items: mapMockInvoices()
-  }),
-  getInvoices: async (_clientId?: string) => INITIAL_INVOICES,
-  create: async (_clientId: string, _dueDate: string, _key?: string) => ({ success: true }),
-  createInvoice: async (_data: any) => ({ success: true, invoice: mapMockInvoices()[0] }),
-  addLine: async (
-    _clientId: string,
-    _invoiceId: string,
-    _line: { serviceCode: string; quantity: string; unitRate?: string; overrideReason?: string },
-    _key?: string
-  ) => ({ success: true }),
-  transition: async (
-    _clientId: string,
-    _invoiceId: string,
-    _action: string,
-    _rowVersion: number,
-    _note?: string
-  ) => ({ success: true }),
-  requestCredit: async (
-    _clientId: string,
-    _invoiceId: string,
-    _amount: string,
-    _note: string,
-    _key?: string
-  ) => ({ success: true }),
-  decideCredit: async (_clientId: string, _creditId: string, _approved: boolean) => ({ success: true }),
-  recordRefund: async (
-    _clientId: string,
-    _paymentId: string,
-    _amount: string,
-    _reason: string,
-    _key?: string
-  ) => ({ success: true }),
-  processPayment: async (_invoiceId: string, _paymentMethodId?: string): Promise<{ success: boolean }> => ({ success: true }),
-  paySandbox: async (_clientId: string, _invoiceId: string, _amount: string | number, _card: string, _idempotencyKey: string): Promise<{ success: boolean }> => ({ success: true }),
-  document: async (_clientId: string, _invoiceId: string): Promise<Blob> => new Blob(['%PDF-1.4 Mock Invoice Document'], { type: 'application/pdf' }),
-  createDraft: async (..._args: any[]) => ({ success: true }),
-  submitDraft: async (..._args: any[]) => ({ success: true }),
-  approveDraft: async (..._args: any[]) => ({ success: true }),
-  recordPayment: async (..._args: any[]) => ({ success: true }),
-  issueRefund: async (..._args: any[]) => ({ success: true }),
-  downloadPdf: async (..._args: any[]) => new Blob(['%PDF-1.4 Mock PDF'], { type: 'application/pdf' })
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
+const i = (clientId: string, invoiceId: string) => `${c(clientId)}/invoices/${encodeURIComponent(invoiceId)}`;
+export const billingApi = {
+  catalog: () => request<{ items: Array<{ serviceCode: string; name: string; baseFee: string; isActive: boolean }> }>('GET', '/catalog'),
+  aging: (asOf?: string) => request<{ asOf: string; pendingApproval: number; clients: AgingRow[] }>('GET', '/ar-aging' + (asOf ? `?asOf=${asOf}` : '')),
+  invoices: async (clientId: string,signal?:AbortSignal) => {
+    const token=getStoredToken(), items:Invoice[]=[], seen=new Set<string>(); let cursor:string|null=null;
+    for (let page=0;page<20;page++) {
+      const result=await request<{items:Invoice[];nextCursor:string|null}>('GET',c(clientId)+'/invoice-pages?limit=100'+(cursor?'&cursor='+encodeURIComponent(cursor):''),undefined,undefined,token,signal);
+      if (!result || !Array.isArray(result.items) || result.items.length>100 || (result.nextCursor!==null && typeof result.nextCursor!=='string')) throw new BillingRequestError(503,'BILLING_RESPONSE_INVALID');
+      for (const invoice of result.items) { if (!invoice || typeof invoice.invoiceId!=='string' || seen.has(invoice.invoiceId)) throw new BillingRequestError(503,'BILLING_RESPONSE_INVALID'); seen.add(invoice.invoiceId); items.push(invoice); }
+      cursor=result.nextCursor; if (!cursor) return {items};
+    }
+    throw new BillingRequestError(503,'BILLING_PAGE_LIMIT');
+  },
+  create: (clientId: string, dueDate: string, key: string) => request<{ invoiceId: string }>('POST', c(clientId) + '/invoices', { dueDate }, key),
+  addLine: (clientId: string, invoiceId: string, line: { serviceCode: string; quantity: string; unitRate?: string; overrideReason?: string }, key: string) => request<Invoice>('POST', i(clientId, invoiceId) + '/lines', line, key),
+  transition: (clientId: string, invoiceId: string, action: 'submit' | 'approve' | 'return' | 'void', rowVersion: number, note?: string) =>
+    request<Invoice>('POST', `${i(clientId, invoiceId)}/${action}`, { rowVersion, note }),
+  recordPayment: (clientId: string, invoiceId: string, amount: string, method: string, key: string) => request('POST', i(clientId, invoiceId) + '/payments', { amount, method }, key),
+  paySandbox: (clientId: string, invoiceId: string, amount: string, testCard: string, key: string) => request('POST', i(clientId, invoiceId) + '/pay-sandbox', { amount, testCard }, key),
+  /** Records a refund made outside TaxGuard (managers only). The key makes a retry safe. */
+  recordRefund: (clientId: string, paymentId: string, amount: string, reason: string, key: string) =>
+    request<Invoice>('POST', `${c(clientId)}/payments/${encodeURIComponent(paymentId)}/refund`, { amount, reason }, key),
+  requestCredit: (clientId: string, invoiceId: string, amount: string, reason: string, key: string) => request('POST', i(clientId, invoiceId) + '/credits', { amount, reason }, key),
+  decideCredit: (clientId: string, creditId: string, apply: boolean) => request<Invoice>('POST', `${c(clientId)}/credits/${encodeURIComponent(creditId)}/${apply ? 'apply' : 'reject'}`),
+  /** Issued-invoice PDF for the signed-in user. Generated on request; never stored or delivered by TaxGuard. */
+  document: async (clientId: string, invoiceId: string): Promise<Blob> => {
+    const token = getStoredToken();
+    if (!token) throw new BillingRequestError(401, 'AUTH_REQUIRED');
+    const response = await fetch(apiEndpoint('/api/billing' + i(clientId, invoiceId) + '/document'), { method: 'GET', cache: 'no-store', credentials: 'omit',
+      headers: { Authorization: `Bearer ${token}` } });
+    if (getStoredToken() !== token) throw new BillingRequestError(409, 'SESSION_CHANGED');
+    if (!response.ok) { const data = await response.json().catch(() => null); throw new BillingRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined); }
+    if (!(response.headers.get('content-type') || '').startsWith('application/pdf')) throw new BillingRequestError(503, 'BILLING_RESPONSE_INVALID');
+    return response.blob();
+  },
 };
-
-export const billingApi = billingApiService;
+export const ISSUED_INVOICE_STATUSES = ['ISSUED', 'PARTIALLY_PAID', 'PAID', 'PAST_DUE', 'VOID'];
+/** Saves a blob through a temporary object URL; the URL is revoked immediately afterwards. */
+export function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  try { const a = document.createElement('a'); a.href = url; a.download = fileName; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
+}
+const MESSAGES: Record<string, string> = {
+  MAKER_CHECKER_VIOLATION: 'A different manager must approve this.', BILLING_MANAGER_REQUIRED: 'Only a practice manager or administrator can do this.',
+  INVOICE_VERSION_CONFLICT: 'The invoice changed since it was loaded. Refresh and retry.', RATE_OVERRIDE_REASON_REQUIRED: 'Enter a reason for using a rate other than the catalog price.',
+  PAYMENT_EXCEEDS_BALANCE: 'The payment is larger than the balance due.', CREDIT_EXCEEDS_BALANCE: 'The credit is larger than the balance due.',
+  BILLING_AMOUNT_INVALID: 'Enter an amount with at most two decimals.', PAYMENT_DECLINED: 'The sandbox payment was declined.', DUPLICATE_PAYMENT: 'This payment was already recorded.',
+  SANDBOX_TEST_CARD_REQUIRED: 'Use a published sandbox test card number. No real card is ever charged.', BILLING_UNAVAILABLE: 'Billing is not enabled in this environment.',
+  INVOICE_NOT_EDITABLE: 'Only draft invoices can be edited.', INVOICE_EMPTY: 'Add at least one line before submitting.',
+  REFUND_EXCEEDS_PAYMENT: 'The refund is larger than the amount still refundable on this payment.', IDEMPOTENCY_KEY_REUSED: 'This request was already used for a different refund. Refresh and enter the refund again.',
+  INVOICE_DOCUMENT_NOT_ISSUED: 'A document is available only after the invoice is issued.', INVOICE_DOCUMENT_DATA_INVALID: 'The invoice document could not be produced from the recorded amounts.',
+};
+export function billingMessage(error: unknown): string {
+  if (error instanceof BillingRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];
+  if (error instanceof BillingRequestError && (error.status === 403 || error.status === 404)) return 'You are not authorized for this billing record.';
+  return 'The billing service did not confirm this action. Refresh and retry.';
+}

@@ -106,7 +106,7 @@ function DashboardShellSession({
       <a inert={isMobileOpen} className="tg-skip-link" href={`#${contentId}`}>Skip to workspace</a>
       <header inert={isMobileOpen} className="tg-shell-header">
         <button ref={menuRef} className="tg-shell-icon tg-mobile-menu" aria-label="Open navigation" aria-expanded={isMobileOpen} aria-controls={drawerId} onClick={() => setMobileOpen(true)}><Menu size={20} /></button>
-        <div className="tg-shell-brand"><ShieldCheck size={34} aria-hidden="true" /><div><strong>TAXGUARD <span>AI</span></strong><small>A/R TAX SERVICES, LLC</small></div></div>
+        <div className="tg-shell-brand"><ShieldCheck size={34} aria-hidden="true" /><div><strong>TAXGUARD <span>AI</span></strong><small>DESTRIA TAX SERVICES LLC</small></div></div>
         <div className="tg-shell-heading"><span>{title}</span><small>{DASHBOARD_EXPERIENCES[workspace]}</small></div>
         <button className="tg-shell-search" onClick={openSearch} aria-label={onSearch ? 'Search documents, messages, tax years' : 'Search authorized workspace navigation'}><Search size={16} /><span>{onSearch ? 'Search documents, messages, tax years...' : 'Search workspace navigation...'}</span></button>
         <div className="tg-shell-tools">{headerTools}
