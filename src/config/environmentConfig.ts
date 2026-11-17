@@ -56,11 +56,12 @@ const ENVIRONMENT_CONFIGS: Record<AppEnvironment, EnvironmentBehaviorConfig> = {
     requireHardExitGate: true,
     enableAuditLogging: true,
     simulatedLatencyMs: 0,
-    environmentLabel: 'DESTRIA Production Environment',
-    description: 'Production configuration template. Infrastructure, security and governance acceptance active.'
+    environmentLabel: 'DESTRIA Production configuration (commissioning required)',
+    description: 'Production configuration template. Infrastructure, security and governance acceptance remain required.'
   }
 };
 
+// These browser presentation settings never grant server authority.
 for (const config of Object.values(ENVIRONMENT_CONFIGS)) Object.freeze(config);
 Object.freeze(ENVIRONMENT_CONFIGS);
 
@@ -112,6 +113,7 @@ export class EnvironmentConfigService {
       const last4 = cleaned.slice(-4).padStart(4, '0');
       return `***-**-${last4}`;
     }
+    // EIN format: XX-XXX1234
     const last4 = cleaned.slice(-4).padStart(4, '0');
     return `XX-XXX${last4}`;
   }
@@ -121,5 +123,8 @@ export class EnvironmentConfigService {
   }
 }
 
+/**
+ * Canonical TaxGuard environment configuration accessor.
+ */
 export const getEnvironmentConfig = (): EnvironmentBehaviorConfig =>
   EnvironmentConfigService.getConfig();

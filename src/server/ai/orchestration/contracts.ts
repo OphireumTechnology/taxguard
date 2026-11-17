@@ -1,94 +1,47 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import type { AICaseScope, AgentId } from '../../../ai/types';
+import type { GovernanceDecision, VerifiedIdentity } from '../governance/contracts';
 
-export type ReviewTask =
-  | 'DOCUMENT_DUPLICATE_CHECK'
-  | 'IDENTIFY_REVIEW_QUESTIONS'
-  | 'REVIEW_EVIDENCE_COMPLETENESS';
-
+export type ReviewTask = 'IDENTIFY_REVIEW_QUESTIONS' | 'REVIEW_EVIDENCE_COMPLETENESS' | 'DOCUMENT_DUPLICATE_CHECK';
 export interface OrchestrationRequest {
   request_id: string;
   scope: AICaseScope;
   tasks: ReviewTask[];
   evidence_source_ids: string[];
 }
-
-export interface ChildContext {
-  root_id?: string;
-  operation_id: string;
-  attempt?: number;
-  agent_id: AgentId;
-  scope?: AICaseScope;
-  workflow_stage?: number;
-  purpose?: string;
-  evidence_source_ids: readonly string[] | string[];
-  decision_id?: string;
-}
-
-export interface AdvisoryResult {
-  operation_id: string;
-  agent_id: string;
-  status: 'ADVISORY';
-  human_review_required: boolean;
-  action_executed: boolean;
-  evidence_source_ids: string[];
-  finding_codes: string[];
-}
-
-export type AdvisoryHandler = (ctx: ChildContext, signal?: AbortSignal) => Promise<AdvisoryResult>;
-
-export interface CaseReadiness {
-  status: 'READY' | 'NOT_READY' | 'NOT_DIAGNOSED' | 'UNAVAILABLE';
-  blocking: number | null;
-  errors: number | null;
-  diagnosed_at: string | null;
-}
-
-export interface CaseReadinessGate {
-  read(tenantId: string, taxCaseId: string): Promise<any>;
-}
-
-export interface OperationEvent {
-  operation_id: string | null;
-  agent_id: string;
-  attempt: number;
-  status: 'PLANNED' | 'AUTHORIZED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'RETRY_SCHEDULED' | 'RESULT_RECORDED' | 'RETRY_REQUIRED' | 'TIMED_OUT' | 'CANCELLED' | 'UNAVAILABLE' | 'DENIED' | string;
-  purpose: string | null;
-  decision_id: string | null;
-  reason_code: string;
-  output_hash: string | null;
-}
-
 export interface RootRecord {
-  root_id: string;
-  identity: { uid: string; tenant_id: string; [key: string]: any };
-  scope: AICaseScope;
-  case_record_id: string;
-  workflow_stage: number;
-  request_key: string;
-  input_hash: string;
-  coordinator_decision_id: string;
+  root_id: string; identity: VerifiedIdentity; request_key: string; input_hash: string;
+  case_record_id: string; scope: AICaseScope; workflow_stage: number; coordinator_decision_id: string;
 }
-
-export interface OrchestrationResult {
-  root_id: string;
-  status: string;
-  children: any[];
-  human_review_required?: boolean;
-  action_executed?: boolean;
-  external_submission_allowed?: boolean;
-  case_readiness?: CaseReadiness;
-  readiness?: CaseReadiness;
-  results?: AdvisoryResult[];
+export type OperationStatus = 'PLANNED' | 'AUTHORIZED' | 'RUNNING' | 'RESULT_RECORDED' | 'DENIED' | 'FAILED' | 'TIMED_OUT' | 'CANCELLED' | 'RETRY_REQUIRED' | 'COMPLETED' | 'UNAVAILABLE';
+export interface OperationEvent {
+  operation_id: string | null; agent_id: AgentId; attempt: number; status: OperationStatus;
+  purpose: ReviewTask | null;
+  decision_id: string | null; reason_code: string; output_hash: string | null;
 }
-
 export interface OrchestrationLedger {
   begin(root: RootRecord): Promise<void>;
   append(root: RootRecord, event: OperationEvent): Promise<void>;
-  record?(event: OperationEvent): Promise<void>;
-  getRootRecord?(requestId: string): Promise<RootRecord | null>;
+}
+/** Handler receives metadata only: no token, raw document, prompt or database capability. */
+export interface ChildContext {
+  root_id: string; operation_id: string; attempt: number; agent_id: AgentId;
+  scope: Readonly<AICaseScope>; workflow_stage: number; purpose: ReviewTask;
+  evidence_source_ids: readonly string[]; decision_id: string;
+}
+export interface AdvisoryResult {
+  operation_id: string; agent_id: AgentId; status: 'ADVISORY';
+  human_review_required: true; action_executed: false;
+  evidence_source_ids: string[]; finding_codes: string[];
+}
+export type AdvisoryHandler = (context: Readonly<ChildContext>, signal: AbortSignal) => Promise<unknown>;
+/**
+ * The case's readiness as the review-only diagnostics gate (proposal 20261018160000) reports it. A00 reports it to the
+ * reviewer and never acts on it; anything it cannot read reliably is UNAVAILABLE, never READY.
+ */
+export interface CaseReadiness { status: 'READY' | 'NOT_READY' | 'NOT_DIAGNOSED' | 'UNAVAILABLE'; blocking: number | null; errors: number | null; diagnosed_at: string | null }
+export interface CaseReadinessGate { read(tenant_id: string, tax_case_id: string): Promise<unknown> }
+export interface OrchestrationResult {
+  root_id: string; status: 'COMPLETED'; human_review_required: true;
+  action_executed: false; external_submission_allowed: false; case_readiness: CaseReadiness;
+  children: { operation_id: string; decision: GovernanceDecision; result: AdvisoryResult }[];
 }

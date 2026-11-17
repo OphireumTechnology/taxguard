@@ -1,48 +1,8 @@
-export interface ClientServiceRequest {
-  id?: string;
-  requestId?: string;
-  tenantId?: string;
-  caseKey: string;
-  title?: string;
-  status: string;
-  dueDate?: string;
-  createdAt?: string;
-  [key: string]: any;
-}
-
-export interface ClientServiceRequestDetail extends ClientServiceRequest {
-  description?: string;
-  clientName?: string;
-  assignedTo?: string;
-  [key: string]: any;
-}
-
-export interface ClientServiceConversation {
-  id?: string;
-  threadId?: string;
-  tenantId?: string;
-  caseKey?: string;
-  clientName?: string;
-  unread?: number;
-  lastMessageAt?: string;
-  messages?: Array<Record<string, any>>;
-  [key: string]: any;
-}
-
-export interface ClientServiceCase {
-  caseKey: string;
-  clientId?: string;
-  clientName?: string;
-  taxYear?: number;
-  status?: string;
-  [key: string]: any;
-}
-
-export interface ClientServiceSnapshot {
-  requests: ClientServiceRequest[];
-  threads: ClientServiceConversation[];
-  followUps: Array<{ id: string; caseKey: string; status: string; dueDate?: string; [key: string]: any }>;
-  escalations: Array<{ id: string; caseKey?: string; severity?: string; [key: string]: any }>;
-  cases?: ClientServiceCase[];
-  [key: string]: any;
-}
+export interface ClientServiceCase {id:string;clientId:string;engagementId:string;taxYear:number;stage:number;status:string;documents:Record<string,number>}
+export interface ClientServiceRequest {id:string;caseKey:string;type:string;status:string;priority:string;createdAt?:string;dueDate?:string}
+export interface ClientServiceThread {id:string;caseKey:string;category:string;status:string;lastMessageAt?:string;messageCount:number;unread:number}
+export interface ClientServiceFollowUp {id:string;caseKey:string;type:string;status:string;priority:string;createdAt?:string;dueDate?:string;owner?:string}
+export interface ClientServiceEscalation {id:string;caseKey:string;category:string;status:string;level:number;dueDate:string;createdAt?:string}
+export interface ClientServiceSnapshot {tenantId:string;cases:ClientServiceCase[];requests:ClientServiceRequest[];threads:ClientServiceThread[];followUps:ClientServiceFollowUp[];escalations:ClientServiceEscalation[];capabilities:{appointments:false;mutations:false;sla:false;ai:false;privateDocuments:false}}
+export interface ClientServiceConversation {tenantId:string;caseKey:string;threadId:string;messages:Array<{id:string;role:string;content:string;read:boolean;createdAt:string}>}
+export interface ClientServiceRequestDetail {tenantId:string;caseKey:string;requestId:string;title:string;description?:string;status:string}
