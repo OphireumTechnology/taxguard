@@ -10,6 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { apiEndpoint } from '../config/apiEndpoint';
 import { isStaffIdentityDevelopmentConfigured, supabase } from '../supabase/config';
 import { validateEmailFormat } from '../supabase/auth';
+import { signOutProviderSession } from '../supabase/providerSignOut';
 
 export type RecoveryStep = 'none' | 'awaiting_approval' | 'awaiting_reset' | 'reset_failed' | 'ready_for_enrollment' | 'awaiting_reactivation';
 export class RecoveryEnrollmentError extends Error {
@@ -66,7 +67,8 @@ export function createRecoveryEnrollmentApi(injected?: { provider?: SupabaseClie
       if (data?.status !== 'enrollment_verified') throw new RecoveryEnrollmentError('UNAVAILABLE', recoveryEnrollmentMessage('UNAVAILABLE'));
       return 'enrollment_verified';
     },
-    async signOut() { try { await provider().auth.signOut(); } catch { /* local state is cleared by the provider client */ } },
+    // supabase-js keeps the session after a failed global sign-out; this always removes this device's session.
+    async signOut() { try { await signOutProviderSession(provider()); } catch { /* provider unavailable: no session to remove */ } },
   };
 }
 export type RecoveryEnrollmentApi = ReturnType<typeof createRecoveryEnrollmentApi>;

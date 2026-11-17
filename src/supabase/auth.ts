@@ -9,6 +9,7 @@
 
 import { supabase } from './config';
 import { UserRole } from '../types';
+import { signOutProviderSession } from './providerSignOut';
 
 export type ControlledAuthErrorCode =
   | 'REGISTRATION_FAILED'
@@ -599,13 +600,9 @@ export async function resendVerificationEmail(
   }
 }
 
+/** Ends this device's provider session in every case; resolves true only when the server confirmed revocation. */
 export async function logout(): Promise<boolean> {
-  try {
-    await supabase.auth.signOut();
-    return true;
-  } catch {
-    return false;
-  }
+  return signOutProviderSession(supabase);
 }
 
 export const NEUTRAL_PASSWORD_RESET_MESSAGE =

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase, isStaffIdentityDevelopmentConfigured } from '../supabase/config';
 import { validateEmailFormat, validatePasswordStrength } from '../supabase/auth';
+import { signOutProviderSession } from '../supabase/providerSignOut';
 
 export interface StaffInvitationDetails { role: string; legalFirstName: string; legalLastName: string; expiresAt: string }
 export class StaffInvitationFlowError extends Error {
@@ -87,7 +88,8 @@ export function createStaffInvitationApi(injectedProvider?: Pick<SupabaseClient,
       if (result?.status !== 'pending_approval') throw denied();
       return { status: 'pending_approval' };
     },
-    async signOut() { if (!injectedProvider && !isStaffIdentityDevelopmentConfigured()) return; try { const result = await provider.auth.signOut(); if (result.error) throw unavailable(); } catch { throw unavailable(); } },
+    // This device's provider session is removed in every case; an unconfirmed server revocation is still reported.
+    async signOut() { if (!injectedProvider && !isStaffIdentityDevelopmentConfigured()) return; if (!(await signOutProviderSession(provider))) throw unavailable(); },
   };
 }
 export type StaffInvitationApi = ReturnType<typeof createStaffInvitationApi>;
