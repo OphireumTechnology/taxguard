@@ -4,7 +4,7 @@
     "VOLATILE_REFUSED": "Backed by process-local (in-memory) state. Production refuses with the group's code, after authentication and scope checks, so nothing a restart or a second instance would lose is served or acknowledged. Needs a durable adapter.",
     "DURABLE_GATED": "A durable adapter exists but is off until its proposal is approved and applied and the switch is set; until then production refuses with the group's code.",
     "PROVIDER_REFUSED": "Depends on an external provider that is not commissioned; production refuses with the group's code.",
-    "RETIRED": "Local password and identity routes retired in production in favour of the Supabase session bridge (410).",
+    "RETIRED": "Routes retired in production (410): local password and identity routes, in favour of the Supabase session bridge, and caller-supplied stage-gate snapshot evaluation, in favour of server-derived gate evaluation.",
     "DURABLE": "Reads or writes PostgreSQL or the durable session store through the server role. With the synthetic store in this test it reports its provider unavailable or answers from the synthetic session rows.",
     "STATELESS": "Computes only from the request or from a static reference catalog; it reads and records no case state.",
     "DIAGNOSTIC": "Liveness, readiness and administrator-only diagnostics; no client records."
@@ -711,8 +711,9 @@
     },
     {
       "id": "stage-gate-evaluation",
-      "kind": "STATELESS",
-      "reason": "Evaluates the Stage 02 and Stage 03 gate functions over the snapshot in the request and returns the decision; it reads and records nothing and advances no stage.",
+      "kind": "RETIRED",
+      "code": "STAGE_GATE_SNAPSHOT_RETIRED",
+      "reason": "Formerly returned a Stage 02/03 gate decision computed entirely from caller-supplied booleans (an absent hard-exit flag defaulted to passed). Retired in every environment with no consumer; gates are evaluated only over server-derived state by the case-authority stage evaluation route.",
       "routes": [
         "POST /api/stage-two-three/gates/stage-2/evaluate",
         "POST /api/stage-two-three/gates/stage-3/evaluate"

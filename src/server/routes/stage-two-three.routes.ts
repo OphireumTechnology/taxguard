@@ -9,7 +9,7 @@
  * - Client Requests Loop (Two-way accountant <-> client communication)
  * - Dedicated Stage 03 Accountant Document Review Workspace API
  * - Maker-Checker authorization & Optimistic Concurrency control
- * - Stage 02 and Stage 03 Server Gate evaluations
+ * - Retired caller-supplied Stage 02 / Stage 03 gate snapshot evaluation (410)
  */
 
 import { Router, Response } from 'express';
@@ -30,8 +30,6 @@ import {
   serverClientRequestsStore,
   serverDocumentReviewStore
 } from '../taxguard/accountantDocumentReview.service';
-import { evaluateStageTwoServerGate } from '../taxguard/stageTwoServerGate';
-import { evaluateStageThreeServerGate } from '../taxguard/stageThreeServerGate';
 import { AuthorityError } from '../taxguard/authority.repository';
 import { StageTwoReconciliationService } from '../../services/stageTwoReconciliationService';
 import { db } from '../db';
@@ -641,38 +639,19 @@ stageTwoThreeRouter.post('/accountant/verify-evidence', requireRole('accountant'
 // 5. SERVER GATE EVALUATIONS
 // ============================================================================
 
-stageTwoThreeRouter.post('/gates/stage-2/evaluate', (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const snapshot = req.body.snapshot || {};
-    const decision = evaluateStageTwoServerGate({
-      completenessPassed: Boolean(snapshot.completenessPassed),
-      unresolvedBlockingExceptions: Number(snapshot.unresolvedBlockingExceptions || 0),
-      reconciliationPassed: Boolean(snapshot.reconciliationPassed),
-      professionalCertificationPassed: Boolean(snapshot.professionalCertificationPassed),
-      hardExitGatePassed: snapshot.hardExitGatePassed !== undefined ? Boolean(snapshot.hardExitGatePassed) : true,
-      blockingReasons: snapshot.blockingReasons
-    });
-    return res.json({ decision });
-  } catch (err: any) {
-    return sendStageError(res, err);
-  }
+// These two endpoints used to evaluate the Stage 02 / Stage 03 gate functions over a snapshot taken from the request
+// body and return a decision whose evidence named a server service as its source. Every input was caller-supplied
+// (an absent hardExitGatePassed even defaulted to true), so any authenticated caller could obtain a "passed" gate
+// decision for state the server never checked. They had no consumer. They are retired in every environment and
+// process nothing: stage gates are evaluated only over server-derived, persisted state
+// (serverStageGateOrchestrator via the case-authority stage evaluation route).
+export const STAGE_GATE_SNAPSHOT_RETIRED = Object.freeze({
+  code: 'STAGE_GATE_SNAPSHOT_RETIRED',
+  replacement: '/api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/evaluate'
 });
-
-stageTwoThreeRouter.post('/gates/stage-3/evaluate', (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const snapshot = req.body.snapshot || {};
-    const decision = evaluateStageThreeServerGate({
-      validationComplete: Boolean(snapshot.validationComplete),
-      provenanceComplete: Boolean(snapshot.provenanceComplete),
-      unresolvedBlockingExceptions: Number(snapshot.unresolvedBlockingExceptions || 0),
-      humanReviewRequired: snapshot.humanReviewRequired !== undefined ? Boolean(snapshot.humanReviewRequired) : true,
-      humanReviewApproved: Boolean(snapshot.humanReviewApproved),
-      hardExitGatePassed: snapshot.hardExitGatePassed !== undefined ? Boolean(snapshot.hardExitGatePassed) : true,
-      aiOnlyDecision: snapshot.aiOnlyDecision === true,
-      blockingReasons: snapshot.blockingReasons
-    });
-    return res.json({ decision });
-  } catch (err: any) {
-    return sendStageError(res, err);
-  }
-});
+const retiredGateSnapshotEvaluation = (_req: AuthenticatedRequest, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(410).json({ ...STAGE_GATE_SNAPSHOT_RETIRED });
+};
+stageTwoThreeRouter.post('/gates/stage-2/evaluate', retiredGateSnapshotEvaluation);
+stageTwoThreeRouter.post('/gates/stage-3/evaluate', retiredGateSnapshotEvaluation);
