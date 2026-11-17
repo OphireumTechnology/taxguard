@@ -22,7 +22,7 @@ const storedToken = (s: Session) => s.page.evaluate(() => localStorage.getItem('
 async function providerLogin(uid: string) {
   const s = await newSession(); const { page } = s;
   await page.goto(ORIGIN + '/staff/login', { waitUntil: 'domcontentloaded' });
-  await page.getByPlaceholder('practitioner@artaxservices.com').fill(email(uid));
+  await page.getByPlaceholder('practitioner@destriatax.com').fill(email(uid));
   await page.locator('input[type=password]').fill(PASSWORD);
   await page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
   const otp = page.locator('input[autocomplete="one-time-code"]');

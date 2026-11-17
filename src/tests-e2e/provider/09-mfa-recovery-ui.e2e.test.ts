@@ -41,7 +41,7 @@ async function providerLogin(uid: string) {
   await budget(4);
   const s = count(await newSession()); const { page } = s;
   await page.goto(ORIGIN + '/staff/login', { waitUntil: 'domcontentloaded' });
-  await page.getByPlaceholder('practitioner@artaxservices.com').fill(email(uid));
+  await page.getByPlaceholder('practitioner@destriatax.com').fill(email(uid));
   await page.locator('input[type=password]').fill(PASSWORD);
   await page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
   const code = page.locator('input[autocomplete="one-time-code"]');

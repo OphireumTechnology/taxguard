@@ -27,7 +27,7 @@ afterAll(async () => { await closeBrowser(); });
 async function signIn(): Promise<Session> {
   const s = await newSession(); const { page } = s;
   await page.goto(ORIGIN + '/staff/login', { waitUntil: 'domcontentloaded' });
-  await page.getByPlaceholder('practitioner@artaxservices.com').fill(`${UID}@example.test`);
+  await page.getByPlaceholder('practitioner@destriatax.com').fill(`${UID}@example.test`);
   await page.locator('input[type=password]').fill(PASSWORD);
   await page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
   const otp = page.locator('input[autocomplete="one-time-code"]');

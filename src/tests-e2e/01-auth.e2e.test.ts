@@ -9,7 +9,7 @@ describe('staff sign-in and MFA', () => {
   it('refuses a wrong password without issuing a session', async () => {
     const s = await newSession(); const u = user('e2e-recruiter');
     await s.page.goto(ORIGIN + '/staff/login');
-    await s.page.getByPlaceholder('practitioner@artaxservices.com').fill(u.email);
+    await s.page.getByPlaceholder('practitioner@destriatax.com').fill(u.email);
     await s.page.locator('input[type=password]').fill(u.password + 'x');
     await s.page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
     expect(await sees(s.page, 'Invalid email or password.')).toBe(true);
@@ -21,7 +21,7 @@ describe('staff sign-in and MFA', () => {
   it('asks for the authenticator code after the password and refuses a wrong code', async () => {
     const s = await newSession(); const u = user('e2e-recruiter');
     await s.page.goto(ORIGIN + '/staff/login');
-    await s.page.getByPlaceholder('practitioner@artaxservices.com').fill(u.email);
+    await s.page.getByPlaceholder('practitioner@destriatax.com').fill(u.email);
     await s.page.locator('input[type=password]').fill(u.password);
     await s.page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
     const code = s.page.locator('input[autocomplete="one-time-code"]');

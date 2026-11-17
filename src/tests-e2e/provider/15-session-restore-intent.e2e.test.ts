@@ -22,7 +22,7 @@ function watchBridge(s: Session) {
 async function passwordSignIn(s: Session, path: '/portal/login' | '/staff/login', id: string) {
   await s.page.goto(ORIGIN + path);
   if (path === '/staff/login') {
-    await s.page.getByPlaceholder('practitioner@artaxservices.com').fill(email(id));
+    await s.page.getByPlaceholder('practitioner@destriatax.com').fill(email(id));
     await s.page.locator('input[type=password]').fill(PASSWORD);
     await s.page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
   } else {

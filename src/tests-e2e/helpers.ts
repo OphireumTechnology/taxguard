@@ -66,7 +66,7 @@ export async function staffLogin(id: string, s?: Session) {
   const session = s ?? await newSession();
   const { page } = session; const u = user(id);
   await page.goto(ORIGIN + '/staff/login', { waitUntil: 'domcontentloaded' });
-  await page.getByPlaceholder('practitioner@artaxservices.com').fill(u.email);
+  await page.getByPlaceholder('practitioner@destriatax.com').fill(u.email);
   await page.locator('input[type=password]').fill(u.password);
   await page.getByRole('button', { name: 'Enter Staff Workspace' }).click();
   const code = page.locator('input[autocomplete="one-time-code"]');
