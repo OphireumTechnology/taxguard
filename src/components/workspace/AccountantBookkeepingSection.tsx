@@ -508,8 +508,14 @@ export const AccountantBookkeepingSection: React.FC<AccountantBookkeepingSection
                 <button
                   type="button"
                   onClick={async () => {
-                    await bookkeepingService.executeReadOnlySync(syncProvider, clientId);
-                    setNotice({ type: 'success', message: `${syncProvider} Read-Only synchronization completed.` });
+                    // Success is shown only when the server confirms a completed sync; a refusal or an uncommissioned
+                    // provider is reported as such.
+                    try {
+                      const result = await bookkeepingService.executeReadOnlySync(syncProvider, clientId);
+                      setNotice({ type: 'success', message: `${syncProvider} read-only synchronization completed: ${result.syncedAccounts} accounts, ${result.syncedTransactions} transactions.` });
+                    } catch (err: any) {
+                      setNotice({ type: 'error', message: err?.message || `${syncProvider} synchronization did not complete.` });
+                    }
                   }}
                   className="px-3 py-1.5 bg-[#06182B] hover:bg-[#102D4F] border border-slate-700/60 rounded-xl text-xs text-slate-300 cursor-pointer"
                 >

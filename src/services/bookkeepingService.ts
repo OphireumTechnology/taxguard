@@ -151,22 +151,33 @@ export class BookkeepingRequestError extends Error {
 }
 
 class BookkeepingService {
-  // Same session store and API host as the rest of the application.
-  private getHeaders() {
+  /**
+   * Every bookkeeping request: the same session store and API host as the rest of the application. Nothing is sent
+   * without a session, and a response that arrives after a sign-out or account switch is discarded (it belongs to
+   * another session), as in the other durable clients.
+   */
+  private async send(path: string, init: { method?: 'GET' | 'POST'; body?: unknown; idempotencyKey?: string } = {}) {
     const token = getStoredToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
+    if (!token) throw new BookkeepingRequestError('Sign in to use bookkeeping.', 401, 'AUTH_REQUIRED');
+    const res = await fetch(apiEndpoint('/api/bookkeeping' + path), {
+      method: init.method ?? 'GET', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(init.idempotencyKey ? { 'Idempotency-Key': init.idempotencyKey } : {}) },
+      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+    });
+    const data = await res.json().catch(() => null);
+    if (getStoredToken() !== token) throw new BookkeepingRequestError('Your session changed. Sign in again.', 409, 'SESSION_CHANGED');
+    return { res, data };
+  }
+
+  /** A legacy read or action: its own failure message, the server's code kept. */
+  private async legacy<T>(path: string, failure: string, init: { method?: 'GET' | 'POST'; body?: unknown } = {}): Promise<T> {
+    const { res, data } = await this.send(path, init);
+    if (!res.ok) throw new BookkeepingRequestError(failure, res.status, typeof data?.code === 'string' ? data.code : undefined);
+    return data as T;
   }
 
   private async mutate<T>(path: string, body: Record<string, unknown>, idempotencyKey?: string): Promise<T> {
-    const headers = { ...this.getHeaders(), ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) };
-    const res = await fetch(apiEndpoint('/api/bookkeeping' + path), { method: 'POST', headers, cache: 'no-store', body: JSON.stringify(body) });
-    const data = await res.json().catch(() => null);
+    const { res, data } = await this.send(path, { method: 'POST', body, idempotencyKey });
     if (!res.ok) {
       const code = typeof data?.code === 'string' ? data.code : undefined;
       throw new BookkeepingRequestError(typeof data?.error === 'string' ? data.error : 'The bookkeeping service did not accept this request.', res.status, code);
@@ -203,10 +214,7 @@ class BookkeepingService {
   }
   private async read<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
     const query = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1] !== ''));
-    const res = await fetch(apiEndpoint(`/api/bookkeeping${path}?${query.toString()}`), { headers: this.getHeaders(), cache: 'no-store' });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new BookkeepingRequestError('The bookkeeping service could not load this view.', res.status, typeof data?.code === 'string' ? data.code : undefined);
-    return data as T;
+    return this.legacy<T>(`${path}?${query.toString()}`, 'The bookkeeping service could not load this view.');
   }
   searchJournal(clientId: string, taxYear: number, filter: { q?: string; status?: string; fromDate?: string; toDate?: string; accountId?: string }) {
     return this.read<{ entries: JournalEntryItem[] }>('/journal-entries', { clientId, taxYear: String(taxYear), ...filter });
@@ -232,11 +240,9 @@ class BookkeepingService {
   getLedgerHistory(clientId: string, taxYear: number) {
     return this.read<{ events: LedgerHistoryEvent[] }>('/history', { clientId, taxYear: String(taxYear) });
   }
-  async getPeriods(clientId: string, taxYear: number): Promise<{ periods: AccountingPeriodItem[] }> {
+  getPeriods(clientId: string, taxYear: number): Promise<{ periods: AccountingPeriodItem[] }> {
     const params = new URLSearchParams({ clientId, taxYear: String(taxYear) });
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/periods?${params.toString()}`), { headers: this.getHeaders(), cache: 'no-store' });
-    if (!res.ok) throw new BookkeepingRequestError('Failed to load accounting periods', res.status);
-    return res.json();
+    return this.legacy(`/periods?${params.toString()}`, 'Failed to load accounting periods');
   }
   openPeriod(clientId: string, taxYear: number, periodName: string, startDate: string, endDate: string) {
     return this.mutate<{ period: AccountingPeriodItem }>('/periods', { clientId, taxYear, periodName, startDate, endDate });
@@ -248,83 +254,46 @@ class BookkeepingService {
     return this.mutate<{ period: AccountingPeriodItem }>(`/periods/${encodeURIComponent(periodId)}/reopen`, { clientId, taxYear, reason });
   }
 
-  async getChartOfAccounts(clientId?: string, taxYear?: number): Promise<{ accounts: ChartOfAccountItem[] }> {
+  private scopeQuery(clientId?: string, taxYear?: number, accountId?: string) {
     const params = new URLSearchParams();
     if (clientId) params.set('clientId', clientId);
     if (taxYear) params.set('taxYear', String(taxYear));
-
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/chart-of-accounts?${params.toString()}`), {
-      headers: this.getHeaders(),
-    });
-    if (!res.ok) throw new Error('Failed to load chart of accounts');
-    return res.json();
-  }
-
-  async getJournalEntries(clientId?: string, taxYear?: number): Promise<{ entries: JournalEntryItem[] }> {
-    const params = new URLSearchParams();
-    if (clientId) params.set('clientId', clientId);
-    if (taxYear) params.set('taxYear', String(taxYear));
-
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/journal-entries?${params.toString()}`), {
-      headers: this.getHeaders(),
-    });
-    if (!res.ok) throw new Error('Failed to load journal entries');
-    return res.json();
-  }
-
-  async getTransactions(clientId?: string, accountId?: string): Promise<{ transactions: BankTransactionItem[] }> {
-    const params = new URLSearchParams();
-    if (clientId) params.set('clientId', clientId);
     if (accountId) params.set('accountId', accountId);
-
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/transactions?${params.toString()}`), {
-      headers: this.getHeaders(),
-    });
-    if (!res.ok) throw new Error('Failed to load bank transactions');
-    return res.json();
+    return params.toString();
   }
 
-  async getTrialBalance(clientId?: string, taxYear?: number): Promise<{ trialBalance: { items: TrialBalanceReportItem[]; isBalanced: boolean; totalEndingDebit: number; totalEndingCredit: number } }> {
-    const params = new URLSearchParams();
-    if (clientId) params.set('clientId', clientId);
-    if (taxYear) params.set('taxYear', String(taxYear));
-
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/trial-balance?${params.toString()}`), {
-      headers: this.getHeaders(),
-    });
-    if (!res.ok) throw new Error('Failed to load trial balance');
-    return res.json();
+  getChartOfAccounts(clientId?: string, taxYear?: number): Promise<{ accounts: ChartOfAccountItem[] }> {
+    return this.legacy(`/chart-of-accounts?${this.scopeQuery(clientId, taxYear)}`, 'Failed to load chart of accounts');
   }
 
-  async getFinancialStatements(clientId?: string, taxYear?: number): Promise<{ statements: FinancialStatementsData }> {
-    const params = new URLSearchParams();
-    if (clientId) params.set('clientId', clientId);
-    if (taxYear) params.set('taxYear', String(taxYear));
-
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/financial-statements?${params.toString()}`), {
-      headers: this.getHeaders(),
-    });
-    if (!res.ok) throw new Error('Failed to load financial statements');
-    return res.json();
+  getJournalEntries(clientId?: string, taxYear?: number): Promise<{ entries: JournalEntryItem[] }> {
+    return this.legacy(`/journal-entries?${this.scopeQuery(clientId, taxYear)}`, 'Failed to load journal entries');
   }
 
-  async matchDocument(transactionId: string, documentId: string): Promise<any> {
-    const res = await fetch(apiEndpoint(`/api/bookkeeping/transactions/${transactionId}/match-document`), {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ documentId }),
-    });
-    if (!res.ok) throw new Error('Failed to match document');
-    return res.json();
+  getTransactions(clientId?: string, accountId?: string): Promise<{ transactions: BankTransactionItem[] }> {
+    return this.legacy(`/transactions?${this.scopeQuery(clientId, undefined, accountId)}`, 'Failed to load bank transactions');
   }
 
-  async executeReadOnlySync(provider: 'QUICKBOOKS' | 'XERO', clientId?: string): Promise<any> {
-    const res = await fetch(apiEndpoint('/api/bookkeeping/sync/read-only'), {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ provider, clientId, idempotencyKey: `sync_${Date.now()}` }),
-    });
-    return res.json();
+  getTrialBalance(clientId?: string, taxYear?: number): Promise<{ trialBalance: { items: TrialBalanceReportItem[]; isBalanced: boolean; totalEndingDebit: number; totalEndingCredit: number } }> {
+    return this.legacy(`/trial-balance?${this.scopeQuery(clientId, taxYear)}`, 'Failed to load trial balance');
+  }
+
+  getFinancialStatements(clientId?: string, taxYear?: number): Promise<{ statements: FinancialStatementsData }> {
+    return this.legacy(`/financial-statements?${this.scopeQuery(clientId, taxYear)}`, 'Failed to load financial statements');
+  }
+
+  matchDocument(transactionId: string, documentId: string): Promise<any> {
+    return this.legacy(`/transactions/${encodeURIComponent(transactionId)}/match-document`, 'Failed to match document', { method: 'POST', body: { documentId } });
+  }
+
+  /**
+   * Read-only accounting sync. The server answers success: false when the provider is not commissioned; that is a
+   * refusal, not a completed sync, so it is reported as one.
+   */
+  async executeReadOnlySync(provider: 'QUICKBOOKS' | 'XERO', clientId?: string): Promise<{ success: true; provider: string; syncedAccounts: number; syncedTransactions: number; readOnly: true }> {
+    const data = await this.legacy<any>('/sync/read-only', 'The accounting sync did not complete.', { method: 'POST', body: { provider, clientId, idempotencyKey: `sync_${Date.now()}` } });
+    if (data?.success !== true) throw new BookkeepingRequestError(`${provider} is not connected; nothing was synchronized.`, 503, 'SYNC_PROVIDER_NOT_COMMISSIONED');
+    return data;
   }
 }
 

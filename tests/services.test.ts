@@ -112,6 +112,37 @@ describe('Bookkeeping Service Module', () => {
     expect(thrown).toMatchObject({ status: 403, code: 'MAKER_CHECKER_VIOLATION' });
     expect(calls[0].body).toEqual({ clientId: 'client_1', taxYear: 2025, version: 4 });
   });
+
+  it('sends nothing without a session and discards a response that arrives after a session change', async () => {
+    serve(() => ({ body: { accounts: [], entries: [], periods: [] } }));
+    clearStoredToken();
+    for (const call of [() => bookkeepingService.getChartOfAccounts('client_1', 2025), () => bookkeepingService.getWorkQueue('client_1', 2025),
+      () => bookkeepingService.getPeriods('client_1', 2025), () => bookkeepingService.openPeriod('client_1', 2025, '2025-Q4', '2025-10-01', '2025-12-31'),
+      () => bookkeepingService.matchDocument('t1', 'd1'), () => bookkeepingService.executeReadOnlySync('QUICKBOOKS', 'client_1')]) {
+      await expect(call()).rejects.toMatchObject({ status: 401, code: 'AUTH_REQUIRED' });
+    }
+    expect(calls).toEqual([]);
+    setStoredToken(TOKEN);
+    serve(() => ({ body: { accounts: [{ id: 'other-session' }] }, onSend: () => setStoredToken('synthetic-other-session') }));
+    await expect(bookkeepingService.getChartOfAccounts('client_1', 2025)).rejects.toMatchObject({ status: 409, code: 'SESSION_CHANGED' });
+  });
+
+  it('reports a read-only sync as completed only when the server confirms it', async () => {
+    // The server answers 200 with success: false when the provider is not commissioned: that is not a completed sync.
+    serve(() => ({ body: { success: false, provider: 'QUICKBOOKS', syncedAccounts: 0, syncedTransactions: 0, readOnly: true } }));
+    await expect(bookkeepingService.executeReadOnlySync('QUICKBOOKS', 'client_1')).rejects.toMatchObject({ status: 503, code: 'SYNC_PROVIDER_NOT_COMMISSIONED' });
+    expect([calls[0].method, pathOf(calls[0].url)]).toEqual(['POST', '/api/bookkeeping/sync/read-only']);
+    expect(calls[0].body).toMatchObject({ provider: 'QUICKBOOKS', clientId: 'client_1' });
+    serve(() => ({ status: 503, body: { code: 'DURABLE_LEDGER_REQUIRED' } }));
+    await expect(bookkeepingService.executeReadOnlySync('XERO', 'client_1')).rejects.toMatchObject({ status: 503, code: 'DURABLE_LEDGER_REQUIRED' });
+    const done = { success: true, provider: 'XERO', syncedAccounts: 3, syncedTransactions: 12, readOnly: true };
+    serve(() => ({ body: done }));
+    expect(await bookkeepingService.executeReadOnlySync('XERO', 'client_1')).toEqual(done);
+    // the transaction id is a path segment, never path syntax
+    serve(() => ({ body: { matched: true } }));
+    await bookkeepingService.matchDocument('t/../1', 'd1');
+    expect(pathOf(calls.at(-1)!.url)).toBe('/api/bookkeeping/transactions/t%2F..%2F1/match-document');
+  });
 });
 
 describe('Book-to-Tax Service Module', () => {
