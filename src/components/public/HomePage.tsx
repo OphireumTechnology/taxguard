@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { FinancialIntelligenceMotion } from './FinancialIntelligenceMotion';
 import { useApp } from '../../context/AppContext';
 import { TESTIMONIALS_DATA } from '../../data/mockData';
 import { BrandLogo } from '../common/BrandLogo';
@@ -211,6 +212,8 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <FinancialIntelligenceMotion />
 
       {/* 2. THE FOUR FOUNDATIONAL PILLARS OF DESTRIA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Core Advisory Principles">
