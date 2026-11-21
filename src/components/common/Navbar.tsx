@@ -1009,11 +1009,11 @@ export const Navbar: React.FC = () => {
             <div className="p-4 border-t border-[#0B2748] bg-[#050E1A] space-y-2.5">
               {/* Telephone Direct Line */}
               <a 
-                href="tel:678-205-9486" 
+                href="tel:+16782059486" 
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:text-white bg-[#0B2748] border border-[#0B2748] hover:border-[#C99A3D]/50 transition-colors min-h-[44px]"
               >
                 <Phone className="w-4 h-4 text-[#C99A3D]" />
-                <span>Call Directly: 678-205-9486</span>
+                <span>Call Directly: +1-678-205-9486</span>
               </a>
 
               {/* Client Portal CTA */}

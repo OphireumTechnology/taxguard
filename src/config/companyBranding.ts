@@ -13,3 +13,13 @@ export const COMPANY_BRANDING = {
 } as const;
 
 export const COMPANY_MAILTO_HREF = `mailto:${COMPANY_BRANDING.email}` as const;
+
+export const COMPANY_CONTACT = {
+  companyName: COMPANY_BRANDING.legalName,
+  phoneDisplay: '+1-678-205-9486',
+  phoneE164: '+16782059486',
+  phoneHref: 'tel:+16782059486',
+  email: COMPANY_BRANDING.email,
+  website: COMPANY_BRANDING.website,
+  location: 'Columbia, South Carolina, USA',
+} as const;

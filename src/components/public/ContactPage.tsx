@@ -112,8 +112,8 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <strong className="text-white block">Direct Telephone:</strong>
-                    <a href="tel:678-205-9486" className="text-slate-200 hover:text-[#C6A15B] transition-colors font-medium">
-                      678-205-9486
+                    <a href="tel:+16782059486" className="text-slate-200 hover:text-[#C6A15B] transition-colors font-medium">
+                      +1-678-205-9486
                     </a>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export const ContactPage: React.FC = () => {
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="678-205-9486"
+                        placeholder="+1-678-205-9486"
                         className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
                       />
                     </div>

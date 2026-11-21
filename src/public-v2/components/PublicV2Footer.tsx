@@ -148,7 +148,7 @@ export const PublicV2Footer: React.FC<PublicV2FooterProps> = ({
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-black flex-shrink-0" />
                 <a href="tel:+19253971040" className="hover:underline text-black">
-                  (925) 397-1040
+                  +1-925-397-1040
                 </a>
               </div>
               <div className="flex items-center gap-2">
