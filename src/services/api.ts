@@ -804,18 +804,8 @@ export const api = {
     getStageState: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number) => {
       return request<any>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}`);
     },
-    evaluateStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; snapshot: unknown }) => {
-      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/evaluate`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
-    transitionStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; toStage?: number; approvalId?: string }) => {
-      return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/transition`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-    },
+    // No browser client for stage evaluation or transition here: those case-authority routes are retired (D1). Stage
+    // moves use the durable cases API (POST /api/cases/:caseId/advance), which never accepts a browser verdict.
     blockStage: async (tenantId: string, clientId: string, engagementId: string, taxYear: number, stage: number, payload: { version: number; operationId: string; reason: string }) => {
       return request<{ revision: number; version: number }>(`/api/case-authority/${tenantId}/${clientId}/${engagementId}/${taxYear}/stages/${stage}/block`, {
         method: 'POST',

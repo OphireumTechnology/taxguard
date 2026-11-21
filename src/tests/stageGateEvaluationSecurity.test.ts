@@ -93,60 +93,61 @@ async function evaluate(scope: typeof scopeA, n: number, actor?: Actor, operatio
 }
 const untouched = (scope: typeof scopeA, n: number) => expect(stage(scope, n)).toMatchObject({ status: n === 2 ? 'IN_PROGRESS' : 'LOCKED', requirementsMet: false, version: 1 });
 
-describe.each([2, 3])('Stage %i gate evaluation refusals', n => {
-  const deny = async (scope: typeof scopeA, actor: Actor, status: number, code: string) => {
-    const r = await evaluate(scope, n, actor);
-    expect([r.status, r.body?.code], JSON.stringify(actor)).toEqual([status, code]);
+const RETIRED = 'STAGE_VERDICT_ROUTE_RETIRED';
+const snapshotOf = () => new Map(holder.db.records);
+
+describe.each([2, 3])('Stage %i: no browser verdict is evaluated, stored or turned into a transition', n => {
+  const expectOutcome = async (scope: typeof scopeA, actor: Actor | undefined, status: number, code?: string, path = 'evaluate') => {
+    const before = snapshotOf();
+    const r = path === 'evaluate' ? await evaluate(scope, n, actor)
+      : await fetch(url(scope, `/stages/${n}/transition`), { method: 'POST', headers: headersFor(actor), body: JSON.stringify({ revision: 1, operationId: 'tr-' + n, approvalId: 'fabricated-approval', toStage: n + 1 }) })
+        .then(async x => ({ status: x.status, body: await x.json().catch(() => null) }));
+    expect([r.status, r.body?.code], `${path} ${JSON.stringify(actor)}`).toEqual([status, code]);
+    expect(holder.db.records, 'nothing recorded').toEqual(before);
   };
-  it('an unauthenticated caller is refused before any evaluation', async () => {
-    expect((await evaluate(scopeA, n)).status).toBe(401);
+  it.each(['evaluate', 'transition'])('%s: unauthenticated callers are refused first (401)', async path => {
+    await expectOutcome(scopeA, undefined, 401, undefined, path);
+  });
+  it.each(['evaluate', 'transition'])('%s: every caller that reaches the route gets 410, including the assigned preparer and reviewer', async path => {
+    for (const actor of [{ user: 'prepA' }, { user: 'revA', role: 'reviewer' }, { user: 'outsiderA' }, { user: 'ownerA', role: 'client', client: 'sec-001' }])
+      await expectOutcome(scopeA, actor, 410, RETIRED, path);
     untouched(scopeA, n);
   });
-  it("the case's own client cannot submit a verdict, and cannot address another client's case", async () => {
-    await deny(scopeA, { user: 'ownerA', role: 'client', client: 'sec-001' }, 403, 'PROFESSIONAL_REQUIRED');
-    await deny(scopeA, { user: 'ownerA', role: 'client', client: 'sec-901' }, 403, 'CLIENT_ACCESS_DENIED');
-    await deny(scopeA, { user: 'ownerA', role: 'client' }, 403, 'CLIENT_ACCESS_DENIED');
-    untouched(scopeA, n);
-  });
-  it('staff without a client assignment, or with one but no case assignment, are refused', async () => {
-    await deny(scopeA, { user: 'nobodyA' }, 403, 'CLIENT_ACCESS_DENIED');
-    await deny(scopeA, { user: 'outsiderA' }, 403, 'CASE_ACCESS_DENIED');
-    untouched(scopeA, n);
-  });
-  it("another tenant's preparer cannot reach this tenant's case, whatever tenant the session claims", async () => {
-    await deny(scopeA, { user: 'prepB', tenant: 'tenantB' }, 403, 'CLIENT_CONTEXT_UNAVAILABLE');
-    await deny(scopeA, { user: 'prepB', tenant: 'tenantA' }, 403, 'CLIENT_ACCESS_DENIED');
-    // a path naming another tenant with this tenant's case identifiers does not reach either case
-    await deny({ ...scopeA, tenantId: 'tenantB' }, { user: 'prepA' }, 403, 'CLIENT_CONTEXT_UNAVAILABLE');
+  it.each(['evaluate', 'transition'])('%s: other clients, unassigned staff and other tenants are refused by the client guard before the route', async path => {
+    await expectOutcome(scopeA, { user: 'ownerA', role: 'client', client: 'sec-901' }, 403, 'CLIENT_ACCESS_DENIED', path);
+    await expectOutcome(scopeA, { user: 'nobodyA' }, 403, 'CLIENT_ACCESS_DENIED', path);
+    await expectOutcome(scopeA, { user: 'prepB', tenant: 'tenantB' }, 403, 'CLIENT_CONTEXT_UNAVAILABLE', path);
+    await expectOutcome(scopeA, { user: 'prepB', tenant: 'tenantA' }, 403, 'CLIENT_ACCESS_DENIED', path);
+    await expectOutcome({ ...scopeA, tenantId: 'tenantB' }, { user: 'prepA' }, 403, 'CLIENT_CONTEXT_UNAVAILABLE', path);
     untouched(scopeA, n); untouched(scopeB, n);
   });
-  it('production refuses the route outright while the authority store is process-local, even for the assigned preparer', async () => {
+  it.each(['evaluate', 'transition'])('%s: the same refusal in production (410, not a provider error)', async path => {
     vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('TAXGUARD_TENANT_ID', 'tenantA');
-    await deny(scopeA, { user: 'prepA', authorized: 'sec-001' }, 503, 'DURABLE_CASE_AUTHORITY_PROVIDER_REQUIRED');
-    await deny(scopeA, { user: 'prepA' }, 403, 'CLIENT_ACCESS_DENIED');
-    untouched(scopeA, n);
+    await expectOutcome(scopeA, { user: 'prepA', authorized: 'sec-001' }, 410, RETIRED, path);
+    await expectOutcome(scopeA, { user: 'prepA' }, 403, 'CLIENT_ACCESS_DENIED', path);
   });
 });
 
-describe('a fabricated browser verdict from the assigned preparer (development, process-local store)', () => {
-  it("is recorded under the preparer's name but does not by itself advance the case: the reviewer decision stays separate", async () => {
+describe('a fabricated all-passed verdict from the assigned preparer', () => {
+  it('is not evaluated or stored, opens no transition, and the case stays at its stage', async () => {
+    const before = snapshotOf();
     const r = await evaluate(scopeA, 2, { user: 'prepA' });
-    expect(r.status).toBe(200);
-    // OPEN FINDING (Issue #65 acceptance report): the gate inputs are the caller's snapshot, so this records
-    // requirementsMet for state the server never checked. What still holds is asserted below.
-    expect(stage(scopeA, 2)).toMatchObject({ requirementsMet: true, evaluatedBy: 'prepA' });
-    expect(holder.db.records.get(casePath(scopeA)).activeStage).toBe(2);
+    expect(r.status).toBe(410);
+    expect(r.body).toMatchObject({ code: RETIRED, replacement: '/api/cases/:caseId/advance', requiresHumanReview: true, externalSubmissionAllowed: false });
+    expect(r.body).not.toHaveProperty('decision');
     const post = (actor: Actor, body: object) => fetch(url(scopeA, '/stages/2/transition'), { method: 'POST', headers: headersFor(actor), body: JSON.stringify(body) });
-    // the preparer can request the transition but cannot approve it, with or without a fabricated approval id
-    expect((await post({ user: 'prepA' }, { revision: 2, operationId: 'tr-req' })).status).toBe(200);
-    for (const approvalId of ['tr-req', 'fabricated-approval']) {
-      const self = await post({ user: 'prepA' }, { revision: 3, operationId: 'tr-self-' + approvalId, approvalId });
-      expect(self.status, approvalId).toBe(403);
-    }
-    // the assigned reviewer cannot approve with an approval record that does not exist
-    const forgedApproval = await post({ user: 'revA' }, { revision: 3, operationId: 'tr-rev', approvalId: 'fabricated-approval' });
-    expect(forgedApproval.status).toBe(403);
+    for (const [actor, body] of [[{ user: 'prepA' }, { revision: 1, operationId: 'tr-req' }], [{ user: 'prepA' }, { revision: 1, operationId: 'tr-self', approvalId: 'tr-req' }],
+      [{ user: 'revA', role: 'reviewer' }, { revision: 1, operationId: 'tr-rev', approvalId: 'fabricated-approval' }]] as Array<[Actor, object]>)
+      expect((await post(actor, body)).status).toBe(410);
+    expect(holder.db.records).toEqual(before);
+    expect(stage(scopeA, 2)).toMatchObject({ requirementsMet: false, status: 'IN_PROGRESS' });
     expect(holder.db.records.get(casePath(scopeA)).activeStage).toBe(2);
-    untouched(scopeB, 2);
+  });
+  it('no application code calls the retired routes', async () => {
+    const { readdirSync, readFileSync, statSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const walk = (d: string): string[] => readdirSync(d).flatMap(x => { const p = join(d, x); return statSync(p).isDirectory() ? walk(p) : /\.(ts|tsx)$/.test(x) ? [p] : []; });
+    const app = walk('src').filter(f => !/[\\/](server|tests|tests-db|tests-e2e)[\\/]/.test(f));
+    expect(app.filter(f => /stages\/\$\{[^}]+\}\/(evaluate|transition)|\/stages\/[^'"`]*\/(evaluate|transition)/.test(readFileSync(f, 'utf8')))).toEqual([]);
   });
 });

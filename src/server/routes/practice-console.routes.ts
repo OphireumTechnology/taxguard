@@ -227,57 +227,13 @@ practiceConsoleRouter.post('/resolve-classification', (req: AuthenticatedRequest
   });
 });
 
-// 4. Maker-Checker Gate Approval (Advance Stage 02 -> Stage 03 Validate)
-practiceConsoleRouter.post('/gate-approval', async (req: AuthenticatedRequest, res: Response) => {
-  const { clientId, taxYear = 2025, notes } = req.body;
-
-  if (!clientId) {
-    return res.status(400).json({ error: 'clientId is required.' });
-  }
-
-  try {
-    const workflow = await LiveWorkflowRepository.getCase(clientId, taxYear);
-    if (!workflow) {
-      return res.status(404).json({ error: 'Live workflow case not found.' });
-    }
-
-    if (workflow.activeStage !== 2) {
-      return res.status(409).json({ error: `Cannot approve Stage 02 gate: Active stage is ${workflow.activeStage}.` });
-    }
-
-    // Complete Stage 02 authoritatively
-    const updated = await LiveWorkflowRepository.completeStage(
-      clientId,
-      taxYear,
-      2,
-      req.user!.id,
-      req.user!.role,
-      workflow.revision,
-      {
-        approvalNotes: notes || 'Approved via Practice Console',
-        approverName: req.user!.name,
-        approvedAt: new Date().toISOString()
-      }
-    );
-
-    db.logAuditEvent(
-      req.user!.id,
-      req.user!.role,
-      'STAGE_02_HARD_GATE_APPROVED_BY_PRACTICE_CONSOLE',
-      'workflow',
-      `${clientId}:${taxYear}`,
-      {
-        actor: req.user!.name,
-        notes: notes || 'Stage 02 completion gate authorized.'
-      }
-    );
-
-    return res.json({
-      success: true,
-      message: 'Stage 02 Hard Exit Gate passed. Stage 03 Validate is now active.',
-      workflow: updated
-    });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Gate approval failed.' });
-  }
+// 4. Stage 02 gate approval: RETIRED (D1, Issue #65). It completed Stage 02 for any clientId in the body with no
+// client assignment check, no requirement evaluation and no independent reviewer. Retired in every environment; it
+// processes nothing. Stage 02 is a HUMAN_ATTESTED stage of the durable workflow: the case's independent reviewer
+// attests through POST /api/cases/:caseId/advance (taxguard_case_advance), which also computes the document-request
+// evidence for the stage.
+export const PRACTICE_CONSOLE_GATE_APPROVAL_RETIRED = Object.freeze({ code: 'STAGE_VERDICT_ROUTE_RETIRED', replacement: '/api/cases/:caseId/advance' });
+practiceConsoleRouter.post('/gate-approval', (_req: AuthenticatedRequest, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(410).json({ ...PRACTICE_CONSOLE_GATE_APPROVAL_RETIRED });
 });

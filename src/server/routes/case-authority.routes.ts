@@ -496,17 +496,19 @@ caseAuthorityRouter.get(base + '/stages/history', handler((repo, scope, uid) => 
 caseAuthorityRouter.get(base + '/stages/:stage', handler((repo, scope, uid, req) =>
   repo.getStageState(scope, uid, Number(req.params.stage) as StageNumber)
 ));
-caseAuthorityRouter.post(base + '/stages/:stage/evaluate', handler((repo, scope, uid, req) =>
-  repo.evaluateStage(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, Number(req.params.stage) as StageNumber, req.body?.snapshot)
-));
-caseAuthorityRouter.post(base + '/stages/:stage/transition', handler((repo, scope, uid, req) => {
-  const fromStage = Number(req.params.stage) as StageNumber;
-  const toStage = (req.body?.toStage ?? fromStage + 1) as StageNumber;
-  if (req.body?.approvalId) {
-    return repo.approveStageTransition(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, fromStage, toStage, req.body.approvalId);
-  }
-  return repo.requestStageTransition(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, fromStage, toStage);
-}));
+// D1 (Issue #65): stage evaluation here took its gate inputs from req.body.snapshot and stored the result as
+// requirementsMet, and transitions trusted that stored result, so a browser-built verdict could open a stage
+// transition. Both are retired in every environment and process nothing (no evaluation, no write). Stage moves
+// go through the durable cases router (POST /api/cases/:caseId/advance -> taxguard_case_advance), which computes
+// SYSTEM_VERIFIED checks from database records, requires the case's independent reviewer for HUMAN_ATTESTED stages,
+// refuses BLOCKED stages, and locks and versions the case in one PostgreSQL transaction.
+export const STAGE_VERDICT_ROUTE_RETIRED = Object.freeze({ code: 'STAGE_VERDICT_ROUTE_RETIRED', replacement: '/api/cases/:caseId/advance' });
+const retiredStageVerdictRoute = (_req: AuthenticatedRequest, res: any) => {
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(410).json({ ...STAGE_VERDICT_ROUTE_RETIRED, requiresHumanReview: true, externalSubmissionAllowed: false });
+};
+caseAuthorityRouter.post(base + '/stages/:stage/evaluate', retiredStageVerdictRoute);
+caseAuthorityRouter.post(base + '/stages/:stage/transition', retiredStageVerdictRoute);
 caseAuthorityRouter.post(base + '/stages/:stage/block', handler((repo, scope, uid, req) =>
   repo.blockStage(scope, uid, req.body?.version ?? req.body?.revision, req.body?.operationId, Number(req.params.stage) as StageNumber, req.body?.reason || 'Stage blocked')
 ));

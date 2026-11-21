@@ -4,7 +4,7 @@
     "VOLATILE_REFUSED": "Backed by process-local (in-memory) state. Production refuses with the group's code, after authentication and scope checks, so nothing a restart or a second instance would lose is served or acknowledged. Needs a durable adapter.",
     "DURABLE_GATED": "A durable adapter exists but is off until its proposal is approved and applied and the switch is set; until then production refuses with the group's code.",
     "PROVIDER_REFUSED": "Depends on an external provider that is not commissioned; production refuses with the group's code.",
-    "RETIRED": "Routes retired in production (410): local password and identity routes, in favour of the Supabase session bridge, and the stateless caller-supplied Stage 02/03 gate snapshot evaluation.",
+    "RETIRED": "Routes retired in production (410): local password and identity routes, in favour of the Supabase session bridge; the stateless caller-supplied Stage 02/03 gate snapshot evaluation; and case-authority stage evaluation and transition, in favour of the durable cases workflow.",
     "DURABLE": "Reads or writes PostgreSQL or the durable session store through the server role. With the synthetic store in this test it reports its provider unavailable or answers from the synthetic session rows.",
     "STATELESS": "Computes only from the request or from a static reference catalog; it reads and records no case state.",
     "DIAGNOSTIC": "Liveness, readiness and administrator-only diagnostics; no client records."
@@ -69,7 +69,7 @@
         "POST /api/cases/:caseId/notes",
         "POST /api/cases/:caseId/team"
       ],
-      "gap": "Stage moves go through the cases router (advance, return, hold) under its stage evidence rules. Stage evaluation and invalidation, activation and free-form case updates have no durable route.",
+      "gap": "Stage moves go through the cases router (advance, return, hold) under its stage evidence rules. Stage evaluation and transition here are retired (D1). Invalidation, activation and free-form case updates have no durable route.",
       "reason": "The case, its stages and stage history, stage transitions, blocks, reopening and activation on the process-local authority adapter.",
       "routes": [
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear",
@@ -82,9 +82,17 @@
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/block",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reopen",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/block",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/evaluate",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/invalidate",
-        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/reopen",
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/reopen"
+      ]
+    },
+    {
+      "id": "case-authority-stage-verdicts",
+      "kind": "RETIRED",
+      "code": "STAGE_VERDICT_ROUTE_RETIRED",
+      "reason": "Stage evaluation took its gate inputs from the request body and stored the result as requirementsMet, and transitions trusted it (D1). Retired in every environment with no consumer; stage moves use POST /api/cases/:caseId/advance, evaluated by taxguard_case_advance from database records.",
+      "routes": [
+        "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/evaluate",
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/stages/:stage/transition"
       ]
     },

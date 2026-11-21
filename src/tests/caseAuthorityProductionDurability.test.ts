@@ -41,7 +41,7 @@ it.each([
   for(const spy of spies)expect(spy).not.toHaveBeenCalled();
 });
 it.each([
-  ['PATCH',base,{...write,changes:{status:'ACTIVE'}}],['POST',base+'/activate',write],['POST',base+'/stages/2/transition',{...write,targetStatus:'IN_PROGRESS'}],
+  ['PATCH',base,{...write,changes:{status:'ACTIVE'}}],['POST',base+'/activate',write],
   ['POST',base+'/evidence',{...write,evidence:{kind:'note'}}],['POST',base+'/workpapers',{...write,title:'Synthetic workpaper'}],
   ['POST',base+'/returns/generate',write],['POST',base+'/signatures',write],['POST',base+'/filings',write],['POST',base+'/filings/filing-a/submit',write],
   ['POST',base+'/archive/manifest',write],['POST',base+'/repeat',write],
@@ -55,6 +55,21 @@ it.each([
   for(const spy of spies)expect(spy).not.toHaveBeenCalled();
   expect(globalAuthorityDatabase.records).toEqual(before);
   expect(globalAuthorityDatabase.records.get(casePath(scope)).version).toBe(1);
+});
+// Stage evaluation and transition are retired in every environment (D1): a stricter answer than the provider
+// refusal, and equally nothing is read, acknowledged or recorded.
+it.each([['POST',base+'/stages/2/transition',{...write,targetStatus:'IN_PROGRESS'}],['POST',base+'/stages/2/evaluate',{...write,snapshot:{hardExitGatePassed:true}}]] as const)
+('retires %s %s in production and development without touching the store',async(method,path,body)=>{
+  for(const env of ['production','development']){
+    vi.stubEnv('NODE_ENV',env);
+    const before=new Map(globalAuthorityDatabase.records);
+    const spies=storeSpies();
+    const response=await request(method,path,body);
+    expect(response.status,env).toBe(410);
+    expect(await response.json()).toMatchObject({code:'STAGE_VERDICT_ROUTE_RETIRED',requiresHumanReview:true,externalSubmissionAllowed:false});
+    for(const spy of spies){expect(spy).not.toHaveBeenCalled();spy.mockRestore();}
+    expect(globalAuthorityDatabase.records).toEqual(before);
+  }
 });
 it('keeps authentication ahead of the production refusal',async()=>{
   vi.stubEnv('NODE_ENV','production');
