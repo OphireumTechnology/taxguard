@@ -188,7 +188,7 @@ export const PublicV2ServicesPage: React.FC<PublicV2ServicesPageProps> = ({
         <div>
           <h2 className="text-lg font-bold text-black">Need General Guidance on U.S. Tax Forms?</h2>
           <p className="text-xs text-neutral-600 mt-1">
-            Explore our interactive A/R Accounting Guidance Assistant to review requirements for Schedule C, S-Corp returns, or W-2 vs 1099.
+            Explore our interactive Destria Accounting Guidance Assistant to review requirements for Schedule C, S-Corp returns, or W-2 vs 1099.
           </p>
         </div>
         <button

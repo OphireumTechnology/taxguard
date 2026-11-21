@@ -170,10 +170,10 @@ export const PublicV2Footer: React.FC<PublicV2FooterProps> = ({
         {/* Bottom Disclaimers */}
         <div className="mt-12 pt-6 border-t border-neutral-300 space-y-3 text-[11px] text-neutral-600 leading-relaxed">
           <p>
-            <strong>Professional Practice Notice:</strong> DESTRIA TAX SERVICES LLC provides professional accounting, tax preparation, bookkeeping, and business consulting services. This website and its interactive demonstration components (including the DESTRIA Accounting Guidance Assistant and sample portal environments) are presented for educational and demonstration purposes. Information provided on this site does not constitute formal tax, legal, or investment advice and does not establish a confidential CPA-client or accountant-client relationship until an engagement letter is countersigned.
+            <strong>Professional Practice Notice:</strong> Destria Tax Services, LLC provides professional accounting, tax preparation, bookkeeping, and business consulting services. This website and its interactive demonstration components (including the DESTRIA Accounting Guidance Assistant and sample portal environments) are presented for educational and demonstration purposes. Information provided on this site does not constitute formal tax, legal, or investment advice and does not establish a confidential CPA-client or accountant-client relationship until an engagement letter is countersigned.
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-neutral-500 font-mono text-[10px] pt-2">
-            <span>© {new Date().getFullYear()} DESTRIA TAX SERVICES LLC. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} Destria Tax Services, LLC. All rights reserved.</span>
             <span>Monochrome Public Page 2 Edition</span>
           </div>
         </div>

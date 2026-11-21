@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { PRACTICE_CONTACT } from './PlanRequestDialog';
 import { 
   Phone, 
@@ -71,7 +72,7 @@ export const ContactPage: React.FC = () => {
             <span>Direct Client Support</span>
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
-            Connect With DESTRIA TAX SERVICES LLC
+            Connect With {COMPANY_BRANDING.displayName}
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Our Columbia, South Carolina advisory team is ready to answer your questions, 
@@ -123,8 +124,8 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <strong className="text-white block">Official Inquiries:</strong>
-                    <a href="mailto:info@artaxservices.com" className="text-slate-200 hover:text-[#C6A15B] transition-colors">
-                      info@artaxservices.com
+                    <a href={COMPANY_MAILTO_HREF} className="text-slate-200 hover:text-[#C6A15B] transition-colors">
+                      {COMPANY_BRANDING.email}
                     </a>
                   </div>
                 </div>
