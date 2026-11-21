@@ -49,12 +49,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch {
       const blob = new Blob([
-        `A/R TAX SERVICES, LLC - SECURE CLIENT ARCHIVE\n` +
+        `DESTRIA TAX SERVICES LLC - SECURE CLIENT ARCHIVE\n` +
         `Document: ${docItem.fileName}\n` +
         `Category: ${(docItem.category || 'TAX_DOCUMENT').toUpperCase()}\n` +
         `Encrypted Vault Verified: AES-256\n` +
         `Timestamp: ${new Date().toISOString()}\n` +
-        `Firm: DESTRIA TAX SERVICES LLC (Columbia, SC)`
+        `Firm: DESTRIA TAX SERVICES LLC (Columbia, SC) | https://destriataxservices.com/`
       ], { type: 'text/plain' });
       const u = URL.createObjectURL(blob);
       const a = document.createElement('a');

@@ -23,6 +23,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { ClientPortalTab, TaxWorkspaceTab } from '../../../types/clientPortal';
+import { BRAND_ASSETS } from '../../../utils/assets';
 
 interface PortalSidebarProps {
   activeTab: ClientPortalTab;
@@ -101,16 +102,33 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
       aria-label="Client Portal Navigation"
     >
       {/* Top Header Branding */}
-      <div className="p-4 border-b border-[#0B2748] flex items-center justify-between min-h-[58px]">
-        {!isCollapsed && (
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-widest text-[#C99A3D]">
-              A/R TAX SERVICES
-            </div>
-            <div className="text-xs font-serif font-bold text-white mt-0.5">
-              Client Tax Center
+      <div className="p-3.5 border-b border-[#0B2748] flex items-center justify-between gap-2 min-h-[58px]">
+        {!isCollapsed ? (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img
+              src={BRAND_ASSETS.destriaEmblem}
+              alt="DESTRIA TAX SERVICES LLC Official Emblem"
+              width={32}
+              height={32}
+              className="w-8 h-8 aspect-square object-contain flex-shrink-0"
+            />
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase font-bold tracking-widest text-[#C99A3D] truncate">
+                DESTRIA TAX SERVICES LLC
+              </div>
+              <div className="text-xs font-serif font-bold text-white mt-0.5 truncate">
+                Client Tax Center
+              </div>
             </div>
           </div>
+        ) : (
+          <img
+            src={BRAND_ASSETS.destriaEmblem}
+            alt="DESTRIA TAX SERVICES LLC"
+            width={28}
+            height={28}
+            className="w-7 h-7 aspect-square object-contain mx-auto"
+          />
         )}
         <button
           type="button"

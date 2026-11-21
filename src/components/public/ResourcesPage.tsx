@@ -79,15 +79,15 @@ export const ResourcesPage: React.FC = () => {
             onClick={() => {
               const element = document.createElement("a");
               const file = new Blob([
-                "A/R TAX SERVICES, LLC - 2025/2026 TAX PREPARATION CHECKLIST\n\n" +
+                "DESTRIA TAX SERVICES LLC - 2025/2026 TAX PREPARATION CHECKLIST\n\n" +
                 "1. Personal Information:\n- Social Security numbers and dates of birth for taxpayer, spouse & dependents\n- Driver's license or state ID\n- Bank routing and account number for direct deposit\n\n" +
                 "2. Income Records:\n- Form W-2 (Wage Statements)\n- Form 1099-NEC / 1099-MISC (Self-employment / Contract)\n- Form 1099-INT / 1099-DIV (Interest & Dividends)\n- Form 1099-B (Brokerage / Capital Gains)\n- Form 1099-R (Retirement / Pensions)\n- Schedule K-1 (Partnership, S-Corp or Estate)\n\n" +
                 "3. Deductions & Credits:\n- Form 1098 (Mortgage Interest & Property Taxes)\n- Charitable donation receipts\n- Form 1095-A (Health Insurance Marketplace)\n- Childcare provider name, address & Tax ID\n- Business mileage log and receipts\n\n" +
                 "4. Business Filings:\n- Profit & Loss statement\n- Balance Sheet as of Dec 31\n- Form 941 quarterly payroll reports\n- Asset purchase/depreciation records\n\n" +
-                "Upload directly to your encrypted portal: info@artaxservices.com | 678-205-9486"
+                "Upload directly to your encrypted portal: https://destriataxservices.com/ | 678-205-9486"
               ], {type: 'text/plain'});
               element.href = URL.createObjectURL(file);
-              element.download = "AR_Tax_Services_Document_Checklist.txt";
+              element.download = "Destria_Tax_Services_Document_Checklist.txt";
               document.body.appendChild(element);
               element.click();
             }}

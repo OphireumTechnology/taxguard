@@ -34,7 +34,7 @@ export const TopUtilityBar: React.FC = () => {
         {/* LEFT: Verified Firm Information (Location, Phone, Business Hours) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 text-[11px] sm:text-xs">
           {/* Location */}
-          <div className="flex items-center gap-1.5 text-slate-300 whitespace-nowrap">
+          <div className="hidden sm:flex items-center gap-1.5 text-slate-300 whitespace-nowrap">
             <MapPin className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
             <span className="text-slate-300 font-medium">Columbia, SC</span>
           </div>

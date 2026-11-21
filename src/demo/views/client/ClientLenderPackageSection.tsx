@@ -215,7 +215,7 @@ export const ClientLenderPackageSection: React.FC<ClientLenderPackageSectionProp
               <span>Mandatory IRC § 7216 Disclosure Consent</span>
             </div>
             <p className="text-[11px] text-[#4B5563] leading-relaxed">
-              Federal law requires that we obtain your consent before disclosing your tax return information to a third party. Pursuant to Internal Revenue Code § 7216 and Treasury Regulation § 301.7216-3, I hereby authorize A/R Tax Services, LLC to disclose my company&apos;s tax return information to <strong>{recipientName}</strong> solely for the purpose of evaluating credit, loan underwriting, or banking relationships.
+              Federal law requires that we obtain your consent before disclosing your tax return information to a third party. Pursuant to Internal Revenue Code § 7216 and Treasury Regulation § 301.7216-3, I hereby authorize DESTRIA TAX SERVICES LLC to disclose my company&apos;s tax return information to <strong>{recipientName}</strong> solely for the purpose of evaluating credit, loan underwriting, or banking relationships.
             </p>
             <label className="flex items-start gap-2 cursor-pointer pt-2">
               <input

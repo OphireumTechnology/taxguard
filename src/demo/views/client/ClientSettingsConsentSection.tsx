@@ -66,7 +66,7 @@ export const ClientSettingsConsentSection: React.FC<ClientSettingsConsentSection
     {
       title: 'Internal Revenue Code § 7216 Tax Disclosure Consent',
       scope: 'Authorization to disclose tax information to commercial lending institutions upon written instruction',
-      representative: 'A/R Tax Services, LLC Compliance',
+      representative: 'DESTRIA TAX SERVICES LLC Compliance',
       status: 'Active (Treas. Reg. § 301.7216-3 compliant)',
       dateExecuted: 'January 15, 2025',
       expires: 'January 15, 2027'
@@ -74,7 +74,7 @@ export const ClientSettingsConsentSection: React.FC<ClientSettingsConsentSection
     {
       title: 'Electronic Record & E-Signature Consent (ESIGN Act)',
       scope: 'Agreement to receive official tax documents, K-1s, and IRS notices via encrypted client portal',
-      representative: 'A/R Tax Services, LLC',
+      representative: 'DESTRIA TAX SERVICES LLC',
       status: 'Active',
       dateExecuted: 'January 05, 2025',
       expires: 'Ongoing'
@@ -258,7 +258,7 @@ export const ClientSettingsConsentSection: React.FC<ClientSettingsConsentSection
         <div className="bg-white rounded-lg border border-[#D8DCE2] p-6 space-y-4 shadow-xs">
           <div className="border-b border-[#D8DCE2] pb-3">
             <h3 className="text-sm font-bold text-[#061A2F]">Statutory Consents, Power of Attorney &amp; CAF Registry</h3>
-            <p className="text-xs text-[#667085]">Legal authorizations empowering A/R Tax Services, LLC to represent your entity before the IRS.</p>
+            <p className="text-xs text-[#667085]">Legal authorizations empowering DESTRIA TAX SERVICES LLC to represent your entity before the IRS.</p>
           </div>
 
           <div className="space-y-3">

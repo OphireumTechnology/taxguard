@@ -150,7 +150,7 @@ export const Navbar: React.FC = () => {
   return (
     <div className="w-full bg-[#06172C]/95 backdrop-blur-md border-b border-[#0B2748] relative z-40">
       <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 xl:px-8">
-        <div className="flex items-center justify-between h-20 gap-2 lg:gap-3 xl:gap-6 min-w-0">
+        <div className="flex items-center justify-between h-20 gap-2 lg:gap-2 xl:gap-4 min-w-0">
           
           {/* BRAND LOGO AREA */}
           <div className="flex-shrink-0 min-w-0 py-2">

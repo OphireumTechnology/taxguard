@@ -478,7 +478,7 @@ export const ClientReturnReviewSection: React.FC<ClientReturnReviewSectionProps>
               <div className="p-3 bg-[#FAF9F5] border border-[#061A2F] rounded space-y-2 text-[#1A2028]">
                 <div className="font-bold">Part II: Declaration of Taxpayer</div>
                 <p className="text-[11px] leading-relaxed text-[#4B5563]">
-                  Under penalties of perjury, I declare that I am an officer of the above named corporation and that I have examined a copy of the corporation's 2025 electronic income tax return and accompanying schedules and statements and to the best of my knowledge and belief, it is true, correct, and complete. I authorize A/R Tax Services, LLC to transmit the return to the IRS.
+                  Under penalties of perjury, I declare that I am an officer of the above named corporation and that I have examined a copy of the corporation's 2025 electronic income tax return and accompanying schedules and statements and to the best of my knowledge and belief, it is true, correct, and complete. I authorize DESTRIA TAX SERVICES LLC to transmit the return to the IRS.
                 </p>
               </div>
 

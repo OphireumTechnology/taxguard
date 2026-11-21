@@ -88,6 +88,11 @@
     --color-ivory: #F8FAFC;
   }
 
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   body {
     font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
     background-color: #06182B;

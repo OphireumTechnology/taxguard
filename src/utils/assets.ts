@@ -1,8 +1,15 @@
+export const BRAND_ASSET_VERSION = '20261121-emblem-v2';
+export const BRAND_WEBSITE_URL = 'https://destriataxservices.com/';
+
+const withVersion = (path: string) => `${path}?v=${BRAND_ASSET_VERSION}`;
+
 export const BRAND_ASSETS = {
-  destriaLogo: '/branding/destria-logo-header.png',
-  destriaLogoOriginal: '/branding/destria-logo-original.png',
-  destriaEmblem: '/branding/destria-emblem-icon.png',
-  destriaFavicon: '/branding/destria-favicon.png',
+  destriaLogo: withVersion('/branding/destria-logo-header.png'),
+  destriaLogoHero: withVersion('/branding/destria-logo-hero.png'),
+  destriaLogoOriginal: withVersion('/branding/destria-logo-original.png'),
+  destriaEmblem: withVersion('/branding/destria-emblem-icon.png'),
+  destriaFavicon: withVersion('/branding/destria-favicon.png'),
+  appleTouchIcon: withVersion('/apple-touch-icon.png'),
 
   aboutClientAdvisoryJpg: '/images/about/about-client-advisory.jpg',
   aboutClientAdvisoryWebp: '/images/about/about-client-advisory.webp',

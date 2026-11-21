@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BillingRequestError, billingApi, billingMessage, ISSUED_INVOICE_STATUSES, newBillingKey, saveBlob, type Invoice } from '../../services/billingApiService';
+import { BRAND_ASSETS } from '../../utils/assets';
 
 /** Client view of issued invoices. Payment uses the sandbox provider only (development); no real card is charged. */
 export function ClientInvoicesPanel({ clientId }: { clientId: string }) {
@@ -23,7 +24,13 @@ export function ClientInvoicesPanel({ clientId }: { clientId: string }) {
     catch (e) { setNotice({ error: true, text: billingMessage(e) }); }
   };
   return <section aria-labelledby="client-invoices-heading" className="space-y-3 rounded-2xl border border-slate-700 bg-[#0D2745] p-4 text-sm text-slate-200">
-    <h3 id="client-invoices-heading" className="font-bold text-white">Invoices</h3>
+    <div className="flex items-center gap-2.5">
+      <img src={BRAND_ASSETS.destriaEmblem} alt="DESTRIA TAX SERVICES LLC Official Emblem" width={32} height={32} className="w-8 h-8 aspect-square object-contain flex-shrink-0" />
+      <div>
+        <h3 id="client-invoices-heading" className="font-bold text-white leading-tight">Invoices</h3>
+        <p className="text-[11px] text-[#E5B552]">DESTRIA TAX SERVICES LLC</p>
+      </div>
+    </div>
     {notice && <p role={notice.error ? 'alert' : 'status'}>{notice.text}</p>}
     {state.status === 'loading' && <p role="status">Loading invoices…</p>}
     {state.status === 'error' && <p role="alert">{state.message}</p>}

@@ -40,9 +40,9 @@ export const HomePage: React.FC = () => {
     <div className="space-y-24 sm:space-y-28 lg:space-y-32 pb-24 text-slate-100 selection:bg-[#C99A35] selection:text-[#071D3A]">
       
       {/* 1. HERO SECTION: DESTRIA EXECUTIVE & AI TAX INTELLIGENCE SHOWCASE */}
-      <section className="relative pt-6 pb-16 sm:pt-10 sm:pb-20 md:pt-14 md:pb-24 overflow-hidden" aria-label="Introduction and Overview">
+      <section className="relative pt-6 pb-16 sm:pt-10 sm:pb-20 md:pt-14 md:pb-24 overflow-x-clip" aria-label="Introduction and Overview">
         {/* Architectural atmospheric glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-25" aria-hidden="true">
+        <div className="absolute inset-0 pointer-events-none opacity-25 overflow-hidden" aria-hidden="true">
           <div className="absolute -top-24 left-1/4 w-[28rem] h-[28rem] rounded-full bg-[#C99A35] blur-[140px]" />
           <div className="absolute top-1/3 right-10 w-[30rem] h-[30rem] rounded-full bg-[#1677C8] blur-[160px]" />
         </div>
@@ -51,8 +51,8 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
             
             {/* Left Column: Authoritative Positioning & Clear Conversion Path */}
-            <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2745] border border-[#C99A35]/40 text-[#E5B552] text-xs font-semibold tracking-wide shadow-sm">
+            <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-left min-w-0">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D2745] border border-[#C99A35]/40 text-[#E5B552] text-xs font-semibold tracking-wide shadow-sm max-w-full">
                 <Cpu className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
                 <span>Dual-Engine Financial Intelligence &bull; CPA Authority + AI Acceleration</span>
               </div>
@@ -139,35 +139,30 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Authoritative Official Destria Emblem & Showcase */}
-            <div className="lg:col-span-5 relative">
-              <figure className="relative rounded-3xl bg-gradient-to-b from-[#0D2745] to-[#071D3A] border-2 border-[#C99A35]/50 p-6 sm:p-7 shadow-2xl space-y-5">
+            {/* Right Column: Authoritative Official Destria Emblem Showcase */}
+            <div className="lg:col-span-5 relative min-w-0">
+              <figure className="relative rounded-3xl bg-gradient-to-b from-[#0D2745] to-[#071D3A] border border-[#C99A35]/40 p-6 sm:p-7 shadow-2xl space-y-5">
                 
                 {/* Firm Identifier Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-700/80">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={BRAND_ASSETS.destriaLogo} 
-                      alt="DESTRIA TAX SERVICES LLC" 
-                      className="w-10 h-10 rounded-full shadow-md ring-1 ring-[#C99A35]"
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-white tracking-wider">DESTRIA TAX SERVICES LLC</div>
-                      <div className="text-[10px] text-[#E5B552]">TAX PREPARATION, ADVISORY &amp; WEALTH PLANNING</div>
-                    </div>
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-700/80">
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white tracking-wider truncate">DESTRIA TAX SERVICES LLC</div>
+                    <div className="text-[10px] text-[#E5B552] truncate">ACCOUNTING &bull; TAX &bull; ADVISORY &bull; WEALTH PLANNING</div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#071D3A] text-[#E5B552] border border-[#C99A35]/40">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#071D3A] text-[#E5B552] border border-[#C99A35]/40 flex-shrink-0">
                     Active Practice
                   </span>
                 </div>
 
-                {/* Master Official Circular Logo Feature */}
-                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-[#C99A35]/30 bg-[#FFFFFF] p-6 shadow-inner flex items-center justify-center">
+                {/* Master Official Circular Emblem — Rendered Cleanly Without Extra Box or Duplicate Border */}
+                <div className="py-2 flex items-center justify-center">
                   <img
                     id="home-hero-destria-logo"
-                    src={BRAND_ASSETS.destriaLogo}
-                    alt="DESTRIA TAX SERVICES LLC - Official Circular Emblem with D, Tax Document, and AI Neural Circuit"
-                    className="w-full h-full object-contain drop-shadow-xl"
+                    src={BRAND_ASSETS.destriaLogoHero}
+                    alt="DESTRIA TAX SERVICES LLC — Accounting, Tax, Advisory & Wealth Planning, AI-Assisted Accounting Firm Official Emblem"
+                    width={360}
+                    height={360}
+                    className="w-full max-w-[260px] sm:max-w-[320px] lg:max-w-[340px] aspect-square object-contain drop-shadow-[0_14px_28px_rgba(0,0,0,0.45)]"
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
@@ -175,7 +170,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Practice Location & Status Strip */}
-                <div className="flex items-center justify-between text-xs text-slate-300 px-0.5 pt-0.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300 px-0.5 pt-0.5">
                   <div className="flex items-center gap-1.5 text-slate-300">
                     <MapPin className="w-3.5 h-3.5 text-[#C99A35] flex-shrink-0" />
                     <span className="text-[11px] sm:text-xs">Columbia, SC &bull; Nationwide Client Support</span>

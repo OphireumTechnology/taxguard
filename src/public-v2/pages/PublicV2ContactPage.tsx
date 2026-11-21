@@ -41,7 +41,7 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
           Direct Inquiries & Practice Communication
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-black">
-          Contact A/R Tax Services, LLC
+          Contact DESTRIA TAX SERVICES LLC
         </h1>
         <p className="text-base sm:text-lg text-neutral-700 max-w-3xl leading-relaxed">
           Reach our team for tax preparation scheduling, bookkeeping engagements, notice review, or corporate advisory.
@@ -60,7 +60,7 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-black flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-black block text-sm">A/R Tax Services, LLC</strong>
+                  <strong className="text-black block text-sm">DESTRIA TAX SERVICES LLC</strong>
                   <span>2603 Camino Ramon, Suite 200</span><br />
                   <span>San Ramon, CA 94583</span>
                 </div>

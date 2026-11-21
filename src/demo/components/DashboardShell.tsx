@@ -12,6 +12,7 @@ import { demoDataStore } from '../services/DemoDataService';
 import { DemoBanner } from './DemoBanner';
 import { DeveloperContactNotice } from './DeveloperContactNotice';
 import { WorkCycleProgress } from './WorkCycleProgress';
+import { BRAND_ASSETS } from '../../utils/assets';
 import { 
   Menu, 
   X, 
@@ -360,18 +361,33 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
           }`}
         >
           {/* Brand & Role Header */}
-          <div className="p-4 border-b border-[#1A365D] flex items-center justify-between bg-[#031323]">
+          <div className="p-3.5 border-b border-[#1A365D] flex items-center justify-between gap-2 bg-[#031323]">
             {!sidebarCollapsed ? (
-              <div className="min-w-0">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-[#D7AC4A] font-semibold">
-                  DESTRIA TAX SERVICES LLC
-                </div>
-                <div className="text-sm font-bold text-[#F7F4ED] truncate">
-                  {roleConfig.title}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={BRAND_ASSETS.destriaEmblem}
+                  alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                  width={34}
+                  height={34}
+                  className="w-8 h-8 aspect-square object-contain flex-shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#D7AC4A] font-semibold truncate">
+                    DESTRIA TAX SERVICES LLC
+                  </div>
+                  <div className="text-sm font-bold text-[#F7F4ED] truncate">
+                    {roleConfig.title}
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="text-xs font-black text-[#D7AC4A] mx-auto">A/R</div>
+              <img
+                src={BRAND_ASSETS.destriaEmblem}
+                alt="DESTRIA TAX SERVICES LLC"
+                width={32}
+                height={32}
+                className="w-8 h-8 aspect-square object-contain mx-auto"
+              />
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -557,10 +573,19 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               onClick={() => setMobileDrawerOpen(false)} 
             />
             <div className="relative w-4/5 max-w-xs bg-[#061A2F] text-white border-r border-[#1A365D] flex flex-col h-full z-10 shadow-2xl">
-              <div className="p-4 border-b border-[#1A365D] flex items-center justify-between bg-[#031323]">
-                <div>
-                  <div className="text-[10px] font-mono uppercase text-[#D7AC4A]">DESTRIA TAX SERVICES LLC</div>
-                  <div className="text-xs font-bold text-white">{roleConfig.title}</div>
+              <div className="p-4 border-b border-[#1A365D] flex items-center justify-between gap-2 bg-[#031323]">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={BRAND_ASSETS.destriaEmblem}
+                    alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 aspect-square object-contain flex-shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono uppercase text-[#D7AC4A] truncate">DESTRIA TAX SERVICES LLC</div>
+                    <div className="text-xs font-bold text-white truncate">{roleConfig.title}</div>
+                  </div>
                 </div>
                 <button
                   onClick={() => setMobileDrawerOpen(false)}

@@ -1144,7 +1144,7 @@ export const ClientOnboardingWizard: React.FC<Props> = ({ onComplete }) => {
 
             {/* Engagement Letter Preview Box */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-3 font-sans max-h-60 overflow-y-auto leading-relaxed">
-              <p className="font-bold text-slate-900 text-sm">A/R TAX SERVICES, LLC — PROFESSIONAL ENGAGEMENT AGREEMENT (v2026.1)</p>
+              <p className="font-bold text-slate-900 text-sm">DESTRIA TAX SERVICES LLC — PROFESSIONAL ENGAGEMENT AGREEMENT (v2026.1)</p>
               <p>
                 This agreement establishes the professional relationship between DESTRIA TAX SERVICES LLC (&ldquo;Firm&rdquo;) and the Client named herein for tax preparation, review, and advisory services. The Firm will prepare federal and state tax returns based on representations and documentation furnished by the Client.
               </p>
