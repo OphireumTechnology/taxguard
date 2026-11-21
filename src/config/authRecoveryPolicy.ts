@@ -1,10 +1,13 @@
 /**
  * Production Password Recovery & Redirect Policy for TaxGuard AI
- * Strictly enforces canonical recovery endpoints on artaxserv.com
+ * Strictly enforces canonical recovery endpoints on destriataxservices.com (the legacy artaxserv.com host is
+ * still accepted as an authorized recovery host during the domain transition).
  * Never allows arbitrary domains, unencrypted HTTP, or credential-bearing URLs.
  */
 
-export const CANONICAL_PRODUCTION_ORIGIN = 'https://artaxserv.com';
+export const CANONICAL_PRODUCTION_ORIGIN = 'https://destriataxservices.com';
+/** Production hosts. The legacy host stays authorized until the owner retires it. */
+export const PRODUCTION_SITE_HOSTS = ['destriataxservices.com', 'www.destriataxservices.com', 'artaxserv.com', 'www.artaxserv.com'] as const;
 export const CANONICAL_RECOVERY_ROUTE = '#/client/reset-password';
 export const CANONICAL_RECOVERY_URL = `${CANONICAL_PRODUCTION_ORIGIN}/${CANONICAL_RECOVERY_ROUTE}`;
 
@@ -27,7 +30,8 @@ export function getAuthorizedRecoveryRedirectUrl(customUrl?: string): string {
   // 3. Fallback based on browser origin (supports local development / testing)
   if (typeof window !== 'undefined' && window.location?.origin) {
     const origin = window.location.origin;
-    if (origin.includes('artaxserv.com')) {
+    const host = window.location.hostname;
+    if ((PRODUCTION_SITE_HOSTS as readonly string[]).includes(host)) {
       return CANONICAL_RECOVERY_URL;
     }
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
@@ -54,7 +58,7 @@ export function sanitizeAndValidateRecoveryUrl(candidate: string): string {
     throw new Error('Insecure protocol: Password recovery redirect must use HTTPS.');
   }
 
-  const allowedHosts = ['artaxserv.com', 'www.artaxserv.com', 'localhost', '127.0.0.1'];
+  const allowedHosts: string[] = [...PRODUCTION_SITE_HOSTS, 'localhost', '127.0.0.1'];
   if (!allowedHosts.includes(url.hostname)) {
     throw new Error(`Unauthorized recovery host: ${url.hostname} is not an authorized domain.`);
   }

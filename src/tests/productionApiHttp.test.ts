@@ -100,6 +100,19 @@ it('revokes the durable session on logout', async () => {
   expect((await call('/api/auth/me', token)).status).toBe(401);
 });
 
+it('allows the destriataxservices.com production site (and www) and keeps the legacy domain during the transition', async () => {
+  for (const site of ['https://destriataxservices.com', 'https://www.destriataxservices.com', 'https://artaxserv.com', 'https://www.artaxserv.com']) {
+    const response = await fetch(origin + '/api/auth/supabase-session', { method: 'OPTIONS', headers: { Origin: site } });
+    expect(response.status, site).toBe(204);
+    expect(response.headers.get('access-control-allow-origin')).toBe(site);
+  }
+  for (const foreign of ['https://destriataxservices.com.evil.example', 'https://evil-destriataxservices.com', 'http://destriataxservices.com', 'https://destriataxservices.com:8443']) {
+    const response = await fetch(origin + '/api/auth/supabase-session', { method: 'OPTIONS', headers: { Origin: foreign } });
+    expect(response.status, foreign).toBe(403);
+    expect(response.headers.get('access-control-allow-origin')).toBeNull();
+  }
+});
+
 it('allows production CORS preflight and denies foreign origins', async () => {
   const response = await fetch(origin + '/api/auth/supabase-session', {
     method: 'OPTIONS',

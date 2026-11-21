@@ -282,7 +282,9 @@ app.use(
  *
  * Production frontend:
  *
- * https://artaxserv.com
+ * https://destriataxservices.com
+ * https://www.destriataxservices.com
+ * https://artaxserv.com (legacy domain, during the transition)
  * https://www.artaxserv.com
  *
  * Production API:
@@ -298,6 +300,8 @@ app.use(
   ) => {
     const allowedOrigins =
       new Set([
+        'https://destriataxservices.com',
+        'https://www.destriataxservices.com',
         'https://artaxserv.com',
         'https://www.artaxserv.com'
       ]);

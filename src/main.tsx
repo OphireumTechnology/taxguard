@@ -14,6 +14,7 @@ if (typeof window !== 'undefined') {
     const text = `${msg} ${source} ${stack}`.toLowerCase();
     if (
       text.includes('/src/') ||
+      text.includes('destriataxservices.com') ||
       text.includes('artaxserv.com') ||
       text.includes('/api/') ||
       text.includes('firebase') ||

@@ -9,7 +9,7 @@
 import { assessStagingConfiguration } from './stagingConfiguration';
 
 export const PROTECTED_PROJECT_REF = 'cvrlhixxczerytiocxid';
-export const PRODUCTION_HOSTS = ['artaxserv.com', 'www.artaxserv.com'];
+export const PRODUCTION_HOSTS = ['destriataxservices.com', 'www.destriataxservices.com', 'artaxserv.com', 'www.artaxserv.com'];
 export type StagingArea = 'APP' | 'API_HOST' | 'PROJECT' | 'KEYS' | 'DATABASE' | 'TENANT' | 'AUTH_MFA' | 'STORAGE' | 'SCANNER' | 'AI' | 'BILLING' | 'SECRETS' | 'INTEGRATIONS' | 'MONITORING' | 'BACKUP';
 export type AreaState = 'PASS' | 'FAIL' | 'MANUAL';
 export interface StagingIssue { area: StagingArea; field: string; code: string }

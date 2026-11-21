@@ -73,7 +73,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
     applyFramingPolicy(res, true);
     res.vary('Origin');
     const origin = req.headers.origin;
-    if (origin && !['https://artaxserv.com', 'https://www.artaxserv.com'].includes(origin)) {
+    if (origin && !['https://destriataxservices.com', 'https://www.destriataxservices.com', 'https://artaxserv.com', 'https://www.artaxserv.com'].includes(origin)) {
       return res.status(403).json({ code: 'ORIGIN_DENIED' });
     }
     if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
