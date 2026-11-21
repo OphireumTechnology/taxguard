@@ -33,7 +33,7 @@ if (fs.existsSync(suppliedSrc) && fs.existsSync(originalBranding)) {
 // 2. Verify all optimized variants exist, are non-empty, and have expected dimensions
 const expectedPngs = [
   { rel: 'public/branding/destria-logo-original.png', width: 1254, height: 1254 },
-  { rel: 'public/branding/destria-logo-hero.png', width: 768, height: 768, alpha: true },
+  { rel: 'public/branding/destria-logo-hero.png', width: 1024, height: 1024, alpha: true },
   { rel: 'public/branding/destria-logo-header.png', width: 256, height: 256, alpha: true },
   { rel: 'public/branding/destria-emblem-icon.png', width: 192, height: 192, alpha: true },
   { rel: 'public/branding/destria-favicon.png', width: 64, height: 64, alpha: true },

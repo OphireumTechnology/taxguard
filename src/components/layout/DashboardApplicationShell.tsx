@@ -109,11 +109,11 @@ function DashboardShellSession({
         <button ref={menuRef} className="tg-shell-icon tg-mobile-menu" aria-label="Open navigation" aria-expanded={isMobileOpen} aria-controls={drawerId} onClick={() => setMobileOpen(true)}><Menu size={20} /></button>
         <div className="tg-shell-brand">
           <img
-            src={BRAND_ASSETS.destriaEmblem}
+            src={BRAND_ASSETS.destriaLogo}
             alt="DESTRIA TAX SERVICES LLC Official Emblem"
-            width={40}
-            height={40}
-            className="tg-shell-brand-emblem"
+            width={48}
+            height={48}
+            className="tg-shell-brand-emblem destria-brand-emblem"
           />
           <div><strong>TAXGUARD <span>AI</span></strong><small>DESTRIA TAX SERVICES LLC</small></div>
         </div>

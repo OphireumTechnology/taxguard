@@ -252,6 +252,20 @@
   object-position: center;
 }
 
+/* Official DESTRIA Emblem Display Protection — no clipping, cropping, distortion, masks, shadows, or filters */
+.destria-brand-emblem {
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  object-position: center;
+  border: 0;
+  box-shadow: none;
+  filter: none;
+  clip-path: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: transparent;
+}
+
 /* Phase 12B: honour reduced-motion preferences everywhere, not only inside the dashboard shell. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

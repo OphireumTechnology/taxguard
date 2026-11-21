@@ -158,8 +158,8 @@ export const ClientLoginPage: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-slate-100 space-y-8">
-      <div className="text-center space-y-3">
-        <BrandLogo variant="emblem" size="md" />
+      <div className="text-center space-y-3 flex flex-col items-center">
+        <BrandLogo variant="emblem" size="lg" />
         <h1 className="font-serif text-3xl font-extrabold text-white">
           {isForgotPasswordMode ? 'Reset Password' : 'Client Portal Login'}
         </h1>
@@ -526,8 +526,8 @@ export const ClientRegisterPage: React.FC = () => {
     const targetEmail = pendingVerificationEmail || email.trim().toLowerCase();
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-slate-100 space-y-8" data-testid="verify-email-screen">
-        <div className="text-center space-y-3">
-          <BrandLogo variant="emblem" size="md" />
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <BrandLogo variant="emblem" size="lg" />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
             <ShieldCheck className="w-3 h-3" />
             <span>ACCOUNT ACTIVATION REQUIRED</span>
@@ -602,8 +602,8 @@ export const ClientRegisterPage: React.FC = () => {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-12 text-slate-100 space-y-8">
-      <div className="text-center space-y-3">
-        <BrandLogo variant="emblem" size="md" />
+      <div className="text-center space-y-3 flex flex-col items-center">
+        <BrandLogo variant="emblem" size="lg" />
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
           <ShieldCheck className="w-3 h-3" />
           <span>STAGE 01: ONBOARD &bull; UNIFIED 18-STAGE WORKFLOW</span>
@@ -972,8 +972,8 @@ export const StaffLoginPage: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-slate-100 space-y-8">
-      <div className="text-center space-y-3">
-        <BrandLogo variant="emblem" size="md" />
+      <div className="text-center space-y-3 flex flex-col items-center">
+        <BrandLogo variant="emblem" size="lg" />
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
           <Lock className="w-3 h-3" />
           <span>Internal Staff Access Only</span>
