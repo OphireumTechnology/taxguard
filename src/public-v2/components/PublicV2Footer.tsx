@@ -153,8 +153,8 @@ export const PublicV2Footer: React.FC<PublicV2FooterProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-black flex-shrink-0" />
-                <a href="mailto:contact@artaxserv.com" className="hover:underline text-black">
-                  contact@artaxserv.com
+                <a href="mailto:info@destriataxservices.com" className="hover:underline text-black">
+                  info@destriataxservices.com
                 </a>
               </div>
             </div>
