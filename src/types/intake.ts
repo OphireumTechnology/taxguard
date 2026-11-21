@@ -1,27 +1,32 @@
 export type USEntityType =
   | 'individual'
   | 'sole_proprietorship'
-  | 'llc_single'
-  | 'llc_multi'
+  | 'single_member_llc'
   | 'partnership'
+  | 'multi_member_llc'
   | 'scorp'
   | 'ccorp'
+  | 'trust_estate'
   | 'nonprofit'
-  | 'trust'
-  | 'estate'
   | 'all'
   | string;
 
-export type USStateCode = string;
+export type USStateCode =
+  | 'AL' | 'AK' | 'AZ' | 'AR' | 'CA' | 'CO' | 'CT' | 'DE' | 'DC' | 'FL'
+  | 'GA' | 'HI' | 'ID' | 'IL' | 'IN' | 'IA' | 'KS' | 'KY' | 'LA' | 'ME'
+  | 'MD' | 'MA' | 'MI' | 'MN' | 'MS' | 'MO' | 'MT' | 'NE' | 'NV' | 'NH'
+  | 'NJ' | 'NM' | 'NY' | 'NC' | 'ND' | 'OH' | 'OK' | 'OR' | 'PA' | 'RI'
+  | 'SC' | 'SD' | 'TN' | 'TX' | 'UT' | 'VT' | 'VA' | 'WA' | 'WV' | 'WI' | 'WY'
+  | string;
 
 export interface OwnerOrOfficer {
   id?: string;
-  name: string;
+  fullName: string;
   title?: string;
-  ownershipPercent?: number;
-  ssnLast4?: string;
+  ownershipPercentage?: number;
+  ssnOrTinMasked?: string;
   email?: string;
-  phone?: string;
+  isActiveParticipant?: boolean;
   [key: string]: any;
 }
 
@@ -46,10 +51,9 @@ export interface AccountingStagingRecord {
   id: string;
   clientId?: string;
   taxYear?: number;
-  sourceSystem?: string;
-  accountName?: string;
   category?: string;
-  amountCents?: number;
+  description?: string;
+  amount?: number;
   status?: string;
   [key: string]: any;
 }
@@ -61,9 +65,10 @@ export interface FullClientIntakeDossier {
   legalBusinessName?: string;
   entityType?: USEntityType;
   taxYear?: number;
+  filingStatus?: string;
   primaryState?: USStateCode;
-  states?: USStateCode[];
+  additionalStates?: USStateCode[];
   owners?: OwnerOrOfficer[];
-  status?: string;
+  officers?: OwnerOrOfficer[];
   [key: string]: any;
 }

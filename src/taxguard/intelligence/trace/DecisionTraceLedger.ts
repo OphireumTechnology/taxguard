@@ -1,4 +1,4 @@
-export interface DecisionTraceEntry {
+export interface DecisionTraceEntryInput {
   clientId: string;
   engagementId: string;
   taxYear: number;
@@ -15,16 +15,24 @@ export interface DecisionTraceEntry {
   correlationId: string;
 }
 
-export class DecisionTraceLedger {
-  private static readonly entries: Array<DecisionTraceEntry & { traceId: string; recordedAt: string }> = [];
+export interface DecisionTraceEntry extends DecisionTraceEntryInput {
+  traceId: string;
+  recordedAt: string;
+}
 
-  static append(entry: DecisionTraceEntry) {
-    const record = {
-      ...entry,
-      traceId: `tr_${Date.now().toString(36)}_${this.entries.length + 1}`,
+const traceEntries: DecisionTraceEntry[] = [];
+
+export const DecisionTraceLedger = {
+  append(input: DecisionTraceEntryInput): DecisionTraceEntry {
+    const entry: DecisionTraceEntry = {
+      ...input,
+      traceId: `trc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
       recordedAt: new Date().toISOString(),
     };
-    this.entries.push(record);
-    return record;
-  }
-}
+    traceEntries.push(entry);
+    return entry;
+  },
+  list(): DecisionTraceEntry[] {
+    return [...traceEntries];
+  },
+};

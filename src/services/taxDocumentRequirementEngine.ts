@@ -8,264 +8,140 @@ export type FilingStatus =
 
 export interface TaxDiscoveryQuestionnaireAnswers {
   filingStatus?: FilingStatus;
-  residentState?: string;
-  hasW2Employment?: boolean;
+  hasW2Income?: boolean;
   hasSelfEmployment?: boolean;
-  hasInterestOrDividends?: boolean;
-  hasBrokerageOrCrypto?: boolean;
-  hasRetirementDistributions?: boolean;
-  hasRealEstateOrMortgage?: boolean;
-  hasEducationExpenses?: boolean;
-  hasHsaOrMedical?: boolean;
+  hasInvestmentIncome?: boolean;
+  hasRentalProperty?: boolean;
+  hasMortgageInterest?: boolean;
   hasCharitableContributions?: boolean;
-  hasEstimatedPayments?: boolean;
+  hasRetirementDistributions?: boolean;
+  hasPassThroughK1?: boolean;
   hasForeignAccounts?: boolean;
-  states?: string[];
+  hasHealthSavingsAccount?: boolean;
+  hasEducationExpenses?: boolean;
+  hasDependents?: boolean;
+  hasBusinessEntity?: boolean;
+  entityType?: string;
+  stateOfResidence?: string;
+  additionalStates?: string[];
   [key: string]: any;
 }
-
-export type TaxRequirementCategory =
-  | 'Federal Documents'
-  | 'State Documents'
-  | 'Prior-Year Tax Records'
-  | 'Business / Accounting Records'
-  | 'Additional Accountant Requests'
-  | string;
 
 export interface TaxDocumentRequirementItem {
   id: string;
   title: string;
-  category: TaxRequirementCategory;
-  formNumber: string;
-  taxYear: number;
+  name?: string;
+  formCode?: string;
+  category: string;
+  description?: string;
   required: boolean;
-  status: 'Uploaded' | 'Missing' | 'missing' | 'requested' | 'received' | 'verified' | 'not_applicable' | string;
-  description: string;
-  jurisdiction: string;
-  authority?: string;
-  whatIsThis?: string;
-  whyDoWeNeedIt?: string;
-  statutoryBasis?: string;
-  whereCanIGetIt?: string;
+  mandatory?: boolean;
+  status: 'missing' | 'requested' | 'uploaded' | 'verified' | 'accepted' | 'not_applicable' | string;
+  taxYear?: number;
+  priority?: 'high' | 'medium' | 'low' | string;
+  reason?: string;
+  documentId?: string;
   [key: string]: any;
 }
 
-export interface PreparationPackageSummary {
-  status: string;
-  packageId: string;
-  generatedAt: string;
-  statutoryFramework: string;
-  auditProvenance: {
-    ruleEngineVersion: string;
-    makerCheckerBoundary: string;
-  };
-  clientSummary: {
-    clientName: string;
-    filingStatus: string;
-    residentState: string;
-  };
-  requirementsSummary: {
-    received: number;
-    total: number;
-  };
-  missingDocuments: TaxDocumentRequirementItem[];
-  items: TaxDocumentRequirementItem[];
-  missingCount: number;
-}
+const QUESTIONNAIRE_PREFIX = 'taxguard_questionnaire_';
 
-export interface MissingDocumentsEvaluation {
-  receivedCount: number;
-  totalRequirements: number;
-  missingCount: number;
-  categories: Record<
-    string,
-    {
-      items: TaxDocumentRequirementItem[];
-      received: number;
-      required: number;
-      missing: number;
+export const TaxDocumentRequirementEngine = {
+  getQuestionnaire(clientId: string, taxYear: number): TaxDiscoveryQuestionnaireAnswers | null {
+    try {
+      const raw = localStorage.getItem(`${QUESTIONNAIRE_PREFIX}${clientId}_${taxYear}`);
+      return raw ? (JSON.parse(raw) as TaxDiscoveryQuestionnaireAnswers) : null;
+    } catch {
+      return null;
     }
-  >;
-}
+  },
 
-const questionnaireStore = new Map<string, TaxDiscoveryQuestionnaireAnswers>();
-
-function buildRequirements(
-  clientId: string,
-  taxYear: number,
-  uploadedDocs: Array<{
-    id?: string;
-    documentId?: string;
-    associatedRequirementId?: string;
-    claimedCategory?: string;
-    status?: string;
-    isVerified?: boolean;
-  }> = [],
-): TaxDocumentRequirementItem[] {
-  const hasMatch = (reqId: string, keywords: string[]) =>
-    uploadedDocs.some(
-      d =>
-        d.associatedRequirementId === reqId ||
-        keywords.some(k => (d.claimedCategory || '').toLowerCase().includes(k)),
-    );
-
-  const reqW2Id = `req_${clientId}_${taxYear}_w2`;
-  const reqPriorId = `req_${clientId}_${taxYear}_prior`;
-  const reqStateId = `req_${clientId}_${taxYear}_sc`;
-
-  return [
-    {
-      id: reqW2Id,
-      title: 'Form W-2 Wage & Tax Statement',
-      category: 'Federal Documents',
-      formNumber: 'W-2',
-      taxYear,
-      required: true,
-      status: hasMatch(reqW2Id, ['w-2', 'w2', 'wage']) ? 'Uploaded' : 'Missing',
-      jurisdiction: 'Federal (IRS)',
-      authority: 'IRC § 6051',
-      description: 'All employer wage and tax withholding statements for the tax year.',
-      whatIsThis: 'Official annual employer statement reporting gross wages and federal/state tax withholdings.',
-      whyDoWeNeedIt: 'Required by the IRS to reconcile reported taxable compensation and payroll withholdings.',
-      statutoryBasis: 'IRC § 6051 / Form 1040 Line 1a',
-      whereCanIGetIt: 'Your employer payroll portal (ADP, Gusto, Workday) or mailed January tax packet.',
-    },
-    {
-      id: reqStateId,
-      title: 'South Carolina Withholding / Residency Verification',
-      category: 'State Documents',
-      formNumber: 'SC1040',
-      taxYear,
-      required: true,
-      status: hasMatch(reqStateId, ['state', 'sc1040']) ? 'Uploaded' : 'Missing',
-      jurisdiction: 'South Carolina',
-      authority: 'SC Code § 12-6',
-      description: 'State income and residency support for South Carolina filing.',
-      whatIsThis: 'State-level tax withholding and residency documentation.',
-      whyDoWeNeedIt: 'Supports state credits, withholdings, and residency allocation.',
-      statutoryBasis: 'SC Code Title 12 Chapter 6',
-      whereCanIGetIt: 'Employer W-2 Box 15-17 or SC MyDORWAY account.',
-    },
-    {
-      id: reqPriorId,
-      title: 'Prior Year Federal & State Tax Return',
-      category: 'Prior-Year Tax Records',
-      formNumber: '1040',
-      taxYear,
-      required: true,
-      status: hasMatch(reqPriorId, ['prior', '1040']) ? 'Uploaded' : 'Missing',
-      jurisdiction: 'Federal & State',
-      authority: 'Circular 230 § 10.22',
-      description: 'Complete copy of prior year filed return for carryforward and continuity verification.',
-      whatIsThis: 'Signed PDF copy of your prior tax year federal and state returns.',
-      whyDoWeNeedIt: 'Ensures accurate capital loss, charitable, and AMT carryforwards.',
-      statutoryBasis: 'IRS Circular 230 Due Diligence',
-      whereCanIGetIt: 'Your prior CPA portal or IRS Get Transcript online.',
-    },
-  ];
-}
-
-export class TaxDocumentRequirementEngine {
-  static getQuestionnaire(clientId: string, taxYear: number): TaxDiscoveryQuestionnaireAnswers {
-    const key = `${clientId}:${taxYear}`;
-    return (
-      questionnaireStore.get(key) ?? {
-        filingStatus: 'single',
-        residentState: 'SC',
-        hasW2Employment: true,
-        hasSelfEmployment: false,
-        hasInterestOrDividends: false,
-        hasBrokerageOrCrypto: false,
-        hasRetirementDistributions: false,
-        hasRealEstateOrMortgage: false,
-        hasEducationExpenses: false,
-        hasHsaOrMedical: false,
-        hasCharitableContributions: false,
-        hasEstimatedPayments: false,
-        hasForeignAccounts: false,
-        states: ['SC'],
-      }
-    );
-  }
-
-  static saveQuestionnaire(
+  saveQuestionnaire(
     clientId: string,
     taxYear: number,
-    answers: TaxDiscoveryQuestionnaireAnswers,
+    answers: TaxDiscoveryQuestionnaireAnswers
   ): TaxDiscoveryQuestionnaireAnswers {
-    const key = `${clientId}:${taxYear}`;
-    const saved = { ...answers };
-    questionnaireStore.set(key, saved);
-    return saved;
-  }
-
-  static generatePreparationPackage(input: {
-    clientId: string;
-    taxYear: number;
-    clientName?: string;
-    uploadedDocs?: any[];
-  }): PreparationPackageSummary {
-    const questionnaire = this.getQuestionnaire(input.clientId, input.taxYear);
-    const items = buildRequirements(input.clientId, input.taxYear, input.uploadedDocs ?? []);
-    const missingDocuments = items.filter(i => i.required && i.status !== 'Uploaded');
-    const received = items.length - missingDocuments.length;
-    return {
-      status: missingDocuments.length === 0 ? 'PENDING_PROFESSIONAL_REVIEW' : 'AWAITING_SOURCE_DOCUMENTS',
-      packageId: `pkg_${input.clientId}_${input.taxYear}`,
-      generatedAt: new Date().toISOString(),
-      statutoryFramework: 'Circular 230 / IRC § 6694',
-      auditProvenance: {
-        ruleEngineVersion: '2026.1',
-        makerCheckerBoundary: 'ENFORCED_HUMAN_REVIEW',
-      },
-      clientSummary: {
-        clientName: input.clientName || 'Client Taxpayer',
-        filingStatus: String(questionnaire.filingStatus || 'Single'),
-        residentState: String(questionnaire.residentState || questionnaire.states?.[0] || 'SC'),
-      },
-      requirementsSummary: {
-        received,
-        total: items.length,
-      },
-      missingDocuments,
-      items,
-      missingCount: missingDocuments.length,
-    };
-  }
-
-  static evaluateMissingDocuments(input: {
-    clientId: string;
-    taxYear: number;
-    uploadedDocs?: Array<{
-      id?: string;
-      associatedRequirementId?: string;
-      claimedCategory?: string;
-      status?: string;
-      isVerified?: boolean;
-    }>;
-  }): MissingDocumentsEvaluation {
-    const items = buildRequirements(input.clientId, input.taxYear, input.uploadedDocs ?? []);
-    const categories: MissingDocumentsEvaluation['categories'] = {};
-    for (const item of items) {
-      if (!categories[item.category]) {
-        categories[item.category] = { items: [], received: 0, required: 0, missing: 0 };
-      }
-      const bucket = categories[item.category];
-      bucket.items.push(item);
-      if (item.required) bucket.required += 1;
-      if (item.status === 'Uploaded') {
-        bucket.received += 1;
-      } else if (item.required) {
-        bucket.missing += 1;
-      }
+    try {
+      localStorage.setItem(`${QUESTIONNAIRE_PREFIX}${clientId}_${taxYear}`, JSON.stringify(answers));
+    } catch {
+      // ignore storage quota errors
     }
-    const receivedCount = items.filter(i => i.status === 'Uploaded').length;
-    const missingCount = items.filter(i => i.required && i.status !== 'Uploaded').length;
+    return answers;
+  },
+
+  evaluateMissingDocuments(input: {
+    clientId?: string;
+    taxYear?: number;
+    answers?: TaxDiscoveryQuestionnaireAnswers | null;
+    uploadedDocuments?: Array<{ category?: string; fileName?: string; status?: string; [key: string]: unknown }>;
+    requirements?: TaxDocumentRequirementItem[];
+    [key: string]: any;
+  }): {
+    requirements: TaxDocumentRequirementItem[];
+    missing: TaxDocumentRequirementItem[];
+    completed: TaxDocumentRequirementItem[];
+    completionRate: number;
+    [key: string]: any;
+  } {
+    const items: TaxDocumentRequirementItem[] = input.requirements ? [...input.requirements] : [
+      {
+        id: 'req_id_verification',
+        title: 'Government-Issued Photo ID',
+        category: 'identity',
+        required: true,
+        status: 'missing',
+        taxYear: input.taxYear,
+      },
+      {
+        id: 'req_prior_return',
+        title: 'Prior-Year Federal & State Tax Returns',
+        category: 'prior_return',
+        required: true,
+        status: 'missing',
+        taxYear: input.taxYear,
+      },
+    ];
+    const uploaded = input.uploadedDocuments ?? [];
+    const mapped = items.map(item => {
+      const matched = uploaded.some(
+        d => d.category && d.category.toLowerCase() === item.category.toLowerCase()
+      );
+      return matched && item.status === 'missing' ? { ...item, status: 'uploaded' } : item;
+    });
+    const missing = mapped.filter(i => i.required && (i.status === 'missing' || i.status === 'requested'));
+    const completed = mapped.filter(i => ['uploaded', 'verified', 'accepted', 'not_applicable'].includes(i.status));
+    const completionRate = mapped.length ? Math.round((completed.length / mapped.length) * 100) : 100;
+    return { requirements: mapped, missing, completed, completionRate };
+  },
+
+  generatePreparationPackage(input: {
+    clientId?: string;
+    taxYear?: number;
+    documents?: Array<Record<string, any>>;
+    answers?: TaxDiscoveryQuestionnaireAnswers | null;
+    [key: string]: any;
+  }): {
+    generatedAt: string;
+    taxYear: number;
+    readinessScore: number;
+    requirements: TaxDocumentRequirementItem[];
+    missingItems: TaxDocumentRequirementItem[];
+    summary: string;
+    [key: string]: any;
+  } {
+    const evalResult = this.evaluateMissingDocuments({
+      clientId: input.clientId,
+      taxYear: input.taxYear,
+      answers: input.answers,
+      uploadedDocuments: input.documents as any,
+    });
     return {
-      receivedCount,
-      totalRequirements: items.length,
-      missingCount,
-      categories,
+      generatedAt: new Date().toISOString(),
+      taxYear: input.taxYear ?? 2025,
+      readinessScore: evalResult.completionRate,
+      requirements: evalResult.requirements,
+      missingItems: evalResult.missing,
+      summary: `${evalResult.completed.length} of ${evalResult.requirements.length} required document items collected.`,
     };
-  }
-}
+  },
+};

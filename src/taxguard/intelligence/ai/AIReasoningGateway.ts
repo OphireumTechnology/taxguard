@@ -12,7 +12,7 @@ export interface AiReasoningProviderResponse {
   explanation: string;
   issueSpots: string[];
   recommendations: string[];
-  confidence: string;
+  confidence: 'HIGH_CONFIDENCE' | 'MEDIUM_CONFIDENCE' | 'LOW_CONFIDENCE' | 'MISSING_CONFIDENCE';
 }
 
 export interface AiReasoningProvider {
@@ -20,23 +20,32 @@ export interface AiReasoningProvider {
   reason(request: AiReasoningProviderRequest): Promise<AiReasoningProviderResponse>;
 }
 
-export class AIReasoningGateway {
-  static async reason(
+export interface AiProposalRecord extends AiReasoningProviderResponse {
+  proposalId: string;
+  purpose: string;
+  createdAt: string;
+  isAiProposedOnly: true;
+}
+
+export const AIReasoningGateway = {
+  async reason(
     provider: AiReasoningProvider,
-    pkg: EvidencePackage,
-    purpose: string,
-  ): Promise<AiReasoningProviderResponse & { proposalId: string; createdAt: string }> {
-    const res = await provider.reason({
-      promptPurpose: purpose,
-      taxYear: pkg.taxYear,
-      knowledgeSourceIds: pkg.knowledgeSourceIds ?? [],
-      ruleEvaluationIds: pkg.ruleEvaluationIds ?? [],
-      findingIds: pkg.findingIds ?? [],
+    evidencePackage: EvidencePackage,
+    promptPurpose: string
+  ): Promise<AiProposalRecord> {
+    const response = await provider.reason({
+      promptPurpose,
+      taxYear: evidencePackage.taxYear,
+      knowledgeSourceIds: evidencePackage.knowledgeSourceIds,
+      ruleEvaluationIds: evidencePackage.ruleEvaluationIds,
+      findingIds: evidencePackage.findingIds,
     });
     return {
-      ...res,
-      proposalId: `prop_${Date.now().toString(36)}`,
+      ...response,
+      proposalId: `prop_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      purpose: promptPurpose,
       createdAt: new Date().toISOString(),
+      isAiProposedOnly: true,
     };
-  }
-}
+  },
+};

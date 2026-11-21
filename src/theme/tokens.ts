@@ -5,7 +5,7 @@ export const DASHBOARD_THEME = {
   surface: '#0D2745',
   interactive: '#143657',
   gold: '#D4A843',
-  text: '#0F172A',
-  border: 'rgba(148, 163, 184, 0.25)',
-  radius: '8px',
+  text: '#F8FAFC',
+  border: 'rgba(148, 163, 184, 0.18)',
+  radius: '0.75rem',
 } as const;

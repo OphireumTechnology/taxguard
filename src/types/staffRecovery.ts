@@ -1,47 +1,52 @@
 export type StaffRecoveryReasonCategory =
-  | 'lost_device'
-  | 'broken_device'
-  | 'app_reset'
-  | 'account_lockout'
+  | 'lost_authenticator'
+  | 'device_replaced'
+  | 'device_damaged'
+  | 'authenticator_reset'
+  | 'security_incident'
   | string;
 
-export interface StaffRecoveryRecord {
-  id?: string;
-  requestId?: string;
-  staffUid?: string;
-  targetUid?: string;
-  targetName?: string;
-  targetRole?: string;
-  makerUid?: string;
-  checkerUid?: string;
-  staffEmail?: string;
-  staffName?: string;
-  reasonCategory: StaffRecoveryReasonCategory;
-  reason?: string;
-  reasonDetail?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'expired' | string;
-  createdAt: string;
-  approvedAt?: string | null;
-  updatedAt?: string;
-  jobId?: string | null;
-  jobStatus?: string | null;
-  actions?: Record<string, boolean>;
-  [key: string]: any;
-}
-
 export interface StaffRecoveryRequestInput {
-  staffUid?: string;
-  targetUid?: string;
-  email?: string;
+  requestId: string;
+  targetUid: string;
   reasonCategory: StaffRecoveryReasonCategory;
-  reason?: string;
-  reasonDetail?: string;
-  [key: string]: any;
+  reason: string;
 }
 
 export interface StaffRecoveryQuery {
-  status?: string;
-  cursor?: string | null;
   limit?: number;
+  cursor?: string;
+  status?: string;
+}
+
+export interface StaffRecoveryRecord {
+  id?: string;
+  requestId: string;
+  targetUid: string;
+  targetEmail?: string;
+  targetName?: string;
+  targetRole?: string;
+  makerUid?: string;
+  checkerUid?: string | null;
+  reasonCategory: StaffRecoveryReasonCategory;
+  reason: string;
+  status: 'pending_approval' | 'approved' | 'completed' | 'cancelled' | 'rejected' | string;
+  requestedBy?: string;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  jobId?: string | null;
+  jobStatus:
+    | null
+    | 'pending'
+    | 'leased'
+    | 'reset_verified'
+    | 'enrollment_verified'
+    | 'completed'
+    | 'failed';
+  jobAttempts?: number;
+  jobLastError?: string | null;
+  actions?: Record<string, boolean>;
+  createdAt: string;
+  updatedAt?: string;
   [key: string]: any;
 }

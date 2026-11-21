@@ -1,12 +1,12 @@
 export interface EvidencePackage {
   evidencePackageId: string;
+  correlationId: string;
   clientId: string;
   engagementId: string;
   taxYear: number;
-  correlationId: string;
   knowledgeSourceIds: string[];
   ruleEvaluationIds: string[];
-  findingIds?: string[];
+  findingIds: string[];
   aiProposalIds: string[];
-  [key: string]: any;
+  createdAt?: string;
 }

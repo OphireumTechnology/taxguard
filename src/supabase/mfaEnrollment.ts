@@ -1,4 +1,4 @@
-import { isSupabaseConfigured, supabase } from './config';
+import { supabase } from './config';
 
 export interface TotpEnrollment {
   factorId: string;
@@ -8,28 +8,40 @@ export interface TotpEnrollment {
 }
 
 export async function beginTotpEnrollment(): Promise<TotpEnrollment> {
-  if (!isSupabaseConfigured()) {
+  if (!supabase) {
     throw new Error('Identity provider is not configured in this environment.');
   }
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
-  if (error || !data) throw new Error(error?.message || 'Unable to start authenticator enrollment.');
+  if (error || !data) {
+    throw new Error(error?.message || 'Unable to begin authenticator enrollment.');
+  }
   return {
     factorId: data.id,
-    qrCode: data.totp?.qr_code ?? '',
-    secret: data.totp?.secret ?? '',
+    qrCode: data.totp?.qr_code || '',
+    secret: data.totp?.secret || '',
     uri: data.totp?.uri,
   };
 }
 
 export async function confirmTotpEnrollment(factorId: string, code: string): Promise<void> {
-  if (!isSupabaseConfigured()) {
+  if (!supabase) {
     throw new Error('Identity provider is not configured in this environment.');
   }
-  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
-  if (error) throw new Error(error.message || 'Verification failed.');
+  const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId });
+  if (chErr || !challenge) {
+    throw new Error(chErr?.message || 'Could not initiate verification challenge.');
+  }
+  const { error } = await supabase.auth.mfa.verify({
+    factorId,
+    challengeId: challenge.id,
+    code,
+  });
+  if (error) {
+    throw new Error(error.message || 'Invalid authenticator code.');
+  }
 }
 
 export async function cancelTotpEnrollment(factorId: string): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!supabase) return;
   await supabase.auth.mfa.unenroll({ factorId }).catch(() => {});
 }
