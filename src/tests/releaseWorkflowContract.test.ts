@@ -70,6 +70,15 @@ describe('taxguard-development-ci.yml', () => {
     for (const p of ["'public/**'", "'index.html'", "'vite.config.ts'", "'CNAME'"]) expect(section(ci, 'pull_request:', '  push:')).toContain(p);
     expect(ci).toContain('node scripts/verify-branding.mjs');
   });
+  it('runs the integration guard against the update base with full history, on every agent branch', () => {
+    expect(ci).toContain('fetch-depth: 0');
+    expect(ci).toContain('node scripts/integration-guard.mjs --base "$GUARD_BASE" --head HEAD');
+    expect(ci).toContain("github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before");
+    const push = section(ci, '  push:', 'workflow_dispatch:');
+    for (const b of ["'aistudio/**'", "'claude/**'", "'chatgpt/**'", "'integration/**'", "'rc/**'"]) expect(push).toContain(b);
+    // no agent or release-candidate branch can trigger a production deployment
+    expect(section(deploy, 'on:', 'permissions:')).toContain('branches: [main]');
+  });
 });
 
 describe('repository domain configuration', () => {

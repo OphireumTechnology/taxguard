@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+      - 'integration/**'
+      - 'rc/**'
       - codex/taxguard-phase10-staging-readiness
     paths:
       - 'src/**'
@@ -32,6 +34,13 @@ on:
       # Validate every development sync branch exactly as pushed. Pull-request runs
       # test the merge with main, which can fail because of main alone.
       - 'sync/**'
+      # Multi-agent branches (docs/development/multi-agent-integration.md): Google AI Studio, Claude Code, ChatGPT,
+      # the unified integration branch and release candidates. None of these can deploy.
+      - 'aistudio/**'
+      - 'claude/**'
+      - 'chatgpt/**'
+      - 'integration/**'
+      - 'rc/**'
       - 'codex/taxguard-phase11-completion'
   workflow_dispatch:
 
@@ -57,7 +66,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          fetch-depth: 2
+          # Full history: the integration guard compares the update with its base commit.
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -70,6 +80,13 @@ jobs:
 
       - name: Check patch formatting
         run: git diff --check HEAD~1 HEAD
+
+      # Rejects changes to existing migrations, unapproved deletions of protected source, and service clients or
+      # routes that stop calling the API or database (replacement by local mocks). See multi-agent-integration.md.
+      - name: Integration guard (protected source, migrations, real services)
+        env:
+          GUARD_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/integration-guard.mjs --base "$GUARD_BASE" --head HEAD
 
       - name: Lint
         run: npm run lint

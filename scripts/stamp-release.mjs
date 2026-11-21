@@ -79,6 +79,15 @@ const record = {
   builtAt: new Date().toISOString(),
   brandAssetVersion: stamped,
   customDomain: domain,
+  // Acceptance evidence: the Development CI run that validated this exact commit (lint, typecheck, build, unit,
+  // integration guard, offline migration integrity, traceability, secrets, PostgreSQL) and the checks this build
+  // repeated before stamping. The workflow supplies both; a local stamp records them as not provided.
+  acceptance: {
+    developmentCiRun: /^[0-9]+$/.test(process.env.TAXGUARD_VALIDATION_RUN || '') && process.env.GITHUB_REPOSITORY
+      ? { id: process.env.TAXGUARD_VALIDATION_RUN, url: `${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.TAXGUARD_VALIDATION_RUN}` }
+      : null,
+    buildChecksPassed: (process.env.TAXGUARD_BUILD_CHECKS || '').split(',').map(s => s.trim()).filter(Boolean),
+  },
 };
 fs.writeFileSync(path.join(dist, 'version.json'), `${JSON.stringify(record, null, 2)}\n`);
 console.log(`Stamped ${replaced} asset version references (${indexReplaced} in index.html) as ${stamped}; CNAME ${domain}; version.json for ${commit}.`);

@@ -1,0 +1,4 @@
+{
+  "description": "Reviewed approvals for deleting protected TaxGuard source (scripts/integration-guard.mjs). Each entry names one exact path, the reason and the approving owner decision. Changes to this file require owner review (see multi-agent-integration.md).",
+  "paths": []
+}
