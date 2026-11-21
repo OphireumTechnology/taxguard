@@ -11,7 +11,7 @@ import {
   ExternalLink 
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../../config/companyBranding';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -63,13 +63,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({
         {/* Contact Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a
-            href="tel:678-205-9486"
+            href={COMPANY_CONTACT.phoneHref}
             className="p-3.5 rounded-xl bg-[#06172C] border border-[#183458] hover:border-[#C6A15B]/50 transition-colors group block"
           >
             <div className="flex items-center gap-2.5 mb-1 text-[#C6A15B]">
-              <Phone className="w-4 h-4" />
-              <span className="text-xs font-bold text-white group-hover:text-[#C6A15B] transition-colors">
-                678-205-9486
+              <Phone className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-bold text-white group-hover:text-[#C6A15B] transition-colors whitespace-nowrap">
+                {COMPANY_CONTACT.phoneDisplay}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">

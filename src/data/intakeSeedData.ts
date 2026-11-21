@@ -228,7 +228,7 @@ export const INITIAL_CLIENT_INTAKE_DOSSIER: FullClientIntakeDossier = {
       zip: '29210'
     },
     mailingAddressSameAsBusiness: true,
-    phoneUs: '803-555-0142',
+    phoneUs: '+1-803-555-0142',
     email: 'm.perotti@example.com',
     website: 'https://perotticonsulting.example.com',
     industrySector: 'Professional, Scientific, and Technical Services (NAICS 541219)',
@@ -291,7 +291,7 @@ export const INITIAL_CLIENT_INTAKE_DOSSIER: FullClientIntakeDossier = {
       role: 'Managing Member & Principal',
       title: 'Managing Member',
       email: 'm.perotti@example.com',
-      phone: '803-555-0142',
+      phone: '+1-803-555-0142',
       ownershipPercentage: 100,
       startDate: '2021-04-14',
       isUsResident: true,

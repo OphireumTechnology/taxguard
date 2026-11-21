@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
 import { 
   Briefcase, 
   MapPin, 
@@ -267,14 +268,15 @@ export const JobDetailPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1">Phone Number *</label>
-                    <input
-                      type="tel"
+                    <label htmlFor="job-applicant-phone" className="block text-slate-300 font-semibold mb-1">Phone Number *</label>
+                    <InternationalPhoneInput
+                      id="job-applicant-phone"
                       required
                       value={applicantPhone}
-                      onChange={(e) => setApplicantPhone(e.target.value)}
-                      placeholder="803-555-0123"
-                      className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                      onChange={setApplicantPhone}
+                      variant="dark"
+                      placeholder="+1-803-555-0123"
+                      aria-label="Phone Number"
                     />
                   </div>
 

@@ -172,7 +172,7 @@ export const LifecycleRoleDashboardView: React.FC<LifecycleRoleDashboardViewProp
                 receptionService.addInquiry({
                   contactName: 'David Sterling, MD',
                   companyName: 'Carolina Spine Center LLC',
-                  phone: '(843) 555-0144',
+                  phone: '+1-843-555-0144',
                   email: 'dsterling@carolinaspine.org',
                   source: 'Referral',
                   inquiryType: 'Tax Return',

@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
 import { 
   User, 
   Building2, 
@@ -456,13 +457,15 @@ export const ClientOnboardingWizard: React.FC<Props> = ({ onComplete }) => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Mobile Telephone *</label>
-                <input
-                  type="tel"
+                <label htmlFor="onboarding-mobile-phone" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Mobile Telephone *</label>
+                <InternationalPhoneInput
+                  id="onboarding-mobile-phone"
                   disabled={isLocked}
                   value={dossier.identityContact.mobilePhone}
-                  onChange={e => setDossier({ ...dossier, identityContact: { ...dossier.identityContact, mobilePhone: e.target.value } })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                  onChange={val => setDossier({ ...dossier, identityContact: { ...dossier.identityContact, mobilePhone: val } })}
+                  variant="light"
+                  placeholder="+1-803-555-0100"
+                  aria-label="Mobile Telephone"
                 />
               </div>
             </div>

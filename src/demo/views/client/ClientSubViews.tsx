@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../../config/companyBranding';
 import {
   FileText,
   UploadCloud,
@@ -666,8 +667,8 @@ export const ClientContactSupportView: React.FC = () => {
           <div className="space-y-1.5 text-neutral-700">
             <div><strong>Firm:</strong> Destria Tax Services, LLC</div>
             <div><strong>Lead Practitioner:</strong> Desmond Hinds, CPA</div>
-            <div><strong>Direct Telephone:</strong> 678-205-9486</div>
-            <div><strong>Practice Email:</strong> info@destriataxservices.com</div>
+            <div><strong>Direct Telephone:</strong> <a href={COMPANY_CONTACT.phoneHref} className="hover:underline whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</a></div>
+            <div><strong>Practice Email:</strong> <a href={COMPANY_MAILTO_HREF} className="hover:underline">{COMPANY_CONTACT.email}</a></div>
             <div><strong>Hours:</strong> Mon–Fri 8:30 AM – 6:30 PM EST</div>
           </div>
         </div>

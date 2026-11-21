@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp, PageRoute } from '../../context/AppContext';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { BrandLogo } from './BrandLogo';
 import { 
   Phone, 
@@ -42,8 +42,8 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
-                <a href="tel:678-205-9486" className="hover:text-[#E5B552] transition-colors font-medium">
-                  678-205-9486
+                <a href={COMPANY_CONTACT.phoneHref} className="hover:text-[#E5B552] transition-colors font-medium whitespace-nowrap">
+                  {COMPANY_CONTACT.phoneDisplay}
                 </a>
               </div>
               <div className="flex items-center gap-3">

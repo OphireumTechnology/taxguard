@@ -5,6 +5,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { isLocalServerLoginBuild } from '../../context/localServerLogin';
 import { BrandLogo } from '../common/BrandLogo';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 import {
   requestPasswordReset as requestSupabasePasswordReset,
   validateRegistrationInput,
@@ -713,13 +715,14 @@ export const ClientRegisterPage: React.FC = () => {
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-8`}>Mobile Telephone *</label>
-              <input id={`${fieldPrefix}-auth-8`}
-                type="tel"
+              <InternationalPhoneInput
+                id={`${fieldPrefix}-auth-8`}
                 required
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="678-205-9486"
-                className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]"
+                onChange={setPhone}
+                variant="dark"
+                placeholder={COMPANY_CONTACT.phoneDisplay}
+                aria-label="Mobile Telephone"
               />
             </div>
           </div>

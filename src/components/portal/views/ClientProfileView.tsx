@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { InternationalPhoneInput } from '../../common/InternationalPhoneInput';
+import { formatPhoneDisplay } from '../../../utils/phoneFormat';
 import {
   User,
   Building2,
@@ -549,15 +551,18 @@ export const ClientProfileView: React.FC<ClientProfileViewProps> = ({
                 <span>Primary Telephone Number</span>
               </span>
               {isEditingContact ? (
-                <input
-                  type="text"
+                <InternationalPhoneInput
                   value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-lg bg-[#07172B] border border-[#C6A15B] text-white text-sm focus:outline-none"
-                  placeholder="(803) 555-0100"
+                  onChange={setEditPhone}
+                  variant="dark"
+                  className="mt-1"
+                  placeholder="+1-803-555-0100"
+                  aria-label="Primary Telephone Number"
                 />
               ) : (
-                <div className="font-bold text-white text-sm pt-1">{c.phone || 'No phone recorded'}</div>
+                <div className="font-bold text-white text-sm pt-1">
+                  {c.phone ? formatPhoneDisplay(c.phone, 'US') : 'No phone recorded'}
+                </div>
               )}
               <span className="text-[10px] text-slate-400 block pt-1">
                 Used for urgent verification notices and consultation callbacks.

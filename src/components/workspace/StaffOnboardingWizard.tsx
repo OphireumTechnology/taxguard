@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
 import { 
   UserCheck, 
   Briefcase, 
@@ -266,12 +267,14 @@ export const StaffOnboardingWizard: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Mobile Telephone</label>
-                <input
-                  type="tel"
+                <label htmlFor="staff-onboarding-mobile" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Mobile Telephone</label>
+                <InternationalPhoneInput
+                  id="staff-onboarding-mobile"
                   value={dossier.personalContact.mobileNumber}
-                  onChange={e => setDossier({ ...dossier, personalContact: { ...dossier.personalContact, mobileNumber: e.target.value } })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                  onChange={val => setDossier({ ...dossier, personalContact: { ...dossier.personalContact, mobileNumber: val } })}
+                  variant="light"
+                  placeholder="+1-803-555-0100"
+                  aria-label="Mobile Telephone"
                 />
               </div>
               <div>

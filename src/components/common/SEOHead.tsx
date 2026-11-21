@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useApp, PageRoute } from '../../context/AppContext';
-import { COMPANY_BRANDING } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT } from '../../config/companyBranding';
 import { BRAND_ASSETS, BRAND_WEBSITE_URL } from '../../utils/assets';
 
 interface PageMetadata {
@@ -81,7 +81,7 @@ const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
   },
   contact: {
     title: `Contact Our Office | ${BRAND_NAME}`,
-    description: `Get in touch with ${BRAND_NAME}. Call 678-205-9486, email ${COMPANY_BRANDING.email}, or submit a message to our Columbia, SC team.`,
+    description: `Get in touch with ${BRAND_NAME}. Call ${COMPANY_CONTACT.phoneDisplay}, email ${COMPANY_CONTACT.email}, or submit a message to our Columbia, SC team.`,
     canonicalPath: '/contact',
     ogType: 'website'
   },

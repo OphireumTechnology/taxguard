@@ -1,7 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
 import { ShieldCheck, UserCheck, KeyRound, ExternalLink } from 'lucide-react';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 
 export const RoleSwitcherBanner: React.FC = () => {
   const { currentRole, setCurrentRole, currentUser, currentPage, setCurrentPage } = useApp();
@@ -29,8 +30,8 @@ export const RoleSwitcherBanner: React.FC = () => {
           <div className="hidden sm:flex items-center gap-1.5 text-slate-400 whitespace-nowrap text-[11px] sm:text-xs">
             <span>Columbia, SC</span>
             <span className="text-[#C99A3D]">•</span>
-            <a href="tel:678-205-9486" className="text-slate-300 hover:text-[#E2BD67] transition-colors">
-              678-205-9486
+            <a href={COMPANY_CONTACT.phoneHref} className="text-slate-300 hover:text-[#E2BD67] transition-colors whitespace-nowrap">
+              {COMPANY_CONTACT.phoneDisplay}
             </a>
           </div>
           <span className="hidden md:inline text-slate-600">|</span>

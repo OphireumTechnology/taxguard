@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiEndpoint } from '../../config/apiEndpoint';
 import { BrandedDatePicker } from '../ui/BrandedDatePicker';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 
 const TOPICS: Array<[string, string]> = [['INDIVIDUAL_TAX', 'Individual tax'], ['BUSINESS_TAX', 'Business tax'], ['TAX_PLANNING', 'Tax planning'],
   ['BOOKKEEPING', 'Bookkeeping'], ['IRS_NOTICE', 'IRS or state notice'], ['OTHER', 'Something else']];
@@ -65,7 +67,7 @@ export function ConsultationRequestForm() {
     {state.status === 'error' && <p role="alert" className="text-red-300">{state.text}</p>}
     <label className="block">Full name<input className={field} required minLength={2} maxLength={120} autoComplete="name" value={f.fullName} onChange={e => set({ fullName: e.target.value })} /></label>
     <label className="block">E-mail<input className={field} type="email" required maxLength={254} autoComplete="email" value={f.email} onChange={e => set({ email: e.target.value })} /></label>
-    <label className="block">Phone (optional)<input className={field} type="tel" maxLength={32} autoComplete="tel" value={f.phone} onChange={e => set({ phone: e.target.value })} /></label>
+    <div className="block"><label htmlFor="consultation-phone" className="block mb-1">Phone (optional)</label><InternationalPhoneInput id="consultation-phone" value={f.phone} onChange={val => set({ phone: val })} variant="dark" placeholder={COMPANY_CONTACT.phoneDisplay} aria-label="Phone (optional)" /></div>
     <label className="block">How should we contact you?<select className={field} value={f.preferredContact} onChange={e => set({ preferredContact: e.target.value })}>
       <option value="EMAIL">E-mail</option><option value="PHONE">Phone</option></select></label>
     <label className="block">Topic<select className={field} value={f.topic} onChange={e => set({ topic: e.target.value })}>{TOPICS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>

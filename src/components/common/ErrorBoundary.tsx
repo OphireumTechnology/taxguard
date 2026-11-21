@@ -12,7 +12,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { reportClientError } from '../../utils/telemetry';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 
 interface Props {
   children: ReactNode;
@@ -343,7 +343,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 <a href={COMPANY_MAILTO_HREF} className="text-[#C6A15B] hover:underline font-medium">
                   {COMPANY_BRANDING.email}
                 </a>{' '}
-                or call 678-205-9486.
+                or call{' '}
+                <a href={COMPANY_CONTACT.phoneHref} className="text-[#C6A15B] hover:underline font-medium whitespace-nowrap">
+                  {COMPANY_CONTACT.phoneDisplay}
+                </a>.
               </p>
             </div>
 

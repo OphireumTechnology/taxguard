@@ -1,9 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { CalendarCheck, Mail, X } from 'lucide-react';
-import { COMPANY_BRANDING } from '../../config/companyBranding';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 import type { ServicePlan } from '../../types';
 
-export const PRACTICE_CONTACT = { email: COMPANY_BRANDING.email, phone: '678-205-9486' } as const;
+export const PRACTICE_CONTACT = {
+  email: COMPANY_CONTACT.email,
+  phone: COMPANY_CONTACT.phoneDisplay,
+  phoneE164: COMPANY_CONTACT.phoneE164,
+  phoneHref: COMPANY_CONTACT.phoneHref,
+} as const;
 
 /**
  * Honest plan selection. No payment is taken on this website: plans are arranged with the practice

@@ -76,6 +76,9 @@ assertCheck(companyBrandingTs.includes("uppercaseName: 'DESTRIA TAX SERVICES, LL
 assertCheck(companyBrandingTs.includes("website: 'https://destriataxservices.com'"), 'COMPANY_BRANDING.website is https://destriataxservices.com');
 assertCheck(companyBrandingTs.includes("email: 'info@destriataxservices.com'"), 'COMPANY_BRANDING.email is info@destriataxservices.com');
 assertCheck(companyBrandingTs.includes("tagline: 'Preserving Wealth. Building Legacies.'"), 'COMPANY_BRANDING.tagline is canonical');
+assertCheck(companyBrandingTs.includes("phoneDisplay: '+1-678-205-9486'"), 'COMPANY_CONTACT.phoneDisplay is +1-678-205-9486');
+assertCheck(companyBrandingTs.includes("phoneE164: '+16782059486'"), 'COMPANY_CONTACT.phoneE164 is +16782059486');
+assertCheck(companyBrandingTs.includes("phoneHref: 'tel:+16782059486'"), 'COMPANY_CONTACT.phoneHref is tel:+16782059486');
 
 const assetsTs = fs.readFileSync(path.join(root, 'src/utils/assets.ts'), 'utf8');
 const versionMatch = assetsTs.match(/BRAND_ASSET_VERSION\s*=\s*['"]([^'"]+)['"]/);
@@ -88,6 +91,8 @@ assertCheck(indexHtml.includes('info@destriataxservices.com'), 'index.html refer
 assertCheck(indexHtml.includes('https://destriataxservices.com/'), 'index.html references official website https://destriataxservices.com/');
 assertCheck(indexHtml.includes(`/branding/destria-favicon.png?v=${version}`), 'index.html favicon uses cache-busting version');
 assertCheck(indexHtml.includes(`/favicon.ico?v=${version}`), 'index.html shortcut icon uses cache-busting version');
+assertCheck(indexHtml.includes('"telephone": "+1-678-205-9486"'), 'index.html JSON-LD telephone uses +1-678-205-9486');
+assertCheck(indexHtml.includes('"@type": "ContactPoint"'), 'index.html JSON-LD includes ContactPoint schema');
 assertCheck(indexHtml.includes(`/apple-touch-icon.png?v=${version}`), 'index.html apple-touch-icon uses cache-busting version');
 
 // 4. Verify zero legacy active A/R logo asset paths, legacy emails, visible A/R brand strings, or duplicate LLC suffixes remain
@@ -130,6 +135,12 @@ const legacyHits = [];
 const legacyEmailHits = [];
 const visibleArHits = [];
 const duplicateLlcHits = [];
+const unformattedUsPhoneHits = [];
+const invalidTelHrefHits = [];
+let preservedNonUsIntlCount = 0;
+
+const badUsPhoneRe = /(?<!\+1-)(?<![A-Za-z0-9+])(?:\+1\s*\([2-9]\d{2}\)\s*\d{3}[-.\s]\d{4}|1-[2-9]\d{2}-\d{3}-\d{4}|\([2-9]\d{2}\)\s*\d{3}[-.\s]\d{4}|(?<![+-])[2-9]\d{2}[-.]\d{3}[-.]\d{4})(?!\d)/g;
+const badTelHrefRe = /href=["']tel:(?!\+\d{8,15}(?:;ext=\d+)?["'])[^"']+["']/gi;
 
 for (const file of activeFiles) {
   const rel = path.relative(root, file);
@@ -158,6 +169,19 @@ for (const file of activeFiles) {
     ) {
       visibleArHits.push(`${rel}:${idx + 1}: ${trimmed.slice(0, 100)}`);
     }
+    if (!rel.endsWith('phoneFormat.ts') && !rel.endsWith('phoneFormat.test.ts')) {
+      const badPhone = line.match(badUsPhoneRe);
+      if (badPhone) {
+        unformattedUsPhoneHits.push(`${rel}:${idx + 1}: ${badPhone.join(', ')}`);
+      }
+      const badTel = line.match(badTelHrefRe);
+      if (badTel) {
+        invalidTelHrefHits.push(`${rel}:${idx + 1}: ${badTel.join(', ')}`);
+      }
+    }
+    if (/\+63[\s.-]?917[\s.-]?966[\s.-]?8814/.test(line)) {
+      preservedNonUsIntlCount += 1;
+    }
   });
 }
 
@@ -165,6 +189,9 @@ assertCheck(legacyHits.length === 0, 'Zero active legacy A/R logo or vault path 
 assertCheck(legacyEmailHits.length === 0, 'Zero active legacy contact emails or artaxservices portal links remain', legacyEmailHits.join('; '));
 assertCheck(visibleArHits.length === 0, 'Zero active legacy A/R company branding strings remain', visibleArHits.join('; '));
 assertCheck(duplicateLlcHits.length === 0, 'Zero duplicate LLC suffixes (LLC, LLC) exist', duplicateLlcHits.join('; '));
+assertCheck(unformattedUsPhoneHits.length === 0, 'Zero unformatted US telephone numbers remain in active source/HTML', unformattedUsPhoneHits.join('; '));
+assertCheck(invalidTelHrefHits.length === 0, 'All static tel: links use canonical E.164 format', invalidTelHrefHits.join('; '));
+assertCheck(preservedNonUsIntlCount >= 6, 'Non-US international telephone numbers (+63) are preserved intact', `${preservedNonUsIntlCount} references`);
 
 console.log(checks.join('\n'));
 if (errors.length > 0) {

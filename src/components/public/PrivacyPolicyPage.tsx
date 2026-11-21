@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { ShieldCheck, Lock, FileText, CheckCircle2 } from 'lucide-react';
 
 export const PrivacyPolicyPage: React.FC = () => {
@@ -70,7 +70,7 @@ export const PrivacyPolicyPage: React.FC = () => {
             <strong>{COMPANY_BRANDING.legalName}</strong><br />
             Attention: Privacy & Compliance Officer<br />
             Columbia, South Carolina, USA<br />
-            Phone: <a href="tel:678-205-9486" className="text-[#C6A15B]">678-205-9486</a><br />
+            Phone: <a href={COMPANY_CONTACT.phoneHref} className="text-[#C6A15B] whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</a><br />
             Email: <a href={COMPANY_MAILTO_HREF} className="text-[#C6A15B]">{COMPANY_BRANDING.email}</a>
           </p>
         </section>

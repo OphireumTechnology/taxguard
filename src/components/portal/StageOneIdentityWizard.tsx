@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
 import {
   ShieldCheck,
   User,
@@ -190,7 +191,7 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
           (isLiveClient ? '' : 'eleanor.vance@example.com'),
         phone:
           currentUser?.phone ||
-          (isLiveClient ? '' : '(678) 555-0199'),
+          (isLiveClient ? '' : '+1-678-555-0199'),
         taxpayerType:
           isLiveClient
             ? (currentUser?.companyName || currentUser?.company ? 'entity' : 'individual')
@@ -755,13 +756,14 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Primary Telephone *</label>
-                <input
-                  type="tel"
+                <label htmlFor="stage-one-primary-phone" className="block text-slate-300 font-semibold mb-1">Primary Telephone *</label>
+                <InternationalPhoneInput
+                  id="stage-one-primary-phone"
                   value={dossier.phone}
-                  onChange={(e) => updateDossier({ ...dossier, phone: e.target.value })}
-                  placeholder="(803) 555-0100"
-                  className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                  onChange={(val) => updateDossier({ ...dossier, phone: val })}
+                  variant="dark"
+                  placeholder="+1-803-555-0100"
+                  aria-label="Primary Telephone"
                 />
               </div>
             </div>
@@ -1094,19 +1096,20 @@ export const StageOneIdentityWizard: React.FC<StageOneIdentityWizardProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Representative Telephone</label>
-                  <input
-                    type="tel"
+                  <label htmlFor="stage-one-rep-phone" className="block text-slate-300 font-semibold mb-1">Representative Telephone</label>
+                  <InternationalPhoneInput
+                    id="stage-one-rep-phone"
                     value={dossier.authorizedRep?.phone || ''}
-                    onChange={(e) => updateDossier({
+                    onChange={(val) => updateDossier({
                       ...dossier,
                       authorizedRep: {
                         ...(dossier.authorizedRep || { fullName: '', title: '', email: '', relationshipOrCapacity: '', hasPowerOfAttorney: false }),
-                        phone: e.target.value
+                        phone: val
                       }
                     })}
-                    placeholder="(803) 555-0100"
-                    className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#C6A15B]"
+                    variant="dark"
+                    placeholder="+1-803-555-0100"
+                    aria-label="Representative Telephone"
                   />
                 </div>
               </div>

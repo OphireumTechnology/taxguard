@@ -118,8 +118,8 @@ export const ClientHelpSupportSection: React.FC<ClientHelpSupportSectionProps> =
               <span>Direct Telephony &amp; Fax</span>
             </div>
             <div className="text-[#4B5563] space-y-0.5 font-mono text-[11px]">
-              <div>Direct: +1 (803) 555-0190</div>
-              <div>Secure Fax: +1 (803) 555-0191</div>
+              <div>Direct: <a href="tel:+18035550190" className="hover:underline whitespace-nowrap">+1-803-555-0190</a></div>
+              <div>Secure Fax: <span className="whitespace-nowrap">+1-803-555-0191</span></div>
               <div className="pt-1 text-[#1B5E20] font-sans font-medium">IRS Rapid Audit Response Line</div>
             </div>
           </div>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
+import { validateInternationalPhone } from '../../utils/phoneFormat';
 import { PRACTICE_CONTACT } from './PlanRequestDialog';
 import { 
   Phone, 
@@ -37,6 +39,12 @@ export const ContactPage: React.FC = () => {
       newErrors.email = 'Email address is required.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address.';
+    }
+    if (phone.trim()) {
+      const phoneCheck = validateInternationalPhone(phone, { defaultCountry: 'US', required: false });
+      if (!phoneCheck.valid && phoneCheck.error) {
+        newErrors.phone = phoneCheck.error;
+      }
     }
     if (!message.trim()) newErrors.message = 'Please provide a message or inquiry details.';
     if (!consentAcknowledged) {
@@ -112,8 +120,8 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <strong className="text-white block">Direct Telephone:</strong>
-                    <a href="tel:678-205-9486" className="text-slate-200 hover:text-[#C6A15B] transition-colors font-medium">
-                      678-205-9486
+                    <a href={COMPANY_CONTACT.phoneHref} className="text-slate-200 hover:text-[#C6A15B] transition-colors font-medium whitespace-nowrap">
+                      {COMPANY_CONTACT.phoneDisplay}
                     </a>
                   </div>
                 </div>
@@ -260,14 +268,21 @@ export const ContactPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
                       <label htmlFor="contact-phone" className="block text-slate-300 font-semibold mb-1">Phone Number (Optional)</label>
-                      <input
+                      <InternationalPhoneInput
                         id="contact-phone"
-                        type="tel"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="678-205-9486"
-                        className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[#C6A15B] focus:border-[#C6A15B]"
+                        onChange={(val) => {
+                          setPhone(val);
+                          if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
+                        }}
+                        variant="dark"
+                        placeholder={COMPANY_CONTACT.phoneDisplay}
+                        aria-label="Phone Number"
+                        testId="contact-phone-input"
                       />
+                      {errors.phone && (
+                        <p className="text-[11px] text-red-400 mt-1 font-medium">{errors.phone}</p>
+                      )}
                     </div>
 
                     <div>
@@ -385,7 +400,7 @@ export const ContactPage: React.FC = () => {
                   <h3 className="font-serif text-2xl font-bold text-white">Finish sending in your e-mail app</h3>
                   <p role="status" className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
                     Your e-mail application should have opened with your message to <strong className="text-white">{PRACTICE_CONTACT.email}</strong>. The practice receives it only after you send it there.
-                    If nothing opened, e-mail <a className="underline" href={`mailto:${PRACTICE_CONTACT.email}`}>{PRACTICE_CONTACT.email}</a> or call <a className="underline" href={`tel:${PRACTICE_CONTACT.phone}`}>{PRACTICE_CONTACT.phone}</a>.
+                    If nothing opened, e-mail <a className="underline" href={`mailto:${PRACTICE_CONTACT.email}`}>{PRACTICE_CONTACT.email}</a> or call <a className="underline whitespace-nowrap" href={PRACTICE_CONTACT.phoneHref}>{PRACTICE_CONTACT.phone}</a>.
                   </p>
                   <button
                     onClick={() => {

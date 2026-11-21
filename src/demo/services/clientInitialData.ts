@@ -170,7 +170,7 @@ export const INITIAL_TAX_ORGANIZER: TaxOrganizerState = {
       tinMasked: '***-**-4890',
       birthDate: '1979-05-14',
       occupation: 'Managing Member & Asset Strategist',
-      phone: '(864) 555-0192',
+      phone: '+1-864-555-0192',
       email: 'm.perotti@perotticapital.com',
       addressStreet: '100 North Main Street, Suite 400',
       city: 'Greenville',

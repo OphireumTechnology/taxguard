@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { FAQ_DATA } from '../../data/mockData';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 import { 
   HelpCircle, 
   Search, 
@@ -84,7 +85,7 @@ export const ResourcesPage: React.FC = () => {
                 "2. Income Records:\n- Form W-2 (Wage Statements)\n- Form 1099-NEC / 1099-MISC (Self-employment / Contract)\n- Form 1099-INT / 1099-DIV (Interest & Dividends)\n- Form 1099-B (Brokerage / Capital Gains)\n- Form 1099-R (Retirement / Pensions)\n- Schedule K-1 (Partnership, S-Corp or Estate)\n\n" +
                 "3. Deductions & Credits:\n- Form 1098 (Mortgage Interest & Property Taxes)\n- Charitable donation receipts\n- Form 1095-A (Health Insurance Marketplace)\n- Childcare provider name, address & Tax ID\n- Business mileage log and receipts\n\n" +
                 "4. Business Filings:\n- Profit & Loss statement\n- Balance Sheet as of Dec 31\n- Form 941 quarterly payroll reports\n- Asset purchase/depreciation records\n\n" +
-                "Upload directly to your encrypted portal: https://destriataxservices.com/ | 678-205-9486"
+                `Upload directly to your encrypted portal: ${COMPANY_CONTACT.website}/ | ${COMPANY_CONTACT.phoneDisplay}`
               ], {type: 'text/plain'});
               element.href = URL.createObjectURL(file);
               element.download = "Destria_Tax_Services_Document_Checklist.txt";

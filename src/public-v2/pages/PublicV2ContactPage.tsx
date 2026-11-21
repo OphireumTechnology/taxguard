@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Check, ArrowRight } from 'lucide-react';
 import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { InternationalPhoneInput } from '../../components/common/InternationalPhoneInput';
 
 interface PublicV2ContactPageProps {
   onNavigate: (path: string) => void;
@@ -71,8 +72,8 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
                 <Phone className="w-4 h-4 text-black flex-shrink-0" />
                 <div>
                   <span className="text-neutral-500 block text-[10px] uppercase font-mono">Office Direct:</span>
-                  <a href="tel:+19253971040" className="text-black font-semibold hover:underline text-sm">
-                    (925) 397-1040
+                  <a href="tel:+19253971040" className="text-black font-semibold hover:underline text-sm whitespace-nowrap">
+                    +1-925-397-1040
                   </a>
                 </div>
               </div>
@@ -190,14 +191,14 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
                   <label className="block text-xs font-semibold text-black mb-1" htmlFor="contact-phone">
                     Telephone *
                   </label>
-                  <input
+                  <InternationalPhoneInput
                     id="contact-phone"
-                    type="tel"
                     required
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="(925) 000-0000"
-                    className="w-full px-3 py-2 bg-white text-black border border-neutral-300 focus:border-black focus:ring-1 focus:ring-black outline-none"
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    variant="v2"
+                    placeholder="+1-925-000-0000"
+                    aria-label="Telephone"
                   />
                 </div>
 

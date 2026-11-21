@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { Eye, CheckCircle2, Phone, Mail } from 'lucide-react';
 
 export const AccessibilityStatementPage: React.FC = () => {
@@ -59,7 +59,7 @@ export const AccessibilityStatementPage: React.FC = () => {
           <div className="p-4 rounded-xl bg-[#0D2340] border border-[#1E3A5F] space-y-2 text-xs">
             <div className="flex items-center gap-2 text-white">
               <Phone className="w-4 h-4 text-[#C6A15B]" />
-              <span>Phone: 678-205-9486 (Mon-Fri 9am-6pm EST)</span>
+              <span>Phone: <a href={COMPANY_CONTACT.phoneHref} className="hover:text-[#C6A15B] underline whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</a> (Mon-Fri 9am-6pm EST)</span>
             </div>
             <div className="flex items-center gap-2 text-white">
               <Mail className="w-4 h-4 text-[#C6A15B]" />
