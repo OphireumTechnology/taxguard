@@ -156,6 +156,7 @@ export const Navbar: React.FC = () => {
           <div className="flex-shrink-0 py-0.5">
             <BrandLogo 
               size="md" 
+              className="[&>img]:rounded-full [&>img]:overflow-hidden"
               hideTaglineOnCompact={true}
               onClick={() => handleNavClick('home')} 
             />
@@ -727,6 +728,7 @@ export const Navbar: React.FC = () => {
               <BrandLogo 
                 size="sm" 
                 variant="compact"
+                className="[&>img]:rounded-full [&>img]:overflow-hidden"
                 onClick={() => handleNavClick('home')} 
               />
               
