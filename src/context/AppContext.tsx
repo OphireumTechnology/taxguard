@@ -873,41 +873,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     void bootstrapSession();
 
     // Subscribe to Supabase auth state changes (handles email verification callback & token refresh)
-    const { data: sbSubscription } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!active || authOperationInProgressRef.current) return;
+    const sbSubscription =
+      isSupabaseConfigured() && supabase
+        ? supabase.auth.onAuthStateChange(async (event, session) => {
+            if (!active || authOperationInProgressRef.current) return;
 
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
-        // Invitation sessions prove identity only; they must never trigger client auto-provisioning.
-        if (providerOnlyIdentityFlowActive()) return;
-        const existingToken = getStoredToken();
-        if (!existingToken) {
-          try {
-            authOperationInProgressRef.current = true;
-            const restorePortal = currentRestorePortal();
-            await establishSupabaseServerSession(session.access_token, {
-              navigateIfAuthRoute: true,
-              trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED',
-              ...(restorePortal ? { portal: restorePortal } : {})
-            });
-          } catch (err) {
-            console.warn('[TaxGuard Auth] Failed to bridge Supabase auth event:', err);
-          } finally {
-            authOperationInProgressRef.current = false;
-            if (active) setIsInitialized(true);
-          }
-        }
-      } else if (event === 'SIGNED_OUT') {
-        clearStoredToken();
-        clearTaxpayerState();
-        LiveWorkflowAuthority.clear();
-        setCurrentUser(null);
-        setCurrentRoleState('guest');
-        setAuthLifecycleState('UNAUTHENTICATED');
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('taxguard_environment');
-        }
-      }
-    });
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
+              // Invitation sessions prove identity only; they must never trigger client auto-provisioning.
+              if (providerOnlyIdentityFlowActive()) return;
+              const existingToken = getStoredToken();
+              if (!existingToken) {
+                try {
+                  authOperationInProgressRef.current = true;
+                  const restorePortal = currentRestorePortal();
+                  await establishSupabaseServerSession(session.access_token, {
+                    navigateIfAuthRoute: true,
+                    trackRegistrationStates: registrationStateRef.current === 'EMAIL_VERIFICATION_REQUIRED',
+                    ...(restorePortal ? { portal: restorePortal } : {})
+                  });
+                } catch (err) {
+                  console.warn('[TaxGuard Auth] Failed to bridge Supabase auth event:', err);
+                } finally {
+                  authOperationInProgressRef.current = false;
+                  if (active) setIsInitialized(true);
+                }
+              }
+            } else if (event === 'SIGNED_OUT') {
+              clearStoredToken();
+              clearTaxpayerState();
+              LiveWorkflowAuthority.clear();
+              setCurrentUser(null);
+              setCurrentRoleState('guest');
+              setAuthLifecycleState('UNAUTHENTICATED');
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('taxguard_environment');
+              }
+            }
+          }).data
+        : null;
 
     return () => {
       active = false;

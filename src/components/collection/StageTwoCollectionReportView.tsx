@@ -27,6 +27,7 @@ import {
   StageTwoOrchestratorService,
   StageTwoCollectionSummaryReport
 } from '../../services/stageTwoOrchestratorService';
+import { BRAND_ASSETS } from '../../utils/assets';
 
 interface StageTwoCollectionReportViewProps {
   clientId: string;
@@ -47,22 +48,31 @@ export const StageTwoCollectionReportView: React.FC<StageTwoCollectionReportView
     <div className="space-y-6 text-[#F8FAFC]">
       {/* Header and Print action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-[#0D2745] border border-slate-700/60 rounded-xl shadow-md">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#D4A843]/20 text-[#D4A843] border border-[#D4A843]/40">
-              AUDIT RECORD &bull; STAGE 02
-            </span>
-            <span className="text-xs text-[#A9B7C8] font-mono">
-              Generated: {new Date(report.generatedAt).toLocaleString()}
-            </span>
+        <div className="flex items-start gap-3.5">
+          <img
+            src={BRAND_ASSETS.destriaEmblem}
+            alt="DESTRIA TAX SERVICES LLC Official Emblem"
+            width={44}
+            height={44}
+            className="w-11 h-11 aspect-square object-contain flex-shrink-0 mt-0.5"
+          />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#D4A843]/20 text-[#D4A843] border border-[#D4A843]/40">
+                DESTRIA TAX SERVICES LLC &bull; AUDIT RECORD &bull; STAGE 02
+              </span>
+              <span className="text-xs text-[#A9B7C8] font-mono">
+                Generated: {new Date(report.generatedAt).toLocaleString()}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-white mt-1 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[#D4A843]" />
+              <span>Accountant Stage 02 Collection Report</span>
+            </h2>
+            <p className="text-xs text-[#A9B7C8] mt-0.5">
+              Full compliance summary of client tax evidence intake, matching, and exit gate readiness.
+            </p>
           </div>
-          <h2 className="text-xl font-bold tracking-tight text-white mt-1 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#D4A843]" />
-            <span>Accountant Stage 02 Collection Report</span>
-          </h2>
-          <p className="text-xs text-[#A9B7C8] mt-0.5">
-            Full compliance summary of client tax evidence intake, matching, and exit gate readiness.
-          </p>
         </div>
 
         <button

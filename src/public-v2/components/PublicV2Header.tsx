@@ -69,8 +69,8 @@ export const PublicV2Header: React.FC<PublicV2HeaderProps> = ({
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-18">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between min-h-[68px] sm:min-h-[76px] lg:min-h-[82px] py-2 gap-3">
           {/* Brand Logo & Name */}
           <PublicV2Logo 
             size="md" 
@@ -78,7 +78,7 @@ export const PublicV2Header: React.FC<PublicV2HeaderProps> = ({
           />
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-5 text-xs font-medium" aria-label="Main Navigation">
+          <nav className="hidden xl:flex items-center space-x-3 2xl:space-x-5 text-xs font-medium" aria-label="Main Navigation">
             {navLinks.map((item) => {
               const isActive = activePath === item.path;
               return (
@@ -101,20 +101,20 @@ export const PublicV2Header: React.FC<PublicV2HeaderProps> = ({
           </nav>
 
           {/* CTA & Mobile Menu Toggle */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             <button
               onClick={onOpenConsultation}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-black text-white text-xs font-medium hover:bg-neutral-800 transition-colors cursor-pointer border border-black"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-black text-white text-xs font-medium hover:bg-neutral-800 transition-colors cursor-pointer border border-black whitespace-nowrap"
             >
               <span>Book Consultation</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <ArrowUpRight className="w-3.5 h-3.5 flex-shrink-0" />
             </button>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile/Compact Hamburger Button */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-black border border-neutral-300 hover:border-black focus:outline-none focus-visible:ring-1 focus-visible:ring-black"
+              className="xl:hidden min-w-[40px] min-h-[40px] flex items-center justify-center p-2 text-black border border-neutral-300 hover:border-black focus:outline-none focus-visible:ring-1 focus-visible:ring-black"
               aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
               aria-expanded={mobileMenuOpen}
             >
@@ -126,7 +126,7 @@ export const PublicV2Header: React.FC<PublicV2HeaderProps> = ({
 
       {/* Mobile Slide-down Navigation */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-[89px] bottom-0 bg-white z-50 border-t border-black overflow-y-auto p-6 flex flex-col justify-between">
+        <div className="xl:hidden fixed inset-x-0 top-[96px] bottom-0 bg-white z-50 border-t border-black overflow-y-auto p-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="border-b border-neutral-200 pb-3">
               <span className="text-[11px] font-mono text-neutral-500 uppercase tracking-widest">Navigation Menu</span>

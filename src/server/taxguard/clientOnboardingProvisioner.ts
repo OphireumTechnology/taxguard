@@ -228,7 +228,7 @@ export async function provisionOrResolveClientOnboarding(params: {
     if (!tenant) {
       tenant = {
         tenantId,
-        name: 'A/R Tax Services — TaxGuard Primary Tenant',
+        name: 'DESTRIA TAX SERVICES LLC — TaxGuard Primary Tenant',
         status: 'active',
         createdAt: now,
       };

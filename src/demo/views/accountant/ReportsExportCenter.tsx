@@ -30,7 +30,7 @@ export const ReportsExportCenter: React.FC<ReportsExportCenterProps> = ({ isDark
   const masterPackage = accountantCenterService.getMasterPackageComponents();
 
   const handleExport = (format: string) => {
-    const filename = `AR_TaxServices_${client.name.replace(/\s+/g, '_')}_TY${taxYear}_Package.${format.toLowerCase()}`;
+    const filename = `Destria_Tax_Services_${client.name.replace(/\s+/g, '_')}_TY${taxYear}_Package.${format.toLowerCase()}`;
     setDownloadNotice(`Generated ${format.toUpperCase()} archive: ${filename}`);
     setTimeout(() => setDownloadNotice(null), 4000);
   };

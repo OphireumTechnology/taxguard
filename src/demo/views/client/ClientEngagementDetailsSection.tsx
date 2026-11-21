@@ -20,10 +20,10 @@ export const ClientEngagementDetailsSection: React.FC = () => {
   const [downloadNotice, setDownloadNotice] = React.useState<string | null>(null);
 
   const handleDownloadAgreement = () => {
-    const content = `A/R TAX SERVICES, LLC — MASTER TAX ENGAGEMENT AGREEMENT
+    const content = `DESTRIA TAX SERVICES LLC — MASTER TAX ENGAGEMENT AGREEMENT
 Client: Desmond Hinds / Perotti Holdings & Advisory LLC
 Lead Practitioner: Desmond Hinds, CPA (PTIN: P01928472)
-Firm: DESTRIA TAX SERVICES LLC
+Firm: DESTRIA TAX SERVICES LLC (https://destriataxservices.com/)
 Date Executed: December 12, 2025
 Scope of Services: Preparation and electronic filing of Form 1040, Form 1120-S, multi-state withholding, and quarterly safe-harbor tax calculations.
 Standard of Practice: Treasury Department Circular No. 230 and AICPA Statements on Standards for Tax Services.
@@ -33,7 +33,7 @@ Status: EXECUTED & COUNTERSIGNED`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Signed_Engagement_Agreement_AR_Tax_Services_CY2025.txt`;
+    a.download = `Signed_Engagement_Agreement_Destria_Tax_Services_CY2025.txt`;
     a.click();
     setDownloadNotice('Signed Engagement Agreement downloaded successfully.');
     setTimeout(() => setDownloadNotice(null), 4000);

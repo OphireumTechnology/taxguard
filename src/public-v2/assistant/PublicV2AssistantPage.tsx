@@ -126,7 +126,7 @@ export const PublicV2AssistantPage: React.FC<PublicV2AssistantPageProps> = ({
           </style>
         </head>
         <body>
-          <h1>A/R Tax Services, LLC — Accounting Guidance Transcript</h1>
+          <h1>DESTRIA TAX SERVICES LLC — Accounting Guidance Transcript</h1>
           <div class="meta">
             <div>Tax Year Context: ${context.taxYear}</div>
             <div>Jurisdiction: ${context.jurisdiction}</div>

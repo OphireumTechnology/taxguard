@@ -1,10 +1,11 @@
 /**
- * A/R Tax Services, LLC - 15-Component Tax Document Preparation Package
+ * DESTRIA TAX SERVICES LLC - 15-Component Tax Document Preparation Package
  * Compliance with Section 28: Full 15 components, PDF preview, ZIP generation,
  * JSON manifest, CSV export, and mandatory disclaimer.
  */
 
 import React, { useState } from 'react';
+import { BRAND_ASSETS } from '../../../utils/assets';
 import {
   Archive,
   Download,
@@ -58,7 +59,7 @@ export const TaxPackageSection: React.FC<TaxPackageSectionProps> = ({ selectedYe
       packageId: `pkg-${selectedYear}-dh-001`,
       taxYear: selectedYear,
       taxpayer: 'Desmond Hinds',
-      firm: 'A/R Tax Services, LLC',
+      firm: 'DESTRIA TAX SERVICES LLC',
       generatedDate: new Date().toISOString(),
       disclaimer: 'DEMONSTRATION PACKAGE — NOT A FILED TAX RETURN — PROFESSIONAL REVIEW REQUIRED.',
       components: PACKAGE_COMPONENTS
@@ -212,7 +213,16 @@ export const TaxPackageSection: React.FC<TaxPackageSectionProps> = ({ selectedYe
 
               <div className="space-y-3 relative z-10">
                 <div className="flex items-center justify-between text-xs font-mono text-neutral-500 border-b border-neutral-300 pb-2">
-                  <span>A/R TAX SERVICES, LLC</span>
+                  <span className="inline-flex items-center gap-2 font-semibold text-[#061A2F]">
+                    <img
+                      src={BRAND_ASSETS.destriaEmblem}
+                      alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                      width={24}
+                      height={24}
+                      className="w-6 h-6 aspect-square object-contain"
+                    />
+                    <span>DESTRIA TAX SERVICES LLC</span>
+                  </span>
                   <span>TAX YEAR {selectedYear}</span>
                 </div>
 
@@ -221,7 +231,7 @@ export const TaxPackageSection: React.FC<TaxPackageSectionProps> = ({ selectedYe
                 </div>
 
                 <p className="text-xs text-neutral-600 leading-relaxed">
-                  Prepared for taxpayer <strong>Desmond Hinds</strong> by A/R Tax Services, LLC. Incorporates verified wage records, independent consulting income, pass-through distributions, and statutory safe-harbor withholding calculations.
+                  Prepared for taxpayer <strong>Desmond Hinds</strong> by DESTRIA TAX SERVICES LLC. Incorporates verified wage records, independent consulting income, pass-through distributions, and statutory safe-harbor withholding calculations.
                 </p>
 
                 <div className="p-3 bg-white border border-neutral-300 rounded text-xs space-y-1 font-mono text-neutral-700">
@@ -269,7 +279,16 @@ export const TaxPackageSection: React.FC<TaxPackageSectionProps> = ({ selectedYe
                   DEMO DRAFT SPECIMEN
                 </div>
                 <div className="border-b border-neutral-200 pb-3 mb-3 flex justify-between items-center text-neutral-900">
-                  <span className="font-bold">A/R TAX SERVICES, LLC • COMPLIANCE ARCHIVE</span>
+                  <span className="inline-flex items-center gap-2 font-bold">
+                    <img
+                      src={BRAND_ASSETS.destriaEmblem}
+                      alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                      width={24}
+                      height={24}
+                      className="w-6 h-6 aspect-square object-contain"
+                    />
+                    <span>DESTRIA TAX SERVICES LLC • COMPLIANCE ARCHIVE</span>
+                  </span>
                   <span className="text-[10px] text-neutral-500">FORM REV 2026</span>
                 </div>
                 <div className="space-y-2 text-neutral-700">

@@ -1,45 +1,68 @@
-export const BRAND_ASSETS = {
-  destriaLogo: '/branding/destria-logo-original.png',
-  destriaLogoHeader: '/branding/destria-logo-header.png',
-  destriaEmblem: '/branding/destria-emblem-icon.png',
-  destriaFavicon: '/branding/destria-favicon.png',
+export const BRAND_ASSET_VERSION = '20261121-emblem-v3';
+export const BRAND_WEBSITE_URL = 'https://destriataxservices.com/';
 
-  meticulousTaxPrepJpg: '/images/meticulous-tax-preparation.jpg',
-  meticulousTaxPrepWebp: '/images/meticulous-tax-preparation.webp',
-  corporateBusinessAdvisoryJpg: '/images/corporate-business-advisory.jpg',
-  corporateBusinessAdvisoryWebp: '/images/corporate-business-advisory.webp',
-  estateLegacyPlanningJpg: '/images/estate-legacy-planning.jpg',
-  estateLegacyPlanningWebp: '/images/estate-legacy-planning.webp',
-  taxCreditResearchJpg: '/images/tax-credit-research.jpg',
-  taxCreditResearchWebp: '/images/tax-credit-research.webp',
-  auditRepresentationJpg: '/images/audit-representation.jpg',
-  auditRepresentationWebp: '/images/audit-representation.webp',
-  taxStrategyWorkspaceJpg: '/images/tax-strategies/tax-strategy-workspace.jpg',
-  taxStrategyWorkspaceWebp: '/images/tax-strategies/tax-strategy-workspace.webp',
-  aboutTaxAdvisoryOfficeJpg: '/images/about/about-tax-advisory-office.jpg',
-  aboutTaxAdvisoryOfficeWebp: '/images/about/about-tax-advisory-office.webp',
-  aboutClientAdvisoryJpg: '/images/about/about-client-advisory.jpg',
-  aboutClientAdvisoryWebp: '/images/about/about-client-advisory.webp',
-  corporateTaxComplianceJpg: '/images/corporate-tax-compliance.jpg',
-  corporateTaxComplianceWebp: '/images/corporate-tax-compliance.webp',
-  columbiaSkylineJpg: '/images/hero-executive-advisory.jpg',
-  columbiaSkylineWebp: '/images/hero-executive-advisory.webp',
-  digitalDocumentReviewJpg: '/images/digital-document-review.jpg',
-  digitalDocumentReviewWebp: '/images/digital-document-review.webp',
-  taxConsultationJpg: '/images/tax-consultation-advisory.jpg',
-  taxConsultationWebp: '/images/tax-consultation-advisory.webp',
-  businessStrategyJpg: '/images/business-tax-strategy.jpg',
-  businessStrategyWebp: '/images/business-tax-strategy.webp',
-  payrollAdminJpg: '/images/payroll-administration.jpg',
-  payrollAdminWebp: '/images/payroll-administration.webp',
-  familyTaxPlanningJpg: '/images/family-tax-planning.jpg',
-  familyTaxPlanningWebp: '/images/family-tax-planning.webp',
-  taxAdvisoryPlanningJpg: '/images/tax-advisory-planning.jpg',
-  taxAdvisoryPlanningWebp: '/images/tax-advisory-planning.webp',
-  privateConsultationExpJpg: '/images/private-consultation-experience.jpg',
-  privateConsultationExpWebp: '/images/private-consultation-experience.webp',
-  bookkeepingReportingJpg: '/images/bookkeeping-financial-reporting.jpg',
-  bookkeepingReportingWebp: '/images/bookkeeping-financial-reporting.webp',
-  executiveConsultationSuiteJpg: '/images/executive-consultation-suite.jpg',
-  executiveConsultationSuiteWebp: '/images/executive-consultation-suite.webp',
+const getBaseUrl = (): string => {
+  const rawBase =
+    typeof import.meta !== 'undefined' &&
+    (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL
+      ? (import.meta as { env?: { BASE_URL?: string } }).env!.BASE_URL!
+      : '/';
+  return rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+};
+
+export const resolveAssetUrl = (assetPath: string, version?: string): string => {
+  const normalized = assetPath.replace(/^\/+/, '');
+  const resolved = `${getBaseUrl()}${normalized}`;
+  return version ? `${resolved}?v=${version}` : resolved;
+};
+
+const withBrandVersion = (assetPath: string) => resolveAssetUrl(assetPath, BRAND_ASSET_VERSION);
+
+export const BRAND_ASSETS = {
+  destriaLogo: withBrandVersion('branding/destria-logo-header.png'),
+  destriaLogoHero: withBrandVersion('branding/destria-logo-hero.png'),
+  destriaLogoOriginal: withBrandVersion('branding/destria-logo-original.png'),
+  destriaEmblem: withBrandVersion('branding/destria-emblem-icon.png'),
+  destriaFavicon: withBrandVersion('branding/destria-favicon.png'),
+  appleTouchIcon: withBrandVersion('apple-touch-icon.png'),
+
+  aboutClientAdvisoryJpg: resolveAssetUrl('images/about/about-client-advisory.jpg'),
+  aboutClientAdvisoryWebp: resolveAssetUrl('images/about/about-client-advisory.webp'),
+  aboutTaxAdvisoryOfficeJpg: resolveAssetUrl('images/about/about-tax-advisory-office.jpg'),
+  aboutTaxAdvisoryOfficeWebp: resolveAssetUrl('images/about/about-tax-advisory-office.webp'),
+
+  auditRepresentationJpg: resolveAssetUrl('images/audit-representation.jpg'),
+  auditRepresentationWebp: resolveAssetUrl('images/audit-representation.webp'),
+  bookkeepingReportingJpg: resolveAssetUrl('images/bookkeeping-financial-reporting.jpg'),
+  bookkeepingReportingWebp: resolveAssetUrl('images/bookkeeping-financial-reporting.webp'),
+  businessStrategyJpg: resolveAssetUrl('images/business-tax-strategy.jpg'),
+  businessStrategyWebp: resolveAssetUrl('images/business-tax-strategy.webp'),
+  columbiaSkylineJpg: resolveAssetUrl('images/hero-executive-advisory.jpg'),
+  columbiaSkylineWebp: resolveAssetUrl('images/hero-executive-advisory.webp'),
+  corporateBusinessAdvisoryJpg: resolveAssetUrl('images/corporate-business-advisory.jpg'),
+  corporateBusinessAdvisoryWebp: resolveAssetUrl('images/corporate-business-advisory.webp'),
+  corporateTaxComplianceJpg: resolveAssetUrl('images/corporate-tax-compliance.jpg'),
+  corporateTaxComplianceWebp: resolveAssetUrl('images/corporate-tax-compliance.webp'),
+  digitalDocumentReviewJpg: resolveAssetUrl('images/digital-document-review.jpg'),
+  digitalDocumentReviewWebp: resolveAssetUrl('images/digital-document-review.webp'),
+  estateLegacyPlanningJpg: resolveAssetUrl('images/estate-legacy-planning.jpg'),
+  estateLegacyPlanningWebp: resolveAssetUrl('images/estate-legacy-planning.webp'),
+  executiveConsultationSuiteJpg: resolveAssetUrl('images/executive-consultation-suite.jpg'),
+  executiveConsultationSuiteWebp: resolveAssetUrl('images/executive-consultation-suite.webp'),
+  familyTaxPlanningJpg: resolveAssetUrl('images/family-tax-planning.jpg'),
+  familyTaxPlanningWebp: resolveAssetUrl('images/family-tax-planning.webp'),
+  meticulousTaxPrepJpg: resolveAssetUrl('images/meticulous-tax-preparation.jpg'),
+  meticulousTaxPrepWebp: resolveAssetUrl('images/meticulous-tax-preparation.webp'),
+  payrollAdminJpg: resolveAssetUrl('images/payroll-administration.jpg'),
+  payrollAdminWebp: resolveAssetUrl('images/payroll-administration.webp'),
+  privateConsultationExpJpg: resolveAssetUrl('images/private-consultation-experience.jpg'),
+  privateConsultationExpWebp: resolveAssetUrl('images/private-consultation-experience.webp'),
+  taxAdvisoryPlanningJpg: resolveAssetUrl('images/tax-advisory-planning.jpg'),
+  taxAdvisoryPlanningWebp: resolveAssetUrl('images/tax-advisory-planning.webp'),
+  taxConsultationJpg: resolveAssetUrl('images/tax-consultation-advisory.jpg'),
+  taxConsultationWebp: resolveAssetUrl('images/tax-consultation-advisory.webp'),
+  taxCreditResearchJpg: resolveAssetUrl('images/tax-credit-research.jpg'),
+  taxCreditResearchWebp: resolveAssetUrl('images/tax-credit-research.webp'),
+  taxStrategyWorkspaceJpg: resolveAssetUrl('images/tax-strategies/tax-strategy-workspace.jpg'),
+  taxStrategyWorkspaceWebp: resolveAssetUrl('images/tax-strategies/tax-strategy-workspace.webp'),
 } as const;

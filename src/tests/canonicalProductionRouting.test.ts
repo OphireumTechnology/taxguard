@@ -366,17 +366,25 @@ describe('Canonical Production URL Routing & Working Staff Portal Suite', () => 
     });
 
     it('Navbar desktop utility actions renders both Client Portal and Staff Portal buttons', () => {
-      expect(navbarSource).toContain('Client </span>Portal');
-      expect(navbarSource).toContain('Staff </span>Portal');
-      expect(navbarSource).toContain('Book Consultation');
+      // Branding v3 navbar (75775a1): the desktop block labels the client button through getPortalButtonLabel(),
+      // which answers 'Client Portal' for visitors.
+      const desktop = navbarSource.slice(navbarSource.indexOf('DESKTOP UTILITY ACTIONS'), navbarSource.indexOf('RESPONSIVE COMPACT'));
+      expect(desktop).toContain('aria-label="Client Portal"');
+      expect(desktop).toContain('<span>{getPortalButtonLabel()}</span>');
+      expect(navbarSource).toContain("return 'Client Portal';");
+      expect(desktop).toContain('aria-label="Staff Portal"');
+      expect(desktop).toContain('<span>Staff Portal</span>');
+      expect(desktop).toContain('Book Consultation');
     });
   });
 
   // 18. mobile navigation
   describe('18. Mobile Navigation Audit', () => {
     it('Navbar tablet/mobile quick actions renders clickable portal action', () => {
-      expect(navbarSource).toContain('TABLET / MOBILE QUICK ACTIONS');
-      expect(navbarSource).toContain('aria-label="Client Portal"');
+      const compact = navbarSource.slice(navbarSource.indexOf('RESPONSIVE COMPACT / TABLET / MOBILE ACTIONS'));
+      expect(compact.length).toBeGreaterThan(0);
+      expect(compact).toContain('aria-label="Client Portal"');
+      expect(compact).toContain('aria-label="Open Navigation Menu"');
     });
 
     it('Navbar mobile slide-down drawer includes both Client Portal and Staff Portal actions with >=44px touch target', () => {

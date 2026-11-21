@@ -4,6 +4,7 @@
 }
 .tg-shell-header { display: flex; align-items: center; gap: 16px; padding: 10px 18px; min-height: 76px; background: linear-gradient(110deg,#020f20,#08243f); border-bottom: 1px solid #245477; position: sticky; top: 0; z-index: 40; }
 .tg-shell-brand { display:flex; align-items:center; gap:10px; flex-shrink:0; color:var(--dashboard-gold); }
+.tg-shell-brand-emblem { width:48px; height:48px; min-width:48px; min-height:48px; aspect-ratio:1/1; object-fit:contain; flex-shrink:0; display:block; filter:none; box-shadow:none; }
 .tg-shell-brand strong { color:white; font-family:Georgia,serif; font-size:23px; letter-spacing:1px; }
 .tg-shell-brand strong span { color:var(--dashboard-gold); }
 .tg-shell-brand small { display:block; color:#d8e4ef; font-size:9px; letter-spacing:2px; }
@@ -46,7 +47,7 @@
 .tg-access-message { padding:24px; background:#06182b; color:white; }
 .tg-workspace-panel { background:var(--dashboard-surface); color:var(--dashboard-text); border:1px solid var(--dashboard-border); border-radius:var(--dashboard-radius); padding:16px; }
 @media(max-width:1100px) { .tg-shell-heading,.tg-profile-name { display:none; } }
-@media(max-width:767px) { .tg-shell-header { padding:8px; gap:8px; min-height:64px; flex-wrap:wrap; } .tg-mobile-menu { display:inline-flex; } .tg-shell-navigation { display:none; } .tg-shell-brand strong { font-size:17px; } .tg-shell-brand small { font-size:8px; } .tg-shell-brand > svg { width:26px; } .tg-shell-tools { margin-left:auto; gap:0; } .tg-shell-search { order:3; width:100%; margin:0; } .tg-shell-body { min-height:calc(100dvh - 112px); } }
+@media(max-width:767px) { .tg-shell-header { padding:8px; gap:8px; min-height:64px; flex-wrap:wrap; } .tg-mobile-menu { display:inline-flex; } .tg-shell-navigation { display:none; } .tg-shell-brand strong { font-size:17px; } .tg-shell-brand small { font-size:8px; } .tg-shell-brand > svg, .tg-shell-brand-emblem { width:44px; height:44px; min-width:44px; min-height:44px; } .tg-shell-tools { margin-left:auto; gap:0; } .tg-shell-search { order:3; width:100%; margin:0; } .tg-shell-body { min-height:calc(100dvh - 112px); } }
 @media(prefers-reduced-motion:reduce) { .tg-dashboard-shell *, .tg-dashboard-shell *::before, .tg-dashboard-shell *::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
 /* Phase 12B: wide data tables scroll inside their panel on narrow screens instead of widening the page. */
-@media(max-width:767px) { .tg-dashboard-shell table:not(.tg-keep-table) { display:block; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; } .tg-dashboard-shell :is(img,video,iframe) { max-width:100%; height:auto; } }
+@media(max-width:767px) { .tg-dashboard-shell table:not(.tg-keep-table) { display:block; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; } .tg-dashboard-shell :is(img:not(.tg-shell-brand-emblem):not(.destria-brand-emblem),video,iframe) { max-width:100%; height:auto; } }

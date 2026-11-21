@@ -3,6 +3,7 @@ import { HelpCircle, LogOut, Menu, Search, ShieldCheck, User, X } from 'lucide-r
 import { useApp } from '../../context/AppContext';
 import { NotificationBell } from '../common/NotificationBell';
 import { DASHBOARD_THEME } from '../../theme/tokens';
+import { BRAND_ASSETS } from '../../utils/assets';
 import { canRenderDashboardShell, DASHBOARD_EXPERIENCES, DashboardWorkspace } from './dashboardAccess';
 import { useDashboardInspection } from './dashboardInspection';
 import './dashboardShell.css';
@@ -106,7 +107,16 @@ function DashboardShellSession({
       <a inert={isMobileOpen} className="tg-skip-link" href={`#${contentId}`}>Skip to workspace</a>
       <header inert={isMobileOpen} className="tg-shell-header">
         <button ref={menuRef} className="tg-shell-icon tg-mobile-menu" aria-label="Open navigation" aria-expanded={isMobileOpen} aria-controls={drawerId} onClick={() => setMobileOpen(true)}><Menu size={20} /></button>
-        <div className="tg-shell-brand"><ShieldCheck size={34} aria-hidden="true" /><div><strong>TAXGUARD <span>AI</span></strong><small>DESTRIA TAX SERVICES LLC</small></div></div>
+        <div className="tg-shell-brand">
+          <img
+            src={BRAND_ASSETS.destriaLogo}
+            alt="DESTRIA TAX SERVICES LLC Official Emblem"
+            width={48}
+            height={48}
+            className="tg-shell-brand-emblem destria-brand-emblem"
+          />
+          <div><strong>TAXGUARD <span>AI</span></strong><small>DESTRIA TAX SERVICES LLC</small></div>
+        </div>
         <div className="tg-shell-heading"><span>{title}</span><small>{DASHBOARD_EXPERIENCES[workspace]}</small></div>
         <button className="tg-shell-search" onClick={openSearch} aria-label={onSearch ? 'Search documents, messages, tax years' : 'Search authorized workspace navigation'}><Search size={16} /><span>{onSearch ? 'Search documents, messages, tax years...' : 'Search workspace navigation...'}</span></button>
         <div className="tg-shell-tools">{headerTools}

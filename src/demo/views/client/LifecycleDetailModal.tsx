@@ -60,7 +60,7 @@ export const LifecycleDetailModal: React.FC<LifecycleDetailModalProps> = ({
         <div className="p-4 sm:p-5 border-b border-[#D8DCE2] bg-[#061A2F] text-white flex items-center justify-between">
           <div>
             <div className="text-[10px] font-mono text-[#D7AC4A] uppercase tracking-wider font-bold">
-              A/R Tax Services, LLC • Operational Architecture
+              DESTRIA TAX SERVICES LLC • Operational Architecture
             </div>
             <h2 id="lifecycle-modal-title" className="text-base sm:text-lg font-bold">
               18-Stage Authoritative Tax Operating Lifecycle
