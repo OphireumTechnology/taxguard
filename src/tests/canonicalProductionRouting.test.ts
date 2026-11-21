@@ -366,17 +366,35 @@ describe('Canonical Production URL Routing & Working Staff Portal Suite', () => 
     });
 
     it('Navbar desktop utility actions renders both Client Portal and Staff Portal buttons', () => {
-      expect(navbarSource).toContain('Client </span>Portal');
-      expect(navbarSource).toContain('Staff </span>Portal');
-      expect(navbarSource).toContain('Book Consultation');
+      const desktop = navbarSource.slice(
+        navbarSource.indexOf('className="hidden xl:flex items-center gap-2'),
+        navbarSource.indexOf('className="flex xl:hidden items-center'),
+      );
+      const clientLink = desktop.match(/<a\s+href="\/portal"[\s\S]*?<\/a>/)?.[0] ?? '';
+      const staffLink = desktop.match(/<a\s+href="\/staff"[\s\S]*?<\/a>/)?.[0] ?? '';
+      expect(clientLink).toContain('handlePortalAction()');
+      expect(clientLink).toContain('aria-label="Client Portal"');
+      expect(clientLink).toContain('{getPortalButtonLabel()}');
+      expect(staffLink).toContain('handleStaffAction()');
+      expect(staffLink).toContain('aria-label="Staff Portal"');
+      expect(staffLink).toContain('<span>Staff Portal</span>');
+      expect(desktop).toContain("handleNavClick('book_consultation')");
+      expect(desktop).toContain('aria-label="Book a Consultation"');
     });
   });
 
   // 18. mobile navigation
   describe('18. Mobile Navigation Audit', () => {
     it('Navbar tablet/mobile quick actions renders clickable portal action', () => {
-      expect(navbarSource).toContain('TABLET / MOBILE QUICK ACTIONS');
-      expect(navbarSource).toContain('aria-label="Client Portal"');
+      const compact = navbarSource.slice(
+        navbarSource.indexOf('className="flex xl:hidden items-center'),
+        navbarSource.indexOf('{mobileMenuOpen && ('),
+      );
+      const clientLink = compact.match(/<a\s+href="\/portal"[\s\S]*?<\/a>/)?.[0] ?? '';
+      expect(clientLink).toContain('handlePortalAction()');
+      expect(clientLink).toContain('aria-label="Client Portal"');
+      expect(compact).toContain('onClick={() => setMobileMenuOpen(true)}');
+      expect(compact).toContain('aria-label="Open Navigation Menu"');
     });
 
     it('Navbar mobile slide-down drawer includes both Client Portal and Staff Portal actions with >=44px touch target', () => {
