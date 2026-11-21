@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Synthetic Demonstration Mock Data Layer
+ * DESTRIA TAX SERVICES, LLC - Synthetic Demonstration Mock Data Layer
  * Strict synthetic data with masked identifiers and realistic accounting lifecycles.
  */
 

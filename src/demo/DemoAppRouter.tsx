@@ -1,5 +1,5 @@
 ﻿/**
- * DESTRIA TAX SERVICES LLC - Unified Master Demonstration Router
+ * DESTRIA TAX SERVICES, LLC - Unified Master Demonstration Router
  * Intercepts protected role dashboard and login routes.
  * Enforces strict authentication tokens, isolation, and role boundaries.
  */

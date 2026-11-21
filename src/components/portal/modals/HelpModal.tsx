@@ -11,6 +11,7 @@ import {
   ExternalLink 
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../../config/companyBranding';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -77,13 +78,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({
           </a>
 
           <a
-            href="mailto:dhinds@destriatax.com"
+            href={COMPANY_MAILTO_HREF}
             className="p-3.5 rounded-xl bg-[#06172C] border border-[#183458] hover:border-[#C6A15B]/50 transition-colors group block"
           >
             <div className="flex items-center gap-2.5 mb-1 text-[#C6A15B]">
               <Mail className="w-4 h-4" />
               <span className="text-xs font-bold text-white group-hover:text-[#C6A15B] transition-colors">
-                dhinds@destriatax.com
+                {COMPANY_BRANDING.email}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">

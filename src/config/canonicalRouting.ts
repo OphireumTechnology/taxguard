@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Canonical Production URL Routing Authority
+ * DESTRIA TAX SERVICES, LLC - Canonical Production URL Routing Authority
  * 
  * Enforces clean pathname-based production routing:
  * - /portal (Client Portal canonical entry)

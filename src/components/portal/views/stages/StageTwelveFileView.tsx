@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC — Stage 12: File Workspace
+ * DESTRIA TAX SERVICES, LLC — Stage 12: File Workspace
  * Electronic Filing Orchestration & Gateway Transmission Boundary.
  * Strictly adheres to Phase 14:
  * Internal states: READY_FOR_FILING, PROVIDER_BLOCKED, SUBMITTED, ACKNOWLEDGED, ACCEPTED, REJECTED.

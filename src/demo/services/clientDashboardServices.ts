@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Client Dashboard Demo Services
+ * DESTRIA TAX SERVICES, LLC - Client Dashboard Demo Services
  * Implements the concrete service classes and exports type definitions
  * for the 8 modular Client Portal sections.
  */
@@ -818,7 +818,7 @@ export class DemoReturnReviewService implements IReturnReviewService {
     taxYear: 2025,
     version: '1.2 (Technical Review Certified)',
     status: 'Ready for Signature',
-    preparer: 'David Vance, EA (DESTRIA TAX SERVICES LLC)',
+    preparer: 'David Vance, EA (DESTRIA TAX SERVICES, LLC)',
     certifiedBy: 'Elena Rostova, CPA (License #SC-28419)',
     grossReceipts: 742500,
     totalDeductions: 382450,

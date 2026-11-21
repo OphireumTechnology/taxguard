@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Central Service Interfaces
+ * DESTRIA TAX SERVICES, LLC - Central Service Interfaces
  * Prompt Section 14: Shared Mock Service Architecture
  * Designed for future real integration replacement.
  */

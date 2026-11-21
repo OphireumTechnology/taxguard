@@ -20,7 +20,7 @@ function parseHostname(originOrHost: string): string {
 }
 function isStaticHost(hostOrUrl: string): boolean {
   const host = parseHostname(hostOrUrl);
-  return ['artaxserv.com', 'www.artaxserv.com', 'github.io'].includes(host) || host.endsWith('.github.io');
+  return ['destriataxservices.com', 'www.destriataxservices.com', 'artaxserv.com', 'www.artaxserv.com', 'github.io'].includes(host) || host.endsWith('.github.io');
 }
 export function apiEndpoint(path: string): string {
   if (!path.startsWith('/api/')) throw new Error('Invalid API path.');

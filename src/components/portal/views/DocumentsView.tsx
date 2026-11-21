@@ -49,12 +49,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch {
       const blob = new Blob([
-        `DESTRIA TAX SERVICES LLC - SECURE CLIENT ARCHIVE\n` +
+        `DESTRIA TAX SERVICES, LLC - SECURE CLIENT ARCHIVE\n` +
         `Document: ${docItem.fileName}\n` +
         `Category: ${(docItem.category || 'TAX_DOCUMENT').toUpperCase()}\n` +
         `Encrypted Vault Verified: AES-256\n` +
         `Timestamp: ${new Date().toISOString()}\n` +
-        `Firm: DESTRIA TAX SERVICES LLC (Columbia, SC) | https://destriataxservices.com/`
+        `Firm: DESTRIA TAX SERVICES, LLC (Columbia, SC) | https://destriataxservices.com/`
       ], { type: 'text/plain' });
       const u = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -341,7 +341,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             <div className="p-4 rounded-xl bg-[#06172C] border border-[#183458] text-xs space-y-2">
               <div><strong>Category:</strong> {(previewDoc.category || 'TAX_DOCUMENT').toUpperCase()}</div>
               <div><strong>Tax Year:</strong> {previewDoc.taxYear || 2025}</div>
-              <div><strong>Encrypted Storage Path:</strong> <span className="font-mono text-slate-400">gs://ar-tax-vault/client_encrypted</span></div>
+              <div><strong>Encrypted Storage Path:</strong> <span className="font-mono text-slate-400">gs://destria-tax-vault/client_encrypted</span></div>
               <div className="text-emerald-400 flex items-center gap-1 pt-1">
                 <Lock className="w-3 h-3" />
                 <span>AES-256 Server-Side Encryption Verified</span>

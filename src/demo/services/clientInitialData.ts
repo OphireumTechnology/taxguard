@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Initial Seed Data for Client Dashboard
+ * DESTRIA TAX SERVICES, LLC - Initial Seed Data for Client Dashboard
  * Provides realistic demonstration data for all 8 client sections.
  */
 
@@ -100,19 +100,19 @@ export const INITIAL_CLIENT_EXPENSES: ClientExpenseRecord[] = [
     clientId: 'cli_perotti',
     taxYear: 2025,
     date: '2025-06-20',
-    vendor: 'DESTRIA TAX SERVICES LLC',
+    vendor: 'Destria Tax Services, LLC',
     amount: 4500.00,
     entity: 'Perotti Capital Holdings LLC',
     businessPurpose: 'Entity Tax Preparation & Regulatory Compliance',
     category: 'Legal and professional',
     paymentMethod: 'ACH / Bank',
-    receiptFileName: 'artax_invoice_inv_2025_0892_receipt.pdf',
+    receiptFileName: 'destria_invoice_inv_2025_0892_receipt.pdf',
     status: 'Reviewed',
     aiRecommendation: {
       proposedCategory: 'Legal and professional',
       confidence: 0.98,
       explanation: 'IRC Section 162 ordinary and necessary professional advisory fee.',
-      supportingDoc: 'artax_statement_2025.pdf',
+      supportingDoc: 'destria_statement_2025.pdf',
       accepted: true
     }
   },

@@ -30,7 +30,7 @@ app.use((req, res, next) => {
 
 // Health checks
 app.get('/health', (_req, res) => res.json({ status: 'healthy', uptime: process.uptime() }));
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'DESTRIA TAX SERVICES LLC' }));
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'Destria Tax Services, LLC' }));
 
 // Tax Forms Catalog
 app.get('/api/tax-forms', (_req, res) => {
@@ -89,7 +89,7 @@ app.get('/api/client-portal/overview', (_req, res) => {
 
 // Catch-all API fallback for unimplemented endpoints to prevent crash
 app.all('/api/*', (req, res) => {
-  res.json({ success: true, path: req.path, message: 'DESTRIA TAX SERVICES LLC API Operational' });
+  res.json({ success: true, path: req.path, message: 'Destria Tax Services, LLC API Operational' });
 });
 
 // Serve Public Static Assets
@@ -123,7 +123,7 @@ async function startServer() {
   }
 
   const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[DESTRIA TAX SERVICES LLC] Dev server initialized on http://0.0.0.0:${PORT}`);
+    console.log(`[Destria Tax Services, LLC] Dev server initialized on http://0.0.0.0:${PORT}`);
   });
 
   const shutdown = (signal: string) => {

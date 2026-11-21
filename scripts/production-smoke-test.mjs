@@ -42,7 +42,7 @@ async function main() {
       const res = await fetch(`${targetBaseUrl}/`);
       if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to reach public entry`);
       const text = await res.text();
-      if (!text.includes('html') && !text.includes('root') && !text.includes('A/R Tax Services')) {
+      if (!text.includes('html') && !text.includes('root') && !text.includes('Destria Tax Services, LLC')) {
         throw new Error('Unexpected response body for web entry');
       }
       return `HTTP ${res.status} (Payload verified)`;
@@ -59,7 +59,7 @@ async function main() {
       if (data.status !== 'healthy' && data.status !== 'available') {
         throw new Error(`Unexpected health status: ${data.status}`);
       }
-      return `Status: ${data.status}, Server: ${data.firm || 'A/R Tax Services'}`;
+      return `Status: ${data.status}, Server: ${data.firm || 'Destria Tax Services, LLC'}`;
     })
   ) passed++;
 

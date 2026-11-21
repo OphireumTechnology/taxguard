@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Check, ArrowRight } from 'lucide-react';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 
 interface PublicV2ContactPageProps {
   onNavigate: (path: string) => void;
@@ -28,7 +29,7 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.consent) return;
-    const code = `AR-DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
+    const code = `DTS-DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
     setConfirmationCode(code);
     setSubmitted(true);
   };
@@ -41,7 +42,7 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
           Direct Inquiries & Practice Communication
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-black">
-          Contact DESTRIA TAX SERVICES LLC
+          Contact {COMPANY_BRANDING.displayName}
         </h1>
         <p className="text-base sm:text-lg text-neutral-700 max-w-3xl leading-relaxed">
           Reach our team for tax preparation scheduling, bookkeeping engagements, notice review, or corporate advisory.
@@ -60,7 +61,7 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-black flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-black block text-sm">DESTRIA TAX SERVICES LLC</strong>
+                  <strong className="text-black block text-sm">{COMPANY_BRANDING.displayName}</strong>
                   <span>2603 Camino Ramon, Suite 200</span><br />
                   <span>San Ramon, CA 94583</span>
                 </div>
@@ -80,8 +81,8 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
                 <Mail className="w-4 h-4 text-black flex-shrink-0" />
                 <div>
                   <span className="text-neutral-500 block text-[10px] uppercase font-mono">Official Email:</span>
-                  <a href="mailto:contact@artaxserv.com" className="text-black font-semibold hover:underline">
-                    contact@artaxserv.com
+                  <a href={COMPANY_MAILTO_HREF} className="text-black font-semibold hover:underline">
+                    {COMPANY_BRANDING.email}
                   </a>
                 </div>
               </div>

@@ -70,7 +70,7 @@ export const PublicV2ConsultationModal: React.FC<PublicV2ConsultationModalProps>
               Request a Consultation
             </h2>
             <p className="text-xs text-neutral-600 font-mono mt-0.5">
-              DESTRIA TAX SERVICES LLC · Demonstration Scheduling
+              DESTRIA TAX SERVICES, LLC · Demonstration Scheduling
             </p>
           </div>
           <button

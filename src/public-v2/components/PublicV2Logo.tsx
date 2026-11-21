@@ -1,4 +1,5 @@
 import React from 'react';
+import { COMPANY_BRANDING } from '../../config/companyBranding';
 import { BRAND_ASSETS } from '../../utils/assets';
 
 interface PublicV2LogoProps {
@@ -39,11 +40,11 @@ export const PublicV2Logo: React.FC<PublicV2LogoProps> = ({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
-      aria-label="DESTRIA TAX SERVICES LLC Home"
+      aria-label={`${COMPANY_BRANDING.displayName} Home`}
     >
       <img
         src={dimensions.src}
-        alt="DESTRIA TAX SERVICES LLC Official Emblem"
+        alt={`${COMPANY_BRANDING.displayName} Official Emblem`}
         width={dimensions.px}
         height={dimensions.px}
         loading="eager"
@@ -57,7 +58,7 @@ export const PublicV2Logo: React.FC<PublicV2LogoProps> = ({
             DESTRIA
           </span>
           <span className={`tracking-widest uppercase font-sans mt-0.5 whitespace-nowrap ${secondaryTextClass} ${dimensions.sub} font-semibold`}>
-            Tax Services LLC
+            Tax Services, LLC
           </span>
         </div>
       )}

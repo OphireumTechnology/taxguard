@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Personalized Documents Engine Modals
+ * Destria Tax Services, LLC - Personalized Documents Engine Modals
  * Supports:
  * - Smart Upload & Document Scanner simulation with AI confidence scoring
  * - OCR Data Inspector with sensitive data masking and field-level audit trail

@@ -1,5 +1,5 @@
 /**
- * A/R TAX SERVICES, LLC - Live Availability & Consultation Scheduling Engine
+ * DESTRIA TAX SERVICES, LLC - Live Availability & Consultation Scheduling Engine
  * Production-ready component covering:
  * - Real-time availability calculation with buffer & holiday awareness
  * - 10-minute atomic concurrency slot holding
@@ -1083,7 +1083,7 @@ export const LiveCalendarModule: React.FC<LiveCalendarModuleProps> = ({ embedded
 
               <div className="text-xs text-[#A9B7C8] space-y-1">
                 <div>• Automatic busy block masking as &ldquo;Unavailable&rdquo;</div>
-                <div>• Neutral appointment creation (&ldquo;DESTRIA TAX SERVICES LLC Appointment&rdquo;)</div>
+                <div>• Neutral appointment creation (&ldquo;DESTRIA TAX SERVICES, LLC Appointment&rdquo;)</div>
                 <div>• Automatic Google Meet link synthesis</div>
               </div>
 

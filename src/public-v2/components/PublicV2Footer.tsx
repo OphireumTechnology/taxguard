@@ -1,4 +1,5 @@
 import React from 'react';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { PublicV2Logo } from './PublicV2Logo';
 import { Mail, Phone, MapPin, ArrowUpRight } from 'lucide-react';
 
@@ -153,8 +154,8 @@ export const PublicV2Footer: React.FC<PublicV2FooterProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-black flex-shrink-0" />
-                <a href="mailto:contact@artaxserv.com" className="hover:underline text-black">
-                  contact@artaxserv.com
+                <a href={COMPANY_MAILTO_HREF} className="hover:underline text-black">
+                  {COMPANY_BRANDING.email}
                 </a>
               </div>
             </div>
@@ -170,10 +171,10 @@ export const PublicV2Footer: React.FC<PublicV2FooterProps> = ({
         {/* Bottom Disclaimers */}
         <div className="mt-12 pt-6 border-t border-neutral-300 space-y-3 text-[11px] text-neutral-600 leading-relaxed">
           <p>
-            <strong>Professional Practice Notice:</strong> DESTRIA TAX SERVICES LLC provides professional accounting, tax preparation, bookkeeping, and business consulting services. This website and its interactive demonstration components (including the DESTRIA Accounting Guidance Assistant and sample portal environments) are presented for educational and demonstration purposes. Information provided on this site does not constitute formal tax, legal, or investment advice and does not establish a confidential CPA-client or accountant-client relationship until an engagement letter is countersigned.
+            <strong>Professional Practice Notice:</strong> {COMPANY_BRANDING.legalName} provides professional accounting, tax preparation, bookkeeping, and business consulting services. This website and its interactive demonstration components (including the {COMPANY_BRANDING.shortName} Accounting Guidance Assistant and sample portal environments) are presented for educational and demonstration purposes. Information provided on this site does not constitute formal tax, legal, or investment advice and does not establish a confidential CPA-client or accountant-client relationship until an engagement letter is countersigned.
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-neutral-500 font-mono text-[10px] pt-2">
-            <span>© {new Date().getFullYear()} DESTRIA TAX SERVICES LLC. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} {COMPANY_BRANDING.legalName}. All rights reserved.</span>
             <span>Monochrome Public Page 2 Edition</span>
           </div>
         </div>

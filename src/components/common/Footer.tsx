@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp, PageRoute } from '../../context/AppContext';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { BrandLogo } from './BrandLogo';
 import { 
   Phone, 
@@ -47,8 +48,8 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-[#C99A35] flex-shrink-0" />
-                <a href="mailto:contact@destriatax.com" className="hover:text-[#E5B552] transition-colors">
-                  contact@destriatax.com
+                <a href={COMPANY_MAILTO_HREF} className="hover:text-[#E5B552] transition-colors">
+                  {COMPANY_BRANDING.email}
                 </a>
               </div>
             </div>
@@ -110,8 +111,8 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li>
-                <button onClick={() => handleNav('about')} className="hover:text-white transition-colors">
-                  About DESTRIA TAX SERVICES LLC
+                <button onClick={() => handleNav('about')} className="hover:text-white transition-colors text-left">
+                  About {COMPANY_BRANDING.displayName}
                 </button>
               </li>
               <li>
@@ -220,7 +221,7 @@ export const Footer: React.FC = () => {
         {/* Professional Disclaimers & Statutory Regulatory Architecture */}
         <div className="py-6 text-xs text-slate-300 leading-relaxed border-b border-[#1A365D] space-y-2.5">
           <p>
-            <strong className="text-[#E8C66A]">IRS Non-Affiliation:</strong> DESTRIA TAX SERVICES LLC is not affiliated with, endorsed by, or sponsored by the Internal Revenue Service.
+            <strong className="text-[#E8C66A]">IRS Non-Affiliation:</strong> {COMPANY_BRANDING.legalName} is not affiliated with, endorsed by, or sponsored by the Internal Revenue Service.
           </p>
           <p>
             <strong className="text-[#E8C66A]">Professional Credentials:</strong> Tax preparation and advisory services are provided by authorized professionals holding active IRS Preparer Tax Identification Numbers (PTIN). Formal CPA attestations and representation services are coordinated in strict compliance with Circular 230 and applicable state board standards.
@@ -229,7 +230,7 @@ export const Footer: React.FC = () => {
             <strong className="text-[#E8C66A]">No Guarantee:</strong> Tax outcomes depend on individual taxpayer facts, applicable law, substantiating documentation, and governmental interpretation. No particular tax result, refund, savings amount, audit outcome, or governmental determination is guaranteed.
           </p>
           <p>
-            <strong className="text-[#E8C66A]">Financial Privacy (GLBA Notice):</strong> DESTRIA TAX SERVICES LLC protects nonpublic personal financial information in accordance with the Gramm-Leach-Bliley Act (GLBA) and Internal Revenue Code Section 7216. Review our{' '}
+            <strong className="text-[#E8C66A]">Financial Privacy (GLBA Notice):</strong> {COMPANY_BRANDING.legalName} protects nonpublic personal financial information in accordance with the Gramm-Leach-Bliley Act (GLBA) and Internal Revenue Code Section 7216. Review our{' '}
             <button onClick={() => handleNav('privacy')} className="text-[#E8C66A] underline hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]">
               Privacy Policy
             </button>{' '}
@@ -246,7 +247,7 @@ export const Footer: React.FC = () => {
         {/* Bottom copyright & attribution */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div>
-            © {new Date().getFullYear()} DESTRIA TAX SERVICES LLC. All rights reserved.
+            © {new Date().getFullYear()} {COMPANY_BRANDING.legalName}. All rights reserved.
           </div>
           <div className="flex items-center gap-3 text-slate-400">
             <button onClick={() => handleNav('privacy')} className="hover:text-[#E8C66A] transition-colors focus:outline-none focus-visible:underline">Privacy Policy</button>

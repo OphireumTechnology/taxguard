@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Client Dashboard Adapters
+ * DESTRIA TAX SERVICES, LLC - Client Dashboard Adapters
  * Provides Demo and Production adapter implementations for all 8 client sections.
  * Guarantees zero external network or banking calls in demo mode.
  */

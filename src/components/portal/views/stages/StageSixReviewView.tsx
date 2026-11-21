@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC — Stage 06: Review Workspace
+ * DESTRIA TAX SERVICES, LLC — Stage 06: Review Workspace
  * Quality control checkpoint with Maker-Checker governance prior to return finalization.
  * Enforces preparer / reviewer segregation (preparer cannot approve their own work).
  */

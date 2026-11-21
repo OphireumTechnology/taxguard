@@ -69,24 +69,44 @@ if (fs.existsSync(icoPath)) {
   );
 }
 
-// 3. Verify centralized asset version and index.html cache invalidation
+// 3. Verify centralized branding config, asset version, and index.html cache invalidation
+const companyBrandingTs = fs.readFileSync(path.join(root, 'src/config/companyBranding.ts'), 'utf8');
+assertCheck(companyBrandingTs.includes("legalName: 'Destria Tax Services, LLC'"), 'COMPANY_BRANDING.legalName is Destria Tax Services, LLC');
+assertCheck(companyBrandingTs.includes("uppercaseName: 'DESTRIA TAX SERVICES, LLC'"), 'COMPANY_BRANDING.uppercaseName is DESTRIA TAX SERVICES, LLC');
+assertCheck(companyBrandingTs.includes("website: 'https://destriataxservices.com'"), 'COMPANY_BRANDING.website is https://destriataxservices.com');
+assertCheck(companyBrandingTs.includes("email: 'info@destriataxservices.com'"), 'COMPANY_BRANDING.email is info@destriataxservices.com');
+assertCheck(companyBrandingTs.includes("tagline: 'Preserving Wealth. Building Legacies.'"), 'COMPANY_BRANDING.tagline is canonical');
+
 const assetsTs = fs.readFileSync(path.join(root, 'src/utils/assets.ts'), 'utf8');
 const versionMatch = assetsTs.match(/BRAND_ASSET_VERSION\s*=\s*['"]([^'"]+)['"]/);
 assertCheck(Boolean(versionMatch), 'BRAND_ASSET_VERSION is defined in src/utils/assets.ts', versionMatch?.[1] || '');
 const version = versionMatch?.[1] || '';
 
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+assertCheck(indexHtml.includes('Destria Tax Services, LLC'), 'index.html references canonical legal name Destria Tax Services, LLC');
+assertCheck(indexHtml.includes('info@destriataxservices.com'), 'index.html references official email info@destriataxservices.com');
 assertCheck(indexHtml.includes('https://destriataxservices.com/'), 'index.html references official website https://destriataxservices.com/');
 assertCheck(indexHtml.includes(`/branding/destria-favicon.png?v=${version}`), 'index.html favicon uses cache-busting version');
 assertCheck(indexHtml.includes(`/favicon.ico?v=${version}`), 'index.html shortcut icon uses cache-busting version');
 assertCheck(indexHtml.includes(`/apple-touch-icon.png?v=${version}`), 'index.html apple-touch-icon uses cache-busting version');
 
-// 4. Verify zero legacy active A/R logo asset paths or visible A/R TAX SERVICES labels remain in active source files
+// 4. Verify zero legacy active A/R logo asset paths, legacy emails, visible A/R brand strings, or duplicate LLC suffixes remain
 const legacyAssetPatterns = [
   /ar-logo-192\.png/i,
   /ar-tax-services-logo\.(png|webp)/i,
   /ar-tax-logo-monochrome/i,
   /official_ar_logo/i,
+  /gs:\/\/ar-tax-vault/i,
+];
+
+const legacyEmailPatterns = [
+  /info@artaxservices\.com/i,
+  /contact@artaxservices\.com/i,
+  /info@artaxserv\.com/i,
+  /contact@artaxserv\.com/i,
+  /contact@destriatax\.com/i,
+  /info@destriatax\.com/i,
+  /portal\.artaxservices\.com/i,
 ];
 
 const walk = (dir) => {
@@ -107,7 +127,9 @@ const activeFiles = [
 ];
 
 const legacyHits = [];
+const legacyEmailHits = [];
 const visibleArHits = [];
+const duplicateLlcHits = [];
 
 for (const file of activeFiles) {
   const rel = path.relative(root, file);
@@ -117,18 +139,32 @@ for (const file of activeFiles) {
       legacyHits.push(`${rel} matches ${pat}`);
     }
   }
+  for (const pat of legacyEmailPatterns) {
+    if (pat.test(content)) {
+      legacyEmailHits.push(`${rel} matches ${pat}`);
+    }
+  }
+  if (/LLC,\s*LLC|LLC\s+LLC/i.test(content)) {
+    duplicateLlcHits.push(rel);
+  }
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
     const trimmed = line.trim();
-    if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) return;
-    if (/A\/R\s+TAX\s+SERVICES/i.test(line) || />A\/R</.test(line)) {
+    if (
+      /A\/R\s+TAX\s+SERVICES/i.test(line) ||
+      /A\/R\s+Accounting/i.test(line) ||
+      /A\/R\s+TAX\s+DESKEW/i.test(line) ||
+      />A\/R</.test(line)
+    ) {
       visibleArHits.push(`${rel}:${idx + 1}: ${trimmed.slice(0, 100)}`);
     }
   });
 }
 
-assertCheck(legacyHits.length === 0, 'Zero active legacy A/R logo image references remain', legacyHits.join('; '));
-assertCheck(visibleArHits.length === 0, 'Zero visible legacy A/R TAX SERVICES branding strings remain', visibleArHits.join('; '));
+assertCheck(legacyHits.length === 0, 'Zero active legacy A/R logo or vault path references remain', legacyHits.join('; '));
+assertCheck(legacyEmailHits.length === 0, 'Zero active legacy contact emails or artaxservices portal links remain', legacyEmailHits.join('; '));
+assertCheck(visibleArHits.length === 0, 'Zero active legacy A/R company branding strings remain', visibleArHits.join('; '));
+assertCheck(duplicateLlcHits.length === 0, 'Zero duplicate LLC suffixes (LLC, LLC) exist', duplicateLlcHits.join('; '));
 
 console.log(checks.join('\n'));
 if (errors.length > 0) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { Eye, CheckCircle2, Phone, Mail } from 'lucide-react';
 
 export const AccessibilityStatementPage: React.FC = () => {
@@ -16,7 +17,7 @@ export const AccessibilityStatementPage: React.FC = () => {
           Accessibility Statement
         </h1>
         <p className="text-xs text-slate-400">
-          Conformance Target: WCAG 2.1 Level AA • DESTRIA TAX SERVICES LLC
+          Conformance Target: WCAG 2.1 Level AA • {COMPANY_BRANDING.legalName}
         </p>
       </div>
 
@@ -24,7 +25,7 @@ export const AccessibilityStatementPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">Our Commitment</h2>
           <p>
-            DESTRIA TAX SERVICES LLC is dedicated to providing an accessible, inclusive digital environment for all clients, including individuals with visual, auditory, cognitive, and motor disabilities. We continually optimize our website, client portals, and document upload interfaces to comply with the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA.
+            {COMPANY_BRANDING.legalName} is dedicated to providing an accessible, inclusive digital environment for all clients, including individuals with visual, auditory, cognitive, and motor disabilities. We continually optimize our website, client portals, and document upload interfaces to comply with the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA.
           </p>
         </section>
 
@@ -62,7 +63,7 @@ export const AccessibilityStatementPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 text-white">
               <Mail className="w-4 h-4 text-[#C6A15B]" />
-              <span>Email: info@destriatax.com</span>
+              <span>Email: <a href={COMPANY_MAILTO_HREF} className="hover:text-[#C6A15B] underline">{COMPANY_BRANDING.email}</a></span>
             </div>
           </div>
         </section>

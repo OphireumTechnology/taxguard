@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Stage 02 Collection Report View
+ * DESTRIA TAX SERVICES, LLC - Stage 02 Collection Report View
  * Section 44: Comprehensive Accountant Collection Report
  *
  * Displays:
@@ -51,7 +51,7 @@ export const StageTwoCollectionReportView: React.FC<StageTwoCollectionReportView
         <div className="flex items-start gap-3.5">
           <img
             src={BRAND_ASSETS.destriaEmblem}
-            alt="DESTRIA TAX SERVICES LLC Official Emblem"
+            alt="DESTRIA TAX SERVICES, LLC Official Emblem"
             width={44}
             height={44}
             className="w-11 h-11 aspect-square object-contain flex-shrink-0 mt-0.5"
@@ -59,7 +59,7 @@ export const StageTwoCollectionReportView: React.FC<StageTwoCollectionReportView
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#D4A843]/20 text-[#D4A843] border border-[#D4A843]/40">
-                DESTRIA TAX SERVICES LLC &bull; AUDIT RECORD &bull; STAGE 02
+                DESTRIA TAX SERVICES, LLC &bull; AUDIT RECORD &bull; STAGE 02
               </span>
               <span className="text-xs text-[#A9B7C8] font-mono">
                 Generated: {new Date(report.generatedAt).toLocaleString()}

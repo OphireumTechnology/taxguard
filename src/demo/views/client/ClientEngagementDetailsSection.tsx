@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Client Engagement Details & Scope of Work
+ * DESTRIA TAX SERVICES, LLC - Client Engagement Details & Scope of Work
  * Compliance with Sections 4 & 24: Active engagement letters, statutory Circular 230 notices,
  * retainers, and multi-state compliance milestones.
  */
@@ -20,10 +20,10 @@ export const ClientEngagementDetailsSection: React.FC = () => {
   const [downloadNotice, setDownloadNotice] = React.useState<string | null>(null);
 
   const handleDownloadAgreement = () => {
-    const content = `DESTRIA TAX SERVICES LLC — MASTER TAX ENGAGEMENT AGREEMENT
+    const content = `DESTRIA TAX SERVICES, LLC — MASTER TAX ENGAGEMENT AGREEMENT
 Client: Desmond Hinds / Perotti Holdings & Advisory LLC
 Lead Practitioner: Desmond Hinds, CPA (PTIN: P01928472)
-Firm: DESTRIA TAX SERVICES LLC (https://destriataxservices.com/)
+Firm: DESTRIA TAX SERVICES, LLC (https://destriataxservices.com/)
 Date Executed: December 12, 2025
 Scope of Services: Preparation and electronic filing of Form 1040, Form 1120-S, multi-state withholding, and quarterly safe-harbor tax calculations.
 Standard of Practice: Treasury Department Circular No. 230 and AICPA Statements on Standards for Tax Services.
@@ -50,7 +50,7 @@ Status: EXECUTED & COUNTERSIGNED`;
               <h2 className="text-xl font-bold text-neutral-900">Active Engagement Contract & Scope</h2>
             </div>
             <p className="text-sm text-neutral-600 mt-1">
-              Statutory terms of engagement between taxpayer Desmond Hinds and DESTRIA TAX SERVICES LLC.
+              Statutory terms of engagement between taxpayer Desmond Hinds and DESTRIA TAX SERVICES, LLC.
             </p>
           </div>
 

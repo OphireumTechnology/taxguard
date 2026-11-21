@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES, LLC - TaxGuard AI
  * Complete Client Journey Panel
  *
  * Implements Section 23 of Client Dashboard Architecture:

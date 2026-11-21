@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_BRANDING } from '../../config/companyBranding';
 import { TESTIMONIALS_DATA } from '../../data/mockData';
 import { BrandLogo } from '../common/BrandLogo';
 import { BRAND_ASSETS } from '../../utils/assets';
@@ -33,7 +34,7 @@ export const HomePage: React.FC = () => {
   const { setCurrentPage } = useApp();
 
   useEffect(() => {
-    console.log('[DIAGNOSTIC] DESTRIA TAX SERVICES LLC Homepage mounted successfully');
+    console.log('[DIAGNOSTIC] DESTRIA TAX SERVICES, LLC Homepage mounted successfully');
   }, []);
 
   return (
@@ -64,7 +65,7 @@ export const HomePage: React.FC = () => {
                 </h1>
 
                 <p className="text-base sm:text-lg text-slate-300 max-w-2xl font-normal leading-relaxed">
-                  DESTRIA TAX SERVICES LLC combines seasoned CPA tax authority with private AI verification technology. We deliver high-precision tax preparation, forward-looking deduction optimization, and bank-grade audit resilience for founders, corporate executives, and high-net-worth families.
+                  {COMPANY_BRANDING.displayName} combines seasoned CPA tax authority with private AI verification technology. We deliver high-precision tax preparation, forward-looking deduction optimization, and bank-grade audit resilience for founders, corporate executives, and high-net-worth families.
                 </p>
               </div>
 
@@ -149,7 +150,7 @@ export const HomePage: React.FC = () => {
                     <img
                       id="home-hero-card-mini-logo"
                       src={BRAND_ASSETS.destriaLogo}
-                      alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                      alt="DESTRIA TAX SERVICES, LLC Official Emblem"
                       width={44}
                       height={44}
                       className="destria-brand-emblem w-10 h-10 min-w-[40px] min-h-[40px] sm:w-11 sm:h-11 sm:min-w-[44px] sm:min-h-[44px] aspect-square object-contain flex-shrink-0 block"
@@ -157,7 +158,7 @@ export const HomePage: React.FC = () => {
                       decoding="async"
                     />
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-white tracking-wider truncate">DESTRIA TAX SERVICES LLC</div>
+                      <div className="text-xs font-bold text-white tracking-wider truncate">{COMPANY_BRANDING.uppercaseName}</div>
                       <div className="text-[10px] text-[#E5B552] truncate">ACCOUNTING &bull; TAX &bull; ADVISORY &bull; WEALTH PLANNING</div>
                     </div>
                   </div>
@@ -171,7 +172,7 @@ export const HomePage: React.FC = () => {
                   <img
                     id="home-hero-destria-logo"
                     src={BRAND_ASSETS.destriaLogoHero}
-                    alt="DESTRIA TAX SERVICES LLC — Accounting, Tax, Advisory & Wealth Planning, AI-Assisted Accounting Firm Official Emblem"
+                    alt="DESTRIA TAX SERVICES, LLC — Accounting, Tax, Advisory & Wealth Planning, AI-Assisted Accounting Firm Official Emblem"
                     width={404}
                     height={404}
                     className="destria-brand-emblem w-full max-w-[260px] min-[390px]:max-w-[300px] sm:max-w-[360px] lg:max-w-[384px] xl:max-w-[404px] aspect-square object-contain block mx-auto"
@@ -627,7 +628,7 @@ export const HomePage: React.FC = () => {
             Enduring Client Partnerships
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            What business owners, executives, and families say about working with DESTRIA TAX SERVICES LLC.
+            What business owners, executives, and families say about working with DESTRIA TAX SERVICES, LLC.
           </p>
         </div>
 
@@ -689,7 +690,7 @@ export const HomePage: React.FC = () => {
               &ldquo;Your Financial Future Deserves Intelligent Leadership.&rdquo;
             </h2>
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
-              Take the first step toward disciplined tax strategy, audit-grade compliance, and generational wealth preservation. Connect with DESTRIA TAX SERVICES LLC today.
+              Take the first step toward disciplined tax strategy, audit-grade compliance, and generational wealth preservation. Connect with DESTRIA TAX SERVICES, LLC today.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -710,7 +711,7 @@ export const HomePage: React.FC = () => {
             </div>
 
             <div className="pt-6 border-t border-slate-700/70 text-[11px] text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              General Information Notice: The information presented on this website is for general educational purposes and does not constitute individualized tax, legal, or investment advice. Specific advice requires a formal client engagement agreement. DESTRIA TAX SERVICES LLC is a registered tax preparation and financial consulting practice.
+              General Information Notice: The information presented on this website is for general educational purposes and does not constitute individualized tax, legal, or investment advice. Specific advice requires a formal client engagement agreement. DESTRIA TAX SERVICES, LLC is a registered tax preparation and financial consulting practice.
             </div>
           </div>
         </div>

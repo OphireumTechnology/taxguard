@@ -57,7 +57,7 @@ export const INITIAL_USERS: User[] = [
     title: 'Founder & Senior Managing Accountant',
     credentials: ['EA Candidate', 'AFSP Registered Tax Return Preparer', 'Certified QuickBooks ProAdvisor'],
     phone: '678-205-9486',
-    companyName: 'DESTRIA TAX SERVICES LLC',
+    companyName: 'DESTRIA TAX SERVICES, LLC',
     mfaEnabled: true,
     status: 'active',
     isVerified: true,
@@ -72,7 +72,7 @@ export const INITIAL_USERS: User[] = [
     title: 'Staff Tax Accountant',
     credentials: ['MS Accounting', 'Certified Bookkeeper', 'Xero Advisor Certified'],
     phone: '803-555-0182',
-    companyName: 'DESTRIA TAX SERVICES LLC',
+    companyName: 'DESTRIA TAX SERVICES, LLC',
     mfaEnabled: true,
     status: 'active',
     isVerified: true,
@@ -87,7 +87,7 @@ export const INITIAL_USERS: User[] = [
     title: 'Principal Quality & Compliance Reviewer',
     credentials: ['CPA (South Carolina Board of Accountancy)', 'IRS Enrolled Agent'],
     phone: '803-555-0177',
-    companyName: 'DESTRIA TAX SERVICES LLC',
+    companyName: 'DESTRIA TAX SERVICES, LLC',
     mfaEnabled: true,
     status: 'active',
     isVerified: true,
@@ -101,7 +101,7 @@ export const INITIAL_USERS: User[] = [
     role: 'recruiter',
     title: 'Talent Acquisition & HR Specialist',
     phone: '803-555-0164',
-    companyName: 'DESTRIA TAX SERVICES LLC',
+    companyName: 'DESTRIA TAX SERVICES, LLC',
     mfaEnabled: true,
     status: 'active',
     isVerified: true,
@@ -115,7 +115,7 @@ export const INITIAL_USERS: User[] = [
     role: 'admin',
     title: 'Director of Practice Operations & Administration',
     phone: '678-205-9486',
-    companyName: 'DESTRIA TAX SERVICES LLC',
+    companyName: 'DESTRIA TAX SERVICES, LLC',
     mfaEnabled: true,
     status: 'active',
     isVerified: true,
@@ -130,7 +130,7 @@ export const INITIAL_USERS: User[] = [
     title: 'Chief Information Security Officer',
     credentials: ['CISSP', 'CISM'],
     phone: '678-205-9486',
-    companyName: 'DESTRIA TAX SERVICES LLC',
+    companyName: 'DESTRIA TAX SERVICES, LLC',
     mfaEnabled: true,
     status: 'active',
     isVerified: true,
@@ -427,7 +427,7 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     timeSlot: '02:00 PM - 03:00 PM EST',
     type: 'in_office',
     status: 'confirmed',
-    location: 'DESTRIA TAX SERVICES LLC Executive Suite, Columbia, SC',
+    location: 'DESTRIA TAX SERVICES, LLC Executive Suite, Columbia, SC',
     notes: 'Review S-Corp officer reasonable compensation calculation and multi-state compliance.',
     createdAt: '2026-09-02T14:00:00Z'
   }
@@ -551,7 +551,7 @@ export const INITIAL_JOBS: JobListing[] = [
     location: 'Columbia, South Carolina (Hybrid)',
     type: 'Full-Time',
     workplace: 'Hybrid',
-    description: 'DESTRIA TAX SERVICES LLC is seeking an experienced Senior Tax Strategist to spearhead corporate entity filings (1120-S, 1065), multi-state apportionment, and high-net-worth tax planning.',
+    description: 'DESTRIA TAX SERVICES, LLC is seeking an experienced Senior Tax Strategist to spearhead corporate entity filings (1120-S, 1065), multi-state apportionment, and high-net-worth tax planning.',
     responsibilities: [
       'Lead comprehensive tax preparation for S-Corporations, Partnerships, and multi-tier LLCs.',
       'Perform detailed technical reviews of staff workpapers and electronic returns.',
@@ -614,7 +614,7 @@ export const INITIAL_JOBS: JobListing[] = [
     location: 'Columbia, South Carolina (Onsite)',
     type: 'Full-Time',
     workplace: 'Onsite',
-    description: 'Serve as the welcoming ambassador of DESTRIA TAX SERVICES LLC. Guide prospective clients through digital onboarding, encrypted document collection, consultation scheduling, and portal navigation.',
+    description: 'Serve as the welcoming ambassador of DESTRIA TAX SERVICES, LLC. Guide prospective clients through digital onboarding, encrypted document collection, consultation scheduling, and portal navigation.',
     responsibilities: [
       'Facilitate seamless client onboarding through our digital portal and intake questionnaires.',
       'Ensure missing document alerts are resolved swiftly with warmth and professionalism.',
@@ -666,7 +666,7 @@ export const INITIAL_APPLICANTS: Applicant[] = [
     phone: '803-555-0819',
     linkedinUrl: 'https://linkedin.com/in/jasmine-caldwell-tax',
     resumeFileName: 'Jasmine_Caldwell_Resume_2026.pdf',
-    coverLetter: 'I have followed Desmond Hinds and DESTRIA TAX SERVICES LLC for several years. My 7 years of S-Corp and Partnership tax prep aligns perfectly with your firm’s legacy-building mission.',
+    coverLetter: 'I have followed Desmond Hinds and DESTRIA TAX SERVICES, LLC for several years. My 7 years of S-Corp and Partnership tax prep aligns perfectly with your firm’s legacy-building mission.',
     status: 'interview',
     appliedDate: '2026-08-25',
     notes: 'Strong candidate. Phone screening went exceptionally well. Interview with Desmond Hinds scheduled for Sept 14.',
@@ -816,7 +816,7 @@ export const FAQ_DATA = [
   {
     category: 'Security & Privacy',
     question: 'How is my sensitive financial data protected?',
-    answer: 'All data transmitted through DESTRIA TAX SERVICES LLC is encrypted using TLS 1.3 in transit and stored with AES-256 encryption at rest. Each client document is stored in isolated object partitions with strict role-based access control. We enforce multi-factor authentication (MFA) across all staff accounts.'
+    answer: 'All data transmitted through DESTRIA TAX SERVICES, LLC is encrypted using TLS 1.3 in transit and stored with AES-256 encryption at rest. Each client document is stored in isolated object partitions with strict role-based access control. We enforce multi-factor authentication (MFA) across all staff accounts.'
   },
   {
     category: 'Consultations & Engagement',
@@ -825,7 +825,7 @@ export const FAQ_DATA = [
   },
   {
     category: 'Legal & Estate Coordination',
-    question: 'Does DESTRIA TAX SERVICES LLC provide legal counsel for wills and trusts?',
-    answer: 'DESTRIA TAX SERVICES LLC provides tax planning and administrative document coordination for estates and trusts. We work in direct partnership with properly licensed South Carolina attorneys for all formal legal drafting and representation. Our accounting personnel do not provide legal advice.'
+    question: 'Does DESTRIA TAX SERVICES, LLC provide legal counsel for wills and trusts?',
+    answer: 'DESTRIA TAX SERVICES, LLC provides tax planning and administrative document coordination for estates and trusts. We work in direct partnership with properly licensed South Carolina attorneys for all formal legal drafting and representation. Our accounting personnel do not provide legal advice.'
   }
 ];

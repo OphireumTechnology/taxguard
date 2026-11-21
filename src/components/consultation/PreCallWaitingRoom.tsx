@@ -221,7 +221,7 @@ export const PreCallWaitingRoom: React.FC<PreCallWaitingRoomProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D2746] border border-[#B98B32] text-[#E2B957] text-xs font-bold uppercase tracking-wider mb-2">
               <Lock className="w-3.5 h-3.5" />
-              <span>A/R Virtual SafeRoom &bull; WebRTC Encrypted</span>
+              <span>Destria Virtual SafeRoom &bull; WebRTC Encrypted</span>
             </div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#F7F1E5]">
               {roomTitle}
@@ -400,7 +400,7 @@ export const PreCallWaitingRoom: React.FC<PreCallWaitingRoomProps> = ({
             </BrandedButton>
 
             <p className="text-[11px] text-[#718096] text-center">
-              Session is encrypted peer-to-peer. DESTRIA TAX SERVICES LLC &bull; Columbia, SC
+              Session is encrypted peer-to-peer. DESTRIA TAX SERVICES, LLC &bull; Columbia, SC
             </p>
           </div>
         </div>

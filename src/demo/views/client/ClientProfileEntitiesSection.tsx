@@ -407,7 +407,7 @@ export const ClientProfileEntitiesSection: React.FC<ClientProfileEntitiesSection
         <div className="bg-white rounded-b-lg border border-t-0 border-[#D8DCE2] p-6 space-y-4">
           <div className="border-b border-[#D8DCE2] pb-3">
             <h3 className="text-sm font-bold text-[#061A2F]">Statutory Federal &amp; State Compliance Matrix</h3>
-            <p className="text-xs text-[#667085]">Authorized filing calendar and tax return schedule monitored by DESTRIA TAX SERVICES LLC.</p>
+            <p className="text-xs text-[#667085]">Authorized filing calendar and tax return schedule monitored by DESTRIA TAX SERVICES, LLC.</p>
           </div>
 
           <div className="overflow-x-auto">

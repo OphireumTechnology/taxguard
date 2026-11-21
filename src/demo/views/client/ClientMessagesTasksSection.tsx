@@ -107,7 +107,7 @@ export const ClientMessagesTasksSection: React.FC<ClientMessagesTasksSectionProp
     {
       id: 'tsk_02',
       title: 'Sign 2025 Form 8879 E-File Authorization Form',
-      assignedBy: 'DESTRIA TAX SERVICES LLC Compliance',
+      assignedBy: 'DESTRIA TAX SERVICES, LLC Compliance',
       dueDate: 'March 01, 2026',
       status: 'Pending',
       category: 'Signatures & Consent',
@@ -281,7 +281,7 @@ export const ClientMessagesTasksSection: React.FC<ClientMessagesTasksSectionProp
                     <div className="w-10 h-10 rounded-full border border-[#D7AC4A] overflow-hidden flex-shrink-0 bg-[#061A2F]">
                       <img
                         src="/ceo/123456789-desmond.png"
-                        alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES LLC"
+                        alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES, LLC"
                         className="w-full h-full object-cover object-top"
                       />
                     </div>

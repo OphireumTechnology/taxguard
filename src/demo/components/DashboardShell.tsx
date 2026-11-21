@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Unified Demonstration Dashboard Shell
+ * DESTRIA TAX SERVICES, LLC - Unified Demonstration Dashboard Shell
  * Strict black-and-white minimalist architecture.
  * Shared across all 12 protected practice roles.
  */
@@ -366,14 +366,14 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               <div className="flex items-center gap-2.5 min-w-0">
                 <img
                   src={BRAND_ASSETS.destriaEmblem}
-                  alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                  alt="DESTRIA TAX SERVICES, LLC Official Emblem"
                   width={34}
                   height={34}
                   className="w-8 h-8 aspect-square object-contain flex-shrink-0"
                 />
                 <div className="min-w-0">
                   <div className="text-[10px] font-mono uppercase tracking-widest text-[#D7AC4A] font-semibold truncate">
-                    DESTRIA TAX SERVICES LLC
+                    DESTRIA TAX SERVICES, LLC
                   </div>
                   <div className="text-sm font-bold text-[#F7F4ED] truncate">
                     {roleConfig.title}
@@ -383,7 +383,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
             ) : (
               <img
                 src={BRAND_ASSETS.destriaEmblem}
-                alt="DESTRIA TAX SERVICES LLC"
+                alt="DESTRIA TAX SERVICES, LLC"
                 width={32}
                 height={32}
                 className="w-8 h-8 aspect-square object-contain mx-auto"
@@ -577,13 +577,13 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
                 <div className="flex items-center gap-2.5 min-w-0">
                   <img
                     src={BRAND_ASSETS.destriaEmblem}
-                    alt="DESTRIA TAX SERVICES LLC Official Emblem"
+                    alt="DESTRIA TAX SERVICES, LLC Official Emblem"
                     width={32}
                     height={32}
                     className="w-8 h-8 aspect-square object-contain flex-shrink-0"
                   />
                   <div className="min-w-0">
-                    <div className="text-[10px] font-mono uppercase text-[#D7AC4A] truncate">DESTRIA TAX SERVICES LLC</div>
+                    <div className="text-[10px] font-mono uppercase text-[#D7AC4A] truncate">DESTRIA TAX SERVICES, LLC</div>
                     <div className="text-xs font-bold text-white truncate">{roleConfig.title}</div>
                   </div>
                 </div>

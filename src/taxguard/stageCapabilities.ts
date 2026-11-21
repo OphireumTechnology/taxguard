@@ -16,7 +16,7 @@ const STAGE_CATALOG: Record<number, StageCapabilityInfo> = {
     name: 'Client Identity & Engagement Onboarding',
     purpose: 'Establish verified taxpayer identity, filing scope, and authorized engagement agreement.',
     evidence: 'SYSTEM_VERIFIED',
-    responsibility: 'Client completes profile details; DESTRIA TAX SERVICES LLC verifies onboarding records.',
+    responsibility: 'Client completes profile details; DESTRIA TAX SERVICES, LLC verifies onboarding records.',
     clientGuidance: 'Verify your identity details and contact information in your profile workspace.',
   },
   2: {

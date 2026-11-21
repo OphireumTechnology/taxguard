@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC — Stage 04: Record Workspace
+ * DESTRIA TAX SERVICES, LLC — Stage 04: Record Workspace
  * Displays authoritative recorded tax facts (Wages, Interest, Dividends, Business/1099,
  * Deductions, Withholdings) derived from validated evidence with strict provenance tracking.
  */

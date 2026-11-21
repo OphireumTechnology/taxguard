@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Authoritative Pre-Filing Gate Registry Types & Contracts
+ * DESTRIA TAX SERVICES, LLC - Authoritative Pre-Filing Gate Registry Types & Contracts
  * Strict 7-Point Quality-Control Release Model, Maker-Checker Enforcement,
  * Simulated Government Acknowledgements, Rejection Correction, and Immutable Archive.
  * 
