@@ -1,11 +1,6 @@
 name: Deploy TaxGuard Production to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -32,13 +27,10 @@ jobs:
             exit 1
           fi
 
-      # Temporary recovery deployment: the workflow runs on the allowed main
-      # branch but builds a pinned, fully validated recovery snapshot.
-      # Do not retarget to main until its full TypeScript/test suite is green.
-      - name: Checkout verified DESTRIA logo release snapshot
+      - name: Checkout explicitly dispatched main commit
         uses: actions/checkout@v4
         with:
-          ref: b959f139cd0980523f2fb7e8b5a5cf830b45f63e
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Setup Node.js
@@ -147,10 +139,11 @@ jobs:
             exit 1
           fi
 
-          printf '%s\n' 'artaxserv.com' > dist/CNAME
+          printf '%s\n' 'destriataxservices.com' > dist/CNAME
 
-          test "$(cat dist/CNAME)" = "artaxserv.com"
+          test "$(cat dist/CNAME)" = "destriataxservices.com"
 
+          printf '%s\n' "$GITHUB_SHA" > dist/release-commit.txt
           echo "Production artifact verified."
 
       - name: Upload production artifact

@@ -29,12 +29,12 @@ export const TopUtilityBar: React.FC = () => {
       role="region"
       aria-label="Firm Quick Links & Utility Bar"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-4 min-w-0 w-full">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4 min-w-0 w-full">
         
         {/* LEFT: Verified Firm Information (Location, Phone, Business Hours) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 text-[11px] sm:text-xs">
           {/* Location */}
-          <div className="flex items-center gap-1.5 text-slate-300 whitespace-nowrap">
+          <div className="hidden sm:flex items-center gap-1.5 text-slate-300 whitespace-nowrap">
             <MapPin className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
             <span className="text-slate-300 font-medium">Columbia, SC</span>
           </div>
@@ -67,24 +67,24 @@ export const TopUtilityBar: React.FC = () => {
             <a
               href="/portal"
               onClick={handleClientPortalClick}
-              className="text-slate-300 hover:text-[#E2BD67] font-medium transition-colors inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              className="text-slate-300 hover:text-[#E2BD67] font-medium transition-colors inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
               aria-label="Access Client Portal"
               role="link"
             >
-              <Lock className="w-3 h-3 text-[#C99A3D]" />
+              <Lock className="w-3 h-3 text-[#C99A3D] flex-shrink-0" />
               <span>Client Portal</span>
             </a>
 
-            <span className="text-slate-600 inline" aria-hidden="true">&bull;</span>
+            <span className="text-slate-600 hidden min-[420px]:inline" aria-hidden="true">&bull;</span>
 
             <a
               href="/staff"
               onClick={handleStaffPortalClick}
-              className="text-slate-400 hover:text-[#E2BD67] font-medium transition-colors inline-flex items-center gap-1 px-1.5 py-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              className="hidden min-[420px]:inline-flex text-slate-400 hover:text-[#E2BD67] font-medium transition-colors items-center gap-1 px-1.5 py-0.5 rounded whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
               aria-label="Access Staff Portal"
               role="link"
             >
-              <Briefcase className="w-3 h-3 text-slate-400" />
+              <Briefcase className="w-3 h-3 text-slate-400 flex-shrink-0" />
               <span>Staff Portal</span>
             </a>
           </div>

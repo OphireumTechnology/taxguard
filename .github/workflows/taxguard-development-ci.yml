@@ -22,6 +22,7 @@ on:
     branches:
       # Validate every development sync branch exactly as pushed. Pull-request runs
       # test the merge with main, which can fail because of main alone.
+      - main
       - 'sync/**'
       - 'codex/taxguard-phase11-completion'
   workflow_dispatch:

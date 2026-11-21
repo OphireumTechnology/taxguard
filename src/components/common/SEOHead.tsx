@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useApp, PageRoute } from '../../context/AppContext';
+import { BRAND_ASSETS, BRAND_WEBSITE_URL } from '../../utils/assets';
 
 interface PageMetadata {
   title: string;
@@ -220,8 +221,10 @@ export const SEOHead: React.FC = () => {
 
   useEffect(() => {
     const meta = PAGE_METADATA_MAP[currentPage] || PAGE_METADATA_MAP.home;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://destriatax.com';
+    const defaultOrigin = BRAND_WEBSITE_URL.replace(/\/$/, '');
+    const origin = typeof window !== 'undefined' ? window.location.origin : defaultOrigin;
     const canonicalUrl = `${origin}${meta.canonicalPath}`;
+    const brandImageUrl = `${origin}${BRAND_ASSETS.destriaLogoOriginal}`;
 
     // 1. Update Document Title
     document.title = meta.title;
@@ -246,12 +249,12 @@ export const SEOHead: React.FC = () => {
     setMetaTag('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMetaTag('meta[property="og:type"]', 'property', 'og:type', meta.ogType || 'website');
     setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'DESTRIA TAX SERVICES LLC');
-    setMetaTag('meta[property="og:image"]', 'property', 'og:image', `${origin}/branding/destria-logo-original.png`);
+    setMetaTag('meta[property="og:image"]', 'property', 'og:image', brandImageUrl);
 
     // 4. Twitter Tags
     setMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', meta.title);
     setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', meta.description);
-    setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', `${origin}/branding/destria-logo-original.png`);
+    setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', brandImageUrl);
 
     // 5. Canonical Link
     let canonicalLink = document.querySelector('link[rel="canonical"]');
