@@ -16,10 +16,19 @@ on:
       - 'docs/development/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'CNAME'
       - '.github/workflows/deploy-pages.yml'
       - '.github/workflows/taxguard-development-ci.yml'
   push:
     branches:
+      # Every commit that reaches main (Google AI Studio sync, merged pull request or a direct push) is validated
+      # exactly as pushed, with no path filter. Only a successful run for a push to main can feed the production
+      # build (deploy-pages.yml), so a failed validation prevents deployment.
+      - main
       # Validate every development sync branch exactly as pushed. Pull-request runs
       # test the merge with main, which can fail because of main alone.
       - 'sync/**'
@@ -71,6 +80,8 @@ jobs:
 
       - name: Automated tests
         run: npm run test -- --run
+      - name: Branding integrity
+        run: node scripts/verify-branding.mjs
       - name: Offline migration and readiness integrity
         run: |
           node scripts/staging/migration-manifest.mjs
