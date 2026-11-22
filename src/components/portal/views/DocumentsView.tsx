@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DocumentItem, RequiredDocumentChecklistItem } from '../../../types';
 import { getSecureDownloadUrl } from '../../../supabase/storage';
+import { vaultMessage } from '../../../services/vaultService';
 
 interface DocumentsViewProps {
   documents: DocumentItem[];
@@ -43,25 +44,17 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
   const missingRequirementsCount = requirements.filter(r => r.status === 'missing' || r.status === 'requested').length;
 
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  // The server vault authorizes every download and returns a short-lived signed URL. When it refuses (not yet scanned,
+  // not authorized, unavailable), the client is told so; no substitute file is generated.
   const handleDownload = async (docItem: DocumentItem) => {
+    setDownloadError(null);
     try {
-      const url = await getSecureDownloadUrl(docItem.id);
+      const url = await getSecureDownloadUrl(docItem);
       window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      const blob = new Blob([
-        `DESTRIA TAX SERVICES, LLC - SECURE CLIENT ARCHIVE\n` +
-        `Document: ${docItem.fileName}\n` +
-        `Category: ${(docItem.category || 'TAX_DOCUMENT').toUpperCase()}\n` +
-        `Encrypted Vault Verified: AES-256\n` +
-        `Timestamp: ${new Date().toISOString()}\n` +
-        `Firm: DESTRIA TAX SERVICES, LLC (Columbia, SC) | https://destriataxservices.com/`
-      ], { type: 'text/plain' });
-      const u = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = u;
-      a.download = docItem.fileName.endsWith('.txt') ? docItem.fileName : `${docItem.fileName}.txt`;
-      a.click();
-      URL.revokeObjectURL(u);
+    } catch (error) {
+      setDownloadError(`${docItem.fileName}: ${vaultMessage(error)}`);
     }
   };
 
@@ -141,6 +134,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       </div>
 
       {/* SUB-VIEW 1: ALL DOCUMENTS TABLE */}
+      {downloadError && (
+        <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+          {downloadError}
+        </div>
+      )}
+
       {activeSubTab === 'all' && (
         <div className="p-6 rounded-2xl bg-[#0A1F38] border border-[#183458] space-y-4">
           {/* Filters Bar */}
