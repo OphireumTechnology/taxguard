@@ -1,71 +1,58 @@
-import { apiRequest, ApiRequestError } from './api';
+/** Browser client for /api/communications (durable client / staff messaging, proposal 039). */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
-export class CommunicationRequestError extends ApiRequestError {}
-
-export type MessageVisibility = 'client_visible' | 'internal_only' | string;
-export type ThreadCategory = 'general' | 'documents' | 'tax_return' | 'billing' | 'advisory' | string;
-
-export const THREAD_CATEGORIES: Array<[ThreadCategory, string]> = [
-  ['GENERAL', 'General Inquiry'],
-  ['DOCUMENTS', 'Documents & Verification'],
-  ['TAX_RETURN', 'Tax Return Preparation'],
-  ['BILLING', 'Billing & Invoices'],
-  ['ADVISORY', 'Tax Strategy & Advisory'],
-];
-
-export interface CommMessage {
-  id: string;
-  threadId: string;
-  senderId?: string;
-  senderName?: string;
-  senderRole?: string;
-  body: string;
-  visibility?: MessageVisibility;
-  createdAt: string;
-  [key: string]: any;
+export class CommunicationRequestError extends Error {
+  constructor(public readonly status: number, public readonly code?: string) { super(code || 'COMM_REQUEST_FAILED'); }
 }
+export type ThreadCategory = 'GENERAL' | 'TAX_QUESTION' | 'DOCUMENT_QUERY' | 'INVOICING' | 'ADVISORY';
+export type ThreadStatus = 'ACTIVE' | 'RESOLVED' | 'ARCHIVED';
+export type MessageVisibility = 'CLIENT_VISIBLE' | 'INTERNAL_ONLY';
+export interface CommThread { threadId: string; clientId: string; engagementId: string | null; subject: string; category: ThreadCategory; status: ThreadStatus;
+  createdAt: string; lastMessageAt: string; messageCount: number; unread: number; awaitingStaffReply: boolean; createdBy?: string }
+export interface CommMessage { messageId: string; threadId: string; senderRole: string; senderKind: 'client' | 'staff'; own: boolean; body: string;
+  visibility: MessageVisibility; createdAt: string; senderUid?: string; replayed?: boolean }
+export const THREAD_CATEGORIES: Array<[ThreadCategory, string]> = [['GENERAL', 'General'], ['TAX_QUESTION', 'Tax question'], ['DOCUMENT_QUERY', 'Document question'],
+  ['INVOICING', 'Billing'], ['ADVISORY', 'Advisory']];
+export const newCommKey = () => 'cm-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-export interface CommThread {
-  id: string;
-  clientId?: string;
-  subject: string;
-  category?: ThreadCategory;
-  status?: string;
-  unreadCount?: number;
-  messages?: CommMessage[];
-  updatedAt?: string;
-  [key: string]: any;
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, idempotencyKey?: string, signal?: AbortSignal): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new CommunicationRequestError(401, 'AUTH_REQUIRED');
+  const response = await fetch(apiEndpoint('/api/communications' + path), { method, cache: 'no-store', credentials: 'omit', signal,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  if (getStoredToken() !== token) throw new CommunicationRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new CommunicationRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  return data as T;
 }
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
+const th = (clientId: string, threadId: string) => c(clientId) + '/threads/' + encodeURIComponent(threadId);
 
-export function newCommKey(prefix = 'comm'): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
+export const communicationsService = {
+  threads: (clientId: string, signal?: AbortSignal) => request<CommThread[]>('GET', c(clientId) + '/threads', undefined, undefined, signal),
+  thread: (clientId: string, threadId: string, signal?: AbortSignal) => request<{ thread: CommThread; messages: CommMessage[] }>('GET', th(clientId, threadId), undefined, undefined, signal),
+  createThread: (clientId: string, input: { subject: string; body: string; category?: ThreadCategory; engagementId?: string; visibility?: MessageVisibility }, key: string) =>
+    request<{ thread: CommThread; message: CommMessage }>('POST', c(clientId) + '/threads', input, key),
+  post: (clientId: string, threadId: string, body: string, key: string, visibility?: MessageVisibility) =>
+    request<CommMessage>('POST', th(clientId, threadId) + '/messages', { body, ...(visibility ? { visibility } : {}) }, key),
+  markRead: (clientId: string, threadId: string) => request<{ threadId: string; unread: number }>('POST', th(clientId, threadId) + '/read'),
+  setStatus: (clientId: string, threadId: string, status: ThreadStatus) => request<CommThread & { changed: boolean }>('POST', th(clientId, threadId) + '/status', { status }),
+  inbox: (signal?: AbortSignal) => request<CommThread[]>('GET', '/inbox', undefined, undefined, signal),
+};
 
+/** Plain-language refusal for a communications error code. */
 export function communicationErrorText(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return 'Secure messaging is temporarily unavailable.';
-}
-
-export const communicationsService: Record<string, (...args: any[]) => Promise<any>> = new Proxy(
-  {
-    threads: (clientId?: string, signal?: AbortSignal) =>
-      apiRequest(`/api/communications/threads${clientId ? `?clientId=${encodeURIComponent(clientId)}` : ''}`, {
-        signal,
-      }),
-    listThreads: (_params?: any) => apiRequest('/api/communications/threads'),
-    getThread: (id: string) => apiRequest(`/api/communications/threads/${encodeURIComponent(id)}`),
-    createThread: (payload: any) =>
-      apiRequest('/api/communications/threads', { method: 'POST', body: JSON.stringify(payload) }),
-    sendMessage: (threadId: string, payload: any) =>
-      apiRequest(`/api/communications/threads/${encodeURIComponent(threadId)}/messages`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-  } as Record<string, (...args: any[]) => Promise<any>>,
-  {
-    get(target, prop: string) {
-      if (prop in target) return target[prop];
-      return async (..._args: any[]) => apiRequest(`/api/communications/${prop}`);
-    },
+  const code = (error as { code?: string })?.code;
+  switch (code) {
+    case 'COMM_STORE_UNAVAILABLE': return 'Messaging is not available in this environment.';
+    case 'COMM_THREAD_CLOSED': return 'This conversation is closed. Start a new conversation instead.';
+    case 'COMM_THREAD_NOT_FOUND': case 'COMM_CLIENT_NOT_FOUND': return 'This conversation is not available to you.';
+    case 'COMM_INTERNAL_STAFF_ONLY': case 'COMM_ACCESS_DENIED': case 'COMM_STAFF_REQUIRED': return 'You are not permitted to do this.';
+    case 'COMM_MANAGER_REQUIRED': return 'Only a practice manager can archive a conversation.';
+    case 'IDEMPOTENCY_KEY_REUSED': return 'This message conflicts with one already sent. Refresh and try again.';
+    case 'SESSION_CHANGED': case 'AUTH_REQUIRED': return 'Your session changed. Sign in again.';
+    default: return 'The server did not confirm this. Nothing was sent; try again.';
   }
-);
+}

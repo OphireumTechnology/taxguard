@@ -1,35 +1,28 @@
-export interface StaffInvitationLease {
-  isActive: () => boolean;
-  track: <T>(promise: Promise<T>) => Promise<T>;
-  close: () => Promise<void>;
-}
-
-export function createStaffInvitationLifecycle(
-  beginFlow?: () => (() => void) | void,
-  onSignOut?: () => Promise<void> | void
-) {
+/** Holds provider-only suppression until identity work and logout finish. No credentials are retained here. */
+export function createStaffInvitationLifecycle(begin: () => () => void, signOut: () => Promise<void>) {
+  type Lease = { active: boolean; released: boolean; release: () => void; work: Set<Promise<unknown>> };
+  let current: Lease | undefined;
+  const release = (lease: Lease) => { if (!lease.released) { lease.released = true; lease.release(); } };
   return {
-    mount(): StaffInvitationLease {
-      let active = true;
-      const release = typeof beginFlow === 'function' ? beginFlow() : undefined;
-      const pending = new Set<Promise<any>>();
+    mount() {
+      const lease: Lease = { active: true, released: false, release: begin(), work: new Set() };
+      current = lease;
       return {
-        isActive: () => active,
-        track: <T,>(promise: Promise<T>): Promise<T> => {
-          pending.add(promise);
-          promise.finally(() => pending.delete(promise)).catch(() => undefined);
-          return promise;
+        isActive: () => lease.active && current === lease,
+        track<T>(operation: Promise<T>) {
+          lease.work.add(operation);
+          void operation.then(() => lease.work.delete(operation), () => lease.work.delete(operation));
+          return operation;
         },
-        close: async () => {
-          active = false;
-          try {
-            if (typeof release === 'function') release();
-          } finally {
-            await Promise.allSettled([...pending]);
-            if (typeof onSignOut === 'function') {
-              await Promise.resolve(onSignOut()).catch(() => undefined);
-            }
-          }
+        async close() {
+          lease.active = false;
+          await Promise.allSettled([...lease.work]);
+          // StrictMode immediately mounts a replacement effect on the same coordinator.
+          // The replacement owns the provider session and holds its own suppression lease.
+          if (current !== lease && current?.active) { release(lease); return; }
+          try { await signOut(); }
+          catch { return; } // Failed logout retains suppression; never auto-bridge this identity.
+          release(lease);
         },
       };
     },
