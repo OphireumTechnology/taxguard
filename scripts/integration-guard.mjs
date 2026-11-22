@@ -38,7 +38,9 @@ export const PROTECTED_PREFIXES = [
 ];
 const isProtected = file => PROTECTED_PREFIXES.some(p => file.startsWith(p)) || file === 'server.ts' || file === 'docs/taxguard-master-traceability.json';
 const SERVICE_PREFIXES = ['src/services/', 'src/supabase/', 'src/server/routes/'];
-const CALLS = /\bfetch\(|apiEndpoint\(|\brequest\s*<|\brequest\(|\.rpc\(|\.from\(|getSupabaseAdmin\(|createClient\(|\bpool\.query\(/;
+// A real client calls the API or database directly, or delegates to a service client that does (for example
+// vaultService.download(...)). A module that does neither is a local stand-in.
+const CALLS = /\bfetch\(|apiEndpoint\(|\brequest\s*<|\brequest\(|\.rpc\(|\.from\(|getSupabaseAdmin\(|createClient\(|\bpool\.query\(|\b[A-Za-z]+(?:Service|Api|Client|Store)\.[A-Za-z]+\(/;
 
 const approvedFile = 'docs/development/approved-deletions.json';
 let approved = new Set();

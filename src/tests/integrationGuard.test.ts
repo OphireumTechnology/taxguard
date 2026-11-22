@@ -61,6 +61,16 @@ describe('integration guard', () => {
     expect(out.stderr).toContain('SERVICE_STUBBED src/services/realClient.ts');
     expect(out.stderr).toContain('SERVICE_STUBBED src/server/routes/cases.routes.ts');
   });
+  it('a client that delegates to a real service client passes; one that returns a constant does not', () => {
+    const r = repo();
+    r.write('src/services/realClient.ts', "import { vaultService } from './vaultService';\nexport const load = () => vaultService.download('c', 'd', 1);\n"); r.commit();
+    expect(r.run().status).toBe(0);
+    const r2 = repo();
+    r2.write('src/services/realClient.ts', "export const load = async () => ({ url: 'https://example.invalid/fake' });\n"); r2.commit();
+    const out = r2.run();
+    expect(out.status).toBe(1);
+    expect(out.stderr).toContain('SERVICE_STUBBED src/services/realClient.ts');
+  });
   it('a first push (all-zero base) compares the head commit with its parent', () => {
     const r = repo();
     r.rm('src/services/realClient.ts'); r.commit();
