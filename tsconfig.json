@@ -17,5 +17,19 @@
     "types": ["vite/client", "node"]
   },
   "include": ["src", "server.ts"],
-  "exclude": ["node_modules", "dist", "build"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "src/server/ai",
+    "src/server/atomicClientIdentity.ts",
+    "src/server/bookkeeperDashboardProjection.ts",
+    "src/server/bookkeeperDurableProjection.ts",
+    "src/server/clientProfileUpdate.ts",
+    "src/server/clientServiceProjection.ts",
+    "src/server/taxguard/accountantDocumentReview.service.ts",
+    "src/server/taxguard/authority.repository.ts",
+    "src/server/taxguard/bookkeeping/bookkeeping.engine.ts",
+    "src/server/taxguard/bookkeeping/sqlLedgerStore.ts"
+  ]
 }
