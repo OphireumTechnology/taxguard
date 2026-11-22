@@ -29,6 +29,7 @@ import { getSupabaseAdmin } from './src/server/supabase';
 import { SecurityEventRecorder, securityDenialObserver } from './src/server/securityEventRecorder';
 import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
 import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
+import { createAiWorkforceRouter } from './src/server/routes/ai-workforce.routes';
 import { createProductionApp } from './src/server/productionApp';
 import { createAccountantDashboardRouter } from './src/server/routes/accountantDashboard.routes';
 import { requireOperationalAdministrator } from './src/server/operationalDiagnostics';
@@ -667,6 +668,7 @@ app.use(
  */
 
 app.use('/api/ai-governance', createAiGovernanceRouter());
+app.use('/api/ai-workforce', createAiWorkforceRouter());
 
 app.use(
   '/api/taxguard-ai',

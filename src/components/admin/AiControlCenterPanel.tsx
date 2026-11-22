@@ -5,6 +5,7 @@ import { api } from '../../services/api';
 import { AiCommissioningView } from './AiCommissioningView';
 import { AiArchitectureOverviewView } from './AiArchitectureOverviewView';
 import { AiEvaluationView } from './AiEvaluationView';
+import { AiWorkforceMatrixView } from './AiWorkforceMatrixView';
 
 /**
  * AI Control Center — read-only registry, execution history, governance decisions and
@@ -56,11 +57,11 @@ export function formatCell(key: string, value: unknown): string {
 
 type State = { status: 'loading' | 'ready' | 'error'; rows: Record<string, unknown>[]; next: string | null; globalStop?: boolean; scopedStops?: { scope: string; target: string }[]; totals?: Record<string, number>; message?: string; appending?: boolean };
 
-type PanelView = ControlCenterView | 'commissioning' | 'architecture' | 'evaluations' | 'local-model';
-// Views that render themselves: commissioning and architecture from build evidence (no governance endpoint), and
+type PanelView = ControlCenterView | 'commissioning' | 'workforce-matrix' | 'architecture' | 'evaluations' | 'local-model';
+// Views that render themselves: commissioning, workforce-matrix and architecture from build evidence (no governance endpoint), and
 // evaluations, which reads its own endpoint.
-const isLocalView = (view: PanelView): view is 'commissioning' | 'architecture' | 'evaluations' | 'local-model' =>
-  view === 'commissioning' || view === 'architecture' || view === 'evaluations' || view === 'local-model';
+const isLocalView = (view: PanelView): view is 'commissioning' | 'workforce-matrix' | 'architecture' | 'evaluations' | 'local-model' =>
+  view === 'commissioning' || view === 'workforce-matrix' || view === 'architecture' || view === 'evaluations' || view === 'local-model';
 
 export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ initialView = 'registry' }) => {
   const [view, setView] = useState<PanelView>(initialView);
@@ -98,7 +99,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       .catch(error => setState(current => ({ ...current, appending: false, message: controlCenterErrorMessage(error) })));
   };
 
-  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['commissioning', 'Commissioning readiness'], ['evaluations', 'Evaluations'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['local-model', 'Local model'], ['architecture', 'Architecture overview']];
+  const tabs: [PanelView, string][] = [['registry', 'Agent registry'], ['workforce-matrix', 'Workforce matrix (A00–A60)'], ['commissioning', 'Commissioning readiness'], ['evaluations', 'Evaluations'], ['runs', 'Execution history'], ['decisions', 'Governance decisions'], ['security-events', 'Security events'], ['usage', 'Usage & review queue'], ['local-model', 'Local model'], ['architecture', 'Architecture overview']];
   const select = (id: PanelView) => { setView(id); setFilters({}); };
   const onTabKey = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -123,6 +124,7 @@ export const AiControlCenterPanel: React.FC<{ initialView?: PanelView }> = ({ in
       </div>
       <div id="ai-cc-panel" role="tabpanel" aria-labelledby={'ai-cc-tab-' + view} className="space-y-4">
       {view === 'commissioning' && <AiCommissioningView />}
+      {view === 'workforce-matrix' && <AiWorkforceMatrixView />}
       {view === 'architecture' && <AiArchitectureOverviewView />}
       {view === 'evaluations' && <AiEvaluationView />}
       {view === 'local-model' && <AiLocalModelView />}

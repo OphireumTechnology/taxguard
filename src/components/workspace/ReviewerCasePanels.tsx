@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { ReviewerArtifact, ReviewerSnapshot } from '../../types/reviewerDashboard';
 import { CaseWorkpaperList } from './CaseWorkpaperList';
 import { REVIEWER_STAGES, recordedExtractionConfidence } from './reviewerDashboardModel';
+import { StageThreeDuplicateAdvisoryPanel } from './StageThreeDuplicateAdvisoryPanel';
+import { CaseAiWorkforcePanel } from './CaseAiWorkforcePanel';
 
 export function ReviewEmpty({children}: {children: React.ReactNode}) { return <p className="tg-review-empty">{children}</p>; }
 function Value({value}: {value: unknown}) { return <>{value === undefined || value === null ? 'Not recorded' : typeof value === 'object' ? JSON.stringify(value) : String(value)}</>; }
@@ -55,7 +57,10 @@ export function ReviewerReadPanel({tab,snapshot}: {tab:string;snapshot:ReviewerS
   if(tab==='Accounting') return <><ReviewerTraceability snapshot={snapshot}/><h3>Recorded reconciliations</h3>{snapshot.reconciliations.map(r=><p key={r.id}>{r.category || r.id} · {r.status} · variance <Value value={r.variance}/></p>)}{!snapshot.reconciliations.length && <ReviewEmpty>No recorded reconciliations.</ReviewEmpty>}</>;
   if(tab==='Exceptions') return <ReviewerExceptionPanel snapshot={snapshot}/>;
   if(tab==='Review Notes' || tab==='Audit / History') return <ReviewerHistory items={snapshot.history} notesOnly={tab==='Review Notes'}/>;
-  if(tab==='AI Findings') return <><h3>AI findings · advisory only</h3><p>Human review is required. AI proposals do not approve, reject, sign, file or transition workflow.</p>{snapshot.aiFindings.map(f=><details key={f.id}><summary>{f.proposal?.purpose || f.id}</summary><p><Value value={f.proposal}/></p><p>Evidence reference: {f.evidenceId || 'Not recorded'}</p></details>)}{!snapshot.aiFindings.length && <ReviewEmpty>No recorded AI proposals. No agent execution is simulated.</ReviewEmpty>}</>;
+  if(tab==='AI Findings') {
+    const workforceCaseId = (snapshot.case as { caseId?: string; id?: string }).caseId || (snapshot.case as { id?: string }).id || snapshot.scope.engagementId;
+    return <><h3>AI findings · advisory only</h3><p>Human review is required. AI proposals do not approve, reject, sign, file or transition workflow.</p>{snapshot.aiFindings.map(f=><details key={f.id}><summary>{f.proposal?.purpose || f.id}</summary><p><Value value={f.proposal}/></p><p>Evidence reference: {f.evidenceId || 'Not recorded'}</p></details>)}{!snapshot.aiFindings.length && <ReviewEmpty>No recorded AI proposals. No agent execution is simulated.</ReviewEmpty>}<StageThreeDuplicateAdvisoryPanel tenantId={snapshot.scope.tenantId} clientId={snapshot.scope.clientId} caseId={workforceCaseId} taxYear={snapshot.scope.taxYear} activeStage={snapshot.case.activeStage}/><CaseAiWorkforcePanel tenantId={snapshot.scope.tenantId} clientId={snapshot.scope.clientId} caseId={workforceCaseId} taxYear={snapshot.scope.taxYear} activeStage={snapshot.case.activeStage}/></>;
+  }
   if(tab==='Documents') return <><h3>Authorized document metadata</h3><div className="tg-review-scroll"><table><thead><tr><th>Document</th><th>Status</th><th>Scan evidence</th><th>Version</th></tr></thead><tbody>{snapshot.documents.map(d=><tr key={d.id}><td>{d.fileName || d.id}</td><td>{d.status}</td><td>{d.scanResult?.verified === true ? d.scanResult.clean === true ? 'Verified clean' : 'Not clean' : 'Unverified'}</td><td>{d.version ?? 'Not recorded'}</td></tr>)}</tbody></table></div>{!snapshot.documents.length && <ReviewEmpty>No document artifacts are recorded.</ReviewEmpty>}<p>Original files remain behind the existing private-storage authorization boundary.</p></>;
   return <ReviewEmpty>No verified integration for this view.</ReviewEmpty>;
 }

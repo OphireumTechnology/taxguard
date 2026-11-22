@@ -1,4 +1,5 @@
 import { createAiGovernanceRouter } from './routes/ai-governance.routes';
+import { createAiWorkforceRouter } from './routes/ai-workforce.routes';
 import express, { type RequestHandler } from 'express';
 import { authenticateToken } from './auth';
 import { requireOperationalAdministrator } from './operationalDiagnostics';
@@ -139,6 +140,7 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
 
   app.use('/api/auth', authRouter);
   app.use('/api/ai-governance', createAiGovernanceRouter());
+  app.use('/api/ai-workforce', createAiWorkforceRouter());
   app.use('/api/case-authority', caseAuthorityRouter);
   app.use(['/api/profile', '/api/profile-amendment'], profileAmendmentRouter);
   app.use(['/api/stage-two-three', '/api/stage-workflow'], stageTwoThreeRouter);

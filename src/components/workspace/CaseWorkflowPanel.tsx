@@ -8,11 +8,16 @@ import { RunEvidence } from './RunEvidence';
 import { CaseConclusionsPanel } from './CaseConclusionsPanel';
 import { CaseFormMappingPanel } from './CaseFormMappingPanel';
 import { CaseDraftReturnPanel } from './CaseDraftReturnPanel';
+import { StageThreeDuplicateAdvisoryPanel } from './StageThreeDuplicateAdvisoryPanel';
+import { CaseAiWorkforcePanel } from './CaseAiWorkforcePanel';
+import { useApp } from '../../context/AppContext';
 
 const label = (v: string) => v.replace(/_/g, ' ');
 
 /** Work queue and canonical 18-stage case detail. Evidence is verified or recorded by the server. */
 export function CaseWorkflowPanel() {
+  const { currentUser } = useApp();
+  const tenantId = (currentUser as { tenantId?: string } | null)?.tenantId || 'tenant_default';
   const [role, setRole] = useState('');
   const [queue, setQueue] = useState<{ status: 'loading' | 'ready' | 'error'; items: CaseQueueItem[]; message?: string }>({ status: 'loading', items: [] });
   const [selected, setSelected] = useState<string | null>(null);
@@ -157,6 +162,8 @@ export function CaseWorkflowPanel() {
         <CaseConclusionsPanel key={'conclusions-' + c.caseId} caseId={c.caseId} />
         <CaseFormMappingPanel key={'form-mapping-' + c.caseId} caseId={c.caseId} taxYear={c.taxYear} returnFamily={c.returnFamily ?? null} />
         <CaseDraftReturnPanel key={'draft-return-' + c.caseId} caseId={c.caseId} taxYear={c.taxYear} returnFamily={c.returnFamily ?? null} />
+        <StageThreeDuplicateAdvisoryPanel key={'a10-' + c.caseId} tenantId={tenantId} clientId={c.clientId} caseId={c.caseId} taxYear={c.taxYear} activeStage={c.activeStage} />
+        <CaseAiWorkforcePanel key={'workforce-' + c.caseId} tenantId={tenantId} clientId={c.clientId} caseId={c.caseId} taxYear={c.taxYear} activeStage={c.activeStage} />
         <h4>History</h4>
         <ul>{detail!.events.map((ev, i) => <li key={ev.at + i}>{label(ev.action.toLowerCase())} → {stageLabel(ev.toStage)}{ev.evidenceType ? ` · ${label(ev.evidenceType.toLowerCase())}` : ''}{ev.reason ? ` · ${ev.reason}` : ''} · {ev.actorUid} · {new Date(ev.at).toLocaleString()}</li>)}</ul>
       </>}
