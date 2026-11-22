@@ -59,7 +59,11 @@ async function main() {
       /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017|^20261018|^20261019/.test(entry.file.split('/').at(-1)!));
     for (const entry of replayEntries) await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
     const replayFingerprint = await schemaFingerprint(canonical.pool);
-    if (replayFingerprint.sha256 !== initialFingerprint.sha256) throw new Error('MIGRATION_CANDIDATE_REPLAY_DRIFT');
+    if (replayFingerprint.sha256 !== initialFingerprint.sha256) {
+      const driftGroups = Object.keys(initialFingerprint.groups).filter(name =>
+        JSON.stringify(initialFingerprint.groups[name]) !== JSON.stringify(replayFingerprint.groups[name]));
+      throw new Error(`MIGRATION_CANDIDATE_REPLAY_DRIFT:${driftGroups.join(',')}`);
+    }
 
     reviewPacket = await startDatabase({ reviewBundle: true });
     const reviewFingerprint = await schemaFingerprint(reviewPacket.pool);
