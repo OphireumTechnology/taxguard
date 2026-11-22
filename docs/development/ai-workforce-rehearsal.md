@@ -17,3 +17,9 @@ All 61 registrations remain DRAFT. A21 uses the Architecture Overview's Individu
 The disposable PostgreSQL suite explicitly loads `docs/development/sql/ai-advisory-job-draft.sql` for the new A10 cases. The draft partitions AI and ordinary claims, requires a current lease for completion, and atomically saves an A10 duplicate-group count and the terminal queue event. Advisory summaries always require human review. The draft exposes no browser read endpoint and retains no document hashes or raw evidence in the result.
 
 The worker accepts case-scoped A10 requests with selected source IDs. It resolves evidence before inspection and again before recording the result. The tests inject a synthetic resolver. Before hosted integration, bind this contract to current server-side actor, tenant, client, case, tax-year and stage authorization, including kill switches and atomic result acceptance against current governance evidence. The draft is outside the migration manifest and has no Railway entry point.
+
+## A09 missing-document advisory
+
+The local A09 evaluator reads a scoped Stage Two requirement manifest. It reports required and conditional evidence as missing, pending review, or needing correction. It excludes accepted, waived, inapplicable, satisfied, optional and informational rows. It rejects mixed engagement or tax-year records, duplicate requirement identifiers and unknown statuses. Output includes requirement IDs, manifest version and finding codes for human review.
+
+The evaluator is a deterministic specialist component. A hosted handler still needs an authorized durable manifest resolver, independent approval and queue/ledger integration. The commissioning matrix continues to count only existing routed handlers. A10 now sends malformed evidence to permanent refusal instead of leaving the lease to expire and retry.

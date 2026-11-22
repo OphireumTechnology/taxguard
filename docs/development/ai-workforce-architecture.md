@@ -44,6 +44,17 @@ Resolve the current actor, tenant, client, case, tax year, stage, agent grant an
 
 See the [rehearsal commands and implementation notes](ai-workforce-rehearsal.md), [SQL review draft](sql/ai-advisory-job-draft.sql), and [reconciliation and owner decisions](ai-architecture-overview-reconciliation.md).
 
+## Remaining specialist gaps
+
+A09 has a local manifest evaluator. Its hosted route, current authorization resolver and review queue integration are open. A00, A10 and A34 have bounded local routing or handler evidence. The other 57 entries have no specialist implementation evidenced by this development block.
+
+| Groups | Dependency before expanding |
+| --- | --- |
+| A01–A08, A11 | Durable intake, identity and evidence contracts with scoped authorization and fixtures. |
+| A12–A31 | Approved accounting and tax source versions, calculation provenance and independent review. |
+| A32–A42 excluding A34 | Exception and review contracts, human-controlled signing and filing, and an owner definition for A39. |
+| A43–A60 | Scoped drafts and operational signals, with human control over communications, payments and administration. |
+
 ## Development sequence
 
 1. Review and integrate the roster changes with exact-commit CI evidence.

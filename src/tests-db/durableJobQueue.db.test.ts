@@ -340,6 +340,14 @@ describe('A10 advisory job review draft', () => {
     expect((await events(queued.body.id)).at(-1)?.action).toBe('DEAD_LETTERED');
   });
 
+  it('permanently refuses malformed A10 evidence and writes no result', async () => {
+    const queued = await enqueueA10('jw-draft-ai-0004');
+    expect(await runA10AdvisoryJob(createWorker(), async () => evidence.map(row => ({ ...row, source_hash: 'invalid' })))).toBe('REFUSED');
+    expect(await results(queued.body.id)).toEqual([]);
+    const [job] = await sql('SELECT status, last_error_code FROM taxguard_durable_jobs WHERE id = $1', [queued.body.id]);
+    expect(job).toEqual({ status: 'DEAD_LETTER', last_error_code: 'VALIDATION_AI_EVIDENCE' });
+  });
+
   it('rolls back invalid summaries and rejects a stale lease', async () => {
     const queued = await enqueueA10('jw-draft-ai-0003');
     const consumer = createWorker();

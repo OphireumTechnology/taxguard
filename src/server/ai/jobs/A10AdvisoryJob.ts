@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import { GovernanceError } from '../governance/contracts';
 import type { EvidenceMetadata } from '../capabilities/contracts';
 import { inspectSelectedDocumentDuplicates } from '../documents/DocumentDuplicateAdvisory';
 import type { ClaimedJob, DurableJobWorker } from '../../taxguard/operations/durableJobWorker';
@@ -49,7 +50,15 @@ export async function runA10AdvisoryJob(worker: DurableJobWorker, resolveEvidenc
   if (!evidence || !evidenceMatches(request.sourceIds, evidence)) return refuse('AUTH_AI_EVIDENCE');
 
   const snapshot = structuredClone([...evidence]).sort((left, right) => left.source_id.localeCompare(right.source_id));
-  const report = inspectSelectedDocumentDuplicates(snapshot);
+  let report: ReturnType<typeof inspectSelectedDocumentDuplicates>;
+  try {
+    report = inspectSelectedDocumentDuplicates(snapshot);
+  } catch (error) {
+    if (error instanceof GovernanceError && error.code === 'AI_DOCUMENT_METADATA_INVALID') {
+      return refuse('VALIDATION_AI_EVIDENCE');
+    }
+    throw error;
+  }
 
   const latest = await resolveEvidence(request);
   if (!latest || !isDeepStrictEqual(snapshot, [...latest].sort((left, right) => left.source_id.localeCompare(right.source_id)))) {
