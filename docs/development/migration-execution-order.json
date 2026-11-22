@@ -850,6 +850,12 @@
         "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
         "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
       ]
+    },
+    {
+      "file": "supabase/migrations/20261122120000_ai_workforce_jobs_and_decisions.sql",
+      "dependsOn": [
+        "supabase/migrations/20261008060000_taxguard_ai_document_advisory_routing.sql"
+      ]
     }
   ]
 }
