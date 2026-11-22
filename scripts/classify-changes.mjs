@@ -33,7 +33,7 @@ export const AREAS = [
   { area: 'build-config', risk: 'medium', test: f => /^(vite\.config\.ts|tsconfig[^/]*\.json|CNAME|public\/CNAME)$/.test(f) },
   { area: 'tooling', risk: 'medium', test: f => f.startsWith('scripts/') || f.startsWith('docs/') },
   { area: 'frontend-services', risk: 'medium', test: f => f.startsWith('src/services/') || f.startsWith('src/context/') || f.startsWith('src/hooks/') },
-  { area: 'branding-and-assets', risk: 'low', test: f => f.startsWith('public/') || f === 'index.html' || /^src\/(config\/(companyBranding|aiBranding)|utils\/assets)\.ts$/.test(f) },
+  { area: 'branding-and-assets', risk: 'low', test: f => f.startsWith('public/') || f.startsWith('src/assets/') || f === 'index.html' || /^src\/(config\/(companyBranding|aiBranding)|utils\/assets)\.ts$/.test(f) },
   { area: 'frontend-ui', risk: 'low', test: f => /^src\/(components|public-v2|demo|pages|styles|utils|data|config)\//.test(f) || /^src\/[^/]+\.(tsx|css)$/.test(f) },
 ];
 const classify = file => AREAS.find(rule => rule.test(file)) ?? { area: 'other', risk: 'high' };
