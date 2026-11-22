@@ -416,11 +416,22 @@ describe('A10 advisory job review draft', () => {
     expect(first.status).toBe(201);
     expect(await runGovernedA10Job(database, T, 'worker-pilot')).toBe('COMPLETED');
     expect(await results(first.body.id)).toEqual([{ agent_id: 'A10', duplicate_group_count: 1, human_review_required: true }]);
+    const reviewPath = '/' + first.body.id + '/a10-advisory';
+    as('jq-prep1');
+    expect(await call('GET', reviewPath)).toEqual({ status: 200, body: {
+      agentId: 'A10', duplicateGroupCount: 1, humanReviewRequired: true,
+    } });
+    for (const uid of ['jq-prep2', 'jq-foreign']) {
+      as(uid);
+      expect((await call('GET', reviewPath)).status).toBe(404);
+    }
+    as('jq-prep1');
     const second = await enqueueA10('jw-revoked-evidence');
     expect(second.status).toBe(201);
     await sql("UPDATE taxguard_case_assignments SET active=false WHERE tenant_id=$1 AND case_id=$2 AND uid='jq-prep1'", [T, caseIds.E1]);
     expect(await runGovernedA10Job(database, T, 'worker-pilot')).toBe('REFUSED');
     expect(await results(second.body.id)).toEqual([]);
+    expect((await call('GET', reviewPath)).status).toBe(404);
   });
 
 });

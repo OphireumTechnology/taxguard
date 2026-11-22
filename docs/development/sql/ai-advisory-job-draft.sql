@@ -96,3 +96,23 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.taxguard_job_complete_ai(text,text,text,uuid,integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.taxguard_job_complete_ai(text,text,text,uuid,integer) TO service_role;
+
+-- Assigned staff can inspect the summary. Decision authority is a separate grant.
+CREATE OR REPLACE FUNCTION public.taxguard_job_read_a10(p_tenant text, p_actor text, p_job text) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE actor_role text; summary jsonb;
+BEGIN
+  actor_role := public.taxguard_practice_actor(p_tenant, p_actor);
+  SELECT jsonb_build_object('agentId', a.agent_id, 'duplicateGroupCount', a.duplicate_group_count,
+                            'humanReviewRequired', a.human_review_required)
+    INTO summary FROM public.taxguard_ai_job_advisories a
+    JOIN public.taxguard_durable_jobs j ON j.tenant_id=a.tenant_id AND j.id=a.job_id
+    WHERE j.tenant_id=p_tenant AND j.id=p_job AND j.status='COMPLETED' AND a.agent_id='A10'
+      AND public.taxguard_job_visible(p_tenant,p_actor,actor_role,j.client_id,j.case_id)
+      AND EXISTS (SELECT 1 FROM public.taxguard_case_assignments ca WHERE ca.tenant_id=j.tenant_id
+                  AND ca.case_id=j.case_id AND ca.uid=p_actor AND ca.active);
+  IF summary IS NULL THEN RAISE EXCEPTION 'JOB_ADVISORY_NOT_FOUND' USING ERRCODE='P0001'; END IF;
+  RETURN summary;
+END $$;
+REVOKE ALL ON FUNCTION public.taxguard_job_read_a10(text,text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.taxguard_job_read_a10(text,text,text) TO service_role;

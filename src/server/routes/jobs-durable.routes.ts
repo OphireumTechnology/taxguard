@@ -68,6 +68,8 @@ export function createJobsRouter(deps: JobsRouterDeps = {}) {
     return call(res, 'taxguard_job_enqueue', { ...base(req), p_job_type: b.jobType, p_payload: b.payload, p_client: b.clientId ?? null, p_case: b.caseId ?? null,
       p_priority: b.priority ?? null, p_max_attempts: b.maxAttempts ?? null, p_available_at: b.availableAt ?? null, p_idempotency_key: key }, 201);
   });
+  router.get('/:id/a10-advisory', (req: AuthenticatedRequest, res) =>
+    call(res, 'taxguard_job_read_a10', { ...base(req), p_job: req.params.id }));
   router.post('/:id/retry', (req: AuthenticatedRequest, res) => call(res, 'taxguard_job_retry', { ...base(req), p_job: req.params.id }));
   router.post('/:id/cancel', (req: AuthenticatedRequest, res) => call(res, 'taxguard_job_cancel', { ...base(req), p_job: req.params.id }));
   return router;
