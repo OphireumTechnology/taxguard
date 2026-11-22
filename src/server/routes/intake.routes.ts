@@ -219,7 +219,7 @@ intakeRouter.get('/dashboard', authenticateToken, (req: AuthenticatedRequest, re
           zip: '29201'
         },
         mailingAddressSameAsBusiness: true,
-        phoneUs: user.phone || '803-555-0100',
+        phoneUs: user.phone || '+1-803-555-0100',
         email: user.email,
         industrySector: 'Professional Services',
         primaryActivityDescription: 'Client consulting and business operations',
@@ -250,7 +250,7 @@ intakeRouter.get('/dashboard', authenticateToken, (req: AuthenticatedRequest, re
           role: 'Owner & Managing Member',
           title: 'Managing Member',
           email: user.email,
-          phone: user.phone || '803-555-0100',
+          phone: user.phone || '+1-803-555-0100',
           ownershipPercentage: 100,
           startDate: '2022-01-01',
           isUsResident: true,
@@ -376,7 +376,7 @@ intakeRouter.get('/dashboard', authenticateToken, (req: AuthenticatedRequest, re
       name: dossier.assignedAccountantName,
       title: 'Founder & Senior Managing Accountant',
       email: 'dhinds@artaxservices.com',
-      phone: '678-205-9486'
+      phone: '+1-678-205-9486'
     },
     currentEngagement: dossier.currentEngagementTitle,
     applicableTaxYear: dossier.taxYear,

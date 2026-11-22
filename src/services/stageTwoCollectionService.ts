@@ -1356,10 +1356,10 @@ let entityType: EntityReturnType = 'individual';
       nextAction = {
         type: 'AWAITING_REVIEW',
         title: 'Documents Received',
-        message: "We've received everything currently requested. DESTRIA TAX SERVICES LLC is reviewing your documents.",
+        message: "We've received everything currently requested. Destria Tax Services, LLC is reviewing your documents.",
         actionLabel: 'No action needed from you right now',
         statusBadge: 'Documents under review',
-        supportingText: 'DESTRIA TAX SERVICES LLC is reviewing your documents. No additional documents are required from you right now.'
+        supportingText: 'Destria Tax Services, LLC is reviewing your documents. No additional documents are required from you right now.'
       };
     }
 

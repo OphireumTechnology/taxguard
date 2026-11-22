@@ -202,7 +202,7 @@ accountantRouter.get('/clients', (req: AuthenticatedRequest, res) => {
       id: client.id,
       name: client.name,
       email: client.email,
-      phone: client.phone || '803-555-0100',
+      phone: client.phone || '+1-803-555-0100',
       companyName: client.companyName || onboarding?.businessInfo?.entityName || 'Individual Filer',
       entityStructure: onboarding?.businessInfo?.entityStructure || 'S-Corporation',
       servicePlan: currentEngagement?.servicePlanName || 'Tax & Advisory Retainer',

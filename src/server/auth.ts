@@ -381,7 +381,7 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
       severity: 'critical'
     });
     return res.status(403).json({ 
-      error: `Access Denied: Your account has been ${user.status}. Contact firm compliance at info@artaxservices.com.`,
+      error: `Access Denied: Your account has been ${user.status}. Contact firm compliance at info@destriataxservices.com.`,
       code: 'ACCOUNT_DISABLED' 
     });
   }

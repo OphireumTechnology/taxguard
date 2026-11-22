@@ -1,5 +1,5 @@
 /**
- * A/R TAX SERVICES, LLC - Dual Onboarding System Router
+ * Destria Tax Services, LLC - Dual Onboarding System Router
  * Implements completely separate workflows:
  * 1. Client Onboarding (Part 1 & 2)
  * 2. Staff (Accountant, Consultant, Reviewer) Onboarding via Admin Invitation (Part 3)
@@ -592,7 +592,7 @@ onboardingRouter.post('/staff/accept-invitation', async (req, res) => {
     email: invitation.email,
     name: `${invitation.legalFirstName} ${invitation.legalLastName}`,
     role: invitation.proposedRole as any,
-    phone: mobileNumber || '803-555-0100',
+    phone: mobileNumber || '+1-803-555-0100',
     status: 'pending' as const, // Pending until admin activation
     isVerified: true,
     mfaEnabled: true,

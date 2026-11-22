@@ -318,7 +318,7 @@ calendarRouter.post(['/book', '/confirm-booking'], authenticateToken, async (req
     const clientId = req.user?.id || 'guest_prospect';
     const effectiveClientName = clientName || req.user?.name || 'Valued Tax Client';
     const effectiveClientEmail = clientEmail || req.user?.email || 'client@example.com';
-    const effectiveClientPhone = clientPhone || req.user?.phone || '803-555-0100';
+    const effectiveClientPhone = clientPhone || req.user?.phone || '+1-803-555-0100';
 
     const targetStaffId = staffId || 'user_accountant_desmond';
     const staffUser = db.users.get(targetStaffId);
@@ -356,7 +356,7 @@ calendarRouter.post(['/book', '/confirm-booking'], authenticateToken, async (req
       : undefined;
 
     // Neutral title mandated by privacy requirements
-    const externalCalendarTitle = 'DESTRIA TAX SERVICES LLC Appointment';
+    const externalCalendarTitle = 'Destria Tax Services, LLC Appointment';
     const mockGoogleEventId = `gcal_${randomUUID().slice(0, 12)}`;
 
     // Create the confirmed appointment in portal database

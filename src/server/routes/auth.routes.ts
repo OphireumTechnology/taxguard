@@ -245,7 +245,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       severity: 'critical'
     });
     return res.status(403).json({
-      error: `Access Denied: Your account has been ${user.status}. Please contact DESTRIA TAX SERVICES LLC compliance at info@artaxservices.com.`,
+      error: `Access Denied: Your account has been ${user.status}. Please contact Destria Tax Services, LLC compliance at info@destriataxservices.com.`,
       code: 'ACCOUNT_DISABLED'
     });
   }

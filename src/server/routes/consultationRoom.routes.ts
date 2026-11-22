@@ -123,7 +123,7 @@ function getOrCreateRoom(appointmentId: string): SecureMeetingRoom {
       senderId: 'user_accountant_desmond',
       senderName: 'Desmond Hinds',
       senderRole: 'founder',
-      message: 'Welcome to your secure DESTRIA TAX SERVICES LLC consultation room. All video streams and reviewed materials are encrypted in transit.',
+      message: 'Welcome to your secure Destria Tax Services, LLC consultation room. All video streams and reviewed materials are encrypted in transit.',
       timestamp: new Date().toISOString(),
       isConfidential: true
     }

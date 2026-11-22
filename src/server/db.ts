@@ -318,7 +318,7 @@ class Database {
       contactInfo: {
         fullName: 'Michael Perotti',
         email: 'm.perotti@example.com',
-        phone: '803-555-0142',
+        phone: '+1-803-555-0142',
         address: '1201 Main St, Suite 1400',
         city: 'Columbia',
         state: 'SC',
@@ -590,7 +590,7 @@ class Database {
       name: 'Desmond Hinds',
       title: 'Founder & Senior Managing Accountant',
       email: 'dhinds@artaxservices.com',
-      phone: '678-205-9486',
+      phone: '+1-678-205-9486',
       credentials: ['EA Candidate', 'AFSP Registered Tax Return Preparer', 'Certified QuickBooks ProAdvisor'],
       specializations: ['S-Corporation Filings (1120-S)', 'Small Business Accountancy', 'Strategic Tax Planning', 'IRS Resolution'],
       avatarUrl: '/ceo/123456789-desmond.png',
@@ -607,7 +607,7 @@ class Database {
       name: 'Marcus Vance',
       title: 'Staff Tax Accountant',
       email: 'mvance@artaxservices.com',
-      phone: '803-555-0182',
+      phone: '+1-803-555-0182',
       credentials: ['MS Accounting', 'Certified Bookkeeper', 'Xero Advisor Certified'],
       specializations: ['Monthly Bookkeeping', 'Bank Reconciliations', '1065 Partnership Filings', 'Payroll Compliance'],
       avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
@@ -624,7 +624,7 @@ class Database {
       name: 'Elena Rostova, CPA',
       title: 'Principal Quality & Compliance Reviewer',
       email: 'erostova@artaxservices.com',
-      phone: '803-555-0177',
+      phone: '+1-803-555-0177',
       credentials: ['CPA (South Carolina Board of Accountancy)', 'IRS Enrolled Agent'],
       specializations: ['Quality Review & Maker-Checker', 'Audit Support & Representation', 'Section 7216 Disclosures'],
       avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
@@ -959,7 +959,7 @@ class Database {
     this.meetingLocations.set('phone_direct', {
       id: 'phone_direct',
       name: 'Direct Private Line (Accountant Outbound)',
-      address: '+1 (803) 555-0100',
+      address: '+1-803-555-0100',
       type: 'telephone',
       isActive: true
     });
@@ -1103,7 +1103,7 @@ class Database {
         legalLastName: 'Perotti',
         preferredName: 'Mike',
         email: 'm.perotti@example.com',
-        mobilePhone: '803-555-0142',
+        mobilePhone: '+1-803-555-0142',
         residentialAddress: {
           street: '1201 Main St',
           city: 'Columbia',

@@ -130,7 +130,7 @@ export async function processDocumentExtraction(
     documentCategory: aiClassifiedCategory,
     confidenceScore: overallConfidence,
     extractedFields: fields,
-    complianceNotice: 'PROFESSIONAL REVIEW REQUIRED: AI extraction is an advisory intake aid. All figures must be inspected and verified by an assigned DESTRIA TAX SERVICES LLC CPA or registered tax preparer before IRS filing.',
+    complianceNotice: 'PROFESSIONAL REVIEW REQUIRED: AI extraction is an advisory intake aid. All figures must be inspected and verified by an assigned Destria Tax Services, LLC CPA or registered tax preparer before IRS filing.',
     deterministicAudit: audit,
     processedBy: 'Deterministic OCR & Math Rules Engine',
     processedAt: new Date().toISOString()
