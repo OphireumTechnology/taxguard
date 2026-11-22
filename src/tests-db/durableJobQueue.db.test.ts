@@ -421,8 +421,13 @@ describe('A10 advisory job review draft', () => {
     expect(await call('GET', reviewPath)).toEqual({ status: 200, body: {
       agentId: 'A10', duplicateGroupCount: 1, humanReviewRequired: true,
     } });
+    const casePath = '/cases/' + caseIds.E1 + '/a10-advisories';
+    const summaries = await call('GET', casePath);
+    expect(summaries.status).toBe(200);
+    expect(summaries.body).toContainEqual(expect.objectContaining({ jobId: first.body.id, duplicateGroupCount: 1 }));
     for (const uid of ['jq-prep2', 'jq-foreign']) {
       as(uid);
+      expect((await call('GET', casePath)).status).toBe(404);
       expect((await call('GET', reviewPath)).status).toBe(404);
     }
     as('jq-prep1');

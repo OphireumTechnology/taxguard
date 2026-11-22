@@ -116,3 +116,24 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.taxguard_job_read_a10(text,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.taxguard_job_read_a10(text,text,text) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.taxguard_case_a10_summaries(p_tenant text, p_actor text, p_case text) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE r text; result jsonb;
+BEGIN
+  r := public.taxguard_practice_actor(p_tenant,p_actor);
+  IF NOT EXISTS (SELECT 1 FROM public.taxguard_cases c JOIN public.taxguard_case_assignments ca
+    ON ca.tenant_id=c.tenant_id AND ca.case_id=c.case_id
+    WHERE c.tenant_id=p_tenant AND c.case_id=p_case AND ca.uid=p_actor AND ca.active
+      AND public.taxguard_job_visible(p_tenant,p_actor,r,c.client_id,c.case_id))
+  THEN RAISE EXCEPTION 'JOB_ADVISORY_NOT_FOUND' USING ERRCODE='P0001'; END IF;
+  SELECT coalesce(jsonb_agg(public.taxguard_job_read_a10(p_tenant,p_actor,q.id)
+    || jsonb_build_object('jobId',q.id,'createdAt',q.created_at) ORDER BY q.created_at DESC,q.id),'[]'::jsonb)
+    INTO result FROM (SELECT j.id,j.created_at FROM public.taxguard_durable_jobs j
+      JOIN public.taxguard_ai_job_advisories a ON a.tenant_id=j.tenant_id AND a.job_id=j.id
+      WHERE j.tenant_id=p_tenant AND j.case_id=p_case AND j.status='COMPLETED' AND a.agent_id='A10'
+      ORDER BY j.created_at DESC,j.id LIMIT 20) q;
+  RETURN result;
+END $$;
+REVOKE ALL ON FUNCTION public.taxguard_case_a10_summaries(text,text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.taxguard_case_a10_summaries(text,text,text) TO service_role;

@@ -27,6 +27,8 @@ export const jobService = {
     const q = new URLSearchParams(Object.entries(filter).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]));
     return request<{ total: number; jobs: DurableJob[] }>('GET', q.toString() ? '?' + q : '');
   },
+  caseAdvisories: (caseId: string) => request<{ jobId: string; createdAt: string; duplicateGroupCount: number }[]>(
+    'GET', '/cases/' + encodeURIComponent(caseId) + '/a10-advisories'),
   retry: (jobId: string) => request<DurableJob>('POST', '/' + encodeURIComponent(jobId) + '/retry'),
   cancel: (jobId: string) => request<DurableJob>('POST', '/' + encodeURIComponent(jobId) + '/cancel'),
 };

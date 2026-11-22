@@ -45,3 +45,7 @@ The hosted pilot still needs approved staging configuration and case assignments
 The four server functions in `src/server/ai/onboarding/OnboardingAdvisories.ts` accept a trusted case scope and a matching metadata projection. A01 identifies missing intake, contact and consent steps. A02 refers pending or inconsistent identity evidence to staff. A03 intersects requested and approved service codes for the scoped tax year. A04 selects applicable organizer question IDs with missing or conflicting answers. Each returns a draft for human review.
 
 The synthetic tests exercise all four decisions, case mismatch and unexpected identity fields. These deterministic components still need a server-authorized projection from onboarding records, stage and assignment checks, and review queue integration before users can invoke them.
+
+### A10 Stage Three case panel
+
+The shared staff case workflow displays the latest 20 completed duplicate checks for the selected Stage Three case. The database checks active case assignment and job visibility before returning summaries. An unavailable result and an empty result have distinct displays. The panel supports inspection only. Decision recording still requires an approved reviewer role and review-ledger integration. Hosted staging acceptance and commissioning remain pending.
