@@ -212,4 +212,3 @@ export function createProductionApp(options?: { distPath?: string; publicPath?: 
 
   return app;
 }
-

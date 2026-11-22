@@ -152,4 +152,3 @@ export function createSpaFallbackHandler(customDistDir?: string): RequestHandler
     res.sendFile(indexHtmlPath);
   };
 }
-
