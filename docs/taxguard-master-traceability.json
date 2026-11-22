@@ -8286,7 +8286,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "9baad032d5b0f3d0ee51688e4d5956d3b6c78d122e1a3ff966fb2d720a1796bd",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "f494615525f1d9b13cc526f42c5315d5c10f9e7f65268dc4c209cfa104265f23",
+    "src/server/productionApp.ts": "1bf60a288bcb556befad1cbae535bde09da1ed36537cdd780b956c303cc05d03",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "2b2e91d83782dba72cf08bcac6366d9d150355b53dfd222a4d127313149a34a1",
