@@ -44,6 +44,8 @@ Resolve the current actor, tenant, client, case, tax year, stage, agent grant an
 
 See the [rehearsal commands and implementation notes](ai-workforce-rehearsal.md), [SQL review draft](sql/ai-advisory-job-draft.sql), and [reconciliation and owner decisions](ai-architecture-overview-reconciliation.md).
 
+See the [61-agent functional and access design](ai-workforce-functional-design.md) for tasks, data boundaries, features, review gates, and sequencing by application module.
+
 ## Remaining specialist gaps
 
 A09 has a local manifest evaluator. Its hosted route, current authorization resolver and review queue integration are open. A00, A10 and A34 have bounded local routing or handler evidence. The other 57 entries have no specialist implementation evidenced by this development block.
