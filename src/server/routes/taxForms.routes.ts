@@ -1,24 +1,28 @@
-/**
- * Tax Forms Library API: read-only reference catalog for practice staff.
- * No tenant or taxpayer data is read or returned, and there are no write endpoints.
- */
-import { Router, Response } from 'express';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../auth';
-import { TAX_FORMS_LIBRARY_ROLES } from '../../taxForms/access';
-import { formView, libraryCatalog } from '../../taxForms/registry';
+import express from 'express';
+import { authenticateToken } from '../auth';
 import { FEDERAL_FORMS } from '../../taxForms/federalForms';
+import { STATE_JURISDICTIONS } from '../../taxForms/stateJurisdictions';
 
-export const taxFormsRouter = Router();
+export const taxFormsRouter = express.Router();
 
-taxFormsRouter.use(authenticateToken, requireRole(...TAX_FORMS_LIBRARY_ROLES));
-taxFormsRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+taxFormsRouter.use(authenticateToken);
 
-taxFormsRouter.get('/', (_req: AuthenticatedRequest, res: Response) => {
-  res.json(libraryCatalog());
+taxFormsRouter.get('/', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    federalForms: FEDERAL_FORMS,
+    stateJurisdictions: STATE_JURISDICTIONS,
+    totalFederalForms: FEDERAL_FORMS.length,
+    totalStateJurisdictions: STATE_JURISDICTIONS.length,
+  });
 });
 
-taxFormsRouter.get('/forms/:id', (req: AuthenticatedRequest, res: Response) => {
-  const form = FEDERAL_FORMS.find(f => f.id === req.params.id);
-  if (!form) return res.status(404).json({ error: 'Form not found in the library.', code: 'FORM_NOT_FOUND' });
-  return res.json({ form: formView(form) });
+taxFormsRouter.get('/federal', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ forms: FEDERAL_FORMS });
+});
+
+taxFormsRouter.get('/states', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ states: STATE_JURISDICTIONS });
 });

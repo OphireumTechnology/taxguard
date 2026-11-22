@@ -17,6 +17,7 @@ import { ReviewerLedgerReviewPanel } from './ReviewerLedgerReviewPanel';
 import { StaffDocumentReviewPanel } from '../documents/StaffDocumentReviewPanel';
 import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
+import { Stages09To18CommandWorkspace } from '../stages09to18/Stages09To18CommandWorkspace';
 import './reviewerDashboard.css';
 
 const kpis=['Ready for Review','High Risk','Returned','Awaiting Approval','Due Today','Overdue'];
@@ -68,6 +69,7 @@ export function ReviewerDashboard() {
       {!inspecting && <FinalAuthorizationQueuePanel />}
       {/* Durable case workflow and document review: the server limits both to cases and clients assigned to this reviewer. */}
       {!inspecting && <CaseWorkflowPanel />}
+      {!inspecting && <Stages09To18CommandWorkspace compact />}
       {!inspecting && <StaffDocumentReviewPanel />}
       {/* Reviewers verify sources and decide on rule sets; the server enforces maker-checker and test gates. */}
       {!inspecting && <TaxRulesPanel />}

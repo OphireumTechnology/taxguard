@@ -169,6 +169,7 @@ import liveWorkflowRouter
  */
 import taxguardAiRouter
   from './src/server/routes/taxguard-ai.routes';
+import { createStages09To18Router } from './src/server/routes/stages-09-18.routes';
 
 import {
   db
@@ -752,6 +753,12 @@ app.use(
 app.use(
   '/api/case-authority',
   caseAuthorityRouter
+);
+
+// TaxGuard Enterprise Stages 09–18 Completion APIs (fail-closed external providers, exact-decimal calculations, maker-checker governance).
+app.use(
+  '/api/stages-09-18',
+  createStages09To18Router()
 );
 
 /**

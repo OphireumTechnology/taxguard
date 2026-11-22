@@ -147,10 +147,21 @@ export const FEDERAL_FORMS: FederalForm[] = [
   form('F-8938', '8938', 'Statement of Specified Foreign Financial Assets', ['international', SUP], 'individual', 'supporting', VERIFIED, 'about-form-8938', [], ['Foreign financial account and asset statements']),
   form('F-8865', '8865', 'Return of U.S. Persons With Respect to Certain Foreign Partnerships', ['international'], 'any-taxpayer', 'information', VERIFIED, 'about-form-8865', [], ['Foreign partnership financial statements and ownership records']),
 
-  // Authorizations and electronic filing
+  // Authorizations and electronic filing (Section 09.03 & Stage 11)
+  form('F-1040-NR', '1040-NR', 'U.S. Nonresident Alien Income Tax Return', [IND, 'international'], 'individual', 'original', VERIFIED, 'about-form-1040-nr',
+    ['Schedule A (Form 1040-NR)', 'Schedule NEC', 'Schedule OI'], ['Passport/visa residency records', 'Forms 1042-S / W-2 / 1099', 'Treaty disclosure documentation']),
+  form('F-8829', '8829', 'Expenses for Business Use of Your Home', [SUP, IND], 'individual', 'supporting', VERIFIED, 'about-form-8829', [], ['Home square footage logs', 'Mortgage interest, rent, utilities, and depreciation records']),
+  form('F-8995', '8995', 'Qualified Business Income Deduction Simplified Computation', [SUP, IND], 'individual', 'supporting', VERIFIED, 'about-form-8995', [], ['Schedule C / E / K-1 QBI statements']),
+  form('F-8995-A', '8995-A', 'Qualified Business Income Deduction', [SUP, IND], 'individual', 'supporting', VERIFIED, 'about-form-8995-a', ['Schedule A (Form 8995-A)', 'Schedule B', 'Schedule C', 'Schedule D'], ['W-2 wage and UBIA property basis schedules', 'SSTB classification workpapers']),
+  form('F-2210', '2210', 'Underpayment of Estimated Tax by Individuals, Estates, and Trusts', [SUP, IND, 'estates-trusts-1041'], 'any-taxpayer', 'supporting', VERIFIED, 'about-form-2210', [], ['Prior-year total tax', 'Quarterly estimated tax payment dates and amounts']),
   form('F-2848', '2848', 'Power of Attorney and Declaration of Representative', ['federal-authorizations'], 'any-taxpayer', 'authorization', VERIFIED, 'about-form-2848', [], ['Taxpayer signature', 'Representative credentials (CAF number)']),
   form('F-8821', '8821', 'Tax Information Authorization', ['federal-authorizations'], 'any-taxpayer', 'authorization', VERIFIED, 'about-form-8821', [], ['Taxpayer signature', 'Designee information']),
+  form('F-8878', '8878', 'IRS e-file Signature Authorization for Form 4868 or Form 2350', ['federal-authorizations', EXT], 'individual', 'authorization', VERIFIED, 'about-form-8878', [], ['Extension calculation', 'Taxpayer e-file PIN authorization']),
   form('F-8879', '8879', 'IRS e-file Signature Authorization', ['federal-authorizations'], 'individual', 'authorization', VERIFIED, 'about-form-8879', [], ['Completed return for review', 'Taxpayer signature (PIN)']),
+  form('F-8879-PE', '8879-PE', 'IRS e-file Signature Authorization for Form 1065', ['federal-authorizations', 'partnerships-1065'], 'partnership', 'authorization', VERIFIED, 'about-form-8879-pe', [], ['Approved Form 1065 package', 'Authorized partner/LLC member signature']),
+  form('F-8879-CORP', '8879-CORP', 'E-file Authorization for Corporations', ['federal-authorizations', 'c-corporations-1120'], 'c-corporation', 'authorization', VERIFIED, 'about-form-8879-corp', [], ['Approved Form 1120 package', 'Corporate officer signature']),
+  form('F-8879-S', '8879-S', 'IRS e-file Signature Authorization for Form 1120-S', ['federal-authorizations', 's-corporations-1120s'], 's-corporation', 'authorization', VERIFIED, 'about-form-8879-s', [], ['Approved Form 1120-S package', 'Corporate officer signature']),
+  form('F-8879-F', '8879-F', 'IRS e-file Signature Authorization for Form 1041', ['federal-authorizations', 'estates-trusts-1041'], 'estate-trust', 'authorization', VERIFIED, 'about-form-8879-f', [], ['Approved Form 1041 package', 'Fiduciary officer signature']),
 ];
 
 /** The eight mandatory primary federal return categories. */

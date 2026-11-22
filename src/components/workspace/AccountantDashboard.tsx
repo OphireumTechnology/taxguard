@@ -23,6 +23,7 @@ import { CaseWorkflowPanel } from './CaseWorkflowPanel';
 import { StaffDocumentReviewPanel } from '../documents/StaffDocumentReviewPanel';
 import { StaffMessageInboxPanel } from '../communications/StaffMessageInboxPanel';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel';
+import { Stages09To18CommandWorkspace } from '../stages09to18/Stages09To18CommandWorkspace';
 
 const tabs = ['Overview','Client Info','Documents','AI Preparation','Tax Forms','Review & Edit','Workpapers','State Forms','Client Approval','E-File','History'];
 const QUEUE_FILTERS = ['Assigned Cases','Needs Attention','Due Today','Overdue','Waiting on Client','Ready for Review','Client Approval'];
@@ -153,6 +154,7 @@ export function AccountantDashboard() {
       {!inspecting && <PracticeOperationsPanel />}
       {/* Durable case workflow and document review, limited by the server to this preparer's assignments. */}
       {!inspecting && <CaseWorkflowPanel />}
+      {!inspecting && <Stages09To18CommandWorkspace compact />}
       {!inspecting && <StaffDocumentReviewPanel />}
       {!inspecting && <StaffMessageInboxPanel />}
       {!inspecting && <AppointmentsPanel mode={{ kind: 'staff' }} actorId={currentUser?.id} />}
