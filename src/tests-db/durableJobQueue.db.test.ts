@@ -1,3 +1,5 @@
+import { runGovernedA10Job } from '../server/ai/jobs/runGovernedA10Job';
+import { PgGovernanceDatabase } from '../server/ai/governance/SqlGovernanceStore';
 import { readFileSync } from 'node:fs';
 import { runA10AdvisoryJob } from '../server/ai/jobs/A10AdvisoryJob';
 import type { EvidenceMetadata } from '../server/ai/capabilities/contracts';
@@ -346,6 +348,16 @@ describe('A10 advisory job review draft', () => {
     expect(await results(queued.body.id)).toEqual([]);
     const [job] = await sql('SELECT status, last_error_code FROM taxguard_durable_jobs WHERE id = $1', [queued.body.id]);
     expect(job).toEqual({ status: 'DEAD_LETTER', last_error_code: 'VALIDATION_AI_EVIDENCE' });
+  });
+
+  it('refuses a real SQL-backed job without active governance and writes no summary', async () => {
+    const queued = await enqueueA10('jw-draft-ai-0005');
+    expect(queued.status).toBe(201);
+    const database = new PgGovernanceDatabase(db.pool);
+    expect(await runGovernedA10Job(database, T2, 'worker-governed')).toBe('IDLE');
+    expect(await runGovernedA10Job(database, T, 'worker-governed')).toBe('REFUSED');
+    expect(await results(queued.body.id)).toEqual([]);
+    expect((await events(queued.body.id)).map(event => event.action)).toEqual(['ENQUEUED', 'CLAIMED', 'DEAD_LETTERED']);
   });
 
   it('rolls back invalid summaries and rejects a stale lease', async () => {

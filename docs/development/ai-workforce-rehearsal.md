@@ -31,3 +31,9 @@ A05 checks a scoped vault snapshot using the existing server upload metadata val
 A08 compares staged extraction fields against independently resolved anchors for the same released document version. It reports missing anchors or value mismatches using field keys and page numbers. The report excludes actual extracted values and cannot verify a field or change an authoritative tax record.
 
 Both components use synthetic tests and need governed evidence resolvers, scoped review UI, and queue integration before hosting. A07 also requires a commissioned OCR provider and authoritative source lineage. The legacy sample extraction path stays outside this production integration. The release gate across all 61 requires approved scopes, staged exercises, review evidence, and owner resolution of A39.
+
+## SQL-backed A10 dispatch composition
+
+The local staging composition uses the durable job's requesting actor and resolves the tax year from the exact tenant, client and case in PostgreSQL. It evaluates A00 coordination and A10 document-read policies separately using the existing SQL governance store. The selected metadata, advisory calculation and fenced completion share one serializable database transaction. Policy denial records a refused queue attempt and no advisory result. Unexpected failures roll back the transaction.
+
+The hosted pilot still needs approved staging configuration and case assignments, a successful run using approved governance fixtures, and a scoped review API/UI backed by the review ledger. No agent is activated by this composition. Use only an isolated staging database and synthetic evidence while verifying the rollout.
