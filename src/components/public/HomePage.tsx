@@ -2,10 +2,11 @@ import React, { useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { BRAND_ASSETS } from '../../utils/assets';
-import { ServiceCardImage, EditorialSplitImage, FounderPortrait } from './images';
+import { FounderPortrait } from './images';
 import { HeroFinancialEcosystem } from './home/HeroFinancialEcosystem';
 import { IntelligenceCapabilitiesSection } from './home/IntelligenceCapabilitiesSection';
 import { TaxWorkflowDemonstration } from './home/TaxWorkflowDemonstration';
+import { CoreServicesShowcase } from './home/CoreServicesShowcase';
 import { BlockchainIntegritySection } from './home/BlockchainIntegritySection';
 import { FinancialAnalyticsShowcase } from './home/FinancialAnalyticsShowcase';
 import { SecurityArchitectureSection } from './home/SecurityArchitectureSection';
@@ -15,11 +16,7 @@ import {
   ArrowRight,
   Briefcase,
   Building2,
-  Check,
   Cpu,
-  Download,
-  FileCheck2,
-  FileSpreadsheet,
   HardHat,
   HeartHandshake,
   Home,
@@ -33,9 +30,7 @@ import {
   Stethoscope,
   TrendingUp,
   Truck,
-  UploadCloud,
   UtensilsCrossed,
-  Workflow,
 } from 'lucide-react';
 
 const FOUR_PILLARS = [
@@ -431,247 +426,8 @@ export const HomePage: React.FC = () => {
       {/* 5. INTELLIGENT TAX PREPARATION WORKFLOW (10 SEQUENTIAL STAGES) */}
       <TaxWorkflowDemonstration />
 
-      {/* 6. CORE TAX, ACCOUNTING & ADVISORY SERVICES + BOOKKEEPING INTEGRATION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16" aria-labelledby="core-services-heading">
-        <div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 sm:mb-12 gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <p className="text-xs font-semibold tracking-[0.2em] text-[#E5B552] uppercase">
-                Core Services
-              </p>
-              <h2
-                id="core-services-heading"
-                className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight [text-wrap:balance]"
-              >
-                Comprehensive Tax Preparation, Accounting &amp; Wealth Advisory
-              </h2>
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                Full-cycle individual and corporate tax preparation, proactive strategy, accounting integration, and wealth preservation structured for clarity and long-term continuity.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCurrentPage('services')}
-              className="text-xs font-bold text-[#E5B552] hover:text-white inline-flex items-center gap-1.5 transition-colors self-start md:self-end py-2 whitespace-nowrap"
-            >
-              <span>View Full Service Catalog</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-7 items-stretch">
-            {/* Service 1: Tax Advisory & Strategic Planning */}
-            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0C2440] border border-slate-700/80 hover:border-[#D4A843]/60 transition-all flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <ServiceCardImage
-                  src={BRAND_ASSETS.taxAdvisoryPlanningJpg}
-                  webpSrc={BRAND_ASSETS.taxAdvisoryPlanningWebp}
-                  alt="Professional tax advisor discussing strategic tax planning with a client"
-                  categoryBadge="Tax Advisory & Strategy"
-                  icon={<Workflow className="w-5 h-5 text-[#E5B552]" />}
-                />
-                <h3 className="font-serif text-2xl font-bold text-white">Tax Advisory &amp; Strategic Planning</h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Forward-looking federal and multistate tax planning designed to model transactions, evaluate entity structures, and align quarterly cash flow with statutory requirements.
-                </p>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Strategic Entity Selection &amp; Structuring (LLC, S-Corp, C-Corp)</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Quarterly Tax Projections &amp; Estimated Payment Schedules</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Section 199A QBI &amp; State Pass-Through Entity Tax (PTET) Analysis</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>IRS Transcript Review &amp; Compliance Resolution Support</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Service 2: Corporate Compliance & Entity Filings */}
-            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0C2440] border border-slate-700/80 hover:border-[#D4A843]/60 transition-all flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <ServiceCardImage
-                  src={BRAND_ASSETS.corporateBusinessAdvisoryJpg}
-                  webpSrc={BRAND_ASSETS.corporateBusinessAdvisoryWebp}
-                  alt="Business professionals reviewing corporate financial and advisory matters"
-                  categoryBadge="Corporate & Enterprise"
-                  icon={<Building2 className="w-5 h-5 text-[#E5B552]" />}
-                />
-                <h3 className="font-serif text-2xl font-bold text-white">Corporate Compliance &amp; Entity Filings</h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Structured compliance preparation for operating companies, partnerships, and multi-entity groups managing federal and multistate reporting obligations.
-                </p>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Form 1120-S (S-Corporation), Form 1065 (Partnership) &amp; Form 1120</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Multistate Nexus &amp; Apportionment Review</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Owner Reasonable Compensation &amp; Payroll Tax Coordination</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Organized Schedule K-1 Delivery via Secure Client Portal</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Service 3: Wealth, Estate & Asset Protection */}
-            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0C2440] border border-slate-700/80 hover:border-[#D4A843]/60 transition-all flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <ServiceCardImage
-                  src={BRAND_ASSETS.estateLegacyPlanningJpg}
-                  webpSrc={BRAND_ASSETS.estateLegacyPlanningWebp}
-                  alt="Advisor consulting with clients on wealth, estate and asset protection planning"
-                  categoryBadge="Wealth & Legacy"
-                  icon={<Scale className="w-5 h-5 text-[#E5B552]" />}
-                />
-                <h3 className="font-serif text-2xl font-bold text-white">Wealth, Estate &amp; Asset Protection</h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Collaborative tax planning alongside estate attorneys and family fiduciaries to help structure trusts, gifts, and business transitions with clarity.
-                </p>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Revocable &amp; Irrevocable Trust Tax Reporting (Form 1041)</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Estate &amp; Gift Tax Compliance Coordination (Form 706 / 709)</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Business Succession &amp; Multi-Generational Transfer Planning</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Direct Coordination with Independent Legal &amp; Financial Counsel</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Service 4: Meticulous Individual Tax Filings */}
-            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0C2440] border border-slate-700/80 hover:border-[#D4A843]/60 transition-all flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <ServiceCardImage
-                  src={BRAND_ASSETS.meticulousTaxPrepJpg}
-                  webpSrc={BRAND_ASSETS.meticulousTaxPrepWebp}
-                  alt="Tax professional carefully reviewing tax documents and financial records"
-                  categoryBadge="Accuracy & Compliance"
-                  icon={<FileCheck2 className="w-5 h-5 text-[#E5B552]" />}
-                />
-                <h3 className="font-serif text-2xl font-bold text-white">Meticulous Individual Tax Filings</h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Disciplined preparation standards for executives, investors, and families with multi-source income, real estate holdings, and pass-through interests.
-                </p>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-700/80">
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Federal Form 1040 &amp; Multi-State Individual Income Tax Returns</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Structured Workpaper Reconciliation &amp; Practitioner Quality Review</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Schedule C, Schedule E (Real Estate), Equity Comp &amp; K-1 Schedules</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Client Review Walkthrough &amp; Formal Filing Authorization Package</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Bookkeeping, Financial Reporting & Accounting Integration Split */}
-        <div className="rounded-3xl bg-[#0C2440]/70 border border-slate-700/80 p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-7 space-y-6">
-            <div className="space-y-3">
-              <p className="text-xs font-semibold tracking-[0.2em] text-[#E5B552] uppercase">
-                Intelligent Accounting &amp; Reporting
-              </p>
-              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Organized Bookkeeping, Ledger Reconciliation &amp; Client Portal Collaboration
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                Keep business accounting and tax preparation connected throughout the year. Submit trial balances, charts of accounts, and monthly statements into our structured workspace so book-to-tax adjustments are tracked cleanly ahead of filing season.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-700/80">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-400 mb-2" />
-                <div className="text-xs font-bold text-white">QuickBooks Exports</div>
-                <div className="text-[11px] text-slate-400 mt-1">Trial balance &amp; chart of accounts review</div>
-              </div>
-              <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-700/80">
-                <TrendingUp className="w-5 h-5 text-sky-400 mb-2" />
-                <div className="text-xs font-bold text-white">Xero Ledgers</div>
-                <div className="text-[11px] text-slate-400 mt-1">General ledger &amp; book-to-tax mapping</div>
-              </div>
-              <div className="p-4 rounded-xl bg-[#071A2E] border border-slate-700/80">
-                <Download className="w-5 h-5 text-[#E5B552] mb-2" />
-                <div className="text-xs font-bold text-white">Structured Intake</div>
-                <div className="text-[11px] text-slate-400 mt-1">CSV, Excel &amp; PDF statement ingestion</div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <a
-                href="/portal"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage('portal');
-                }}
-                className="px-5 py-3 rounded-xl font-bold text-xs text-[#071D3A] bg-[#D4A843] hover:bg-[#E5B552] transition-colors inline-flex items-center gap-2 whitespace-nowrap"
-                id="portal-upload-btn"
-                role="link"
-              >
-                <span>Access Secure Client Portal</span>
-                <UploadCloud className="w-4 h-4" />
-              </a>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('tax_strategies')}
-                className="px-5 py-3 rounded-xl font-semibold text-xs text-slate-100 bg-[#071A2E] hover:bg-[#102D4F] border border-slate-700 hover:border-[#D4A843]/50 transition-colors inline-flex items-center gap-2 whitespace-nowrap"
-              >
-                <span>Explore Tax Strategies</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#E5B552]" />
-              </button>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5">
-            <EditorialSplitImage
-              srcJpg={BRAND_ASSETS.bookkeepingReportingJpg}
-              srcWebp={BRAND_ASSETS.bookkeepingReportingWebp}
-              alt="Executive financial reporting and accounting workstation with financial ledger and digital integration"
-              caption="Financial Reporting & Book-to-Tax Reconciliation"
-              tag="Accounting Oversight"
-              aspectRatio="4/3"
-            />
-          </div>
-        </div>
-      </section>
+      {/* 6. CORE TAX, ACCOUNTING & ADVISORY SERVICES + INTELLIGENT ACCOUNTING SHOWCASE */}
+      <CoreServicesShowcase onNavigate={setCurrentPage} />
 
       {/* 7. BLOCKCHAIN-INSPIRED FINANCIAL DATA INTEGRITY */}
       <BlockchainIntegritySection />
