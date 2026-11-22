@@ -2,6 +2,10 @@ name: Deploy TaxGuard Production to GitHub Pages
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: [TaxGuard Development CI]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -13,6 +17,7 @@ concurrency:
 jobs:
   build:
     name: Validate and Build Production
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
 
     permissions:
@@ -27,11 +32,17 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout explicitly dispatched main commit
+      - name: Checkout validated main commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
+
+      - name: Reject stale release candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$(git ls-remote origin refs/heads/main | cut -f1)"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -143,7 +154,7 @@ jobs:
 
           test "$(cat dist/CNAME)" = "destriataxservices.com"
 
-          printf '%s\n' "$GITHUB_SHA" > dist/release-commit.txt
+          git rev-parse HEAD > dist/release-commit.txt
           echo "Production artifact verified."
 
       - name: Upload production artifact
