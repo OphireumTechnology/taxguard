@@ -34,7 +34,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
   try {
     const docB = Array.from(db.documents.values()).find(d => d.clientId === 'user_client_2');
     const docBId = docB ? docB.id : 'doc_1099_misc_2025';
-    
+
     // Attempt access with Client A's identity
     const targetDoc = db.documents.get(docBId);
     let accessBlocked = false;
@@ -51,7 +51,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'isolation',
       status: accessBlocked ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 403 Forbidden with client isolation filter alert',
-      actualOutcome: accessBlocked 
+      actualOutcome: accessBlocked
         ? `Blocked with HTTP ${returnedStatus} Forbidden. Client A (user_client_1) denied access to Client B doc (${docBId}).`
         : 'Failed: Client A retrieved unowned document!',
       details: 'Strict client tenant isolation enforced by requireClientIsolation and /api/documents filter.',
@@ -82,7 +82,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'rbac',
       status: blocked ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 403 Forbidden: Accountant not assigned to client caseload',
-      actualOutcome: blocked 
+      actualOutcome: blocked
         ? 'Blocked with HTTP 403. Accountant A (user_accountant_desmond) is not assigned to Client B (user_client_2).'
         : 'Failed: Unassigned accountant was granted access.',
       details: 'Enforced by requireAccountantAssignment middleware and /api/documents controller.',
@@ -119,7 +119,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'maker_checker',
       status: approvalBlocked ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 403 Forbidden: SELF_APPROVAL_FORBIDDEN',
-      actualOutcome: approvalBlocked 
+      actualOutcome: approvalBlocked
         ? 'Blocked with HTTP 403 SELF_APPROVAL_FORBIDDEN. Elena Rostova, CPA required for secondary sign-off.'
         : 'Failed: Preparer was allowed to self-approve return!',
       details: 'Enforced by /api/engagements/:id/status and journal entry approval gates.',
@@ -150,7 +150,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'auth',
       status: rejected ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 401 Unauthorized: AUTH_REQUIRED',
-      actualOutcome: rejected 
+      actualOutcome: rejected
         ? 'Rejected with HTTP 401 AUTH_REQUIRED. Bearer token check enforced.'
         : 'Failed: Private endpoint responded without credentials.',
       details: 'All /api/documents, /api/engagements, /api/admin routes gated by authenticateToken.',
@@ -181,7 +181,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'upload_security',
       status: uploadBlocked ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 400 Bad Request: Unsupported file format',
-      actualOutcome: uploadBlocked 
+      actualOutcome: uploadBlocked
         ? `Blocked with HTTP 400. Mime-type "${invalidMime}" rejected by whitelist validator.`
         : 'Failed: Disallowed file type was accepted.',
       details: 'Pre-upload MIME whitelist + malware heuristic scanning hook.',
@@ -208,7 +208,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
 
     if (existing) {
       // Find conflict for same accountant, date, and timeslot
-      const conflict = Array.from(db.appointments.values()).find(a => 
+      const conflict = Array.from(db.appointments.values()).find(a =>
         a.accountantId === existing.accountantId &&
         a.date === existing.date &&
         a.timeSlot === existing.timeSlot
@@ -224,7 +224,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'scheduling',
       status: doubleBookingBlocked ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 409 Conflict: SLOT_UNAVAILABLE',
-      actualOutcome: doubleBookingBlocked 
+      actualOutcome: doubleBookingBlocked
         ? `Blocked with HTTP 409 Conflict. Slot ${existing?.date} at ${existing?.timeSlot} already reserved.`
         : 'Failed: Overlapping appointment was created.',
       details: 'Conflict checking algorithm in /api/appointments/book prevents concurrent calendar allocations.',
@@ -259,7 +259,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'auth',
       status: sessionTerminated ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 403 Forbidden: ACCOUNT_DISABLED and token purge',
-      actualOutcome: sessionTerminated 
+      actualOutcome: sessionTerminated
         ? 'Session terminated with HTTP 403 ACCOUNT_DISABLED. Token purged and security event logged.'
         : 'Failed: Disabled user was able to transact.',
       details: 'Real-time user status inspection in authenticateToken middleware prevents zombie sessions.',
@@ -294,7 +294,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
       category: 'rbac',
       status: taxAccessBlocked ? 'passed' : 'failed',
       expectedOutcome: 'HTTP 403 Forbidden: RECRUITER_TAX_RESTRICTION',
-      actualOutcome: taxAccessBlocked 
+      actualOutcome: taxAccessBlocked
         ? 'Blocked with HTTP 403 RECRUITER_TAX_RESTRICTION. Recruiters restricted exclusively to candidate profiles.'
         : 'Failed: Recruiter accessed client financial records.',
       details: 'Enforced by blockRecruiterFromTaxRecords middleware across all tax document and engagement routes.',
@@ -473,7 +473,7 @@ securityRouter.get('/run-suite', async (req: Request, res: Response) => {
   try {
     const integrations = Array.from(db.detailedIntegrations.values());
     // Verify that objects returned have masked IDs and NO client secrets or raw tokens
-    const hasExposedSecret = integrations.some((integ: any) => 
+    const hasExposedSecret = integrations.some((integ: any) =>
       integ.clientSecret || integ.accessToken || integ.refreshToken || (integ.maskedOrgId && !integ.maskedOrgId.includes('***'))
     );
 

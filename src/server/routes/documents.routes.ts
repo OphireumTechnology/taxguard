@@ -7,9 +7,9 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID, randomBytes } from 'crypto';
 import { db } from '../db';
-import { 
-  authenticateToken, 
-  AuthenticatedRequest, 
+import {
+  authenticateToken,
+  AuthenticatedRequest,
   blockRecruiterFromTaxRecords,
   resolveAuthorizedClientContext
 } from '../auth';
@@ -115,8 +115,8 @@ documentsRouter.get('/', authenticateToken, blockRecruiterFromTaxRecords, (req: 
   if (status) docs = docs.filter(d => d.status === status);
   if (search && typeof search === 'string') {
     const q = search.toLowerCase();
-    docs = docs.filter(d => 
-      d.fileName.toLowerCase().includes(q) || 
+    docs = docs.filter(d =>
+      d.fileName.toLowerCase().includes(q) ||
       (d.description && d.description.toLowerCase().includes(q))
     );
   }
@@ -185,9 +185,9 @@ documentsRouter.get('/download/:token', (req: Request, res: Response) => {
   const record = db.signedDownloadTokens.get(token);
 
   if (!record) {
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Access Denied: Invalid or revoked download authorization token.',
-      code: 'TOKEN_INVALID' 
+      code: 'TOKEN_INVALID'
     });
   }
 
@@ -200,9 +200,9 @@ documentsRouter.get('/download/:token', (req: Request, res: Response) => {
       details: `Attempted download with expired signed token for doc #${record.documentId}.`,
       severity: 'warning'
     });
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Access Denied: Signed download token has expired (5-minute limit exceeded). Request a new token.',
-      code: 'TOKEN_EXPIRED' 
+      code: 'TOKEN_EXPIRED'
     });
   }
 
@@ -266,7 +266,7 @@ documentsRouter.post('/upload', authenticateToken, blockRecruiterFromTaxRecords,
 
     // AI Document Extraction Pipeline
     const extraction = await processDocumentExtraction(
-      fileName, 
+      fileName,
       rawContentSample || `Sample content for ${fileName}`,
       category
     );

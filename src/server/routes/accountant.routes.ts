@@ -9,19 +9,19 @@ import { projectAccountantCases } from '../accountantDashboardProjection';
 
 import { Router } from 'express';
 import { db } from '../db';
-import { 
-  authenticateToken, 
-  requireRole, 
+import {
+  authenticateToken,
+  requireRole,
   requireAccountantAssignment,
   requireAssignmentPermission,
-  AuthenticatedRequest 
+  AuthenticatedRequest
 } from '../auth';
 import { randomUUID } from 'crypto';
 import { isStaffCurrentlyAssignedToClient, isAssignmentCurrentlyEffective } from '../assignment-authorization';
 import { decodeBase64Strict, formatDocumentSize, isUploadRejected, matchesFileSignature, validateDocumentUpload } from '../documentUploadValidation';
-import { 
-  AccountingWorkflowTask, 
-  DocumentRequest, 
+import {
+  AccountingWorkflowTask,
+  DocumentRequest,
   DocumentItem,
   DocumentStatus,
   JournalEntryDraft,
@@ -108,22 +108,22 @@ accountantRouter.get('/overview', (req: AuthenticatedRequest, res) => {
 
   // Documents awaiting review across assigned clients
   const allDocs = Array.from(db.documents.values());
-  const docsAwaitingReview = allDocs.filter(d => 
+  const docsAwaitingReview = allDocs.filter(d =>
     assignedClientIds.has(d.clientId) &&
     (d.status === 'pending_review' || d.status === 'uploaded' || d.status === 'needs_correction')
   );
 
   // Unread or awaiting client messages
   const allMessages = Array.from(db.messages.values());
-  const clientQuestions = allMessages.filter(m => 
+  const clientQuestions = allMessages.filter(m =>
     assignedClientIds.has(m.clientId || '') &&
-    !m.isInternalOnly && 
+    !m.isInternalOnly &&
     m.senderRole === 'client'
   ).length;
 
   // Connection alerts (errors or needing re-auth)
   const allIntegrations = Array.from(db.detailedIntegrations.values());
-  const connectionAlerts = allIntegrations.filter(i => 
+  const connectionAlerts = allIntegrations.filter(i =>
     assignedClientIds.has(i.clientId) &&
     (i.status === 'error' || i.status === 'needs_reauth')
   ).length;
@@ -1097,8 +1097,8 @@ accountantRouter.post('/journal-entries', requireAccountantAssignment, (req: Aut
   const creditsRounded = Math.round(totalCredits * 100) / 100;
 
   if (debitsRounded !== creditsRounded) {
-    return res.status(400).json({ 
-      error: `Out of balance: Total Debits ($${debitsRounded.toFixed(2)}) must equal Total Credits ($${creditsRounded.toFixed(2)}). Difference: $${Math.abs(debitsRounded - creditsRounded).toFixed(2)}.` 
+    return res.status(400).json({
+      error: `Out of balance: Total Debits ($${debitsRounded.toFixed(2)}) must equal Total Credits ($${creditsRounded.toFixed(2)}). Difference: $${Math.abs(debitsRounded - creditsRounded).toFixed(2)}.`
     });
   }
 

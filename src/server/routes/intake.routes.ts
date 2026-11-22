@@ -37,7 +37,7 @@ export function recalculateSetupAreasAndProgress(dossier: FullClientIntakeDossie
     status: isBusinessComplete ? 'complete' : 'in_progress',
     statusLabel: isBusinessComplete ? 'Complete' : 'In Progress',
     badgeVariant: isBusinessComplete ? 'success' : 'warning',
-    description: isBusinessComplete 
+    description: isBusinessComplete
       ? `Verified legal name, formation in ${bp.formationState}, and business address.`
       : 'Legal entity name, formation state, business address, and contact details.',
     requiredForSubmission: true,

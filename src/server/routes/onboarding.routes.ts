@@ -10,13 +10,13 @@ import { randomUUID, createHash } from 'crypto';
 import { db } from '../db';
 import { authenticateToken, AuthenticatedRequest, requireRole, hashPassword } from '../auth';
 import { canAccessStaffClient } from '../clientAccess';
-import { 
-  ClientOnboardingDossier, 
-  StaffInvitation, 
-  StaffOnboardingDossier, 
+import {
+  ClientOnboardingDossier,
+  StaffInvitation,
+  StaffOnboardingDossier,
   StaffRole,
   ClientOnboardingStatus,
-  StaffOnboardingStatus 
+  StaffOnboardingStatus
 } from '../../types';
 
 export const onboardingRouter = Router();

@@ -87,7 +87,7 @@ profileAmendmentRouter.get('/authoritative', (req: AuthenticatedRequest, res: Re
 
   const email = originalDossier?.identityContact?.email || originalDossier?.email || user.email;
   const phone = profile.amendedFields.phone || originalDossier?.identityContact?.mobilePhone || originalDossier?.phone || user.phone || '';
-  
+
   const residentialAddress =
     profile.amendedFields.residentialAddress ||
     originalDossier?.identityContact?.residentialAddress ||

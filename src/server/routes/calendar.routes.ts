@@ -27,12 +27,12 @@ function canManageAppointment(user: NonNullable<AuthenticatedRequest['user']>, a
   if (ADMIN_ROLES.has(user.role)) return Boolean(user.tenantId) && staffTenantOf(apt.accountantId) === user.tenantId;
   return Boolean(apt.clientId) && canAccessStaffClient(user, apt.clientId!);
 }
-import { 
+import {
   AppointmentTypeCode,
-  SynchronizedAppointment, 
-  AvailableTimeSlot, 
-  CalendarBusyBlock, 
-  CalendarConnection 
+  SynchronizedAppointment,
+  AvailableTimeSlot,
+  CalendarBusyBlock,
+  CalendarConnection
 } from '../../types/calendar';
 
 export const calendarRouter = Router();
@@ -43,12 +43,12 @@ function formatSlotUtc(dateStr: string, timeStr: string, timeZone: string = 'Ame
   const [hourStr, minStr] = timeStr.split(':');
   const hour = parseInt(hourStr, 10);
   const min = parseInt(minStr, 10);
-  
+
   // Approximate standard EDT/EST offset (-4h EDT / -5h EST)
   const offsetHours = 4; // EDT
   const utcDate = new Date(`${dateStr}T${timeStr}:00.000Z`);
   utcDate.setUTCHours(hour + offsetHours, min);
-  
+
   const startUtc = utcDate.toISOString();
   const endDate = new Date(utcDate.getTime() + 45 * 60 * 1000); // default 45m
   const endUtc = endDate.toISOString();
@@ -186,12 +186,12 @@ export function computeAvailableSlotsForDate(params: {
 }
 
 calendarRouter.get('/available-slots', (req, res) => {
-  const { 
-    serviceTypeCode = 'new_client_consultation', 
-    staffId, 
-    requestedFounder, 
-    date, 
-    clientTimeZone = 'America/New_York' 
+  const {
+    serviceTypeCode = 'new_client_consultation',
+    staffId,
+    requestedFounder,
+    date,
+    clientTimeZone = 'America/New_York'
   } = req.query as Record<string, string>;
 
   if (!date) {
@@ -351,7 +351,7 @@ calendarRouter.post(['/book', '/confirm-booking'], authenticateToken, async (req
     // Two-Way Google Calendar / Microsoft Outlook Sync Synthesis:
     // Generate private meeting link and neutral calendar event title
     const isVirtual = meetingType === 'virtual';
-    const virtualMeetingUrl = isVirtual 
+    const virtualMeetingUrl = isVirtual
       ? `https://meet.google.com/art-${randomUUID().slice(0, 4)}-${randomUUID().slice(0, 3)}`
       : undefined;
 
