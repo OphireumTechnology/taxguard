@@ -1,144 +1,249 @@
-import { LiveWorkflowApi } from './liveWorkflowApi';
+import {
+  LiveWorkflowApi,
+  LiveWorkflowEligibility,
+  LiveWorkflowState
+} from './liveWorkflowApi';
+
+export type LiveWorkflowAuthorityStatus =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'error';
 
 export interface LiveWorkflowAuthoritySnapshot {
-  clientId: string;
-  taxYear: number;
-  currentStage: number;
-  completedStages: number[];
-  status: string;
-  loading?: boolean;
-  error?: string | null;
-  workflow?: any;
-  eligibility?: any;
-  stages?: Array<{ stage: number; label?: string; status: string; updatedAt?: string; completedAt?: string }>;
-  [key: string]: any;
+  status: LiveWorkflowAuthorityStatus;
+
+  taxYear: number | null;
+
+  workflow: LiveWorkflowState | null;
+
+  eligibility: LiveWorkflowEligibility | null;
+
+  error: string | null;
 }
 
-type Listener = (snapshot: LiveWorkflowAuthoritySnapshot) => void;
+type Listener =
+  (snapshot: LiveWorkflowAuthoritySnapshot) => void;
 
-let currentSnapshot: LiveWorkflowAuthoritySnapshot = {
-  clientId: '',
-  taxYear: new Date().getFullYear() - 1,
-  currentStage: 1,
-  completedStages: [],
-  status: 'IDLE',
-  loading: false,
-  error: null,
+let snapshot: LiveWorkflowAuthoritySnapshot = {
+  status: 'idle',
+  taxYear: null,
   workflow: null,
   eligibility: null,
-  stages: [],
+  error: null
 };
 
 const listeners = new Set<Listener>();
 
-function emit(): void {
+function publish(): void {
   for (const listener of listeners) {
-    try {
-      listener(currentSnapshot);
-    } catch {
-      // isolate subscriber failures
-    }
+    listener(snapshot);
   }
 }
 
-export const LiveWorkflowAuthority = {
-  createInitialSnapshot(clientId: string, taxYear = 2025): LiveWorkflowAuthoritySnapshot {
-    return {
-      clientId,
-      taxYear,
-      currentStage: 1,
-      completedStages: [],
-      status: 'ACTIVE',
-      loading: false,
-      error: null,
-      workflow: null,
-      eligibility: null,
-      stages: Array.from({ length: 18 }, (_, i) => ({
-        stage: i + 1,
-        status: i === 0 ? 'IN_PROGRESS' : 'LOCKED',
-      })),
-    };
-  },
-  getSnapshot(): LiveWorkflowAuthoritySnapshot {
-    return currentSnapshot;
-  },
-  subscribe(listener: Listener): () => void {
+function update(
+  patch: Partial<LiveWorkflowAuthoritySnapshot>
+): void {
+
+  snapshot = {
+    ...snapshot,
+    ...patch
+  };
+
+  publish();
+}
+
+export class LiveWorkflowAuthority {
+
+  static getSnapshot():
+    LiveWorkflowAuthoritySnapshot {
+
+    return snapshot;
+  }
+
+  static subscribe(
+    listener: Listener
+  ): () => void {
+
     listeners.add(listener);
+
     return () => {
       listeners.delete(listener);
     };
-  },
-  clear(): void {
-    currentSnapshot = {
-      clientId: '',
-      taxYear: new Date().getFullYear() - 1,
-      currentStage: 1,
-      completedStages: [],
-      status: 'IDLE',
-      loading: false,
-      error: null,
+  }
+
+  static seedFromServerBundle(
+    workflow: LiveWorkflowState,
+    eligibility: LiveWorkflowEligibility
+  ): LiveWorkflowAuthoritySnapshot {
+    if (
+      workflow &&
+      eligibility &&
+      workflow.clientId === eligibility.clientId &&
+      workflow.taxYear === eligibility.taxYear &&
+      workflow.revision === eligibility.revision
+    ) {
+      update({
+        status: 'ready',
+        taxYear: workflow.taxYear,
+        workflow,
+        eligibility,
+        error: null
+      });
+    }
+    return snapshot;
+  }
+
+  static async hydrate(
+    taxYear: number
+  ): Promise<LiveWorkflowAuthoritySnapshot> {
+    const hadSeededReadyState =
+      snapshot.status === 'ready' &&
+      snapshot.taxYear === taxYear &&
+      Boolean(snapshot.workflow) &&
+      Boolean(snapshot.eligibility);
+
+    if (!hadSeededReadyState) {
+      update({
+        status: 'loading',
+        taxYear,
+        error: null
+      });
+    }
+
+    try {
+      let workflow: LiveWorkflowState;
+      let eligibility: LiveWorkflowEligibility;
+
+      try {
+        const bundle = await LiveWorkflowApi.getScopedWorkflowBundle(taxYear);
+        workflow = bundle.workflow;
+        eligibility = bundle.eligibility;
+      } catch {
+        const [wf, elig] = await Promise.all([
+          LiveWorkflowApi.getState(taxYear),
+          LiveWorkflowApi.getEligibility(taxYear)
+        ]);
+        workflow = wf;
+        eligibility = elig;
+      }
+
+      if (
+        workflow.clientId !==
+        eligibility.clientId
+      ) {
+        throw new Error(
+          'LIVE workflow identity mismatch.'
+        );
+      }
+
+      if (
+        workflow.taxYear !==
+        eligibility.taxYear
+      ) {
+        throw new Error(
+          'LIVE workflow tax-year mismatch.'
+        );
+      }
+
+      if (
+        workflow.revision !==
+        eligibility.revision
+      ) {
+        /*
+         * Fail closed instead of trusting stale UI state.
+         */
+        throw new Error(
+          'LIVE workflow revision changed. Refresh required.'
+        );
+      }
+
+      update({
+        status: 'ready',
+        taxYear,
+        workflow,
+        eligibility,
+        error: null
+      });
+
+      return snapshot;
+
+    } catch (error) {
+      if (hadSeededReadyState && snapshot.workflow && snapshot.eligibility) {
+        return snapshot;
+      }
+
+      update({
+        status: 'error',
+
+        workflow: null,
+        eligibility: null,
+
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unable to hydrate LIVE workflow.'
+      });
+
+      throw error;
+    }
+  }
+
+  static clear(): void {
+
+    /*
+     * Memory-only cleanup.
+     *
+     * No authoritative LIVE workflow state is written
+     * to browser storage.
+     */
+
+    snapshot = {
+      status: 'idle',
+      taxYear: null,
       workflow: null,
       eligibility: null,
-      stages: [],
+      error: null
     };
-    emit();
-  },
-  seedFromServerBundle(bundle: any, ..._rest: any[]): LiveWorkflowAuthoritySnapshot {
-    const wf = bundle?.workflow ?? bundle ?? null;
-    const elig = bundle?.eligibility ?? null;
-    currentSnapshot = {
-      ...this.normalize(wf, bundle?.clientId || wf?.clientId || '', bundle?.taxYear || wf?.taxYear || 2025),
-      loading: false,
-      error: null,
-      workflow: wf,
-      eligibility: elig,
-    };
-    emit();
-    return currentSnapshot;
-  },
-  async hydrate(taxYearOrBundle?: any, ..._rest: any[]): Promise<LiveWorkflowAuthoritySnapshot> {
-    if (taxYearOrBundle && typeof taxYearOrBundle === 'object') {
-      return this.seedFromServerBundle(taxYearOrBundle);
+
+    publish();
+  }
+
+  static canEnterStage(
+    stage: 1 | 2 | 3
+  ): boolean {
+
+    if (
+      snapshot.status !== 'ready' ||
+      !snapshot.eligibility
+    ) {
+      return false;
     }
-    currentSnapshot = { ...currentSnapshot, loading: true, error: null };
-    emit();
-    try {
-      const bundle = await LiveWorkflowApi.getScopedWorkflowBundle(taxYearOrBundle);
-      return this.seedFromServerBundle(bundle);
-    } catch (err: any) {
-      currentSnapshot = {
-        ...currentSnapshot,
-        loading: false,
-        error: err?.message || 'Unable to load workflow authority.',
-      };
-      emit();
-      throw err;
+
+    if (stage === 1) {
+      return snapshot.eligibility
+        .eligibility.stage1;
     }
-  },
-  canEnterStage(stage: number): boolean {
-    return this.isStageAccessible(currentSnapshot, stage);
-  },
-  getActiveStage(): number {
-    return currentSnapshot.workflow?.currentStage || currentSnapshot.currentStage || 1;
-  },
-  isStageAccessible(snapshot: LiveWorkflowAuthoritySnapshot | null | undefined, stage: number): boolean {
-    if (!snapshot) return stage === 1;
-    if (snapshot.eligibility?.stages?.[stage]?.eligible === true) return true;
-    return stage <= (snapshot.currentStage || 1) || (snapshot.completedStages || []).includes(stage);
-  },
-  normalize(raw: any, fallbackClientId = '', fallbackTaxYear = 2025): LiveWorkflowAuthoritySnapshot {
-    return {
-      clientId: raw?.clientId || fallbackClientId,
-      taxYear: Number(raw?.taxYear) || fallbackTaxYear,
-      currentStage: Number(raw?.currentStage) || 1,
-      completedStages: Array.isArray(raw?.completedStages) ? raw.completedStages : [],
-      status: raw?.status || 'ACTIVE',
-      loading: false,
-      error: null,
-      workflow: raw?.workflow ?? raw ?? null,
-      eligibility: raw?.eligibility ?? null,
-      stages: Array.isArray(raw?.stages) ? raw.stages : undefined,
-      ...(raw || {}),
-    };
-  },
-};
+
+    if (stage === 2) {
+      return snapshot.eligibility
+        .eligibility.stage2;
+    }
+
+    return snapshot.eligibility
+      .eligibility.stage3;
+  }
+
+  static getActiveStage():
+    1 | 2 | 3 | null {
+
+    if (
+      snapshot.status !== 'ready' ||
+      !snapshot.workflow
+    ) {
+      return null;
+    }
+
+    return snapshot.workflow.activeStage;
+  }
+}

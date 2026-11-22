@@ -1,75 +1,23 @@
-export interface ReviewScope {
-  tenantId: string;
-  clientId: string;
-  engagementId: string;
-  taxYear: number;
-}
-
+import type { DraftReturnEntity } from '../server/taxguard/persistence.types';
+export interface ReviewScope { tenantId: string; clientId: string; engagementId: string; taxYear: number }
 export interface ReviewerQueueCase {
-  id: string;
-  scope: ReviewScope;
-  reviewerUid: string;
-  preparerUid?: string;
-  clientName?: string;
-  activeStage: number;
-  caseStatus: string;
-  reviewStatus: string;
-  highRisk: boolean;
-  openExceptions: number;
-  dueDate?: string;
-  updatedAt?: string;
-  [key: string]: any;
+  id: string; scope: ReviewScope; clientName: string; preparerId: string; preparerName: string;
+  activeStage: number; caseStatus: string; reviewStatus: string; priority?: string; dueDate?: string;
+  highRisk: boolean; openExceptions: number; reviewerUid: string; decisionAllowed: boolean;
 }
-
-export interface ReviewerArtifact {
-  id: string;
-  title?: string;
-  name?: string;
-  type?: string;
-  category?: string;
-  status?: string;
-  confidence?: number;
-  createdAt?: string;
-  createdBy?: string;
-  [key: string]: any;
-}
-
-export interface ReviewerReturn extends ReviewScope {
-  id: string;
-  status: string;
-  createdBy?: string;
-  preparerCertifiedBy?: string;
-  formType?: string;
-  diagnostics?: Array<{
-    id?: string;
-    code?: string;
-    severity: string;
-    message?: string;
-    resolved?: boolean;
-  }>;
-  [key: string]: any;
-}
-
+export interface ReviewerArtifact { id: string; [key: string]: any }
+export type ReviewerReturn = Omit<DraftReturnEntity, 'status'> & { status: string };
 export interface ReviewerSnapshot {
   scope: ReviewScope;
-  decisionsAvailable: boolean;
+  case: { activeStage: number; revision: number; version?: number; preparerUid: string; reviewerUid: string; openExceptions: number; status?: string };
   independentReviewer: boolean;
-  case: {
-    id?: string;
-    status: string;
-    activeStage: number;
-    preparerUid?: string;
-    reviewerUid?: string;
-    openExceptions: number;
-    [key: string]: any;
-  };
-  returns?: ReviewerReturn[];
-  artifacts?: ReviewerArtifact[];
-  documents?: ReviewerArtifact[];
-  workpapers?: ReviewerArtifact[];
-  exceptions?: any[];
-  aiFindings?: any[];
-  reviewNotes?: any[];
-  auditHistory?: any[];
-  [key: string]: any;
+  decisionsAvailable: boolean;
+  documents: ReviewerArtifact[]; returns: ReviewerReturn[]; workpapers: ReviewerArtifact[];
+  records: ReviewerArtifact[]; reconciliations: ReviewerArtifact[]; exceptions: ReviewerArtifact[];
+  resolutions: ReviewerArtifact[]; aiFindings: ReviewerArtifact[]; history: ReviewerArtifact[];
+  stages: ReviewerArtifact[]; extractedFields: ReviewerArtifact[]; provenance: ReviewerArtifact[];
+}
+export interface ReviewerDecision {
+  version: number; operationId: string; returnId: string; decision: 'APPROVE' | 'RETURN';
+  confirmed: boolean; reason: string; corrections?: string;
 }

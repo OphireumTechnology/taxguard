@@ -1,43 +1,14 @@
-export type StaffRecoveryReasonCategory =
-  | 'lost_device'
-  | 'damaged_device'
-  | 'authenticator_reset'
-  | 'device_replacement'
-  | 'other'
-  | string;
-
-export interface StaffRecoveryRequestInput {
-  targetUid?: string;
-  reasonCategory: StaffRecoveryReasonCategory;
-  reasonNotes?: string;
-  [key: string]: any;
-}
-
+export type StaffRecoveryReasonCategory = 'lost_authenticator' | 'compromised_factor' | 'device_replacement';
+export type StaffRecoveryStatus = 'pending_approval' | 'approved' | 'completed' | 'cancelled';
+export type StaffRecoveryJobStatus = 'pending' | 'leased' | 'reset_verified' | 'enrollment_verified' | 'completed' | 'failed';
 export interface StaffRecoveryRecord {
-  id?: string;
-  requestId?: string;
-  targetUid: string;
-  targetEmail?: string;
-  targetName?: string;
-  targetRole?: string;
-  status: string;
-  reasonCategory: StaffRecoveryReasonCategory;
-  reasonNotes?: string;
-  reason?: string;
-  requestedBy?: string;
-  requestedAt?: string;
-  makerUid?: string;
-  checkerUid?: string | null;
-  createdAt?: string;
-  approvedBy?: string | null;
-  approvedAt?: string | null;
-  completedAt?: string | null;
-  [key: string]: any;
+  requestId: string; targetUid: string; targetName: string | null; targetRole: string | null;
+  makerUid: string; checkerUid: string | null; reasonCategory: StaffRecoveryReasonCategory; reason: string;
+  status: StaffRecoveryStatus; createdAt: string; approvedAt: string | null; jobId: string | null; jobStatus: StaffRecoveryJobStatus | null;
+  jobAttempts: number | null; jobLastError: string | null; completedAt: string | null; completedBy: string | null; cancelledAt: string | null;
+  resetAvailability: 'unavailable' | 'verified'; actions: { approve: boolean; complete: boolean; cancel: boolean; retry: boolean };
 }
-
-export interface StaffRecoveryQuery {
-  limit?: number;
-  cursor?: string;
-  status?: string;
-  targetUid?: string;
-}
+export interface StaffRecoveryQuery { status?: 'all' | StaffRecoveryStatus; limit?: number; cursor?: string }
+export interface StaffRecoveryPage { items: StaffRecoveryRecord[]; nextCursor: string | null; source: 'durable' }
+export interface StaffRecoveryRequestInput { requestId: string; targetUid: string; reasonCategory: StaffRecoveryReasonCategory; reason: string }
+export interface StaffRecoveryMutationResult { requestId: string; targetUid: string; status: StaffRecoveryStatus; resumed: boolean; jobId?: string; resetAvailability: 'unavailable' }

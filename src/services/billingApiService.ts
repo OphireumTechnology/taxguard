@@ -1,87 +1,85 @@
-import { api } from './api';
-
-export interface Invoice {
-  id: string;
-  invoiceNumber?: string;
-  clientId?: string;
-  status: string;
-  totalCents?: number;
-  amount?: number;
-  dueDate?: string;
-  issuedAt?: string;
-  lines?: any[];
-  [key: string]: any;
-}
-
-export interface AgingRow {
-  clientId: string;
-  clientName?: string;
-  currentCents: number;
-  days30Cents: number;
-  days60Cents: number;
-  days90PlusCents: number;
-  totalCents: number;
-  [key: string]: any;
-}
-
-export const ISSUED_INVOICE_STATUSES: readonly string[] = ['issued', 'sent', 'partially_paid', 'paid', 'overdue', 'void'];
+/** Browser client for /api/billing (durable billing; sandbox payments only). */
+import { getStoredToken } from './api';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export class BillingRequestError extends Error {
-  constructor(public readonly code: string, message?: string, public readonly status?: number) {
-    super(message || code);
-    this.name = 'BillingRequestError';
-  }
+  constructor(public readonly status: number, public readonly code?: string) { super(code || 'BILLING_REQUEST_FAILED'); }
 }
+export interface InvoiceLine { lineNo: number; serviceCode: string; description: string; quantity: string; unitRate: string; amount: string; rateOverrideReason: string | null }
+export interface Invoice { invoiceId: string; invoiceNumber: string | null; clientId: string; status: string; subtotal: string; creditsApplied: string; total: string; amountPaid: string;
+  balanceDue: string; dueDate: string; issueDate: string | null; preparedBy: string; approvedBy: string | null; reviewNote: string | null; rowVersion: number; lines: InvoiceLine[];
+  payments: Array<{ paymentId: string; amount: string; refundedAmount: string; method: string; status: string }>; credits: Array<{ creditId: string; amount: string; reason: string; status: string; requestedBy: string }> }
+export interface AgingRow { clientId: string; clientName: string | null; totalDue: string; current: string; days1to30: string; days31to60: string; days61to90: string; over90: string; openInvoices: number }
+export const newBillingKey = () => 'bill-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-export function newBillingKey(): string {
-  return `bill_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, key?: string, expectedToken?:string,signal?:AbortSignal): Promise<T> {
+  const token = getStoredToken();
+  if (!token) throw new BillingRequestError(401, 'AUTH_REQUIRED');
+  if (expectedToken!==undefined && token!==expectedToken) throw new BillingRequestError(409,'SESSION_CHANGED');
+  const response = await fetch(apiEndpoint('/api/billing' + path), { method, cache: 'no-store', credentials: 'omit',signal,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const data = await response.json().catch(() => null);
+  if (getStoredToken() !== token) throw new BillingRequestError(409, 'SESSION_CHANGED');
+  if (!response.ok) throw new BillingRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
+  return data as T;
 }
-
-export function billingMessage(err: unknown, fallback = 'Billing service unavailable.'): string {
-  if (err instanceof Error && err.message) return err.message;
-  return fallback;
-}
-
-export function saveBlob(blob: Blob, filename: string): void {
-  if (typeof window === 'undefined') return;
+const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
+const i = (clientId: string, invoiceId: string) => `${c(clientId)}/invoices/${encodeURIComponent(invoiceId)}`;
+export const billingApi = {
+  catalog: () => request<{ items: Array<{ serviceCode: string; name: string; baseFee: string; isActive: boolean }> }>('GET', '/catalog'),
+  aging: (asOf?: string) => request<{ asOf: string; pendingApproval: number; clients: AgingRow[] }>('GET', '/ar-aging' + (asOf ? `?asOf=${asOf}` : '')),
+  invoices: async (clientId: string,signal?:AbortSignal) => {
+    const token=getStoredToken(), items:Invoice[]=[], seen=new Set<string>(); let cursor:string|null=null;
+    for (let page=0;page<20;page++) {
+      const result=await request<{items:Invoice[];nextCursor:string|null}>('GET',c(clientId)+'/invoice-pages?limit=100'+(cursor?'&cursor='+encodeURIComponent(cursor):''),undefined,undefined,token,signal);
+      if (!result || !Array.isArray(result.items) || result.items.length>100 || (result.nextCursor!==null && typeof result.nextCursor!=='string')) throw new BillingRequestError(503,'BILLING_RESPONSE_INVALID');
+      for (const invoice of result.items) { if (!invoice || typeof invoice.invoiceId!=='string' || seen.has(invoice.invoiceId)) throw new BillingRequestError(503,'BILLING_RESPONSE_INVALID'); seen.add(invoice.invoiceId); items.push(invoice); }
+      cursor=result.nextCursor; if (!cursor) return {items};
+    }
+    throw new BillingRequestError(503,'BILLING_PAGE_LIMIT');
+  },
+  create: (clientId: string, dueDate: string, key: string) => request<{ invoiceId: string }>('POST', c(clientId) + '/invoices', { dueDate }, key),
+  addLine: (clientId: string, invoiceId: string, line: { serviceCode: string; quantity: string; unitRate?: string; overrideReason?: string }, key: string) => request<Invoice>('POST', i(clientId, invoiceId) + '/lines', line, key),
+  transition: (clientId: string, invoiceId: string, action: 'submit' | 'approve' | 'return' | 'void', rowVersion: number, note?: string) =>
+    request<Invoice>('POST', `${i(clientId, invoiceId)}/${action}`, { rowVersion, note }),
+  recordPayment: (clientId: string, invoiceId: string, amount: string, method: string, key: string) => request('POST', i(clientId, invoiceId) + '/payments', { amount, method }, key),
+  paySandbox: (clientId: string, invoiceId: string, amount: string, testCard: string, key: string) => request('POST', i(clientId, invoiceId) + '/pay-sandbox', { amount, testCard }, key),
+  /** Records a refund made outside TaxGuard (managers only). The key makes a retry safe. */
+  recordRefund: (clientId: string, paymentId: string, amount: string, reason: string, key: string) =>
+    request<Invoice>('POST', `${c(clientId)}/payments/${encodeURIComponent(paymentId)}/refund`, { amount, reason }, key),
+  requestCredit: (clientId: string, invoiceId: string, amount: string, reason: string, key: string) => request('POST', i(clientId, invoiceId) + '/credits', { amount, reason }, key),
+  decideCredit: (clientId: string, creditId: string, apply: boolean) => request<Invoice>('POST', `${c(clientId)}/credits/${encodeURIComponent(creditId)}/${apply ? 'apply' : 'reject'}`),
+  /** Issued-invoice PDF for the signed-in user. Generated on request; never stored or delivered by TaxGuard. */
+  document: async (clientId: string, invoiceId: string): Promise<Blob> => {
+    const token = getStoredToken();
+    if (!token) throw new BillingRequestError(401, 'AUTH_REQUIRED');
+    const response = await fetch(apiEndpoint('/api/billing' + i(clientId, invoiceId) + '/document'), { method: 'GET', cache: 'no-store', credentials: 'omit',
+      headers: { Authorization: `Bearer ${token}` } });
+    if (getStoredToken() !== token) throw new BillingRequestError(409, 'SESSION_CHANGED');
+    if (!response.ok) { const data = await response.json().catch(() => null); throw new BillingRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined); }
+    if (!(response.headers.get('content-type') || '').startsWith('application/pdf')) throw new BillingRequestError(503, 'BILLING_RESPONSE_INVALID');
+    return response.blob();
+  },
+};
+export const ISSUED_INVOICE_STATUSES = ['ISSUED', 'PARTIALLY_PAID', 'PAID', 'PAST_DUE', 'VOID'];
+/** Saves a blob through a temporary object URL; the URL is revoked immediately afterwards. */
+export function saveBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  try { const a = document.createElement('a'); a.href = url; a.download = fileName; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
 }
-
-export const billingApi: Record<string, (...args: any[]) => Promise<any>> = new Proxy(
-  {
-    listInvoices: (query?: Record<string, any>, signal?: AbortSignal): Promise<any> =>
-      api.request('/api/billing/invoices', { query, signal }),
-    invoices: (clientId: string, signal?: AbortSignal): Promise<any> =>
-      api.request(`/api/billing/clients/${encodeURIComponent(clientId)}/invoice-pages`, { signal }),
-    getClientInvoices: (clientId: string, query?: Record<string, any>, signal?: AbortSignal): Promise<any> =>
-      api.request(`/api/billing/clients/${encodeURIComponent(clientId)}/invoice-pages`, { query, signal }),
-    getAging: (signal?: AbortSignal): Promise<any> => api.request('/api/billing/aging', { signal }),
-    createInvoice: (payload: Record<string, any>): Promise<any> =>
-      api.request('/api/billing/invoices', { method: 'POST', body: JSON.stringify(payload) }),
-    issueInvoice: (id: string): Promise<any> =>
-      api.request(`/api/billing/invoices/${encodeURIComponent(id)}/issue`, { method: 'POST' }),
-    recordPayment: (id: string, payload: Record<string, any>): Promise<any> =>
-      api.request(`/api/billing/invoices/${encodeURIComponent(id)}/payments`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    downloadPdf: async (id: string): Promise<Blob> => new Blob([`Invoice ${id}`], { type: 'text/plain' }),
-  } as Record<string, (...args: any[]) => Promise<any>>,
-  {
-    get(target, prop: string) {
-      if (prop in target) return target[prop];
-      return (...args: any[]): Promise<any> =>
-        api.request(`/api/billing/${encodeURIComponent(prop)}`, {
-          method: args.length > 1 ? 'POST' : 'GET',
-          ...(args.length > 1 ? { body: JSON.stringify({ args }) } : {}),
-        });
-    },
-  }
-);
+const MESSAGES: Record<string, string> = {
+  MAKER_CHECKER_VIOLATION: 'A different manager must approve this.', BILLING_MANAGER_REQUIRED: 'Only a practice manager or administrator can do this.',
+  INVOICE_VERSION_CONFLICT: 'The invoice changed since it was loaded. Refresh and retry.', RATE_OVERRIDE_REASON_REQUIRED: 'Enter a reason for using a rate other than the catalog price.',
+  PAYMENT_EXCEEDS_BALANCE: 'The payment is larger than the balance due.', CREDIT_EXCEEDS_BALANCE: 'The credit is larger than the balance due.',
+  BILLING_AMOUNT_INVALID: 'Enter an amount with at most two decimals.', PAYMENT_DECLINED: 'The sandbox payment was declined.', DUPLICATE_PAYMENT: 'This payment was already recorded.',
+  SANDBOX_TEST_CARD_REQUIRED: 'Use a published sandbox test card number. No real card is ever charged.', BILLING_UNAVAILABLE: 'Billing is not enabled in this environment.',
+  INVOICE_NOT_EDITABLE: 'Only draft invoices can be edited.', INVOICE_EMPTY: 'Add at least one line before submitting.',
+  REFUND_EXCEEDS_PAYMENT: 'The refund is larger than the amount still refundable on this payment.', IDEMPOTENCY_KEY_REUSED: 'This request was already used for a different refund. Refresh and enter the refund again.',
+  INVOICE_DOCUMENT_NOT_ISSUED: 'A document is available only after the invoice is issued.', INVOICE_DOCUMENT_DATA_INVALID: 'The invoice document could not be produced from the recorded amounts.',
+};
+export function billingMessage(error: unknown): string {
+  if (error instanceof BillingRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];
+  if (error instanceof BillingRequestError && (error.status === 403 || error.status === 404)) return 'You are not authorized for this billing record.';
+  return 'The billing service did not confirm this action. Refresh and retry.';
+}
