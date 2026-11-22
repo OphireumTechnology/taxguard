@@ -52,6 +52,9 @@ async function main() {
 
     // Reapply only the proposal family already proven replay-safe by the real-PostgreSQL suite.
     // Historical proposals remain reviewable but are not represented as universally idempotent.
+    // Replay the reviewed families in canonical DAG order, including 20261019010000 before
+    // 20261019080000. The latter intentionally tightens the former's adjustment replay path;
+    // omitting the earlier definition makes this replay sequence drift from the composed schema.
     const replayEntries = manifest.entries.filter(entry => entry.kind === 'proposal' &&
       /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017|^20261018|^20261019/.test(entry.file.split('/').at(-1)!));
     for (const entry of replayEntries) await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
