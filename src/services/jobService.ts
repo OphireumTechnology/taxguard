@@ -30,7 +30,7 @@ export const jobService = {
   reviewEvidence: (id: string) => request<{version: string; documents: {id: string; version: number}[]}>('GET', '/' + encodeURIComponent(id) + '/a10-review'),
   reviewDuplicate: (id: string, version: string, decision: 'ACKNOWLEDGED' | 'RETURNED') =>
     request<{decision: string}>('POST', '/' + encodeURIComponent(id) + '/a10-review', { version, decision }),
-  caseAdvisories: (caseId: string) => request<{ jobId: string; createdAt: string; duplicateGroupCount: number }[]>(
+  caseAdvisories: (caseId: string) => request<{ jobId: string; createdAt: string; decision: "ACKNOWLEDGED" | "RETURNED" | null; duplicateGroupCount: number }[]>(
     'GET', '/cases/' + encodeURIComponent(caseId) + '/a10-advisories'),
   retry: (jobId: string) => request<DurableJob>('POST', '/' + encodeURIComponent(jobId) + '/retry'),
   cancel: (jobId: string) => request<DurableJob>('POST', '/' + encodeURIComponent(jobId) + '/cancel'),

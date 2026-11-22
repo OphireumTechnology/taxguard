@@ -129,9 +129,10 @@ BEGIN
       AND public.taxguard_job_visible(p_tenant,p_actor,r,c.client_id,c.case_id))
   THEN RAISE EXCEPTION 'JOB_ADVISORY_NOT_FOUND' USING ERRCODE='P0001'; END IF;
   SELECT coalesce(jsonb_agg(public.taxguard_job_read_a10(p_tenant,p_actor,q.id)
-    || jsonb_build_object('jobId',q.id,'createdAt',q.created_at) ORDER BY q.created_at DESC,q.id),'[]'::jsonb)
-    INTO result FROM (SELECT j.id,j.created_at FROM public.taxguard_durable_jobs j
+    || jsonb_build_object('jobId',q.id,'createdAt',q.created_at,'decision',q.decision) ORDER BY q.created_at DESC,q.id),'[]'::jsonb)
+    INTO result FROM (SELECT j.id,j.created_at,r.decision FROM public.taxguard_durable_jobs j
       JOIN public.taxguard_ai_job_advisories a ON a.tenant_id=j.tenant_id AND a.job_id=j.id
+      LEFT JOIN public.taxguard_a10_reviews r ON r.job_id=j.id
       WHERE j.tenant_id=p_tenant AND j.case_id=p_case AND j.status='COMPLETED' AND a.agent_id='A10'
       ORDER BY j.created_at DESC,j.id LIMIT 20) q;
   RETURN result;

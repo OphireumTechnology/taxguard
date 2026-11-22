@@ -459,6 +459,8 @@ describe('A10 advisory job review draft', () => {
     expect((await call('POST', decisionPath, decision)).status).toBe(200);
     expect((await call('POST', decisionPath, decision)).status).toBe(200);
     expect((await call('POST', decisionPath, { ...decision, decision: 'RETURNED' })).status).toBe(409);
+    const reopened = await call('GET', casePath);
+    expect(reopened.body).toContainEqual(expect.objectContaining({ jobId: first.body.id, decision: 'ACKNOWLEDGED' }));
     as('jq-prep1');
     const second = await enqueueA10('jw-revoked-evidence');
     expect(second.status).toBe(201);
