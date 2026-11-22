@@ -58,11 +58,16 @@ function scopedEvidence(sql: SqlConnection): ResolveA10Evidence {
         evaluateGovernancePolicy(coordinator, await tx.load(identity, coordinator), Date.now(), true);
         const snapshot = await tx.load(identity, specialist);
         evaluateGovernancePolicy(specialist, snapshot, Date.now());
-        return snapshot.evidence.map((row): EvidenceMetadata => ({
-          source_id: row.source_id, document_record_id: row.document_record_id, document_version: row.document_version,
-          source_hash: row.source_hash, document_status: row.document_status === 'VERIFIED' ? 'VERIFIED' : 'RELEASED',
-          quarantine_status: 'CLEAN',
-        }));
+        const evidence: EvidenceMetadata[] = [];
+        for (const row of snapshot.evidence) {
+          if ((row.document_status !== 'VERIFIED' && row.document_status !== 'RELEASED')
+            || row.quarantine_status !== 'CLEAN') return null;
+          evidence.push({
+            source_id: row.source_id, document_record_id: row.document_record_id, document_version: row.document_version,
+            source_hash: row.source_hash, document_status: row.document_status, quarantine_status: row.quarantine_status,
+          });
+        }
+        return evidence;
       } catch (error) {
         if (error instanceof GovernanceError && error.status === 403) return null;
         throw error;
