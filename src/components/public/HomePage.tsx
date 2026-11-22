@@ -15,10 +15,7 @@ import {
   ArrowRight,
   Briefcase,
   Building2,
-  Calendar,
   Check,
-  Clock,
-  Compass,
   Cpu,
   Download,
   FileCheck2,
@@ -37,7 +34,6 @@ import {
   TrendingUp,
   Truck,
   UploadCloud,
-  Users,
   UtensilsCrossed,
   Workflow,
 } from 'lucide-react';
@@ -139,7 +135,7 @@ export const HomePage: React.FC = () => {
       {/* 2. ADVANCED INTELLIGENT TAX TECHNOLOGY HERO SECTION */}
       <section
         ref={heroRef}
-        className="relative pt-6 pb-14 sm:pt-10 sm:pb-18 md:pt-14 md:pb-20 overflow-x-clip"
+        className="relative pt-10 pb-16 sm:pt-14 sm:pb-22 lg:pt-20 lg:pb-26 overflow-x-clip"
         aria-label="Destria Tax Services Intelligent Financial Technology Overview"
       >
         {/* Subtle Architectural Grid & Restrained Ambient Lighting */}
@@ -147,56 +143,56 @@ export const HomePage: React.FC = () => {
           className={`absolute inset-0 pointer-events-none overflow-hidden ${heroMotionActive ? '' : 'destria-motion-paused'}`}
           aria-hidden="true"
         >
-          <div className="absolute inset-0 destria-tech-grid-bg opacity-55 [mask-image:radial-gradient(ellipse_80%_75%_at_50%_38%,black_30%,transparent_100%)]" />
-          <div className="absolute -top-24 left-1/4 w-[28rem] h-[28rem] rounded-full bg-[#D4A843]/15 blur-[140px]" />
-          <div className="absolute top-1/4 right-6 w-[30rem] h-[30rem] rounded-full bg-[#3B82F6]/15 blur-[160px]" />
+          <div className="absolute inset-0 destria-tech-grid-bg opacity-35 [mask-image:radial-gradient(ellipse_78%_72%_at_50%_40%,black_25%,transparent_100%)]" />
+          <div className="absolute -top-28 left-1/4 w-[26rem] h-[26rem] rounded-full bg-[#D4A843]/10 blur-[150px]" />
+          <div className="absolute top-1/3 right-8 w-[28rem] h-[28rem] rounded-full bg-[#3B82F6]/10 blur-[160px]" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-12 items-center">
-            {/* Left Column: Authoritative Copy & Clear Conversion Path */}
-            <div className="lg:col-span-6 xl:col-span-7 space-y-6 sm:space-y-7 text-left min-w-0">
-              <div className="space-y-4">
-                <p className="text-xs font-semibold tracking-[0.2em] text-[#E5B552] uppercase">
-                  {COMPANY_BRANDING.displayName} &middot; Intelligent Tax &amp; Financial Technology
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 items-center">
+            {/* Left Column: Minimalist Executive Positioning & Aligned Actions */}
+            <div className="lg:col-span-6 space-y-8 sm:space-y-9 text-left min-w-0">
+              <div className="space-y-5 sm:space-y-6">
+                <p className="text-[11px] sm:text-xs font-semibold tracking-[0.26em] text-[#E5B552] uppercase">
+                  {COMPANY_BRANDING.uppercaseName}
                 </p>
 
-                <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-[42px] xl:text-[52px] font-extrabold tracking-tight text-white leading-[1.12] [text-wrap:balance]">
-                  Intelligent Tax Solutions.{' '}
-                  <span className="text-[#E5B552]">Advanced Financial Technology.</span>{' '}
-                  Human Expertise.
+                <h1 className="font-serif text-3xl sm:text-4xl lg:text-[42px] xl:text-[48px] font-bold tracking-tight text-white leading-[1.12] [text-wrap:balance]">
+                  <span className="block">Intelligent Tax Solutions.</span>
+                  <span className="block text-[#E5B552] mt-1.5">Advanced Financial Technology.</span>
                 </h1>
 
-                <p className="font-serif text-lg sm:text-xl font-semibold text-slate-100 leading-snug max-w-2xl">
-                  The Next Generation of Tax Preparation, Accounting &amp; Wealth Planning.
-                </p>
+                <div className="flex items-center gap-3 pt-0.5">
+                  <span className="h-px w-8 bg-[#D4A843]/70 flex-shrink-0" aria-hidden="true" />
+                  <p className="text-sm sm:text-base font-medium tracking-[0.06em] text-slate-100">
+                    AI-Powered. Human-Led. Future-Ready.
+                  </p>
+                </div>
 
-                <p className="text-sm sm:text-base text-slate-300 max-w-2xl font-normal leading-relaxed">
-                  Destria Tax Services, LLC brings together experienced tax professionals, artificial intelligence, intelligent financial automation and secure digital technologies to deliver a more organized, transparent and informed approach to tax preparation, accounting, advisory and wealth planning.
+                <p className="text-sm sm:text-base text-slate-300/95 max-w-lg font-normal leading-relaxed">
+                  Combining tax expertise, artificial intelligence and secure financial technology to simplify tax preparation, accounting and wealth planning.
                 </p>
               </div>
 
-              {/* Primary, Secondary, and Portal Actions */}
-              <div className="pt-1 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+              {/* Compact, Consistently Aligned Action Row */}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setCurrentPage('book_consultation')}
-                  className="px-5 sm:px-6 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-[#071D3A] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 shadow-xl shadow-[#C99A35]/15 transition-all flex items-center justify-center gap-2 group whitespace-nowrap active:scale-[0.99]"
+                  className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-wide text-[#071D3A] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 shadow-lg shadow-[#C99A35]/15 transition-all inline-flex items-center justify-center gap-2 group whitespace-nowrap active:scale-[0.99]"
                   id="hero-schedule-btn"
                 >
-                  <Calendar className="w-4 h-4 text-[#071D3A] flex-shrink-0" />
-                  <span>Schedule Confidential Consultation</span>
-                  <ArrowRight className="w-4 h-4 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                  <span>Schedule a Consultation</span>
+                  <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
                 <button
                   type="button"
                   onClick={handleExploreSolutions}
-                  className="px-5 py-3.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-[#0D2745] hover:bg-[#133860] border border-[#D4A843]/45 hover:border-[#E5B552] transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-wide text-white bg-[#0D2745]/90 hover:bg-[#133860] border border-[#D4A843]/45 hover:border-[#E5B552] transition-all inline-flex items-center justify-center whitespace-nowrap"
                   id="hero-explore-solutions-btn"
                 >
-                  <Compass className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Explore Intelligent Tax Solutions</span>
+                  <span>Explore Solutions</span>
                 </button>
 
                 <a
@@ -205,61 +201,18 @@ export const HomePage: React.FC = () => {
                     e.preventDefault();
                     setCurrentPage('portal');
                   }}
-                  className="px-5 py-3.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-100 bg-[#071A2E]/90 hover:bg-[#0D2745] border border-slate-700 hover:border-sky-400/50 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="h-11 px-5 rounded-lg font-medium text-xs sm:text-[13px] tracking-wide text-slate-200 hover:text-white bg-[#071A2E]/80 hover:bg-[#0D2745] border border-slate-700/90 hover:border-slate-500 transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                   id="hero-portal-btn"
                   role="link"
                 >
-                  <Lock className="w-4 h-4 text-[#E5B552] flex-shrink-0" />
-                  <span>Access Secure Client Portal</span>
+                  <Lock className="w-3.5 h-3.5 text-[#E5B552] flex-shrink-0" />
+                  <span>Secure Client Portal</span>
                 </a>
-              </div>
-
-              {/* 4 Grounded Practice Governance Indicators */}
-              <div className="pt-6 border-t border-slate-700/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="flex items-start gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#E5B552] border border-slate-700/90 flex-shrink-0">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-white leading-snug">Dual-Layer Review</div>
-                    <span className="text-[11px] text-slate-400">Human + AI Logic</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#E5B552] border border-slate-700/90 flex-shrink-0">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-white leading-snug">Year-Round</div>
-                    <span className="text-[11px] text-slate-400">Strategic Advisory</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#E5B552] border border-slate-700/90 flex-shrink-0">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-white leading-snug">Direct Access</div>
-                    <span className="text-[11px] text-slate-400">Dedicated Advisors</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#0D2745] text-[#E5B552] border border-slate-700/90 flex-shrink-0">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-white leading-snug">Access Controls</div>
-                    <span className="text-[11px] text-slate-400">Role-Based Vault</span>
-                  </div>
-                </div>
               </div>
             </div>
 
             {/* Right Column: Continuously Animated Financial Intelligence Ecosystem around Official Destria Emblem */}
-            <div className="lg:col-span-6 xl:col-span-5 relative min-w-0">
+            <div className="lg:col-span-6 relative min-w-0">
               <HeroFinancialEcosystem />
             </div>
           </div>

@@ -21,7 +21,6 @@ export const resolveAssetUrl = (assetPath: string, version?: string): string => 
 const withBrandVersion = (assetPath: string) => resolveAssetUrl(assetPath, BRAND_ASSET_VERSION);
 
 export const BRAND_ASSETS = {
-  destriaFounderPortrait: withBrandVersion('branding/destria-founder-executive-portrait.png'),
   destriaLogo: withBrandVersion('branding/destria-logo-header.png'),
   destriaLogoHero: withBrandVersion('branding/destria-logo-hero.png'),
   destriaLogoOriginal: withBrandVersion('branding/destria-logo-original.png'),
