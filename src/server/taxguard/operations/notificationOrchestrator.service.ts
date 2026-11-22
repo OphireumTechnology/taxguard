@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { sendTransactionalEmail } from './resendEmailProvider';
 import {
   NotificationRecord,
   NotificationChannel,
@@ -31,6 +32,8 @@ export class NotificationOrchestratorService {
     body: string;
     data?: Record<string, unknown>;
     isMandatorySecurity?: boolean;
+    /** Required for EMAIL: the recipient's verified address, resolved by the server (never taken from the browser). */
+    recipientEmail?: string;
   }): Promise<NotificationRecord> {
     const id = `notif_${randomUUID()}`;
     const now = new Date().toISOString();
@@ -63,31 +66,26 @@ export class NotificationOrchestratorService {
     }
 
     if (params.channel === 'EMAIL') {
-      const emailConfigured = Boolean(process.env.SENDGRID_API_KEY || process.env.SMTP_HOST);
-      if (process.env.NODE_ENV === 'production' || !emailConfigured) {
-        // Truthful reporting: do NOT fake external delivery
-        const record = this.createRecord(id, params, 'NOT_CONFIGURED', 'EMAIL_PROVIDER_NOT_COMMISSIONED', now);
+      // Real delivery through Resend or none: SENT only with Resend's acknowledgement id. Without a recipient address,
+      // a commissioned provider (RESEND_API_KEY, RESEND_FROM_ADDRESS on the verified domain) and the owner's
+      // TAXGUARD_EMAIL_DELIVERY=enabled switch, the notification is recorded as not delivered.
+      if (!params.recipientEmail) {
+        const record = this.createRecord(id, params, 'NOT_CONFIGURED', 'EMAIL_RECIPIENT_ADDRESS_UNKNOWN', now);
         this.notifications.push(record);
         return record;
       }
-      const record = this.createRecord(id, params, 'SENT', undefined, now);
-      record.providerReference = `mock_email_${id}`;
-      record.sentAt = now;
+      const result = await sendTransactionalEmail({ to: params.recipientEmail, subject: params.title, text: params.body, idempotencyKey: id });
+      const record = result.status === 'SENT'
+        ? this.createRecord(id, params, 'SENT', undefined, now)
+        : this.createRecord(id, params, result.status, result.code, now);
+      if (result.status === 'SENT') { record.providerReference = result.providerReference; record.sentAt = now; }
       this.notifications.push(record);
       return record;
     }
 
     if (params.channel === 'SMS') {
-      const smsConfigured = Boolean(process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_ACCOUNT_SID);
-      if (process.env.NODE_ENV === 'production' || !smsConfigured) {
-        // Truthful reporting: do NOT fake external SMS
-        const record = this.createRecord(id, params, 'NOT_CONFIGURED', 'SMS_PROVIDER_NOT_COMMISSIONED', now);
-        this.notifications.push(record);
-        return record;
-      }
-      const record = this.createRecord(id, params, 'SENT', undefined, now);
-      record.providerReference = `mock_sms_${id}`;
-      record.sentAt = now;
+      // No SMS provider integration exists; nothing is ever reported as sent without a provider acknowledgement.
+      const record = this.createRecord(id, params, 'NOT_CONFIGURED', 'SMS_PROVIDER_NOT_COMMISSIONED', now);
       this.notifications.push(record);
       return record;
     }
