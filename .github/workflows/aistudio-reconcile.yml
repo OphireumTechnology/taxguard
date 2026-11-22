@@ -1,0 +1,151 @@
+name: Google AI Studio Reconciliation
+
+# Google AI Studio synchronizes to aistudio/** (for example aistudio/frontend), never to main. Each push is reconciled
+# onto the current main as an integration candidate:
+#   1. Only AI Studio's own change is taken: each new commit's diff against its parent (its previous synchronization),
+#      applied to main with a three-way cherry-pick. A stale full-tree snapshot therefore cannot revert or delete
+#      recovered files; a conflict stops the run for manual reconciliation.
+#   2. Every file is classified by area and risk (scripts/classify-changes.mjs), and the integration guard checks the
+#      candidate against main (no migration edits, no protected deletions, no stubbed services).
+#   3. A pull request integration/aistudio-<sha> -> main is opened with the change record. Development CI validates it.
+#      FRONTEND_ONLY candidates are labelled for automatic merge, which takes effect only when the owner has enabled
+#      auto-merge and branch protection on main; REQUIRES_OWNER_REVIEW candidates wait for review.
+# Nothing here deploys. Production follows main through deploy-pages.yml.
+on:
+  push:
+    branches:
+      - 'aistudio/**'
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'AI Studio branch to reconcile (default aistudio/frontend)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxguard-aistudio-reconcile-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Reconcile the AI Studio update onto main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      # Events caused by the built-in token do not start other workflows (CI on the pull request, CI on main after a
+      # merge). With the owner's integration token (a GitHub App or fine-grained token with contents and pull-request
+      # write on this repository) they do. Without it, this workflow dispatches Development CI itself and the merge stays
+      # manual.
+      INTEGRATION_TOKEN_SET: ${{ secrets.TAXGUARD_INTEGRATION_TOKEN != '' }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.TAXGUARD_INTEGRATION_TOKEN || github.token }}
+
+      - name: Determine the AI Studio commits to reconcile
+        id: range
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          SOURCE: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" == "workflow_dispatch" ]]; then
+            src="${SOURCE:-aistudio/frontend}"
+            [[ "$src" =~ ^aistudio/[A-Za-z0-9._/-]+$ ]] || { echo "::error::Source must be an aistudio/ branch."; exit 1; }
+            AFTER=$(git rev-parse "origin/$src"); BEFORE="$(git merge-base origin/main "$AFTER")"
+          fi
+          if [[ ! "$BEFORE" =~ ^[0-9a-f]{40}$ || "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            BEFORE="$AFTER~1"
+          fi
+          commits=$(git rev-list --reverse --no-merges "$BEFORE..$AFTER")
+          [[ -n "$commits" ]] || { echo "No new AI Studio commits."; echo "count=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          echo "count=$(echo "$commits" | wc -l)" >> "$GITHUB_OUTPUT"
+          echo "head=$AFTER" >> "$GITHUB_OUTPUT"
+          echo "$commits" > "$RUNNER_TEMP/commits.txt"
+
+      - name: Apply only the AI Studio changes onto main
+        if: steps.range.outputs.count != '0'
+        id: apply
+        shell: bash
+        env:
+          HEAD_SHA: ${{ steps.range.outputs.head }}
+        run: |
+          set -euo pipefail
+          git config user.name "TaxGuard Integration Bot"
+          git config user.email "integration-bot@users.noreply.github.com"
+          branch="integration/aistudio-${HEAD_SHA:0:12}"
+          git switch -c "$branch" origin/main
+          while read -r c; do
+            if ! git cherry-pick -x "$c"; then
+              git cherry-pick --abort || true
+              echo "::error::AI Studio commit $c conflicts with main. Manual reconciliation is required (multi-agent-integration.md)."
+              exit 1
+            fi
+          done < "$RUNNER_TEMP/commits.txt"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Classify the changes and record them
+        if: steps.range.outputs.count != '0'
+        id: classify
+        run: |
+          node scripts/classify-changes.mjs --base origin/main --head HEAD --json "$RUNNER_TEMP/change-record.json" --markdown "$RUNNER_TEMP/change-record.md"
+          cat "$RUNNER_TEMP/change-record.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "decision=$(node -p "require(process.env.RUNNER_TEMP + '/change-record.json').decision")" >> "$GITHUB_OUTPUT"
+
+      - name: Integration guard against main
+        if: steps.range.outputs.count != '0'
+        run: node scripts/integration-guard.mjs --base origin/main --head HEAD
+
+      - name: Upload the change record
+        if: always() && steps.range.outputs.count != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aistudio-change-record-${{ steps.range.outputs.head }}
+          path: ${{ runner.temp }}/change-record.*
+          if-no-files-found: ignore
+
+      - name: Open the integration pull request
+        if: steps.range.outputs.count != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.TAXGUARD_INTEGRATION_TOKEN || github.token }}
+          BRANCH: ${{ steps.apply.outputs.branch }}
+          DECISION: ${{ steps.classify.outputs.decision }}
+          HEAD_SHA: ${{ steps.range.outputs.head }}
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/$BRANCH"
+          body="$RUNNER_TEMP/pr-body.md"
+          {
+            echo "Automatic reconciliation of Google AI Studio commit \`$HEAD_SHA\` onto main (only AI Studio's own changes, three-way)."
+            echo ""
+            cat "$RUNNER_TEMP/change-record.md"
+            echo ""
+            echo "Integration guard: PASS. Development CI runs on this pull request; production deploys only from main after it passes."
+          } > "$body"
+          title="Google AI Studio update ${HEAD_SHA:0:12} ($DECISION)"
+          if ! gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            gh pr create --base main --head "$BRANCH" --title "$title" --body-file "$body"
+          fi
+          if [[ "$INTEGRATION_TOKEN_SET" != "true" ]]; then
+            # Built-in token: the push above starts no workflow, so request Development CI for the candidate explicitly.
+            gh workflow run taxguard-development-ci.yml --ref "$BRANCH"
+          fi
+          if [[ "$DECISION" == "FRONTEND_ONLY" ]]; then
+            # Takes effect only if the owner has enabled auto-merge for the repository and required checks on main.
+            gh pr merge "$BRANCH" --auto --merge || echo "Automatic merge is not enabled; the pull request waits for approval."
+          else
+            echo "Owner review required: $(node -p "require(process.env.RUNNER_TEMP + '/change-record.json').reasons.join(', ')")"
+          fi

@@ -233,7 +233,35 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      previous: ${{ steps.previous.outputs.commit }}
     steps:
+      # The release currently live, read from its version.json, is the rollback target if this one fails verification.
+      - name: Record the current production release
+        id: previous
+        shell: bash
+        run: |
+          set -uo pipefail
+          prev=$(curl -fsS --max-time 20 "https://${PAGES_DOMAIN}/version.json?previous=${GITHUB_RUN_ID}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const c=JSON.parse(s).commit;process.stdout.write(/^[0-9a-f]{40}$/.test(c)?c:'')}catch{}})" || true)
+          echo "commit=$prev" >> "$GITHUB_OUTPUT"
+          echo "Current production release: ${prev:-none recorded (pre-pipeline release)}"
+
+      # An automatic release must still be the head of main when it deploys, so an older run can never overwrite a
+      # newer release. A manual dispatch names its commit explicitly (including a rollback to a previous release).
+      - name: Reject stale automatic releases
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')
+          if [[ "$head" != "$SHA" ]]; then
+            echo "::error::Release $SHA is no longer the head of main ($head); a newer release supersedes it."
+            exit 1
+          fi
+
       - name: Deploy TaxGuard to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -246,3 +274,58 @@ jobs:
         run: |
           echo "### Published to production" >> "$GITHUB_STEP_SUMMARY"
           echo "Commit \`$SHA\` is live at $URL (record: ${URL%/}/version.json)." >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    name: Verify the live website
+    runs-on: ubuntu-latest
+    needs: [resolve, deploy]
+    permissions:
+      contents: read
+      actions: write
+      issues: write
+    steps:
+      - name: Check the published release on destriataxservices.com
+        id: live
+        shell: bash
+        env:
+          SHA: ${{ needs.resolve.outputs.sha }}
+        run: |
+          set -uo pipefail
+          # GitHub Pages caches for up to about ten minutes; poll for up to fifteen.
+          for attempt in $(seq 1 30); do
+            record=$(curl -fsS --max-time 20 "https://${PAGES_DOMAIN}/version.json?verify=${GITHUB_RUN_ID}-${attempt}" || true)
+            page=$(curl -fsS --max-time 20 "https://${PAGES_DOMAIN}/?verify=${GITHUB_RUN_ID}-${attempt}" || true)
+            if node -e "
+              const r = JSON.parse(process.argv[1] || '{}'); const page = process.argv[2] || '';
+              const ok = r.commit === process.env.SHA && r.customDomain === process.env.PAGES_DOMAIN && typeof r.brandAssetVersion === 'string'
+                && page.includes('v=' + r.brandAssetVersion) && page.includes('<div id=\"root\"');
+              process.exit(ok ? 0 : 1);" "$record" "$page" 2>/dev/null; then
+              echo "Live: https://${PAGES_DOMAIN}/ serves $SHA with stamped brand assets."
+              echo "verified=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::https://${PAGES_DOMAIN}/ did not serve $SHA with its stamped brand assets within fifteen minutes."
+          echo "verified=false" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      # Automatic rollback: redeploy the previous release through this same validated workflow (its commit is on main
+      # and passed Development CI; the rollback build repeats every check). The failed release stays recorded in this
+      # run and its artifact for investigation; the owner is notified through an issue and the failed run.
+      - name: Roll back to the previous release
+        if: failure() && steps.live.outputs.verified == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+          PREVIOUS: ${{ needs.deploy.outputs.previous }}
+        run: |
+          set -euo pipefail
+          if [[ "$PREVIOUS" =~ ^[0-9a-f]{40}$ && "$PREVIOUS" != "$SHA" ]]; then
+            gh workflow run deploy-pages.yml --repo "$GITHUB_REPOSITORY" --ref main -f commit="$PREVIOUS"
+            action="Rollback to $PREVIOUS dispatched."
+          else
+            action="No previous pipeline release is recorded; restore manually (multi-agent-integration.md, Rollback)."
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Production verification failed for $SHA"             --body "The release $SHA failed live verification on https://${PAGES_DOMAIN}/ (run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}). $action Investigate before releasing again." || true
+          echo "$action"

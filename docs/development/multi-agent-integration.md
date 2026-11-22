@@ -1,6 +1,6 @@
 # Multi-agent development integration and release pipeline
 
-**Status:** proposed with release candidate `rc` (2026-11-22). The workflows and guard in this repository take
+**Status:** proposed with release candidate `rc/taxguard-20261122` (2026-11-22). The workflows and guard in this repository take
 effect once they are merged into `main`. The repository settings in section 5 are recommendations and need the owner's
 approval; nothing here changes GitHub settings, Railway or Supabase.
 
@@ -16,9 +16,10 @@ application logic.
 
 | Branch | Owner | Purpose | Deploys |
 |---|---|---|---|
-| `aistudio/**` (for example `aistudio/frontend`) | Google AI Studio | Frontend, branding, responsive design, UI | never |
-| `claude/**` | Claude Code | Backend, security, workflow, database, integration | never |
-| `chatgpt/**` | ChatGPT | Source-code repairs and audits | never |
+| `aistudio/frontend` (any `aistudio/**`) | Google AI Studio | Frontend, branding, responsive design, UI; reconciled automatically onto `main` (section 2) | never |
+| `claude/development` (any `claude/**`) | Claude Code | Backend, security, workflow, database, integration | never |
+| `chatgpt/repair` (any `chatgpt/**`) | ChatGPT | Source-code repairs and audits | never |
+| `integration/aistudio-<sha>` | reconciliation workflow | One AI Studio update applied onto `main`, with its change record; a pull request to `main` | never |
 | `integration/taxguard` | integrating agent, owner review | Unified integration: each agent branch arrives by pull request | never |
 | `rc/taxguard-YYYYMMDD` | integrating agent | Release candidate: frozen, fully accepted, then a pull request to `main` | never |
 | `main` | owner | Protected production source | only through `deploy-pages.yml` (section 4) |
@@ -32,8 +33,32 @@ push-triggered Pages deployment workflow (section 5).
 
 ## 2. Google AI Studio
 
-**Preferred:** point the AI Studio GitHub sync at `aistudio/frontend`, then open a pull request
-`aistudio/frontend → integration/taxguard`.
+**Preferred:** point the AI Studio GitHub sync at `aistudio/frontend`. Every push there runs
+`.github/workflows/aistudio-reconcile.yml`:
+1. **Only AI Studio's own change is taken.** Each new commit's diff against its parent (AI Studio's previous
+   synchronization) is cherry-picked onto the current `main`. A stale full-tree snapshot therefore cannot revert or
+   delete recovered files. A conflict stops the run for manual reconciliation; nothing is overwritten.
+2. **Classified and guarded.** `scripts/classify-changes.mjs` records every added, modified, deleted and renamed file
+   with its area and risk:
+   - **FRONTEND_ONLY:** only UI, branding and asset files, with no deletions.
+   - **REQUIRES_OWNER_REVIEW:** backend, database, authentication, tax workflow, types, tests, dependencies, tooling,
+     CI or deletions.
+
+   The integration guard checks the candidate against `main`.
+3. **Integration pull request.** `integration/aistudio-<sha> → main` is opened with the change record, which is also
+   uploaded as an artifact. Development CI validates it.
+   - **FRONTEND_ONLY** candidates are queued for automatic merge. This takes effect only after the owner enables
+     auto-merge and required checks on `main`.
+   - **REQUIRES_OWNER_REVIEW** candidates wait for review.
+4. **Production.** A merged change reaches the website through section 4. Automatic once `PAGES_AUTO_DEPLOY=true`,
+   otherwise by dispatch.
+
+**Integration token.** GitHub does not start workflows for pushes, pull requests or merges made with the built-in
+workflow token.
+- **With the token:** add a repository secret `TAXGUARD_INTEGRATION_TOKEN`, a GitHub App or fine-grained token with
+  contents and pull-request write on this repository only. CI then runs on the integration pull request, and an
+  automatic merge triggers `main`'s CI and the release.
+- **Without it:** the workflow dispatches Development CI for the candidate itself, and merging stays manual.
 
 **If AI Studio can only sync the default branch of a repository** (isolated synchronization), use this, subject to
 owner approval:
@@ -101,9 +126,22 @@ request. The file is reviewed like code (section 5).
 3. **Deploy (approval).** Run `Deploy TaxGuard Production to GitHub Pages` manually with the exact 40-character SHA.
    Automatic deployment of validated `main` commits happens only if the owner sets the repository variable
    `PAGES_AUTO_DEPLOY=true`.
+   - **Order:** an automatic release must still be the head of `main` when it deploys, and the deploy concurrency group
+     queues runs without cancelling, so an older run never overwrites a newer release.
+   - **Rollback target:** before deploying, the job records the live release from `version.json`.
 4. **Record.** The published commit is shown in the deployment summary and at `https://destriataxservices.com/version.json`.
+5. **Verify live, roll back automatically.** The verify job polls `https://destriataxservices.com/` for up to fifteen
+   minutes, which allows for the Pages cache. It requires `version.json` to name the released commit and domain, and
+   the page to use the stamped brand assets. If verification fails:
+   - it redeploys the previously live release through this same workflow, which repeats every validation;
+   - it opens a GitHub issue naming the failed commit and run (the failed run also notifies the owner);
+   - it fails.
 
-### Rollback
+   The failed artifact stays in the run for investigation. Another release needs a passing Development CI run.
+
+### Manual rollback
+
+Automatic rollback is described in step 5. To roll back by hand:
 
 1. Find the last good release commit: GitHub → Environments → `github-pages` deployment history, or that release's
    `version.json`.
