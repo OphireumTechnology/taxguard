@@ -135,7 +135,7 @@ export const HomePage: React.FC = () => {
       {/* 2. ADVANCED INTELLIGENT TAX TECHNOLOGY HERO SECTION */}
       <section
         ref={heroRef}
-        className="relative pt-10 pb-16 sm:pt-14 sm:pb-22 lg:pt-20 lg:pb-26 overflow-x-clip"
+        className="relative py-10 sm:py-12 lg:py-16 overflow-x-clip"
         aria-label="Destria Tax Services Intelligent Financial Technology Overview"
       >
         {/* Subtle Architectural Grid & Restrained Ambient Lighting */}
@@ -149,29 +149,35 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-center">
             {/* Left Column: Minimalist Executive Positioning & Aligned Actions */}
-            <div className="lg:col-span-6 space-y-8 sm:space-y-9 text-left min-w-0">
+            <div className="lg:col-span-6 space-y-6 sm:space-y-7 text-left min-w-0">
               <div className="space-y-5 sm:space-y-6">
                 <p className="text-[11px] sm:text-xs font-semibold tracking-[0.26em] text-[#E5B552] uppercase">
                   {COMPANY_BRANDING.uppercaseName}
                 </p>
 
                 <h1 className="font-serif text-3xl sm:text-4xl lg:text-[42px] xl:text-[48px] font-bold tracking-tight text-white leading-[1.12] [text-wrap:balance]">
-                  <span className="block">Intelligent Tax Solutions.</span>
-                  <span className="block text-[#E5B552] mt-1.5">Advanced Financial Technology.</span>
+                  <span className="block">Intelligent Tax.</span>
+                  <span className="block text-[#E5B552] mt-1.5">Advanced Finance.</span>
                 </h1>
 
                 <div className="flex items-center gap-3 pt-0.5">
                   <span className="h-px w-8 bg-[#D4A843]/70 flex-shrink-0" aria-hidden="true" />
                   <p className="text-sm sm:text-base font-medium tracking-[0.06em] text-slate-100">
-                    AI-Powered. Human-Led. Future-Ready.
+                    AI-Powered. Human-Led.
                   </p>
                 </div>
 
                 <p className="text-sm sm:text-base text-slate-300/95 max-w-lg font-normal leading-relaxed">
-                  Combining tax expertise, artificial intelligence and secure financial technology to simplify tax preparation, accounting and wealth planning.
+                  Tax, accounting and wealth planning powered by intelligent technology and professional expertise.
                 </p>
+              </div>
+
+              <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-medium text-slate-200">
+                <span className="inline-flex items-center gap-2"><Cpu className="h-4 w-4 text-[#E5B552]" aria-hidden="true" /> AI Intelligence</span>
+                <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#E5B552]" aria-hidden="true" /> Secure Vault</span>
+                <span className="inline-flex items-center gap-2"><Briefcase className="h-4 w-4 text-[#E5B552]" aria-hidden="true" /> Professional Expertise</span>
               </div>
 
               {/* Compact, Consistently Aligned Action Row */}
@@ -182,7 +188,7 @@ export const HomePage: React.FC = () => {
                   className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-wide text-[#071D3A] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 shadow-lg shadow-[#C99A35]/15 transition-all inline-flex items-center justify-center gap-2 group whitespace-nowrap active:scale-[0.99]"
                   id="hero-schedule-btn"
                 >
-                  <span>Schedule a Consultation</span>
+                  <span>Schedule Consultation</span>
                   <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -206,7 +212,7 @@ export const HomePage: React.FC = () => {
                   role="link"
                 >
                   <Lock className="w-3.5 h-3.5 text-[#E5B552] flex-shrink-0" />
-                  <span>Secure Client Portal</span>
+                  <span>Client Portal</span>
                 </a>
               </div>
             </div>
