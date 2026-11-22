@@ -1,7 +1,6 @@
 import { COMPANY_BRANDING } from '../config/companyBranding';
 
 export const BRAND_ASSET_VERSION = '20261121-emblem-v3';
-export const FOUNDER_PORTRAIT_VERSION = '2f1007a9';
 export const BRAND_WEBSITE_URL = `${COMPANY_BRANDING.website}/`;
 
 const getBaseUrl = (): string => {
@@ -26,11 +25,6 @@ export const BRAND_ASSETS = {
   destriaLogo: withBrandVersion('branding/destria-logo-header.png'),
   destriaLogoHero: withBrandVersion('branding/destria-logo-hero.png'),
   destriaLogoOriginal: withBrandVersion('branding/destria-logo-original.png'),
-  destriaFounderPortraitPath: resolveAssetUrl('branding/destria-founder-executive-portrait.png'),
-  destriaFounderPortrait: resolveAssetUrl(
-    'branding/destria-founder-executive-portrait.png',
-    FOUNDER_PORTRAIT_VERSION
-  ),
   destriaEmblem: withBrandVersion('branding/destria-emblem-icon.png'),
   destriaFavicon: withBrandVersion('branding/destria-favicon.png'),
   appleTouchIcon: withBrandVersion('apple-touch-icon.png'),

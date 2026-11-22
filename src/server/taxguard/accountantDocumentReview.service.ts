@@ -15,12 +15,7 @@
  */
 
 import { db } from '../db';
-export class AuthorityError extends Error {
-  constructor(message: string, public readonly statusCode = 400) {
-    super(message);
-    this.name = 'AuthorityError';
-  }
-}
+import { AuthorityError } from './authority.repository';
 import {
   DocumentEntity,
   ExtractedFieldEntity,
