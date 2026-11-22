@@ -40,7 +40,8 @@ const isProtected = file => PROTECTED_PREFIXES.some(p => file.startsWith(p)) || 
 const SERVICE_PREFIXES = ['src/services/', 'src/supabase/', 'src/server/routes/'];
 // A real client calls the API or database directly, or delegates to a service client that does (for example
 // vaultService.download(...)). A module that does neither is a local stand-in.
-const CALLS = /\bfetch\(|apiEndpoint\(|\brequest\s*<|\brequest\(|\.rpc\(|\.from\(|getSupabaseAdmin\(|createClient\(|\bpool\.query\(|\b[A-Za-z]+(?:Service|Api|Client|Store)\.[A-Za-z]+\(/;
+// `.from(` counts only as a table call with a quoted table name (supabase.from('taxguard_x')), never Array.from(...).
+const CALLS = /\bfetch\(|apiEndpoint\(|\brequest\s*<|\brequest\(|\.rpc\(|(?<!\bArray)\.from\(\s*['"`]|getSupabaseAdmin\(|createClient\(|\bpool\.query\(|\b[A-Za-z]+(?:Service|Api|Client|Store)\.[A-Za-z]+\(/;
 
 const approvedFile = 'docs/development/approved-deletions.json';
 let approved = new Set();

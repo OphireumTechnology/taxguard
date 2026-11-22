@@ -1,4 +1,10 @@
 {
   "description": "Reviewed approvals for deleting protected TaxGuard source (scripts/integration-guard.mjs). Each entry names one exact path, the reason and the approving owner decision. Changes to this file require owner review (see multi-agent-integration.md).",
-  "paths": []
+  "paths": [
+    {
+      "path": "src/server/routes/_durableFallback.ts",
+      "reason": "Created only by Google AI Studio 6eb15ab as the helper for its 503 stand-ins of real routers; removed with them when 6eb15ab is reverted (the validated 4c2593d tree never contained it).",
+      "decision": "Owner directive 2026-11-22: restore validated functionality; reject replacement of real services with stand-ins."
+    }
+  ]
 }
