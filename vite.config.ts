@@ -10,9 +10,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  optimizeDeps: {
+    entries: ['index.html'],
+  },
   server: {
-    port: 3000,
-    host: '0.0.0.0',
     hmr: false,
   },
   build: {

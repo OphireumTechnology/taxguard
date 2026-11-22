@@ -1,14 +1,35 @@
-import { vaultService } from '../services/vaultService';
+import { isSupabaseConfigured, supabase } from './config';
 
-/**
- * Secure document download URL. The browser never signs storage URLs itself: the server vault authorizes the request
- * (signed-in session, client and tenant scope, staff assignment, completed malware scan) and returns a short-lived signed
- * URL for the private bucket (POST /api/vault/clients/:clientId/documents/:documentId/versions/:version/download).
- * Any refusal is raised to the caller; there is no local substitute.
- */
-export async function getSecureDownloadUrl(document: { id: string; clientId: string; version: number }): Promise<string> {
-  if (!document?.id || !document.clientId || !Number.isInteger(document.version)) throw new Error('DOCUMENT_REFERENCE_INVALID');
-  const { url } = await vaultService.download(document.clientId, document.id, document.version);
-  if (typeof url !== 'string' || !/^https:\/\//.test(url)) throw new Error('DOCUMENT_URL_INVALID');
-  return url;
+export const VAULT_BUCKET = 'taxguard-client-documents';
+
+export async function uploadDocumentToStorage(
+  path: string,
+  file: Blob | File | ArrayBuffer
+): Promise<{ path: string; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) {
+    return { path, error: 'Document storage provider is not configured.' };
+  }
+  const { data, error } = await supabase.storage.from(VAULT_BUCKET).upload(path, file, { upsert: false });
+  if (error) return { path, error: error.message };
+  return { path: data.path };
+}
+
+export async function getSecureDownloadUrl(
+  docOrPath: string | Record<string, any>,
+  expiresInSeconds = 300
+): Promise<string> {
+  const path =
+    typeof docOrPath === 'string'
+      ? docOrPath
+      : docOrPath?.storagePath || docOrPath?.url || docOrPath?.fileName || docOrPath?.id || '';
+  if (!isSupabaseConfigured() || !supabase) {
+    throw new Error('Document storage provider is not configured.');
+  }
+  const { data, error } = await supabase.storage
+    .from(VAULT_BUCKET)
+    .createSignedUrl(path, expiresInSeconds);
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message || 'Unable to create signed download URL.');
+  }
+  return data.signedUrl;
 }

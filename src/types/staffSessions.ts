@@ -1,7 +1,32 @@
-export const SESSION_REVOCATION_REASONS = ['security_incident', 'lost_or_stolen_device', 'offboarding', 'role_change', 'administrative_review'] as const;
-export type SessionRevocationReason = typeof SESSION_REVOCATION_REASONS[number];
+export const SESSION_REVOCATION_REASONS = [
+  'USER_REQUEST',
+  'ADMIN_SECURITY_ACTION',
+  'SUSPECTED_COMPROMISE',
+  'ROLE_CHANGE',
+  'DEVICE_LOST',
+  'OFFBOARDING',
+] as const;
+
+export type SessionRevocationReason = (typeof SESSION_REVOCATION_REASONS)[number] | string;
+
 export interface DurableSessionRecord {
-  sessionId: string; createdAt: string; authenticatedAt: string; expiresAt: string;
-  assuranceLevel: 'aal1' | 'aal2'; current: boolean;
+  id?: string;
+  sessionId?: string;
+  uid?: string;
+  userId?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+  aal?: string;
+  assuranceLevel?: any;
+  createdAt: string;
+  authenticatedAt?: string;
+  expiresAt?: string;
+  lastSeenAt?: string;
+  revokedAt?: string | null;
+  revocationReason?: SessionRevocationReason | null;
+  ipAddress?: string;
+  userAgent?: string;
+  current?: boolean;
+  [key: string]: any;
 }
-export interface DurableSessionList { items: DurableSessionRecord[]; source: 'durable' }
