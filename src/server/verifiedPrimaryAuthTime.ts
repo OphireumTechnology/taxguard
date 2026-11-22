@@ -1,30 +1,26 @@
 /**
- * Extracts token-bound primary sign-in timestamp from a verified JWT's `amr` claim.
- * Fails closed (returns undefined) if malformed or missing verified primary authentication evidence.
+ * Reads primary authentication evidence from an access token ALREADY verified by Supabase Auth.
+ * This is not a JWT verifier. Call only after auth.getUser(accessToken) succeeds.
+ * Refresh issuance, MFA challenges and mutable user last-sign-in timestamps are not primary proof.
  */
-export function verifiedPrimaryAuthTime(accessToken: string): number | undefined {
-  if (!accessToken || typeof accessToken !== 'string') return undefined;
-  const parts = accessToken.split('.');
-  if (parts.length !== 3) return undefined;
+const PRIMARY_METHODS = new Set(['password', 'oauth', 'otp', 'sso', 'sso/saml', 'magiclink']);
+const CLOCK_SKEW_SECONDS = 30;
+export function verifiedPrimaryAuthTime(accessToken: string, nowMilliseconds = Date.now()): number | undefined {
   try {
-    const payloadRaw = Buffer.from(parts[1], 'base64url').toString('utf8');
-    const payload = JSON.parse(payloadRaw) as {
-      amr?: Array<{ method?: string; timestamp?: number }>;
-      iat?: number;
-    };
-    if (!Array.isArray(payload.amr)) return undefined;
-    const primaryMethods = new Set(['password', 'oauth', 'sso/saml', 'magiclink', 'email_otp', 'otp', 'webauthn']);
-    const primaryEntries = payload.amr.filter(
-      (entry) =>
-        entry &&
-        typeof entry.method === 'string' &&
-        primaryMethods.has(entry.method.toLowerCase()) &&
-        typeof entry.timestamp === 'number' &&
-        Number.isFinite(entry.timestamp) &&
-        entry.timestamp > 0
-    );
-    if (primaryEntries.length === 0) return undefined;
-    return Math.max(...primaryEntries.map((entry) => Math.floor(entry.timestamp!)));
+    const parts = accessToken.split('.');
+    if (parts.length !== 3 || !parts[1] || !/^[A-Za-z0-9_-]+$/.test(parts[1]) || parts[1].length > 32_768) return undefined;
+    const claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    if (!claims || typeof claims !== 'object' || !Array.isArray(claims.amr) || claims.amr.length > 32) return undefined;
+    const now = Math.floor(nowMilliseconds / 1000);
+    if (!Number.isSafeInteger(now) || now <= 0) return undefined;
+    const primary: number[] = [];
+    for (const entry of claims.amr) {
+      // Fail closed for malformed AMR entries: do not salvage another entry from a corrupt claim.
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.method !== 'string' ||
+          !Number.isSafeInteger(entry.timestamp) || entry.timestamp <= 0 || entry.timestamp > now + CLOCK_SKEW_SECONDS) return undefined;
+      if (PRIMARY_METHODS.has(entry.method)) primary.push(entry.timestamp);
+    }
+    return primary.length ? Math.max(...primary) : undefined;
   } catch {
     return undefined;
   }

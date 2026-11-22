@@ -9,7 +9,6 @@ import { AdminPracticeSearchPanel } from './AdminPracticeSearchPanel';
 import { AdminWorkloadPanel } from './AdminWorkloadPanel';
 import { AiEmergencyStopPanel } from './AiEmergencyStopPanel';
 import { AiControlCenterPanel } from './AiControlCenterPanel';
-import { Stages09To18CommandWorkspace } from '../stages09to18/Stages09To18CommandWorkspace';
 /**
  * DESTRIA TAX SERVICES, LLC — Practice Administration Console
  * Reported provider configuration, guarded staff administration and unavailable integrations.
@@ -30,7 +29,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export const ADMIN_TABS = ['providers', 'stages_09_18', 'users', 'workload', 'billing', 'jobs', 'search', 'retention', 'audit', 'ai_stop', 'ai_control'] as const;
+export const ADMIN_TABS = ['providers', 'users', 'workload', 'billing', 'jobs', 'search', 'retention', 'audit', 'ai_stop', 'ai_control'] as const;
 type AdminTab = typeof ADMIN_TABS[number];
 
 export const PracticeAdminWorkspace: React.FC = () => {
@@ -56,17 +55,6 @@ export const PracticeAdminWorkspace: React.FC = () => {
             >
               <Activity className="w-4 h-4" />
               <span>Provider Readiness</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('stages_09_18')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
-                activeTab === 'stages_09_18' ? 'bg-[#D4A843] text-[#06182B] font-bold shadow-md' : 'text-slate-300 hover:bg-[#0D2745]'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Stages 09–18 Lifecycle</span>
             </button>
 
             <button
@@ -174,7 +162,7 @@ export const PracticeAdminWorkspace: React.FC = () => {
             <div>Postgres / Supabase: <span className="text-slate-300">Not verified by this workspace</span></div>
           </div>
         </aside>)} >
-      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'stages_09_18' ? <Stages09To18CommandWorkspace /> : activeTab === 'users' ? <StaffAccessManagementPanel user={currentUser} authStatus={authLifecycleState} refresh={refresh} /> : activeTab === 'audit' ? <AuditCenterPanel /> : activeTab === 'jobs' ? <AdminJobQueuePanel /> : activeTab === 'workload' ? <AdminWorkloadPanel /> : activeTab === 'search' ? <AdminPracticeSearchPanel /> : activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">{activeTab === 'users' ? <StaffAccessManagementPanel user={currentUser} authStatus={authLifecycleState} refresh={refresh} /> : activeTab === 'audit' ? <AuditCenterPanel /> : activeTab === 'jobs' ? <AdminJobQueuePanel /> : activeTab === 'workload' ? <AdminWorkloadPanel /> : activeTab === 'search' ? <AdminPracticeSearchPanel /> : activeTab === 'ai_control' ? <AiControlCenterPanel /> : activeTab === 'ai_stop'
         ? <AiEmergencyStopPanel />
         : <AdminOperationalPanel tab={activeTab} status={readiness.status} providers={readiness.providers} onRefresh={() => setRefresh(value => value + 1)}/>}</main>
 

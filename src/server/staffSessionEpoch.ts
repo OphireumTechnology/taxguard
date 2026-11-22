@@ -1,18 +1,10 @@
-/**
- * Validates that a staff member's authentication proof post-dates any session revocation epoch.
- */
-export function staffAuthProofIsCurrent(
-  member: { session_revoked_before?: number | string | null; auth_epoch?: number | string | null } | null | undefined,
-  authTime?: number | null
-): boolean {
-  if (!member) return false;
-  const rawEpoch = member.session_revoked_before ?? member.auth_epoch;
-  if (rawEpoch === undefined || rawEpoch === null || rawEpoch === '') return true;
-  const epochSeconds =
-    typeof rawEpoch === 'number'
-      ? rawEpoch
-      : Math.floor(Date.parse(String(rawEpoch)) / 1000);
-  if (!Number.isFinite(epochSeconds) || epochSeconds <= 0) return true;
-  if (typeof authTime !== 'number' || !Number.isFinite(authTime)) return false;
-  return authTime >= epochSeconds;
+import { requiresStaffMfa } from './staffMfa';
+/** Status changes invalidate both stored sessions and provider proofs issued before reactivation. */
+export function staffAuthProofIsCurrent(member: { role?: string; status_changed_at?: unknown }, authTimeSeconds: unknown): boolean {
+  if (!requiresStaffMfa(member.role) || member.status_changed_at == null) return true;
+  if (typeof member.status_changed_at !== 'string') return false;
+  const changedAt = Date.parse(member.status_changed_at);
+  const authTime = Number(authTimeSeconds);
+  // Provider sign-in timestamps are second-resolution. Same-second proofs remain denied.
+  return Number.isFinite(changedAt) && Number.isFinite(authTime) && authTime * 1000 > changedAt;
 }
