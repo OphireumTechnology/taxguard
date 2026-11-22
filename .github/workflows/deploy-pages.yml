@@ -2,21 +2,13 @@ name: Deploy TaxGuard Production to GitHub Pages
 
 # Production builds only an exact commit that passed TaxGuard Development CI on main.
 #
-#   * A push to main (from Google AI Studio, a merged pull request or anyone else) runs Development CI. When that run
-#     succeeds, this workflow builds and verifies that exact commit as a release candidate (no deployment unless the
-#     owner has not disabled automatic deployment, below). A failed CI run never reaches this workflow's build.
-#   * Production deployment needs an explicit decision: run this workflow manually with the exact commit SHA. The SHA
-#     must be on main and must have a successful Development CI push run. Optionally the owner may set the repository
-#     variable PAGES_AUTO_DEPLOY to "false" to pause automatic deployment; required reviewers on the
-#     github-pages environment are recommended in either case.
+#   * Main-branch CI is validated independently; it never automatically triggers production deployment.
+#   * Production deployment requires manual dispatch on main with an exact SHA that passed Development CI.
+#     Required reviewers on the github-pages environment are recommended as an additional approval gate.
 #   * The build repeats type checking, tests and the branding checks, stamps cache-busting asset versions with the
 #     commit, writes CNAME (destriataxservices.com) and dist/version.json (the exact published commit), and refuses
 #     server bundles, source maps and secret-like files in the artifact.
 on:
-  workflow_run:
-    workflows: ['TaxGuard Development CI']
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       commit:
