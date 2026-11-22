@@ -266,6 +266,118 @@
   background: transparent;
 }
 
+/* Homepage Intelligent Financial Technology Motion Utilities (GPU-composited) */
+@keyframes destria-orbit-cw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes destria-orbit-ccw {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes destria-grid-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(48px, 48px, 0);
+  }
+}
+
+@keyframes destria-scan-sweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(340%);
+    opacity: 0;
+  }
+}
+
+@keyframes destria-dash-flow {
+  from {
+    stroke-dashoffset: 64;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes destria-soft-breathe {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.03);
+  }
+}
+
+.destria-orbit-slow {
+  animation: destria-orbit-cw 54s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.destria-orbit-reverse {
+  animation: destria-orbit-ccw 40s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.destria-orbit-inner {
+  animation: destria-orbit-cw 28s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.destria-dash-animate {
+  stroke-dasharray: 5 7;
+  animation: destria-dash-flow 3.2s linear infinite;
+}
+
+.destria-scan-line {
+  animation: destria-scan-sweep 3.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.destria-breathe {
+  animation: destria-soft-breathe 5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.destria-tech-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(212, 168, 67, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(96, 165, 250, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: destria-grid-drift 28s linear infinite;
+  will-change: transform;
+}
+
+.destria-motion-paused,
+.destria-motion-paused * {
+  animation-play-state: paused !important;
+}
+
 /* Phase 12B: honour reduced-motion preferences everywhere, not only inside the dashboard shell. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

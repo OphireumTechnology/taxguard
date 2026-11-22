@@ -14,8 +14,8 @@ const BRAND_NAME = COMPANY_BRANDING.displayName;
 
 const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
   home: {
-    title: `${BRAND_NAME} | Tax Preparation, Advisory & Wealth Planning`,
-    description: `${BRAND_NAME} provides intelligent tax preparation, strategic corporate accounting, and wealth planning powered by experienced CPA professionals and advanced AI intelligence.`,
+    title: `${BRAND_NAME} | Intelligent Tax Solutions, Accounting & Wealth Planning`,
+    description: `${BRAND_NAME} brings together experienced tax professionals, artificial intelligence, intelligent financial automation, and secure digital technologies for tax preparation, accounting, advisory, and wealth planning.`,
     canonicalPath: '/',
     ogType: 'website'
   },
