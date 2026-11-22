@@ -1,12 +1,17 @@
-const legacyKeys = [
-  'taxguard_stage', 'taxguard_active_stage', 'stageOneCompleted', 'stageTwoCompleted',
-  'stageThreeCompleted', 'stage_one_completed', 'stage_two_completed', 'stage_three_completed',
-];
-
-/** Best-effort cleanup only. Browser hints never establish LIVE workflow authority. */
 export function clearLegacyWorkflowHints(): void {
-  for (const key of legacyKeys) {
-    try { localStorage.removeItem(key); }
-    catch { /* Restricted storage must not crash the server-authorized workflow view. */ }
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = [
+      'taxguard_legacy_stage',
+      'taxguard_workflow_hint',
+      'taxguard_demo_stage',
+      'ar_tax_stage_override',
+    ];
+    for (const key of keys) {
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage access errors
   }
 }

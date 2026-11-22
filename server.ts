@@ -1,36 +1,67 @@
-import { createStaffAccessRouter, staffAccessDevelopmentConfigured } from './src/server/routes/staff-access.routes';
-import { createPracticeRouter } from './src/server/routes/practice.routes';
-import { createOnboardingRouter } from './src/server/routes/onboarding-durable.routes';
-import { createCasesRouter } from './src/server/routes/cases.routes';
-import { createVaultRouter } from './src/server/routes/vault.routes';
-import { createBillingRouter } from './src/server/routes/billing.routes';
-import { createBookToTaxRouter } from './src/server/routes/bookToTax.routes';
-import { createTaxEngineRouter } from './src/server/routes/taxEngine.routes';
-import { createCommunicationsRouter } from './src/server/routes/communications.routes';
-import { createSchedulingRouter } from './src/server/routes/appointments-durable.routes';
-import { createAuditCenterRouter } from './src/server/routes/audit-center.routes';
-import { mountRetiredLegacyRoutes } from './src/server/routes/retiredLegacyRoutes';
+import {
+  createStaffAccessRouter,
+  staffAccessDevelopmentConfigured,
+  createPracticeRouter,
+  createOnboardingRouter,
+  createCasesRouter,
+  createVaultRouter,
+  createBillingRouter,
+  createBookToTaxRouter,
+  createTaxEngineRouter,
+  createCommunicationsRouter,
+  createSchedulingRouter,
+  createAuditCenterRouter,
+  mountRetiredLegacyRoutes,
+  createScanCallbackRouter,
+  createLegalMattersRouter,
+  createConsultationReviewRouter,
+  createPublicConsultationRouter,
+  createPublicContactRouter,
+  createClientPortalRouter,
+  createClientSignaturesRouter,
+  createReassignmentRouter,
+  createJobsRouter,
+  createAiGovernanceRouter,
+  createAccountantDashboardRouter,
+  caseAuthorityRouter,
+  superAdminRouter,
+  taxFormsRouter,
+  authRouter,
+  onboardingRouter,
+  documentsRouter,
+  integrationsRouter,
+  careersRouter,
+  adminRouter,
+  securityRouter,
+  accountantRouter,
+  calendarRouter,
+  consultationRoomRouter,
+  intakeRouter,
+  stagingRouter,
+  monitoringRouter,
+  taxguardRouter,
+  handleLegacyTaxGuardRoute,
+  accountingIntakeRouter,
+  profileAmendmentRouter,
+  practiceConsoleRouter,
+  stageTwoThreeRouter,
+  bookkeepingRouter,
+  practiceOperationsRouter,
+  liveWorkflowRouter,
+  taxguardAiRouter,
+} from './src/server/routes';
 import { createHealthRouter } from './src/server/observability/health';
-import { authenticateToken } from './src/server/auth';
+import { authenticateToken, initSeedPasswords } from './src/server/auth';
 import { runtimeProbes } from './src/server/observability/defaultProbes';
-import { createScanCallbackRouter } from './src/server/routes/vault-scan.routes';
 import { FakeScanProvider, ScanCoordinator, scannerConfiguration } from './src/server/taxguard/documents/malwareScanning';
 import { configureDurableSecurityEvents } from './src/server/taxguard/audit/securityEventSink';
 import { practiceStoreConfigured } from './src/server/taxguard/practice/practiceStoreConfig';
-import { createLegalMattersRouter } from './src/server/routes/legal-durable.routes';
-import { createConsultationReviewRouter, createPublicConsultationRouter } from './src/server/routes/consultations.routes';
-import { createPublicContactRouter } from './src/server/routes/contact-intake.routes';
-import { createClientPortalRouter, createClientSignaturesRouter } from './src/server/routes/client-portal.routes';
-import { createReassignmentRouter } from './src/server/routes/reassignment.routes';
-import { createJobsRouter } from './src/server/routes/jobs-durable.routes';
 import { startMfaResetWorker } from './src/server/mfaRecoveryCompletion';
 import { configuredMfaResetProvider } from './src/server/mfaResetProvider';
 import { getSupabaseAdmin } from './src/server/supabase';
 import { SecurityEventRecorder, securityDenialObserver } from './src/server/securityEventRecorder';
 import { legacyRouteBoundary } from './src/server/legacyRouteBoundary';
-import { createAiGovernanceRouter } from './src/server/routes/ai-governance.routes';
 import { createProductionApp } from './src/server/productionApp';
-import { createAccountantDashboardRouter } from './src/server/routes/accountantDashboard.routes';
 import { requireOperationalAdministrator } from './src/server/operationalDiagnostics';
 import { createOperationalMetrics } from './src/server/operationalMetrics';
 import { proxyTrustHops } from './src/server/config/proxyTrust';
@@ -42,133 +73,15 @@ import { proxyTrustHops } from './src/server/config/proxyTrust';
  */
 
 import express from 'express';
-import path from 'path';
 import {
   protectServerBuildArtifacts,
-  isApiOrServerOnlyPath,
   resolveProductionDistPath,
   resolvePublicAssetsPath,
-  resolveProductionIndexHtmlPath,
   createSpaFallbackHandler,
 } from './src/server/staticAssetPolicy';
 import { applyFramingPolicy } from './src/server/securityHeaders';
-import { caseAuthorityRouter } from './src/server/routes/case-authority.routes';
 import { createServer as createViteServer } from 'vite';
-
-import {
-  initSeedPasswords
-} from './src/server/auth';
 import { bootstrapSuperAdministrator } from './src/server/superAdminBootstrap';
-import { superAdminRouter } from './src/server/routes/superAdmin.routes';
-import { taxFormsRouter } from './src/server/routes/taxForms.routes';
-
-import {
-  authRouter
-} from './src/server/routes/auth.routes';
-
-import {
-  onboardingRouter
-} from './src/server/routes/onboarding.routes';
-
-import {
-  documentsRouter
-} from './src/server/routes/documents.routes';
-
-import {
-  integrationsRouter
-} from './src/server/routes/integrations.routes';
-
-import {
-  careersRouter
-} from './src/server/routes/careers.routes';
-
-import {
-  adminRouter
-} from './src/server/routes/admin.routes';
-
-import {
-  securityRouter
-} from './src/server/routes/security.routes';
-
-import {
-  accountantRouter
-} from './src/server/routes/accountant.routes';
-
-import {
-  calendarRouter
-} from './src/server/routes/calendar.routes';
-
-import {
-  consultationRoomRouter
-} from './src/server/routes/consultationRoom.routes';
-
-import {
-  intakeRouter
-} from './src/server/routes/intake.routes';
-
-import {
-  stagingRouter
-} from './src/server/routes/staging.routes';
-
-import {
-  monitoringRouter
-} from './src/server/routes/monitoring.routes';
-
-import {
-  taxguardRouter,
-  handleLegacyTaxGuardRoute
-} from './src/server/routes/taxguard.routes';
-
-import {
-  accountingIntakeRouter
-} from './src/server/routes/accounting-intake.routes';
-
-import {
-  profileAmendmentRouter
-} from './src/server/routes/profile-amendment.routes';
-
-import {
-  practiceConsoleRouter
-} from './src/server/routes/practice-console.routes';
-
-import {
-  stageTwoThreeRouter
-} from './src/server/routes/stage-two-three.routes';
-
-import {
-  bookkeepingRouter
-} from './src/server/routes/bookkeeping.routes';
-
-import {
-  practiceOperationsRouter
-} from './src/server/routes/practice-operations.routes';
-
-/**
- * TaxGuard LIVE server-authoritative workflow.
- *
- * Final routes:
- *
- * GET  /api/live-workflow/state
- * POST /api/live-workflow/complete-stage
- * GET  /api/live-workflow/eligibility
- */
-import liveWorkflowRouter
-  from './src/server/routes/live-workflow.routes';
-
-/**
- * M16 — TaxGuard AI Intelligence Layer.
- *
- * Final routes:
- *
- * GET  /api/taxguard-ai/health
- * POST /api/taxguard-ai/propose
- *
- * AI remains proposal-only.
- * It does not replace TaxGuard deterministic calculations,
- * verified authority, governance, or human approval.
- */
-import taxguardAiRouter
-  from './src/server/routes/taxguard-ai.routes';
 
 import {
   db

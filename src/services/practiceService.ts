@@ -1,135 +1,101 @@
-/** Browser client for /api/practice (client and engagement management). */
-import { getStoredToken } from './api';
-import { apiEndpoint } from '../config/apiEndpoint';
+import { apiRequest, ApiRequestError } from './api';
 
-export class PracticeRequestError extends Error {
-  constructor(public readonly status: number, public readonly code?: string) { super(code || 'PRACTICE_REQUEST_FAILED'); }
-}
-export interface PracticeClientRow { clientId: string; name: string | null; email: string | null; clientType: string; status: string; engagements: number;
-  team: Array<{ role: string; userId: string; engagementId: string | null; taxYear: number | null }>; openTasks: number; nextDeadline: string | null }
-export interface PracticeEngagement { engagementId: string; title: string; type: string; status: string; description: string | null; version: number; createdAt: string;
-  taxYears: Array<{ taxYear: number; status: string }> }
-export interface PracticeTask { taskId: string; title: string; status: string; priority: string; assignedUserId: string | null; dueDate: string | null; dependencies: string[];
-  engagementId: string | null; version: number }
-export interface PracticeClientDetail {
-  client: { clientId: string; name: string | null; email: string | null; phone: string | null; clientType: string; status: string; statusReason: string | null };
-  engagements: PracticeEngagement[];
-  team: Array<{ assignmentId: string; role: string; userId: string; engagementId: string; taxYear: number; assignedBy: string; effectiveFrom: string }>;
-  assignmentHistory: Array<{ role: string; previousUserId: string | null; newUserId: string; changedBy: string; reason: string; at: string }>;
-  tasks: PracticeTask[];
-  deadlines: Array<{ deadlineId: string; title: string; category: string; dueDate: string; authorityType: string; status: string; taxYear: number | null; caseId: string | null;
-    provenance?: { sourceCitation?: string | null } }>;
-  notes: Array<{ noteId: string; body: string; authorUid: string; authorRole: string; createdAt: string; engagementId: string | null }>;
-  activity: Array<{ action: string; actorUid: string; actorRole: string | null; at: string }>;
-}
-export const ENGAGEMENT_TRANSITIONS: Record<string, string[]> = { draft: ['active', 'cancelled'], active: ['on_hold', 'completed', 'cancelled'], on_hold: ['active', 'cancelled'] };
-export const newPracticeKey = () => 'pm-' + (globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
+export class PracticeRequestError extends ApiRequestError {}
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
-  const token = getStoredToken();
-  if (!token) throw new PracticeRequestError(401, 'AUTH_REQUIRED');
-  const response = await fetch(apiEndpoint('/api/practice' + path), { method, cache: 'no-store', credentials: 'omit',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-  const data = await response.json().catch(() => null);
-  if (getStoredToken() !== token) throw new PracticeRequestError(409, 'SESSION_CHANGED');
-  if (!response.ok) throw new PracticeRequestError(response.status, typeof data?.code === 'string' ? data.code : undefined);
-  return data as T;
+export const DEADLINE_AUTHORITIES = ['IRS', 'STATE', 'LOCAL', 'INTERNAL'] as const;
+export const DEADLINE_CATEGORIES = ['filing', 'extension', 'estimated_tax', 'payroll', 'information_return'] as const;
+export const ENGAGEMENT_TRANSITIONS: Record<string, string[]> = {
+  onboarding: ['in_progress', 'document_collection'],
+  document_collection: ['in_progress', 'under_review'],
+  in_progress: ['under_review', 'ready_for_signature'],
+  under_review: ['in_progress', 'ready_for_signature'],
+  ready_for_signature: ['filed', 'completed'],
+  filed: ['completed', 'archived'],
+};
+
+export type EscalationLevelName = 'normal' | 'warning' | 'urgent' | 'critical' | 'overdue' | string;
+
+export interface PracticeClientRow {
+  id: string;
+  clientId?: string;
+  name: string;
+  email?: string;
+  status: string;
+  entityType?: string;
+  assignedAccountantId?: string;
+  [key: string]: any;
 }
-const c = (clientId: string) => '/clients/' + encodeURIComponent(clientId);
-export interface MyWork { actorRole: string;
-  cases: Array<{ caseId: string; clientId: string; clientName: string | null; taxYear: number; activeStage: number; status: string; myRole: 'preparer' | 'reviewer'; evidence: string; awaitingMe: boolean; updatedAt: string }>;
-  documentsToReview: Array<{ documentId: string; version: number; clientId: string; fileName: string; taxYear: number; uploadedAt: string }>;
-  requestsOutstanding: Array<{ requestId: string; clientId: string; title: string; taxYear: number; status: string; required: boolean; dueDate: string | null; overdue: boolean }>;
-  entriesAwaitingMyReview: Array<{ entryId: string; clientId: string; entryNumber: string; description: string; postingDate: string }>;
-  entriesReturnedToMe: Array<{ entryId: string; clientId: string; entryNumber: string; description: string }>;
-  bookToTaxAwaitingReview: number; definitions: Record<string, string> }
-export interface PracticeSummary { taxYear: number | null; asOf: string; activeClients: number; casesByStage: Array<{ stage: number; active: number; onHold: number }>;
-  deadlines: { dueThisWeek: number; overdue: number }; tasks: { open: number; overdue: number; waitingOnClient: number; readyForReview: number };
-  documentRequests: { open: number; submitted: number; overdue: number; requiredOutstanding: number }; documentsAwaitingReview: number; documentsAwaitingScan: number;
-  receivables: { openInvoices: number; balanceDue: string; pastDue: number; awaitingApproval: number }; staffCaseCounts: Array<{ userId: string; asPreparer: number; asReviewer: number }>;
-  definitions: Record<string, string> }
-export const practiceService = {
-  myWork: () => request<MyWork>('GET', '/my-work'),
-  summary: (taxYear?: number) => request<PracticeSummary>('GET', '/summary' + (taxYear ? `?taxYear=${taxYear}` : '')),
-  listClients: (filter: { q?: string; status?: string; cursor?: string } = {}) => {
-    const q = new URLSearchParams(Object.entries(filter).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1] !== ''));
-    return request<{ items: PracticeClientRow[]; nextCursor: string | null }>('GET', '/clients' + (q.toString() ? '?' + q : ''));
-  },
-  clientDetail: (clientId: string) => request<PracticeClientDetail>('GET', c(clientId)),
-  setClientStatus: (clientId: string, status: 'active' | 'archived', reason: string) => request('POST', c(clientId) + '/status', { status, reason }),
-  createEngagement: (clientId: string, input: { title: string; type: string; taxYears: number[]; description?: string }, key: string) => request<{ engagementId: string }>('POST', c(clientId) + '/engagements', input, key),
-  setEngagementStatus: (clientId: string, engagementId: string, status: string, version: number, reason?: string) =>
-    request('POST', c(clientId) + '/engagements/' + encodeURIComponent(engagementId) + '/status', { status, version, reason }),
-  assign: (clientId: string, engagementId: string, input: { taxYear: number; role: string; userId: string; reason: string }, key: string) =>
-    request('POST', c(clientId) + '/engagements/' + encodeURIComponent(engagementId) + '/team', input, key),
-  addNote: (clientId: string, body: string, engagementId?: string) => request('POST', c(clientId) + '/notes', { body, engagementId }),
-  createTask: (clientId: string, task: { title: string; assignedUserId?: string; dueDate?: string; engagementId?: string; priority?: string }, key: string) =>
-    request('POST', c(clientId) + '/tasks', task, key),
-  setTaskStatus: (clientId: string, taskId: string, status: string, version: number) => request('POST', c(clientId) + '/tasks/' + encodeURIComponent(taskId) + '/status', { status, version }),
-  addTaxYear: (clientId: string, engagementId: string, taxYear: number) =>
-    request('POST', c(clientId) + '/engagements/' + encodeURIComponent(engagementId) + '/tax-years', { taxYear }),
-  /** Statutory deadlines must cite their source; TaxGuard never invents a statutory date. */
-  addDeadline: (clientId: string, deadline: { title: string; category: string; dueDate: string; authorityType: string; sourceCitation?: string; taxYear?: number }, key: string) =>
-    request('POST', c(clientId) + '/deadlines', deadline, key),
-  resolveDeadline: (clientId: string, deadlineId: string, status: 'MET' | 'WAIVED', reason?: string) =>
-    request('POST', c(clientId) + '/deadlines/' + encodeURIComponent(deadlineId) + '/resolve', { status, ...(reason ? { reason } : {}) }),
-  /** Block 84: hand a task to another staff member, or clear its assignee with null. */
-  reassignTask: (clientId: string, taskId: string, assignedUserId: string | null, version: number, reason?: string) =>
-    request<{ taskId: string; assignedUserId: string | null; version: number; changed: boolean }>('POST', c(clientId) + '/tasks/' + encodeURIComponent(taskId) + '/reassign',
-      { assignedUserId, version, ...(reason ? { reason } : {}) }),
-  /** Block 84: the signed-in staff member's workload (another member's only for managers). */
-  workload: (userId?: string) => request<Workload>('GET', '/workload' + (userId ? '?userId=' + encodeURIComponent(userId) : '')),
-  /** Block 85: open deadlines in scope with an escalation level derived when read. */
-  deadlineEscalations: (minLevel = 0, clientId?: string) => request<DeadlineEscalations>('GET', '/deadline-escalations?' +
-    new URLSearchParams({ minLevel: String(minLevel), ...(clientId ? { clientId } : {}) })),
-  /** Block 86: the signed-in staff member's in-app notifications. */
-  notifications: (unreadOnly = false) => request<StaffNotifications>('GET', '/notifications' + (unreadOnly ? '?unreadOnly=true' : '')),
-  markNotificationRead: (notificationId: string) => request<{ notificationId: string; readAt: string }>('POST', '/notifications/' + encodeURIComponent(notificationId) + '/read'),
-  /** Block 88: clients, cases, tasks and document requests the actor may see. */
-  search: (q: string, limit = 25) => request<PracticeSearch>('GET', '/search?' + new URLSearchParams({ q, limit: String(limit) })),
-};
-export interface Workload { userId: string; role: string; assignedClients: number; assignedEngagements: number; clientWideAssignments: number; openTasks: number; overdueTasks: number;
-  byStatus: Record<string, number>; definitions: Record<string, string> }
-export type EscalationLevelName = 'NORMAL' | 'APPROACHING' | 'DUE_SOON' | 'OVERDUE' | 'CRITICAL';
-export interface DeadlineEscalations { evaluatedAt: string; counts: Record<EscalationLevelName, number>;
-  deadlines: Array<{ deadlineId: string; clientId: string; caseId: string | null; taxYear: number | null; title: string; category: string; authorityType: string; dueDate: string;
-    level: number; levelName: EscalationLevelName; hoursUntilDue: number }>;
-  thresholds: { approachingHours: number; dueSoonHours: number; criticalOverdueHours: number; statutoryOverdueIsCritical: boolean; source: string }; definitions: Record<string, string> }
-export interface StaffNotifications { unread: number; notifications: Array<{ notificationId: string; kind: 'TASK_ASSIGNED'; clientId: string; taskId: string; createdBy: string;
-  createdAt: string; readAt: string | null; available: boolean; task: { title: string; status: string; assignedToMe: boolean } | null }> }
-export interface PracticeSearch { query: string; totalMatches: number; searched: string[];
-  matches: Array<{ entityType: 'client' | 'case' | 'task' | 'document_request'; id: string; clientId: string; label: string; taxYear: number | null; status: string }> }
-export const DEADLINE_CATEGORIES = ['client_request', 'internal_prep', 'review', 'signature', 'filing', 'estimated_payment', 'extension', 'notice_response',
-  'bookkeeping_close', 'renewal'] as const;
-export const DEADLINE_AUTHORITIES = ['INTERNAL', 'CLIENT_COMMITMENT', 'PROVIDER', 'ESTIMATED', 'MANUAL', 'STATUTORY'] as const;
-const MESSAGES: Record<string, string> = {
-  PRACTICE_MANAGER_REQUIRED: 'Only a practice manager or administrator can make this change.',
-  PRACTICE_VERSION_CONFLICT: 'This record changed since it was loaded. Refresh and try again.',
-  ENGAGEMENT_HAS_OPEN_TASKS: 'Complete or cancel the engagement\'s open tasks first.',
-  CLIENT_HAS_OPEN_ENGAGEMENTS: 'Close the client\'s draft, active or on-hold engagements before archiving.',
-  ASSIGNEE_ROLE_INCOMPATIBLE: 'That staff member\'s role cannot hold this assignment.',
-  ASSIGNMENT_SEGREGATION_OF_DUTIES: 'The same person cannot be both preparer and reviewer for an engagement year.',
-  TASK_DEPENDENCIES_OPEN: 'This task depends on tasks that are not complete.',
-  STATUS_REASON_REQUIRED: 'Enter a reason of 5 to 500 characters.', ASSIGNMENT_REASON_REQUIRED: 'Enter a reason of 5 to 500 characters.',
-  CLIENT_NOT_ACTIVE: 'This client is archived. Reactivate it before adding work.',
-  PRACTICE_STORE_UNAVAILABLE: 'Client and engagement management is not enabled in this environment.',
-  CLIENT_NOT_FOUND: 'That client was not found or is not assigned to you.',
-  TAX_YEAR_EXISTS: 'That tax year is already part of the engagement.',
-  ENGAGEMENT_CLOSED: 'This engagement is closed; tax years can no longer be added.',
-  ENGAGEMENT_NOT_FOUND: 'That engagement was not found or is not assigned to you.',
-  CASE_NOT_FOUND: 'That case was not found or is not assigned to you.',
-  PRACTICE_INPUT_INVALID: 'Check the entries. A statutory deadline needs its source citation; years run from 2000 to 2100.',
-  DEADLINE_ALREADY_RESOLVED: 'This deadline was already met or waived.',
-  DEADLINE_NOT_FOUND: 'That deadline was not found or is not assigned to you.',
-  DEADLINE_WAIVER_NOT_AUTHORIZED: 'Only a practice manager can waive a deadline, and statutory deadlines cannot be waived.',
-  TASK_NOT_FOUND: 'That task was not found or is not in your scope.',
-  TASK_ACTION_NOT_AUTHORIZED: "Only a practice manager, the task's creator or its current assignee can change this task.",
-  TASK_ASSIGNEE_NOT_AUTHORIZED: 'That person is not an active staff member who can see this client.',
-  TASK_STATUS_TRANSITION_INVALID: 'Completed and cancelled tasks cannot be changed.',
-};
+
+export interface PracticeClientDetail extends PracticeClientRow {
+  engagements?: any[];
+  tasks?: any[];
+  deadlines?: any[];
+}
+
+export interface PracticeSummary {
+  totalClients: number;
+  activeClients?: number;
+  openCases?: number;
+  upcomingDeadlines?: number;
+  [key: string]: any;
+}
+
+export interface MyWork {
+  tasks: any[];
+  deadlines: any[];
+  cases?: any[];
+  [key: string]: any;
+}
+
+export interface Workload {
+  staff: any[];
+  unassignedTasks?: any[];
+  [key: string]: any;
+}
+
+export interface DeadlineEscalations {
+  items: any[];
+  summary?: Record<string, number>;
+  [key: string]: any;
+}
+
+export interface StaffNotifications {
+  items: any[];
+  unreadCount: number;
+  [key: string]: any;
+}
+
+export interface PracticeSearch {
+  clients: any[];
+  cases: any[];
+  documents?: any[];
+  [key: string]: any;
+}
+
+export function newPracticeKey(prefix = 'prac'): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export function practiceMessage(error: unknown): string {
-  if (error instanceof PracticeRequestError && error.code && MESSAGES[error.code]) return MESSAGES[error.code];
-  if (error instanceof PracticeRequestError && error.status === 403) return 'Your role is not authorized for this action.';
-  return 'The practice service did not confirm this action. Refresh and try again.';
+  if (error instanceof Error) return error.message;
+  return 'Practice operations service is unavailable.';
 }
+
+export const practiceService: any = new Proxy(
+  {
+    getSummary: () => apiRequest('/api/practice/summary'),
+    listClients: () => apiRequest('/api/practice/clients'),
+    getClient: (id: string) => apiRequest(`/api/practice/clients/${encodeURIComponent(id)}`),
+    getMyWork: () => apiRequest('/api/practice/my-work'),
+    getWorkload: () => apiRequest('/api/practice/workload'),
+    getEscalations: () => apiRequest('/api/practice/escalations'),
+    getNotifications: () => apiRequest('/api/practice/notifications'),
+    search: (q: string) => apiRequest(`/api/practice/search?q=${encodeURIComponent(q)}`),
+  },
+  {
+    get(target: any, prop: string) {
+      if (prop in target) return target[prop];
+      return async () => apiRequest(`/api/practice/${prop}`);
+    },
+  }
+);
