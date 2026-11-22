@@ -11,10 +11,10 @@ export interface DurableJob { id: string; clientId: string | null; caseId: strin
   maxAttempts: number; availableAt: string; lockedBy: string | null; leaseExpiresAt: string | null; lastErrorCode: string | null; lastErrorMessage: string | null;
   createdBy: string | null; cancelledBy: string | null; createdAt: string; updatedAt: string }
 
-async function request<T>(method: 'GET' | 'POST', path: string): Promise<T> {
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
   const token = getStoredToken();
   if (!token) throw new JobRequestError(401, 'AUTH_REQUIRED');
-  const response = await fetch(apiEndpoint('/api/jobs' + path), { method, cache: 'no-store', credentials: 'omit',
+  const response = await fetch(apiEndpoint('/api/jobs' + path), { method, body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store', credentials: 'omit',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
   const data = await response.json().catch(() => null);
   if (getStoredToken() !== token) throw new JobRequestError(409, 'SESSION_CHANGED');
@@ -27,6 +27,9 @@ export const jobService = {
     const q = new URLSearchParams(Object.entries(filter).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]));
     return request<{ total: number; jobs: DurableJob[] }>('GET', q.toString() ? '?' + q : '');
   },
+  reviewEvidence: (id: string) => request<{version: string; documents: {id: string; version: number}[]}>('GET', '/' + encodeURIComponent(id) + '/a10-review'),
+  reviewDuplicate: (id: string, version: string, decision: 'ACKNOWLEDGED' | 'RETURNED') =>
+    request<{decision: string}>('POST', '/' + encodeURIComponent(id) + '/a10-review', { version, decision }),
   caseAdvisories: (caseId: string) => request<{ jobId: string; createdAt: string; duplicateGroupCount: number }[]>(
     'GET', '/cases/' + encodeURIComponent(caseId) + '/a10-advisories'),
   retry: (jobId: string) => request<DurableJob>('POST', '/' + encodeURIComponent(jobId) + '/retry'),

@@ -66,6 +66,6 @@ export async function runA10AdvisoryJob(worker: DurableJobWorker, resolveEvidenc
   }
 
   // The store fences completion and writes the summary and queue event in a single transaction.
-  await worker.completeA10(job, report.duplicate_groups.length);
+  await worker.completeA10(job, report.duplicate_groups.length, snapshot);
   return 'COMPLETED';
 }

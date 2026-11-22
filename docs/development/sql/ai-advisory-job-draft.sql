@@ -50,6 +50,7 @@ CREATE TABLE public.taxguard_ai_job_advisories (
   job_id varchar(128) PRIMARY KEY REFERENCES public.taxguard_durable_jobs(id),
   tenant_id varchar(128) NOT NULL,
   agent_id text NOT NULL CHECK (agent_id = 'A10'),
+  evidence_snapshot jsonb NOT NULL CHECK (jsonb_typeof(evidence_snapshot)='array' AND jsonb_array_length(evidence_snapshot) BETWEEN 1 AND 10),
   duplicate_group_count integer NOT NULL CHECK (duplicate_group_count BETWEEN 0 AND 5),
   human_review_required boolean NOT NULL DEFAULT true CHECK (human_review_required),
   created_at timestamptz NOT NULL DEFAULT now()
@@ -80,7 +81,7 @@ RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, public
 $$;
 
 CREATE FUNCTION public.taxguard_job_complete_ai(
-  p_tenant text, p_job text, p_worker text, p_lease_token uuid, p_duplicate_group_count integer
+  p_tenant text, p_job text, p_worker text, p_lease_token uuid, p_duplicate_group_count integer, p_evidence jsonb
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE j public.taxguard_durable_jobs;
 BEGIN
@@ -90,12 +91,12 @@ BEGIN
     RAISE EXCEPTION 'JOB_AI_SCOPE_INVALID' USING ERRCODE = 'P0001';
   END IF;
 
-  INSERT INTO public.taxguard_ai_job_advisories (job_id, tenant_id, agent_id, duplicate_group_count)
-    VALUES (j.id, j.tenant_id, 'A10', p_duplicate_group_count);
+  INSERT INTO public.taxguard_ai_job_advisories (job_id, tenant_id, agent_id, duplicate_group_count, evidence_snapshot)
+    VALUES (j.id, j.tenant_id, 'A10', p_duplicate_group_count, p_evidence);
   RETURN public.taxguard_job_complete_partition(p_tenant, p_job, p_worker, p_lease_token, true);
 END $$;
-REVOKE ALL ON FUNCTION public.taxguard_job_complete_ai(text,text,text,uuid,integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.taxguard_job_complete_ai(text,text,text,uuid,integer) TO service_role;
+REVOKE ALL ON FUNCTION public.taxguard_job_complete_ai(text,text,text,uuid,integer,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.taxguard_job_complete_ai(text,text,text,uuid,integer,jsonb) TO service_role;
 
 -- Assigned staff can inspect the summary. Decision authority is a separate grant.
 CREATE OR REPLACE FUNCTION public.taxguard_job_read_a10(p_tenant text, p_actor text, p_job text) RETURNS jsonb
@@ -137,3 +138,51 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.taxguard_case_a10_summaries(text,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.taxguard_case_a10_summaries(text,text,text) TO service_role;
+
+CREATE TABLE public.taxguard_a10_reviews (
+  job_id text PRIMARY KEY REFERENCES public.taxguard_ai_job_advisories(job_id),
+  reviewer_uid text NOT NULL, evidence_snapshot jsonb NOT NULL,
+  decision text NOT NULL CHECK (decision IN ('ACKNOWLEDGED','RETURNED')),
+  reviewed_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.taxguard_a10_reviews ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.taxguard_a10_reviews FROM PUBLIC,anon,authenticated,service_role;
+
+CREATE FUNCTION public.taxguard_a10_review(p_tenant text,p_actor text,p_job text,p_decision text,p_version text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp AS $$
+DECLARE j public.taxguard_durable_jobs; a public.taxguard_ai_job_advisories; item jsonb; token text;
+BEGIN
+  PERFORM public.taxguard_job_read_a10(p_tenant,p_actor,p_job);
+  SELECT * INTO STRICT j FROM public.taxguard_durable_jobs WHERE tenant_id=p_tenant AND id=p_job FOR UPDATE;
+  PERFORM 1 FROM public.taxguard_members WHERE tenant_id=p_tenant AND uid=p_actor AND status='active'
+    AND role IN ('reviewer','senior_reviewer') FOR SHARE;
+  IF NOT FOUND OR j.created_by=p_actor THEN RAISE EXCEPTION 'PRACTICE_ACCESS_DENIED'; END IF;
+  PERFORM 1 FROM public.taxguard_cases c JOIN public.taxguard_case_assignments ca ON ca.tenant_id=c.tenant_id AND ca.case_id=c.case_id
+    JOIN public.taxguard_staff_assignments sa ON sa.tenant_id=c.tenant_id AND sa.client_id=c.client_id AND sa.engagement_id=c.engagement_id AND sa.tax_year=c.tax_year
+    WHERE c.tenant_id=p_tenant AND c.case_id=j.case_id AND c.client_id=j.client_id AND c.active_stage=3 AND c.status IN ('ACTIVE','READY','IN_REVIEW')
+      AND c.reviewer_uid=p_actor AND c.preparer_uid IS DISTINCT FROM p_actor AND ca.active AND ca.uid=p_actor AND ca.role='reviewer'
+      AND sa.user_id=p_actor AND sa.role='reviewer' AND sa.status='ACTIVE' AND sa.effective_from<=now()
+      AND (sa.effective_to IS NULL OR sa.effective_to>now()) FOR SHARE OF c,ca,sa;
+  IF NOT FOUND THEN RAISE EXCEPTION 'PRACTICE_ACCESS_DENIED'; END IF;
+  SELECT * INTO STRICT a FROM public.taxguard_ai_job_advisories WHERE job_id=p_job AND tenant_id=p_tenant;
+  FOR item IN SELECT value FROM jsonb_array_elements(a.evidence_snapshot) LOOP
+    PERFORM 1 FROM public.ai_evidence_sources e JOIN public.taxguard_documents d ON d.id=e.document_record_id
+      JOIN public.taxguard_cases c ON c.id=e.case_record_id
+      WHERE e.source_id=(item->>'source_id')::uuid AND e.tenant_id=p_tenant AND e.client_id=j.client_id AND e.tax_case_id=j.case_id
+      AND c.tenant_id=p_tenant AND c.case_id=j.case_id AND e.tax_year=c.tax_year AND d.tax_year=c.tax_year
+      AND d.tenant_id=p_tenant AND d.client_id=j.client_id AND d.case_id=j.case_id AND d.engagement_id=c.engagement_id
+      AND d.id=(item->>'document_record_id')::uuid AND e.document_version=d.version AND d.version=(item->>'document_version')::integer
+      AND e.source_hash=d.hash AND d.hash=item->>'source_hash' AND d.status IN ('VERIFIED','RELEASED') AND d.quarantine_status='CLEAN' FOR SHARE OF e,d;
+    IF NOT FOUND THEN RAISE EXCEPTION 'JOB_STATE_INVALID'; END IF;
+  END LOOP;
+  token := encode(sha256(convert_to(p_job||a.evidence_snapshot::text,'UTF8')),'hex');
+  IF p_decision IS NULL THEN
+    RETURN jsonb_build_object('version',token,'documents',(SELECT jsonb_agg(jsonb_build_object('id',v->>'document_record_id','version',v->'document_version')) FROM jsonb_array_elements(a.evidence_snapshot) v));
+  END IF;
+  IF token IS DISTINCT FROM p_version OR p_decision NOT IN ('ACKNOWLEDGED','RETURNED') THEN RAISE EXCEPTION 'JOB_STATE_INVALID'; END IF;
+  INSERT INTO public.taxguard_a10_reviews(job_id,reviewer_uid,evidence_snapshot,decision) VALUES(p_job,p_actor,a.evidence_snapshot,p_decision) ON CONFLICT DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM public.taxguard_a10_reviews WHERE job_id=p_job AND reviewer_uid=p_actor AND decision=p_decision) THEN RAISE EXCEPTION 'JOB_STATE_INVALID'; END IF;
+  RETURN jsonb_build_object('decision',p_decision,'version',token);
+END $$;
+REVOKE ALL ON FUNCTION public.taxguard_a10_review(text,text,text,text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.taxguard_a10_review(text,text,text,text,text) TO service_role;

@@ -14,7 +14,7 @@ Local implementation records a bounded domain function. Hosted acceptance requir
 | A07 | OCR Extraction Agent | Design only | Pending | Unverified | Draft |
 | A08 | Document Validation Agent | Local component | Pending | Unverified | Draft |
 | A09 | Missing Document Agent | Local component | Pending | Unverified | Draft |
-| A10 | Duplicate/Fraud Indicator Agent | Local component | Local worker, database, HTTP and Stage Three panel. Reviewer decision pending. | Unverified | Draft |
+| A10 | Duplicate/Fraud Indicator Agent | Local component | Local worker, database, HTTP and Stage Three panel. Assigned independent reviewer can acknowledge or return the versioned result. Local PostgreSQL HTTP test passed. | Unverified | Draft |
 | A11 | Evidence Agent | Design only | Pending | Unverified | Draft |
 | A12 | Bookkeeping Agent | Design only | Pending | Unverified | Draft |
 | A13 | Reconciliation Agent | Design only | Pending | Unverified | Draft |

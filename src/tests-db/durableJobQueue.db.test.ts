@@ -314,7 +314,7 @@ describe('A10 advisory job review draft', () => {
       const [permissions] = await sql(`SELECT
         has_table_privilege($1, 'public.taxguard_ai_job_advisories', 'SELECT') AS result,
         has_function_privilege($1, 'public.taxguard_job_complete_partition(text,text,text,uuid,boolean)', 'EXECUTE') AS internal,
-        has_function_privilege($1, 'public.taxguard_job_complete_ai(text,text,text,uuid,integer)', 'EXECUTE') AS worker`, [role]);
+        has_function_privilege($1, 'public.taxguard_job_complete_ai(text,text,text,uuid,integer,jsonb)', 'EXECUTE') AS worker`, [role]);
       expect(permissions).toEqual({ result: false, internal: false, worker: role === 'service_role' });
     }
   });
@@ -374,15 +374,15 @@ describe('A10 advisory job review draft', () => {
     const claim = await consumer.claimAi(60);
     if (!claim || claim.id !== queued.body.id) throw new Error('SYNTHETIC_JOB_NOT_CLAIMED');
     await expect(consumer.complete(claim)).rejects.toThrow('JOB_COMPLETION_PATH_INVALID');
-    await expect(consumer.completeA10(claim, 6)).rejects.toThrow('JOB_STORE_UNAVAILABLE');
+    await expect(consumer.completeA10(claim, 6, evidence)).rejects.toThrow('JOB_STORE_UNAVAILABLE');
     expect(await results(claim.id)).toEqual([]);
     expect((await events(claim.id)).at(-1)?.action).toBe('CLAIMED');
     await expireLease(claim.id);
     const replacement = await consumer.claimAi(60);
     if (!replacement || replacement.id !== claim.id) throw new Error('SYNTHETIC_JOB_NOT_RECLAIMED');
-    await expect(consumer.completeA10(claim, 1)).rejects.toThrow('JOB_WORKER_CLAIM_REQUIRED');
+    await expect(consumer.completeA10(claim, 1, evidence)).rejects.toThrow('JOB_WORKER_CLAIM_REQUIRED');
     expect(await results(claim.id)).toEqual([]);
-    expect(await consumer.completeA10(replacement, 1)).toMatchObject({ status: 'COMPLETED' });
+    expect(await consumer.completeA10(replacement, 1, evidence)).toMatchObject({ status: 'COMPLETED' });
     expect(await results(claim.id)).toHaveLength(1);
   });
   it('persists one duplicate group for an authorized case and refuses the next job after revocation', async () => {
@@ -438,6 +438,18 @@ describe('A10 advisory job review draft', () => {
       expect((await call('GET', casePath)).status).toBe(404);
       expect((await call('GET', reviewPath)).status).toBe(404);
     }
+    as('jq-prep1');
+    const decisionPath = '/' + first.body.id + '/a10-review';
+    expect((await call('GET', decisionPath)).status).toBe(403);
+    await sql("INSERT INTO taxguard_case_assignments(tenant_id,case_id,uid,role) VALUES($1,$2,'jq-wide','reviewer') ON CONFLICT DO NOTHING", [T, caseIds.E1]);
+    as('jq-wide');
+    const preview = await call('GET', decisionPath);
+    expect(preview.status, JSON.stringify(preview.body)).toBe(200);
+    expect(preview.body.documents).toHaveLength(2);
+    const decision = { version: preview.body.version, decision: 'ACKNOWLEDGED' };
+    expect((await call('POST', decisionPath, decision)).status).toBe(200);
+    expect((await call('POST', decisionPath, decision)).status).toBe(200);
+    expect((await call('POST', decisionPath, { ...decision, decision: 'RETURNED' })).status).toBe(409);
     as('jq-prep1');
     const second = await enqueueA10('jw-revoked-evidence');
     expect(second.status).toBe(201);

@@ -30,10 +30,10 @@ export class DurableJobWorker {
     return this.call('taxguard_job_claim_ai', { p_worker: this.workerId, p_lease_seconds: leaseSeconds });
   }
 
-  completeA10(job: Pick<ClaimedJob, 'id' | 'leaseToken'>, duplicateGroupCount: number) {
+  completeA10(job: Pick<ClaimedJob, 'id' | 'leaseToken'>, duplicateGroupCount: number, evidence: readonly import('../../ai/capabilities/contracts').EvidenceMetadata[]) {
     return this.call<Record<string, unknown>>('taxguard_job_complete_ai', {
       p_job: job.id, p_worker: this.workerId, p_lease_token: job.leaseToken,
-      p_duplicate_group_count: duplicateGroupCount,
+      p_duplicate_group_count: duplicateGroupCount, p_evidence: JSON.stringify(evidence),
     });
   }
 

@@ -1,6 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { jobService } from '../../services/jobService';
 
+function DuplicateReview({ jobId }: { jobId: string }) {
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof jobService.reviewEvidence>>>();
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function review(decision?: 'ACKNOWLEDGED' | 'RETURNED') {
+    setBusy(true);
+    setMessage('');
+    try {
+      if (decision && preview) {
+        const saved = await jobService.reviewDuplicate(jobId, preview.version, decision);
+        setMessage('Recorded decision: ' + saved.decision);
+        setPreview(undefined);
+      } else setPreview(await jobService.reviewEvidence(jobId));
+    } catch { setMessage('Review unavailable. Check assignment and reload the evidence.'); setPreview(undefined); }
+    finally { setBusy(false); }
+  }
+  return <div>
+    <button type="button" disabled={busy} onClick={() => review()}>Inspect review evidence</button>
+    {preview && <><ul>{preview.documents.map(doc => <li key={doc.id + ':' + doc.version}>Document {doc.id} · version {doc.version}</li>)}</ul>
+      <button type="button" disabled={busy} onClick={() => review('ACKNOWLEDGED')}>Acknowledge result</button>
+      <button type="button" disabled={busy} onClick={() => review('RETURNED')}>Return for review</button></>}
+    {message && <p role="status">{message}</p>}
+  </div>;
+}
+
 export function CaseDuplicateAdvisories({ caseId }: { caseId: string }) {
   const [rows, setRows] = useState<Awaited<ReturnType<typeof jobService.caseAdvisories>> | null>(null);
   const [failed, setFailed] = useState(false);
@@ -16,6 +41,6 @@ export function CaseDuplicateAdvisories({ caseId }: { caseId: string }) {
       rows.length === 0 ? <p>No completed checks for this case.</p> :
       <ul aria-label="Latest 20 completed checks">{rows.map(row =>
         <li key={row.jobId}><time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString()}</time>
-          {' · '}{row.duplicateGroupCount} duplicate groups · Human review required</li>)}</ul>}
+          {' · '}{row.duplicateGroupCount} duplicate groups · Reviewer inspection<DuplicateReview jobId={row.jobId} /></li>)}</ul>}
   </section>;
 }

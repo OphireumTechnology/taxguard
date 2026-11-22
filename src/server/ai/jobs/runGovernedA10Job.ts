@@ -16,8 +16,8 @@ function jobRpc(sql: SqlConnection): PracticeRpcClient {
           values: [p.p_tenant, p.p_worker, p.p_lease_seconds],
         },
         taxguard_job_complete_ai: {
-          sql: 'SELECT public.taxguard_job_complete_ai($1,$2,$3,$4,$5) AS result',
-          values: [p.p_tenant, p.p_job, p.p_worker, p.p_lease_token, p.p_duplicate_group_count],
+          sql: 'SELECT public.taxguard_job_complete_ai($1,$2,$3,$4,$5,$6::jsonb) AS result',
+          values: [p.p_tenant, p.p_job, p.p_worker, p.p_lease_token, p.p_duplicate_group_count, p.p_evidence],
         },
         taxguard_job_fail: {
           sql: 'SELECT public.taxguard_job_fail($1,$2,$3,$4,$5,$6,$7) AS result',

@@ -70,6 +70,14 @@ export function createJobsRouter(deps: JobsRouterDeps = {}) {
   });
   router.get('/cases/:caseId/a10-advisories', (req: AuthenticatedRequest, res) =>
     call(res, 'taxguard_case_a10_summaries', { ...base(req), p_case: req.params.caseId }));
+  router.get('/:id/a10-review', (req: AuthenticatedRequest, res) =>
+    call(res, 'taxguard_a10_review', { ...base(req), p_job: req.params.id, p_decision: null, p_version: null }));
+  router.post('/:id/a10-review', (req: AuthenticatedRequest, res) => {
+    const { decision, version } = req.body ?? {};
+    if (!['ACKNOWLEDGED','RETURNED'].includes(decision) || typeof version !== 'string' || !/^[a-f0-9]{64}$/.test(version))
+      return res.status(400).json({ code: 'JOB_INPUT_INVALID' });
+    return call(res, 'taxguard_a10_review', { ...base(req), p_job: req.params.id, p_decision: decision, p_version: version });
+  });
   router.get('/:id/a10-advisory', (req: AuthenticatedRequest, res) =>
     call(res, 'taxguard_job_read_a10', { ...base(req), p_job: req.params.id }));
   router.post('/:id/retry', (req: AuthenticatedRequest, res) => call(res, 'taxguard_job_retry', { ...base(req), p_job: req.params.id }));
