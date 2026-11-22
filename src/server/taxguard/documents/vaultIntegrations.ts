@@ -1,49 +1,60 @@
-export const ALLOWED_DOCUMENT_TYPES = [
-  'application/pdf',
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'text/csv',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-] as const;
+/**
+ * Integration boundaries for the document vault. Production must provide a private storage
+ * backend and a commissioned malware scanner; OCR is optional. Nothing here contacts a
+ * provider unless a backend is explicitly constructed with a client.
+ */
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+export const VAULT_BUCKET = 'taxguard-vault';
+export const MAX_DOCUMENT_BYTES = 26_214_400;
+export const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv'] as const;
 
-export class SupabaseVaultStorage {
-  constructor(private readonly supabase: any = null, private readonly bucket = 'taxguard-documents') {}
+export interface VaultStorage {
+  put(path: string, bytes: Buffer, mimeType: string): Promise<void>;
+  signedUrl(path: string, ttlSeconds: number): Promise<string>;
+}
+export interface MalwareScanner { readonly name: string; scan(bytes: Buffer,context?:{requestId:string;issuedAt:number}): Promise<'CLEAN' | 'INFECTED'> }
+export interface OcrField { fieldKey: string; value: unknown; confidence: number; page?: number }
+export interface OcrProvider { readonly name: string; extract(bytes: Buffer, mimeType: string): Promise<OcrField[]> }
 
-  async upload(_path: string, _data: Buffer | Uint8Array, _contentType?: string): Promise<any> {
-    if (!this.supabase) {
-      throw Object.assign(new Error('Durable document vault storage is not configured.'), {
-        code: 'VAULT_STORAGE_UNAVAILABLE',
-        status: 503,
-      });
+export class VaultIntegrationError extends Error {
+  constructor(public readonly code: string, public readonly status = 503) { super(code); }
+}
+
+/** Content signature check: the bytes must match the declared type, not just the header. */
+export function contentMatchesType(mimeType: string, bytes: Buffer): boolean {
+  const starts = (sig: number[]) => sig.every((b, i) => bytes[i] === b);
+  switch (mimeType) {
+    case 'application/pdf': return starts([0x25, 0x50, 0x44, 0x46, 0x2d]);
+    case 'image/png': return starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case 'image/jpeg': return starts([0xff, 0xd8, 0xff]);
+    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': return starts([0x50, 0x4b, 0x03, 0x04]);
+    case 'text/csv': {
+      // Printable UTF-8 text without NUL bytes; no spreadsheet formula injection at line starts.
+      if (bytes.includes(0)) return false;
+      try{const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);return !/(^|\n)\s*[=+\-@]/.test(text);}catch{return false;}
     }
-    throw Object.assign(new Error('Durable document vault storage is not configured.'), {
-      code: 'VAULT_STORAGE_UNAVAILABLE',
-      status: 503,
-    });
+    default: return false;
   }
+}
 
-  async download(_path: string): Promise<Buffer> {
-    throw Object.assign(new Error('Durable document vault storage is not configured.'), {
-      code: 'VAULT_STORAGE_UNAVAILABLE',
-      status: 503,
-    });
+/** Private Supabase Storage bucket. Refuses to operate if the bucket is missing or public. */
+export class SupabaseVaultStorage implements VaultStorage {
+  constructor(private readonly client: SupabaseClient, private readonly bucket = VAULT_BUCKET) {}
+  private async assertPrivate() {
+    const { data, error } = await this.client.storage.getBucket(this.bucket);
+    if (error || !data) throw new VaultIntegrationError('VAULT_STORAGE_UNAVAILABLE');
+    if (data.public !== false) throw new VaultIntegrationError('VAULT_BUCKET_NOT_PRIVATE');
   }
-
-  async delete(_path: string): Promise<void> {
-    throw Object.assign(new Error('Durable document vault storage is not configured.'), {
-      code: 'VAULT_STORAGE_UNAVAILABLE',
-      status: 503,
-    });
+  async put(path: string, bytes: Buffer, mimeType: string) {
+    await this.assertPrivate();
+    const { error } = await this.client.storage.from(this.bucket).upload(path, bytes, { contentType: mimeType, upsert: false });
+    if (error) throw new VaultIntegrationError('VAULT_STORAGE_WRITE_FAILED');
   }
-
-  async getSignedUrl(_path: string, _expiresInSeconds = 300): Promise<string> {
-    throw Object.assign(new Error('Durable document vault storage is not configured.'), {
-      code: 'VAULT_STORAGE_UNAVAILABLE',
-      status: 503,
-    });
+  async signedUrl(path: string, ttlSeconds: number) {
+    await this.assertPrivate();
+    const { data, error } = await this.client.storage.from(this.bucket).createSignedUrl(path, ttlSeconds);
+    if (error || !data?.signedUrl) throw new VaultIntegrationError('VAULT_STORAGE_SIGN_FAILED');
+    return data.signedUrl;
   }
 }

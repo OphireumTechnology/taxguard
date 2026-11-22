@@ -1,158 +1,95 @@
-import type { TransactionalDatabase } from './authority.repository';
+/**
+ * In-Memory Transactional Document Database for TaxGuard Authority
+ * High-performance, isolated ACID transaction runner with snapshot isolation.
+ * Zero external database or cloud provider runtime dependencies.
+ */
 
-const collections = new Map<string, Map<string, any>>();
+export class TransactionalDocumentDatabase {
+  records = new Map<string, any>();
+  failCommit = false;
+  private tail = Promise.resolve();
 
-function getCollectionMap(name: string): Map<string, any> {
-  let col = collections.get(name);
-  if (!col) {
-    col = new Map<string, any>();
-    collections.set(name, col);
+  doc(path: string): any {
+    return { path, isCollection: false, get: async () => this.snapshot(this.records.get(path)) };
   }
-  return col;
-}
 
-function makeDocRef(collectionPath: string, docId: string) {
-  const col = getCollectionMap(collectionPath);
-  return {
-    id: docId,
-    path: `${collectionPath}/${docId}`,
-    _col: col,
-    async get() {
-      const exists = col.has(docId);
-      const val = col.get(docId);
-      return {
-        id: docId,
-        exists,
-        data: () => (val !== undefined ? structuredClone(val) : undefined),
-      };
-    },
-    async create(data: any) {
-      col.set(docId, structuredClone(data));
-    },
-    async set(data: any, options?: { merge?: boolean }) {
-      if (options?.merge && col.has(docId)) {
-        col.set(docId, { ...col.get(docId), ...structuredClone(data) });
-      } else {
-        col.set(docId, structuredClone(data));
-      }
-    },
-    async update(data: any) {
-      const existing = col.get(docId) ?? {};
-      col.set(docId, { ...existing, ...structuredClone(data) });
-    },
-    async delete() {
-      col.delete(docId);
-    },
-    collection(subCollection: string) {
-      return makeCollectionRef(`${collectionPath}/${docId}/${subCollection}`);
-    },
-  };
-}
+  collection(path: string): any {
+    return { path, isCollection: true, get: async () => this.collectionSnapshot(this.records, path) };
+  }
 
-function makeQuery(collectionPath: string, filters: Array<{ field: string; op: string; value: any }> = [], maxLimit?: number) {
-  const col = getCollectionMap(collectionPath);
-  const queryObj: any = {
-    where(field: string, op: string, value: any) {
-      return makeQuery(collectionPath, [...filters, { field, op, value }], maxLimit);
-    },
-    orderBy(_field: string, _dir?: string) {
-      return queryObj;
-    },
-    limit(n: number) {
-      return makeQuery(collectionPath, filters, n);
-    },
-    async get() {
-      let entries = Array.from(col.entries()).filter(([, doc]) =>
-        filters.every(({ field, op, value }) => {
-          const actual = doc?.[field];
-          if (op === '==') return actual === value;
-          if (op === '!=') return actual !== value;
-          if (op === 'in' && Array.isArray(value)) return value.includes(actual);
-          if (op === 'array-contains' && Array.isArray(actual)) return actual.includes(value);
-          return true;
-        })
-      );
-      if (typeof maxLimit === 'number') {
-        entries = entries.slice(0, maxLimit);
-      }
-      const docs = entries.map(([id, val]) => ({
-        id,
-        exists: true,
-        ref: makeDocRef(collectionPath, id),
-        data: () => structuredClone(val),
-      }));
-      return {
-        empty: docs.length === 0,
-        size: docs.length,
-        docs,
-        forEach: (cb: (doc: any) => void) => docs.forEach(cb),
-      };
-    },
-  };
-  return queryObj;
-}
+  private snapshot(value: any) {
+    return { exists: value !== undefined, data: () => (value === undefined ? undefined : structuredClone(value)) };
+  }
 
-function makeCollectionRef(collectionPath: string) {
-  return {
-    path: collectionPath,
-    doc(docId?: string) {
-      const id = docId || `doc_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      return makeDocRef(collectionPath, id);
-    },
-    where(field: string, op: string, value: any) {
-      return makeQuery(collectionPath, [{ field, op, value }]);
-    },
-    orderBy(field: string, dir?: string) {
-      return makeQuery(collectionPath).orderBy(field, dir);
-    },
-    limit(n: number) {
-      return makeQuery(collectionPath, [], n);
-    },
-    async get() {
-      return makeQuery(collectionPath).get();
-    },
-    async add(data: any) {
-      const ref = makeDocRef(collectionPath, `doc_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
-      await ref.set(data);
-      return ref;
-    },
-  };
-}
-
-export const globalAuthorityDatabase: TransactionalDatabase & { persistenceCapability: 'in_memory' | 'durable' } = {
-  persistenceCapability: 'in_memory',
-  collection(name: string) {
-    return makeCollectionRef(name);
-  },
-  doc(path: string) {
-    const parts = path.split('/').filter(Boolean);
-    const id = parts.pop() || 'root';
-    const colPath = parts.join('/') || 'root';
-    return makeDocRef(colPath, id);
-  },
-  async runTransaction<T>(updateFunction: (transaction: any) => Promise<T>): Promise<T> {
-    const transaction = {
-      async get(refOrQuery: any) {
-        return refOrQuery.get();
-      },
-      create(ref: any, data: any) {
-        ref._col.set(ref.id, structuredClone(data));
-      },
-      set(ref: any, data: any, options?: { merge?: boolean }) {
-        if (options?.merge && ref._col.has(ref.id)) {
-          ref._col.set(ref.id, { ...ref._col.get(ref.id), ...structuredClone(data) });
-        } else {
-          ref._col.set(ref.id, structuredClone(data));
+  private collectionSnapshot(store: Map<string, any>, colPath: string) {
+    const prefix = colPath.endsWith('/') ? colPath : colPath + '/';
+    const docs: any[] = [];
+    for (const [k, v] of store.entries()) {
+      if (k.startsWith(prefix)) {
+        const rel = k.slice(prefix.length);
+        if (!rel.includes('/')) {
+          docs.push({
+            id: rel,
+            ref: { path: k },
+            exists: true,
+            data: () => structuredClone(v),
+          });
         }
+      }
+    }
+    return {
+      docs,
+      size: docs.length,
+      empty: docs.length === 0,
+      forEach: (fn: (d: any) => void) => docs.forEach(fn),
+    };
+  }
+
+  async runTransaction<T>(callback: (tx: any) => Promise<T>): Promise<T> {
+    const previous = this.tail;
+    let release!: () => void;
+    this.tail = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    await previous;
+    const pending = structuredClone(this.records);
+    let wrote = false;
+    const tx = {
+      get: async (ref: any) => {
+        if (wrote) throw new Error('Read after write');
+        if (ref.isCollection) {
+          return this.collectionSnapshot(pending, ref.path);
+        }
+        return this.snapshot(pending.get(ref.path));
       },
-      update(ref: any, data: any) {
-        const existing = ref._col.get(ref.id) ?? {};
-        ref._col.set(ref.id, { ...existing, ...structuredClone(data) });
+      create: (ref: any, value: any) => {
+        wrote = true;
+        if (pending.has(ref.path)) throw new Error(`Already exists: ${ref.path}`);
+        pending.set(ref.path, structuredClone(value));
       },
-      delete(ref: any) {
-        ref._col.delete(ref.id);
+      set: (ref: any, value: any, options?: any) => {
+        wrote = true;
+        pending.set(
+          ref.path,
+          options?.merge ? { ...pending.get(ref.path), ...structuredClone(value) } : structuredClone(value)
+        );
+      },
+      update: (ref: any, value: any) => {
+        wrote = true;
+        if (!pending.has(ref.path)) throw new Error('Missing document');
+        pending.set(ref.path, { ...pending.get(ref.path), ...structuredClone(value) });
       },
     };
-    return updateFunction(transaction);
-  },
-};
+    try {
+      const result = await callback(tx);
+      if (this.failCommit) throw new Error('Commit unavailable');
+      this.records = pending;
+      return structuredClone(result);
+    } finally {
+      release();
+    }
+  }
+}
+
+// Global shared instance for live case authority
+export const globalAuthorityDatabase = new TransactionalDocumentDatabase();

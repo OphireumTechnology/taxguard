@@ -1,44 +1,75 @@
-import type { TaxGuardLiveWorkflowCase, TaxGuardWorkflowStage } from './liveWorkflow.types';
+import {
+  LiveWorkflowRepository
+} from './liveWorkflow.repository';
 
-export interface StageGateEvaluation {
-  eligible: boolean;
+import {
+  TaxGuardLiveWorkflowCase,
+  TaxGuardWorkflowStage
+} from './liveWorkflow.types';
+
+export interface TrustedGateTransition {
+  clientId: string;
+  taxYear: number;
+
   stage: TaxGuardWorkflowStage;
-  reasons: string[];
+
+  actorUserId: string;
+  actorRole: string;
+
+  expectedRevision: number;
+
+  gatePassed: boolean;
+
+  gateName: string;
+
+  gateEvidence?: Record<string, unknown>;
 }
 
 export class LiveWorkflowGateService {
-  static evaluateStage(workflow: TaxGuardLiveWorkflowCase, stage: TaxGuardWorkflowStage): StageGateEvaluation {
-    if (stage === 1) {
-      return { eligible: true, stage, reasons: [] };
-    }
-    if (stage === 2) {
-      const ok = workflow.stage1?.status === 'COMPLETED';
-      return {
-        eligible: ok,
-        stage,
-        reasons: ok ? [] : ['Stage 1 must be completed before entering Stage 2.'],
-      };
-    }
-    if (stage === 3) {
-      const ok = workflow.stage1?.status === 'COMPLETED' && workflow.stage2?.status === 'COMPLETED';
-      return {
-        eligible: ok,
-        stage,
-        reasons: ok ? [] : ['Stages 1 and 2 must be completed before entering Stage 3.'],
-      };
-    }
-    return {
-      eligible: false,
-      stage,
-      reasons: ['Stage gate requires authoritative repository verification.'],
-    };
-  }
 
-  static getEligibility(workflow: TaxGuardLiveWorkflowCase) {
-    return {
-      stage1: true,
-      stage2: workflow.stage1?.status === 'COMPLETED',
-      stage3: workflow.stage1?.status === 'COMPLETED' && workflow.stage2?.status === 'COMPLETED',
-    };
+  static async commitPassedGate(
+    input: TrustedGateTransition
+  ): Promise<TaxGuardLiveWorkflowCase> {
+
+    if (!input.clientId?.trim()) {
+      throw new Error(
+        'Permanent TaxGuard Client ID required.'
+      );
+    }
+
+    if (!input.gatePassed) {
+      throw new Error(
+        `${input.gateName} has not passed.`
+      );
+    }
+
+    if (![1, 2, 3].includes(input.stage)) {
+      throw new Error(
+        'Unsupported workflow stage.'
+      );
+    }
+
+    /*
+     * IMPORTANT:
+     *
+     * This method is server-side only.
+     * It is not exposed as a browser-controlled "complete"
+     * operation.
+     *
+     * Stage-specific TaxGuard logic determines gatePassed.
+     */
+
+    const updated =
+      await LiveWorkflowRepository.completeStage(
+        input.clientId.trim(),
+        input.taxYear,
+        input.stage,
+        input.actorUserId,
+        input.actorRole,
+        input.expectedRevision,
+        input.gateEvidence
+      );
+
+    return updated;
   }
 }
