@@ -134,6 +134,8 @@ describe('scripts/classify-changes.mjs', () => {
   };
   it('marks UI and branding changes FRONTEND_ONLY', () => {
     expect(runClassify({ 'src/components/A.tsx': 'y\n', 'public/logo.png': 'y\n', 'src/components/New.tsx': 'z\n' }).decision).toBe('FRONTEND_ONLY');
+    // homepage images under src/assets (as in Google AI Studio 64b1012) are branding assets
+    expect(runClassify({ 'src/assets/images/new.jpg': 'img\n', 'src/components/A.tsx': 'y\n' })).toMatchObject({ decision: 'FRONTEND_ONLY', byArea: { 'branding-and-assets': 1 } });
   });
   it('requires owner review for backend, dependency or deletion changes', () => {
     expect(runClassify({ 'src/server/b.ts': 'y\n' })).toMatchObject({ decision: 'REQUIRES_OWNER_REVIEW', byArea: { backend: 1 } });

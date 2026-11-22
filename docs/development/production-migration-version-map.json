@@ -1,0 +1,1711 @@
+{
+  "schemaVersion": 1,
+  "executionAllowed": false,
+  "manifestExecutionPlanSha256": "f79dc8f3ce47c7c768ea01d150581832256b2a4995c0435daccde426f36c0c9a",
+  "note": "Review artifact. The SQL of every file is unchanged (same SHA-256); only the version under which a migration tool would record it differs. Applying anything to production requires owner approval.",
+  "counts": {
+    "total": 121,
+    "core": 13,
+    "proposals": 108,
+    "remapped": 43,
+    "invalidTimestamp": 33,
+    "outOfOrder": 10
+  },
+  "entries": [
+    {
+      "order": 1,
+      "file": "supabase/migrations/20260928000000_taxguard_core_schema.sql",
+      "kind": "core",
+      "originalVersion": "20260928000000",
+      "proposedVersion": "20260928000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "168f9766b3afa275bd05a30a64318c5b18c4f863083a247b2f121003a33329eb",
+      "dependsOn": []
+    },
+    {
+      "order": 2,
+      "file": "supabase/migrations/20260929000000_taxguard_complete_lifecycle_schema.sql",
+      "kind": "core",
+      "originalVersion": "20260929000000",
+      "proposedVersion": "20260929000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "4f944bfcef459770c2b3a6d788d378139f74e6b1dd65660271d4089f0940157f",
+      "dependsOn": [
+        "supabase/migrations/20260928000000_taxguard_core_schema.sql"
+      ]
+    },
+    {
+      "order": 3,
+      "file": "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql",
+      "kind": "core",
+      "originalVersion": "20260930000000",
+      "proposedVersion": "20260930000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "4a712a7d611ba2202af6ffa1a1d535e3c92bac0c0d4205e5ce2353cac92d6128",
+      "dependsOn": [
+        "supabase/migrations/20260929000000_taxguard_complete_lifecycle_schema.sql"
+      ]
+    },
+    {
+      "order": 4,
+      "file": "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+      "kind": "core",
+      "originalVersion": "20261001000000",
+      "proposedVersion": "20261001000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "a6527231f32396c03402531359fd1e8dbd9d635a18b34122c8e1eb273f62e299",
+      "dependsOn": [
+        "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql"
+      ]
+    },
+    {
+      "order": 5,
+      "file": "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql",
+      "kind": "core",
+      "originalVersion": "20261002000000",
+      "proposedVersion": "20261002000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "543db1932c60fa8dfb60e63a5b8b8c237f0b4712d0fb3e6ea8ffc603f9608ab7",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql"
+      ]
+    },
+    {
+      "order": 6,
+      "file": "supabase/migrations/20261004000000_taxguard_private_storage_client_scope.sql",
+      "kind": "core",
+      "originalVersion": "20261004000000",
+      "proposedVersion": "20261004000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "90780bf578434c53288f7849120e9855884174f1f71419646b4c570048caaa8b",
+      "dependsOn": [
+        "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql"
+      ]
+    },
+    {
+      "order": 7,
+      "file": "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql",
+      "kind": "core",
+      "originalVersion": "20261008000000",
+      "proposedVersion": "20261008000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "b3bb51afa024f476a4cf0e878903f486e003b16a7dd5100692804fb66c9f725b",
+      "dependsOn": [
+        "supabase/migrations/20261004000000_taxguard_private_storage_client_scope.sql"
+      ]
+    },
+    {
+      "order": 8,
+      "file": "supabase/migrations/20261008010000_taxguard_ai_governance_decisions.sql",
+      "kind": "core",
+      "originalVersion": "20261008010000",
+      "proposedVersion": "20261008010000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "2e590660fd13c165151cecd66219d847176b33ab4f716f60910b39a3cac8ac9f",
+      "dependsOn": [
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
+      ]
+    },
+    {
+      "order": 9,
+      "file": "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql",
+      "kind": "core",
+      "originalVersion": "20261008020000",
+      "proposedVersion": "20261008020000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "32d8730396806e999fadcb56f849c312967c30d5b61a99111ccc02fd860cf965",
+      "dependsOn": [
+        "supabase/migrations/20261008010000_taxguard_ai_governance_decisions.sql"
+      ]
+    },
+    {
+      "order": 10,
+      "file": "supabase/migrations/20261008030000_taxguard_ai_gateway_admission.sql",
+      "kind": "core",
+      "originalVersion": "20261008030000",
+      "proposedVersion": "20261008030000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "a901ea2c5e2121d86d24c70ec67b0a61ddd13498246612aab415314f56949172",
+      "dependsOn": [
+        "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql"
+      ]
+    },
+    {
+      "order": 11,
+      "file": "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql",
+      "kind": "core",
+      "originalVersion": "20261008040000",
+      "proposedVersion": "20261008040000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "1e18fec249898388a6a78c8ef44ff5488521ca708b9b5b422e8226fbbec77ac6",
+      "dependsOn": [
+        "supabase/migrations/20261008030000_taxguard_ai_gateway_admission.sql"
+      ]
+    },
+    {
+      "order": 12,
+      "file": "supabase/migrations/20261008050000_taxguard_ai_execution_ledger.sql",
+      "kind": "core",
+      "originalVersion": "20261008050000",
+      "proposedVersion": "20261008050000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "40d1d79e86d987dd91f19ad5426ab1f7f7b5bdda8ef5b024f9b2f71f636c0e6c",
+      "dependsOn": [
+        "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql"
+      ]
+    },
+    {
+      "order": 13,
+      "file": "supabase/migrations/20261008060000_taxguard_ai_document_advisory_routing.sql",
+      "kind": "core",
+      "originalVersion": "20261008060000",
+      "proposedVersion": "20261008060000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "c0c0ef4caf1c575b71323c2db1fd805a1facecb2f2d7a3fabb6a88c30fc23016",
+      "dependsOn": [
+        "supabase/migrations/20261008050000_taxguard_ai_execution_ledger.sql"
+      ]
+    },
+    {
+      "order": 14,
+      "file": "docs/proposed-migrations/20261012000000_taxguard_staff_session_assurance.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012000000",
+      "proposedVersion": "20261012000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "7c4a077ff30fb90c71e3731dc5e0dd195bc64974fc91c2b1cebf8e9dc3bbde51",
+      "dependsOn": [
+        "supabase/migrations/20261008060000_taxguard_ai_document_advisory_routing.sql"
+      ]
+    },
+    {
+      "order": 15,
+      "file": "docs/proposed-migrations/20261012010000_taxguard_staff_invitations.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012010000",
+      "proposedVersion": "20261012010000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "c482a5719e9481a24ba3c43700cf80a8d6202f6ec1d05dbf2b35ef002f81f3b2",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012000000_taxguard_staff_session_assurance.sql"
+      ]
+    },
+    {
+      "order": 16,
+      "file": "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012020000",
+      "proposedVersion": "20261012020000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "0afd83a05fafc498780b8a36bc57a736dce97b2e9da639374c5eeef52c735269",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012010000_taxguard_staff_invitations.sql"
+      ]
+    },
+    {
+      "order": 17,
+      "file": "docs/proposed-migrations/20261012030000_taxguard_staff_invitation_management.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012030000",
+      "proposedVersion": "20261012030000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "b25cb872bd890f922d0a262953912aad158f30ccd28abf97f1ba8441a2f9fbc0",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql"
+      ]
+    },
+    {
+      "order": 18,
+      "file": "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012040000",
+      "proposedVersion": "20261012040000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "e12fafb172622d0b2329239a677ade9168d4d0bf63400606b481c38da86b86a6",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012030000_taxguard_staff_invitation_management.sql"
+      ]
+    },
+    {
+      "order": 19,
+      "file": "docs/proposed-migrations/20261012050000_taxguard_staff_access_directory.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012050000",
+      "proposedVersion": "20261012050000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "5c70a7997162086f2e2818e66308377f09e50f5dece09cc50a67c1ca613862f2",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql"
+      ]
+    },
+    {
+      "order": 20,
+      "file": "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012060000",
+      "proposedVersion": "20261012060000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "6fc3f9f7f94faaf0edbcac38e1630499e1dbc2a323b9e536e6f3580a41847363",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012050000_taxguard_staff_access_directory.sql"
+      ]
+    },
+    {
+      "order": 21,
+      "file": "docs/proposed-migrations/20261012070000_taxguard_client_intake_drafts.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012070000",
+      "proposedVersion": "20261012070000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "82996fd5ce158d4fd72422c929851014fb6f35c456eaa25358a5b53d6ae5dc3c",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql"
+      ]
+    },
+    {
+      "order": 22,
+      "file": "docs/proposed-migrations/20261012080000_taxguard_session_transactions.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012080000",
+      "proposedVersion": "20261012080000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "9ccf1da2022e6b4ae82b1be846dd5edd2049c5b321ba924aa77e4d5a7ea35f05",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012070000_taxguard_client_intake_drafts.sql"
+      ]
+    },
+    {
+      "order": 23,
+      "file": "docs/proposed-migrations/20261012090000_taxguard_client_profile_updates.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012090000",
+      "proposedVersion": "20261012090000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "17748ef32286e0a0a28e2092b08c6c6de2c88072eb1dc6947a09ab5700916d93",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012080000_taxguard_session_transactions.sql"
+      ]
+    },
+    {
+      "order": 24,
+      "file": "docs/proposed-migrations/20261012100000_taxguard_mfa_recovery_requests.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012100000",
+      "proposedVersion": "20261012100000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "caeab54c0d1452f01c59691012038526ef187994ec4f0088d349016721195086",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012090000_taxguard_client_profile_updates.sql"
+      ]
+    },
+    {
+      "order": 25,
+      "file": "docs/proposed-migrations/20261012110000_taxguard_mfa_recovery_directory.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012110000",
+      "proposedVersion": "20261012110000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "05f0a62ef975a91f45745cb096512c126dfc32721b51eba4b71978abec7c94bc",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012100000_taxguard_mfa_recovery_requests.sql"
+      ]
+    },
+    {
+      "order": 26,
+      "file": "docs/proposed-migrations/20261012230000_taxguard_session_management.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012230000",
+      "proposedVersion": "20261012230000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "5669368336e07a8b0aed420a69429d2aff1f084fdceb3ff46917aa58d5d84f29",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012110000_taxguard_mfa_recovery_directory.sql"
+      ]
+    },
+    {
+      "order": 27,
+      "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012240000",
+      "proposedVersion": "20261012230001",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012230000_taxguard_session_management.sql"
+      ]
+    },
+    {
+      "order": 28,
+      "file": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012250000",
+      "proposedVersion": "20261012230002",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
+    },
+    {
+      "order": 29,
+      "file": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012260000",
+      "proposedVersion": "20261012230003",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ]
+    },
+    {
+      "order": 30,
+      "file": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012270000",
+      "proposedVersion": "20261012230004",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ]
+    },
+    {
+      "order": 31,
+      "file": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012280000",
+      "proposedVersion": "20261012230005",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ]
+    },
+    {
+      "order": 32,
+      "file": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012290000",
+      "proposedVersion": "20261012230006",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ]
+    },
+    {
+      "order": 33,
+      "file": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012300000",
+      "proposedVersion": "20261012230007",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "616596e3f0f3a31727a92c20f36e48cc9cac2748699a86148a648eae3943371e",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ]
+    },
+    {
+      "order": 34,
+      "file": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012310000",
+      "proposedVersion": "20261012230008",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql"
+      ]
+    },
+    {
+      "order": 35,
+      "file": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012320000",
+      "proposedVersion": "20261012230009",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ]
+    },
+    {
+      "order": 36,
+      "file": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012330000",
+      "proposedVersion": "20261012230010",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+      ]
+    },
+    {
+      "order": 37,
+      "file": "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012340000",
+      "proposedVersion": "20261012230011",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ]
+    },
+    {
+      "order": 38,
+      "file": "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012350000",
+      "proposedVersion": "20261012230012",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql"
+      ]
+    },
+    {
+      "order": 39,
+      "file": "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012360000",
+      "proposedVersion": "20261012230013",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "66d094bf951c57ba1ab22b15011660ebc3975038eac825a7234ae4d3587ce310",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
+      ]
+    },
+    {
+      "order": 40,
+      "file": "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012370000",
+      "proposedVersion": "20261012230014",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "192c371b3115f1d688ac648a621fac8f0273801ed77bc1888bd733d33f38f508",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql"
+      ]
+    },
+    {
+      "order": 41,
+      "file": "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql",
+      "kind": "proposal",
+      "originalVersion": "20261012380000",
+      "proposedVersion": "20261012230015",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "67fb1a439834f14e511ce0d5d6a770fe2e1a3a2c0e6395841a389d67e40d0104",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql"
+      ]
+    },
+    {
+      "order": 42,
+      "file": "docs/proposed-migrations/20261013390000_taxguard_client_messaging.sql",
+      "kind": "proposal",
+      "originalVersion": "20261013390000",
+      "proposedVersion": "20261012230016",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "4a25205d45b272e4f10d4b06c320d9cf0cedda1c9da2709c1a4dab0e077eadeb",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql"
+      ]
+    },
+    {
+      "order": 43,
+      "file": "docs/proposed-migrations/20261014400000_taxguard_appointments.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014400000",
+      "proposedVersion": "20261012230017",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "f83c63d714704af3c4eed2efac8048f5d28100a848ee116d0fa270ec041cceae",
+      "dependsOn": [
+        "docs/proposed-migrations/20261013390000_taxguard_client_messaging.sql"
+      ]
+    },
+    {
+      "order": 44,
+      "file": "docs/proposed-migrations/20261014410000_taxguard_audit_center.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014410000",
+      "proposedVersion": "20261012230018",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "8cf40f767b71840957632cb0ae570f19d07e520061e3afe75c8f4a019fdb5ba1",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014400000_taxguard_appointments.sql"
+      ]
+    },
+    {
+      "order": 45,
+      "file": "docs/proposed-migrations/20261014420000_taxguard_legal_coordination.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014420000",
+      "proposedVersion": "20261012230019",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "f77b9ce1cbf2dc2fa6849b95af96ab1a81d59aad900175f277b6cd6f147dc09d",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014410000_taxguard_audit_center.sql"
+      ]
+    },
+    {
+      "order": 46,
+      "file": "docs/proposed-migrations/20261014430000_taxguard_consultation_requests.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014430000",
+      "proposedVersion": "20261012230020",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "a1d44eeec7b12098b9209f507c90a77879e5c6f5b2b7833e3df3c6ec9af572a0",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014420000_taxguard_legal_coordination.sql"
+      ]
+    },
+    {
+      "order": 47,
+      "file": "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014440000",
+      "proposedVersion": "20261012230021",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "55a0546a2f404234c80e2d32f58bf0a46622445fe92bf0ba5dd6fdf8aca786e8",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014430000_taxguard_consultation_requests.sql"
+      ]
+    },
+    {
+      "order": 48,
+      "file": "docs/proposed-migrations/20261014450000_taxguard_reassignment_requests.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014450000",
+      "proposedVersion": "20261012230022",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "375e06c14ab55f59c65cf5581514c2a07dae868bee2ba258799dd013e01e1601",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql"
+      ]
+    },
+    {
+      "order": 49,
+      "file": "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014460000",
+      "proposedVersion": "20261012230023",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "03764d6e417a9da28b4218a6b94a8fd64afbb6b6138e95e68d7715d60c713b93",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014450000_taxguard_reassignment_requests.sql"
+      ]
+    },
+    {
+      "order": 50,
+      "file": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014470000",
+      "proposedVersion": "20261012230024",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "fd9dc9e6372c5bbfb6cee648f84881993af987f6b4b99bcf1b96a495856ff5e9",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql"
+      ]
+    },
+    {
+      "order": 51,
+      "file": "docs/proposed-migrations/20261014480000_taxguard_security_events.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014480000",
+      "proposedVersion": "20261012230025",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "a712964ecd311b10b8f43569bad65289a8ae7a841e611682171f394a38825209",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql"
+      ]
+    },
+    {
+      "order": 52,
+      "file": "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014490000",
+      "proposedVersion": "20261012230026",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "10e2144dfb7a56e1b4bae28a5d755a5f9f9472ad0da91b78a9b304b4bc932290",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014480000_taxguard_security_events.sql"
+      ]
+    },
+    {
+      "order": 53,
+      "file": "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
+      "kind": "proposal",
+      "originalVersion": "20261014500000",
+      "proposedVersion": "20261012230027",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "ccf679c42fefbfdb3d91a6b3275e689227cc4a7121d1ebd768c6054fccb0cfa3",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
+      ]
+    },
+    {
+      "order": 54,
+      "file": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015060000",
+      "proposedVersion": "20261015060000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "861fb4254bbb0f30b9bd00044ea6023c30a00279caf8d1377b507d2362fac46c",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"
+      ]
+    },
+    {
+      "order": 55,
+      "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015000000",
+      "proposedVersion": "20261015060001",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "5dae223342815e934bf6c1a3fd1947e2f297518e0bfec867fc8d763ee8b63394",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+      ]
+    },
+    {
+      "order": 56,
+      "file": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015070000",
+      "proposedVersion": "20261015070000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "b01be3c7a49f6e55f7a98c0d5ea9ea10a592487caf3d3ee8d1cb2888aed1e8a8",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
+      ]
+    },
+    {
+      "order": 57,
+      "file": "docs/proposed-migrations/20261015010000_taxguard_billing_pages.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015010000",
+      "proposedVersion": "20261015070001",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "476ac22518ac6ba8b537ca926cbccec9b3a5e0090b244b98a42e9381b0cde978",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "order": 58,
+      "file": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015020000",
+      "proposedVersion": "20261015070002",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "18f22efe61db9dc99150ece54f9c066b9d175bd13a6c2fbbf4cd78ce17a476e2",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql"
+      ]
+    },
+    {
+      "order": 59,
+      "file": "docs/proposed-migrations/20261015030000_taxguard_collection_requests.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015030000",
+      "proposedVersion": "20261015070003",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "d62bda3e7b8ca5e9eb6f0189453eccb0dca42c9fd0a94cf6e76f8911b36d2984",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql"
+      ]
+    },
+    {
+      "order": 60,
+      "file": "docs/proposed-migrations/20261015040000_taxguard_mfa_lifecycle_canonical.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015040000",
+      "proposedVersion": "20261015070004",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "f049d6fa3f04dc4d00a484fe6ce193e036fddedcbd5e66017bbf30a7ba9cf4b8",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql"
+      ]
+    },
+    {
+      "order": 61,
+      "file": "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015050000",
+      "proposedVersion": "20261015070005",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "3adc1a2b663c26c15ac8eac96685bb82c6ca721895f3d91b794321025fb20eb7",
+      "dependsOn": [
+        "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql"
+      ]
+    },
+    {
+      "order": 62,
+      "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+      "kind": "proposal",
+      "originalVersion": "20261015030851",
+      "proposedVersion": "20261015070006",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "6a3b838d8b075cafa072399779ecbeed6789ef4013f26fab51525e01b946c36d",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql"
+      ]
+    },
+    {
+      "order": 63,
+      "file": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
+      "kind": "proposal",
+      "originalVersion": "20261016000000",
+      "proposedVersion": "20261016000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "6978fcb35b55de43fea9f89b183c76ff3add8ce94abd76f72b149f3e796efbd8",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ]
+    },
+    {
+      "order": 64,
+      "file": "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql",
+      "kind": "proposal",
+      "originalVersion": "20261016010000",
+      "proposedVersion": "20261016010000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "1a662df6d1fdba046dd513eb119770dea44d6c706d7b3569adeffdda709de8a5",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014400000_taxguard_appointments.sql",
+        "docs/proposed-migrations/20261014430000_taxguard_consultation_requests.sql"
+      ]
+    },
+    {
+      "order": 65,
+      "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
+      "kind": "proposal",
+      "originalVersion": "20261016020000",
+      "proposedVersion": "20261016020000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql",
+        "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql"
+      ]
+    },
+    {
+      "order": 66,
+      "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
+      "kind": "proposal",
+      "originalVersion": "20261016030000",
+      "proposedVersion": "20261016030000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261014400000_taxguard_appointments.sql"
+      ]
+    },
+    {
+      "order": 67,
+      "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
+      "kind": "proposal",
+      "originalVersion": "20261016040000",
+      "proposedVersion": "20261016040000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ]
+    },
+    {
+      "order": 68,
+      "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
+      "kind": "proposal",
+      "originalVersion": "20261016050000",
+      "proposedVersion": "20261016050000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql"
+      ]
+    },
+    {
+      "order": 69,
+      "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
+      "kind": "proposal",
+      "originalVersion": "20261017000000",
+      "proposedVersion": "20261017000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "5ec6dd644c6a35f96795855431e8a88ab9097360b093a423f998d3df27ebe868",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql"
+      ]
+    },
+    {
+      "order": 70,
+      "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018000000",
+      "proposedVersion": "20261018000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "70cae21a66ee77bab855b9ae8d4c60b985f70f4785c267d875a4b9f6d7207776",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql"
+      ]
+    },
+    {
+      "order": 71,
+      "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018010000",
+      "proposedVersion": "20261018010000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "1ab7f87708517728447be53daf6bcfe373704d63d86b70f20eea74deef6ff4ee",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ]
+    },
+    {
+      "order": 72,
+      "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018020000",
+      "proposedVersion": "20261018020000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "13501313f224d840f8204357d47ff5a5a6ece78b27a02ad2dd48b334e7a551cd",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql"
+      ]
+    },
+    {
+      "order": 73,
+      "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018030000",
+      "proposedVersion": "20261018030000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "03929e4ebdfa7240b67043eb0478d0678bd5339bf7c3fcc8423314d4351a9347",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql"
+      ]
+    },
+    {
+      "order": 74,
+      "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018040000",
+      "proposedVersion": "20261018040000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "6ae0c34b36a2efe17fed537b8026a1693cbf94a2251a1ce2cbc48d70a9ae0a84",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql"
+      ]
+    },
+    {
+      "order": 75,
+      "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018050000",
+      "proposedVersion": "20261018050000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "4f7259155265d9e08558ef7d01e2aafccdfb63edd3d6a420bd2c31eb7265ffdf",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql"
+      ]
+    },
+    {
+      "order": 76,
+      "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018060000",
+      "proposedVersion": "20261018060000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "eaf770b74db8d57304995185127e8938048e5566a58242d8255b4395691d5132",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
+        "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
+        "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql"
+      ]
+    },
+    {
+      "order": 77,
+      "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018070000",
+      "proposedVersion": "20261018070000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "79b95bbe709418a6228c3e591fcc70067a2ff481f3ad9cda86048368457d36c3",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql"
+      ]
+    },
+    {
+      "order": 78,
+      "file": "docs/proposed-migrations/20261018080000_taxguard_document_request_scope.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018080000",
+      "proposedVersion": "20261018080000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "90c0d56bd08da7e2f0563d8cee8a673506a6ae810026a50c89692c04629590f3",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql"
+      ]
+    },
+    {
+      "order": 79,
+      "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018090000",
+      "proposedVersion": "20261018090000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "a089345f7d80254a3b05f8da7205c74f973ae4d02e716f30c99be1ad558534fc",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
+      ]
+    },
+    {
+      "order": 80,
+      "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018100000",
+      "proposedVersion": "20261018100000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "79a3b7c4b26a7df36cf51ec7fae06c4634db9b1611e08542b97dbb051c30e2f2",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql"
+      ]
+    },
+    {
+      "order": 81,
+      "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018105000",
+      "proposedVersion": "20261018105000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "bbdf927c8f47db44ebbd49317fc2f907004882a8a233e5478fc27f87ec1e724b",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ]
+    },
+    {
+      "order": 82,
+      "file": "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018140000",
+      "proposedVersion": "20261018140000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "380cf9253a5865d6c046d14bf19cab81c8668cdaa2a8e7b1f8adccb309e05e7e",
+      "dependsOn": [
+        "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql"
+      ]
+    },
+    {
+      "order": 83,
+      "file": "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018150000",
+      "proposedVersion": "20261018150000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "1b5a08a8de616749bbbfa39c6fa75d88c0974f10cd30685bc472e66b63a0ff8b",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ]
+    },
+    {
+      "order": 84,
+      "file": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018160000",
+      "proposedVersion": "20261018160000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "d9f4b2299809d9bc37c19ccd3bbc5a89c5b97e8322ea37c191edd9e832cf1d60",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql"
+      ]
+    },
+    {
+      "order": 85,
+      "file": "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018170000",
+      "proposedVersion": "20261018170000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "03de3f05694be8a39e7d04cc3f55de803cc2d45f985421788a6f379fb5cd2cd0",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql"
+      ]
+    },
+    {
+      "order": 86,
+      "file": "docs/proposed-migrations/20261018180000_taxguard_case_validate_extraction_evidence.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018180000",
+      "proposedVersion": "20261018180000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "fc948b7fa5c610d6af9cafa62e326bcc2d0b0fbae0a1ec31b48d1d58cc72f53e",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql"
+      ]
+    },
+    {
+      "order": 87,
+      "file": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018190000",
+      "proposedVersion": "20261018190000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "0867b12a58af92fded4b3913c8fa62dbc85e8ab03180791bc5f3e1b33fc755e4",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql"
+      ]
+    },
+    {
+      "order": 88,
+      "file": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018110000",
+      "proposedVersion": "20261018190001",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "3c61b709074f434cfdb75a46b77cb52b4c414b268ee506bc78cd4172ea084ffb",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
+    },
+    {
+      "order": 89,
+      "file": "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018120000",
+      "proposedVersion": "20261018190002",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "06490e4f5adb47834b4c390c528b288096d9a0071b8ba97c80551ec3bb757185",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql"
+      ]
+    },
+    {
+      "order": 90,
+      "file": "docs/proposed-migrations/20261018130000_taxguard_ledger_report_year_guard.sql",
+      "kind": "proposal",
+      "originalVersion": "20261018130000",
+      "proposedVersion": "20261018190003",
+      "remapped": true,
+      "reason": "OUT_OF_DAG_ORDER",
+      "sha256": "8d34fc2c56ba93c0a362608f4647b5e580d4e2d00e7ff6d1a949f0070981368f",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
+        "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql"
+      ]
+    },
+    {
+      "order": 91,
+      "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019000000",
+      "proposedVersion": "20261019000000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "f177127a3fecfefe609401e129aca139baed8d10bcb56cf5f4235b1986f6e648",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "order": 92,
+      "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019010000",
+      "proposedVersion": "20261019010000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "0d5764f100fca5927026374ee470d45de4a0254fd564fdf83b9358c3a29cce8a",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql"
+      ]
+    },
+    {
+      "order": 93,
+      "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019020000",
+      "proposedVersion": "20261019020000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "be8aebf26decc7a40b83f46722a8a77089cec613f2e47237f09e12c55fe48d10",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
+        "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
+        "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql"
+      ]
+    },
+    {
+      "order": 94,
+      "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019030000",
+      "proposedVersion": "20261019030000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "15c5b11b506dbbff85fcc827a5f7125d8d9a90d8e8c9f98308d23d296fb56970",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "order": 95,
+      "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019040000",
+      "proposedVersion": "20261019040000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "ca382a2ea21ad636fcbb6d22c07201e4cb3071fa9286f09cbfb34aab316f78cc",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql"
+      ]
+    },
+    {
+      "order": 96,
+      "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019050000",
+      "proposedVersion": "20261019050000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "f60feabd1f5079e8cd7a7374097828928442513aad41deca138adfd9567f9da2",
+      "dependsOn": [
+        "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql"
+      ]
+    },
+    {
+      "order": 97,
+      "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019060000",
+      "proposedVersion": "20261019060000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "6aad8f03124633646d45f5dfcf2018d36a4452c41f0828ed117088d690b71de0",
+      "dependsOn": [
+        "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql"
+      ]
+    },
+    {
+      "order": 98,
+      "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019080000",
+      "proposedVersion": "20261019080000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "5482ae6bbbef7078377217832c1b12a2155bb89fe7795f28d878d3f8ad61e26a",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
+        "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
+        "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql"
+      ]
+    },
+    {
+      "order": 99,
+      "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019090000",
+      "proposedVersion": "20261019090000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "e9ce3623936e487b2bd1218225d2bb1b172941448e10d7f6f5de04e1dda11ef9",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql"
+      ]
+    },
+    {
+      "order": 100,
+      "file": "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019100000",
+      "proposedVersion": "20261019100000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "0d5d4fbb2cb1ed4e3109d49dd50009b9cb4e23c896437a614c9b68818fb5b066",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql"
+      ]
+    },
+    {
+      "order": 101,
+      "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019110000",
+      "proposedVersion": "20261019110000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "a057a6c26c592668f9311a01e90e1b37b54ca0ab1524dec170898aee0ad43542",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql"
+      ]
+    },
+    {
+      "order": 102,
+      "file": "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019115000",
+      "proposedVersion": "20261019115000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "0a53351cdd3a38b235ef2fd463047cdf529806f3350983e04929b6a57cdfbf54",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql"
+      ]
+    },
+    {
+      "order": 103,
+      "file": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019120000",
+      "proposedVersion": "20261019120000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "e6f13206e1821e6b59ec8a1c101f25cb63d3fe24ace5abba5ec195c5c431c53f",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
+      ]
+    },
+    {
+      "order": 104,
+      "file": "docs/proposed-migrations/20261019130000_taxguard_form_rule_approval_authority.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019130000",
+      "proposedVersion": "20261019130000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "700f9aadebf0bab24bb606bf08d03c854676ffdc9df3dda86cd81e4156b438e3",
+      "dependsOn": [
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql"
+      ]
+    },
+    {
+      "order": 105,
+      "file": "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019140000",
+      "proposedVersion": "20261019140000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "40bf768636afef9312640e50582f2a7924ae04c7b22daf48372256523a10ff18",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql"
+      ]
+    },
+    {
+      "order": 106,
+      "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019150000",
+      "proposedVersion": "20261019150000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "00e6eae068282f0c86f7920141b0cdc64df2057e1565128f78067a09b17badf2",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql"
+      ]
+    },
+    {
+      "order": 107,
+      "file": "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019160000",
+      "proposedVersion": "20261019160000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "315ab14ac93953e32d19bdc2e3a3d644ebcc4c9d5e46297a0026024df684f294",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql"
+      ]
+    },
+    {
+      "order": 108,
+      "file": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019170000",
+      "proposedVersion": "20261019170000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "5951b40d4e7b00d61aaf592552f20e376b4961a61433bbc3e79d4d650aab24df",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql"
+      ]
+    },
+    {
+      "order": 109,
+      "file": "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019180000",
+      "proposedVersion": "20261019180000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "b090a5debf56f5fa4f3eeea8636ceb76d16fa90f23ad60d9b2b50f5c2a901326",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
+        "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql"
+      ]
+    },
+    {
+      "order": 110,
+      "file": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019190000",
+      "proposedVersion": "20261019190000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "d2b27d45720e01fcea2824023c9dca591c8c59aa12f7622cb420140de878289b",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
+        "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
+        "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql"
+      ]
+    },
+    {
+      "order": 111,
+      "file": "docs/proposed-migrations/20261019200000_taxguard_return_comparison.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019200000",
+      "proposedVersion": "20261019200000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "26cfb96df32709578414cac8ee153e868f79cf1c8bfd4bcaba4acac8071a1c91",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql"
+      ]
+    },
+    {
+      "order": 112,
+      "file": "docs/proposed-migrations/20261019210000_taxguard_return_review_queue.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019210000",
+      "proposedVersion": "20261019210000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "7aae9c89f227359a491ec907a188a802ccf6f2de24fcade2de8b531c7731e014",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
+        "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
+        "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql"
+      ]
+    },
+    {
+      "order": 113,
+      "file": "docs/proposed-migrations/20261019220000_taxguard_tax_run_liveness.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019220000",
+      "proposedVersion": "20261019220000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "e30b7f3bddd3b2dbb01d4ed79afe0caba3d01425aac1e7d11b3ff5323ca4562c",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
+        "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql"
+      ]
+    },
+    {
+      "order": 114,
+      "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019230000",
+      "proposedVersion": "20261019230000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "81672896f24ce6779e3eedf6d24b029256901398772ee0cb8b32629992a5c564",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql",
+        "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
+    },
+    {
+      "order": 115,
+      "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019231000",
+      "proposedVersion": "20261019231000",
+      "remapped": false,
+      "reason": null,
+      "sha256": "1e3173ceba171d9f60cc19854b1f69e5655f52a84f32c857b50a93943a64e508",
+      "dependsOn": [
+        "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
+        "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql"
+      ]
+    },
+    {
+      "order": 116,
+      "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019240000",
+      "proposedVersion": "20261019231001",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "14b9bec92acedda4c6b2877d64bfd2137415be345e40209e6d8e2acdfa66a641",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
+    },
+    {
+      "order": 117,
+      "file": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019250000",
+      "proposedVersion": "20261019231002",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "5e44b2b17c7890b4c134411c555ca9a15e05c0a5096de0e111ff686dbe338858",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
+    },
+    {
+      "order": 118,
+      "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019260000",
+      "proposedVersion": "20261019231003",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "f369ce446715453b2fa6c2969b3ca2ae498779c5cdd667c9d55a7d84ffca48df",
+      "dependsOn": [
+        "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
+    },
+    {
+      "order": 119,
+      "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019270000",
+      "proposedVersion": "20261019231004",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "5726c663aa6512f600602ce2488f39b669ba4524356fb37287774eb91197b4ba",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
+        "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql"
+      ]
+    },
+    {
+      "order": 120,
+      "file": "docs/proposed-migrations/20261019280000_taxguard_practice_search.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019280000",
+      "proposedVersion": "20261019231005",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "22eb6aa70ce9fd7300fa9d7309bb36d9a0a3b224fc0b1e465ca00dcaeeb2cde7",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
+        "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
+        "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql"
+      ]
+    },
+    {
+      "order": 121,
+      "file": "docs/proposed-migrations/20261019290000_taxguard_summary_active_clients.sql",
+      "kind": "proposal",
+      "originalVersion": "20261019290000",
+      "proposedVersion": "20261019231006",
+      "remapped": true,
+      "reason": "INVALID_TIMESTAMP",
+      "sha256": "a3658567fe0424d20042477d682592959bb7a24c0e59c287581783d58e729cfe",
+      "dependsOn": [
+        "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
+        "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql"
+      ]
+    }
+  ]
+}

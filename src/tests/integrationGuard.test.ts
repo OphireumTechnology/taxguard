@@ -71,6 +71,16 @@ describe('integration guard', () => {
     expect(out.status).toBe(1);
     expect(out.stderr).toContain('SERVICE_STUBBED src/services/realClient.ts');
   });
+  it('Array.from(...) is not a database call: a stub built with it is still rejected', () => {
+    const r = repo();
+    r.write('src/services/realClient.ts', 'export const load = async () => Array.from({ length: 3 }, (_, i) => ({ id: i }));\n'); r.commit();
+    const out = r.run();
+    expect(out.status).toBe(1);
+    expect(out.stderr).toContain('SERVICE_STUBBED src/services/realClient.ts');
+    const r2 = repo();
+    r2.write('src/server/routes/cases.routes.ts', "router.get('/', async () => db.from('taxguard_cases').select('*'));\n"); r2.commit();
+    expect(r2.run().status).toBe(0);
+  });
   it('a first push (all-zero base) compares the head commit with its parent', () => {
     const r = repo();
     r.rm('src/services/realClient.ts'); r.commit();
