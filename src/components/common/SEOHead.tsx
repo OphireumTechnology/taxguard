@@ -227,7 +227,10 @@ export const SEOHead: React.FC = () => {
     const defaultOrigin = BRAND_WEBSITE_URL.replace(/\/$/, '');
     const origin = typeof window !== 'undefined' ? window.location.origin : defaultOrigin;
     const canonicalUrl = `${origin}${meta.canonicalPath}`;
-    const brandImageUrl = `${origin}${BRAND_ASSETS.destriaLogoOriginal}`;
+    const brandImageUrl =
+      currentPage === 'founder'
+        ? `${origin}${BRAND_ASSETS.destriaFounderPortrait}`
+        : `${origin}${BRAND_ASSETS.destriaLogoOriginal}`;
 
     // 1. Update Document Title
     document.title = meta.title;

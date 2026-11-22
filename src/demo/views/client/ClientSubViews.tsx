@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../../config/companyBranding';
+import { BRAND_ASSETS } from '../../../utils/assets';
 import {
   FileText,
   UploadCloud,
@@ -456,11 +457,11 @@ export const ClientAppointmentsView: React.FC = () => {
         {bookedAppointments.map(apt => (
           <div key={apt.id} className="p-3 border border-neutral-200 rounded flex items-center justify-between text-xs hover:border-neutral-300 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#D7AC4A] bg-[#061A2F] flex-shrink-0">
+              <div className="w-11 h-11 rounded-lg overflow-hidden border border-[#D4A843] bg-[#061A2F] flex-shrink-0">
                 <img
-                  src="/ceo/123456789-desmond.png"
-                  alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES, LLC"
-                  className="w-full h-full object-cover object-top"
+                  src={BRAND_ASSETS.destriaFounderPortrait}
+                  alt="Desmond Hinds, Founder and Chief Executive Officer of Destria Tax Services, LLC"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div>

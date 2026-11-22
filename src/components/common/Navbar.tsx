@@ -586,7 +586,7 @@ export const Navbar: React.FC = () => {
                     <UserIcon className="w-4 h-4 text-[#C99A3D] mt-0.5 flex-shrink-0" />
                     <div>
                       <div className="text-xs font-semibold text-slate-100">Meet Desmond Hinds</div>
-                      <div className="text-[11px] text-slate-400">Founder &amp; Senior Managing Accountant</div>
+                      <div className="text-[11px] text-slate-400">Founder &amp; Chief Executive Officer</div>
                     </div>
                   </button>
                 </div>

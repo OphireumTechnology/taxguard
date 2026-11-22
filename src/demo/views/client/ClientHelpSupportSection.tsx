@@ -14,6 +14,7 @@ import {
   Clock,
   Info
 } from 'lucide-react';
+import { BRAND_ASSETS } from '../../../utils/assets';
 
 interface ClientHelpSupportSectionProps {
   clientId?: string;
@@ -133,11 +134,11 @@ export const ClientHelpSupportSection: React.FC<ClientHelpSupportSectionProps> =
               <div><strong>Lead CPA:</strong> Elena Rostova, CPA</div>
               <div className="text-[11px] font-mono text-[#667085]">elena.rostova@destriatax.com</div>
               <div className="flex items-center gap-2.5 pt-1">
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-[#C99A32] flex-shrink-0 bg-[#061A2F]">
+                <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#D4A843] flex-shrink-0 bg-[#061A2F]">
                   <img
-                    src="/ceo/123456789-desmond.png"
-                    alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES, LLC"
-                    className="w-full h-full object-cover object-top"
+                    src={BRAND_ASSETS.destriaFounderPortrait}
+                    alt="Desmond Hinds, Founder and Chief Executive Officer of Destria Tax Services, LLC"
+                    className="w-full h-full object-contain"
                   />
                 </div>
                 <div>

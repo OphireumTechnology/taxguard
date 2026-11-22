@@ -1,6 +1,8 @@
 import React from 'react';
-import { ShieldCheck, Lock, UserCheck, CalendarCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck, Lock, UserCheck, CalendarCheck, Sparkles, MapPin, Phone, Mail } from 'lucide-react';
 import { ConsultationRequestForm } from './ConsultationRequestForm';
+import { FounderPortrait } from './images';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 
 /**
  * Public consultation page. Visitors submit a durable consultation REQUEST (proposal 043): no
@@ -34,7 +36,7 @@ export const BookConsultationPage: React.FC = () => {
           <div className="max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(212,168,67,0.12)] border border-[rgba(212,168,67,0.30)] text-[#D4A843] text-[11px] sm:text-xs font-semibold tracking-[0.18em] uppercase">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>PRIVATE TAX & ADVISORY SERVICES</span>
+              <span>PRIVATE TAX &amp; ADVISORY SERVICES</span>
             </div>
 
             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#F8FAFC] tracking-tight leading-tight">
@@ -75,8 +77,60 @@ export const BookConsultationPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <ConsultationRequestForm />
+      {/* CONSULTATION WORKSPACE & EXECUTIVE LEADERSHIP OVERSIGHT */}
+      <section className="max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-7 xl:col-span-8">
+            <ConsultationRequestForm />
+          </div>
+
+          <aside className="lg:col-span-5 xl:col-span-4 space-y-5">
+            <div className="rounded-3xl bg-[#0A213C] border border-[#D4A843]/35 p-5 sm:p-6 shadow-xl space-y-5">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#E5B552]">
+                  Executive Practice Leadership
+                </p>
+                <h2 className="font-serif text-xl font-bold text-white">
+                  Desmond Hinds
+                </h2>
+                <p className="text-xs font-medium text-[#E5B552]">
+                  Founder &amp; Chief Executive Officer
+                </p>
+              </div>
+
+              <FounderPortrait
+                size="full"
+                priority={false}
+                showBadge={false}
+                className="mx-auto max-w-[360px] lg:max-w-none"
+              />
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Every consultation request is reviewed by our advisory practice in Columbia, South Carolina so we can match your tax preparation, accounting, or wealth planning goals with the right specialist.
+              </p>
+
+              <div className="pt-4 border-t border-slate-700/80 space-y-2 text-xs text-slate-300">
+                <div className="font-semibold text-white">{COMPANY_BRANDING.displayName}</div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-[#D4A843] shrink-0" />
+                  <span>{COMPANY_CONTACT.location}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-[#D4A843] shrink-0" />
+                  <a href={COMPANY_CONTACT.phoneHref} className="hover:text-[#E5B552] transition-colors">
+                    {COMPANY_CONTACT.phoneDisplay}
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-[#D4A843] shrink-0" />
+                  <a href={COMPANY_MAILTO_HREF} className="hover:text-[#E5B552] transition-colors">
+                    {COMPANY_CONTACT.email}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
       </section>
     </div>
   );

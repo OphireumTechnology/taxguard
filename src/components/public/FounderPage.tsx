@@ -41,11 +41,12 @@ export const FounderPage: React.FC = () => {
           {/* Left Column: Executive Portrait & Direct Contact */}
           <div className="lg:col-span-5 space-y-6">
             
-            {/* Approved Founder Portrait with object-fit: contain */}
+            {/* Official Founder & CEO Executive Portrait */}
             <FounderPortrait
-              size="lg"
+              size="full"
               priority={true}
               caption="Desmond Hinds • Founder & Chief Executive Officer"
+              className="mx-auto lg:mx-0 max-w-[460px] lg:max-w-none"
             />
 
             {/* Quick Direct Contact & Executive Credentials Card */}
@@ -57,8 +58,11 @@ export const FounderPage: React.FC = () => {
                 <div className="text-xs font-semibold text-[#E2BD67] uppercase tracking-wider mt-1">
                   Founder &amp; Chief Executive Officer
                 </div>
+                <div className="text-xs font-medium text-slate-200 mt-1">
+                  {COMPANY_BRANDING.displayName}
+                </div>
                 <div className="text-xs text-slate-300 mt-1 flex items-center justify-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#C99A3D]" /> Columbia, South Carolina, USA
+                  <MapPin className="w-3.5 h-3.5 text-[#C99A3D]" /> {COMPANY_CONTACT.location}
                 </div>
               </div>
 

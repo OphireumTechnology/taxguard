@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { demoDataStore } from '../../services/DemoDataService';
+import { BRAND_ASSETS } from '../../../utils/assets';
 
 interface ClientMessagesTasksSectionProps {
   clientId?: string;
@@ -278,11 +279,11 @@ export const ClientMessagesTasksSection: React.FC<ClientMessagesTasksSectionProp
               <div className="border-b border-[#D8DCE2] pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {activeThread.assignedTo.includes('Desmond') && (
-                    <div className="w-10 h-10 rounded-full border border-[#D7AC4A] overflow-hidden flex-shrink-0 bg-[#061A2F]">
+                    <div className="w-11 h-11 rounded-lg border border-[#D4A843] overflow-hidden flex-shrink-0 bg-[#061A2F]">
                       <img
-                        src="/ceo/123456789-desmond.png"
-                        alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES, LLC"
-                        className="w-full h-full object-cover object-top"
+                        src={BRAND_ASSETS.destriaFounderPortrait}
+                        alt="Desmond Hinds, Founder and Chief Executive Officer of Destria Tax Services, LLC"
+                        className="w-full h-full object-contain"
                       />
                     </div>
                   )}

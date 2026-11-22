@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { BRAND_ASSETS } from '../../utils/assets';
-import { ServiceCardImage, EditorialSplitImage } from './images';
+import { ServiceCardImage, EditorialSplitImage, FounderPortrait } from './images';
 import { HeroFinancialEcosystem } from './home/HeroFinancialEcosystem';
 import { IntelligenceCapabilitiesSection } from './home/IntelligenceCapabilitiesSection';
 import { TaxWorkflowDemonstration } from './home/TaxWorkflowDemonstration';
@@ -636,6 +636,61 @@ export const HomePage: React.FC = () => {
 
       {/* 11. HUMAN EXPERTISE & PROFESSIONAL ACCOUNTABILITY */}
       <HumanAiCollaborationSection />
+
+      {/* EXECUTIVE LEADERSHIP INTRODUCTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-labelledby="home-leadership-heading">
+        <div className="rounded-3xl bg-gradient-to-br from-[#0C2440] to-[#06182B] border border-[#D4A843]/40 p-6 sm:p-10 lg:p-12 shadow-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-5 flex justify-center">
+              <FounderPortrait
+                size="full"
+                priority={false}
+                caption="Desmond Hinds • Founder & Chief Executive Officer"
+                className="w-full max-w-[420px] lg:max-w-none"
+              />
+            </div>
+
+            <div className="lg:col-span-7 space-y-5">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold tracking-[0.2em] text-[#E5B552] uppercase">
+                  Executive Leadership
+                </p>
+                <h2
+                  id="home-leadership-heading"
+                  className="font-serif text-3xl sm:text-4xl font-bold text-white tracking-tight [text-wrap:balance]"
+                >
+                  Led by Desmond Hinds
+                </h2>
+                <p className="text-xs sm:text-sm font-semibold text-[#E5B552]">
+                  Founder &amp; Chief Executive Officer &bull; {COMPANY_BRANDING.displayName} &bull; {COMPANY_CONTACT.location}
+                </p>
+              </div>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                Desmond Hinds founded {COMPANY_BRANDING.displayName} to unite disciplined tax compliance, modern financial technology, and personal executive stewardship. Every client relationship is anchored in accuracy, confidentiality, and year-round strategic guidance.
+              </p>
+
+              <div className="pt-1 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('founder')}
+                  className="px-5 py-3 rounded-xl font-bold text-xs text-[#071D3A] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 transition-all inline-flex items-center gap-2 whitespace-nowrap shadow-lg"
+                >
+                  <span>View Full Executive Profile</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('about')}
+                  className="px-5 py-3 rounded-xl font-semibold text-xs text-slate-100 bg-[#071A2E] hover:bg-[#102D4F] border border-slate-700 hover:border-[#D4A843]/50 transition-colors inline-flex items-center gap-2 whitespace-nowrap"
+                >
+                  <span>About {COMPANY_BRANDING.displayName}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* 12. CONFIDENTIAL CONSULTATION CALL TO ACTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-labelledby="cta-heading">

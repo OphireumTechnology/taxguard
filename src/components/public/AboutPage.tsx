@@ -167,13 +167,13 @@ export const AboutPage: React.FC = () => {
         <div className="rounded-3xl bg-gradient-to-br from-[#0B2748] to-[#06172C] border border-[#C99A3D]/40 p-8 sm:p-10 lg:p-12 shadow-2xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
-            {/* Approved Founder Portrait */}
+            {/* Official Founder & CEO Executive Portrait */}
             <div className="lg:col-span-5 flex justify-center">
               <FounderPortrait
                 size="lg"
-                priority={false}
+                priority={true}
                 caption="Desmond Hinds • Founder & Chief Executive Officer"
-                className="w-full max-w-md"
+                className="w-full max-w-[440px] lg:max-w-none"
               />
             </div>
 
@@ -187,7 +187,7 @@ export const AboutPage: React.FC = () => {
                   A Message from Desmond Hinds
                 </h2>
                 <div className="text-xs font-semibold text-[#E2BD67]">
-                  Founder &amp; Chief Executive Officer &bull; Columbia, South Carolina
+                  Founder &amp; Chief Executive Officer &bull; {COMPANY_BRANDING.displayName} &bull; Columbia, South Carolina, USA
                 </div>
               </div>
 
