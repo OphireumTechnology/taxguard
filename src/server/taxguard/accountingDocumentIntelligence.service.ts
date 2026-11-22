@@ -402,7 +402,7 @@ export class AccountingDocumentIntelligenceService {
 
         if (!isNaN(amt) && amt > 0 && desc.length > 2) {
           const isCredit = line.toUpperCase().includes('CR') || line.toUpperCase().includes('DEPOSIT') || line.toUpperCase().includes('REFUND');
-          
+
           transactions.push({
             transactionId: `TX-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
             sourceDocumentId: documentId,
