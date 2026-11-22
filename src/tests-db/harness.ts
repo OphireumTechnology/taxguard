@@ -45,7 +45,7 @@ export async function startDatabase(options: { durable?: boolean;reviewBundle?:b
   // Own cleanup with bounded Windows lock retries. The package's nonpersistent stop performs
   // an immediate recursive removal and can fail EBUSY before our guarded cleanup is reached.
   const server = new EmbeddedPostgres({ databaseDir, port, user: 'postgres', password, persistent: true, onLog: () => {},
-    postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=60', '-c', `fsync=${options.durable ? 'on' : 'off'}`] });
+    postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'unix_socket_directories=', '-c', 'max_connections=60', '-c', `fsync=${options.durable ? 'on' : 'off'}`] });
   const stopOwnedServer = async () => {
     // embedded-postgres currently fire-and-forgets Windows taskkill. Its root process can exit
     // before taskkill has reaped PostgreSQL's forked workers, leaving postgres.exe locked. Use

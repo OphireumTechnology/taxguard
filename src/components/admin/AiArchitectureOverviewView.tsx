@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { CANONICAL_AGENTS } from '../../ai/registry';
+import { commissioningMatrix } from '../../ai/commissioningMatrix';
 import {
   ARCHITECTURE_OVERVIEW_SOURCE, OVERVIEW_AGENTS, PAGE9_EXAMPLE, PERMISSION_COLUMNS,
   overviewCeiling, overviewDecisions, type DrawnPermission, type OverviewDecision,
@@ -15,17 +15,18 @@ const STATUS: Record<OverviewDecision['status'], string> = { OPEN: 'Open', PARTL
  */
 export function AiArchitectureOverviewView() {
   const decisions = useMemo(() => overviewDecisions(), []);
-  const registry = useMemo(() => new Map(CANONICAL_AGENTS.map(a => [a.agent_id, a])), []);
+  const readiness = useMemo(() => commissioningMatrix(), []);
+  const registry = useMemo(() => new Map(readiness.map(agent => [agent.agentId, agent])), [readiness]);
   const withResponsibility = OVERVIEW_AGENTS.filter(a => a.responsibility !== null).length;
   const withRole = OVERVIEW_AGENTS.filter(a => a.gate_role !== null).length;
   return <div className="space-y-3" data-testid="ai-architecture-overview-view">
     <p role="note" className="text-slate-300">
       Reference only: transcribed from the {ARCHITECTURE_OVERVIEW_SOURCE.title} ({ARCHITECTURE_OVERVIEW_SOURCE.pages} pages, SHA-256 {ARCHITECTURE_OVERVIEW_SOURCE.sha256.slice(0, 12)}…, received {ARCHITECTURE_OVERVIEW_SOURCE.received}).
-      Until the owner approves a mapping, every agent stays DRAFT with no permission, stage, model or provider.
+      Development roles come from the overview. Deployment requires approved grants, model and prompt, evaluations, staging validation, and commissioning.
     </p>
-    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2" aria-label="Overview totals">
-      {([['Agents recorded', `${OVERVIEW_AGENTS.length} / ${CANONICAL_AGENTS.length}`], ['With a page-2 responsibility', `${withResponsibility} / ${OVERVIEW_AGENTS.length}`],
-        ['Gate names an approval role', `${withRole} / ${OVERVIEW_AGENTS.length}`], ['Open owner decisions', `${decisions.filter(d => d.status !== 'DECIDED').length} / ${decisions.length}`]] as const)
+    <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" aria-label="Overview totals">
+      {([['Agents recorded', `${OVERVIEW_AGENTS.length} / ${readiness.length}`], ['With a page-2 responsibility', `${withResponsibility} / ${OVERVIEW_AGENTS.length}`],
+        ['With a local handler', `${readiness.filter(agent => agent.handlerImplemented === 'YES').length} / ${readiness.length}`], ['Gate names an approval role', `${withRole} / ${OVERVIEW_AGENTS.length}`], ['Open owner decisions', `${decisions.filter(d => d.status !== 'DECIDED').length} / ${decisions.length}`]] as const)
         .map(([label, value]) => <div key={label} className="rounded-lg border border-slate-700 p-2"><dt className="text-slate-400">{label}</dt><dd className="text-base font-bold text-white">{value}</dd></div>)}
     </dl>
     <section aria-labelledby="ai-overview-decisions" className="rounded-lg border border-amber-500/40 p-2 text-amber-200">
@@ -39,17 +40,22 @@ export function AiArchitectureOverviewView() {
       <table className="w-full text-left">
         <caption className="sr-only">Architecture overview record for each canonical agent</caption>
         <thead><tr className="text-slate-400">
-          {['Agent', 'Overview name', 'Registry name', 'Category', 'Responsibility (page 2)', 'Human gate (page 2)', 'Approval role'].map(h => <th key={h} scope="col" className="pr-3">{h}</th>)}
+          {['Agent', 'Overview name', 'Registry name', 'Category', 'Responsibility (page 2)', 'Human gate (page 2)', 'Approval role', 'Deployment status', 'Implementation evidence'].map(h => <th key={h} scope="col" className="pr-3">{h}</th>)}
         </tr></thead>
-        <tbody>{OVERVIEW_AGENTS.map(a => <tr key={a.agent_id} className="border-t border-slate-800">
-          <th scope="row" className="pr-3 py-1 font-mono">{a.agent_id}</th>
-          <td className="pr-3">{a.overview_name}</td>
-          <td className="pr-3 text-slate-400">{registry.get(a.agent_id)!.agent_name}</td>
-          <td className="pr-3">{registry.get(a.agent_id)!.category}</td>
-          <td className="pr-3">{a.responsibility ?? 'Not on page 2'}</td>
-          <td className="pr-3">{a.human_gate ?? 'Not on page 2'}</td>
-          <td>{a.gate_role ?? 'Owner decision'}</td>
-        </tr>)}</tbody>
+        <tbody>{OVERVIEW_AGENTS.map(a => {
+          const agent = registry.get(a.agent_id);
+          return <tr key={a.agent_id} className="border-t border-slate-800">
+            <th scope="row" className="pr-3 py-1 font-mono">{a.agent_id}</th>
+            <td className="pr-3">{a.overview_name}</td>
+            <td className="pr-3 text-slate-400">{agent?.name ?? 'Unavailable'}</td>
+            <td className="pr-3">{agent?.category ?? 'Unavailable'}</td>
+            <td className="pr-3">{a.responsibility ?? (a.agent_id === 'A10' ? 'Bounded duplicate-hash check' : 'Unassigned')}</td>
+            <td className="pr-3">{a.human_gate ?? 'Not on page 2'}</td>
+            <td>{a.gate_role ?? 'Owner decision'}</td>
+            <td className="pr-3">{agent?.status ?? 'Unavailable'}</td>
+            <td>{agent?.scope ?? 'Unavailable'}</td>
+          </tr>;
+        })}</tbody>
       </table>
     </div>
     <section aria-labelledby="ai-overview-page9" className="space-y-1">

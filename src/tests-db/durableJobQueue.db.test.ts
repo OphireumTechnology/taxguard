@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { runA10AdvisoryJob } from '../server/ai/jobs/A10AdvisoryJob';
+import type { EvidenceMetadata } from '../server/ai/capabilities/contracts';
 import express from 'express';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -7,10 +10,11 @@ import { PracticeStore } from '../server/taxguard/practice/practiceStore';
 import { CaseStore } from '../server/taxguard/practice/caseStore';
 import { createJobsRouter } from '../server/routes/jobs-durable.routes';
 import { DurableJobWorker } from '../server/taxguard/operations/durableJobWorker';
+import { inspectSelectedDocumentDuplicates } from '../server/ai/documents/DocumentDuplicateAdvisory';
 
 // Block 82: durable background job queue (proposal 20261019240000, review only) on real PostgreSQL with every proposal
 // applied. Staff operations over HTTP through the durable router; worker operations through the service RPCs on
-// separate connections. Engagement scope follows the owner decision of 2026-10-19. No job is run. SYNTHETIC data only.
+// separate connections. Engagement scope follows the owner decision of 2026-10-19. Synthetic data only.
 const T = 'tenantJobQueue', T2 = 'tenantJobQueueOther', TW = 'tenantJobWorker', C = 'jqClient';
 const roles: Record<string, string> = { 'jq-mgr': 'practice_manager', 'jq-admin': 'admin', 'jq-prep1': 'accountant', 'jq-prep2': 'accountant',
   'jq-wide': 'reviewer', 'jq-client': 'client', 'jq-foreign': 'admin', 'jw-admin': 'admin' };
@@ -226,6 +230,37 @@ describe('durable job queue: workers', () => {
     expect(await code(worker('worker-l').claim(0))).toBe('JOB_INVALID_CLAIM');
   });
 
+  it('rehearses a synthetic A10 advisory between a durable claim and completion', async () => {
+    const id = await seed('jw-ai-0001', { jobType: 'AI_PROPOSAL', payload: { rehearsal: 'A10' } });
+    const consumer = worker('worker-a10-rehearsal');
+    const claim = await consumer.claim(60);
+    expect(claim).toMatchObject({ id, jobType: 'AI_PROPOSAL', payload: { rehearsal: 'A10' } });
+    if (!claim || claim.id !== id) throw new Error('SYNTHETIC_JOB_NOT_CLAIMED');
+
+    // The rehearsal owns the metadata. No queued payload supplies evidence or handler authority.
+    const documents = [
+      '00000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000002',
+    ];
+    const report = inspectSelectedDocumentDuplicates(documents.map((document_record_id, index) => ({
+      source_id: index === 0 ? '00000000-0000-4000-8000-000000000003' : '00000000-0000-4000-8000-000000000004',
+      document_record_id,
+      document_version: 1,
+      document_status: 'VERIFIED',
+      quarantine_status: 'CLEAN',
+      source_hash: 'a'.repeat(64),
+    })));
+    expect(report).toMatchObject({
+      status: 'ADVISORY',
+      human_review_required: true,
+      authoritative_mutation: false,
+      fraud_assessed: false,
+      duplicate_groups: [{ document_record_ids: documents }],
+    });
+    expect(await consumer.complete(claim)).toMatchObject({ status: 'COMPLETED' });
+    expect((await events(id)).map(event => event.action)).toEqual(['ENQUEUED', 'CLAIMED', 'COMPLETED']);
+  });
+
   it('keeps the event log append-only and the queue internals off the service role', async () => {
     await expect(sql(`UPDATE taxguard_durable_job_events SET actor = 'x' WHERE job_id = $1`, [jobs.e1])).rejects.toThrow(/JOB_EVENTS_APPEND_ONLY/);
     await expect(sql(`DELETE FROM taxguard_durable_job_events WHERE job_id = $1`, [jobs.e1])).rejects.toThrow(/JOB_EVENTS_APPEND_ONLY/);
@@ -237,5 +272,89 @@ describe('durable job queue: workers', () => {
       'taxguard_job_enqueue', 'taxguard_job_fail', 'taxguard_job_list', 'taxguard_job_retry']);
     for (const role of ['anon', 'authenticated'])
       expect((await sql(`SELECT has_table_privilege($1, 'public.taxguard_durable_job_events', 'SELECT') AS ok`, [role]))[0].ok).toBe(false);
+  });
+});
+
+describe('A10 advisory job review draft', () => {
+  const createWorker = () => new DurableJobWorker(pgRpc(db.pool), T, 'worker-a10-draft');
+  const sourceIds = [
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000032',
+  ];
+  const evidence: EvidenceMetadata[] = sourceIds.map((source_id, index) => ({
+    source_id,
+    document_record_id: '00000000-0000-4000-8000-00000000004' + index,
+    document_version: 1,
+    source_hash: 'a'.repeat(64),
+    document_status: 'RELEASED',
+    quarantine_status: 'CLEAN',
+  }));
+  const enqueueA10 = (key: string) => enqueue('jq-prep1', key, {
+    jobType: 'AI_PROPOSAL', clientId: C, caseId: caseIds.E1,
+    payload: { agentId: 'A10', sourceIds },
+  });
+  const results = (id: string) => sql('SELECT agent_id, duplicate_group_count, human_review_required FROM taxguard_ai_job_advisories WHERE job_id = $1', [id]);
+
+  beforeAll(async () => {
+    await db.pool.query(readFileSync('docs/development/sql/ai-advisory-job-draft.sql', 'utf8'));
+  });
+
+  it('keeps advisory summaries and internal RPCs off client roles', async () => {
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      const [permissions] = await sql(`SELECT
+        has_table_privilege($1, 'public.taxguard_ai_job_advisories', 'SELECT') AS result,
+        has_function_privilege($1, 'public.taxguard_job_complete_partition(text,text,text,uuid,boolean)', 'EXECUTE') AS internal,
+        has_function_privilege($1, 'public.taxguard_job_complete_ai(text,text,text,uuid,integer)', 'EXECUTE') AS worker`, [role]);
+      expect(permissions).toEqual({ result: false, internal: false, worker: role === 'service_role' });
+    }
+  });
+
+  it('partitions claims and records the scoped summary and terminal event', async () => {
+    const queued = await enqueueA10('jw-draft-ai-0001');
+    expect(queued.status).toBe(201);
+    const consumer = createWorker();
+    const ordinary = await consumer.claim();
+    expect(ordinary?.jobType).not.toBe('AI_PROPOSAL');
+    if (ordinary) await consumer.complete(ordinary);
+    let resolutions = 0;
+    expect(await runA10AdvisoryJob(consumer, async scope => {
+      resolutions++;
+      expect(scope).toEqual({ tenantId: T, clientId: C, caseId: caseIds.E1, actorId: 'jq-prep1', sourceIds });
+      return evidence;
+    })).toBe('COMPLETED');
+    expect(resolutions).toBe(2);
+    expect(await results(queued.body.id)).toEqual([{ agent_id: 'A10', duplicate_group_count: 1, human_review_required: true }]);
+    expect((await events(queued.body.id)).map(event => event.action)).toEqual(['ENQUEUED', 'CLAIMED', 'COMPLETED']);
+    expect(await runA10AdvisoryJob(consumer, async () => { throw new Error('Unexpected dispatch'); })).toBe('IDLE');
+  });
+
+  it('refuses revoked evidence and leaves no advisory result', async () => {
+    const queued = await enqueueA10('jw-draft-ai-0002');
+    let current = true;
+    expect(await runA10AdvisoryJob(createWorker(), async () => {
+      if (!current) return null;
+      current = false;
+      return evidence;
+    })).toBe('REFUSED');
+    expect(await results(queued.body.id)).toEqual([]);
+    expect((await events(queued.body.id)).at(-1)?.action).toBe('DEAD_LETTERED');
+  });
+
+  it('rolls back invalid summaries and rejects a stale lease', async () => {
+    const queued = await enqueueA10('jw-draft-ai-0003');
+    const consumer = createWorker();
+    const claim = await consumer.claimAi(60);
+    if (!claim || claim.id !== queued.body.id) throw new Error('SYNTHETIC_JOB_NOT_CLAIMED');
+    await expect(consumer.complete(claim)).rejects.toThrow('JOB_COMPLETION_PATH_INVALID');
+    await expect(consumer.completeA10(claim, 6)).rejects.toThrow('JOB_STORE_UNAVAILABLE');
+    expect(await results(claim.id)).toEqual([]);
+    expect((await events(claim.id)).at(-1)?.action).toBe('CLAIMED');
+    await expireLease(claim.id);
+    const replacement = await consumer.claimAi(60);
+    if (!replacement || replacement.id !== claim.id) throw new Error('SYNTHETIC_JOB_NOT_RECLAIMED');
+    await expect(consumer.completeA10(claim, 1)).rejects.toThrow('JOB_WORKER_CLAIM_REQUIRED');
+    expect(await results(claim.id)).toEqual([]);
+    expect(await consumer.completeA10(replacement, 1)).toMatchObject({ status: 'COMPLETED' });
+    expect(await results(claim.id)).toHaveLength(1);
   });
 });

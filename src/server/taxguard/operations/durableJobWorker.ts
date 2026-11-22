@@ -26,6 +26,17 @@ export class DurableJobWorker {
   claim(leaseSeconds = 300): Promise<ClaimedJob | null> {
     return this.call('taxguard_job_claim', { p_worker: this.workerId, p_lease_seconds: leaseSeconds });
   }
+  claimAi(leaseSeconds = 300): Promise<ClaimedJob | null> {
+    return this.call('taxguard_job_claim_ai', { p_worker: this.workerId, p_lease_seconds: leaseSeconds });
+  }
+
+  completeA10(job: Pick<ClaimedJob, 'id' | 'leaseToken'>, duplicateGroupCount: number) {
+    return this.call<Record<string, unknown>>('taxguard_job_complete_ai', {
+      p_job: job.id, p_worker: this.workerId, p_lease_token: job.leaseToken,
+      p_duplicate_group_count: duplicateGroupCount,
+    });
+  }
+
   complete(job: Pick<ClaimedJob, 'id' | 'leaseToken'>) {
     return this.call<Record<string, unknown>>('taxguard_job_complete', { p_job: job.id, p_worker: this.workerId, p_lease_token: job.leaseToken });
   }
