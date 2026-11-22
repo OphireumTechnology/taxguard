@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_BRANDING } from '../../config/companyBranding';
 import { BrandLogo } from '../common/BrandLogo';
 import { BRAND_ASSETS } from '../../utils/assets';
 import { FounderPortrait, EditorialSplitImage } from './images';
@@ -74,7 +75,7 @@ export const AboutPage: React.FC = () => {
                 <span>Our Heritage &amp; Purpose &bull; Columbia, South Carolina</span>
               </div>
               <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
-                About DESTRIA TAX SERVICES LLC
+                About {COMPANY_BRANDING.displayName}
               </h1>
               <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl">
                 Your Trusted Partner in Tax and Financial Solutions. Delivering client-focused tax preparation, 
@@ -103,7 +104,7 @@ export const AboutPage: React.FC = () => {
                   <source srcSet={BRAND_ASSETS.aboutTaxAdvisoryOfficeWebp} type="image/webp" />
                   <img
                     src={BRAND_ASSETS.aboutTaxAdvisoryOfficeJpg}
-                    alt="DESTRIA TAX SERVICES LLC professional tax and accounting advisory workspace"
+                    alt="DESTRIA TAX SERVICES, LLC professional tax and accounting advisory workspace"
                     width={1280}
                     height={720}
                     loading="eager"
@@ -191,7 +192,7 @@ export const AboutPage: React.FC = () => {
               </div>
 
               <blockquote className="p-4 rounded-xl bg-[#06172C]/90 border-l-4 border-[#C99A3D] text-[#F8F6F1] font-serif italic text-base sm:text-lg">
-                &ldquo;Your Growth, Our Priority. We established DESTRIA TAX SERVICES LLC to give individuals, families, and businesses confidential, executive-tier tax counsel they can rely on through every economic season.&rdquo;
+                &ldquo;Your Growth, Our Priority. We established DESTRIA TAX SERVICES, LLC to give individuals, families, and businesses confidential, executive-tier tax counsel they can rely on through every economic season.&rdquo;
               </blockquote>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
@@ -256,7 +257,7 @@ export const AboutPage: React.FC = () => {
               Community & Impact: Building Stronger Futures
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              At DESTRIA TAX SERVICES LLC, we believe that stronger individuals and businesses create stronger communities. 
+              At DESTRIA TAX SERVICES, LLC, we believe that stronger individuals and businesses create stronger communities.
               We are committed to financial education, empowerment, and supporting initiatives that help families and entrepreneurs build better futures.
             </p>
           </div>
@@ -330,7 +331,7 @@ export const AboutPage: React.FC = () => {
               <EditorialSplitImage
                 src={BRAND_ASSETS.aboutClientAdvisoryJpg}
                 webpSrc={BRAND_ASSETS.aboutClientAdvisoryWebp}
-                alt="DESTRIA TAX SERVICES LLC professional client advisory and strategic collaboration consultation suite"
+                alt="DESTRIA TAX SERVICES, LLC professional client advisory and strategic collaboration consultation suite"
                 badgeText="Collaborative Advisory"
                 className="w-full h-full min-h-[280px]"
               />

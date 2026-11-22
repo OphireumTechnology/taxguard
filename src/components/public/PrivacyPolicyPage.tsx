@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { ShieldCheck, Lock, FileText, CheckCircle2 } from 'lucide-react';
 
 export const PrivacyPolicyPage: React.FC = () => {
@@ -16,7 +17,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           Privacy Policy
         </h1>
         <p className="text-xs text-slate-400">
-          Last Updated & Reviewed: January 2026 • Governing Entity: DESTRIA TAX SERVICES LLC (Columbia, SC)
+          Last Updated & Reviewed: January 2026 • Governing Entity: {COMPANY_BRANDING.legalName} (Columbia, SC)
         </p>
       </div>
 
@@ -24,7 +25,7 @@ export const PrivacyPolicyPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">1. Commitment to Client Confidentiality</h2>
           <p>
-            DESTRIA TAX SERVICES LLC (“we”, “our”, or “the Firm”) is deeply committed to safeguarding the nonpublic personal financial information (NPI) of our clients, prospective clients, and web portal visitors. In accordance with the Gramm-Leach-Bliley Act (GLBA), the Internal Revenue Code Section 7216, the California Consumer Privacy Act (CCPA), and applicable GDPR principles for international stakeholders, we maintain stringent physical, electronic, and procedural safeguards.
+            {COMPANY_BRANDING.legalName} (“we”, “our”, or “the Firm”) is deeply committed to safeguarding the nonpublic personal financial information (NPI) of our clients, prospective clients, and web portal visitors. In accordance with the Gramm-Leach-Bliley Act (GLBA), the Internal Revenue Code Section 7216, the California Consumer Privacy Act (CCPA), and applicable GDPR principles for international stakeholders, we maintain stringent physical, electronic, and procedural safeguards.
           </p>
         </section>
 
@@ -51,14 +52,14 @@ export const PrivacyPolicyPage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">4. Encryption & Technical Safeguards</h2>
           <p>
-            All electronic documents submitted through the DESTRIA TAX SERVICES LLC portal are encrypted using 256-bit Advanced Encryption Standard (AES) at rest and TLS 1.3 during transit. Multi-factor authentication (MFA) and granular role-based access control (RBAC) restrict document access solely to assigned accountants and client account owners.
+            All electronic documents submitted through the {COMPANY_BRANDING.legalName} portal are encrypted using 256-bit Advanced Encryption Standard (AES) at rest and TLS 1.3 during transit. Multi-factor authentication (MFA) and granular role-based access control (RBAC) restrict document access solely to assigned accountants and client account owners.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="font-serif text-xl font-bold text-white">5. Document Retention & Deletion Requests</h2>
           <p>
-            Federal statutes (IRC Section 6107) require tax return preparers to retain copies of prepared returns and related records for a minimum statutory period (typically 3 to 7 years). Following the expiration of statutory retention mandates, files are systematically purged from our servers. Clients may request an export or audit log of their personal data by contacting <a href="mailto:info@artaxservices.com" className="text-[#C6A15B] underline">info@artaxservices.com</a>.
+            Federal statutes (IRC Section 6107) require tax return preparers to retain copies of prepared returns and related records for a minimum statutory period (typically 3 to 7 years). Following the expiration of statutory retention mandates, files are systematically purged from our servers. Clients may request an export or audit log of their personal data by contacting <a href={COMPANY_MAILTO_HREF} className="text-[#C6A15B] underline">{COMPANY_BRANDING.email}</a>.
           </p>
         </section>
 
@@ -66,11 +67,11 @@ export const PrivacyPolicyPage: React.FC = () => {
           <h2 className="font-serif text-xl font-bold text-white">6. Privacy Inquiries</h2>
           <p>
             If you have questions regarding this Privacy Policy or our security protocols, please contact:<br />
-            <strong>DESTRIA TAX SERVICES LLC</strong><br />
+            <strong>{COMPANY_BRANDING.legalName}</strong><br />
             Attention: Privacy & Compliance Officer<br />
             Columbia, South Carolina, USA<br />
             Phone: <a href="tel:678-205-9486" className="text-[#C6A15B]">678-205-9486</a><br />
-            Email: <a href="mailto:info@artaxservices.com" className="text-[#C6A15B]">info@artaxservices.com</a>
+            Email: <a href={COMPANY_MAILTO_HREF} className="text-[#C6A15B]">{COMPANY_BRANDING.email}</a>
           </p>
         </section>
       </div>

@@ -1,5 +1,7 @@
+import { COMPANY_BRANDING } from '../config/companyBranding';
+
 export const BRAND_ASSET_VERSION = '20261121-emblem-v3';
-export const BRAND_WEBSITE_URL = 'https://destriataxservices.com/';
+export const BRAND_WEBSITE_URL = `${COMPANY_BRANDING.website}/`;
 
 const getBaseUrl = (): string => {
   const rawBase =

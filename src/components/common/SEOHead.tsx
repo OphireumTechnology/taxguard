@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useApp, PageRoute } from '../../context/AppContext';
+import { COMPANY_BRANDING } from '../../config/companyBranding';
 import { BRAND_ASSETS, BRAND_WEBSITE_URL } from '../../utils/assets';
 
 interface PageMetadata {
@@ -9,207 +10,209 @@ interface PageMetadata {
   ogType?: string;
 }
 
+const BRAND_NAME = COMPANY_BRANDING.displayName;
+
 const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
   home: {
-    title: 'DESTRIA TAX SERVICES LLC | Tax Preparation, Advisory & Wealth Planning',
-    description: 'DESTRIA TAX SERVICES LLC provides intelligent tax preparation, strategic corporate accounting, and wealth planning powered by experienced CPA professionals and advanced AI intelligence.',
+    title: `${BRAND_NAME} | Tax Preparation, Advisory & Wealth Planning`,
+    description: `${BRAND_NAME} provides intelligent tax preparation, strategic corporate accounting, and wealth planning powered by experienced CPA professionals and advanced AI intelligence.`,
     canonicalPath: '/',
     ogType: 'website'
   },
   services: {
-    title: 'Intelligent Tax & Accounting Services | DESTRIA TAX SERVICES LLC',
+    title: `Intelligent Tax & Accounting Services | ${BRAND_NAME}`,
     description: 'Comprehensive tax preparation (1040, 1120S, 1065), year-round business bookkeeping, IRS notice resolution, and AI-accelerated audit preparation.',
     canonicalPath: '/services',
     ogType: 'website'
   },
   tax_strategies: {
-    title: 'Tax Reduction Strategies & Planning Catalog | DESTRIA TAX SERVICES LLC',
+    title: `Tax Reduction Strategies & Planning Catalog | ${BRAND_NAME}`,
     description: 'Explore 16 strategic tax reduction domains: Section 199A QBI, S-Corp optimization, cost segregation, real estate 1031s, and executive planning.',
     canonicalPath: '/tax-strategies',
     ogType: 'website'
   },
   industries: {
-    title: 'Specialized Commercial Industry Practices | DESTRIA TAX SERVICES LLC',
+    title: `Specialized Commercial Industry Practices | ${BRAND_NAME}`,
     description: 'Tailored tax and accounting frameworks for construction, real estate syndications, medical practices, legal professionals, and tech businesses.',
     canonicalPath: '/industries',
     ogType: 'website'
   },
   about: {
-    title: 'About Our Firm & Practice Principles | DESTRIA TAX SERVICES LLC',
-    description: 'Learn about DESTRIA TAX SERVICES LLC: our client-first heritage, dual-layer CPA & AI review architecture, and fiduciary dedication.',
+    title: `About Our Firm & Practice Principles | ${BRAND_NAME}`,
+    description: `Learn about ${BRAND_NAME}: our client-first heritage, dual-layer CPA & AI review architecture, and fiduciary dedication.`,
     canonicalPath: '/about',
     ogType: 'website'
   },
   founder: {
-    title: 'Leadership & Practice Vision | DESTRIA TAX SERVICES LLC',
-    description: 'Executive biography and practice leadership of DESTRIA TAX SERVICES LLC.',
+    title: `Leadership & Practice Vision | ${BRAND_NAME}`,
+    description: `Executive biography and practice leadership of ${BRAND_NAME}.`,
     canonicalPath: '/founder',
     ogType: 'profile'
   },
   pricing: {
-    title: 'Transparent Pricing & Engagement Plans | DESTRIA TAX SERVICES LLC',
+    title: `Transparent Pricing & Engagement Plans | ${BRAND_NAME}`,
     description: 'Clear, upfront pricing for individual returns, small business packages, and ongoing advisory retainers. No surprise billing or hidden fees.',
     canonicalPath: '/pricing',
     ogType: 'website'
   },
   book_consultation: {
-    title: 'Schedule an Advisory Consultation | DESTRIA TAX SERVICES LLC',
+    title: `Schedule an Advisory Consultation | ${BRAND_NAME}`,
     description: 'Book an intelligent strategy session with our senior tax advisory team. Virtual, phone, or in-office appointments available.',
     canonicalPath: '/book-consultation',
     ogType: 'website'
   },
   resources: {
-    title: 'Tax Resources, Deadlines & FAQ | DESTRIA TAX SERVICES LLC',
+    title: `Tax Resources, Deadlines & FAQ | ${BRAND_NAME}`,
     description: 'Essential filing deadlines, downloadable document preparation checklists, tax bracket references, and answers to common taxpayer questions.',
     canonicalPath: '/resources',
     ogType: 'website'
   },
   careers: {
-    title: 'Careers & Professional Opportunities | DESTRIA TAX SERVICES LLC',
+    title: `Careers & Professional Opportunities | ${BRAND_NAME}`,
     description: 'Join our modern accounting and tax advisory team. Explore open positions for tax preparers, senior accountants, and client managers.',
     canonicalPath: '/careers',
     ogType: 'website'
   },
   job_detail: {
-    title: 'Career Opportunity Details | DESTRIA TAX SERVICES LLC',
-    description: 'Review role responsibilities, qualifications, compensation structure, and application instructions for open positions at DESTRIA TAX SERVICES LLC.',
+    title: `Career Opportunity Details | ${BRAND_NAME}`,
+    description: `Review role responsibilities, qualifications, compensation structure, and application instructions for open positions at ${BRAND_NAME}.`,
     canonicalPath: '/careers/job',
     ogType: 'website'
   },
   contact: {
-    title: 'Contact Our Office | DESTRIA TAX SERVICES LLC',
-    description: 'Get in touch with DESTRIA TAX SERVICES LLC. Call 678-205-9486, email contact@destriatax.com, or submit a message to our Columbia, SC team.',
+    title: `Contact Our Office | ${BRAND_NAME}`,
+    description: `Get in touch with ${BRAND_NAME}. Call 678-205-9486, email ${COMPANY_BRANDING.email}, or submit a message to our Columbia, SC team.`,
     canonicalPath: '/contact',
     ogType: 'website'
   },
   privacy: {
-    title: 'Privacy Policy & GLBA Notice | DESTRIA TAX SERVICES LLC',
+    title: `Privacy Policy & GLBA Notice | ${BRAND_NAME}`,
     description: 'Our commitment to protecting nonpublic personal financial information under the Gramm-Leach-Bliley Act and IRC Section 7216.',
     canonicalPath: '/privacy',
     ogType: 'website'
   },
   terms: {
-    title: 'Terms of Service & Client Engagement | DESTRIA TAX SERVICES LLC',
+    title: `Terms of Service & Client Engagement | ${BRAND_NAME}`,
     description: 'Terms governing public website access, consultation scheduling, client portal usage, and professional engagement responsibilities.',
     canonicalPath: '/terms',
     ogType: 'website'
   },
   disclaimers: {
-    title: 'Professional & Statutory Disclaimers | DESTRIA TAX SERVICES LLC',
+    title: `Professional & Statutory Disclaimers | ${BRAND_NAME}`,
     description: 'Important legal and regulatory notices: IRS non-affiliation, outcome disclaimers, Circular 230 disclosure, and professional credentials.',
     canonicalPath: '/disclaimers',
     ogType: 'website'
   },
   security: {
-    title: 'Security Architecture & Data Safeguards | DESTRIA TAX SERVICES LLC',
+    title: `Security Architecture & Data Safeguards | ${BRAND_NAME}`,
     description: 'Administrative, technical, and operational safeguards designed to protect sensitive client documents and financial records.',
     canonicalPath: '/security',
     ogType: 'website'
   },
   accessibility: {
-    title: 'Accessibility Statement (WCAG 2.1 AA) | DESTRIA TAX SERVICES LLC',
+    title: `Accessibility Statement (WCAG 2.1 AA) | ${BRAND_NAME}`,
     description: 'Our commitment to digital accessibility, keyboard operability, screen reader support, and WCAG 2.1 Level AA compliance.',
     canonicalPath: '/accessibility',
     ogType: 'website'
   },
   cookies: {
-    title: 'Cookie Policy & Privacy Preferences | DESTRIA TAX SERVICES LLC',
-    description: 'Information about strictly necessary cookies, preferences, and privacy controls at DESTRIA TAX SERVICES LLC.',
+    title: `Cookie Policy & Privacy Preferences | ${BRAND_NAME}`,
+    description: `Information about strictly necessary cookies, preferences, and privacy controls at ${BRAND_NAME}.`,
     canonicalPath: '/cookies',
     ogType: 'website'
   },
   portals: {
-    title: 'Secure Client & Staff Portals | DESTRIA TAX SERVICES LLC',
+    title: `Secure Client & Staff Portals | ${BRAND_NAME}`,
     description: 'Access encrypted portals for clients, accounting professionals, reviewers, and administrative leadership.',
     canonicalPath: '/portals',
     ogType: 'website'
   },
   public_v2: {
-    title: 'DESTRIA TAX SERVICES LLC | Corporate Advisory Experience',
+    title: `${BRAND_NAME} | Corporate Advisory Experience`,
     description: 'Dedicated financial advisory, tax optimization, and corporate accounting services for businesses and individuals.',
     canonicalPath: '/v2',
     ogType: 'website'
   },
   live_calendar: {
-    title: 'Live Appointment Booking | DESTRIA TAX SERVICES LLC',
-    description: 'Direct interactive scheduling for consultation sessions with DESTRIA TAX SERVICES LLC.',
+    title: `Live Appointment Booking | ${BRAND_NAME}`,
+    description: `Direct interactive scheduling for consultation sessions with ${BRAND_NAME}.`,
     canonicalPath: '/calendar',
     ogType: 'website'
   },
   virtual_consultation_room: {
-    title: 'Virtual Consultation Room | DESTRIA TAX SERVICES LLC',
+    title: `Virtual Consultation Room | ${BRAND_NAME}`,
     description: 'Secure, encrypted virtual advisory room for client consultations.',
     canonicalPath: '/meeting',
     ogType: 'website'
   },
   portal: {
-    title: 'Client Portal | DESTRIA TAX SERVICES LLC',
+    title: `Client Portal | ${BRAND_NAME}`,
     description: 'Encrypted client portal for tax document exchange, return reviews, e-signatures, and real-time filing status tracking.',
     canonicalPath: '/portal',
     ogType: 'website'
   },
   client_portal: {
-    title: 'Client Portal | DESTRIA TAX SERVICES LLC',
+    title: `Client Portal | ${BRAND_NAME}`,
     description: 'Encrypted client portal for tax document exchange, return reviews, e-signatures, and real-time filing status tracking.',
     canonicalPath: '/portal',
     ogType: 'website'
   },
   client_login: {
-    title: 'Client Portal Sign In | DESTRIA TAX SERVICES LLC',
+    title: `Client Portal Sign In | ${BRAND_NAME}`,
     description: 'Secure client sign-in for tax organizers, documents, and status tracking.',
     canonicalPath: '/portal/login',
     ogType: 'website'
   },
   client_register: {
-    title: 'Client Account Registration | DESTRIA TAX SERVICES LLC',
-    description: 'Register for a new secure client account with DESTRIA TAX SERVICES LLC.',
+    title: `Client Account Registration | ${BRAND_NAME}`,
+    description: `Register for a new secure client account with ${BRAND_NAME}.`,
     canonicalPath: '/portal/register',
     ogType: 'website'
   },
   staff: {
-    title: 'Staff Portal | DESTRIA TAX SERVICES LLC',
+    title: `Staff Portal | ${BRAND_NAME}`,
     description: 'Authorized workspace for accountants, reviewers, and practice staff.',
     canonicalPath: '/staff',
     ogType: 'website'
   },
   staff_login: {
-    title: 'Staff Portal Sign In | DESTRIA TAX SERVICES LLC',
+    title: `Staff Portal Sign In | ${BRAND_NAME}`,
     description: 'Authorized sign-in for accountants, reviewers, and practice staff.',
     canonicalPath: '/staff/login',
     ogType: 'website'
   },
   admin_portal: {
-    title: 'Practice Management Portal | DESTRIA TAX SERVICES LLC',
-    description: 'Authorized administrative and practice management portal for DESTRIA TAX SERVICES LLC personnel.',
+    title: `Practice Management Portal | ${BRAND_NAME}`,
+    description: `Authorized administrative and practice management portal for ${BRAND_NAME} personnel.`,
     canonicalPath: '/admin',
     ogType: 'website'
   },
   staff_account_security: {
-    title: 'Account Security | DESTRIA TAX SERVICES LLC',
+    title: `Account Security | ${BRAND_NAME}`,
     description: 'Session and security history management for authorized practice staff.',
     canonicalPath: '/staff/account-security',
     ogType: 'website'
   },
   tax_forms_library: {
-    title: 'Tax Forms Library | DESTRIA TAX SERVICES LLC',
+    title: `Tax Forms Library | ${BRAND_NAME}`,
     description: 'Reference catalog of federal, state and local tax forms for authorized practice staff.',
     canonicalPath: '/staff/forms',
     ogType: 'website'
   },
   super_admin_console: {
-    title: 'Super Administrator Console | DESTRIA TAX SERVICES LLC',
+    title: `Super Administrator Console | ${BRAND_NAME}`,
     description: 'Authorized super administrator console.',
     canonicalPath: '/staff/super-admin',
     ogType: 'website'
   },
   admin_dashboard: {
-    title: 'Executive Admin Dashboard | DESTRIA TAX SERVICES LLC',
+    title: `Executive Admin Dashboard | ${BRAND_NAME}`,
     description: 'Firm operations, workflow queues, and practice analytics dashboard.',
     canonicalPath: '/admin/dashboard',
     ogType: 'website'
   },
   not_found: {
-    title: 'Page Not Found | DESTRIA TAX SERVICES LLC',
+    title: `Page Not Found | ${BRAND_NAME}`,
     description: 'The requested page could not be located. Explore our core tax preparation, accounting, and advisory services.',
     canonicalPath: '/404',
     ogType: 'website'
@@ -248,7 +251,7 @@ export const SEOHead: React.FC = () => {
     setMetaTag('meta[property="og:description"]', 'property', 'og:description', meta.description);
     setMetaTag('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMetaTag('meta[property="og:type"]', 'property', 'og:type', meta.ogType || 'website');
-    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'DESTRIA TAX SERVICES LLC');
+    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', COMPANY_BRANDING.displayName);
     setMetaTag('meta[property="og:image"]', 'property', 'og:image', brandImageUrl);
 
     // 4. Twitter Tags

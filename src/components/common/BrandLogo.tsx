@@ -1,4 +1,5 @@
 import React from 'react';
+import { COMPANY_BRANDING } from '../../config/companyBranding';
 import { BRAND_ASSETS } from '../../utils/assets';
 
 interface BrandLogoProps {
@@ -57,7 +58,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   const logoImage = (
     <img
       src={sizeConfig.src}
-      alt="DESTRIA TAX SERVICES LLC Official Emblem"
+      alt={`${COMPANY_BRANDING.displayName} Official Emblem`}
       width={sizeConfig.dimPx}
       height={sizeConfig.dimPx}
       loading="eager"
@@ -71,7 +72,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       <div
         onClick={onClick}
         className={`inline-flex items-center justify-center flex-shrink-0 select-none ${onClick ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''} ${className}`}
-        title="DESTRIA TAX SERVICES LLC"
+        title={COMPANY_BRANDING.displayName}
       >
         {logoImage}
       </div>
@@ -82,7 +83,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     <div
       onClick={onClick}
       className={`inline-flex items-center gap-2.5 sm:gap-3 flex-shrink-0 select-none ${onClick ? 'cursor-pointer group' : ''} ${className}`}
-      title="DESTRIA TAX SERVICES LLC — Accounting, Tax, Advisory & Wealth Planning"
+      title={`${COMPANY_BRANDING.displayName} — Accounting, Tax, Advisory & Wealth Planning`}
     >
       {logoImage}
 
@@ -95,7 +96,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         <span
           className={`text-[#C99A35] font-sans font-semibold ${sizeConfig.subCompanyClass} tracking-[0.14em] uppercase whitespace-nowrap mt-0.5`}
         >
-          TAX SERVICES LLC
+          TAX SERVICES, LLC
         </span>
 
         {variant !== 'compact' && (

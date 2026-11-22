@@ -18,7 +18,7 @@ export const PublicV2AboutPage: React.FC<PublicV2AboutPageProps> = ({
           Practice Overview · San Ramon, California
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-black">
-          About DESTRIA TAX SERVICES LLC
+          About Destria Tax Services, LLC
         </h1>
         <p className="text-base sm:text-lg text-neutral-700 max-w-3xl leading-relaxed">
           A dedicated U.S. accounting, tax preparation, bookkeeping, and advisory practice committed to meticulous accuracy, transparent workflows, and structured professional review.
@@ -33,7 +33,7 @@ export const PublicV2AboutPage: React.FC<PublicV2AboutPageProps> = ({
             Clarity in Every Calculation
           </h2>
           <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
-            The modern regulatory landscape demands precision. At DESTRIA TAX SERVICES LLC, our objective is to eliminate guesswork from individual and corporate tax compliance. We treat tax returns not as annual administrative burdens, but as comprehensive financial records that reflect your hard-earned progress.
+            The modern regulatory landscape demands precision. At Destria Tax Services, LLC, our objective is to eliminate guesswork from individual and corporate tax compliance. We treat tax returns not as annual administrative burdens, but as comprehensive financial records that reflect your hard-earned progress.
           </p>
           <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
             From sole proprietors navigating self-employment taxes to complex multi-state corporate entities managing multi-tiered partner allocations, we enforce rigorous internal controls and dual-tier reviews across every client engagement.
@@ -74,7 +74,7 @@ export const PublicV2AboutPage: React.FC<PublicV2AboutPageProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-4 text-xs sm:text-sm text-neutral-700 leading-relaxed">
             <p>
-              Under executive leadership, DESTRIA TAX SERVICES LLC has cultivated an operating ethos grounded in verifiable tax law, ethical compliance, and long-term client stewardship.
+              Under executive leadership, Destria Tax Services, LLC has cultivated an operating ethos grounded in verifiable tax law, ethical compliance, and long-term client stewardship.
             </p>
             <p>
               We operate exclusively within approved federal (IRS) and state departmental guidelines, maintaining active continuing education across emerging tax changes, depreciation limits, clean energy credits, and corporate reporting mandates.

@@ -296,7 +296,7 @@ export const PublicV2HomePage: React.FC<PublicV2HomePageProps> = ({
               <span>Interactive Knowledge Feature</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-black tracking-tight">
-              A/R Accounting Guidance Assistant
+              Destria Accounting Guidance Assistant
             </h2>
             <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
               Explore general U.S. accounting, tax preparation procedures, S-Corporation reporting, record retention guidelines, and IRS notice responses with citation-backed educational references.

@@ -95,7 +95,7 @@ export const PublicV2IndustriesPage: React.FC<PublicV2IndustriesPageProps> = ({
                   <p className="text-neutral-600 leading-relaxed mt-0.5">{ind.challenges}</p>
                 </div>
                 <div>
-                  <strong className="text-black font-semibold">A/R Accounting Focus:</strong>
+                  <strong className="text-black font-semibold">Destria Accounting Focus:</strong>
                   <p className="text-neutral-600 leading-relaxed mt-0.5">{ind.solutions}</p>
                 </div>
               </div>

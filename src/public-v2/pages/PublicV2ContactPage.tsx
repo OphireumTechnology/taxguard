@@ -71,7 +71,7 @@ export const PublicV2ContactPage: React.FC<PublicV2ContactPageProps> = ({
                 <div>
                   <span className="text-neutral-500 block text-[10px] uppercase font-mono">Office Direct:</span>
                   <a href="tel:+19253971040" className="text-black font-semibold hover:underline text-sm">
-                    (925) 397-1040
+                    +1-925-397-1040
                   </a>
                 </div>
               </div>

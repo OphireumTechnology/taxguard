@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_BRANDING } from '../../config/companyBranding';
 import { JobPosting } from '../../types';
 import { 
   Briefcase, 
@@ -133,7 +134,7 @@ export const CareersPage: React.FC = () => {
             <span>Join Our Mission</span>
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-white">
-            Careers at DESTRIA TAX SERVICES LLC
+            Careers at {COMPANY_BRANDING.displayName}
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Build a rewarding career empowering individuals and businesses. Join our collaborative, 
@@ -201,7 +202,7 @@ export const CareersPage: React.FC = () => {
         <div className="space-y-6">
           {filteredJobs.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-xs bg-[#0D2340] rounded-2xl border border-[#1E3A5F]">
-              No positions currently match your search criteria. You may still submit a general inquiry to info@artaxservices.com.
+              No positions currently match your search criteria. You may still submit a general inquiry to {COMPANY_BRANDING.email}.
             </div>
           ) : (
             filteredJobs.map((job) => (
@@ -361,7 +362,7 @@ export const CareersPage: React.FC = () => {
                       rows={3}
                       value={coverLetter}
                       onChange={(e) => setCoverLetter(e.target.value)}
-                      placeholder="Share a brief overview of your tax/accounting background and why you wish to join DESTRIA TAX SERVICES LLC..."
+                      placeholder={`Share a brief overview of your tax/accounting background and why you wish to join ${COMPANY_BRANDING.displayName}...`}
                       className="w-full bg-[#07172B] border border-[#1E3A5F] rounded-lg p-3 text-white focus:outline-none focus:border-[#C6A15B]"
                     />
                   </div>

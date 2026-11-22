@@ -366,24 +366,36 @@ describe('Canonical Production URL Routing & Working Staff Portal Suite', () => 
     });
 
     it('Navbar desktop utility actions renders both Client Portal and Staff Portal buttons', () => {
-      // Branding v3 navbar (75775a1): the desktop block labels the client button through getPortalButtonLabel(),
-      // which answers 'Client Portal' for visitors.
-      const desktop = navbarSource.slice(navbarSource.indexOf('DESKTOP UTILITY ACTIONS'), navbarSource.indexOf('RESPONSIVE COMPACT'));
-      expect(desktop).toContain('aria-label="Client Portal"');
-      expect(desktop).toContain('<span>{getPortalButtonLabel()}</span>');
+      const desktop = navbarSource.slice(
+        navbarSource.indexOf('className="hidden xl:flex items-center gap-2'),
+        navbarSource.indexOf('className="flex xl:hidden items-center'),
+      );
+      const clientLink = desktop.match(/<a\s+href="\/portal"[\s\S]*?<\/a>/)?.[0] ?? '';
+      const staffLink = desktop.match(/<a\s+href="\/staff"[\s\S]*?<\/a>/)?.[0] ?? '';
+      expect(clientLink).toContain('handlePortalAction()');
+      expect(clientLink).toContain('aria-label="Client Portal"');
+      expect(clientLink).toContain('{getPortalButtonLabel()}');
+      expect(staffLink).toContain('handleStaffAction()');
+      expect(staffLink).toContain('aria-label="Staff Portal"');
+      expect(staffLink).toContain('<span>Staff Portal</span>');
+      expect(desktop).toContain("handleNavClick('book_consultation')");
+      expect(desktop).toContain('aria-label="Book a Consultation"');
       expect(navbarSource).toContain("return 'Client Portal';");
-      expect(desktop).toContain('aria-label="Staff Portal"');
-      expect(desktop).toContain('<span>Staff Portal</span>');
-      expect(desktop).toContain('Book Consultation');
     });
   });
 
   // 18. mobile navigation
   describe('18. Mobile Navigation Audit', () => {
     it('Navbar tablet/mobile quick actions renders clickable portal action', () => {
-      const compact = navbarSource.slice(navbarSource.indexOf('RESPONSIVE COMPACT / TABLET / MOBILE ACTIONS'));
-      expect(compact.length).toBeGreaterThan(0);
-      expect(compact).toContain('aria-label="Client Portal"');
+      const compact = navbarSource.slice(
+        navbarSource.indexOf('className="flex xl:hidden items-center'),
+        navbarSource.indexOf('{mobileMenuOpen && ('),
+      );
+      const clientLink = compact.match(/<a\s+href="\/portal"[\s\S]*?<\/a>/)?.[0] ?? '';
+      expect(clientLink).toContain('handlePortalAction()');
+      expect(clientLink).toContain('aria-label="Client Portal"');
+      expect(compact).toContain('onClick={() => setMobileMenuOpen(true)}');
+      expect(compact).toContain('aria-label="Open Navigation Menu"');
       expect(compact).toContain('aria-label="Open Navigation Menu"');
     });
 
