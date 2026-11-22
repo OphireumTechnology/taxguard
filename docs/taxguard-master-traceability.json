@@ -8248,7 +8248,7 @@
     "src/ai/registry.ts": "7a56d33b792fb23d149d97c29d9bacd2ca6e2c95e49daacdf8df47f23d7bbc10",
     "src/components/admin/AiCommissioningView.tsx": "be88bea1d06caa7806ea9e939be9ea80ec7bd66c34736cb846899763d779b858",
     "src/components/admin/PracticeAdminWorkspace.tsx": "5f2aaabfff05c55911cc0cbca00a8ebc352edad87e715f4cfc8643ffaeb12ec2",
-    "src/components/auth/AuthPages.tsx": "aaa3c2b4086516d0d531811e9f17ceaf3317dd2f8c6dd3eaf8e8d2709ad4bb48",
+    "src/components/auth/AuthPages.tsx": "b6e2dd0cc9652f49d046ff1c9bcaab0a78642d1537ddf3519798bab996b6a440",
     "src/components/auth/StaffAccountSecurityPage.tsx": "7276b6c0f98fe714b7f9ed6156b7e1c02f535583221fbc9e6141c1e3393ac207",
     "src/components/documents/ClientDocumentVaultPanel.tsx": "3edb12f96445fcdf8f6672b07ec9863e41e6c7940f0e084f054a0bddf2a69aab",
     "src/components/layout/DashboardApplicationShell.tsx": "33774bb863f44085bbd9daed1aaf2d7d635e30d27306e9195c0b7feab9fb269b",
