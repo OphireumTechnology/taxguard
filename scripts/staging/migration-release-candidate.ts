@@ -108,12 +108,31 @@ async function main() {
     ]);
     const replayEntries = manifest.entries.filter(entry => entry.kind === 'proposal' &&
       replaySafeFiles.has(entry.file.split('/').at(-1)!));
-    for (const entry of replayEntries) await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
-    const replayFingerprint = await schemaFingerprint(canonical.pool);
-    if (replayFingerprint.sha256 !== initialFingerprint.sha256) {
-      const driftGroups = Object.keys(initialFingerprint.groups).filter(name =>
-        JSON.stringify(initialFingerprint.groups[name]) !== JSON.stringify(replayFingerprint.groups[name]));
-      throw new Error(`MIGRATION_CANDIDATE_REPLAY_DRIFT:${driftGroups.join(',')}`);
+    for (const entry of replayEntries) {
+      await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
+      // Verify immediately after each replay so the first migration that changes catalog
+      // metadata is identified instead of reporting only an aggregate end-of-suite drift.
+      const replayFingerprint = await schemaFingerprint(canonical.pool);
+      if (replayFingerprint.sha256 !== initialFingerprint.sha256) {
+        const changedGroups = Object.keys(initialFingerprint.groups).filter(name =>
+          JSON.stringify(initialFingerprint.groups[name]) !== JSON.stringify(replayFingerprint.groups[name]));
+        const changedObjects = changedGroups.map(group => {
+          const before = initialFingerprint.groups[group] as Array<Record<string, unknown>>;
+          const after = replayFingerprint.groups[group] as Array<Record<string, unknown>>;
+          const describe = (row: Record<string, unknown>) => {
+            if (group === 'functions') return String(row.signature ?? 'unknown-function');
+            if (group === 'tables') return String(row.relname ?? 'unknown-table');
+            if (group === 'indexes') return String(row.indexname ?? 'unknown-index');
+            if (group === 'policies') return String(row.tablename ?? '') + '.' + String(row.policyname ?? '');
+            return JSON.stringify(row);
+          };
+          const beforeMap = new Map(before.map(row => [describe(row), JSON.stringify(row)]));
+          const afterMap = new Map(after.map(row => [describe(row), JSON.stringify(row)]));
+          const names = new Set([...beforeMap.keys(), ...afterMap.keys()]);
+          return group + '[' + [...names].filter(name => beforeMap.get(name) !== afterMap.get(name)).slice(0, 8).join('|') + ']';
+        });
+        throw new Error(`MIGRATION_CANDIDATE_REPLAY_DRIFT:${entry.file.split('/').at(-1)}:${changedObjects.join(';')}`);
+      }
     }
 
     reviewPacket = await startDatabase({ reviewBundle: true });
