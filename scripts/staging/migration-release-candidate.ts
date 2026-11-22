@@ -126,10 +126,19 @@ async function main() {
             if (group === 'policies') return String(row.tablename ?? '') + '.' + String(row.policyname ?? '');
             return JSON.stringify(row);
           };
-          const beforeMap = new Map(before.map(row => [describe(row), JSON.stringify(row)]));
-          const afterMap = new Map(after.map(row => [describe(row), JSON.stringify(row)]));
+          const beforeMap = new Map(before.map(row => [describe(row), row]));
+          const afterMap = new Map(after.map(row => [describe(row), row]));
           const names = new Set([...beforeMap.keys(), ...afterMap.keys()]);
-          return group + '[' + [...names].filter(name => beforeMap.get(name) !== afterMap.get(name)).slice(0, 8).join('|') + ']';
+          const changed = [...names].filter(name =>
+            JSON.stringify(beforeMap.get(name)) !== JSON.stringify(afterMap.get(name))).slice(0, 8);
+          if (group !== 'functions') return group + '[' + changed.join('|') + ']';
+          return group + '[' + changed.map(name => {
+            const left = beforeMap.get(name) ?? {};
+            const right = afterMap.get(name) ?? {};
+            const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])]
+              .filter(key => JSON.stringify(left[key]) !== JSON.stringify(right[key]));
+            return name + '{' + fields.join(',') + '}';
+          }).join('|') + ']';
         });
         throw new Error(`MIGRATION_CANDIDATE_REPLAY_DRIFT:${entry.file.split('/').at(-1)}:${changedObjects.join(';')}`);
       }
