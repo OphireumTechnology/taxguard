@@ -447,6 +447,15 @@ describe('A10 advisory job review draft', () => {
     expect(preview.status, JSON.stringify(preview.body)).toBe(200);
     expect(preview.body.documents).toHaveLength(2);
     const decision = { version: preview.body.version, decision: 'ACKNOWLEDGED' };
+    const reviewedDocument = evidence[0].document_record_id;
+    await sql('UPDATE taxguard_documents SET version=2 WHERE tenant_id=$1 AND id=$2', [T, reviewedDocument]);
+    expect((await call('POST', decisionPath, decision)).status).toBe(409);
+    expect(await sql('SELECT job_id FROM taxguard_a10_reviews WHERE job_id=$1', [first.body.id])).toEqual([]);
+    await sql('UPDATE taxguard_documents SET version=1 WHERE tenant_id=$1 AND id=$2', [T, reviewedDocument]);
+    await sql("UPDATE taxguard_case_assignments SET active=false WHERE tenant_id=$1 AND case_id=$2 AND uid='jq-wide'", [T, caseIds.E1]);
+    expect((await call('POST', decisionPath, decision)).status).toBe(404);
+    expect(await sql('SELECT job_id FROM taxguard_a10_reviews WHERE job_id=$1', [first.body.id])).toEqual([]);
+    await sql("UPDATE taxguard_case_assignments SET active=true WHERE tenant_id=$1 AND case_id=$2 AND uid='jq-wide'", [T, caseIds.E1]);
     expect((await call('POST', decisionPath, decision)).status).toBe(200);
     expect((await call('POST', decisionPath, decision)).status).toBe(200);
     expect((await call('POST', decisionPath, { ...decision, decision: 'RETURNED' })).status).toBe(409);
