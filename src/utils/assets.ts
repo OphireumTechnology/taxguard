@@ -21,12 +21,12 @@ export const resolveAssetUrl = (assetPath: string, version?: string): string => 
 const withBrandVersion = (assetPath: string) => resolveAssetUrl(assetPath, BRAND_ASSET_VERSION);
 
 export const BRAND_ASSETS = {
-  destriaFounderPortrait: withBrandVersion('branding/destria-founder-executive-portrait.png'),
   destriaLogo: withBrandVersion('branding/destria-logo-header.png'),
   destriaLogoHero: withBrandVersion('branding/destria-logo-hero.png'),
   destriaLogoOriginal: withBrandVersion('branding/destria-logo-original.png'),
   destriaEmblem: withBrandVersion('branding/destria-emblem-icon.png'),
   destriaFavicon: withBrandVersion('branding/destria-favicon.png'),
+  destriaFounderPortrait: withBrandVersion('assets/aistudio/Executive_Portrait_with_Destria_2f1007a9.png'),
   appleTouchIcon: withBrandVersion('apple-touch-icon.png'),
 
   aboutClientAdvisoryJpg: resolveAssetUrl('images/about/about-client-advisory.jpg'),

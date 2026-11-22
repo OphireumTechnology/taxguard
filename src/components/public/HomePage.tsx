@@ -131,71 +131,202 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-24 sm:space-y-28 lg:space-y-32 pb-24 text-slate-100 selection:bg-[#D4A843] selection:text-[#071D3A]">
-      {/* 2. ADVANCED INTELLIGENT TAX TECHNOLOGY HERO SECTION */}
+    <div className="space-y-20 sm:space-y-24 lg:space-y-28 pb-20 text-slate-100 selection:bg-[#D4A843] selection:text-[#071D3A]">
+      {/* 2. ENTERPRISE INTELLIGENT TAX & FINANCIAL TECHNOLOGY HERO SECTION */}
       <section
         ref={heroRef}
-        className="relative py-10 sm:py-12 lg:py-16 overflow-x-clip"
+        className="relative pt-6 pb-10 sm:pt-8 sm:pb-12 lg:pt-10 lg:pb-14 overflow-x-clip border-b border-slate-800/60"
         aria-label="Destria Tax Services Intelligent Financial Technology Overview"
       >
-        {/* Subtle Architectural Grid & Restrained Ambient Lighting */}
+        {/* Subtle Architectural Grid, Restrained Gold & Sapphire Illumination, and Ambient Particles */}
         <div
           className={`absolute inset-0 pointer-events-none overflow-hidden ${heroMotionActive ? '' : 'destria-motion-paused'}`}
           aria-hidden="true"
         >
-          <div className="absolute inset-0 destria-tech-grid-bg opacity-35 [mask-image:radial-gradient(ellipse_78%_72%_at_50%_40%,black_25%,transparent_100%)]" />
-          <div className="absolute -top-28 left-1/4 w-[26rem] h-[26rem] rounded-full bg-[#D4A843]/10 blur-[150px]" />
-          <div className="absolute top-1/3 right-8 w-[28rem] h-[28rem] rounded-full bg-[#3B82F6]/10 blur-[160px]" />
+          <div className="absolute inset-0 destria-tech-grid-bg opacity-35 [mask-image:radial-gradient(ellipse_82%_78%_at_50%_42%,black_20%,transparent_100%)]" />
+          <div className="absolute -top-24 left-[12%] w-[26rem] h-[26rem] rounded-full bg-[#D4A843]/[0.08] blur-[150px]" />
+          <div className="absolute top-[18%] right-[8%] w-[30rem] h-[30rem] rounded-full bg-[#3B82F6]/[0.09] blur-[165px]" />
+
+          {/* Subtle Abstract Blockchain Nodes & Financial Data Pathways Spanning Hero Background */}
+          <svg
+            viewBox="0 0 1280 560"
+            preserveAspectRatio="xMidYMid slice"
+            className="absolute inset-0 w-full h-full opacity-50"
+          >
+            <defs>
+              <linearGradient id="destriaHeroConnector" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#D4A843" stopOpacity="0" />
+                <stop offset="35%" stopColor="#D4A843" stopOpacity="0.32" />
+                <stop offset="70%" stopColor="#60A5FA" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="#60A5FA" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 40 430 L 210 430 L 260 390 L 510 390 L 580 340 L 760 340"
+              fill="none"
+              stroke="url(#destriaHeroConnector)"
+              strokeWidth="1"
+              className="destria-neural-stream"
+            />
+            <path
+              d="M 80 110 L 340 110 L 390 148 L 620 148"
+              fill="none"
+              stroke="rgba(212, 168, 67, 0.16)"
+              strokeWidth="0.9"
+            />
+            <circle cx="210" cy="430" r="2.5" fill="#D4A843" fillOpacity="0.45" />
+            <circle cx="260" cy="390" r="2.5" fill="#60A5FA" fillOpacity="0.45" />
+            <circle cx="510" cy="390" r="2.5" fill="#D4A843" fillOpacity="0.4" />
+            <circle cx="340" cy="110" r="2" fill="#D4A843" fillOpacity="0.38" />
+            <circle cx="390" cy="148" r="2" fill="#60A5FA" fillOpacity="0.38" />
+          </svg>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-center">
-            {/* Left Column: Minimalist Executive Positioning & Aligned Actions */}
-            <div className="lg:col-span-6 space-y-6 sm:space-y-7 text-left min-w-0">
-              <div className="space-y-5 sm:space-y-6">
-                <p className="text-[11px] sm:text-xs font-semibold tracking-[0.26em] text-[#E5B552] uppercase">
-                  {COMPANY_BRANDING.uppercaseName}
-                </p>
-
-                <h1 className="font-serif text-3xl sm:text-4xl lg:text-[42px] xl:text-[48px] font-bold tracking-tight text-white leading-[1.12] [text-wrap:balance]">
-                  <span className="block">Intelligent Tax.</span>
-                  <span className="block text-[#E5B552] mt-1.5">Advanced Finance.</span>
-                </h1>
-
-                <div className="flex items-center gap-3 pt-0.5">
-                  <span className="h-px w-8 bg-[#D4A843]/70 flex-shrink-0" aria-hidden="true" />
-                  <p className="text-sm sm:text-base font-medium tracking-[0.06em] text-slate-100">
-                    AI-Powered. Human-Led.
+        {/* Flush Alignment with Navigation Header (max-w-7xl = 1280px, identical horizontal padding) */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-center">
+            {/* Left Column (50%): Refined Executive Wording + Integrated FinTech Micro-Graphics */}
+            <div className="lg:col-span-6 relative min-w-0 text-left space-y-6 sm:space-y-7 destria-hero-enter">
+              {/* Brand Identifier + Subtle Financial Analytics Upward Trend Micro-Graphic */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="inline-flex items-center gap-3">
+                  <span
+                    className="h-px w-7 bg-gradient-to-r from-[#E5B552] to-[#D4A843]/30 flex-shrink-0"
+                    aria-hidden="true"
+                  />
+                  <p className="text-[11px] sm:text-xs font-semibold tracking-[0.18em] text-[#E5B552] uppercase">
+                    {COMPANY_BRANDING.uppercaseName}
                   </p>
                 </div>
 
-                <p className="text-sm sm:text-base text-slate-300/95 max-w-lg font-normal leading-relaxed">
-                  Tax, accounting and wealth planning powered by intelligent technology and professional expertise.
+                {/* Minimalist Financial Analytics & Blockchain Node Micro-Visualization */}
+                <svg
+                  viewBox="0 0 132 28"
+                  className="hidden sm:block w-[124px] h-[26px] flex-shrink-0 opacity-85"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="destriaTrendStroke" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.55" />
+                      <stop offset="100%" stopColor="#E5B552" stopOpacity="0.95" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="2" y1="24" x2="130" y2="24" stroke="rgba(148,163,184,0.22)" strokeWidth="0.8" />
+                  <rect x="8" y="18" width="4" height="6" rx="0.8" fill="rgba(96,165,250,0.32)" />
+                  <rect x="20" y="15" width="4" height="9" rx="0.8" fill="rgba(96,165,250,0.42)" />
+                  <rect x="32" y="12" width="4" height="12" rx="0.8" fill="rgba(212,168,67,0.45)" />
+                  <rect x="44" y="8" width="4" height="16" rx="0.8" fill="rgba(229,181,82,0.72)" />
+                  <path
+                    d="M 58 20 L 76 15 L 94 17 L 112 9 L 126 5"
+                    fill="none"
+                    stroke="url(#destriaTrendStroke)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="76" cy="15" r="2" fill="#60A5FA" />
+                  <circle cx="112" cy="9" r="2" fill="#D4A843" />
+                  <circle cx="126" cy="5" r="2.6" fill="#E5B552" />
+                </svg>
+              </div>
+
+              {/* Primary Serif Headline + Concise Supporting Line with Intelligence Circuit Symbol */}
+              <div className="space-y-4">
+                <h1 className="font-serif text-[clamp(2.35rem,4.1vw,3.75rem)] font-bold tracking-tight text-white leading-[1.08] [text-wrap:balance]">
+                  <span className="block">Intelligent Tax.</span>
+                  <span className="block text-[#E5B552] mt-1">Advanced Finance.</span>
+                </h1>
+
+                {/* Supporting Headline with Intelligence Circuit Icon & Fine Gold Connecting Line */}
+                <div className="flex items-center gap-3 pt-0.5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-5 h-5 text-[#E5B552] flex-shrink-0"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                    <circle cx="12" cy="12" r="2" fill="#60A5FA" />
+                    <path
+                      d="M12 2.5V7M12 17V21.5M2.5 12H7M17 12H21.5M5.5 5.5L7.5 7.5M16.5 16.5L18.5 18.5M18.5 5.5L16.5 7.5M7.5 16.5L5.5 18.5"
+                      stroke="currentColor"
+                      strokeWidth="1.35"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <p className="text-base sm:text-lg font-medium tracking-[0.02em] text-white">
+                    AI-Powered. Human-Led.
+                  </p>
+                  <span
+                    className="hidden sm:block h-px flex-1 max-w-[140px] bg-gradient-to-r from-[#D4A843]/60 via-[#60A5FA]/35 to-transparent"
+                    aria-hidden="true"
+                  />
+                </div>
+
+                {/* Concise Introductory Description */}
+                <p className="text-[15px] sm:text-base text-[#B8C5D6] max-w-xl font-normal leading-relaxed">
+                  Tax, accounting and wealth planning enhanced by intelligent technology and professional expertise.
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-medium text-slate-200">
-                <span className="inline-flex items-center gap-2"><Cpu className="h-4 w-4 text-[#E5B552]" aria-hidden="true" /> AI Intelligence</span>
-                <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#E5B552]" aria-hidden="true" /> Secure Vault</span>
-                <span className="inline-flex items-center gap-2"><Briefcase className="h-4 w-4 text-[#E5B552]" aria-hidden="true" /> Professional Expertise</span>
+              {/* Three Compact Modern Visual Intelligence Indicators */}
+              <div
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-0 pt-1 border-y border-slate-700/55 py-4"
+                aria-label="Core Intelligence Pillars"
+              >
+                <div className="flex items-center gap-2.5 sm:pr-4">
+                  <span
+                    className="w-8 h-8 rounded-lg bg-[#0A213D]/90 border border-[#D4A843]/35 flex items-center justify-center text-[#E5B552] flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    <Cpu className="w-4 h-4" />
+                  </span>
+                  <span className="text-xs sm:text-[13px] font-medium text-slate-100 whitespace-nowrap">
+                    AI Intelligence
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 sm:px-4 sm:border-l sm:border-slate-700/55">
+                  <span
+                    className="w-8 h-8 rounded-lg bg-[#0A213D]/90 border border-[#D4A843]/35 flex items-center justify-center text-[#E5B552] flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                  </span>
+                  <span className="text-xs sm:text-[13px] font-medium text-slate-100 whitespace-nowrap">
+                    Secure Digital Vault
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 sm:pl-4 sm:border-l sm:border-slate-700/55">
+                  <span
+                    className="w-8 h-8 rounded-lg bg-[#0A213D]/90 border border-[#D4A843]/35 flex items-center justify-center text-[#E5B552] flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    <Scale className="w-4 h-4" />
+                  </span>
+                  <span className="text-xs sm:text-[13px] font-medium text-slate-100 whitespace-nowrap">
+                    Professional Expertise
+                  </span>
+                </div>
               </div>
 
-              {/* Compact, Consistently Aligned Action Row */}
-              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 pt-1">
+              {/* Equal-Height, Horizontally Balanced Action Buttons */}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 pt-0.5">
                 <button
                   type="button"
                   onClick={() => setCurrentPage('book_consultation')}
-                  className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-wide text-[#071D3A] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 shadow-lg shadow-[#C99A35]/15 transition-all inline-flex items-center justify-center gap-2 group whitespace-nowrap active:scale-[0.99]"
+                  className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-[0.02em] text-[#06182B] bg-gradient-to-r from-[#C99A35] via-[#E5B552] to-[#C99A35] hover:brightness-105 shadow-lg shadow-[#C99A35]/15 transition-all duration-150 inline-flex items-center justify-center gap-2 group whitespace-nowrap active:scale-[0.99]"
                   id="hero-schedule-btn"
                 >
                   <span>Schedule Consultation</span>
-                  <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 group-hover:translate-x-0.5 transition-transform duration-150" />
                 </button>
 
                 <button
                   type="button"
                   onClick={handleExploreSolutions}
-                  className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-wide text-white bg-[#0D2745]/90 hover:bg-[#133860] border border-[#D4A843]/45 hover:border-[#E5B552] transition-all inline-flex items-center justify-center whitespace-nowrap"
+                  className="h-11 px-5 rounded-lg font-semibold text-xs sm:text-[13px] tracking-[0.02em] text-white bg-[#0C2544]/90 hover:bg-[#133860] border border-[#D4A843]/45 hover:border-[#E5B552] transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap"
                   id="hero-explore-solutions-btn"
                 >
                   <span>Explore Solutions</span>
@@ -207,7 +338,7 @@ export const HomePage: React.FC = () => {
                     e.preventDefault();
                     setCurrentPage('portal');
                   }}
-                  className="h-11 px-5 rounded-lg font-medium text-xs sm:text-[13px] tracking-wide text-slate-200 hover:text-white bg-[#071A2E]/80 hover:bg-[#0D2745] border border-slate-700/90 hover:border-slate-500 transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+                  className="h-11 px-5 rounded-lg font-medium text-xs sm:text-[13px] tracking-[0.02em] text-slate-200 hover:text-white bg-[#071A2E]/85 hover:bg-[#0D2745] border border-slate-700/85 hover:border-slate-500 transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                   id="hero-portal-btn"
                   role="link"
                 >
@@ -215,9 +346,23 @@ export const HomePage: React.FC = () => {
                   <span>Client Portal</span>
                 </a>
               </div>
+
+              {/* Subtle Animated Data Particle Accents Along Bottom Left Edge */}
+              <div
+                className="pointer-events-none hidden lg:flex items-center gap-2 pt-1 opacity-60"
+                aria-hidden="true"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E5B552] destria-particle-float" />
+                <span className="h-px w-12 bg-gradient-to-r from-[#E5B552]/70 to-[#60A5FA]/50" />
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] destria-particle-float"
+                  style={{ animationDelay: '1.2s' }}
+                />
+                <span className="h-px w-20 bg-gradient-to-r from-[#60A5FA]/50 to-transparent" />
+              </div>
             </div>
 
-            {/* Right Column: Continuously Animated Financial Intelligence Ecosystem around Official Destria Emblem */}
+            {/* Right Column (50%): Upgraded Seamless Financial Intelligence Ecosystem */}
             <div className="lg:col-span-6 relative min-w-0">
               <HeroFinancialEcosystem />
             </div>

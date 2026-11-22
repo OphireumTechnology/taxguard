@@ -851,7 +851,9 @@ async function startServer() {
       await createViteServer({
         server: {
           middlewareMode:
-            true
+            true,
+          hmr: false,
+          ws: false
         },
 
         appType:
