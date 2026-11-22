@@ -70,7 +70,7 @@ export const CameraScannerModal: React.FC<CameraScannerModalProps> = ({
           {/* Target guidelines */}
           <div className="absolute inset-4 border border-white/20 rounded pointer-events-none flex flex-col justify-between p-2">
             <div className="flex justify-between text-[10px] font-mono text-[#E8C66A]/80">
-              <span>[A/R TAX DESKEW]</span>
+              <span>[DESTRIA TAX DESKEW]</span>
               <span>200 DPI TARGET</span>
             </div>
             <div className="flex justify-between text-[10px] font-mono text-[#E8C66A]/80">

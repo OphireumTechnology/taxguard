@@ -89,7 +89,7 @@ export const ClientTaxReadinessSection: React.FC<ClientTaxReadinessSectionProps>
       statutoryRef: 'IRC § 6041A',
       status: 'Complete',
       docRef: '1099NEC_IRS_Receipt_2025.pdf',
-      lastVerified: 'DESTRIA TAX SERVICES LLC E-File Team'
+      lastVerified: 'DESTRIA TAX SERVICES, LLC E-File Team'
     },
     {
       id: 'chk_07',

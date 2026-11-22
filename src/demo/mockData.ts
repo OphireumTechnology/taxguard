@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Synthetic Demonstration Mock Data Layer
+ * DESTRIA TAX SERVICES, LLC - Synthetic Demonstration Mock Data Layer
  * Strict synthetic data with masked identifiers and realistic accounting lifecycles.
  */
 
@@ -25,7 +25,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'S Corporation',
     einOrSsnMasked: 'XX-XXX4819',
     email: 'm.perotti@example.com',
-    phone: '(678) 205-9486',
+    phone: '+1-678-205-9486',
     address: '1420 Main St, Suite 400, Columbia, SC 29201',
     primaryJurisdiction: 'South Carolina (SC)',
     secondaryJurisdictions: ['North Carolina (NC)', 'Georgia (GA)'],
@@ -45,7 +45,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'C Corporation',
     einOrSsnMasked: 'XX-XXX9211',
     email: 's.jenkins@summitridge-demo.com',
-    phone: '(803) 555-0144',
+    phone: '+1-803-555-0144',
     address: '880 Industrial Blvd, Greenville, SC 29601',
     primaryJurisdiction: 'South Carolina (SC)',
     secondaryJurisdictions: ['Georgia (GA)', 'Florida (FL)', 'Tennessee (TN)'],
@@ -65,7 +65,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'Partnership',
     einOrSsnMasked: 'XX-XXX3190',
     email: 'dvance@harbordental-demo.org',
-    phone: '(843) 555-8821',
+    phone: '+1-843-555-8821',
     address: '210 Meeting St, Charleston, SC 29401',
     primaryJurisdiction: 'South Carolina (SC)',
     assignedAccountantId: 'usr_acc_marcus',
@@ -84,7 +84,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'Sole Proprietorship',
     einOrSsnMasked: 'XXX-XX-7812',
     email: 'j.hayes@apexwood-demo.com',
-    phone: '(803) 555-6677',
+    phone: '+1-803-555-6677',
     address: '412 Mill Pond Rd, Lexington, SC 29072',
     primaryJurisdiction: 'South Carolina (SC)',
     assignedAccountantId: 'usr_acc_marcus',
@@ -103,7 +103,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'Nonprofit',
     einOrSsnMasked: 'XX-XXX5541',
     email: 'ereed@beaconhope-demo.org',
-    phone: '(803) 555-9012',
+    phone: '+1-803-555-9012',
     address: '120 Assembly St, Columbia, SC 29201',
     primaryJurisdiction: 'Federal (IRS Form 990)',
     assignedAccountantId: 'usr_acc_marcus',
@@ -122,7 +122,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'Individual',
     einOrSsnMasked: 'XXX-XX-4421',
     email: 'rclark@clarkestate-demo.com',
-    phone: '(843) 555-3211',
+    phone: '+1-843-555-3211',
     address: '74 Oceanside Way, Hilton Head, SC 29928',
     primaryJurisdiction: 'South Carolina (SC)',
     secondaryJurisdictions: ['North Carolina (NC)'],
@@ -142,7 +142,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'S Corporation',
     einOrSsnMasked: 'XX-XXX1187',
     email: 'g.novak@novakbiomed-demo.com',
-    phone: '(803) 555-4499',
+    phone: '+1-803-555-4499',
     address: '330 Innovation Way, Rock Hill, SC 29730',
     primaryJurisdiction: 'South Carolina (SC)',
     assignedAccountantId: 'usr_acc_marcus',
@@ -161,7 +161,7 @@ export const INITIAL_DEMO_CLIENTS: DemoClient[] = [
     entityType: 'Partnership',
     einOrSsnMasked: 'XX-XXX6630',
     email: 'm.sterling@vintagemerc-demo.com',
-    phone: '(803) 555-8120',
+    phone: '+1-803-555-8120',
     address: '500 Gervais St, Columbia, SC 29201',
     primaryJurisdiction: 'South Carolina (SC)',
     assignedAccountantId: 'usr_acc_marcus',

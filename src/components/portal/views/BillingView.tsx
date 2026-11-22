@@ -44,7 +44,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
   const handleDownloadReceipt = (inv: Invoice) => {
     const text = 
       `=======================================================\n` +
-      `DESTRIA TAX SERVICES LLC - OFFICIAL PAYMENT RECEIPT\n` +
+      `DESTRIA TAX SERVICES, LLC - OFFICIAL PAYMENT RECEIPT\n` +
       `=======================================================\n` +
       `Receipt Reference: REC-${inv.invoiceNumber}\n` +
       `Client: ${inv.clientName}\n` +
@@ -55,7 +55,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ invoices }) => {
       `Payment Method: Authorized Electronic Remittance\n` +
       `Status: FULLY SETTLED / NO OUTSTANDING BALANCE\n` +
       `=======================================================\n` +
-      `DESTRIA TAX SERVICES LLC • Columbia, SC • https://destriataxservices.com/\n`;
+      `DESTRIA TAX SERVICES, LLC • Columbia, SC • https://destriataxservices.com/\n`;
 
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);

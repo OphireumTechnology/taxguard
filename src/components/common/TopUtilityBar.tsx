@@ -7,6 +7,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 
 export const TopUtilityBar: React.FC = () => {
   const { setCurrentPage } = useApp();
@@ -43,12 +44,12 @@ export const TopUtilityBar: React.FC = () => {
 
           {/* Direct Phone */}
           <a 
-            href="tel:+16782059486"
+            href={COMPANY_CONTACT.phoneHref}
             className="inline-flex items-center gap-1.5 text-slate-300 hover:text-[#E2BD67] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D] rounded px-1 py-0.5 whitespace-nowrap"
-            aria-label="Direct Telephone: +1-678-205-9486"
+            aria-label={`Direct Telephone: ${COMPANY_CONTACT.phoneDisplay}`}
           >
             <Phone className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
-            <span className="font-mono">+1-678-205-9486</span>
+            <span className="font-mono whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</span>
           </a>
 
           <span className="text-slate-600 hidden md:inline" aria-hidden="true">|</span>

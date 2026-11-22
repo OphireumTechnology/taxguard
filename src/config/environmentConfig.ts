@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Config-Driven Environment Management
+ * DESTRIA TAX SERVICES, LLC - Config-Driven Environment Management
  * Enforces demo safety: no live filings, fictional data only, strict role-based access.
  */
 

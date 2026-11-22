@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC — Stage 14: Resolve Workspace
+ * DESTRIA TAX SERVICES, LLC — Stage 14: Resolve Workspace
  * Filing rejection remediation, agency notice intake, and resolution provenance.
  * Preserves complete audit trail of all correspondence and amendments.
  */

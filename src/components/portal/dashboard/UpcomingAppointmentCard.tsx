@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES, LLC - TaxGuard AI
  * Upcoming Appointment Card
  *
  * Implements Section 12 of Client Dashboard Architecture:
@@ -61,15 +61,15 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//DESTRIA TAX SERVICES LLC//TaxGuard AI//EN',
+      'PRODID:-//Destria Tax Services, LLC//TaxGuard AI//EN',
       'BEGIN:VEVENT',
-      `UID:${appointment.id}@destriatax.com`,
+      `UID:${appointment.id}@destriataxservices.com`,
       `DTSTAMP:${formatICSDate(new Date())}`,
       `DTSTART:${formatICSDate(date)}`,
       `DTEND:${formatICSDate(endDate)}`,
-      `SUMMARY:${appointment.type} - DESTRIA TAX SERVICES LLC`,
+      `SUMMARY:${appointment.type} - Destria Tax Services, LLC`,
       `DESCRIPTION:Tax consultation with ${appointment.advisorName}. Confidential virtual conference room.`,
-      `LOCATION:DESTRIA TAX SERVICES LLC Virtual Consultation Suite`,
+      `LOCATION:Destria Tax Services, LLC Virtual Consultation Suite`,
       'STATUS:CONFIRMED',
       'END:VEVENT',
       'END:VCALENDAR'

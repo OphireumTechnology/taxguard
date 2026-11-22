@@ -14,6 +14,10 @@ export const COMPANY_BRANDING = {
 
 export const COMPANY_MAILTO_HREF = `mailto:${COMPANY_BRANDING.email}` as const;
 
+/**
+ * Centralized official contact configuration for Destria Tax Services, LLC.
+ * Display format: +1-XXX-XXX-XXXX | Click-to-call href: canonical E.164 tel:+1XXXXXXXXXX.
+ */
 export const COMPANY_CONTACT = {
   companyName: COMPANY_BRANDING.legalName,
   phoneDisplay: '+1-678-205-9486',

@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Role-Based Demonstration Environment
+ * DESTRIA TAX SERVICES, LLC - Role-Based Demonstration Environment
  * Central Type Definitions and Contracts
  */
 

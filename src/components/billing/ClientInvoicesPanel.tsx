@@ -25,10 +25,10 @@ export function ClientInvoicesPanel({ clientId }: { clientId: string }) {
   };
   return <section aria-labelledby="client-invoices-heading" className="space-y-3 rounded-2xl border border-slate-700 bg-[#0D2745] p-4 text-sm text-slate-200">
     <div className="flex items-center gap-2.5">
-      <img src={BRAND_ASSETS.destriaEmblem} alt="DESTRIA TAX SERVICES LLC Official Emblem" width={32} height={32} className="w-8 h-8 aspect-square object-contain flex-shrink-0" />
+      <img src={BRAND_ASSETS.destriaEmblem} alt="DESTRIA TAX SERVICES, LLC Official Emblem" width={32} height={32} className="w-8 h-8 aspect-square object-contain flex-shrink-0" />
       <div>
         <h3 id="client-invoices-heading" className="font-bold text-white leading-tight">Invoices</h3>
-        <p className="text-[11px] text-[#E5B552]">DESTRIA TAX SERVICES LLC</p>
+        <p className="text-[11px] text-[#E5B552]">DESTRIA TAX SERVICES, LLC</p>
       </div>
     </div>
     {notice && <p role={notice.error ? 'alert' : 'status'}>{notice.text}</p>}

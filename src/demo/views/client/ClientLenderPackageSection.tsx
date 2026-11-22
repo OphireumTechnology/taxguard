@@ -215,7 +215,7 @@ export const ClientLenderPackageSection: React.FC<ClientLenderPackageSectionProp
               <span>Mandatory IRC § 7216 Disclosure Consent</span>
             </div>
             <p className="text-[11px] text-[#4B5563] leading-relaxed">
-              Federal law requires that we obtain your consent before disclosing your tax return information to a third party. Pursuant to Internal Revenue Code § 7216 and Treasury Regulation § 301.7216-3, I hereby authorize DESTRIA TAX SERVICES LLC to disclose my company&apos;s tax return information to <strong>{recipientName}</strong> solely for the purpose of evaluating credit, loan underwriting, or banking relationships.
+              Federal law requires that we obtain your consent before disclosing your tax return information to a third party. Pursuant to Internal Revenue Code § 7216 and Treasury Regulation § 301.7216-3, I hereby authorize DESTRIA TAX SERVICES, LLC to disclose my company&apos;s tax return information to <strong>{recipientName}</strong> solely for the purpose of evaluating credit, loan underwriting, or banking relationships.
             </p>
             <label className="flex items-start gap-2 cursor-pointer pt-2">
               <input
@@ -278,7 +278,7 @@ export const ClientLenderPackageSection: React.FC<ClientLenderPackageSectionProp
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={() => alert(`Simulated link copied for ${pkg.recipient}: https://portal.artaxservices.com/share/${pkg.id}`)}
+                  onClick={() => alert(`Simulated link copied for ${pkg.recipient}: https://portal.destriataxservices.com/share/${pkg.id}`)}
                   className="px-3 py-1.5 border border-[#D8DCE2] hover:border-[#061A2F] rounded text-xs font-medium text-[#061A2F] flex items-center gap-1.5"
                 >
                   <Share2 className="w-3.5 h-3.5" />

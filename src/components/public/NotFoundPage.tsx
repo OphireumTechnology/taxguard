@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 import { Compass, Home, Phone, ArrowLeft, Lock } from 'lucide-react';
 
 export const NotFoundPage: React.FC = () => {
@@ -51,7 +52,7 @@ export const NotFoundPage: React.FC = () => {
           className="px-6 py-3 rounded-xl font-semibold text-xs text-slate-300 hover:text-white border border-[#1E3A5F] transition-all flex items-center gap-2"
         >
           <Phone className="w-4 h-4 text-[#C6A15B]" />
-          Contact Support (678-205-9486)
+          Contact Support ({COMPANY_CONTACT.phoneDisplay})
         </button>
       </div>
     </div>

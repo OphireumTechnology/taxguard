@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { NotificationBell } from '../common/NotificationBell';
 import { DASHBOARD_THEME } from '../../theme/tokens';
 import { BRAND_ASSETS } from '../../utils/assets';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 import { canRenderDashboardShell, DASHBOARD_EXPERIENCES, DashboardWorkspace } from './dashboardAccess';
 import { useDashboardInspection } from './dashboardInspection';
 import './dashboardShell.css';
@@ -110,12 +111,12 @@ function DashboardShellSession({
         <div className="tg-shell-brand">
           <img
             src={BRAND_ASSETS.destriaLogo}
-            alt="DESTRIA TAX SERVICES LLC Official Emblem"
+            alt="DESTRIA TAX SERVICES, LLC Official Emblem"
             width={48}
             height={48}
             className="tg-shell-brand-emblem destria-brand-emblem"
           />
-          <div><strong>TAXGUARD <span>AI</span></strong><small>DESTRIA TAX SERVICES LLC</small></div>
+          <div><strong>TAXGUARD <span>AI</span></strong><small>DESTRIA TAX SERVICES, LLC</small></div>
         </div>
         <div className="tg-shell-heading"><span>{title}</span><small>{DASHBOARD_EXPERIENCES[workspace]}</small></div>
         <button className="tg-shell-search" onClick={openSearch} aria-label={onSearch ? 'Search documents, messages, tax years' : 'Search authorized workspace navigation'}><Search size={16} /><span>{onSearch ? 'Search documents, messages, tax years...' : 'Search workspace navigation...'}</span></button>
@@ -142,7 +143,7 @@ function DashboardShellSession({
         <div className="tg-dialog-title"><h2 id={`${contentId}-panel-title`}>{panel === 'search' ? 'Search workspace navigation' : panel === 'profile' ? 'Your profile' : 'Help & Support'}</h2><button className="tg-shell-icon" onClick={() => setPanel(null)} aria-label="Close dialog"><X size={18} /></button></div>
         {panel === 'search' && <><label htmlFor={`${contentId}-search`}>Find an authorized module</label><input id={`${contentId}-search`} autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Documents, requests, bookkeeping..." /><div className="tg-search-results">{links.filter(link => link.label.toLowerCase().includes(query.toLowerCase())).map((link, index) => <button key={index} onClick={() => { link.button.click(); setPanel(null); }}>{link.label}</button>)}{!links.some(link => link.label.toLowerCase().includes(query.toLowerCase())) && <p>No matching modules.</p>}</div></>}
         {panel === 'profile' && <><p><strong>{currentUser?.name}</strong></p><p>{currentUser?.email}</p><p>Session role: {currentUser?.role}</p><p>Role access is managed by your firm administrator.</p></>}
-        {panel === 'help' && <><p>Contact DESTRIA TAX SERVICES LLC for help with your workspace.</p><a href="tel:678-205-9486">Call 678-205-9486</a><p>Send tax documents through your private document workspace.</p></>}
+        {panel === 'help' && <><p>Contact DESTRIA TAX SERVICES, LLC for help with your workspace.</p><a href={COMPANY_CONTACT.phoneHref}>Call {COMPANY_CONTACT.phoneDisplay}</a><p>Send tax documents through your private document workspace.</p></>}
       </dialog>
     </div>
   );

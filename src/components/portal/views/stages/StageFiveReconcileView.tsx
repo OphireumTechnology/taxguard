@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC — Stage 05: Reconcile Workspace
+ * DESTRIA TAX SERVICES, LLC — Stage 05: Reconcile Workspace
  * Comprehensive tie-out reconciliation between source documents, accounting ledgers,
  * and recorded tax return figures. Never hides unexplained variances.
  */

@@ -497,7 +497,7 @@ export const ClientOrganizerSection: React.FC<ClientOrganizerSectionProps> = ({
                       Electronic Signature & Accuracy Certification
                     </div>
                     <p className="text-[11px] text-[#4B5563] leading-relaxed">
-                      Under penalties of perjury, I declare that I have examined this tax organizer, including all accompanying schedules and statements, and to the best of my knowledge and belief, it is true, correct, and complete. I authorize DESTRIA TAX SERVICES LLC to prepare the designated tax returns based upon these disclosures.
+                      Under penalties of perjury, I declare that I have examined this tax organizer, including all accompanying schedules and statements, and to the best of my knowledge and belief, it is true, correct, and complete. I authorize DESTRIA TAX SERVICES, LLC to prepare the designated tax returns based upon these disclosures.
                     </p>
                     <label className="flex items-center gap-2 pt-2 cursor-pointer font-bold text-[#061A2F]">
                       <input

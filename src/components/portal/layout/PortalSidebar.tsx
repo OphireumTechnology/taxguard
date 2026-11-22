@@ -107,14 +107,14 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
           <div className="flex items-center gap-2.5 min-w-0">
             <img
               src={BRAND_ASSETS.destriaEmblem}
-              alt="DESTRIA TAX SERVICES LLC Official Emblem"
+              alt="DESTRIA TAX SERVICES, LLC Official Emblem"
               width={32}
               height={32}
               className="w-8 h-8 aspect-square object-contain flex-shrink-0"
             />
             <div className="min-w-0">
               <div className="text-[10px] uppercase font-bold tracking-widest text-[#C99A3D] truncate">
-                DESTRIA TAX SERVICES LLC
+                DESTRIA TAX SERVICES, LLC
               </div>
               <div className="text-xs font-serif font-bold text-white mt-0.5 truncate">
                 Client Tax Center
@@ -124,7 +124,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
         ) : (
           <img
             src={BRAND_ASSETS.destriaEmblem}
-            alt="DESTRIA TAX SERVICES LLC"
+            alt="DESTRIA TAX SERVICES, LLC"
             width={28}
             height={28}
             className="w-7 h-7 aspect-square object-contain mx-auto"
@@ -369,7 +369,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
         {!isCollapsed && (
           <div className="px-3 py-2 rounded-xl bg-[#040E1B] border border-[#0B2748] text-[10px] text-slate-400 space-y-0.5">
             <div className="font-bold text-slate-300">IRS Registered ERO</div>
-            <div>DESTRIA TAX SERVICES LLC</div>
+            <div>DESTRIA TAX SERVICES, LLC</div>
             <div className="text-[#C99A3D] font-mono">Pub 4557 Compliant</div>
           </div>
         )}

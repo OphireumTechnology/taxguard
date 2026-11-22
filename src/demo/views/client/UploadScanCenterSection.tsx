@@ -1,5 +1,5 @@
 /**
- * A/R Tax Services, LLC - Upload & Scan Center
+ * Destria Tax Services, LLC - Upload & Scan Center
  * Compliance with Sections 11 & 12: Drag-and-drop, multi-page, camera capture, page rotation/reordering,
  * seeded test documents, security notice, and tax-year mismatch detection.
  */

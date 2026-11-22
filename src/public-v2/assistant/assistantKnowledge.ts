@@ -1,5 +1,5 @@
 /**
- * A/R Accounting Guidance Assistant Knowledge Engine
+ * Destria Accounting Guidance Assistant Knowledge Engine
  * 
  * Strict Educational Scope:
  * - U.S. Federal & State Taxation
@@ -35,7 +35,7 @@ export interface AssistantContext {
 }
 
 export const MANDATORY_REFUSAL_MESSAGE = 
-  "The A/R Accounting Guidance Assistant is limited to general U.S. accounting and tax education. It cannot assist with tax evasion, fabricated records, unauthorized access, non-U.S. tax matters, or professional services outside this scope.";
+  "The Destria Accounting Guidance Assistant is limited to general U.S. accounting and tax education. It cannot assist with tax evasion, fabricated records, unauthorized access, non-U.S. tax matters, or professional services outside this scope.";
 
 // Guardrail violation patterns
 const GUARDRAIL_PATTERNS = [
@@ -390,7 +390,7 @@ export function generateAssistantResponse(prompt: string, context: AssistantCont
       answer: MANDATORY_REFUSAL_MESSAGE,
       sources: [
         {
-          authority: "A/R Accounting Practice Standards",
+          authority: "Destria Tax Services, LLC Accounting Practice Standards",
           documentTitle: "Professional Scope & Ethical Guidelines",
           relevance: "Mandatory compliance boundaries governing general educational assistance."
         }

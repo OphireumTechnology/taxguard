@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES, LLC - TaxGuard AI
  * Messages Preview Card
  *
  * Implements Section 13 of Client Dashboard Architecture:

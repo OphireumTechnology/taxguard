@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC — Stage 08: Plan Workspace
+ * DESTRIA TAX SERVICES, LLC — Stage 08: Plan Workspace
  * Multi-year tax planning and advisory scenarios.
  * Strictly separates CURRENT AUTHORITATIVE RETURN DATA from PLANNING SCENARIOS / PROJECTIONS.
  * AI planning suggestions are advisory proposals only and require professional review.

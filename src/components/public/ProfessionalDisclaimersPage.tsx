@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { AlertTriangle, ShieldCheck, Scale, FileText } from 'lucide-react';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 
 export const ProfessionalDisclaimersPage: React.FC = () => {
   const { setCurrentPage } = useApp();
@@ -100,7 +101,7 @@ export const ProfessionalDisclaimersPage: React.FC = () => {
               <strong className="text-white">Professional Credential Standards:</strong> DESTRIA TAX SERVICES, LLC is a professional tax preparation, bookkeeping, and advisory practice. Tax preparation services are provided by authorized professionals holding active IRS Preparer Tax Identification Numbers (PTIN). Formal CPA attestations and Enrolled Agent representation services are coordinated in compliance with applicable federal and state regulatory standards.
             </p>
             <p>
-              <strong className="text-white">Firm Location:</strong> Columbia, South Carolina, USA • <a href="tel:678-205-9486" className="text-[#C6A15B]">678-205-9486</a>
+              <strong className="text-white">Firm Location:</strong> Columbia, South Carolina, USA • <a href={COMPANY_CONTACT.phoneHref} className="text-[#C6A15B] whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</a>
             </p>
             <p>
               <strong className="text-white">Client Financial Privacy:</strong> Review our{' '}

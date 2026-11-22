@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Client Authorized Contacts & Power of Attorney
+ * DESTRIA TAX SERVICES, LLC - Client Authorized Contacts & Power of Attorney
  * Compliance with Sections 4 & 24: Entity signing authorities, Form 2848 representatives,
  * and access authorizations.
  */
@@ -37,7 +37,7 @@ const INITIAL_CONTACTS: AuthorizedContact[] = [
     role: 'Managing Member & CEO',
     relationship: 'Primary Taxpayer / Officer',
     email: 'dhenzeconstruction@gmail.com',
-    phone: '(240) 413-0570',
+    phone: '+1-240-413-0570',
     hasSigningAuthority: true,
     hasPoa2848: true,
     accessLevel: 'Full Signer'
@@ -48,7 +48,7 @@ const INITIAL_CONTACTS: AuthorizedContact[] = [
     role: 'Chief Financial Officer',
     relationship: 'Corporate Controller',
     email: 'elena.rostova@henzeholding.demo',
-    phone: '(240) 555-0199',
+    phone: '+1-240-555-0199',
     hasSigningAuthority: true,
     hasPoa2848: false,
     accessLevel: 'Full Signer'
@@ -59,7 +59,7 @@ const INITIAL_CONTACTS: AuthorizedContact[] = [
     role: 'External Corporate Legal Counsel',
     relationship: 'Legal Representative',
     email: 'marcus.vance@vancelegal.demo',
-    phone: '(202) 555-0144',
+    phone: '+1-202-555-0144',
     hasSigningAuthority: false,
     hasPoa2848: true,
     accessLevel: 'Tax Liaison'
@@ -92,7 +92,7 @@ export const ClientContactsSection: React.FC = () => {
       role: newContact.role?.trim() || 'Authorized Agent',
       relationship: newContact.relationship?.trim() || 'Representative',
       email: newContact.email.trim(),
-      phone: newContact.phone?.trim() || '(555) 000-0000',
+      phone: newContact.phone?.trim() || '+1-555-000-0000',
       hasSigningAuthority: !!newContact.hasSigningAuthority,
       hasPoa2848: !!newContact.hasPoa2848,
       accessLevel: (newContact.accessLevel as any) || 'Read Only'

@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Lifecycle Roles Unified Dashboard View
+ * DESTRIA TAX SERVICES, LLC - Lifecycle Roles Unified Dashboard View
  * Comprehensive, interactive dashboard view for expanded lifecycle roles:
  * reception, engagement-manager, verification, documents, data-entry,
  * accounts-payable, accounts-receivable, quality-control, filing,
@@ -172,7 +172,7 @@ export const LifecycleRoleDashboardView: React.FC<LifecycleRoleDashboardViewProp
                 receptionService.addInquiry({
                   contactName: 'David Sterling, MD',
                   companyName: 'Carolina Spine Center LLC',
-                  phone: '(843) 555-0144',
+                  phone: '+1-843-555-0144',
                   email: 'dsterling@carolinaspine.org',
                   source: 'Referral',
                   inquiryType: 'Tax Return',

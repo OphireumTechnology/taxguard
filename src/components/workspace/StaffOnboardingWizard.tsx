@@ -1,5 +1,5 @@
 /**
- * A/R TAX SERVICES, LLC - Accountant & Consultant Onboarding Wizard
+ * DESTRIA TAX SERVICES, LLC - Accountant & Consultant Onboarding Wizard
  * Implements Part 3 of specification:
  * Mandatory 8-section staff onboarding workflow for invited tax professionals:
  * Section A: Personal and Contact Details
@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
 import { 
   UserCheck, 
   Briefcase, 
@@ -157,7 +158,7 @@ export const StaffOnboardingWizard: React.FC = () => {
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>DESTRIA TAX SERVICES LLC • Staff Credentialing</span>
+              <span>DESTRIA TAX SERVICES, LLC • Staff Credentialing</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold font-serif text-white">
               Professional Staff Onboarding & Verification
@@ -266,12 +267,14 @@ export const StaffOnboardingWizard: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Mobile Telephone</label>
-                <input
-                  type="tel"
+                <label htmlFor="staff-onboarding-mobile" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Mobile Telephone</label>
+                <InternationalPhoneInput
+                  id="staff-onboarding-mobile"
                   value={dossier.personalContact.mobileNumber}
-                  onChange={e => setDossier({ ...dossier, personalContact: { ...dossier.personalContact, mobileNumber: e.target.value } })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                  onChange={val => setDossier({ ...dossier, personalContact: { ...dossier.personalContact, mobileNumber: val } })}
+                  variant="light"
+                  placeholder="+1-803-555-0100"
+                  aria-label="Mobile Telephone"
                 />
               </div>
               <div>

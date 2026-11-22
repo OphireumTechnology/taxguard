@@ -1,11 +1,12 @@
 /**
- * DESTRIA TAX SERVICES LLC - Client Portal Extended Navigation Sub-Views
+ * DESTRIA TAX SERVICES, LLC - Client Portal Extended Navigation Sub-Views
  * Implementation of secondary grouped views: Document Requests, Import History,
  * AR/AP ledgers, Trial Balance, Period Close, Filing Status, Appointments,
  * Notifications, Audit Activity History, and Contact Support.
  */
 
 import React, { useState } from 'react';
+import { COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../../config/companyBranding';
 import {
   FileText,
   UploadCloud,
@@ -458,7 +459,7 @@ export const ClientAppointmentsView: React.FC = () => {
               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#D7AC4A] bg-[#061A2F] flex-shrink-0">
                 <img
                   src="/ceo/123456789-desmond.png"
-                  alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES LLC"
+                  alt="Desmond Hinds, Founder and Chief Executive Officer of DESTRIA TAX SERVICES, LLC"
                   className="w-full h-full object-cover object-top"
                 />
               </div>
@@ -644,7 +645,7 @@ export const ClientContactSupportView: React.FC = () => {
       <div className="p-6 bg-white border border-neutral-300 rounded-lg shadow-sm">
         <h2 className="text-xl font-bold text-neutral-900">Dedicated Practice Support</h2>
         <p className="text-sm text-neutral-600 mt-1">
-          Connect directly with the DESTRIA TAX SERVICES LLC operations desk, administrative team, or your lead CPA.
+          Connect directly with the DESTRIA TAX SERVICES, LLC operations desk, administrative team, or your lead CPA.
         </p>
       </div>
 
@@ -664,10 +665,10 @@ export const ClientContactSupportView: React.FC = () => {
         <div className="p-5 bg-white border border-neutral-300 rounded-lg shadow-xs space-y-2">
           <h3 className="text-sm font-bold text-neutral-900">Direct Office Contact</h3>
           <div className="space-y-1.5 text-neutral-700">
-            <div><strong>Firm:</strong> DESTRIA TAX SERVICES LLC</div>
+            <div><strong>Firm:</strong> Destria Tax Services, LLC</div>
             <div><strong>Lead Practitioner:</strong> Desmond Hinds, CPA</div>
-            <div><strong>Direct Telephone:</strong> (240) 413-0570</div>
-            <div><strong>Practice Email:</strong> contact@artaxservices.com</div>
+            <div><strong>Direct Telephone:</strong> <a href={COMPANY_CONTACT.phoneHref} className="hover:underline whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</a></div>
+            <div><strong>Practice Email:</strong> <a href={COMPANY_MAILTO_HREF} className="hover:underline">{COMPANY_CONTACT.email}</a></div>
             <div><strong>Hours:</strong> Mon–Fri 8:30 AM – 6:30 PM EST</div>
           </div>
         </div>

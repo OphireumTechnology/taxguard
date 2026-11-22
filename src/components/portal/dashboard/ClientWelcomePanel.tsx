@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES, LLC - TaxGuard AI
  * Client Welcome / Context Header Component
  *
  * Implements Section 5 of Client Dashboard Architecture:

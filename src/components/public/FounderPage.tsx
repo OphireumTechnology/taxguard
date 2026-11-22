@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { COMPANY_BRANDING, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
+import { COMPANY_BRANDING, COMPANY_CONTACT, COMPANY_MAILTO_HREF } from '../../config/companyBranding';
 import { FounderPortrait } from './images/FounderPortrait';
 import { 
   Calendar, 
@@ -66,8 +66,8 @@ export const FounderPage: React.FC = () => {
               <div className="space-y-3 text-xs text-slate-200">
                 <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-[#C99A3D]" />
-                  <a href="tel:678-205-9486" className="hover:text-white font-medium">
-                    Direct Line: 678-205-9486
+                  <a href={COMPANY_CONTACT.phoneHref} className="hover:text-white font-medium whitespace-nowrap">
+                    Direct Line: {COMPANY_CONTACT.phoneDisplay}
                   </a>
                 </div>
                 <div className="flex items-center gap-2.5">

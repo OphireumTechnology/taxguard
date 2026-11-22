@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES, LLC - TaxGuard AI
  * In-App Notification Center Dropdown
  *
  * Implements:

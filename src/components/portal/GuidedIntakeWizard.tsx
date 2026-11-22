@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { InternationalPhoneInput } from '../common/InternationalPhoneInput';
 import { 
   Building2, 
   ShieldCheck, 
@@ -519,18 +520,19 @@ export const GuidedIntakeWizard: React.FC<GuidedIntakeWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Primary Business Phone (US) *
+                <label htmlFor="guided-intake-phone" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Primary Business Phone (US / International) *
                 </label>
-                <input
-                  type="text"
+                <InternationalPhoneInput
+                  id="guided-intake-phone"
                   value={formData.businessProfile.phoneUs}
-                  onChange={(e) => setFormData({
+                  onChange={(val) => setFormData({
                     ...formData,
-                    businessProfile: { ...formData.businessProfile, phoneUs: e.target.value }
+                    businessProfile: { ...formData.businessProfile, phoneUs: val }
                   })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  placeholder="(803) 555-0142"
+                  variant="light"
+                  placeholder="+1-803-555-0142"
+                  aria-label="Primary Business Phone"
                 />
               </div>
 

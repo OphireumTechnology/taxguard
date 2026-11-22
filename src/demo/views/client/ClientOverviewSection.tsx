@@ -331,7 +331,7 @@ export const ClientOverviewSection: React.FC<ClientOverviewSectionProps> = ({
           <div className="pb-3 border-b border-[#D8DCE2] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#061A2F]" />
-              <h2 className="text-sm font-bold text-[#061A2F]">Assigned DESTRIA TAX SERVICES LLC Engagement Team</h2>
+              <h2 className="text-sm font-bold text-[#061A2F]">Assigned DESTRIA TAX SERVICES, LLC Engagement Team</h2>
             </div>
             <span className="text-[10px] font-mono text-[#667085] uppercase">Dedicated Professionals</span>
           </div>

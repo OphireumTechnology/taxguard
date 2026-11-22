@@ -12,6 +12,7 @@ import {
   Calendar,
   Check
 } from 'lucide-react';
+import { InternationalPhoneInput } from '../../components/common/InternationalPhoneInput';
 
 interface PublicV2HomePageProps {
   onNavigate: (path: string) => void;
@@ -394,14 +395,14 @@ export const PublicV2HomePage: React.FC<PublicV2HomePageProps> = ({
                   <label className="block text-xs font-semibold text-black mb-1" htmlFor="home-phone">
                     Telephone *
                   </label>
-                  <input
+                  <InternationalPhoneInput
                     id="home-phone"
-                    type="tel"
                     required
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="(925) 000-0000"
-                    className="w-full px-3 py-2 bg-white text-black border border-neutral-300 focus:border-black focus:ring-1 focus:ring-black outline-none"
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    variant="v2"
+                    placeholder="+1-925-000-0000"
+                    aria-label="Telephone"
                   />
                 </div>
 

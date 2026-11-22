@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - TaxGuard AI
+ * DESTRIA TAX SERVICES, LLC - TaxGuard AI
  * Quick Actions Toolbar
  *
  * Implements:

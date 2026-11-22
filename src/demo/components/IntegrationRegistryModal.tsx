@@ -1,5 +1,5 @@
 /**
- * DESTRIA TAX SERVICES LLC - Future Integrations Registry
+ * DESTRIA TAX SERVICES, LLC - Future Integrations Registry
  * Documents external planned services, all strictly maintained in "Not Configured" status.
  */
 

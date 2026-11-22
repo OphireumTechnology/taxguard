@@ -47,8 +47,9 @@ describe('Brand Identity & Asset Verification', () => {
     }
   });
 
-  it('verifies AI branding reflects DESTRIA TAX SERVICES LLC', () => {
-    expect(AI_BRAND.operator).toBe('DESTRIA TAX SERVICES LLC');
+  it('verifies AI branding reflects DESTRIA TAX SERVICES, LLC', () => {
+    // The operator name comes from the canonical company branding (src/config/companyBranding.ts).
+    expect(AI_BRAND.operator).toBe('DESTRIA TAX SERVICES, LLC');
     expect(AI_BRAND.assistant).toContain('Destria');
     expect(AI_BRAND.model).toContain('Destria');
     expect(AI_BRAND.privateNetwork).toContain('DESTRIA');

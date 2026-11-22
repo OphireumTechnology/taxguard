@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
 import { NotificationBell } from '../common/NotificationBell';
+import { COMPANY_CONTACT } from '../../config/companyBranding';
 import { 
   Lock, 
   ShieldCheck, 
@@ -95,7 +96,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 type="button"
                 onClick={() => setCurrentPage('home')}
                 className="flex items-center gap-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C99A3D] rounded-lg p-1"
-                aria-label="DESTRIA TAX SERVICES LLC Portal Home"
+                aria-label="DESTRIA TAX SERVICES, LLC Portal Home"
               >
                 <BrandLogo size="sm" variant="compact" />
               </button>
@@ -209,18 +210,18 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5 text-[#C99A3D]" />
             <span>
-              &copy; {new Date().getFullYear()} DESTRIA TAX SERVICES LLC &bull; Confidential Client & Practice Portal
+              &copy; {new Date().getFullYear()} DESTRIA TAX SERVICES, LLC &bull; Confidential Client & Practice Portal
             </span>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4 text-[11px] text-slate-400">
             <span className="text-slate-500 hidden sm:inline">&bull;</span>
             <a 
-              href="tel:678-205-9486"
-              className="text-slate-300 hover:text-[#E2BD67] transition-colors flex items-center gap-1"
+              href={COMPANY_CONTACT.phoneHref}
+              className="text-slate-300 hover:text-[#E2BD67] transition-colors flex items-center gap-1 whitespace-nowrap"
             >
-              <Phone className="w-3 h-3 text-[#C99A3D]" />
-              <span>Support: 678-205-9486</span>
+              <Phone className="w-3 h-3 text-[#C99A3D] flex-shrink-0" />
+              <span>Support: {COMPANY_CONTACT.phoneDisplay}</span>
             </a>
             <span className="text-slate-600">&bull;</span>
             <button

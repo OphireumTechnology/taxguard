@@ -265,7 +265,7 @@ export const WatermarkedDocumentReviewer: React.FC<WatermarkedDocumentReviewerPr
                   key={i}
                   className="whitespace-nowrap text-center font-mono font-bold tracking-widest text-[#06172C] text-xs py-4"
                 >
-                  DESTRIA TAX SERVICES LLC &bull; {(clientName || 'AUTHORIZED CLIENT').toUpperCase()} &bull; {maskedEmail} &bull; {referenceCode} &bull; {watermarkTime} &bull; CONFIDENTIAL IRC § 7216
+                  DESTRIA TAX SERVICES, LLC &bull; {(clientName || 'AUTHORIZED CLIENT').toUpperCase()} &bull; {maskedEmail} &bull; {referenceCode} &bull; {watermarkTime} &bull; CONFIDENTIAL IRC § 7216
                 </div>
               ))}
             </div>
