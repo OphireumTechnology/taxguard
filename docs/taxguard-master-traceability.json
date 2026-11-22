@@ -4628,6 +4628,109 @@
   ],
   "source_inventory": [
     {
+      "file": "docs/DISASTER_RECOVERY.md",
+      "sha256": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
+      "bytes": 6285,
+      "headings": [
+        "# TaxGuard AI — Disaster Recovery & Continuity Plan",
+        "## 1. Overview & Objectives",
+        "## 2. Infrastructure Incident Protocols",
+        "### 2.1 Relational Database Outage (PostgreSQL / Supabase)",
+        "### 2.2 Storage Outage (Encrypted Document Vault)",
+        "### 2.3 Application Server Crash / Outage (Render / Node.js)",
+        "### 2.4 Failed Deployment / Corrupted Build",
+        "### 2.5 Bad Database Migration",
+        "### 2.6 Background Worker Crash & Stale Leases",
+        "### 2.7 Job Backlog Congestion",
+        "## 3. External Integration Outage Protocols",
+        "## 4. Disaster Recovery Team Roles"
+      ]
+    },
+    {
+      "file": "docs/PRODUCTION_DEPLOYMENT.md",
+      "sha256": "a928b95313beeb0f4c55d20376da3713b68decc86fb75d4b7c52ca282ef36a34",
+      "bytes": 4103,
+      "headings": [
+        "# TaxGuard AI — Production Deployment Runbook",
+        "## 1. Pre-Deployment Verification",
+        "### 1.1 Source Integrity Check",
+        "### 1.2 Migration Chain Review",
+        "### 1.3 Environment Contract Validation",
+        "## 2. Build & Packaging Procedure",
+        "## 3. Database Migration Execution",
+        "## 4. Production Service Deployment",
+        "## 5. Post-Deployment Verification Gate",
+        "### 5.1 Verification Checklist",
+        "## 6. Rollback Decision & Protocol",
+        "### Rollback Steps:"
+      ]
+    },
+    {
+      "file": "docs/PRODUCTION_SECURITY.md",
+      "sha256": "2784571bf0fdd6674cc3f3c9372dfcb0d35d3ddfa6c944210830275d87d4bc03",
+      "bytes": 5395,
+      "headings": [
+        "# TaxGuard AI — Production Security Architecture & Specification",
+        "## 1. Authentication & Session Management",
+        "## 2. Multi-Tenant Isolation & Row-Level Security (RLS)",
+        "## 3. Object-Level Authorization (IDOR / BOLA Prevention)",
+        "## 4. Secure Document Processing Pipeline",
+        "## 5. AI Reasoning & Governance Boundary (OpenAI)",
+        "## 6. Accounting Ledger & Write-Back Controls",
+        "## 7. Webhook & Payment Security (Stripe)",
+        "## 8. Logging, Error Handling & PII Redaction",
+        "## 9. Regulatory & Legal Hold Enforcement"
+      ]
+    },
+    {
+      "file": "docs/PROVIDER_COMMISSIONING.md",
+      "sha256": "0563071c9d7990daeb23f232df344e1ef8665e2330f0f8aa82e9483e5f863860",
+      "bytes": 4130,
+      "headings": [
+        "# TaxGuard AI — External Provider Commissioning Guide",
+        "## 1. Provider Status Matrix",
+        "## 2. Commissioning Step-by-Step",
+        "### 2.1 Supabase Relational Database & Authentication",
+        "### 2.2 OpenAI Advisory Intelligence",
+        "### 2.3 Stripe Payments",
+        "### 2.4 Accounting Integrations (QuickBooks & Xero)",
+        "### 2.5 Stage 11 E-Signature & Stage 12 IRS Filing"
+      ]
+    },
+    {
+      "file": "docs/README.md",
+      "sha256": "a3d118fa33eff53b8b23bb25ae5006d82d9efe55dea2bc99436afb8d8e4d9590",
+      "bytes": 2102,
+      "headings": [
+        "# TaxGuard architecture index",
+        "# Master directive remaining dependencies"
+      ]
+    },
+    {
+      "file": "docs/RELEASE_CHECKLIST.md",
+      "sha256": "0ae49af3b6ffbf1ebe140dd0551a9bff19935c18cefcbe8aba56f657e6fa58bd",
+      "bytes": 5287,
+      "headings": [
+        "# TaxGuard AI — Master Production Release Gate Checklist",
+        "## 1. Source and repository",
+        "## 2. Database and migrations",
+        "## 3. Environment and configuration",
+        "## 4. Automated verification for the release commit",
+        "## 5. Security and isolation",
+        "## 6. Professional, legal and policy approvals",
+        "## 7. Operations",
+        "## 8. Human Release Authorization Sign-Off"
+      ]
+    },
+    {
+      "file": "docs/THIRD_PARTY_AI_NOTICES.md",
+      "sha256": "f6964f3b51c5f1548ff5f54ccb8c06489461136723ff3dab2528e6edfd4f2a16",
+      "bytes": 1174,
+      "headings": [
+        "# Third-party AI notices"
+      ]
+    },
+    {
       "file": "docs/dashboard-masterplan-gate-3.md",
       "sha256": "2aaf5b0bc823bfb01a7a203c3748e1453543ea8fb0e8e241bc194a3763a0a6d0",
       "bytes": 8298,
@@ -4772,6 +4875,71 @@
       ]
     },
     {
+      "file": "docs/development/TAXGUARD_AI_MASTER_DEVELOPMENT_DIRECTIVE.md",
+      "sha256": "cfc15d425b949097420ffa695c5d0b65ce251b8eb0b4ed163b2859df8215e387",
+      "bytes": 4763,
+      "headings": [
+        "# TaxGuard AI master development directive",
+        "## Scope",
+        "## Project isolation",
+        "## Rules that never bend",
+        "## Identity and truthful claims",
+        "## Research sources",
+        "## Development workflow",
+        "## Current priorities"
+      ]
+    },
+    {
+      "file": "docs/development/TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md",
+      "sha256": "f1657dce96a96267eeb0cc5cd775d3494877765fab275a2923b5046929548a07",
+      "bytes": 21905,
+      "headings": [
+        "# TaxGuard AI: full functionality audit (Block 101)",
+        "## How the audit was done",
+        "### Two environments, two answers",
+        "### Correction (Block 104)",
+        "## Headline findings",
+        "## Functionality matrix",
+        "### Public website",
+        "### Client portal",
+        "### Preparer, reviewer and practice manager workspaces",
+        "### Administration, security and AI",
+        "### Filing and payments",
+        "## Dependency register (what unblocks what)",
+        "## What this audit changes in the code",
+        "## Category A and B work identified (implementable now)"
+      ]
+    },
+    {
+      "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
+      "sha256": "2fbab0275e08c92b0e5b2fcbc52d90b4046ffad6d00cce9f2891e5e0dc96c46b",
+      "bytes": 11737,
+      "headings": [
+        "# TaxGuard AI master completion plan",
+        "## How status is assigned",
+        "## Repository facts (read from source, 2026-10-19)",
+        "## Workstream inventory",
+        "### Phase 14 and Phase 15 integration (Phase B)",
+        "### Core application (Phase C)",
+        "### Documents, communication, finance, AI, security (Phases D–G)",
+        "### Production readiness (Phases H–J)",
+        "## Next packages (independently executable, ordered by risk)"
+      ]
+    },
+    {
+      "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
+      "sha256": "a1ab0fb2cfe8a53824b683db54aae5fce876291f57e48c4a73bc712dcb884acc",
+      "bytes": 46508,
+      "headings": [
+        "# TaxGuard AI master completion status",
+        "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
+        "### Verified (with evidence)",
+        "### In progress (not yet verified)",
+        "### Blocked (recorded, not worked around)",
+        "### Next priorities"
+      ]
+    },
+    {
       "file": "docs/development/ai-architecture-overview-reconciliation.md",
       "sha256": "956ee14d2c500eeb5ab889b8b35e41014301c5fe2c10763f4f7ec430aadb8e51",
       "bytes": 6568,
@@ -4816,6 +4984,25 @@
         "## What exists",
         "## Classification",
         "## Bounded packages that are safe without new approvals"
+      ]
+    },
+    {
+      "file": "docs/development/ai-workforce-matrix.md",
+      "sha256": "6cbcb57021e080c848447f2c3ac4071211ab8ca7d3ab2a1a6cab3b995709fde8",
+      "bytes": 59301,
+      "headings": [
+        "# TaxGuard 61-Agent Application Workforce Matrix (`A00`–`A60`)",
+        "## Aggregate Totals (Strict Separation of Lifecycle States)",
+        "## Key Owner Gates Preserved",
+        "## Per-Agent Matrix (`A00`–`A60`)"
+      ]
+    },
+    {
+      "file": "docs/development/aistudio-recovery-20261122.md",
+      "sha256": "1cb42cab0f33cc849f920712867e1681a567517ce592468aa8d83ab7f4cc5e70",
+      "bytes": 975,
+      "headings": [
+        "# AI Studio recovery — 2026-11-22"
       ]
     },
     {
@@ -5659,8 +5846,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "2f2e70db99443c72b26764b900810e7f07abfa7dc0a73b025093aad66568df37",
-      "bytes": 25173,
+      "sha256": "72d3bbee6392e5407e4b5bca77e9533ec528daa35cf70b1b6ffd796774c7fa77",
+      "bytes": 25280,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -5679,6 +5866,20 @@
         "## Duplicates and conflicts",
         "## Approvals required (owner)",
         "## Rollback"
+      ]
+    },
+    {
+      "file": "docs/development/multi-agent-integration.md",
+      "sha256": "cf1ef5dbed9d615d73eba204eaa8555f6470262508308b4f6761406be3343166",
+      "bytes": 11564,
+      "headings": [
+        "# Multi-agent development integration and release pipeline",
+        "## 1. Branches",
+        "## 2. Google AI Studio",
+        "## 3. Source protection (`scripts/integration-guard.mjs`, run by Development CI)",
+        "## 4. Release pipeline (`deploy-pages.yml`)",
+        "### Manual rollback",
+        "## 5. Settings for owner approval (not applied by any agent)"
       ]
     },
     {
@@ -6336,6 +6537,31 @@
       ]
     },
     {
+      "file": "docs/development/stage-gate-requirement-matrix.md",
+      "sha256": "d7767a6bb474b21a5d8da9d7e7d505e8421cacb35bab212d7f69a43aac37af46",
+      "bytes": 17670,
+      "headings": [
+        "# TaxGuard 18-stage gate requirement matrix (LEGACY_18_V1)",
+        "## The authoritative engine",
+        "## Stage matrix",
+        "### 01 Onboard (SYSTEM_VERIFIED)",
+        "### 02 Collect (HUMAN_ATTESTED)",
+        "### 03 Validate (HUMAN_ATTESTED)",
+        "### 04 Record (SYSTEM_VERIFIED)",
+        "### 05 Reconcile (SYSTEM_VERIFIED)",
+        "### 06 Review (HUMAN_ATTESTED)",
+        "### 07 Report (HUMAN_ATTESTED)",
+        "### 08 Plan (HUMAN_ATTESTED)",
+        "### 09 Prepare Taxes (BLOCKED: `VERIFIED_TAX_ENGINE_REQUIRED`)",
+        "### 10 Approve (BLOCKED: `UPSTREAM_STAGES_BLOCKED`)",
+        "### 11 Sign (BLOCKED: `E_SIGNATURE_INTEGRATION_REQUIRED`)",
+        "### 12 File (BLOCKED: `FILING_NOT_AUTHORIZED`)",
+        "### 13–18 Government Feedback, Resolve, Monitor, Archive, Renew, Repeat (BLOCKED: `UPSTREAM_STAGES_BLOCKED`)",
+        "## Verification",
+        "## Owner decisions this matrix depends on (not decided here)"
+      ]
+    },
+    {
       "file": "docs/development/staging-readiness.md",
       "sha256": "2c10816f2a845c9d694573d1f7fe53d7a23a524e76a40c5658082e76a5486f32",
       "bytes": 12935,
@@ -6378,71 +6604,6 @@
       ]
     },
     {
-      "file": "docs/development/TAXGUARD_AI_MASTER_DEVELOPMENT_DIRECTIVE.md",
-      "sha256": "cfc15d425b949097420ffa695c5d0b65ce251b8eb0b4ed163b2859df8215e387",
-      "bytes": 4763,
-      "headings": [
-        "# TaxGuard AI master development directive",
-        "## Scope",
-        "## Project isolation",
-        "## Rules that never bend",
-        "## Identity and truthful claims",
-        "## Research sources",
-        "## Development workflow",
-        "## Current priorities"
-      ]
-    },
-    {
-      "file": "docs/development/TAXGUARD_FULL_FUNCTIONALITY_AUDIT.md",
-      "sha256": "f1657dce96a96267eeb0cc5cd775d3494877765fab275a2923b5046929548a07",
-      "bytes": 21905,
-      "headings": [
-        "# TaxGuard AI: full functionality audit (Block 101)",
-        "## How the audit was done",
-        "### Two environments, two answers",
-        "### Correction (Block 104)",
-        "## Headline findings",
-        "## Functionality matrix",
-        "### Public website",
-        "### Client portal",
-        "### Preparer, reviewer and practice manager workspaces",
-        "### Administration, security and AI",
-        "### Filing and payments",
-        "## Dependency register (what unblocks what)",
-        "## What this audit changes in the code",
-        "## Category A and B work identified (implementable now)"
-      ]
-    },
-    {
-      "file": "docs/development/TAXGUARD_MASTER_COMPLETION_PLAN.md",
-      "sha256": "2fbab0275e08c92b0e5b2fcbc52d90b4046ffad6d00cce9f2891e5e0dc96c46b",
-      "bytes": 11737,
-      "headings": [
-        "# TaxGuard AI master completion plan",
-        "## How status is assigned",
-        "## Repository facts (read from source, 2026-10-19)",
-        "## Workstream inventory",
-        "### Phase 14 and Phase 15 integration (Phase B)",
-        "### Core application (Phase C)",
-        "### Documents, communication, finance, AI, security (Phases D–G)",
-        "### Production readiness (Phases H–J)",
-        "## Next packages (independently executable, ordered by risk)"
-      ]
-    },
-    {
-      "file": "docs/development/TAXGUARD_MASTER_COMPLETION_STATUS.md",
-      "sha256": "a1ab0fb2cfe8a53824b683db54aae5fce876291f57e48c4a73bc712dcb884acc",
-      "bytes": 46508,
-      "headings": [
-        "# TaxGuard AI master completion status",
-        "## Cycle 1 (2026-10-19): Phase A audit and Phase B integration",
-        "### Verified (with evidence)",
-        "### In progress (not yet verified)",
-        "### Blocked (recorded, not worked around)",
-        "### Next priorities"
-      ]
-    },
-    {
       "file": "docs/development/unreachable-code-inventory.md",
       "sha256": "db7c4522d9c16f27b56f38dc7c6d7eb5b99c1b6421238f4cda9d07a204a729a4",
       "bytes": 20071,
@@ -6453,25 +6614,6 @@
         "## Findings that change recorded decisions",
         "## Removal proposal (owner decision; nothing deleted)",
         "## Appendix: unreachable modules"
-      ]
-    },
-    {
-      "file": "docs/DISASTER_RECOVERY.md",
-      "sha256": "126942161d3223f2a15eb53afb763fb727abb8defb1d24c734ae66d26a193e31",
-      "bytes": 6285,
-      "headings": [
-        "# TaxGuard AI — Disaster Recovery & Continuity Plan",
-        "## 1. Overview & Objectives",
-        "## 2. Infrastructure Incident Protocols",
-        "### 2.1 Relational Database Outage (PostgreSQL / Supabase)",
-        "### 2.2 Storage Outage (Encrypted Document Vault)",
-        "### 2.3 Application Server Crash / Outage (Render / Node.js)",
-        "### 2.4 Failed Deployment / Corrupted Build",
-        "### 2.5 Bad Database Migration",
-        "### 2.6 Background Worker Crash & Stale Leases",
-        "### 2.7 Job Backlog Congestion",
-        "## 3. External Integration Outage Protocols",
-        "## 4. Disaster Recovery Team Roles"
       ]
     },
     {
@@ -6501,751 +6643,675 @@
       ]
     },
     {
-      "file": "docs/PRODUCTION_DEPLOYMENT.md",
-      "sha256": "a928b95313beeb0f4c55d20376da3713b68decc86fb75d4b7c52ca282ef36a34",
-      "bytes": 4103,
-      "headings": [
-        "# TaxGuard AI — Production Deployment Runbook",
-        "## 1. Pre-Deployment Verification",
-        "### 1.1 Source Integrity Check",
-        "### 1.2 Migration Chain Review",
-        "### 1.3 Environment Contract Validation",
-        "## 2. Build & Packaging Procedure",
-        "## 3. Database Migration Execution",
-        "## 4. Production Service Deployment",
-        "## 5. Post-Deployment Verification Gate",
-        "### 5.1 Verification Checklist",
-        "## 6. Rollback Decision & Protocol",
-        "### Rollback Steps:"
-      ]
-    },
-    {
-      "file": "docs/PRODUCTION_SECURITY.md",
-      "sha256": "2784571bf0fdd6674cc3f3c9372dfcb0d35d3ddfa6c944210830275d87d4bc03",
-      "bytes": 5395,
-      "headings": [
-        "# TaxGuard AI — Production Security Architecture & Specification",
-        "## 1. Authentication & Session Management",
-        "## 2. Multi-Tenant Isolation & Row-Level Security (RLS)",
-        "## 3. Object-Level Authorization (IDOR / BOLA Prevention)",
-        "## 4. Secure Document Processing Pipeline",
-        "## 5. AI Reasoning & Governance Boundary (OpenAI)",
-        "## 6. Accounting Ledger & Write-Back Controls",
-        "## 7. Webhook & Payment Security (Stripe)",
-        "## 8. Logging, Error Handling & PII Redaction",
-        "## 9. Regulatory & Legal Hold Enforcement"
-      ]
-    },
-    {
       "file": "docs/proposed-migrations/20261012000000_taxguard_staff_session_assurance.sql",
       "sha256": "7c4a077ff30fb90c71e3731dc5e0dd195bc64974fc91c2b1cebf8e9dc3bbde51",
-      "bytes": 1263,
+      "bytes": 1235,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012010000_taxguard_staff_invitations.sql",
       "sha256": "c482a5719e9481a24ba3c43700cf80a8d6202f6ec1d05dbf2b35ef002f81f3b2",
-      "bytes": 2825,
+      "bytes": 2776,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012020000_taxguard_staff_acceptance.sql",
       "sha256": "0afd83a05fafc498780b8a36bc57a736dce97b2e9da639374c5eeef52c735269",
-      "bytes": 4253,
+      "bytes": 4192,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012030000_taxguard_staff_invitation_management.sql",
       "sha256": "b25cb872bd890f922d0a262953912aad158f30ccd28abf97f1ba8441a2f9fbc0",
-      "bytes": 4737,
+      "bytes": 4678,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012040000_taxguard_staff_membership_lifecycle.sql",
       "sha256": "e12fafb172622d0b2329239a677ade9168d4d0bf63400606b481c38da86b86a6",
-      "bytes": 4959,
+      "bytes": 4885,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012050000_taxguard_staff_access_directory.sql",
       "sha256": "5c70a7997162086f2e2818e66308377f09e50f5dece09cc50a67c1ca613862f2",
-      "bytes": 5968,
+      "bytes": 5869,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012060000_taxguard_atomic_client_identity.sql",
       "sha256": "6fc3f9f7f94faaf0edbcac38e1630499e1dbc2a323b9e536e6f3580a41847363",
-      "bytes": 18545,
+      "bytes": 18292,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012070000_taxguard_client_intake_drafts.sql",
       "sha256": "82996fd5ce158d4fd72422c929851014fb6f35c456eaa25358a5b53d6ae5dc3c",
-      "bytes": 15220,
+      "bytes": 15008,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012080000_taxguard_session_transactions.sql",
       "sha256": "9ccf1da2022e6b4ae82b1be846dd5edd2049c5b321ba924aa77e4d5a7ea35f05",
-      "bytes": 7018,
+      "bytes": 6915,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012090000_taxguard_client_profile_updates.sql",
       "sha256": "17748ef32286e0a0a28e2092b08c6c6de2c88072eb1dc6947a09ab5700916d93",
-      "bytes": 7017,
+      "bytes": 6937,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012100000_taxguard_mfa_recovery_requests.sql",
       "sha256": "caeab54c0d1452f01c59691012038526ef187994ec4f0088d349016721195086",
-      "bytes": 16081,
+      "bytes": 15907,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012110000_taxguard_mfa_recovery_directory.sql",
       "sha256": "05f0a62ef975a91f45745cb096512c126dfc32721b51eba4b71978abec7c94bc",
-      "bytes": 5871,
+      "bytes": 5806,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012230000_taxguard_session_management.sql",
       "sha256": "5669368336e07a8b0aed420a69429d2aff1f084fdceb3ff46917aa58d5d84f29",
-      "bytes": 12309,
+      "bytes": 12142,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012240000_taxguard_durable_ledger.sql",
       "sha256": "31cf9259ac5980e27bc780d268af1271a0f2a9e60197847753161a18741e5030",
-      "bytes": 68885,
+      "bytes": 68050,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012250000_taxguard_practice_management.sql",
       "sha256": "5e2cb940cfc8dcd3cb6f57132b3513ce449b376f36233020b43fea3b6e448ddd",
-      "bytes": 43908,
+      "bytes": 43402,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012260000_taxguard_case_workflow.sql",
       "sha256": "507aa879c96ee9b049afe9a4bc31ee6fa53a4e1a7d92118e4c9ad47fda711c74",
-      "bytes": 32717,
+      "bytes": 32355,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012270000_taxguard_document_vault.sql",
       "sha256": "ea14fb2d5840356a865c41840b0ecbbc85b5565825a165dacc541458426d4a98",
-      "bytes": 29098,
+      "bytes": 28770,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012280000_taxguard_billing.sql",
       "sha256": "f374f756a4a49915f9f6c49ede3d3294cc0a18ce10610b577c034074a14c8f6f",
-      "bytes": 34999,
+      "bytes": 34598,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012290000_taxguard_book_to_tax.sql",
       "sha256": "d46af054b3fc43da28ab7d63777ac2cd7b9768e0cbdd53d1f8fa1644e931be34",
-      "bytes": 33702,
+      "bytes": 33340,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012300000_taxguard_bookkeeper_workqueue.sql",
       "sha256": "616596e3f0f3a31727a92c20f36e48cc9cac2748699a86148a648eae3943371e",
-      "bytes": 4470,
+      "bytes": 4431,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql",
       "sha256": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
-      "bytes": 40293,
+      "bytes": 39806,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql",
       "sha256": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
-      "bytes": 11945,
+      "bytes": 11833,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql",
       "sha256": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
-      "bytes": 29294,
+      "bytes": 28923,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
       "sha256": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
-      "bytes": 48165,
+      "bytes": 47653,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql",
       "sha256": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
-      "bytes": 17981,
+      "bytes": 17749,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql",
       "sha256": "66d094bf951c57ba1ab22b15011660ebc3975038eac825a7234ae4d3587ce310",
-      "bytes": 17096,
+      "bytes": 16889,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql",
       "sha256": "192c371b3115f1d688ac648a621fac8f0273801ed77bc1888bd733d33f38f508",
-      "bytes": 6165,
+      "bytes": 6097,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261012380000_taxguard_tax_rule_coverage.sql",
       "sha256": "67fb1a439834f14e511ce0d5d6a770fe2e1a3a2c0e6395841a389d67e40d0104",
-      "bytes": 5354,
+      "bytes": 5288,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261013390000_taxguard_client_messaging.sql",
       "sha256": "4a25205d45b272e4f10d4b06c320d9cf0cedda1c9da2709c1a4dab0e077eadeb",
-      "bytes": 22842,
+      "bytes": 22551,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014400000_taxguard_appointments.sql",
       "sha256": "f83c63d714704af3c4eed2efac8048f5d28100a848ee116d0fa270ec041cceae",
-      "bytes": 31330,
+      "bytes": 30933,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014410000_taxguard_audit_center.sql",
       "sha256": "8cf40f767b71840957632cb0ae570f19d07e520061e3afe75c8f4a019fdb5ba1",
-      "bytes": 8982,
+      "bytes": 8873,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014420000_taxguard_legal_coordination.sql",
       "sha256": "f77b9ce1cbf2dc2fa6849b95af96ab1a81d59aad900175f277b6cd6f147dc09d",
-      "bytes": 25114,
+      "bytes": 24797,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014430000_taxguard_consultation_requests.sql",
       "sha256": "a1d44eeec7b12098b9209f507c90a77879e5c6f5b2b7833e3df3c6ec9af572a0",
-      "bytes": 20929,
+      "bytes": 20676,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014440000_taxguard_client_portal_reads.sql",
       "sha256": "55a0546a2f404234c80e2d32f58bf0a46622445fe92bf0ba5dd6fdf8aca786e8",
-      "bytes": 5323,
+      "bytes": 5267,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014450000_taxguard_reassignment_requests.sql",
       "sha256": "375e06c14ab55f59c65cf5581514c2a07dae868bee2ba258799dd013e01e1601",
-      "bytes": 13044,
+      "bytes": 12876,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014460000_taxguard_audit_security_view.sql",
       "sha256": "03764d6e417a9da28b4218a6b94a8fd64afbb6b6138e95e68d7715d60c713b93",
-      "bytes": 4476,
+      "bytes": 4423,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014470000_taxguard_billing_client_projection.sql",
       "sha256": "fd9dc9e6372c5bbfb6cee648f84881993af987f6b4b99bcf1b96a495856ff5e9",
-      "bytes": 8507,
+      "bytes": 8415,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014480000_taxguard_security_events.sql",
       "sha256": "a712964ecd311b10b8f43569bad65289a8ae7a841e611682171f394a38825209",
-      "bytes": 10365,
+      "bytes": 10246,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014490000_taxguard_data_api_lockdown.sql",
       "sha256": "10e2144dfb7a56e1b4bae28a5d755a5f9f9472ad0da91b78a9b304b4bc932290",
-      "bytes": 4928,
+      "bytes": 4863,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261014500000_taxguard_document_scan_requests.sql",
       "sha256": "ccf679c42fefbfdb3d91a6b3275e689227cc4a7121d1ebd768c6054fccb0cfa3",
-      "bytes": 8948,
+      "bytes": 8833,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015000000_taxguard_security_event_outbox.sql",
       "sha256": "5dae223342815e934bf6c1a3fd1947e2f297518e0bfec867fc8d763ee8b63394",
-      "bytes": 9024,
+      "bytes": 8924,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015010000_taxguard_billing_pages.sql",
       "sha256": "476ac22518ac6ba8b537ca926cbccec9b3a5e0090b244b98a42e9381b0cde978",
-      "bytes": 3082,
+      "bytes": 3050,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015020000_taxguard_collection_questionnaires.sql",
       "sha256": "18f22efe61db9dc99150ece54f9c066b9d175bd13a6c2fbbf4cd78ce17a476e2",
-      "bytes": 15552,
+      "bytes": 15432,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015030000_taxguard_collection_requests.sql",
       "sha256": "d62bda3e7b8ca5e9eb6f0189453eccb0dca42c9fd0a94cf6e76f8911b36d2984",
-      "bytes": 8817,
+      "bytes": 8747,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015030851_taxguard_document_client_confidentiality.sql",
       "sha256": "6a3b838d8b075cafa072399779ecbeed6789ef4013f26fab51525e01b946c36d",
-      "bytes": 6428,
+      "bytes": 6348,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015040000_taxguard_mfa_lifecycle_canonical.sql",
       "sha256": "f049d6fa3f04dc4d00a484fe6ce193e036fddedcbd5e66017bbf30a7ba9cf4b8",
-      "bytes": 2059,
+      "bytes": 2037,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015050000_taxguard_document_scan_jobs.sql",
       "sha256": "3adc1a2b663c26c15ac8eac96685bb82c6ca721895f3d91b794321025fb20eb7",
-      "bytes": 5598,
+      "bytes": 5543,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015060000_taxguard_audit_custody_overlay.sql",
       "sha256": "861fb4254bbb0f30b9bd00044ea6023c30a00279caf8d1377b507d2362fac46c",
-      "bytes": 6661,
+      "bytes": 6580,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261015070000_taxguard_billing_access_overlay.sql",
       "sha256": "b01be3c7a49f6e55f7a98c0d5ea9ea10a592487caf3d3ee8d1cb2888aed1e8a8",
-      "bytes": 5039,
+      "bytes": 4987,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261016000000_taxguard_portal_case_stages.sql",
       "sha256": "6978fcb35b55de43fea9f89b183c76ff3add8ce94abd76f72b149f3e796efbd8",
-      "bytes": 6324,
+      "bytes": 6257,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261016010000_taxguard_portal_consultations.sql",
       "sha256": "1a662df6d1fdba046dd513eb119770dea44d6c706d7b3569adeffdda709de8a5",
-      "bytes": 3999,
+      "bytes": 3951,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261016020000_taxguard_staff_onboarding_status.sql",
       "sha256": "53b6d07f9497ac6e0e2813b42bccbbf4cd97aadad314849362f029699f282007",
-      "bytes": 3379,
+      "bytes": 3338,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261016030000_taxguard_appointment_rooms.sql",
       "sha256": "69809d805f04def2ba177842e579f7d937f91ef0337b4df29ebb9bb8bea395ec",
-      "bytes": 9851,
+      "bytes": 9736,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261016040000_taxguard_notification_preferences.sql",
       "sha256": "38bd830bd3e69f684532d29d7f82bc4919221e64645d1ec46051b882b7830699",
-      "bytes": 9649,
+      "bytes": 9531,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql",
       "sha256": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
-      "bytes": 9996,
+      "bytes": 9864,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261017000000_taxguard_membership_session_proof.sql",
       "sha256": "5ec6dd644c6a35f96795855431e8a88ab9097360b093a423f998d3df27ebe868",
-      "bytes": 4714,
+      "bytes": 4655,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018000000_taxguard_case_validate_replacement_evidence.sql",
       "sha256": "70cae21a66ee77bab855b9ae8d4c60b985f70f4785c267d875a4b9f6d7207776",
-      "bytes": 3176,
+      "bytes": 3141,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018010000_taxguard_billing_refund_records.sql",
       "sha256": "1ab7f87708517728447be53daf6bcfe373704d63d86b70f20eea74deef6ff4ee",
-      "bytes": 6396,
+      "bytes": 6321,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018020000_taxguard_client_id_sequence_initialize.sql",
       "sha256": "13501313f224d840f8204357d47ff5a5a6ece78b27a02ad2dd48b334e7a551cd",
-      "bytes": 2074,
+      "bytes": 2044,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018030000_taxguard_client_onboarding.sql",
       "sha256": "03929e4ebdfa7240b67043eb0478d0678bd5339bf7c3fcc8423314d4351a9347",
-      "bytes": 30339,
+      "bytes": 29987,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018040000_taxguard_billing_transition_audit.sql",
       "sha256": "6ae0c34b36a2efe17fed537b8026a1693cbf94a2251a1ce2cbc48d70a9ae0a84",
-      "bytes": 5091,
+      "bytes": 5034,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018050000_taxguard_case_workpaper_evidence.sql",
       "sha256": "4f7259155265d9e08558ef7d01e2aafccdfb63edd3d6a420bd2c31eb7265ffdf",
-      "bytes": 3912,
+      "bytes": 3869,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018060000_taxguard_engagement_scoped_access.sql",
       "sha256": "eaf770b74db8d57304995185127e8938048e5566a58242d8255b4395691d5132",
-      "bytes": 21784,
+      "bytes": 21551,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018070000_taxguard_ledger_year_scope.sql",
       "sha256": "79b95bbe709418a6228c3e591fcc70067a2ff481f3ad9cda86048368457d36c3",
-      "bytes": 53580,
+      "bytes": 53042,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018080000_taxguard_document_request_scope.sql",
       "sha256": "90c0d56bd08da7e2f0563d8cee8a673506a6ae810026a50c89692c04629590f3",
-      "bytes": 20210,
+      "bytes": 20011,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018090000_taxguard_case_assignment_liveness.sql",
       "sha256": "a089345f7d80254a3b05f8da7205c74f973ae4d02e716f30c99be1ad558534fc",
-      "bytes": 20118,
+      "bytes": 19925,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018100000_taxguard_practice_client_scope.sql",
       "sha256": "79a3b7c4b26a7df36cf51ec7fae06c4634db9b1611e08542b97dbb051c30e2f2",
-      "bytes": 22887,
+      "bytes": 22658,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018105000_taxguard_case_restaff.sql",
       "sha256": "bbdf927c8f47db44ebbd49317fc2f907004882a8a233e5478fc27f87ec1e724b",
-      "bytes": 6188,
+      "bytes": 6125,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018110000_taxguard_financial_reporting.sql",
       "sha256": "3c61b709074f434cfdb75a46b77cb52b4c414b268ee506bc78cd4172ea084ffb",
-      "bytes": 4010,
+      "bytes": 3958,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018120000_taxguard_report_cent_transport.sql",
       "sha256": "06490e4f5adb47834b4c390c528b288096d9a0071b8ba97c80551ec3bb757185",
-      "bytes": 2349,
+      "bytes": 2324,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018130000_taxguard_ledger_report_year_guard.sql",
       "sha256": "8d34fc2c56ba93c0a362608f4647b5e580d4e2d00e7ff6d1a949f0070981368f",
-      "bytes": 4725,
+      "bytes": 4666,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018140000_taxguard_ai_agent_evaluation.sql",
       "sha256": "380cf9253a5865d6c046d14bf19cab81c8668cdaa2a8e7b1f8adccb309e05e7e",
-      "bytes": 10975,
+      "bytes": 10809,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018150000_taxguard_tax_research.sql",
       "sha256": "1b5a08a8de616749bbbfa39c6fa75d88c0974f10cd30685bc472e66b63a0ff8b",
-      "bytes": 15743,
+      "bytes": 15542,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018160000_taxguard_return_diagnostics.sql",
       "sha256": "d9f4b2299809d9bc37c19ccd3bbc5a89c5b97e8322ea37c191edd9e832cf1d60",
-      "bytes": 16743,
+      "bytes": 16536,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018170000_taxguard_risk_materiality.sql",
       "sha256": "03de3f05694be8a39e7d04cc3f55de803cc2d45f985421788a6f379fb5cd2cd0",
-      "bytes": 10220,
+      "bytes": 10079,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018180000_taxguard_case_validate_extraction_evidence.sql",
       "sha256": "fc948b7fa5c610d6af9cafa62e326bcc2d0b0fbae0a1ec31b48d1d58cc72f53e",
-      "bytes": 7483,
+      "bytes": 7405,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261018190000_taxguard_tax_calc_input_lineage.sql",
       "sha256": "0867b12a58af92fded4b3913c8fa62dbc85e8ab03180791bc5f3e1b33fc755e4",
-      "bytes": 17754,
+      "bytes": 17564,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019000000_taxguard_invoice_idempotency.sql",
       "sha256": "f177127a3fecfefe609401e129aca139baed8d10bcb56cf5f4235b1986f6e648",
-      "bytes": 3155,
+      "bytes": 3114,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019010000_taxguard_adjustment_idempotency.sql",
       "sha256": "0d5764f100fca5927026374ee470d45de4a0254fd564fdf83b9358c3a29cce8a",
-      "bytes": 3937,
+      "bytes": 3886,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019020000_taxguard_refund_idempotency.sql",
       "sha256": "be8aebf26decc7a40b83f46722a8a77089cec613f2e47237f09e12c55fe48d10",
-      "bytes": 8525,
+      "bytes": 8428,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019030000_taxguard_billing_write_retries.sql",
       "sha256": "15c5b11b506dbbff85fcc827a5f7125d8d9a90d8e8c9f98308d23d296fb56970",
-      "bytes": 6951,
+      "bytes": 6875,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019040000_taxguard_ledger_write_retries.sql",
       "sha256": "ca382a2ea21ad636fcbb6d22c07201e4cb3071fa9286f09cbfb34aab316f78cc",
-      "bytes": 3453,
+      "bytes": 3416,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019050000_taxguard_line_removal_retries.sql",
       "sha256": "f60feabd1f5079e8cd7a7374097828928442513aad41deca138adfd9567f9da2",
-      "bytes": 3849,
+      "bytes": 3806,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019060000_taxguard_catalog_concurrency.sql",
       "sha256": "6aad8f03124633646d45f5dfcf2018d36a4452c41f0828ed117088d690b71de0",
-      "bytes": 1737,
+      "bytes": 1719,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019080000_taxguard_ledger_replay_year_scope.sql",
       "sha256": "5482ae6bbbef7078377217832c1b12a2155bb89fe7795f28d878d3f8ad61e26a",
-      "bytes": 7555,
+      "bytes": 7458,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019090000_taxguard_onboarding_authority_after_wait.sql",
       "sha256": "e9ce3623936e487b2bd1218225d2bb1b172941448e10d7f6f5de04e1dda11ef9",
-      "bytes": 12805,
+      "bytes": 12670,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019100000_taxguard_tax_conclusions.sql",
       "sha256": "0d5d4fbb2cb1ed4e3109d49dd50009b9cb4e23c896437a614c9b68818fb5b066",
-      "bytes": 39200,
+      "bytes": 38741,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019110000_taxguard_tax_form_mapping.sql",
       "sha256": "a057a6c26c592668f9311a01e90e1b37b54ca0ab1524dec170898aee0ad43542",
-      "bytes": 37715,
+      "bytes": 37243,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019115000_taxguard_tax_approval_authority.sql",
       "sha256": "0a53351cdd3a38b235ef2fd463047cdf529806f3350983e04929b6a57cdfbf54",
-      "bytes": 11755,
+      "bytes": 11597,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019120000_taxguard_tax_returns.sql",
       "sha256": "e6f13206e1821e6b59ec8a1c101f25cb63d3fe24ace5abba5ec195c5c431c53f",
-      "bytes": 40063,
+      "bytes": 39570,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019130000_taxguard_form_rule_approval_authority.sql",
       "sha256": "700f9aadebf0bab24bb606bf08d03c854676ffdc9df3dda86cd81e4156b438e3",
-      "bytes": 8234,
+      "bytes": 8145,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019140000_taxguard_tax_return_verification.sql",
       "sha256": "40bf768636afef9312640e50582f2a7924ae04c7b22daf48372256523a10ff18",
-      "bytes": 18556,
+      "bytes": 18342,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019150000_taxguard_return_level_diagnostics.sql",
       "sha256": "00e6eae068282f0c86f7920141b0cdc64df2057e1565128f78067a09b17badf2",
-      "bytes": 11838,
+      "bytes": 11713,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019160000_taxguard_return_risk_assessment.sql",
       "sha256": "315ab14ac93953e32d19bdc2e3a3d644ebcc4c9d5e46297a0026024df684f294",
-      "bytes": 14619,
+      "bytes": 14436,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019170000_taxguard_return_quality_control.sql",
       "sha256": "5951b40d4e7b00d61aaf592552f20e376b4961a61433bbc3e79d4d650aab24df",
-      "bytes": 27498,
+      "bytes": 27167,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019180000_taxguard_return_final_authorization.sql",
       "sha256": "b090a5debf56f5fa4f3eeea8636ceb76d16fa90f23ad60d9b2b50f5c2a901326",
-      "bytes": 33813,
+      "bytes": 33419,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019190000_taxguard_return_signature_package.sql",
       "sha256": "d2b27d45720e01fcea2824023c9dca591c8c59aa12f7622cb420140de878289b",
-      "bytes": 24461,
+      "bytes": 24168,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019200000_taxguard_return_comparison.sql",
       "sha256": "26cfb96df32709578414cac8ee153e868f79cf1c8bfd4bcaba4acac8071a1c91",
-      "bytes": 10894,
+      "bytes": 10763,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019210000_taxguard_return_review_queue.sql",
       "sha256": "7aae9c89f227359a491ec907a188a802ccf6f2de24fcade2de8b531c7731e014",
-      "bytes": 3239,
+      "bytes": 3202,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019220000_taxguard_tax_run_liveness.sql",
       "sha256": "e30b7f3bddd3b2dbb01d4ed79afe0caba3d01425aac1e7d11b3ff5323ca4562c",
-      "bytes": 7584,
+      "bytes": 7503,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019230000_taxguard_staff_client_scope.sql",
       "sha256": "81672896f24ce6779e3eedf6d24b029256901398772ee0cb8b32629992a5c564",
-      "bytes": 16711,
+      "bytes": 16542,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019231000_taxguard_signature_package_staff_scope.sql",
       "sha256": "1e3173ceba171d9f60cc19854b1f69e5655f52a84f32c857b50a93943a64e508",
-      "bytes": 2437,
+      "bytes": 2408,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019240000_taxguard_durable_job_queue.sql",
       "sha256": "14b9bec92acedda4c6b2877d64bfd2137415be345e40209e6d8e2acdfa66a641",
-      "bytes": 23373,
+      "bytes": 23082,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019250000_taxguard_task_reassignment_workload.sql",
       "sha256": "5e44b2b17c7890b4c134411c555ca9a15e05c0a5096de0e111ff686dbe338858",
-      "bytes": 8096,
+      "bytes": 8004,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019260000_taxguard_deadline_escalation.sql",
       "sha256": "f369ce446715453b2fa6c2969b3ca2ae498779c5cdd667c9d55a7d84ffca48df",
-      "bytes": 5153,
+      "bytes": 5096,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019270000_taxguard_staff_notifications.sql",
       "sha256": "5726c663aa6512f600602ce2488f39b669ba4524356fb37287774eb91197b4ba",
-      "bytes": 14684,
+      "bytes": 14510,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019280000_taxguard_practice_search.sql",
       "sha256": "22eb6aa70ce9fd7300fa9d7309bb36d9a0a3b224fc0b1e465ca00dcaeeb2cde7",
-      "bytes": 4587,
+      "bytes": 4530,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/20261019290000_taxguard_summary_active_clients.sql",
       "sha256": "a3658567fe0424d20042477d682592959bb7a24c0e59c287581783d58e729cfe",
-      "bytes": 6489,
+      "bytes": 6430,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/rollback/20261014470000_taxguard_billing_client_projection.rollback.sql",
       "sha256": "2847cea1e7e1c6dc3856875e27174564aa99dab0942afbcaa280c3be4bc3bc64",
-      "bytes": 4253,
+      "bytes": 4201,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/rollback/20261014480000_taxguard_security_events.rollback.sql",
       "sha256": "c185a7badcd5788a82bff38fd80256bae05ee38393f53415108faf2fffff7998",
-      "bytes": 1838,
+      "bytes": 1818,
       "headings": []
     },
     {
       "file": "docs/proposed-migrations/rollback/20261014500000_taxguard_document_scan_requests.rollback.sql",
       "sha256": "f1e784b2b89d5cc362b37587fa3b81e0367036f344aa158c2ee4932d0f1a971f",
-      "bytes": 710,
+      "bytes": 701,
       "headings": []
-    },
-    {
-      "file": "docs/PROVIDER_COMMISSIONING.md",
-      "sha256": "0563071c9d7990daeb23f232df344e1ef8665e2330f0f8aa82e9483e5f863860",
-      "bytes": 4130,
-      "headings": [
-        "# TaxGuard AI — External Provider Commissioning Guide",
-        "## 1. Provider Status Matrix",
-        "## 2. Commissioning Step-by-Step",
-        "### 2.1 Supabase Relational Database & Authentication",
-        "### 2.2 OpenAI Advisory Intelligence",
-        "### 2.3 Stripe Payments",
-        "### 2.4 Accounting Integrations (QuickBooks & Xero)",
-        "### 2.5 Stage 11 E-Signature & Stage 12 IRS Filing"
-      ]
-    },
-    {
-      "file": "docs/README.md",
-      "sha256": "a3d118fa33eff53b8b23bb25ae5006d82d9efe55dea2bc99436afb8d8e4d9590",
-      "bytes": 2102,
-      "headings": [
-        "# TaxGuard architecture index",
-        "# Master directive remaining dependencies"
-      ]
-    },
-    {
-      "file": "docs/RELEASE_CHECKLIST.md",
-      "sha256": "0ae49af3b6ffbf1ebe140dd0551a9bff19935c18cefcbe8aba56f657e6fa58bd",
-      "bytes": 5287,
-      "headings": [
-        "# TaxGuard AI — Master Production Release Gate Checklist",
-        "## 1. Source and repository",
-        "## 2. Database and migrations",
-        "## 3. Environment and configuration",
-        "## 4. Automated verification for the release commit",
-        "## 5. Security and isolation",
-        "## 6. Professional, legal and policy approvals",
-        "## 7. Operations",
-        "## 8. Human Release Authorization Sign-Off"
-      ]
     },
     {
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "sha256": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
-      "bytes": 762,
+      "bytes": 746,
       "headings": []
     },
     {
@@ -8094,89 +8160,87 @@
       ]
     },
     {
-      "file": "docs/THIRD_PARTY_AI_NOTICES.md",
-      "sha256": "f6964f3b51c5f1548ff5f54ccb8c06489461136723ff3dab2528e6edfd4f2a16",
-      "bytes": 1174,
-      "headings": [
-        "# Third-party AI notices"
-      ]
-    },
-    {
       "file": "supabase/migrations/20260928000000_taxguard_core_schema.sql",
       "sha256": "168f9766b3afa275bd05a30a64318c5b18c4f863083a247b2f121003a33329eb",
-      "bytes": 24018,
+      "bytes": 23528,
       "headings": []
     },
     {
       "file": "supabase/migrations/20260929000000_taxguard_complete_lifecycle_schema.sql",
       "sha256": "4f944bfcef459770c2b3a6d788d378139f74e6b1dd65660271d4089f0940157f",
-      "bytes": 20185,
+      "bytes": 19779,
       "headings": []
     },
     {
       "file": "supabase/migrations/20260930000000_taxguard_bookkeeping_schema.sql",
       "sha256": "4a712a7d611ba2202af6ffa1a1d535e3c92bac0c0d4205e5ce2353cac92d6128",
-      "bytes": 13751,
+      "bytes": 13472,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261001000000_taxguard_practice_operations_schema.sql",
       "sha256": "a6527231f32396c03402531359fd1e8dbd9d635a18b34122c8e1eb273f62e299",
-      "bytes": 20718,
+      "bytes": 20292,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql",
       "sha256": "543db1932c60fa8dfb60e63a5b8b8c237f0b4712d0fb3e6ea8ffc603f9608ab7",
-      "bytes": 10237,
+      "bytes": 9990,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261004000000_taxguard_private_storage_client_scope.sql",
       "sha256": "90780bf578434c53288f7849120e9855884174f1f71419646b4c570048caaa8b",
-      "bytes": 5766,
+      "bytes": 5578,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008000000_taxguard_ai_registry_foundation.sql",
       "sha256": "b3bb51afa024f476a4cf0e878903f486e003b16a7dd5100692804fb66c9f725b",
-      "bytes": 56978,
+      "bytes": 56480,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008010000_taxguard_ai_governance_decisions.sql",
       "sha256": "2e590660fd13c165151cecd66219d847176b33ab4f716f60910b39a3cac8ac9f",
-      "bytes": 2659,
+      "bytes": 2629,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008020000_taxguard_ai_orchestration_history.sql",
       "sha256": "32d8730396806e999fadcb56f849c312967c30d5b61a99111ccc02fd860cf965",
-      "bytes": 6436,
+      "bytes": 6356,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008030000_taxguard_ai_gateway_admission.sql",
       "sha256": "a901ea2c5e2121d86d24c70ec67b0a61ddd13498246612aab415314f56949172",
-      "bytes": 10113,
+      "bytes": 10000,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008040000_taxguard_ai_capability_execution.sql",
       "sha256": "1e18fec249898388a6a78c8ef44ff5488521ca708b9b5b422e8226fbbec77ac6",
-      "bytes": 9672,
+      "bytes": 9571,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008050000_taxguard_ai_execution_ledger.sql",
       "sha256": "40d1d79e86d987dd91f19ad5426ab1f7f7b5bdda8ef5b024f9b2f71f636c0e6c",
-      "bytes": 12748,
+      "bytes": 12623,
       "headings": []
     },
     {
       "file": "supabase/migrations/20261008060000_taxguard_ai_document_advisory_routing.sql",
       "sha256": "c0c0ef4caf1c575b71323c2db1fd805a1facecb2f2d7a3fabb6a88c30fc23016",
-      "bytes": 399,
+      "bytes": 393,
+      "headings": []
+    },
+    {
+      "file": "supabase/migrations/20261122120000_ai_workforce_jobs_and_decisions.sql",
+      "sha256": "7582783d335ada6515646b78ab6d3afc93a427a567b1fe48c31078e22687dd7f",
+      "bytes": 4734,
       "headings": []
     }
   ],
@@ -8286,7 +8350,7 @@
     "src/server/config/stagingEnvironmentValidator.ts": "9baad032d5b0f3d0ee51688e4d5956d3b6c78d122e1a3ff966fb2d720a1796bd",
     "src/server/legacyRouteBoundary.ts": "b1765b6cd0888721b8e8e0a4e2a52517a8532be52ba4e64c3dda9ee8876fe3f5",
     "src/server/observability/health.ts": "6b6b3d43dfc672f7c5584cab0dbd4cf772e1a7d0543f2d30932b044d6bc82e60",
-    "src/server/productionApp.ts": "1bf60a288bcb556befad1cbae535bde09da1ed36537cdd780b956c303cc05d03",
+    "src/server/productionApp.ts": "a1032678bc165acaa59b1ea58922c4f5c25f3be5defb4278590a6bb6464a23cc",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
     "src/server/routes/profile-amendment.routes.ts": "683d6fe4c0f618a89f0cf3ea36a53f1f35bb9c8b05f037f18ec02e5f33c63514",
@@ -8409,7 +8473,7 @@
     "src/tests/mfaRecoveryCompletion.test.ts": "12f71a0d61cb5138c8ba06692c845f53f472bb98949c77a83536b402cc253169",
     "src/tests/mfaRecoveryHistory.test.ts": "61e7e30f2402f8d96ef0528146467fcbf38b64d2a2173a31aa73aad1b79dd836",
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
-    "src/tests/migrationReadinessAudit.test.ts": "f16d875e253293afecfdd36f2ae3adf6c7ed3ab7b79e21b26934a1a6c43adbc9",
+    "src/tests/migrationReadinessAudit.test.ts": "166b79d28460fee15b12df6aa564ad4521deb09a1caada40d8926632d83896a6",
     "src/tests/notificationPreferences.test.ts": "e72b02069574eb53f116eeed551a22437327782ae6f2ea6c1f7f0ae34128d589",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
@@ -8447,7 +8511,7 @@
     "src/tests/stageGateBridgeBoolean.test.ts": "e3230599f6bda0315bc326609a2739155237dbbb77a5c402c138d94b938192a4",
     "src/tests/stageGateUnknownEvidence.test.ts": "48f8f2a99b3fa10ead7ae6f03abbe19f2d867579843576ca851b9aa865705c7e",
     "src/tests/stageTwoProductionVerification.test.ts": "22977703d47ee1bdf482196376bbd6b656d5547e8bb21b5b99deaf2875d99ab2",
-    "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "a0eb05b53a2979423564bb7d983f33462a5c9861cfb6482029d6f5e763c1cff5",
+    "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "778069ef7c287dfae1d001af051ab9b9d3c5a5dcbc15f2cfc4ee60c173772f45",
     "src/tests/stagingAcceptanceCoverage.test.ts": "259cbfeab328766bd3e43919a7ddec83b6ac1b03ae9087befcbc32e866374368",
     "src/tests/stagingConfiguration.test.ts": "d337febae5b1d4e85a129fae45688acc3ba5344764c975e7eb2a79072c8ea5b0",
     "src/tests/stagingEnvironmentValidator.test.ts": "340fc4908b74616f46cf948f099b631e4d5b9626f76b97672a4be67e260a83e4",
