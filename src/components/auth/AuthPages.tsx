@@ -21,6 +21,8 @@ import {
   Lock,
   Mail,
   Key,
+  Eye,
+  EyeOff,
   Fingerprint,
   UserCheck,
   ShieldCheck,
@@ -30,6 +32,8 @@ import {
   RefreshCw,
   Loader2
 } from 'lucide-react';
+import { ClientPortalLoginLayout } from './client-portal/ClientPortalLoginLayout';
+import { ClientPortalTrustIndicators } from './client-portal/ClientPortalTrustIndicators';
 
 const REGISTRATION_STATE_LABELS: Record<RegistrationResultState, string> = {
   IDLE: 'Ready to Register',
@@ -81,6 +85,7 @@ export const ClientLoginPage: React.FC = () => {
   // Client sign-in challenge (C2): shown when the account has a verified authenticator.
   const [mfaStep, setMfaStep] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Forgot Password State
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
@@ -159,28 +164,44 @@ export const ClientLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 text-slate-100 space-y-8">
-      <div className="text-center space-y-3 flex flex-col items-center">
-        <BrandLogo variant="emblem" size="lg" />
-        <h1 className="font-serif text-3xl font-extrabold text-white">
-          {isForgotPasswordMode ? 'Reset Password' : 'Client Portal Login'}
-        </h1>
-        <p className="text-xs text-slate-300">
-          {isForgotPasswordMode
-            ? 'Enter your registered email address to receive an authorized password recovery link.'
-            : 'Access your encrypted tax documents, live return status, and CPA messages.'}
-        </p>
-      </div>
+    <ClientPortalLoginLayout>
+      {/* Right Section: Enterprise Client Authentication Panel (static, zero form animations) */}
+      <div className="relative overflow-hidden rounded-2xl border border-[rgba(212,168,67,0.28)] bg-gradient-to-b from-[#0D2745] to-[#081C33] p-6 sm:p-8 shadow-[0_24px_64px_rgba(2,10,20,0.68)] space-y-6">
+        {/* Subtle Champagne-Gold Architectural Top Accent */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4A843] to-transparent opacity-85"
+        />
 
-      <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
+        {/* Brand Identity & Portal Heading */}
+        <div className="flex flex-col items-center text-center space-y-3">
+          <BrandLogo variant="emblem" size="lg" />
+          <div className="space-y-1.5">
+            <h1 className="font-serif text-2xl sm:text-[1.75rem] font-extrabold tracking-tight text-white">
+              {isForgotPasswordMode ? 'Reset Password' : 'Client Portal Login'}
+            </h1>
+            {!isForgotPasswordMode && (
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#D4A843]">
+                Your Financial Information. Your Secure Digital Gateway.
+              </p>
+            )}
+            <p className="text-xs leading-relaxed text-slate-300 max-w-sm mx-auto">
+              {isForgotPasswordMode
+                ? 'Enter your registered email address to receive an authorized password recovery link.'
+                : 'Access your encrypted tax documents, live return status, and CPA messages.'}
+            </p>
+          </div>
+        </div>
+
         <AuthConfigurationNotice />
+
         {error && (
           <div
             role="alert"
             className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs space-y-2"
           >
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div className="space-y-1">
                 <span>{error}</span>
                 {errorCode && (
@@ -196,7 +217,7 @@ export const ClientLoginPage: React.FC = () => {
                   type="button"
                   onClick={handleResendVerification}
                   disabled={resendingVerification}
-                  className="px-3 py-1.5 rounded-lg bg-[#D4A843] text-[#071A2E] font-bold text-[11px] hover:bg-[#E1BB60] transition-colors disabled:opacity-50"
+                  className="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-[#D4A843] text-[#071A2E] font-bold text-[11px] hover:bg-[#E1BB60] transition-colors disabled:opacity-50"
                 >
                   {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
                 </button>
@@ -206,15 +227,21 @@ export const ClientLoginPage: React.FC = () => {
         )}
 
         {resendNotice && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <div
+            role="status"
+            className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5"
+          >
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             <span>{resendNotice}</span>
           </div>
         )}
 
         {resetSuccess && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <div
+            role="status"
+            className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5"
+          >
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             <span>{resetSuccess}</span>
           </div>
         )}
@@ -222,27 +249,37 @@ export const ClientLoginPage: React.FC = () => {
         {isForgotPasswordMode ? (
           <form onSubmit={handlePasswordResetSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-1`}>Registered Account Email</label>
+              <label
+                className="block text-slate-200 font-semibold mb-1.5 tracking-wide"
+                htmlFor={`${fieldPrefix}-auth-1`}
+              >
+                Registered Account Email
+              </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input id={`${fieldPrefix}-auth-1`}
+                <Mail
+                  className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  aria-hidden="true"
+                />
+                <input
+                  id={`${fieldPrefix}-auth-1`}
                   type="email"
+                  autoComplete="email"
                   required
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                  className="w-full min-h-[46px] bg-[#06182B] border border-[rgba(148,163,184,0.24)] rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#D4A843] focus:ring-1 focus:ring-[#D4A843]/40"
                 />
               </div>
             </div>
 
-            <div className="pt-2 space-y-2">
+            <div className="pt-1 space-y-2.5">
               <button
                 type="submit"
                 disabled={resetLoading || !isSupabaseConfigured()}
-                className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                className="w-full min-h-[48px] py-3 px-4 rounded-xl font-bold text-sm text-[#06182B] bg-gradient-to-r from-[#C99A3D] via-[#D4A843] to-[#E1BB60] hover:brightness-105 transition-colors flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(212,168,67,0.28)] disabled:opacity-50"
               >
-                <Mail className="w-4 h-4" />
+                <Mail className="w-4 h-4" aria-hidden="true" />
                 {resetLoading ? 'Dispatching Reset Link...' : 'Send Password Reset Email'}
               </button>
 
@@ -254,9 +291,9 @@ export const ClientLoginPage: React.FC = () => {
                   setErrorCode(null);
                   setResetSuccess(null);
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#071A2E] hover:bg-[#132E52] border border-[rgba(148,163,184,0.18)] text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#06182B] hover:bg-[#102D4F] border border-[rgba(148,163,184,0.22)] text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                 Back to Sign In
               </button>
             </div>
@@ -265,22 +302,38 @@ export const ClientLoginPage: React.FC = () => {
           <>
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-2`}>Email Address</label>
+                <label
+                  className="block text-slate-200 font-semibold mb-1.5 tracking-wide"
+                  htmlFor={`${fieldPrefix}-auth-2`}
+                >
+                  Email Address
+                </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input id={`${fieldPrefix}-auth-2`}
+                  <Mail
+                    className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                  <input
+                    id={`${fieldPrefix}-auth-2`}
                     type="email"
+                    autoComplete="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                    placeholder="name@example.com"
+                    className="w-full min-h-[46px] bg-[#06182B] border border-[rgba(148,163,184,0.24)] rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#D4A843] focus:ring-1 focus:ring-[#D4A843]/40"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-300 font-semibold" htmlFor={`${fieldPrefix}-auth-3`}>Password</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    className="text-slate-200 font-semibold tracking-wide"
+                    htmlFor={`${fieldPrefix}-auth-3`}
+                  >
+                    Password
+                  </label>
                   <button
                     type="button"
                     onClick={() => {
@@ -290,28 +343,58 @@ export const ClientLoginPage: React.FC = () => {
                       setErrorCode(null);
                       setResetSuccess(null);
                     }}
-                    className="text-[11px] text-[#D4A843] hover:underline"
+                    className="text-[11px] font-medium text-[#E1BB60] hover:text-[#F3D283] hover:underline"
                   >
                     Forgot Password?
                   </button>
                 </div>
                 <div className="relative">
-                  <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input id={`${fieldPrefix}-auth-3`}
-                    type="password"
+                  <Key
+                    className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                  <input
+                    id={`${fieldPrefix}-auth-3`}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                    className="w-full min-h-[46px] bg-[#06182B] border border-[rgba(148,163,184,0.24)] rounded-xl pl-10 pr-11 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#D4A843] focus:ring-1 focus:ring-[#D4A843]/40"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-4 h-4" aria-hidden="true" />
+                    )}
+                  </button>
                 </div>
               </div>
 
               {mfaStep && (
-                <div className="space-y-1" role="group" aria-labelledby={`${fieldPrefix}-mfa-legend`}>
-                  <p id={`${fieldPrefix}-mfa-legend`} role="status" className="text-slate-300">Your account is protected by an authenticator. Enter the 6-digit code from your app to finish signing in.</p>
-                  <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-mfa`}>Authenticator code</label>
-                  <input id={`${fieldPrefix}-auth-mfa`}
+                <div
+                  className="space-y-2 rounded-xl border border-[rgba(212,168,67,0.34)] bg-[#06182B]/90 p-4"
+                  role="group"
+                  aria-labelledby={`${fieldPrefix}-mfa-legend`}
+                >
+                  <p id={`${fieldPrefix}-mfa-legend`} role="status" className="text-slate-200 leading-relaxed">
+                    Your account is protected by an authenticator. Enter the 6-digit code from your app to finish signing in.
+                  </p>
+                  <label
+                    className="block text-slate-200 font-semibold"
+                    htmlFor={`${fieldPrefix}-auth-mfa`}
+                  >
+                    Authenticator code
+                  </label>
+                  <input
+                    id={`${fieldPrefix}-auth-mfa`}
                     required
                     autoFocus
                     inputMode="numeric"
@@ -320,47 +403,60 @@ export const ClientLoginPage: React.FC = () => {
                     maxLength={6}
                     value={mfaCode}
                     onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
+                    className="w-full min-h-[46px] bg-[#0A1F38] border border-[rgba(148,163,184,0.28)] rounded-xl px-3.5 py-2.5 text-base font-mono tracking-[0.28em] text-white focus:outline-none focus:border-[#D4A843] focus:ring-1 focus:ring-[#D4A843]/40"
                   />
-                  <button type="button" className="text-[11px] text-[#D4A843] hover:underline"
-                    onClick={() => { setMfaStep(false); setMfaCode(''); setPassword(''); setError(null); setErrorCode(null); void signOutProvider().catch(() => undefined); }}>
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-[#E1BB60] hover:underline"
+                    onClick={() => {
+                      setMfaStep(false);
+                      setMfaCode('');
+                      setPassword('');
+                      setError(null);
+                      setErrorCode(null);
+                      void signOutProvider().catch(() => undefined);
+                    }}
+                  >
                     Use a different account
                   </button>
                 </div>
               )}
 
-              <div className="pt-2">
+              <div className="pt-1.5">
                 <button
                   type="submit"
                   disabled={loading || !isSupabaseConfigured()}
-                  className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                  className="w-full min-h-[48px] py-3 px-4 rounded-xl font-bold text-sm text-[#06182B] bg-gradient-to-r from-[#C99A3D] via-[#D4A843] to-[#E1BB60] hover:brightness-105 transition-colors flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(212,168,67,0.28)] disabled:opacity-50"
                 >
-                  <Lock className="w-4 h-4" />
+                  <Lock className="w-4 h-4" aria-hidden="true" />
                   {loading ? 'Authenticating...' : mfaStep ? 'Verify code and sign in' : 'Sign In Securely'}
                 </button>
               </div>
             </form>
 
             {/* Biometric / Passkey Hardware Authentication (Uncommissioned) */}
-            <div className="pt-4 border-t border-[rgba(148,163,184,0.18)] space-y-2 text-center opacity-65">
-              <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)] text-slate-400 text-xs select-none">
-                <Fingerprint className="w-4 h-4 text-slate-400" />
+            <div className="pt-4 border-t border-[rgba(148,163,184,0.16)] space-y-2 text-center">
+              <div
+                aria-disabled="true"
+                className="flex w-full min-h-[42px] items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-[#06182B]/80 border border-[rgba(148,163,184,0.18)] text-slate-400 text-xs select-none opacity-75 cursor-not-allowed"
+              >
+                <Fingerprint className="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true" />
                 <span>Touch ID / Face ID Biometric Login (Not Configured)</span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] leading-relaxed text-slate-400">
                 Hardware WebAuthn is unavailable. Please authenticate securely with your password.
               </p>
             </div>
 
-            <div className="text-center text-xs text-slate-400 pt-2">
-              Don't have an account yet?{' '}
+            <div className="border-t border-[rgba(148,163,184,0.14)] pt-4 text-center text-xs text-slate-300">
+              Don&apos;t have an account yet?{' '}
               <button
                 type="button"
                 onClick={() => {
                   setRegistrationState('IDLE');
                   setCurrentPage('client_register');
                 }}
-                className="text-[#D4A843] font-semibold hover:underline"
+                className="text-[#E1BB60] font-semibold hover:text-[#F3D283] hover:underline"
               >
                 Register Client Account
               </button>
@@ -368,7 +464,10 @@ export const ClientLoginPage: React.FC = () => {
           </>
         )}
       </div>
-    </div>
+
+      {/* Truthful Conceptual Client Confidence Indicators */}
+      <ClientPortalTrustIndicators />
+    </ClientPortalLoginLayout>
   );
 };
 
