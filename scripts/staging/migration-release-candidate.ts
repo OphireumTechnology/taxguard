@@ -85,7 +85,7 @@ async function main() {
     '20261016040000_taxguard_notification_preferences.sql',
     '20261016050000_taxguard_contact_intake.sql'
   ]);
-  
+
   let canonical: Awaited<ReturnType<typeof startDatabase>> | undefined;
   let reviewPacket: Awaited<ReturnType<typeof startDatabase>> | undefined;
   try {
