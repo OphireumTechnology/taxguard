@@ -420,6 +420,56 @@
   animation: destria-neural-flow 4.8s linear infinite;
 }
 
+@keyframes destria-ecosystem-flow {
+  from {
+    stroke-dashoffset: 96;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes destria-card-scan {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  88% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(156px);
+    opacity: 0;
+  }
+}
+
+@keyframes destria-checkpoint-pulse {
+  0%, 100% {
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.96;
+  }
+}
+
+.destria-ecosystem-stream {
+  stroke-dasharray: 7 17;
+  animation: destria-ecosystem-flow 5.6s linear infinite;
+}
+
+.destria-card-scan-beam {
+  animation: destria-card-scan 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.destria-checkpoint-glow {
+  animation: destria-checkpoint-pulse 3.6s ease-in-out infinite;
+  will-change: opacity;
+}
+
 .destria-motion-paused,
 .destria-motion-paused * {
   animation-play-state: paused !important;
