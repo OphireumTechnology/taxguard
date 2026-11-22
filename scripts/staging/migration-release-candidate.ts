@@ -40,109 +40,65 @@ async function main() {
     if (canonicalTextHash(sql) !== entry.sourceSha256) throw new Error('MIGRATION_CANDIDATE_SOURCE_CHECKSUM_MISMATCH');
   }
 
+  const replaySafeFiles = new Set([
+    '20261012230000_taxguard_session_management.sql',
+    '20261012240000_taxguard_durable_ledger.sql',
+    '20261012250000_taxguard_practice_management.sql',
+    '20261012260000_taxguard_case_workflow.sql',
+    '20261012270000_taxguard_document_vault.sql',
+    '20261012280000_taxguard_billing.sql',
+    '20261012290000_taxguard_book_to_tax.sql',
+    '20261012300000_taxguard_bookkeeper_workqueue.sql',
+    '20261012310000_taxguard_document_requests.sql',
+    '20261012320000_taxguard_role_dashboards.sql',
+    '20261012330000_taxguard_tax_engine_foundation.sql',
+    '20261012340000_taxguard_mfa_recovery_completion.sql',
+    '20261012350000_taxguard_staff_access_hardening.sql',
+    '20261012360000_taxguard_tax_rule_verification_cases.sql',
+    '20261012370000_taxguard_mfa_recovery_history.sql',
+    '20261012380000_taxguard_tax_rule_coverage.sql',
+    '20261013390000_taxguard_client_messaging.sql',
+    '20261014400000_taxguard_appointments.sql',
+    '20261014410000_taxguard_audit_center.sql',
+    '20261014420000_taxguard_legal_coordination.sql',
+    '20261014430000_taxguard_consultation_requests.sql',
+    '20261014440000_taxguard_client_portal_reads.sql',
+    '20261014450000_taxguard_reassignment_requests.sql',
+    '20261014460000_taxguard_audit_security_view.sql',
+    '20261014470000_taxguard_billing_client_projection.sql',
+    '20261014480000_taxguard_security_events.sql',
+    '20261014490000_taxguard_data_api_lockdown.sql',
+    '20261014500000_taxguard_document_scan_requests.sql',
+    '20261015060000_taxguard_audit_custody_overlay.sql',
+    '20261015000000_taxguard_security_event_outbox.sql',
+    '20261015070000_taxguard_billing_access_overlay.sql',
+    '20261015010000_taxguard_billing_pages.sql',
+    '20261015020000_taxguard_collection_questionnaires.sql',
+    '20261015030000_taxguard_collection_requests.sql',
+    '20261015040000_taxguard_mfa_lifecycle_canonical.sql',
+    '20261015050000_taxguard_document_scan_jobs.sql',
+    '20261015030851_taxguard_document_client_confidentiality.sql',
+    '20261016000000_taxguard_portal_case_stages.sql',
+    '20261016010000_taxguard_portal_consultations.sql',
+    '20261016020000_taxguard_staff_onboarding_status.sql',
+    '20261016030000_taxguard_appointment_rooms.sql',
+    '20261016040000_taxguard_notification_preferences.sql',
+    '20261016050000_taxguard_contact_intake.sql'
+  ]);
+  
   let canonical: Awaited<ReturnType<typeof startDatabase>> | undefined;
   let reviewPacket: Awaited<ReturnType<typeof startDatabase>> | undefined;
   try {
     // startDatabase composes the complete canonical DAG against its own random-port loopback
     // PostgreSQL cluster. A second independent cluster composes the valid-name review packet.
-    canonical = await startDatabase();
+    canonical = await startDatabase({ verifyReplayFiles: [...replaySafeFiles] });
     const initialFingerprint = await schemaFingerprint(canonical.pool);
     const checks = await smokeChecks(canonical);
     if (checks.some(check => !check.passed)) throw new Error('MIGRATION_CANDIDATE_SECURITY_SMOKE_FAILED');
 
-    // Reapply only the proposal family already proven replay-safe by the real-PostgreSQL suite.
-    // Historical proposals remain reviewable but are not represented as universally idempotent.
-    // Replay the reviewed families in canonical DAG order, including 20261019010000 before
-    // 20261019080000. The latter intentionally tightens the former's adjustment replay path;
-    // omitting the earlier definition makes this replay sequence drift from the composed schema.
-    // Reapply migrations only when the canonical file is explicitly proven replay-safe.
-    // The prior date-prefix selection incorrectly included proposals that create tables on
-    // every execution. Those files use CREATE TABLE IF NOT EXISTS, but a pre-existing table
-    // is not schema-equivalent validation: skipped definitions can conceal shape drift and
-    // re-running all later mutations can alter table metadata. Keep a narrow allow-list whose
-    // full SQL has been verified as idempotent in the loopback composition tests.
-    const replaySafeFiles = new Set([
-      '20261012230000_taxguard_session_management.sql',
-      '20261012240000_taxguard_durable_ledger.sql',
-      '20261012250000_taxguard_practice_management.sql',
-      '20261012260000_taxguard_case_workflow.sql',
-      '20261012270000_taxguard_document_vault.sql',
-      '20261012280000_taxguard_billing.sql',
-      '20261012290000_taxguard_book_to_tax.sql',
-      '20261012300000_taxguard_bookkeeper_workqueue.sql',
-      '20261012310000_taxguard_document_requests.sql',
-      '20261012320000_taxguard_role_dashboards.sql',
-      '20261012330000_taxguard_tax_engine_foundation.sql',
-      '20261012340000_taxguard_mfa_recovery_completion.sql',
-      '20261012350000_taxguard_staff_access_hardening.sql',
-      '20261012360000_taxguard_tax_rule_verification_cases.sql',
-      '20261012370000_taxguard_mfa_recovery_history.sql',
-      '20261012380000_taxguard_tax_rule_coverage.sql',
-      '20261013390000_taxguard_client_messaging.sql',
-      '20261014400000_taxguard_appointments.sql',
-      '20261014410000_taxguard_audit_center.sql',
-      '20261014420000_taxguard_legal_coordination.sql',
-      '20261014430000_taxguard_consultation_requests.sql',
-      '20261014440000_taxguard_client_portal_reads.sql',
-      '20261014450000_taxguard_reassignment_requests.sql',
-      '20261014460000_taxguard_audit_security_view.sql',
-      '20261014470000_taxguard_billing_client_projection.sql',
-      '20261014480000_taxguard_security_events.sql',
-      '20261014490000_taxguard_data_api_lockdown.sql',
-      '20261014500000_taxguard_document_scan_requests.sql',
-      '20261015060000_taxguard_audit_custody_overlay.sql',
-      '20261015000000_taxguard_security_event_outbox.sql',
-      '20261015070000_taxguard_billing_access_overlay.sql',
-      '20261015010000_taxguard_billing_pages.sql',
-      '20261015020000_taxguard_collection_questionnaires.sql',
-      '20261015030000_taxguard_collection_requests.sql',
-      '20261015040000_taxguard_mfa_lifecycle_canonical.sql',
-      '20261015050000_taxguard_document_scan_jobs.sql',
-      '20261015030851_taxguard_document_client_confidentiality.sql',
-      '20261016000000_taxguard_portal_case_stages.sql',
-      '20261016010000_taxguard_portal_consultations.sql',
-      '20261016020000_taxguard_staff_onboarding_status.sql',
-      '20261016030000_taxguard_appointment_rooms.sql',
-      '20261016040000_taxguard_notification_preferences.sql',
-      '20261016050000_taxguard_contact_intake.sql'
-    ]);
-    const replayEntries = manifest.entries.filter(entry => entry.kind === 'proposal' &&
-      replaySafeFiles.has(entry.file.split('/').at(-1)!));
-    for (const entry of replayEntries) {
-      await canonical.pool.query(fs.readFileSync(entry.file, 'utf8'));
-      // Verify immediately after each replay so the first migration that changes catalog
-      // metadata is identified instead of reporting only an aggregate end-of-suite drift.
-      const replayFingerprint = await schemaFingerprint(canonical.pool);
-      if (replayFingerprint.sha256 !== initialFingerprint.sha256) {
-        const changedGroups = Object.keys(initialFingerprint.groups).filter(name =>
-          JSON.stringify(initialFingerprint.groups[name]) !== JSON.stringify(replayFingerprint.groups[name]));
-        const changedObjects = changedGroups.map(group => {
-          const before = initialFingerprint.groups[group] as Array<Record<string, unknown>>;
-          const after = replayFingerprint.groups[group] as Array<Record<string, unknown>>;
-          const describe = (row: Record<string, unknown>) => {
-            if (group === 'functions') return String(row.signature ?? 'unknown-function');
-            if (group === 'tables') return String(row.relname ?? 'unknown-table');
-            if (group === 'indexes') return String(row.indexname ?? 'unknown-index');
-            if (group === 'policies') return String(row.tablename ?? '') + '.' + String(row.policyname ?? '');
-            return JSON.stringify(row);
-          };
-          const beforeMap = new Map(before.map(row => [describe(row), row]));
-          const afterMap = new Map(after.map(row => [describe(row), row]));
-          const names = new Set([...beforeMap.keys(), ...afterMap.keys()]);
-          const changed = [...names].filter(name =>
-            JSON.stringify(beforeMap.get(name)) !== JSON.stringify(afterMap.get(name))).slice(0, 8);
-          if (group !== 'functions') return group + '[' + changed.join('|') + ']';
-          return group + '[' + changed.map(name => {
-            const left = beforeMap.get(name) ?? {};
-            const right = afterMap.get(name) ?? {};
-            const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])]
-              .filter(key => JSON.stringify(left[key]) !== JSON.stringify(right[key]));
-            return name + '{' + fields.join(',') + '}';
-          }).join('|') + ']';
-        });
-        throw new Error(`MIGRATION_CANDIDATE_REPLAY_DRIFT:${entry.file.split('/').at(-1)}:${changedObjects.join(';')}`);
-      }
-    }
+    // Replay safety is verified by the database harness immediately after each migration
+    // is first applied in canonical DAG order. This avoids replaying an older migration after
+    // later overlays have intentionally replaced its functions or privileges.
 
     reviewPacket = await startDatabase({ reviewBundle: true });
     const reviewFingerprint = await schemaFingerprint(reviewPacket.pool);
