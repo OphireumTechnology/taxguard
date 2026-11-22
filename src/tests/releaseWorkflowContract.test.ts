@@ -31,7 +31,7 @@ describe('deploy-pages.yml', () => {
     expect(deploy).toContain('actions/workflows/taxguard-development-ci.yml/runs?head_sha=${SHA}&event=push&status=success');
     expect(deploy).toMatch(/\^\[0-9a-f\]\{40\}\$/);
   });
-  it('validates before building and deploys only after the build succeeds, and only when approved', () => {
+  it('validates before building and deploys only after the build succeeds, and defaults to owner-authorized automatic deployment', () => {
     const build = section(deploy, '  build:', '  deploy:');
     for (const step of ['npm run typecheck', 'npm test -- --run', 'node scripts/verify-branding.mjs', 'npm run build', 'node scripts/stamp-release.mjs'])
       expect(build).toContain(step);
@@ -39,8 +39,10 @@ describe('deploy-pages.yml', () => {
     expect(deployJob).toContain('needs: [resolve, build]');
     expect(deployJob).toContain("if: needs.resolve.outputs.deploy == 'true'");
     expect(deployJob).toContain('name: github-pages');
-    // automatic deployment is off unless the owner sets the repository variable
-    expect(deploy).toContain('DEPLOY="${AUTO_DEPLOY:-false}"');
+    // Owner-authorized automatic deployment defaults on; explicit false pauses it.
+    expect(deploy).toContain('DEPLOY="${AUTO_DEPLOY:-true}"');
+    expect(deploy).toContain('AUTO_DEPLOY: ${{ vars.PAGES_AUTO_DEPLOY }}');
+    expect(deploy).toContain('[[ "$DEPLOY" == "true" ]] || DEPLOY=false');
   });
   it('never lets an older automatic run overwrite a newer release', () => {
     const deployJob = section(deploy, '  deploy:', '  verify:');
