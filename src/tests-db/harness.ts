@@ -36,7 +36,7 @@ export type TestDatabase = {
   stop(): Promise<void>;
 };
 
-export async function startDatabase(options: { durable?: boolean;reviewBundle?:boolean } = {}): Promise<TestDatabase> {
+export async function startDatabase(options: { durable?: boolean;reviewBundle?:boolean;verifyReplayFiles?:string[] } = {}): Promise<TestDatabase> {
   fs.mkdirSync(ROOT, { recursive: true });
   // Never sweep a shared temp root by age: another live test process may own an old database.
   // Each handle below owns and removes only the unique directory it created.
@@ -132,7 +132,7 @@ export async function startDatabase(options: { durable?: boolean;reviewBundle?:b
     await server.initialise();
     await server.start(); started = true;
     await server.createDatabase('taxguard_test');
-    await compose(createPool(), options.reviewBundle);
+    await compose(createPool(), options.reviewBundle, new Set(options.verifyReplayFiles ?? []));
   } catch (error) {
     await pool?.end().catch(() => undefined);
     if (started) await stopOwnedServer().catch(() => undefined);
@@ -170,14 +170,30 @@ export async function startDatabase(options: { durable?: boolean;reviewBundle?:b
 /** Supabase shims, then supabase/migrations, then every proposal in name order (as PGlite composition does). */
 export const MIGRATIONS = fs.readdirSync('supabase/migrations').filter(n => n.endsWith('.sql')).sort();
 export const PROPOSALS = fs.readdirSync('docs/proposed-migrations').filter(n => /^\d{14}_.+\.sql$/.test(n)).sort();
-async function compose(pool: pg.Pool,reviewBundle=false) {
+async function compose(pool: pg.Pool,reviewBundle=false,verifyReplayFiles=new Set<string>()) {
   const manifest = buildMigrationManifest();
   if (fs.readFileSync('docs/development/staging-migration-manifest.json', 'utf8').replace(/\r\n/g, '\n') !== JSON.stringify(manifest, null, 2) + '\n') throw new Error('STAGING_MIGRATION_MANIFEST_STALE');
   await pool.query(`CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
     CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$; CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS 'SELECT current_user::text';
     CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;`);
-  if(reviewBundle){for(const entry of buildReviewBundle().entries){const sql=entry.sql.replace(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"[^"]+";/gi,'');try{await pool.query(sql);}catch(error:any){throw new Error(`${entry.file} (${entry.source}): ${error.message}`);}}}
-  else for (const entry of manifest.entries) await apply(pool, path.dirname(entry.file), path.basename(entry.file));
+  if(reviewBundle){for(const entry of buildReviewBundle().entries){const sql=entry.sql.replace(/CREATE\\s+EXTENSION\\s+IF\\s+NOT\\s+EXISTS\\s+"[^"]+";/gi,'');try{await pool.query(sql);}catch(error:any){throw new Error(`${entry.file} (${entry.source}): ${error.message}`);}}}
+  else for (const entry of manifest.entries) {
+    const name = path.basename(entry.file);
+    await apply(pool, path.dirname(entry.file), name);
+    // Replay at the migration's actual DAG position. Replaying an older migration after
+    // later overlays have run can overwrite newer definitions and is not an idempotency test.
+    if (entry.kind === 'proposal' && verifyReplayFiles.has(name)) {
+      const { schemaFingerprint } = await import('../../scripts/staging/schema-fingerprint');
+      const before = await schemaFingerprint(pool);
+      await apply(pool, path.dirname(entry.file), name);
+      const after = await schemaFingerprint(pool);
+      if (after.sha256 !== before.sha256) {
+        const groups = Object.keys(before.groups).filter(group =>
+          JSON.stringify(before.groups[group]) !== JSON.stringify(after.groups[group]));
+        throw new Error(`MIGRATION_REPLAY_NOT_IDEMPOTENT:${name}:${groups.join(',')}`);
+      }
+    }
+  }
 }
 async function apply(pool: pg.Pool, dir: string, name: string) {
   const sql = fs.readFileSync(path.join(dir, name), 'utf8').replace(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"[^"]+";/gi, '');
