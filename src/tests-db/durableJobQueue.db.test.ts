@@ -302,7 +302,15 @@ describe('A10 advisory job review draft', () => {
   });
 
   it('keeps advisory summaries and internal RPCs off client roles', async () => {
+    const [table] = await sql("SELECT relrowsecurity FROM pg_class WHERE oid = 'public.taxguard_ai_job_advisories'::regclass");
+    expect(table.relrowsecurity).toBe(true);
     for (const role of ['anon', 'authenticated', 'service_role']) {
+      const grants = await sql(`SELECT operation, has_table_privilege($1, 'public.taxguard_ai_job_advisories', operation) AS allowed
+        FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) operation`, [role]);
+      expect(grants.filter(grant => grant.allowed)).toEqual([]);
+      const readers = await sql(`SELECT has_function_privilege($1, signature, 'EXECUTE') AS allowed
+        FROM unnest(ARRAY['public.taxguard_job_read_a10(text,text,text)','public.taxguard_case_a10_summaries(text,text,text)']) signature`, [role]);
+      expect(readers.map(reader => reader.allowed)).toEqual([role === 'service_role', role === 'service_role']);
       const [permissions] = await sql(`SELECT
         has_table_privilege($1, 'public.taxguard_ai_job_advisories', 'SELECT') AS result,
         has_function_privilege($1, 'public.taxguard_job_complete_partition(text,text,text,uuid,boolean)', 'EXECUTE') AS internal,
