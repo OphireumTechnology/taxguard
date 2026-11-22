@@ -23,3 +23,11 @@ The worker accepts case-scoped A10 requests with selected source IDs. It resolve
 The local A09 evaluator reads a scoped Stage Two requirement manifest. It reports required and conditional evidence as missing, pending review, or needing correction. It excludes accepted, waived, inapplicable, satisfied, optional and informational rows. It rejects mixed engagement or tax-year records, duplicate requirement identifiers and unknown statuses. Output includes requirement IDs, manifest version and finding codes for human review.
 
 The evaluator is a deterministic specialist component. A hosted handler still needs an authorized durable manifest resolver, independent approval and queue/ledger integration. The commissioning matrix continues to count only existing routed handlers. A10 now sends malformed evidence to permanent refusal instead of leaving the lease to expire and retry.
+
+## Collection specialist components
+
+A05 checks a scoped vault snapshot using the existing server upload metadata validator. It reports intake metadata defects, pending scans, unavailable documents and missing request links. The advisory does not release a scan or authorize a document operation.
+
+A08 compares staged extraction fields against independently resolved anchors for the same released document version. It reports missing anchors or value mismatches using field keys and page numbers. The report excludes actual extracted values and cannot verify a field or change an authoritative tax record.
+
+Both components use synthetic tests and need governed evidence resolvers, scoped review UI, and queue integration before hosting. A07 also requires a commissioned OCR provider and authoritative source lineage. The legacy sample extraction path stays outside this production integration. The release gate across all 61 requires approved scopes, staged exercises, review evidence, and owner resolution of A39.

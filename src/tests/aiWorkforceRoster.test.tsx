@@ -23,6 +23,7 @@ describe('TaxGuard workforce development roster', () => {
     const roster = view.split('</table>', 1)[0];
     expect(roster.match(/scope="row"/g)).toHaveLength(61);
     expect(roster).toContain('Implementation evidence');
+    expect(roster.match(/Local evaluator:/g)).toHaveLength(3);
     expect(roster).toContain('Deployment status');
     expect(roster).toContain('Individual Tax Agent');
     expect(roster).toContain('Government Response Agent');

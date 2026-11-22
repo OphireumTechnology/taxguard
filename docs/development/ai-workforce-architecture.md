@@ -48,7 +48,7 @@ See the [61-agent functional and access design](ai-workforce-functional-design.m
 
 ## Remaining specialist gaps
 
-A09 has a local manifest evaluator. Its hosted route, current authorization resolver and review queue integration are open. A00, A10 and A34 have bounded local routing or handler evidence. The other 57 entries have no specialist implementation evidenced by this development block.
+A05, A08 and A09 have local evaluators. Their hosted routes, current authorization resolvers and review queue integrations are open. A00, A10 and A34 have bounded local routing or handler evidence. The other 55 entries have no specialist implementation evidenced by this development block.
 
 | Groups | Dependency before expanding |
 | --- | --- |

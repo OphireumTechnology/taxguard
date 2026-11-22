@@ -6,6 +6,11 @@ import {
 } from '../../ai/architectureOverview';
 
 const LABEL: Record<DrawnPermission, string> = { ALLOWED: 'Allowed', NOT_ALLOWED: 'Not allowed', CONDITIONAL: 'Conditional', ILLEGIBLE: 'Unreadable' };
+const LOCAL_EVALUATORS: Readonly<Partial<Record<string, string>>> = Object.freeze({
+  A05: 'Local evaluator: intake metadata and scan-state findings',
+  A08: 'Local evaluator: staged fields compared with authorized source anchors',
+  A09: 'Local evaluator: missing-evidence findings from a scoped requirement manifest',
+});
 const STATUS: Record<OverviewDecision['status'], string> = { OPEN: 'Open', PARTLY_DECIDED: 'Partly decided', DECIDED: 'Decided' };
 
 /**
@@ -26,7 +31,7 @@ export function AiArchitectureOverviewView() {
     </p>
     <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" aria-label="Overview totals">
       {([['Agents recorded', `${OVERVIEW_AGENTS.length} / ${readiness.length}`], ['With a page-2 responsibility', `${withResponsibility} / ${OVERVIEW_AGENTS.length}`],
-        ['With a local handler', `${readiness.filter(agent => agent.handlerImplemented === 'YES').length} / ${readiness.length}`], ['Gate names an approval role', `${withRole} / ${OVERVIEW_AGENTS.length}`], ['Open owner decisions', `${decisions.filter(d => d.status !== 'DECIDED').length} / ${decisions.length}`]] as const)
+        ['With local implementation evidence', `${readiness.filter(agent => agent.handlerImplemented === 'YES' || LOCAL_EVALUATORS[agent.agentId]).length} / ${readiness.length}`], ['Gate names an approval role', `${withRole} / ${OVERVIEW_AGENTS.length}`], ['Open owner decisions', `${decisions.filter(d => d.status !== 'DECIDED').length} / ${decisions.length}`]] as const)
         .map(([label, value]) => <div key={label} className="rounded-lg border border-slate-700 p-2"><dt className="text-slate-400">{label}</dt><dd className="text-base font-bold text-white">{value}</dd></div>)}
     </dl>
     <section aria-labelledby="ai-overview-decisions" className="rounded-lg border border-amber-500/40 p-2 text-amber-200">
@@ -53,7 +58,7 @@ export function AiArchitectureOverviewView() {
             <td className="pr-3">{a.human_gate ?? 'Not on page 2'}</td>
             <td>{a.gate_role ?? 'Owner decision'}</td>
             <td className="pr-3">{agent?.status ?? 'Unavailable'}</td>
-            <td>{agent?.scope ?? 'Unavailable'}</td>
+            <td>{LOCAL_EVALUATORS[a.agent_id] ?? agent?.scope ?? 'Unavailable'}</td>
           </tr>;
         })}</tbody>
       </table>

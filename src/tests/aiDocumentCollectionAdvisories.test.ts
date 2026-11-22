@@ -1,0 +1,43 @@
+import { describe, expect, it } from 'vitest';
+import { inspectDocumentIntake } from '../server/ai/documents/DocumentIntakeAdvisory';
+import { inspectDocumentExtraction } from '../server/ai/documents/DocumentValidationAdvisory';
+import type { EvidenceMetadata } from '../server/ai/capabilities/contracts';
+
+describe('A05 document intake advisory', () => {
+  const scope = { clientId: 'client', engagementId: 'engagement', taxYear: 2025 };
+  const snapshot = { ...scope, documentId: 'doc', version: 1, fileName: 'document.pdf', fileType: 'application/pdf',
+    sizeBytes: 512, status: 'SCAN_PENDING', quarantineStatus: 'PENDING', linkedRequest: true };
+  it('holds documents awaiting scanning and flags missing request links', () => {
+    const result = inspectDocumentIntake(scope, { ...snapshot, linkedRequest: false });
+    expect(result).toMatchObject({ findings: ['WAITING_FOR_SCAN', 'REQUEST_LINK_MISSING'], human_review_required: true });
+  });
+  it('flags unsafe metadata, refuses out-of-scope intake, and never releases a rejected document', () => {
+    expect(inspectDocumentIntake(scope, { ...snapshot, fileName: 'document.exe.pdf', status: 'PENDING_REVIEW', quarantineStatus: 'CLEAN' }).findings)
+      .toEqual(['FILE_SUSPICIOUS', 'DOCUMENT_UNAVAILABLE']);
+    expect(() => inspectDocumentIntake(scope, { ...snapshot, taxYear: 2024 })).toThrow('AI_DOCUMENT_SCOPE_INVALID');
+  });
+});
+
+describe('A08 source comparison advisory', () => {
+  const evidence: EvidenceMetadata = { source_id: 'source', document_record_id: 'doc', document_version: 2,
+    source_hash: 'a'.repeat(64), document_status: 'RELEASED', quarantine_status: 'CLEAN' };
+  const extraction = { sourceId: 'source', documentVersion: 2,
+    fields: [{ key: 'first', page: 1, value: 2 }, { key: 'second', page: 1, value: 'private value' }, { key: 'third', page: 2, value: 3 }] };
+  const source = { ...extraction, fields: [{ key: 'first', page: 1, value: 2 }, { key: 'second', page: 1, value: 'different' }] };
+  it('reports mismatches and missing anchors without echoing extracted values', () => {
+    const advisory = inspectDocumentExtraction(evidence, extraction, source);
+    expect(advisory.findings).toEqual([
+      { field_key: 'second', page: 1, code: 'SOURCE_VALUE_MISMATCH' },
+      { field_key: 'third', page: 2, code: 'SOURCE_ANCHOR_MISSING' },
+    ]);
+    expect(JSON.stringify(advisory)).not.toContain('private value');
+    expect(advisory.human_review_required).toBe(true);
+  });
+  it('refuses stale versions, released-state gaps, and malformed duplicate anchors', () => {
+    expect(() => inspectDocumentExtraction(evidence, extraction, { ...source, documentVersion: 1 })).toThrow('AI_EXTRACTION_SOURCE_INVALID');
+    expect(() => inspectDocumentExtraction({ ...evidence, document_status: 'SCAN_PENDING' as EvidenceMetadata['document_status'] }, extraction, source))
+      .toThrow('AI_EXTRACTION_SOURCE_INVALID');
+    expect(() => inspectDocumentExtraction(evidence, extraction, { ...source, fields: [source.fields[0], source.fields[0]] }))
+      .toThrow('AI_EXTRACTION_FIELDS_INVALID');
+  });
+});
