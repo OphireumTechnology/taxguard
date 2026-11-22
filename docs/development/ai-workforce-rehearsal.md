@@ -36,4 +36,6 @@ Both components use synthetic tests and need governed evidence resolvers, scoped
 
 The local staging composition uses the durable job's requesting actor and resolves the tax year from the exact tenant, client and case in PostgreSQL. It evaluates A00 coordination and A10 document-read policies separately using the existing SQL governance store. The selected metadata, advisory calculation and fenced completion share one serializable database transaction. Policy denial records a refused queue attempt and no advisory result. Unexpected failures roll back the transaction.
 
+The disposable PostgreSQL regression enqueues two jobs through the API using synthetic evaluation records. The first stores one duplicate group for human review. After case assignment revocation, the worker refuses the second job and stores no advisory.
+
 The hosted pilot still needs approved staging configuration and case assignments, a successful run using approved governance fixtures, and a scoped review API/UI backed by the review ledger. No agent is activated by this composition. Use only an isolated staging database and synthetic evidence while verifying the rollout.

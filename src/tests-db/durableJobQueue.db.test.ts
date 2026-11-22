@@ -377,4 +377,50 @@ describe('A10 advisory job review draft', () => {
     expect(await consumer.completeA10(replacement, 1)).toMatchObject({ status: 'COMPLETED' });
     expect(await results(claim.id)).toHaveLength(1);
   });
+  it('persists one duplicate group for an authorized case and refuses the next job after revocation', async () => {
+    // Only the disposable database gets these two synthetic agent versions and stage-3 permissions.
+    await db.pool.query(`
+      INSERT INTO ai_models(model_id,model_version,provider,status,effective_date,approved_use_cases,data_classification_limit,token_limit,cost_limit)
+        VALUES('queue-pilot','1','TEST','ACTIVE',now(),ARRAY['COORDINATE_REVIEW','DOCUMENT_DUPLICATE_CHECK'],'INTERNAL',1000,1);
+      INSERT INTO ai_prompts(agent_id,prompt_id,version,status,system_instructions,expected_output_schema,effective_date)
+        SELECT a,'queue-'||a,'1','ACTIVE','Synthetic duplicate check','{"type":"object"}',now() FROM unnest(ARRAY['A00','A10']) a;
+      INSERT INTO ai_agent_versions(agent_id,version,status,risk_class,default_model,default_model_version,prompt_id,prompt_version,schema_version,token_budget,cost_budget,maximum_execution_time)
+        SELECT a,'queue-test','DRAFT','LOW','queue-pilot','1','queue-'||a,'1','1',1000,1,5 FROM unnest(ARRAY['A00','A10']) a;
+      INSERT INTO ai_evaluation_suites(tenant_id,agent_id,name,required_dimensions,created_by,approved_by,approved_at)
+        SELECT 'queue-fixture',a,'Synthetic queue suite',ARRAY(SELECT dimension FROM ai_evaluation_dimensions),'fixture-author','fixture-reviewer',now() FROM unnest(ARRAY['A00','A10']) a;
+      INSERT INTO ai_evaluation_runs(tenant_id,suite_id,agent_id,agent_version,model_id,model_version,prompt_id,prompt_version,started_by)
+        SELECT tenant_id,suite_id,agent_id,'queue-test','queue-pilot','1','queue-'||agent_id,'1','fixture-author' FROM ai_evaluation_suites WHERE tenant_id='queue-fixture';
+      INSERT INTO ai_evaluation_results(evaluation_id,case_key,dimension,outcome,evidence_sha256)
+        SELECT evaluation_id,'synthetic',dimension,'PASS',repeat('a',64) FROM ai_evaluation_runs CROSS JOIN ai_evaluation_dimensions WHERE tenant_id='queue-fixture';
+      SELECT ai_evaluation_complete(evaluation_id) FROM ai_evaluation_runs WHERE tenant_id='queue-fixture';
+      UPDATE ai_agent_versions SET status='ACTIVE' WHERE version='queue-test';
+      UPDATE ai_agents SET status='ACTIVE',version='queue-test',default_model='queue-pilot',default_model_version='1',prompt_id='queue-'||agent_id,prompt_version='1' WHERE agent_id IN ('A00','A10');
+      UPDATE ai_tools SET status='ACTIVE' WHERE tool_id IN ('workflow.read','document.read');
+      UPDATE ai_agent_permissions SET permission_state='ALLOW',conditions='{}' WHERE (agent_id,resource) IN (('A00','workflow.read'),('A10','document.read')) AND action='READ';
+      UPDATE ai_agent_data_permissions SET permission_state='ALLOW',conditions='{}' WHERE agent_id IN ('A00','A10') AND data_classification='INTERNAL';
+      UPDATE ai_stage_permissions SET permission_state='ALLOW',conditions='{}' WHERE agent_id IN ('A00','A10') AND stage=3;
+    `);
+    await sql("INSERT INTO ai_human_approval_policies(tenant_id,agent_id,action,materiality,status) SELECT $1,a,'READ','MATERIAL','ACTIVE' FROM unnest(ARRAY['A00','A10']) a", [T]);
+    const [record] = await sql("UPDATE taxguard_cases SET active_stage=3,status='ACTIVE',preparer_uid='jq-prep1',reviewer_uid='jq-wide' WHERE tenant_id=$1 AND case_id=$2 RETURNING id", [T, caseIds.E1]);
+    await sql("INSERT INTO taxguard_case_assignments(tenant_id,case_id,uid,role) VALUES($1,$2,'jq-prep1','preparer') ON CONFLICT DO NOTHING", [T, caseIds.E1]);
+    for (const item of evidence) {
+      await sql(`INSERT INTO taxguard_documents(id,document_id,tenant_id,client_id,engagement_id,tax_year,case_id,hash,mime_type,created_by,status,quarantine_status)
+        VALUES($1::uuid,$1::uuid::text,$2,$3,$4,2025,$5,$6,'application/pdf','jq-prep1','VERIFIED','CLEAN')`,
+        [item.document_record_id, T, C, E1, caseIds.E1, item.source_hash]);
+      await sql(`INSERT INTO ai_evidence_sources(source_id,tenant_id,client_id,tax_case_id,tax_year,case_record_id,evidence_type,document_record_id,document_version,source_reference,source_hash)
+        VALUES($1,$2,$3,$4,2025,$5,'DOCUMENT',$6,1,'Synthetic document',$7)`,
+        [item.source_id, T, C, caseIds.E1, record.id, item.document_record_id, item.source_hash]);
+    }
+    const database = new PgGovernanceDatabase(db.pool);
+    const first = await enqueueA10('jw-approved-evidence');
+    expect(first.status).toBe(201);
+    expect(await runGovernedA10Job(database, T, 'worker-pilot')).toBe('COMPLETED');
+    expect(await results(first.body.id)).toEqual([{ agent_id: 'A10', duplicate_group_count: 1, human_review_required: true }]);
+    const second = await enqueueA10('jw-revoked-evidence');
+    expect(second.status).toBe(201);
+    await sql("UPDATE taxguard_case_assignments SET active=false WHERE tenant_id=$1 AND case_id=$2 AND uid='jq-prep1'", [T, caseIds.E1]);
+    expect(await runGovernedA10Job(database, T, 'worker-pilot')).toBe('REFUSED');
+    expect(await results(second.body.id)).toEqual([]);
+  });
+
 });
