@@ -8289,7 +8289,7 @@
     "src/server/productionApp.ts": "1bf60a288bcb556befad1cbae535bde09da1ed36537cdd780b956c303cc05d03",
     "src/server/providerValidationTarget.ts": "7762244c795270e6a424437a94b265b99259403596602b86ae684fdfe34db9f1",
     "src/server/routes/ledgerDispatch.routes.ts": "fe837dc4e1d5ae0c13ccdc395d5e3226ffe36b2877816910fa626a92f696b162",
-    "src/server/routes/profile-amendment.routes.ts": "2b2e91d83782dba72cf08bcac6366d9d150355b53dfd222a4d127313149a34a1",
+    "src/server/routes/profile-amendment.routes.ts": "683d6fe4c0f618a89f0cf3ea36a53f1f35bb9c8b05f037f18ec02e5f33c63514",
     "src/server/routes/retiredLegacyRoutes.ts": "848153c049beb9ed5116d2942ba53d07d5036b0c50c0f71f6cb3e5843b4ad073",
     "src/server/securityEventRecorder.ts": "74a242fb3951141fc699f9dddfc4318f7ca5b80445979fc98858df3cf371d82b",
     "src/server/staffSessionManagement.ts": "decdc91bb958babab07b8d816adce309da00c8d2290efe16f0586d1533811e98",
