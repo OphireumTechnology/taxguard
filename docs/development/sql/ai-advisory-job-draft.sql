@@ -91,6 +91,16 @@ BEGIN
     RAISE EXCEPTION 'JOB_AI_SCOPE_INVALID' USING ERRCODE = 'P0001';
   END IF;
 
+  IF p_duplicate_group_count IS DISTINCT FROM (
+    SELECT count(*) FROM (
+      SELECT item->>'source_hash' FROM jsonb_array_elements(p_evidence) AS item
+      GROUP BY item->>'source_hash'
+      HAVING count(DISTINCT (item->>'document_record_id')::uuid) > 1
+    ) AS matching_groups
+  ) THEN
+    RAISE EXCEPTION 'JOB_AI_SUMMARY_MISMATCH' USING ERRCODE = 'P0001';
+  END IF;
+
   INSERT INTO public.taxguard_ai_job_advisories (job_id, tenant_id, agent_id, duplicate_group_count, evidence_snapshot)
     VALUES (j.id, j.tenant_id, 'A10', p_duplicate_group_count, p_evidence);
   RETURN public.taxguard_job_complete_partition(p_tenant, p_job, p_worker, p_lease_token, true);

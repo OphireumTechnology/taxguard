@@ -374,7 +374,8 @@ describe('A10 advisory job review draft', () => {
     const claim = await consumer.claimAi(60);
     if (!claim || claim.id !== queued.body.id) throw new Error('SYNTHETIC_JOB_NOT_CLAIMED');
     await expect(consumer.complete(claim)).rejects.toThrow('JOB_COMPLETION_PATH_INVALID');
-    await expect(consumer.completeA10(claim, 6, evidence)).rejects.toThrow('JOB_STORE_UNAVAILABLE');
+    await expect(consumer.completeA10(claim, 6, evidence)).rejects.toThrow('JOB_AI_SUMMARY_MISMATCH');
+    await expect(consumer.completeA10(claim, 0, evidence)).rejects.toThrow('JOB_AI_SUMMARY_MISMATCH');
     expect(await results(claim.id)).toEqual([]);
     expect((await events(claim.id)).at(-1)?.action).toBe('CLAIMED');
     await expireLease(claim.id);
