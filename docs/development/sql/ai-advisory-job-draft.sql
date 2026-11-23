@@ -91,6 +91,11 @@ BEGIN
     RAISE EXCEPTION 'JOB_AI_SCOPE_INVALID' USING ERRCODE = 'P0001';
   END IF;
 
+  IF ARRAY(SELECT selected::uuid FROM jsonb_array_elements_text(j.payload->'sourceIds') selected ORDER BY 1)
+     IS DISTINCT FROM ARRAY(SELECT (item->>'source_id')::uuid FROM jsonb_array_elements(p_evidence) item ORDER BY 1) THEN
+    RAISE EXCEPTION 'JOB_AI_EVIDENCE_MISMATCH' USING ERRCODE = 'P0001';
+  END IF;
+
   IF p_duplicate_group_count IS DISTINCT FROM (
     SELECT count(*) FROM (
       SELECT item->>'source_hash' FROM jsonb_array_elements(p_evidence) AS item

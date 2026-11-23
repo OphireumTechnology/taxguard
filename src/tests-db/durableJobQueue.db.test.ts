@@ -376,6 +376,9 @@ describe('A10 advisory job review draft', () => {
     await expect(consumer.complete(claim)).rejects.toThrow('JOB_COMPLETION_PATH_INVALID');
     await expect(consumer.completeA10(claim, 6, evidence)).rejects.toThrow('JOB_AI_SUMMARY_MISMATCH');
     await expect(consumer.completeA10(claim, 0, evidence)).rejects.toThrow('JOB_AI_SUMMARY_MISMATCH');
+    await expect(consumer.completeA10(claim, 0, evidence.slice(1))).rejects.toThrow('JOB_AI_EVIDENCE_MISMATCH');
+    const substituted = evidence.map((item, index) => index === 0 ? { ...item, source_id: evidence[1].source_id } : item);
+    await expect(consumer.completeA10(claim, 1, substituted)).rejects.toThrow('JOB_AI_EVIDENCE_MISMATCH');
     expect(await results(claim.id)).toEqual([]);
     expect((await events(claim.id)).at(-1)?.action).toBe('CLAIMED');
     await expireLease(claim.id);
@@ -383,7 +386,7 @@ describe('A10 advisory job review draft', () => {
     if (!replacement || replacement.id !== claim.id) throw new Error('SYNTHETIC_JOB_NOT_RECLAIMED');
     await expect(consumer.completeA10(claim, 1, evidence)).rejects.toThrow('JOB_WORKER_CLAIM_REQUIRED');
     expect(await results(claim.id)).toEqual([]);
-    expect(await consumer.completeA10(replacement, 1, evidence)).toMatchObject({ status: 'COMPLETED' });
+    expect(await consumer.completeA10(replacement, 1, [...evidence].reverse())).toMatchObject({ status: 'COMPLETED' });
     expect(await results(claim.id)).toHaveLength(1);
   });
   it('persists one duplicate group for an authorized case and refuses the next job after revocation', async () => {
