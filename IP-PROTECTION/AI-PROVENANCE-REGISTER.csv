@@ -1,0 +1,1 @@
+record_id,project,repository,platform,model_if_known,development_date,human_contributor,task_or_prompt_summary,affected_files,commit_sha_or_pr,output_human_modified,platform_terms_reviewed,third_party_code_reviewed,ownership_review_status,evidence_location,notes
