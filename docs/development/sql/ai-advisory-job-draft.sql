@@ -178,7 +178,18 @@ BEGIN
   END LOOP;
   token := encode(sha256(convert_to(p_job||a.evidence_snapshot::text,'UTF8')),'hex');
   IF p_decision IS NULL THEN
-    RETURN jsonb_build_object('version',token,'documents',(SELECT jsonb_agg(jsonb_build_object('id',v->>'document_record_id','version',v->'document_version')) FROM jsonb_array_elements(a.evidence_snapshot) v));
+    RETURN (
+      WITH documents AS (
+        SELECT DISTINCT v->>'document_record_id' AS id, v->'document_version' AS version,
+          v->>'source_hash' AS hash FROM jsonb_array_elements(a.evidence_snapshot) v
+      ), matches AS (
+        SELECT hash, row_number() OVER (ORDER BY min(id)) AS group_number
+        FROM documents GROUP BY hash HAVING count(DISTINCT id)>1
+      )
+      SELECT jsonb_build_object('version',token,'documents',jsonb_agg(
+        jsonb_build_object('id',id,'version',version,'duplicateGroup',group_number) ORDER BY id))
+      FROM documents LEFT JOIN matches USING (hash)
+    );
   END IF;
   IF token IS DISTINCT FROM p_version OR p_decision NOT IN ('ACKNOWLEDGED','RETURNED') THEN RAISE EXCEPTION 'JOB_STATE_INVALID'; END IF;
   INSERT INTO public.taxguard_a10_reviews(job_id,reviewer_uid,evidence_snapshot,decision) VALUES(p_job,p_actor,a.evidence_snapshot,p_decision) ON CONFLICT DO NOTHING;

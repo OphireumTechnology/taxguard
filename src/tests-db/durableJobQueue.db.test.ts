@@ -446,6 +446,9 @@ describe('A10 advisory job review draft', () => {
     const preview = await call('GET', decisionPath);
     expect(preview.status, JSON.stringify(preview.body)).toBe(200);
     expect(preview.body.documents).toHaveLength(2);
+    for (const document of preview.body.documents) {
+      expect(document).toEqual({ id: expect.any(String), version: 1, duplicateGroup: 1 });
+    }
     const decision = { version: preview.body.version, decision: 'ACKNOWLEDGED' };
     const reviewedDocument = evidence[0].document_record_id;
     await sql('UPDATE taxguard_documents SET version=2 WHERE tenant_id=$1 AND id=$2', [T, reviewedDocument]);

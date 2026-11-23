@@ -27,7 +27,7 @@ export const jobService = {
     const q = new URLSearchParams(Object.entries(filter).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]));
     return request<{ total: number; jobs: DurableJob[] }>('GET', q.toString() ? '?' + q : '');
   },
-  reviewEvidence: (id: string) => request<{version: string; documents: {id: string; version: number}[]}>('GET', '/' + encodeURIComponent(id) + '/a10-review'),
+  reviewEvidence: (id: string) => request<{version: string; documents: {id: string; version: number; duplicateGroup: number | null}[]}>('GET', '/' + encodeURIComponent(id) + '/a10-review'),
   reviewDuplicate: (id: string, version: string, decision: 'ACKNOWLEDGED' | 'RETURNED') =>
     request<{decision: string}>('POST', '/' + encodeURIComponent(id) + '/a10-review', { version, decision }),
   caseAdvisories: (caseId: string) => request<{ jobId: string; createdAt: string; decision: "ACKNOWLEDGED" | "RETURNED" | null; duplicateGroupCount: number }[]>(
