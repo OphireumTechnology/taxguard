@@ -362,7 +362,7 @@ describe('Canonical Production URL Routing & Working Staff Portal Suite', () => 
     it('TopUtilityBar renders both Client Portal and Staff Portal links on desktop', () => {
       expect(topUtilityBarSource).toContain('Client Portal');
       expect(topUtilityBarSource).toContain('Staff Portal');
-      expect(topUtilityBarSource).toContain('focus-visible:ring-[#C99A3D]');
+      expect(topUtilityBarSource).toContain('focus-visible:ring-2 focus-visible:ring-[#D4AF37]');
     });
 
     it('Navbar desktop utility actions renders both Client Portal and Staff Portal buttons', () => {
