@@ -228,7 +228,7 @@ export const AdminLoginPage: React.FC = () => {
       if (result.success) {
         setRecoveryConfirmation(
           result.message ||
-            'If an authorized administrator account exists for this email address, password recovery instructions have been sent.'
+            'Recovery request processed. Email delivery is not confirmed. If an authorized account exists, check your inbox and spam folder.'
         );
       } else {
         setRecoveryError(
@@ -578,16 +578,16 @@ export const AdminLoginPage: React.FC = () => {
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#00C2D1]" aria-hidden="true" />
                   <div className="space-y-1.5 leading-relaxed">
-                    <p className="font-semibold text-white">Recovery Request Recorded</p>
+                    <p className="font-semibold text-white">Recovery Request Processed — Delivery Unverified</p>
                     <p>{recoveryConfirmation}</p>
                     <p className="text-[11px] text-[#A8B8CC]">
-                      Open the most recent recovery link promptly—links expire automatically and
-                      can only be used once. If your link expires, wait for the cooldown to finish
+                      If a recovery email arrives, open its link promptly—links expire automatically and
+                      can only be used once. If no email arrives, check spam and contact your administrator. If a link expires, wait for the cooldown to finish
                       and submit a new request.
                     </p>
                     {recoveryAuditTimestamp && (
                       <p className="font-mono text-[10px] text-[#7F94AD] tabular-nums">
-                        Logged at {new Date(recoveryAuditTimestamp).toISOString()}
+                        Request timestamp (browser clock): {new Date(recoveryAuditTimestamp).toISOString()}
                       </p>
                     )}
                   </div>
