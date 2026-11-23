@@ -7,7 +7,7 @@ type Extraction = Readonly<{
   documentVersion: number;
   fields: readonly Field[];
 }>;
-type FindingCode = 'SOURCE_ANCHOR_MISSING' | 'SOURCE_VALUE_MISMATCH';
+type FindingCode = 'EXTRACTED_FIELD_MISSING' | 'SOURCE_ANCHOR_MISSING' | 'SOURCE_VALUE_MISMATCH';
 
 function validateField(field: Field) {
   if (!field || typeof field.key !== 'string' || !/^[A-Za-z0-9_.:-]{1,128}$/.test(field.key)
@@ -49,6 +49,12 @@ export function inspectDocumentExtraction(evidence: EvidenceMetadata, extraction
     const anchor = anchored.get(key);
     if (!anchor || anchor.value !== field.value) {
       findings.push({ field_key: field.key, page: field.page, code: anchor ? 'SOURCE_VALUE_MISMATCH' : 'SOURCE_ANCHOR_MISSING' });
+    }
+  }
+
+  for (const [key, anchor] of anchored) {
+    if (!extracted.has(key)) {
+      findings.push({ field_key: anchor.key, page: anchor.page, code: 'EXTRACTED_FIELD_MISSING' });
     }
   }
 

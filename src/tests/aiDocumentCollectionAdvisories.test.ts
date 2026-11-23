@@ -37,6 +37,12 @@ describe('A08 source comparison advisory', () => {
     expect(JSON.stringify(advisory)).not.toContain('private value');
     expect(advisory.human_review_required).toBe(true);
   });
+  it('flags an anchored field omitted from extraction on a different page', () => {
+    const extra = { ...extraction.fields[0], page: 2, value: 'private anchor' };
+    const advisory = inspectDocumentExtraction(evidence, extraction, { ...source, fields: [...extraction.fields, extra] });
+    expect(advisory.findings).toEqual([{ field_key: extra.key, page: 2, code: 'EXTRACTED_FIELD_MISSING' }]);
+    expect(JSON.stringify(advisory)).not.toContain(extra.value);
+  });
   it('refuses stale versions, released-state gaps, and malformed duplicate anchors', () => {
     expect(() => inspectDocumentExtraction(evidence, extraction, { ...source, documentVersion: 1 })).toThrow('AI_EXTRACTION_SOURCE_INVALID');
     expect(() => inspectDocumentExtraction({ ...evidence, document_status: 'SCAN_PENDING' as EvidenceMetadata['document_status'] }, extraction, source))
