@@ -867,9 +867,6 @@ export async function requestAdminPasswordRecovery(
 
     if (error) {
       const errMsg = (error.message || '').toLowerCase();
-      if (errMsg.includes('supabase_not_configured')) {
-        return { success: false, error: sanitizeAuthErrorMessage(error).message };
-      }
       if (errMsg.includes('rate') || errMsg.includes('too many') || (error as any).status === 429) {
         adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
         return {
@@ -877,18 +874,31 @@ export async function requestAdminPasswordRecovery(
           rateLimited: true,
           cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
           error: 'Recovery requests are temporarily rate-limited. Please wait a moment before trying again.',
-          auditEvent: {
-            ...auditEvent,
-            eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
-          }
+          auditEvent: { ...auditEvent, eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED' }
         };
       }
+      // A provider's explicit unknown-user response is intentionally neutral.
+      // Never disclose whether an administrator email exists.
+      if (/(user|account|email).*(not found|does not exist|unknown)|no user found/i.test(errMsg)) {
+        adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+        return {
+          success: true,
+          message: 'Recovery request processed. Email delivery has not been confirmed. If an authorized account exists, check your inbox and spam folder.',
+          cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+          auditEvent
+        };
+      }
+      // All other provider failures must fail closed, without leaking provider internals.
+      return {
+        success: false,
+        error: 'The recovery service could not process this request. Please try again later or contact Destria Security Administration.'
+      };
     }
 
     adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
     return {
       success: true,
-      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
+      message: 'Recovery request accepted by the authentication service. Email delivery has not been confirmed. If an authorized account exists, check your inbox and spam folder.',
       cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
       auditEvent
     };
@@ -911,13 +921,11 @@ export async function requestAdminPasswordRecovery(
       };
     }
 
-    // Account-enumeration invariant: never reveal account existence on provider errors.
-    adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+    // Do not turn network failures, timeouts, or unexpected provider exceptions into success.
+    // The message is deliberately generic and reveals no account information.
     return {
-      success: true,
-      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
-      cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
-      auditEvent
+      success: false,
+      error: 'The recovery service could not process this request. Please try again later or contact Destria Security Administration.'
     };
   }
 }
