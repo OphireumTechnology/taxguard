@@ -8327,7 +8327,7 @@
     "src/components/workspace/ClientServiceDashboard.tsx": "0bec6d403a83ba75db047a46338d26b8f62ad6c24635c19967d23d5dbaf8540e",
     "src/components/workspace/PracticeManagerDashboard.tsx": "0db12844a18cf14ca02f9caee6e097aa3022211cf201479112aece760ea0888a",
     "src/components/workspace/ReviewerWorkspace.tsx": "f653069fcaa62da42502811a82cd8718dcc747446e21a45c3a003f8cca2925d9",
-    "src/config/canonicalRouting.ts": "0c8b073df478d76a0056726b3932fb6eeb50438ac3535e501373fe40dbde6ef6",
+    "src/config/canonicalRouting.ts": "42e35c9151e31626f963b63a7c333410efb55704e5c9957a60256cb9bcf28ef0",
     "src/config/environmentConfig.ts": "7c62ac225d598b88cabece75624f3152081877b300b5199999765d21bf030357",
     "src/hooks/useClientPanelSession.ts": "46c864f013080f2cbd9e684a7ac5bf6738d1e0f6e3a185f5d3207a2d4c36d560",
     "src/hooks/useHashView.ts": "9437b37bbceef578cd7b9c5cfd21f23e48574d2957ad23aebd2d246b25ea1009",
