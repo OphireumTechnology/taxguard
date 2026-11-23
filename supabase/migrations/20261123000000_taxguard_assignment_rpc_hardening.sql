@@ -75,11 +75,6 @@ BEGIN
     RETURN FALSE;
   END IF;
 
-  IF (auth.uid() IS NULL OR p_user_id <> auth.uid()::text)
-     AND COALESCE(auth.jwt() ->> 'role', '') <> 'service_role' THEN
-    RETURN FALSE;
-  END IF;
-
   SELECT EXISTS (
     SELECT 1
     FROM taxguard_staff_assignments
