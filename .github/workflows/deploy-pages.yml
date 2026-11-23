@@ -1,22 +1,13 @@
 name: Deploy TaxGuard Production to GitHub Pages
 
-# Production builds only an exact commit that passed TaxGuard Development CI on main.
-#
-#   * A push to main (from Google AI Studio, a merged pull request or anyone else) runs Development CI. When that run
-#     succeeds, this workflow builds and verifies that exact commit as a release candidate (no deployment unless the
-#     owner has not disabled automatic deployment, below). A failed CI run never reaches this workflow's build.
-#   * Production deployment needs an explicit decision: run this workflow manually with the exact commit SHA. The SHA
-#     must be on main and must have a successful Development CI push run. Optionally the owner may set the repository
-#     variable PAGES_AUTO_DEPLOY to "false" to pause automatic deployment; required reviewers on the
-#     github-pages environment are recommended in either case.
+# Manual-only production deployment. CI on main NEVER triggers this workflow.
+# A human must explicitly dispatch it with a full commit SHA on main, and that exact
+# SHA must have passed the Development CI push workflow. Environment reviewers are
+# recommended as an additional approval gate.
 #   * The build repeats type checking, tests and the branding checks, stamps cache-busting asset versions with the
 #     commit, writes CNAME (destriataxservices.com) and dist/version.json (the exact published commit), and refuses
 #     server bundles, source maps and secret-like files in the artifact.
 on:
-  workflow_run:
-    workflows: ['TaxGuard Development CI']
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       commit:
@@ -38,19 +29,11 @@ jobs:
   resolve:
     name: Resolve the validated release commit
     runs-on: ubuntu-latest
-    # workflow_run: only a successful CI run for a push to main of this repository (never a pull request, never a fork).
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
     permissions:
       contents: read
       actions: read
     outputs:
       sha: ${{ steps.sha.outputs.sha }}
-      deploy: ${{ steps.sha.outputs.deploy }}
       ci_run: ${{ steps.ci.outputs.run_id }}
     steps:
       - name: Require the main branch for manual runs
@@ -66,20 +49,15 @@ jobs:
         id: sha
         shell: bash
         env:
-          EVENT: ${{ github.event_name }}
           INPUT_SHA: ${{ inputs.commit }}
-          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
-          AUTO_DEPLOY: ${{ vars.PAGES_AUTO_DEPLOY }}
         run: |
           set -euo pipefail
-          if [[ "$EVENT" == "workflow_dispatch" ]]; then SHA="$INPUT_SHA"; DEPLOY=true; else SHA="$RUN_SHA"; DEPLOY="${AUTO_DEPLOY:-true}"; fi
+          SHA="$INPUT_SHA"
           if [[ ! "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::A full 40-character lowercase commit SHA is required."
             exit 1
           fi
-          [[ "$DEPLOY" == "true" ]] || DEPLOY=false
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          echo "deploy=$DEPLOY" >> "$GITHUB_OUTPUT"
 
       - name: Check out main history
         uses: actions/checkout@v4
@@ -212,7 +190,7 @@ jobs:
             echo "| Commit | \`$SHA\` |"
             echo "| Domain | $PAGES_DOMAIN |"
             echo "| Brand asset version | $(node -p "require('./dist/version.json').brandAssetVersion") |"
-            echo "| Deploys | ${{ needs.resolve.outputs.deploy }} |"
+            echo "| Trigger | Manual workflow_dispatch only |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Production artifact verified for $SHA."
 
@@ -222,10 +200,9 @@ jobs:
           path: ./dist
 
   deploy:
-    name: Deploy the approved production build
+    name: Deploy the manually approved production build
     runs-on: ubuntu-latest
     needs: [resolve, build]
-    if: needs.resolve.outputs.deploy == 'true'
     permissions:
       contents: read
       pages: write
@@ -245,22 +222,6 @@ jobs:
           prev=$(curl -fsS --max-time 20 "https://${PAGES_DOMAIN}/version.json?previous=${GITHUB_RUN_ID}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const c=JSON.parse(s).commit;process.stdout.write(/^[0-9a-f]{40}$/.test(c)?c:'')}catch{}})" || true)
           echo "commit=$prev" >> "$GITHUB_OUTPUT"
           echo "Current production release: ${prev:-none recorded (pre-pipeline release)}"
-
-      # An automatic release must still be the head of main when it deploys, so an older run can never overwrite a
-      # newer release. A manual dispatch names its commit explicitly (including a rollback to a previous release).
-      - name: Reject stale automatic releases
-        if: github.event_name == 'workflow_run'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ needs.resolve.outputs.sha }}
-        run: |
-          set -euo pipefail
-          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')
-          if [[ "$head" != "$SHA" ]]; then
-            echo "::error::Release $SHA is no longer the head of main ($head); a newer release supersedes it."
-            exit 1
-          fi
 
       - name: Deploy TaxGuard to GitHub Pages
         id: deployment
@@ -309,10 +270,9 @@ jobs:
           echo "verified=false" >> "$GITHUB_OUTPUT"
           exit 1
 
-      # Automatic rollback: redeploy the previous release through this same validated workflow (its commit is on main
-      # and passed Development CI; the rollback build repeats every check). The failed release stays recorded in this
-      # run and its artifact for investigation; the owner is notified through an issue and the failed run.
-      - name: Roll back to the previous release
+      # Notify the owner on failed live verification. Rollback is manual-only:
+      # an operator must separately approve and dispatch the prior validated SHA.
+      - name: Report failed release and require manual rollback approval
         if: failure() && steps.live.outputs.verified == 'false'
         shell: bash
         env:
@@ -322,8 +282,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PREVIOUS" =~ ^[0-9a-f]{40}$ && "$PREVIOUS" != "$SHA" ]]; then
-            gh workflow run deploy-pages.yml --repo "$GITHUB_REPOSITORY" --ref main -f commit="$PREVIOUS"
-            action="Rollback to $PREVIOUS dispatched."
+            action="Manual rollback candidate: $PREVIOUS. Owner approval and a separate workflow dispatch are required."
           else
             action="No previous pipeline release is recorded; restore manually (multi-agent-integration.md, Rollback)."
           fi
