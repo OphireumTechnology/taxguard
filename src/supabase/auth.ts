@@ -747,7 +747,10 @@ export async function requestPasswordReset(
 }
 
 export const NEUTRAL_ADMIN_RECOVERY_MESSAGE =
-  'If an authorized administrator account exists for this email address, password recovery instructions have been sent. Password recovery updates authentication credentials only and never grants or bypasses administrator role authorization or MFA.';
+  'If an authorized administrator account exists for this email address, a password recovery request has been submitted to the authentication provider. Password recovery updates authentication credentials only and never grants or bypasses administrator role authorization or MFA.';
+
+export const ADMIN_RECOVERY_PROVIDER_UNAVAILABLE_MESSAGE =
+  'Unable to reach the authentication recovery service right now. No recovery email could be dispatched. Please try again later or contact Destria Security Administration.';
 
 export const ADMIN_RECOVERY_COOLDOWN_MS = 60_000;
 export const ADMIN_RECOVERY_WINDOW_MS = 15 * 60 * 1000;
@@ -760,27 +763,92 @@ export function clearAdminRecoveryThrottle(): void {
   adminRecoveryAttempts.clear();
 }
 
+export type AdminRecoveryInternalStatus =
+  | 'REQUEST_ACCEPTED'
+  | 'PROVIDER_DISPATCH_ATTEMPTED'
+  | 'PROVIDER_ACCEPTED'
+  | 'PROVIDER_REJECTED'
+  | 'RATE_LIMITED'
+  | 'AUTH_PROVIDER_UNAVAILABLE'
+  | 'DELIVERY_UNCONFIRMED';
+
 export interface AdminRecoveryAuditSummary {
-  eventType: 'ADMIN_PASSWORD_RECOVERY_REQUESTED' | 'ADMIN_PASSWORD_RECOVERY_THROTTLED';
+  eventType:
+    | 'ADMIN_PASSWORD_RECOVERY_REQUESTED'
+    | 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+    | 'ADMIN_PASSWORD_RECOVERY_UNAVAILABLE';
   timestamp: string;
   redirectTarget: string;
   emailDomain: string;
+  internalStatus?: AdminRecoveryInternalStatus;
 }
 
 export interface AdminPasswordRecoveryResult {
   success: boolean;
   message?: string;
   error?: string;
+  code?: string;
   cooldownSeconds?: number;
   rateLimited?: boolean;
+  providerUnavailable?: boolean;
+  internalStatus?: AdminRecoveryInternalStatus;
+  deliveryStatus?: 'DELIVERY_UNCONFIRMED' | 'NOT_DISPATCHED';
   auditEvent?: AdminRecoveryAuditSummary;
 }
 
+function classifyClientRecoveryProviderError(err: any): 'rate_limited' | 'provider_unavailable' | 'account_or_benign' {
+  const status = typeof err?.status === 'number' ? err.status : 0;
+  const raw = `${err?.code || ''} ${err?.message || String(err || '')}`.toLowerCase();
+
+  if (
+    status === 429 ||
+    raw.includes('over_email_send_rate_limit') ||
+    raw.includes('rate_limit') ||
+    raw.includes('rate limit') ||
+    raw.includes('too many') ||
+    raw.includes('rate')
+  ) {
+    return 'rate_limited';
+  }
+
+  if (
+    status >= 500 ||
+    status === 401 ||
+    status === 403 ||
+    raw.includes('supabase_not_configured') ||
+    raw.includes('supabase_config_missing') ||
+    raw.includes('failed to fetch') ||
+    raw.includes('fetch failed') ||
+    raw.includes('load failed') ||
+    raw.includes('networkerror') ||
+    raw.includes('network error') ||
+    raw.includes('err_name_not_resolved') ||
+    raw.includes('enotfound') ||
+    raw.includes('econnrefused') ||
+    raw.includes('etimedout') ||
+    raw.includes('smtp') ||
+    raw.includes('error sending recovery email') ||
+    raw.includes('error sending confirmation') ||
+    raw.includes('mail server') ||
+    raw.includes('email provider') ||
+    raw.includes('redirect_to') ||
+    raw.includes('redirect url') ||
+    raw.includes('invalid api key') ||
+    raw.includes('no api key')
+  ) {
+    return 'provider_unavailable';
+  }
+
+  return 'account_or_benign';
+}
+
 /**
- * Initiates an authorized Super Administrator password recovery request via Supabase Auth.
+ * Initiates an authorized Super Administrator password recovery request via TaxGuard's
+ * server-side protected endpoint (when available) or Supabase Auth directly.
  * - Strictly targets https://destriataxservices.com/admin/reset-password (validated against allowlist).
- * - Enforces client-side resend cooldown and sliding-window throttling alongside Supabase rate limits.
- * - Always returns a neutral confirmation for unknown or known accounts to prevent enumeration.
+ * - Enforces client-side resend cooldown and sliding-window throttling alongside server/Supabase limits.
+ * - Preserves neutral anti-enumeration responses for unknown vs known accounts on a healthy provider.
+ * - Surfaces account-independent provider/SMTP/DNS outages honestly instead of showing false confirmation.
  * - Never assigns privileges, never bypasses MFA, and never logs credentials or tokens.
  */
 export async function requestAdminPasswordRecovery(
@@ -797,6 +865,8 @@ export async function requestAdminPasswordRecovery(
   if (!emailValidation.valid) {
     return {
       success: false,
+      internalStatus: 'PROVIDER_REJECTED',
+      deliveryStatus: 'NOT_DISPATCHED',
       error: emailValidation.message || 'Please enter a valid administrator email address.'
     };
   }
@@ -807,6 +877,8 @@ export async function requestAdminPasswordRecovery(
   } catch (err: any) {
     return {
       success: false,
+      internalStatus: 'PROVIDER_REJECTED',
+      deliveryStatus: 'NOT_DISPATCHED',
       error: err?.message || 'Recovery redirect URL is not authorized.'
     };
   }
@@ -826,13 +898,16 @@ export async function requestAdminPasswordRecovery(
     return {
       success: false,
       rateLimited: true,
+      internalStatus: 'RATE_LIMITED',
+      deliveryStatus: 'NOT_DISPATCHED',
       cooldownSeconds: remainingSec,
       error: `Please wait ${remainingSec} seconds before requesting another recovery email.`,
       auditEvent: {
         eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
         timestamp: new Date(now).toISOString(),
         redirectTarget: redirectUrl,
-        emailDomain
+        emailDomain,
+        internalStatus: 'RATE_LIMITED'
       }
     };
   }
@@ -844,13 +919,16 @@ export async function requestAdminPasswordRecovery(
     return {
       success: false,
       rateLimited: true,
+      internalStatus: 'RATE_LIMITED',
+      deliveryStatus: 'NOT_DISPATCHED',
       cooldownSeconds: remainingSec,
       error: 'Too many recovery requests were submitted recently. Please wait before trying again or contact Destria Security Administration.',
       auditEvent: {
         eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
         timestamp: new Date(now).toISOString(),
         redirectTarget: redirectUrl,
-        emailDomain
+        emailDomain,
+        internalStatus: 'RATE_LIMITED'
       }
     };
   }
@@ -895,6 +973,9 @@ export async function requestAdminPasswordRecovery(
           return {
             success: false,
             rateLimited: true,
+            code: 'ADMIN_RECOVERY_RATE_LIMITED',
+            internalStatus: 'RATE_LIMITED',
+            deliveryStatus: 'NOT_DISPATCHED',
             cooldownSeconds: retrySec,
             error:
               typeof payload?.error === 'string' && payload.error
@@ -902,9 +983,32 @@ export async function requestAdminPasswordRecovery(
                 : 'Recovery requests are temporarily rate-limited. Please wait before trying again.',
             auditEvent: {
               ...auditEvent,
-              eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+              eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
+              internalStatus: 'RATE_LIMITED'
             }
           };
+        }
+
+        if (response.status === 503) {
+          const payload = await response.json().catch(() => ({}));
+          if (payload?.code === 'AUTH_PROVIDER_UNAVAILABLE') {
+            return {
+              success: false,
+              providerUnavailable: true,
+              code: 'AUTH_PROVIDER_UNAVAILABLE',
+              internalStatus: 'AUTH_PROVIDER_UNAVAILABLE',
+              deliveryStatus: 'NOT_DISPATCHED',
+              error:
+                typeof payload?.error === 'string' && payload.error
+                  ? payload.error
+                  : ADMIN_RECOVERY_PROVIDER_UNAVAILABLE_MESSAGE,
+              auditEvent: {
+                ...auditEvent,
+                eventType: 'ADMIN_PASSWORD_RECOVERY_UNAVAILABLE',
+                internalStatus: 'AUTH_PROVIDER_UNAVAILABLE'
+              }
+            };
+          }
         }
 
         if (response.ok) {
@@ -913,17 +1017,22 @@ export async function requestAdminPasswordRecovery(
             adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
             return {
               success: true,
+              internalStatus: 'PROVIDER_ACCEPTED',
+              deliveryStatus: 'DELIVERY_UNCONFIRMED',
               message:
                 typeof payload?.message === 'string' && payload.message
                   ? payload.message
                   : NEUTRAL_ADMIN_RECOVERY_MESSAGE,
               cooldownSeconds: Number(payload?.cooldownSeconds) || Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
-              auditEvent
+              auditEvent: {
+                ...auditEvent,
+                internalStatus: 'PROVIDER_ACCEPTED'
+              }
             };
           }
         }
-        // On static hosts or unmounted backend (404/405/503), fall back to Supabase Auth directly
-        // so recovery continues to operate with Supabase provider-level rate limits.
+        // On static hosts or unmounted backend (404/405/403-CORS), fall back to Supabase Auth directly
+        // so recovery can proceed if the browser Supabase client is properly configured.
       } catch {
         // Network unreachable for backend API; fall back to Supabase Auth provider directly.
       }
@@ -940,56 +1049,143 @@ export async function requestAdminPasswordRecovery(
     if (error) {
       const errMsg = (error.message || '').toLowerCase();
       if (errMsg.includes('supabase_not_configured')) {
-        return { success: false, error: sanitizeAuthErrorMessage(error).message };
+        return {
+          success: false,
+          providerUnavailable: true,
+          code: 'AUTH_PROVIDER_UNAVAILABLE',
+          internalStatus: 'AUTH_PROVIDER_UNAVAILABLE',
+          deliveryStatus: 'NOT_DISPATCHED',
+          error: sanitizeAuthErrorMessage(error).message,
+          auditEvent: {
+            ...auditEvent,
+            eventType: 'ADMIN_PASSWORD_RECOVERY_UNAVAILABLE',
+            internalStatus: 'AUTH_PROVIDER_UNAVAILABLE'
+          }
+        };
       }
-      if (errMsg.includes('rate') || errMsg.includes('too many') || (error as any).status === 429) {
+      const classified = classifyClientRecoveryProviderError(error);
+      if (classified === 'rate_limited') {
         adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
         return {
           success: false,
           rateLimited: true,
+          code: 'ADMIN_RECOVERY_RATE_LIMITED',
+          internalStatus: 'RATE_LIMITED',
+          deliveryStatus: 'NOT_DISPATCHED',
           cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
           error: 'Recovery requests are temporarily rate-limited. Please wait a moment before trying again.',
           auditEvent: {
             ...auditEvent,
-            eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+            eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
+            internalStatus: 'RATE_LIMITED'
           }
         };
       }
-    }
-
-    adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
-    return {
-      success: true,
-      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
-      cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
-      auditEvent
-    };
-  } catch (err: any) {
-    const errStr = (err?.message || String(err)).toLowerCase();
-    if (errStr.includes('supabase_not_configured')) {
-      return { success: false, error: sanitizeAuthErrorMessage(err).message };
-    }
-    if (errStr.includes('rate') || errStr.includes('too many') || err?.status === 429) {
+      if (classified === 'provider_unavailable') {
+        return {
+          success: false,
+          providerUnavailable: true,
+          code: 'AUTH_PROVIDER_UNAVAILABLE',
+          internalStatus: 'AUTH_PROVIDER_UNAVAILABLE',
+          deliveryStatus: 'NOT_DISPATCHED',
+          error: ADMIN_RECOVERY_PROVIDER_UNAVAILABLE_MESSAGE,
+          auditEvent: {
+            ...auditEvent,
+            eventType: 'ADMIN_PASSWORD_RECOVERY_UNAVAILABLE',
+            internalStatus: 'AUTH_PROVIDER_UNAVAILABLE'
+          }
+        };
+      }
+      // Account-specific non-match: preserve neutral response so callers cannot enumerate accounts.
       adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
       return {
-        success: false,
-        rateLimited: true,
+        success: true,
+        internalStatus: 'PROVIDER_REJECTED',
+        deliveryStatus: 'DELIVERY_UNCONFIRMED',
+        message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
         cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
-        error: 'Recovery requests are temporarily rate-limited. Please wait a moment before trying again.',
         auditEvent: {
           ...auditEvent,
-          eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+          internalStatus: 'PROVIDER_REJECTED'
         }
       };
     }
 
-    // Account-enumeration invariant: never reveal account existence on provider errors.
     adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
     return {
       success: true,
+      internalStatus: 'PROVIDER_ACCEPTED',
+      deliveryStatus: 'DELIVERY_UNCONFIRMED',
       message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
       cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
-      auditEvent
+      auditEvent: {
+        ...auditEvent,
+        internalStatus: 'PROVIDER_ACCEPTED'
+      }
+    };
+  } catch (err: any) {
+    const errStr = (err?.message || String(err)).toLowerCase();
+    if (errStr.includes('supabase_not_configured')) {
+      return {
+        success: false,
+        providerUnavailable: true,
+        code: 'AUTH_PROVIDER_UNAVAILABLE',
+        internalStatus: 'AUTH_PROVIDER_UNAVAILABLE',
+        deliveryStatus: 'NOT_DISPATCHED',
+        error: sanitizeAuthErrorMessage(err).message,
+        auditEvent: {
+          ...auditEvent,
+          eventType: 'ADMIN_PASSWORD_RECOVERY_UNAVAILABLE',
+          internalStatus: 'AUTH_PROVIDER_UNAVAILABLE'
+        }
+      };
+    }
+    const classified = classifyClientRecoveryProviderError(err);
+    if (classified === 'rate_limited') {
+      adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+      return {
+        success: false,
+        rateLimited: true,
+        code: 'ADMIN_RECOVERY_RATE_LIMITED',
+        internalStatus: 'RATE_LIMITED',
+        deliveryStatus: 'NOT_DISPATCHED',
+        cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+        error: 'Recovery requests are temporarily rate-limited. Please wait a moment before trying again.',
+        auditEvent: {
+          ...auditEvent,
+          eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
+          internalStatus: 'RATE_LIMITED'
+        }
+      };
+    }
+    if (classified === 'provider_unavailable') {
+      return {
+        success: false,
+        providerUnavailable: true,
+        code: 'AUTH_PROVIDER_UNAVAILABLE',
+        internalStatus: 'AUTH_PROVIDER_UNAVAILABLE',
+        deliveryStatus: 'NOT_DISPATCHED',
+        error: ADMIN_RECOVERY_PROVIDER_UNAVAILABLE_MESSAGE,
+        auditEvent: {
+          ...auditEvent,
+          eventType: 'ADMIN_PASSWORD_RECOVERY_UNAVAILABLE',
+          internalStatus: 'AUTH_PROVIDER_UNAVAILABLE'
+        }
+      };
+    }
+
+    // Account-enumeration invariant: never reveal account existence on account-specific errors.
+    adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+    return {
+      success: true,
+      internalStatus: 'PROVIDER_REJECTED',
+      deliveryStatus: 'DELIVERY_UNCONFIRMED',
+      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
+      cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+      auditEvent: {
+        ...auditEvent,
+        internalStatus: 'PROVIDER_REJECTED'
+      }
     };
   }
 }

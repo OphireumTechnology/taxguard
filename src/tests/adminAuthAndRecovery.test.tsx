@@ -474,4 +474,101 @@ describe('Administrator recovery callback race regression', () => {
       recoveryEventObserved: true
     })).toBe('invalid');
   });
+
+  it('preserves /admin/login?mode=recovery query parameters and supports verified recovery refresh without leaking tokens', async () => {
+    const loginSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/auth/admin-portal/AdminLoginPage.tsx'),
+      'utf8'
+    );
+    // Must sync mode with ?mode=recovery rather than unconditionally stripping window.location.search
+    expect(loginSrc).toContain("const expectedSearch = mode === 'recovery' ? '?mode=recovery' : '';");
+    expect(loginSrc).toContain("window.history.replaceState({ page: 'admin_login', mode }, '', expectedUrl)");
+    // Must not start cooldown on provider outages
+    expect(loginSrc).toContain('if ((result.success || result.rateLimited) && result.cooldownSeconds');
+
+    const appContextSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/context/AppContext.tsx'),
+      'utf8'
+    );
+    expect(appContextSrc).toContain("targetPath = '/admin/login?mode=recovery'");
+
+    // Verify refresh survival using a simulated sessionStorage (stores non-secret uid + expiry only)
+    const storageMap = new Map<string, string>();
+    const prevWindow = (globalThis as any).window;
+    (globalThis as any).window = {
+      sessionStorage: {
+        getItem: (k: string) => storageMap.get(k) ?? null,
+        setItem: (k: string, v: string) => { storageMap.set(k, v); },
+        removeItem: (k: string) => { storageMap.delete(k); }
+      }
+    };
+
+    try {
+      const recoveryAuth = createMockAuthClient({
+        exchangeCodeForSession: vi.fn().mockResolvedValue({
+          data: { session: { access_token: 'tok-refresh-1' } },
+          error: null
+        }),
+        getSession: vi
+          .fn()
+          .mockResolvedValueOnce({ data: { session: null }, error: null })
+          .mockResolvedValue({ data: { session: { access_token: 'tok-refresh-1' } }, error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'admin-refresh-uid', email: 'admin@destriataxservices.com' } },
+          error: null
+        })
+      });
+
+      // Step 1: Initial PKCE callback verifies and writes non-secret uid marker (never stores token)
+      const initialParsed = parseAdminRecoveryCallback({
+        pathname: '/admin/reset-password',
+        search: '?code=pkce-valid-code',
+        hash: ''
+      });
+      expect(await resolveAdminRecoverySession(recoveryAuth, initialParsed)).toBe('ready');
+      const storedRaw = [...storageMap.values()].join(' ');
+      expect(storedRaw).not.toContain('tok-refresh-1');
+      expect(storedRaw).not.toContain('pkce-valid-code');
+
+      // Step 2: Simulated page refresh after URL scrub (/admin/reset-password with empty search & hash) stays ready
+      const refreshedParsed = parseAdminRecoveryCallback({
+        pathname: '/admin/reset-password',
+        search: '',
+        hash: ''
+      });
+      expect(await resolveAdminRecoverySession(recoveryAuth, refreshedParsed)).toBe('ready');
+
+      // Step 3: Ordinary signed-in user with a different uid is STILL rejected
+      const otherUserAuth = createMockAuthClient({
+        getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'ordinary-session' } }, error: null }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'ordinary-uid-999' } }, error: null })
+      });
+      expect(await resolveAdminRecoverySession(otherUserAuth, refreshedParsed)).toBe('invalid');
+
+      // Step 4: Same-password update failure keeps user on form without signing out; valid update clears marker & signs out
+      const samePassAuth = createMockAuthClient({
+        updateUser: vi.fn().mockResolvedValue({ error: { message: 'New password should be different from the old password' } })
+      });
+      const samePassRes = await submitAdminPasswordReset(
+        samePassAuth,
+        'Destria-Strong!Admin#2026',
+        'Destria-Strong!Admin#2026'
+      );
+      expect(samePassRes.success).toBe(false);
+      expect(samePassRes.sessionExpired).toBeUndefined();
+      expect(samePassAuth.signOut).not.toHaveBeenCalled();
+
+      // Valid completion clears marker and signs out so subsequent refresh is rejected
+      const completeRes = await submitAdminPasswordReset(
+        recoveryAuth,
+        'Destria-Strong!Admin#2026',
+        'Destria-Strong!Admin#2026'
+      );
+      expect(completeRes.success).toBe(true);
+      expect(storageMap.size).toBe(0);
+      expect(await resolveAdminRecoverySession(recoveryAuth, refreshedParsed)).toBe('invalid');
+    } finally {
+      (globalThis as any).window = prevWindow;
+    }
+  });
 });

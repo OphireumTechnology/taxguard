@@ -554,6 +554,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         targetPath = '/staff/login';
       } else if (page === 'admin_login') {
         targetPath = '/admin/login';
+        if (currentPathname === '/admin/login' && window.location.search) {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('mode') === 'recovery' || params.get('tab') === 'recovery') {
+            targetPath = '/admin/login?mode=recovery';
+          }
+        }
       } else if (page === 'admin_command_center') {
         targetPath = '/admin/dashboard';
       } else if (page === 'admin_users') {
@@ -580,7 +586,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       try {
-        if (window.location.pathname !== targetPath || window.location.hash) {
+        const currentFull = `${window.location.pathname}${window.location.search}`;
+        if (currentFull !== targetPath || window.location.hash) {
           window.history.pushState({ page }, '', targetPath);
         }
       } catch {

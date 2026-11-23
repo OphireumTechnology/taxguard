@@ -84,17 +84,21 @@ export const AdminLoginPage: React.FC = () => {
   const recoverySubmittingRef = useRef(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const expectedSearch = mode === 'recovery' ? '?mode=recovery' : '';
+    const expectedUrl = `/admin/login${expectedSearch}`;
     if (
-      typeof window !== 'undefined' &&
-      (window.location.pathname !== '/admin/login' || window.location.hash || window.location.search)
+      window.location.pathname !== '/admin/login' ||
+      window.location.hash ||
+      window.location.search !== expectedSearch
     ) {
       try {
-        window.history.replaceState({ page: 'admin_login' }, '', '/admin/login');
+        window.history.replaceState({ page: 'admin_login', mode }, '', expectedUrl);
       } catch {
         // fallback
       }
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     if (recoveryCooldown <= 0) return;
@@ -219,7 +223,7 @@ export const AdminLoginPage: React.FC = () => {
 
     try {
       const result = await requestAdminPasswordRecovery(recoveryEmail);
-      if (result.cooldownSeconds && result.cooldownSeconds > 0) {
+      if ((result.success || result.rateLimited) && result.cooldownSeconds && result.cooldownSeconds > 0) {
         setRecoveryCooldown(result.cooldownSeconds);
       }
       if (result.auditEvent?.timestamp) {
@@ -228,7 +232,7 @@ export const AdminLoginPage: React.FC = () => {
       if (result.success) {
         setRecoveryConfirmation(
           result.message ||
-            'If an authorized administrator account exists for this email address, password recovery instructions have been sent.'
+            'If an authorized administrator account exists for this email address, a password recovery request has been submitted to the authentication provider.'
         );
       } else {
         setRecoveryError(
@@ -578,12 +582,13 @@ export const AdminLoginPage: React.FC = () => {
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#00C2D1]" aria-hidden="true" />
                   <div className="space-y-1.5 leading-relaxed">
-                    <p className="font-semibold text-white">Recovery Request Recorded</p>
+                    <p className="font-semibold text-white">Recovery Request Submitted</p>
                     <p>{recoveryConfirmation}</p>
                     <p className="text-[11px] text-[#A8B8CC]">
-                      Open the most recent recovery link promptly—links expire automatically and
-                      can only be used once. If your link expires, wait for the cooldown to finish
-                      and submit a new request.
+                      This notice confirms request submission only—not mailbox receipt. Open the
+                      most recent recovery link promptly, as links expire automatically and can
+                      only be used once. If no email arrives, check spam folders or contact
+                      Destria Security Administration to verify account and email-provider settings.
                     </p>
                     {recoveryAuditTimestamp && (
                       <p className="font-mono text-[10px] text-[#7F94AD] tabular-nums">

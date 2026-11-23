@@ -23,7 +23,92 @@ import {
 } from '../config/authRecoveryPolicy';
 
 export const NEUTRAL_SERVER_ADMIN_RECOVERY_MESSAGE =
-  'If the email address belongs to an authorized Destria Tax Services administrator account, password recovery instructions have been sent.';
+  'If the email address belongs to an authorized Destria Tax Services administrator account, a password recovery request has been submitted to the authentication provider.';
+
+export const AUTH_PROVIDER_UNAVAILABLE_MESSAGE =
+  'The administrator password recovery service is temporarily unavailable. No recovery email could be dispatched. Please try again later or contact Destria Security Administration.';
+
+export type AdminRecoveryDeliveryStatus =
+  | 'REQUEST_ACCEPTED'
+  | 'PROVIDER_DISPATCH_ATTEMPTED'
+  | 'PROVIDER_ACCEPTED'
+  | 'PROVIDER_REJECTED'
+  | 'RATE_LIMITED'
+  | 'AUTH_PROVIDER_UNAVAILABLE'
+  | 'DELIVERY_UNCONFIRMED';
+
+export type ProviderErrorClassification =
+  | { kind: 'rate_limited'; internalStatus: 'RATE_LIMITED' }
+  | { kind: 'provider_unavailable'; internalStatus: 'AUTH_PROVIDER_UNAVAILABLE' | 'PROVIDER_REJECTED' }
+  | { kind: 'account_or_benign_rejected'; internalStatus: 'PROVIDER_REJECTED' };
+
+/**
+ * Classifies identity/email-provider errors without leaking account existence.
+ * - Rate limits -> HTTP 429 (RATE_LIMITED)
+ * - Account-independent infrastructure/SMTP/DNS/config outages -> HTTP 503 (AUTH_PROVIDER_UNAVAILABLE / PROVIDER_REJECTED)
+ * - Account-specific non-matches (e.g. user_not_found) -> neutral HTTP 200 (PROVIDER_REJECTED logged internally only)
+ */
+export function classifyRecoveryProviderError(err: {
+  message?: string;
+  status?: number;
+  code?: string;
+} | null | undefined): ProviderErrorClassification {
+  const status = typeof err?.status === 'number' ? err.status : 0;
+  const raw = `${err?.code || ''} ${err?.message || ''}`.toLowerCase();
+
+  if (
+    status === 429 ||
+    raw.includes('over_email_send_rate_limit') ||
+    raw.includes('rate_limit') ||
+    raw.includes('rate limit') ||
+    raw.includes('too many')
+  ) {
+    return { kind: 'rate_limited', internalStatus: 'RATE_LIMITED' };
+  }
+
+  // Explicit email/SMTP/redirect-allowlist rejection from the auth provider (infrastructure defect, not account enumeration)
+  if (
+    raw.includes('smtp') ||
+    raw.includes('error sending recovery email') ||
+    raw.includes('error sending confirmation') ||
+    raw.includes('mail server') ||
+    raw.includes('email provider') ||
+    raw.includes('sender') ||
+    raw.includes('redirect_to') ||
+    raw.includes('redirect url')
+  ) {
+    return { kind: 'provider_unavailable', internalStatus: 'PROVIDER_REJECTED' };
+  }
+
+  // Missing config, DNS resolution failure, transport outage, upstream 5xx, or rejected API/service key (401/403)
+  if (
+    status >= 500 ||
+    status === 401 ||
+    status === 403 ||
+    raw.includes('supabase_not_configured') ||
+    raw.includes('supabase_config_missing') ||
+    raw.includes('supabase_production_project_blocked') ||
+    raw.includes('enotfound') ||
+    raw.includes('err_name_not_resolved') ||
+    raw.includes('econnrefused') ||
+    raw.includes('etimedout') ||
+    raw.includes('econnreset') ||
+    raw.includes('fetch failed') ||
+    raw.includes('failed to fetch') ||
+    raw.includes('load failed') ||
+    raw.includes('networkerror') ||
+    raw.includes('network error') ||
+    raw.includes('service unavailable') ||
+    raw.includes('bad gateway') ||
+    raw.includes('invalid api key') ||
+    raw.includes('no api key')
+  ) {
+    return { kind: 'provider_unavailable', internalStatus: 'AUTH_PROVIDER_UNAVAILABLE' };
+  }
+
+  // Account-specific or benign provider response: preserve strict anti-enumeration neutrality.
+  return { kind: 'account_or_benign_rejected', internalStatus: 'PROVIDER_REJECTED' };
+}
 
 export const SERVER_ADMIN_RECOVERY_COOLDOWN_MS = 60_000;
 export const SERVER_ADMIN_RECOVERY_WINDOW_MS = 15 * 60 * 1000;
@@ -216,13 +301,19 @@ export interface AdminRecoveryRequestOutcome {
     | 'account_throttled'
     | 'dispatched'
     | 'provider_rate_limited'
+    | 'provider_unavailable'
     | 'provider_error_suppressed';
+  internalStatus: AdminRecoveryDeliveryStatus;
+  deliveryStatus: 'DELIVERY_UNCONFIRMED' | 'NOT_DISPATCHED';
+  statusTrail: AdminRecoveryDeliveryStatus[];
   metadata: {
     requestId: string;
     emailHash?: string;
     emailDomain?: string;
     ipHash?: string;
     redirectTarget?: string;
+    internalStatus: AdminRecoveryDeliveryStatus;
+    deliveryStatus: 'DELIVERY_UNCONFIRMED' | 'NOT_DISPATCHED';
     timestamp: string;
   };
 }
@@ -264,7 +355,15 @@ export async function processAdminRecoveryRequest(
       status: 400,
       body: { error: 'A valid administrator email address is required.', code: 'INVALID_EMAIL', requestId },
       outcome: 'invalid_email',
-      metadata: { requestId, timestamp }
+      internalStatus: 'PROVIDER_REJECTED',
+      deliveryStatus: 'NOT_DISPATCHED',
+      statusTrail: ['PROVIDER_REJECTED'],
+      metadata: {
+        requestId,
+        internalStatus: 'PROVIDER_REJECTED',
+        deliveryStatus: 'NOT_DISPATCHED',
+        timestamp
+      }
     };
   }
 
@@ -274,7 +373,15 @@ export async function processAdminRecoveryRequest(
       status: 400,
       body: { error: 'A valid administrator email address is required.', code: 'INVALID_EMAIL', requestId },
       outcome: 'invalid_email',
-      metadata: { requestId, timestamp }
+      internalStatus: 'PROVIDER_REJECTED',
+      deliveryStatus: 'NOT_DISPATCHED',
+      statusTrail: ['PROVIDER_REJECTED'],
+      metadata: {
+        requestId,
+        internalStatus: 'PROVIDER_REJECTED',
+        deliveryStatus: 'NOT_DISPATCHED',
+        timestamp
+      }
     };
   }
 
@@ -310,7 +417,15 @@ export async function processAdminRecoveryRequest(
         requestId
       },
       outcome: 'unauthorized_redirect',
-      metadata: { requestId, timestamp }
+      internalStatus: 'PROVIDER_REJECTED',
+      deliveryStatus: 'NOT_DISPATCHED',
+      statusTrail: ['PROVIDER_REJECTED'],
+      metadata: {
+        requestId,
+        internalStatus: 'PROVIDER_REJECTED',
+        deliveryStatus: 'NOT_DISPATCHED',
+        timestamp
+      }
     };
   }
 
@@ -332,6 +447,8 @@ export async function processAdminRecoveryRequest(
           ipHash: denied.ipHash,
           reason: denied.reason,
           redirectTarget,
+          internalStatus: 'RATE_LIMITED',
+          deliveryStatus: 'NOT_DISPATCHED',
           timestamp
         },
         severity: 'warning'
@@ -346,12 +463,17 @@ export async function processAdminRecoveryRequest(
           requestId
         },
         outcome: 'ip_rate_limited',
+        internalStatus: 'RATE_LIMITED',
+        deliveryStatus: 'NOT_DISPATCHED',
+        statusTrail: ['RATE_LIMITED'],
         metadata: {
           requestId,
           emailHash: denied.emailHash,
           emailDomain: denied.emailDomain,
           ipHash: denied.ipHash,
           redirectTarget,
+          internalStatus: 'RATE_LIMITED',
+          deliveryStatus: 'NOT_DISPATCHED',
           timestamp
         }
       };
@@ -375,6 +497,8 @@ export async function processAdminRecoveryRequest(
         ipHash: denied.ipHash,
         reason: denied.reason,
         redirectTarget,
+        internalStatus: 'RATE_LIMITED',
+        deliveryStatus: 'NOT_DISPATCHED',
         timestamp
       },
       severity: 'warning'
@@ -388,51 +512,92 @@ export async function processAdminRecoveryRequest(
         requestId
       },
       outcome: 'account_throttled',
+      internalStatus: 'RATE_LIMITED',
+      deliveryStatus: 'NOT_DISPATCHED',
+      statusTrail: ['REQUEST_ACCEPTED', 'RATE_LIMITED'],
       metadata: {
         requestId,
         emailHash: denied.emailHash,
         emailDomain: denied.emailDomain,
         ipHash: denied.ipHash,
         redirectTarget,
+        internalStatus: 'RATE_LIMITED',
+        deliveryStatus: 'NOT_DISPATCHED',
         timestamp
       }
     };
   }
 
+  const statusTrail: AdminRecoveryDeliveryStatus[] = ['REQUEST_ACCEPTED', 'PROVIDER_DISPATCH_ATTEMPTED'];
   let outcome: AdminRecoveryRequestOutcome['outcome'] = 'dispatched';
+  let internalStatus: AdminRecoveryDeliveryStatus = 'PROVIDER_ACCEPTED';
+  let deliveryStatus: 'DELIVERY_UNCONFIRMED' | 'NOT_DISPATCHED' = 'DELIVERY_UNCONFIRMED';
+
   try {
     const result = await deps.dispatchRecovery(normalizedEmail, redirectTarget);
     const err = result?.error;
     if (err) {
-      const msg = (err.message || '').toLowerCase();
-      if (err.status === 429 || msg.includes('rate') || msg.includes('too many')) {
+      const classified = classifyRecoveryProviderError(err);
+      internalStatus = classified.internalStatus;
+      if (classified.kind === 'rate_limited') {
         outcome = 'provider_rate_limited';
+        deliveryStatus = 'NOT_DISPATCHED';
+        statusTrail.push('RATE_LIMITED');
         deps.onSecurityEvent?.({
           eventType: 'PASSWORD_RESET_THROTTLED',
           details: `Identity provider rate-limited admin recovery dispatch; requestId=${requestId}; domain=${decision.emailDomain}; emailHash=${decision.emailHash}.`,
           severity: 'warning'
         });
+      } else if (classified.kind === 'provider_unavailable') {
+        outcome = 'provider_unavailable';
+        deliveryStatus = 'NOT_DISPATCHED';
+        statusTrail.push(classified.internalStatus);
+        deps.onSecurityEvent?.({
+          eventType: 'SUSPICIOUS_ACCESS_ANOMALY',
+          details: `Admin recovery provider dispatch failed (${classified.internalStatus}); requestId=${requestId}; domain=${decision.emailDomain}.`,
+          severity: 'warning'
+        });
       } else {
         outcome = 'provider_error_suppressed';
+        deliveryStatus = 'DELIVERY_UNCONFIRMED';
+        statusTrail.push('PROVIDER_REJECTED', 'DELIVERY_UNCONFIRMED');
       }
+    } else {
+      statusTrail.push('PROVIDER_ACCEPTED', 'DELIVERY_UNCONFIRMED');
     }
   } catch (err: any) {
-    const msg = (err?.message || '').toLowerCase();
-    if (err?.status === 429 || msg.includes('rate') || msg.includes('too many')) {
+    const classified = classifyRecoveryProviderError(err);
+    internalStatus = classified.internalStatus;
+    if (classified.kind === 'rate_limited') {
       outcome = 'provider_rate_limited';
+      deliveryStatus = 'NOT_DISPATCHED';
+      statusTrail.push('RATE_LIMITED');
       deps.onSecurityEvent?.({
         eventType: 'PASSWORD_RESET_THROTTLED',
         details: `Identity provider throttled admin recovery dispatch; requestId=${requestId}; domain=${decision.emailDomain}; emailHash=${decision.emailHash}.`,
         severity: 'warning'
       });
+    } else if (classified.kind === 'provider_unavailable') {
+      outcome = 'provider_unavailable';
+      deliveryStatus = 'NOT_DISPATCHED';
+      statusTrail.push(classified.internalStatus);
+      deps.onSecurityEvent?.({
+        eventType: 'SUSPICIOUS_ACCESS_ANOMALY',
+        details: `Admin recovery provider transport/config error (${classified.internalStatus}); requestId=${requestId}; domain=${decision.emailDomain}.`,
+        severity: 'warning'
+      });
     } else {
       outcome = 'provider_error_suppressed';
+      deliveryStatus = 'DELIVERY_UNCONFIRMED';
+      statusTrail.push('PROVIDER_REJECTED', 'DELIVERY_UNCONFIRMED');
     }
   }
 
   deps.onAuditEvent?.({
-    action: 'ADMIN_PASSWORD_RECOVERY_REQUESTED',
-    details: `Administrator password recovery processed (${outcome}); requestId=${requestId}; domain=${decision.emailDomain}.`,
+    action: outcome === 'provider_rate_limited'
+      ? 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+      : 'ADMIN_PASSWORD_RECOVERY_REQUESTED',
+    details: `Administrator password recovery processed (${outcome}, ${internalStatus}); requestId=${requestId}; domain=${decision.emailDomain}.`,
     metadata: {
       requestId,
       emailHash: decision.emailHash,
@@ -440,10 +605,70 @@ export async function processAdminRecoveryRequest(
       ipHash: decision.ipHash,
       redirectTarget,
       outcome,
+      internalStatus,
+      deliveryStatus,
+      statusTrail: statusTrail.join('>'),
       timestamp
     },
-    severity: outcome === 'provider_rate_limited' ? 'warning' : 'info'
+    severity:
+      outcome === 'provider_rate_limited' || outcome === 'provider_unavailable'
+        ? 'warning'
+        : 'info'
   });
+
+  if (outcome === 'provider_rate_limited') {
+    const retryAfterSeconds = decision.cooldownSeconds;
+    return {
+      status: 429,
+      retryAfterSeconds,
+      body: {
+        error: 'Recovery requests are temporarily rate-limited by the authentication provider. Please wait before trying again.',
+        code: 'ADMIN_RECOVERY_RATE_LIMITED',
+        retryAfterSeconds,
+        requestId
+      },
+      outcome,
+      internalStatus,
+      deliveryStatus,
+      statusTrail,
+      metadata: {
+        requestId,
+        emailHash: decision.emailHash,
+        emailDomain: decision.emailDomain,
+        ipHash: decision.ipHash,
+        redirectTarget,
+        internalStatus,
+        deliveryStatus,
+        timestamp
+      }
+    };
+  }
+
+  if (outcome === 'provider_unavailable') {
+    return {
+      status: 503,
+      body: {
+        accepted: false,
+        error: AUTH_PROVIDER_UNAVAILABLE_MESSAGE,
+        code: 'AUTH_PROVIDER_UNAVAILABLE',
+        requestId
+      },
+      outcome,
+      internalStatus,
+      deliveryStatus,
+      statusTrail,
+      metadata: {
+        requestId,
+        emailHash: decision.emailHash,
+        emailDomain: decision.emailDomain,
+        ipHash: decision.ipHash,
+        redirectTarget,
+        internalStatus,
+        deliveryStatus,
+        timestamp
+      }
+    };
+  }
 
   return {
     status: 200,
@@ -454,12 +679,17 @@ export async function processAdminRecoveryRequest(
       requestId
     },
     outcome,
+    internalStatus,
+    deliveryStatus,
+    statusTrail,
     metadata: {
       requestId,
       emailHash: decision.emailHash,
       emailDomain: decision.emailDomain,
       ipHash: decision.ipHash,
       redirectTarget,
+      internalStatus,
+      deliveryStatus,
       timestamp
     }
   };

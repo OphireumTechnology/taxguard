@@ -125,4 +125,37 @@ describe('Production HTTP POST /api/auth/admin-recovery-request — Abuse Protec
     expect((await foreignOrigin.json()).code).toBe('ORIGIN_DENIED');
     expect(dispatchSpy).not.toHaveBeenCalled();
   });
+
+  it('returns 503 AUTH_PROVIDER_UNAVAILABLE on SMTP/DNS outage, 429 on provider rate limit, and neutral 200 on unknown account', async () => {
+    // 1. Provider SMTP outage -> 503 (never masked behind neutral 200)
+    dispatchSpy.mockResolvedValueOnce({
+      error: { message: 'Error sending recovery email: SMTP auth failed', status: 500 }
+    });
+    const outageRes = await postRecovery({ email: 'outage.test@destria-test.invalid' });
+    expect(outageRes.status).toBe(503);
+    const outageBody = await outageRes.json();
+    expect(outageBody.accepted).toBe(false);
+    expect(outageBody.code).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(JSON.stringify(outageBody)).not.toContain('SMTP auth failed');
+
+    // 2. Provider 429 rate limit -> 429 with Retry-After
+    dispatchSpy.mockResolvedValueOnce({
+      error: { message: 'over_email_send_rate_limit', status: 429 }
+    });
+    const limitRes = await postRecovery({ email: 'limit.test@destria-test.invalid' });
+    expect(limitRes.status).toBe(429);
+    expect(Number(limitRes.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect((await limitRes.json()).code).toBe('ADMIN_RECOVERY_RATE_LIMITED');
+
+    // 3. Unknown account -> neutral 200 (preserves account-enumeration protection)
+    dispatchSpy.mockResolvedValueOnce({
+      error: { message: 'User not found', status: 400 }
+    });
+    const unknownRes = await postRecovery({ email: 'unknown.test@destria-test.invalid' });
+    expect(unknownRes.status).toBe(200);
+    const unknownBody = await unknownRes.json();
+    expect(unknownBody.accepted).toBe(true);
+    expect(unknownBody.message).toBe(NEUTRAL_SERVER_ADMIN_RECOVERY_MESSAGE);
+    expect(JSON.stringify(unknownBody)).not.toContain('User not found');
+  });
 });

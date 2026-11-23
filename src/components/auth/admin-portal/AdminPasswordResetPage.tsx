@@ -67,10 +67,63 @@ export interface AdminRecoveryAuthClient {
 
 export type RecoveryContextOutcome = 'ready' | 'expired' | 'invalid';
 
+const ADMIN_RECOVERY_MARKER_KEY = 'taxguard_admin_recovery_verified';
+const ADMIN_RECOVERY_MARKER_TTL_MS = 15 * 60 * 1000;
+
+interface VerifiedRecoveryMarker {
+  uid: string;
+  expiresAt: number;
+}
+
+function readVerifiedRecoveryMarker(now = Date.now()): VerifiedRecoveryMarker | null {
+  if (typeof window === 'undefined' || !window.sessionStorage) return null;
+  try {
+    const raw = window.sessionStorage.getItem(ADMIN_RECOVERY_MARKER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<VerifiedRecoveryMarker>;
+    if (
+      typeof parsed?.uid !== 'string' ||
+      !parsed.uid ||
+      typeof parsed?.expiresAt !== 'number' ||
+      parsed.expiresAt <= now
+    ) {
+      window.sessionStorage.removeItem(ADMIN_RECOVERY_MARKER_KEY);
+      return null;
+    }
+    return { uid: parsed.uid, expiresAt: parsed.expiresAt };
+  } catch {
+    return null;
+  }
+}
+
+function writeVerifiedRecoveryMarker(uid: string | undefined, now = Date.now()): void {
+  if (!uid || typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    // Store only the non-secret user id + short expiry so refreshing /admin/reset-password
+    // after URL scrubbing preserves an already-verified recovery flow without storing tokens.
+    const marker: VerifiedRecoveryMarker = {
+      uid,
+      expiresAt: now + ADMIN_RECOVERY_MARKER_TTL_MS
+    };
+    window.sessionStorage.setItem(ADMIN_RECOVERY_MARKER_KEY, JSON.stringify(marker));
+  } catch {
+    // Ignore storage quota / privacy mode errors
+  }
+}
+
+export function clearVerifiedRecoveryMarker(): void {
+  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    window.sessionStorage.removeItem(ADMIN_RECOVERY_MARKER_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 /**
  * Verifies that the browser holds a genuine Supabase password recovery context
- * (implicit fragment, PKCE code, or token_hash OTP). Rejects generic signed-in
- * sessions so ordinary logins can never be confused with recovery authorization.
+ * (implicit fragment, PKCE code, token_hash OTP, or same-tab refreshed verified recovery).
+ * Rejects generic signed-in sessions so ordinary logins can never be confused with recovery authorization.
  */
 export async function resolveAdminRecoverySession(
   authClient: AdminRecoveryAuthClient,
@@ -78,6 +131,7 @@ export async function resolveAdminRecoverySession(
   options?: { recoveryEventObserved?: boolean }
 ): Promise<RecoveryContextOutcome> {
   if (parsed.hasExplicitError) {
+    clearVerifiedRecoveryMarker();
     await authClient.signOut().catch(() => {});
     return parsed.isExpiredError ? 'expired' : 'invalid';
   }
@@ -89,15 +143,20 @@ export async function resolveAdminRecoverySession(
       type: 'recovery'
     });
     if (error || (!data?.session && !data?.user)) {
+      clearVerifiedRecoveryMarker();
       const msg = String((error as any)?.message || '').toLowerCase();
       return msg.includes('expired') ? 'expired' : 'invalid';
     }
+    let verifiedUid = data?.user?.id;
     if (typeof authClient.getUser === 'function') {
       const userCheck = await authClient.getUser();
       if (userCheck.error || !userCheck.data?.user) {
+        clearVerifiedRecoveryMarker();
         return 'invalid';
       }
+      verifiedUid = userCheck.data.user.id ?? verifiedUid;
     }
+    writeVerifiedRecoveryMarker(verifiedUid);
     return 'ready';
   }
 
@@ -107,24 +166,34 @@ export async function resolveAdminRecoverySession(
     if (!session && typeof authClient.exchangeCodeForSession === 'function') {
       const exchanged = await authClient.exchangeCodeForSession(parsed.pkceCode);
       if (exchanged.error) {
+        clearVerifiedRecoveryMarker();
         const msg = String((exchanged.error as any)?.message || '').toLowerCase();
         return msg.includes('expired') ? 'expired' : 'invalid';
       }
       session = exchanged.data?.session ?? null;
     }
-    if (!session) return 'invalid';
+    if (!session) {
+      clearVerifiedRecoveryMarker();
+      return 'invalid';
+    }
+    let verifiedUid: string | undefined;
     if (typeof authClient.getUser === 'function') {
       const userCheck = await authClient.getUser();
       if (userCheck.error || !userCheck.data?.user) {
+        clearVerifiedRecoveryMarker();
         return 'invalid';
       }
+      verifiedUid = userCheck.data.user.id;
     }
+    writeVerifiedRecoveryMarker(verifiedUid);
     return 'ready';
   }
 
-  // 3. Implicit recovery fragment (#access_token=...&type=recovery) or SDK PASSWORD_RECOVERY event
+  // 3. Implicit recovery fragment (#access_token=...&type=recovery), SDK PASSWORD_RECOVERY event,
+  // or same-tab refresh after an already-verified recovery callback scrubbed URL parameters.
   const { data, error } = await authClient.getSession();
   if (error || !data?.session) {
+    clearVerifiedRecoveryMarker();
     return 'invalid';
   }
 
@@ -132,17 +201,26 @@ export async function resolveAdminRecoverySession(
     Boolean(parsed.hashAccessToken) &&
     data.session.access_token === parsed.hashAccessToken;
 
-  if (!fragmentMatches && !options?.recoveryEventObserved) {
-    return 'invalid';
-  }
-
+  let verifiedUid: string | undefined;
   if (typeof authClient.getUser === 'function') {
     const userCheck = await authClient.getUser();
     if (userCheck.error || !userCheck.data?.user) {
+      clearVerifiedRecoveryMarker();
       return 'invalid';
     }
+    verifiedUid = userCheck.data.user.id;
   }
 
+  const marker = parsed.isResetPath ? readVerifiedRecoveryMarker() : null;
+  const refreshedVerifiedRecovery = Boolean(
+    marker && verifiedUid && marker.uid === verifiedUid
+  );
+
+  if (!fragmentMatches && !options?.recoveryEventObserved && !refreshedVerifiedRecovery) {
+    return 'invalid';
+  }
+
+  writeVerifiedRecoveryMarker(verifiedUid);
   return 'ready';
 }
 
@@ -177,6 +255,7 @@ export async function submitAdminPasswordReset(
         error: 'Choose a new password that differs from your previous password.'
       };
     }
+    clearVerifiedRecoveryMarker();
     await authClient.signOut().catch(() => {});
     return {
       success: false,
@@ -187,6 +266,7 @@ export async function submitAdminPasswordReset(
   }
 
   // Always terminate the recovery session so it can never be reused or mistaken for an active admin session.
+  clearVerifiedRecoveryMarker();
   await authClient.signOut().catch(() => {});
   return {
     success: true,

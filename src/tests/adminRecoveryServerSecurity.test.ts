@@ -313,4 +313,127 @@ describe('Phase P0.2 — Server-Side Recovery Abuse Protection & Security Regres
       expect(sql).not.toMatch(/CREATE POLICY .* ON taxguard_audit_log FOR (ALL|UPDATE|DELETE) TO authenticated/i);
     }
   });
+
+  it('tracks explicit internal delivery statuses and surfaces provider/SMTP/DNS outages as 503 without masking failures', async () => {
+    const limiter = new AdminRecoveryRateLimiter({ ipLimit: 20, accountLimit: 20, accountCooldownMs: 1 });
+    const auditEvents: Array<{ action: string; metadata: Record<string, string> }> = [];
+
+    // 1. Provider accepted -> REQUEST_ACCEPTED > PROVIDER_DISPATCH_ATTEMPTED > PROVIDER_ACCEPTED > DELIVERY_UNCONFIRMED
+    const okOutcome = await processAdminRecoveryRequest(
+      { email: 'accepted.admin@destria-test.invalid', ip: '198.51.100.20' },
+      {
+        limiter,
+        isProduction: true,
+        dispatchRecovery: vi.fn().mockResolvedValue({ error: null }),
+        onAuditEvent: (e) => auditEvents.push({ action: e.action, metadata: e.metadata })
+      }
+    );
+    expect(okOutcome.status).toBe(200);
+    expect(okOutcome.internalStatus).toBe('PROVIDER_ACCEPTED');
+    expect(okOutcome.deliveryStatus).toBe('DELIVERY_UNCONFIRMED');
+    expect(okOutcome.statusTrail).toEqual([
+      'REQUEST_ACCEPTED',
+      'PROVIDER_DISPATCH_ATTEMPTED',
+      'PROVIDER_ACCEPTED',
+      'DELIVERY_UNCONFIRMED'
+    ]);
+
+    // 2. Unconfigured / DNS / network outage -> HTTP 503 AUTH_PROVIDER_UNAVAILABLE (never fake 200)
+    const dnsOutage = await processAdminRecoveryRequest(
+      { email: 'dns.outage@destria-test.invalid', ip: '198.51.100.21' },
+      {
+        limiter,
+        isProduction: true,
+        dispatchRecovery: vi.fn().mockRejectedValue(new TypeError('fetch failed: getaddrinfo ENOTFOUND dead.supabase.co')),
+        onAuditEvent: (e) => auditEvents.push({ action: e.action, metadata: e.metadata })
+      }
+    );
+    expect(dnsOutage.status).toBe(503);
+    expect(dnsOutage.body.accepted).toBe(false);
+    expect(dnsOutage.body.code).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(dnsOutage.internalStatus).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(dnsOutage.deliveryStatus).toBe('NOT_DISPATCHED');
+    expect(JSON.stringify(dnsOutage.body)).not.toContain('dead.supabase.co');
+
+    // 3. Explicit SMTP delivery failure -> HTTP 503 with internalStatus PROVIDER_REJECTED
+    const smtpFailure = await processAdminRecoveryRequest(
+      { email: 'smtp.outage@destria-test.invalid', ip: '198.51.100.22' },
+      {
+        limiter,
+        isProduction: true,
+        dispatchRecovery: vi.fn().mockResolvedValue({
+          error: { message: 'Error sending recovery email: SMTP connection refused', status: 500 }
+        }),
+        onAuditEvent: (e) => auditEvents.push({ action: e.action, metadata: e.metadata })
+      }
+    );
+    expect(smtpFailure.status).toBe(503);
+    expect(smtpFailure.body.code).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(smtpFailure.internalStatus).toBe('PROVIDER_REJECTED');
+    expect(JSON.stringify(smtpFailure.body)).not.toContain('SMTP connection refused');
+
+    // 4. Provider rate limit (429) -> HTTP 429 RATE_LIMITED with Retry-After
+    const providerLimited = await processAdminRecoveryRequest(
+      { email: 'provider.limit@destria-test.invalid', ip: '198.51.100.23' },
+      {
+        limiter,
+        isProduction: true,
+        dispatchRecovery: vi.fn().mockResolvedValue({
+          error: { message: 'over_email_send_rate_limit', status: 429 }
+        }),
+        onAuditEvent: (e) => auditEvents.push({ action: e.action, metadata: e.metadata })
+      }
+    );
+    expect(providerLimited.status).toBe(429);
+    expect(providerLimited.internalStatus).toBe('RATE_LIMITED');
+    expect(providerLimited.retryAfterSeconds).toBeGreaterThan(0);
+
+    // 5. Client requestAdminPasswordRecovery never fakes success on DNS/network outage or backend 503
+    clearAdminRecoveryThrottle();
+    const clientDnsFail = await requestAdminPasswordRecovery('client.outage@destria-test.invalid', {
+      redirectTo: CANONICAL_ADMIN_RECOVERY_URL,
+      authClient: {
+        resetPasswordForEmail: vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+      }
+    });
+    expect(clientDnsFail.success).toBe(false);
+    expect(clientDnsFail.providerUnavailable).toBe(true);
+    expect(clientDnsFail.code).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(clientDnsFail.internalStatus).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(clientDnsFail.cooldownSeconds).toBeUndefined();
+
+    // 6. Client propagates backend 503 AUTH_PROVIDER_UNAVAILABLE without falling back to fake confirmation
+    clearAdminRecoveryThrottle();
+    const fallbackSpy = { resetPasswordForEmail: vi.fn().mockResolvedValue({ data: {}, error: null }) };
+    const backendOutage = await requestAdminPasswordRecovery('backend.outage@destria-test.invalid', {
+      redirectTo: CANONICAL_ADMIN_RECOVERY_URL,
+      useServerEndpoint: true,
+      fetchImpl: vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => ({
+          accepted: false,
+          code: 'AUTH_PROVIDER_UNAVAILABLE',
+          error: 'Recovery service unavailable.'
+        })
+      }) as unknown as typeof fetch,
+      authClient: fallbackSpy
+    });
+    expect(backendOutage.success).toBe(false);
+    expect(backendOutage.providerUnavailable).toBe(true);
+    expect(backendOutage.internalStatus).toBe('AUTH_PROVIDER_UNAVAILABLE');
+    expect(fallbackSpy.resetPasswordForEmail).not.toHaveBeenCalled();
+
+    // 7. Production vs staging separation: protectedDestination rejects production hosts in non-production
+    const protectedDestSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/supabase/protectedDestination.ts'),
+      'utf8'
+    );
+    expect(protectedDestSrc).toContain('isProtectedIdentityDestination');
+    const supabaseServerSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/server/supabase.ts'),
+      'utf8'
+    );
+    expect(supabaseServerSrc).toContain('SUPABASE_PRODUCTION_PROJECT_BLOCKED');
+  });
 });
