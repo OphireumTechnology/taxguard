@@ -15,6 +15,11 @@ type ScopedA10Job = Readonly<{
 /** Resolve current actor, stage, grant and evidence scope on every call. Wire only to a governed resolver. */
 export type ResolveA10Evidence = (request: ScopedA10Job) => Promise<readonly EvidenceMetadata[] | null>;
 
+export function validA10SourceIds(ids: unknown): ids is string[] {
+  return Array.isArray(ids) && ids.length >= 1 && ids.length <= 10 && new Set(ids).size === ids.length
+    && ids.every(id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id));
+}
+
 function parseClaim(job: ClaimedJob): ScopedA10Job | null {
   const { tenantId, clientId, caseId, createdBy, payload } = job;
   if (job.jobType !== 'AI_PROPOSAL' || !payload || payload.agentId !== 'A10'
@@ -23,8 +28,7 @@ function parseClaim(job: ClaimedJob): ScopedA10Job | null {
     || typeof createdBy !== 'string' || !createdBy) return null;
 
   const ids = payload.sourceIds;
-  if (!Array.isArray(ids) || ids.length < 1 || ids.length > 10 || new Set(ids).size !== ids.length
-    || !ids.every(id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id))) return null;
+  if (!validA10SourceIds(ids)) return null;
 
   return Object.freeze({ tenantId, clientId, caseId, actorId: createdBy, sourceIds: Object.freeze([...ids]) });
 }

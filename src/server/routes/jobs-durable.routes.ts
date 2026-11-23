@@ -1,3 +1,4 @@
+import { validA10SourceIds } from '../ai/jobs/A10AdvisoryJob';
 /**
  * Durable background job queue (proposal 20261019240000), replacing the in-memory /api/operations/jobs routes.
  * Development-only until reviewed and applied: answers only with an injected client (tests) or when the durable store
@@ -65,6 +66,11 @@ export function createJobsRouter(deps: JobsRouterDeps = {}) {
         || !optionalString(b.clientId, 64) || !optionalString(b.caseId, 128) || !optionalInteger(b.priority) || !optionalInteger(b.maxAttempts)
         || (b.availableAt !== undefined && (typeof b.availableAt !== 'string' || !Number.isFinite(Date.parse(b.availableAt)))))
       return res.status(400).json({ code: 'JOB_INPUT_INVALID' });
+    if (b.jobType === 'AI_PROPOSAL' && b.payload.agentId === 'A10'
+        && (!b.clientId || !b.caseId || Object.keys(b.payload).sort().join(',') !== 'agentId,sourceIds'
+          || !validA10SourceIds(b.payload.sourceIds))) {
+      return res.status(400).json({ code: 'JOB_INPUT_INVALID' });
+    }
     return call(res, 'taxguard_job_enqueue', { ...base(req), p_job_type: b.jobType, p_payload: b.payload, p_client: b.clientId ?? null, p_case: b.caseId ?? null,
       p_priority: b.priority ?? null, p_max_attempts: b.maxAttempts ?? null, p_available_at: b.availableAt ?? null, p_idempotency_key: key }, 201);
   });

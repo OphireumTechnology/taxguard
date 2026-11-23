@@ -319,6 +319,14 @@ describe('A10 advisory job review draft', () => {
     }
   });
 
+  it('rejects repeated A10 evidence at submission', async () => {
+    const invalid = await enqueue('jq-prep1', 'jw-invalid-selection', {
+      jobType: 'AI_PROPOSAL', clientId: C, caseId: caseIds.E1,
+      payload: { agentId: 'A10', sourceIds: [sourceIds[0], sourceIds[0]] },
+    });
+    expect(invalid).toMatchObject({ status: 400, body: { code: 'JOB_INPUT_INVALID' } });
+  });
+
   it('partitions claims and records the scoped summary and terminal event', async () => {
     const queued = await enqueueA10('jw-draft-ai-0001');
     expect(queued.status).toBe(201);
