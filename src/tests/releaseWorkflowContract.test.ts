@@ -12,16 +12,23 @@ const ci = fs.readFileSync('.github/workflows/taxguard-development-ci.yml', 'utf
 const section = (text: string, start: string, end?: string) => { const i = text.indexOf(start); const j = end ? text.indexOf(end, i + 1) : -1; return text.slice(i, j < 0 ? undefined : j); };
 
 describe('deploy-pages.yml', () => {
-  it('runs after Development CI on main or by explicit dispatch, never on a file-path push', () => {
-    expect(deploy).toMatch(/workflow_run:\s*\n\s*workflows: \['TaxGuard Development CI'\]\s*\n\s*types: \[completed\]\s*\n\s*branches: \[main\]/);
-    expect(deploy).toContain('workflow_dispatch:');
-    expect(section(deploy, 'on:', 'permissions:')).not.toMatch(/\bpush:|paths:/);
+  it('runs exclusively by explicit manual dispatch, never on a push or completed CI event', () => {
+    const triggers = section(deploy, 'on:', 'permissions:');
+    expect(triggers).toMatch(/on:\s*\n\s*workflow_dispatch:\s*\n/);
+    expect(triggers).toContain('commit:');
+    expect(triggers).toContain('required: true');
+    expect(triggers).not.toMatch(/workflow_run:|\bpush:|\bpaths:|\bschedule:|repository_dispatch:/);
   });
-  it('accepts only a successful CI push run of main in this repository', () => {
-    const gate = section(deploy, 'resolve:', 'permissions:');
-    for (const condition of ["github.event.workflow_run.conclusion == 'success'", "github.event.workflow_run.event == 'push'",
-      "github.event.workflow_run.head_branch == 'main'", 'github.event.workflow_run.head_repository.full_name == github.repository'])
-      expect(gate).toContain(condition);
+  it('requires manual main-branch dispatch with an exact approved commit', () => {
+    const resolve = section(deploy, '  resolve:', '  build:');
+    expect(resolve).toContain('if: github.event_name == \'workflow_dispatch\'');
+    expect(resolve).toContain('refs/heads/main');
+    expect(resolve).toContain('INPUT_SHA: ${{ inputs.commit }}');
+    expect(resolve).toContain('SHA="$INPUT_SHA"');
+    expect(resolve).toContain('git merge-base --is-ancestor "$SHA" origin/main');
+    expect(resolve).toContain('event=push&status=success');
+    expect(resolve).not.toContain('github.event.workflow_run');
+    expect(resolve).not.toContain('PAGES_AUTO_DEPLOY');
   });
   it('builds the exact resolved commit: no pinned SHA, ancestry on main and a successful CI run are required', () => {
     expect(deploy.match(/\b[0-9a-f]{40}\b/g)).toBeNull();
@@ -31,35 +38,29 @@ describe('deploy-pages.yml', () => {
     expect(deploy).toContain('actions/workflows/taxguard-development-ci.yml/runs?head_sha=${SHA}&event=push&status=success');
     expect(deploy).toMatch(/\^\[0-9a-f\]\{40\}\$/);
   });
-  it('validates before building and deploys only after the build succeeds, and defaults to owner-authorized automatic deployment', () => {
+  it('validates before building and deploys only from a manual dispatch', () => {
     const build = section(deploy, '  build:', '  deploy:');
     for (const step of ['npm run typecheck', 'npm test -- --run', 'node scripts/verify-branding.mjs', 'npm run build', 'node scripts/stamp-release.mjs'])
       expect(build).toContain(step);
-    const deployJob = section(deploy, '  deploy:');
-    expect(deployJob).toContain('needs: [resolve, build]');
-    expect(deployJob).toContain("if: needs.resolve.outputs.deploy == 'true'");
-    expect(deployJob).toContain('name: github-pages');
-    // Owner-authorized automatic deployment defaults on; explicit false pauses it.
-    expect(deploy).toContain('DEPLOY="${AUTO_DEPLOY:-true}"');
-    expect(deploy).toContain('AUTO_DEPLOY: ${{ vars.PAGES_AUTO_DEPLOY }}');
-    expect(deploy).toContain('[[ "$DEPLOY" == "true" ]] || DEPLOY=false');
-  });
-  it('never lets an older automatic run overwrite a newer release', () => {
     const deployJob = section(deploy, '  deploy:', '  verify:');
-    expect(deployJob).toContain('name: Reject stale automatic releases');
-    expect(deployJob).toContain("if: github.event_name == 'workflow_run'");
-    expect(deployJob).toContain('head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq \'.sha\')');
-    expect(deployJob.indexOf('Reject stale automatic releases')).toBeLessThan(deployJob.indexOf('uses: actions/deploy-pages@v4'));
+    expect(deployJob).toContain('needs: [resolve, build]');
+    expect(deployJob).toContain('name: github-pages');
+    expect(deployJob).toContain('uses: actions/deploy-pages@v4');
+    expect(deploy).not.toContain('PAGES_AUTO_DEPLOY');
+    expect(deploy).not.toContain('needs.resolve.outputs.deploy');
+    expect(deploy).not.toContain('workflow_run:');
     expect(deploy).toMatch(/concurrency:\s*\n\s*group: taxguard-production-pages\s*\n\s*cancel-in-progress: false/);
   });
-  it('verifies the live site after deployment and rolls back automatically to the recorded previous release', () => {
+  it('verifies the live site and requires separate owner approval for rollback', () => {
     const verify = section(deploy, '  verify:');
     expect(verify).toContain('needs: [resolve, deploy]');
     expect(verify).toContain('r.commit === process.env.SHA');
     expect(verify).toContain("page.includes('v=' + r.brandAssetVersion)");
     expect(verify).toContain("if: failure() && steps.live.outputs.verified == 'false'");
-    expect(verify).toContain('gh workflow run deploy-pages.yml --repo "$GITHUB_REPOSITORY" --ref main -f commit="$PREVIOUS"');
+    expect(verify).toContain('Manual rollback candidate:');
+    expect(verify).toContain('Owner approval and a separate workflow dispatch are required.');
     expect(verify).toContain('gh issue create');
+    expect(verify).not.toContain('gh workflow run');
     expect(section(deploy, '  deploy:', '  verify:')).toContain('name: Record the current production release');
   });
   it('publishes destriataxservices.com and records the published commit', () => {
@@ -97,7 +98,9 @@ describe('taxguard-development-ci.yml', () => {
     const push = section(ci, '  push:', 'workflow_dispatch:');
     for (const b of ["'aistudio/**'", "'claude/**'", "'chatgpt/**'", "'integration/**'", "'rc/**'"]) expect(push).toContain(b);
     // no agent or release-candidate branch can trigger a production deployment
-    expect(section(deploy, 'on:', 'permissions:')).toContain('branches: [main]');
+    const deployTriggers = section(deploy, 'on:', 'permissions:');
+    expect(deployTriggers).toContain('workflow_dispatch:');
+    expect(deployTriggers).not.toMatch(/workflow_run:|\\bpush:|\\bschedule:/);
   });
 });
 
