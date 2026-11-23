@@ -20,7 +20,7 @@ let server: Server; let origin = ''; let user: any; const converted: string[] = 
 const as = (who: string, tenantId = T) => { user = { ...people[who], tenantId, status: 'active' }; };
 const day = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
 const get = (path: string) => fetch(origin + path).then(async r => ({ status: r.status, body: await r.json().catch(() => null) as any }));
-const PRIVATE = /Synthetic Visitor|visitor\d@example\.test|555|Synthetic private question|internal|decision|reviewedBy|ch-mgr|ch-acct|fingerprint|consent/i;
+const PRIVATE = /Synthetic Visitor|visitor\d@example\.test|555-0100|Synthetic private question|internal|decision|reviewedBy|ch-mgr|ch-acct|fingerprint|consent/i;
 
 beforeAll(async () => {
   fixture = await capabilityFixture();
@@ -66,6 +66,10 @@ beforeAll(async () => {
 afterAll(async () => { server?.closeAllConnections(); await new Promise<void>(r => server ? server.close(() => r()) : r()); await fixture?.pg.close(); });
 
 describe('client consultation history (C1)', () => {
+  it('distinguishes a synthetic private phone number from timestamp milliseconds', () => {
+    expect('2026-11-23T15:14:04.555+00:00').not.toMatch(PRIVATE);
+    expect('555-0100').toMatch(PRIVATE);
+  });
   it('lists only requests converted for this client, with the current appointment status and no prospect or staff data', async () => {
     as('client');
     const r = await get(`/portal/clients/${C}/consultations`);
