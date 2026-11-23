@@ -203,7 +203,12 @@ describe('Phase P0.2 — Server-Side Recovery Abuse Protection & Security Regres
     });
 
     expect(okResult.success).toBe(true);
-    expect(okResult.message).toBe(NEUTRAL_SERVER_ADMIN_RECOVERY_MESSAGE);
+    // The public server response is intentionally neutral; the frontend must not
+    // mistake an accepted request for confirmed email dispatch or delivery.
+    expect(okResult.message).toMatch(/recovery request has been submitted/i);
+    expect(okResult.message).not.toMatch(/have been sent|delivered/i);
+    expect(okResult.internalStatus).toBe('REQUEST_ACCEPTED');
+    expect(okResult.deliveryStatus).toBe('DELIVERY_UNCONFIRMED');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fallbackAuth.resetPasswordForEmail).not.toHaveBeenCalled();
 
