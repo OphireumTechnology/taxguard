@@ -213,10 +213,10 @@ describe('Canonical Production URL Routing & Working Staff Portal Suite', () => 
       expect(result?.page).toBe('staff_login');
     });
 
-    it('normalizes variations like #accountant/login or #/reviewer/login or #/admin/login', () => {
+    it('preserves staff login legacy routes and routes legacy admin login to the dedicated administrator portal', () => {
       expect(normalizeLegacyUrl('#accountant/login')?.canonicalPath).toBe('/staff/login');
       expect(normalizeLegacyUrl('#/reviewer/login')?.canonicalPath).toBe('/staff/login');
-      expect(normalizeLegacyUrl('#/admin/login')?.canonicalPath).toBe('/staff/login');
+      expect(normalizeLegacyUrl('#/admin/login')).toEqual({ canonicalPath: '/admin/login', page: 'admin_login' });
     });
   });
 
