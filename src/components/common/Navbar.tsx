@@ -148,8 +148,11 @@ export const Navbar: React.FC = () => {
 
   const isMoreActive = ['pricing', 'resources', 'careers', 'contact', 'founder', 'industries'].includes(currentPage);
 
+  const isStaffRouteActive = currentPage === 'staff_login' || currentPage === 'staff';
+  const isClientRouteActive = currentPage === 'client_login' || currentPage === 'login' || currentPage === 'portal';
+
   return (
-    <div className="w-full bg-[#06172C]/95 backdrop-blur-md border-b border-[#0B2748] relative z-40">
+    <div className="w-full bg-[#061426]/95 backdrop-blur-md border-b border-[#132F52]/90 relative z-40">
       <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6">
         <div className="flex items-center justify-between min-h-[68px] sm:min-h-[76px] lg:min-h-[84px] py-2 gap-2 xl:gap-3 min-w-0">
           
@@ -604,11 +607,16 @@ export const Navbar: React.FC = () => {
                 e.preventDefault();
                 handlePortalAction();
               }}
-              className="h-10 px-3 2xl:px-3.5 rounded-xl text-xs font-semibold text-slate-100 bg-[#0D2340] hover:bg-[#132E52] border border-[#1E3A5F] hover:border-[#C99A3D]/50 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              aria-current={isClientRouteActive ? 'page' : undefined}
+              className={`h-10 px-3 2xl:px-3.5 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+                isClientRouteActive
+                  ? 'text-white bg-[#0B1F36] border border-[#D4AF37]/70 shadow-[0_0_16px_rgba(212,175,55,0.14)]'
+                  : 'text-slate-100 bg-[#0B1F36] hover:bg-[#122D4E] border border-[#1A3B63] hover:border-[#D4AF37]/55'
+              }`}
               aria-label="Client Portal"
               role="link"
             >
-              <Lock className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
+              <Lock className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" />
               <span>{getPortalButtonLabel()}</span>
             </a>
 
@@ -620,11 +628,16 @@ export const Navbar: React.FC = () => {
                 e.preventDefault();
                 handleStaffAction();
               }}
-              className="h-10 px-3 2xl:px-3.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-[#07172B] hover:bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/50 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              aria-current={isStaffRouteActive ? 'page' : undefined}
+              className={`h-10 px-3 2xl:px-3.5 rounded-xl text-xs transition-all duration-150 flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+                isStaffRouteActive
+                  ? 'font-semibold text-white bg-[#0B1F36] border border-[#D4AF37]/70 shadow-[0_0_16px_rgba(212,175,55,0.16)]'
+                  : 'font-medium text-[#A8B8CC] hover:text-white bg-[#061426] hover:bg-[#0B1F36] border border-[#1A3B63] hover:border-[#D4AF37]/55'
+              }`}
               aria-label="Staff Portal"
               role="link"
             >
-              <Briefcase className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <Briefcase className={`w-3.5 h-3.5 flex-shrink-0 ${isStaffRouteActive ? 'text-[#D4AF37]' : 'text-[#A8B8CC]'}`} />
               <span>Staff Portal</span>
             </a>
 
@@ -632,11 +645,11 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleNavClick('book_consultation')}
-              className="h-10 px-3.5 2xl:px-4 rounded-xl text-xs font-bold text-[#06172C] bg-gradient-to-r from-[#C99A3D] to-[#E2BD67] hover:brightness-105 transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#C99A3D]"
+              className="h-10 px-3.5 2xl:px-4 rounded-xl text-xs font-bold text-[#061426] bg-gradient-to-r from-[#D4AF37] via-[#E4C461] to-[#C89F2B] hover:brightness-105 transition-all duration-150 shadow-md active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
               aria-label="Book a Consultation"
               id="navbar-book-consultation-desktop"
             >
-              <Calendar className="w-3.5 h-3.5 text-[#06172C] flex-shrink-0" />
+              <Calendar className="w-3.5 h-3.5 text-[#061426] flex-shrink-0" />
               <span>Book Consultation</span>
             </button>
           </div>
@@ -668,11 +681,16 @@ export const Navbar: React.FC = () => {
                 e.preventDefault();
                 handleStaffAction();
               }}
-              className="hidden lg:inline-flex h-10 px-3 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-[#07172B] hover:bg-[#0D2340] border border-[#1E3A5F] hover:border-[#C99A3D]/50 transition-colors items-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              aria-current={isStaffRouteActive ? 'page' : undefined}
+              className={`hidden lg:inline-flex h-10 px-3 rounded-xl text-xs transition-colors items-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+                isStaffRouteActive
+                  ? 'font-semibold text-white bg-[#0B1F36] border border-[#D4AF37]/70'
+                  : 'font-medium text-[#A8B8CC] hover:text-white bg-[#061426] hover:bg-[#0B1F36] border border-[#1A3B63] hover:border-[#D4AF37]/55'
+              }`}
               aria-label="Staff Portal"
               role="link"
             >
-              <Briefcase className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <Briefcase className={`w-3.5 h-3.5 flex-shrink-0 ${isStaffRouteActive ? 'text-[#D4AF37]' : 'text-[#A8B8CC]'}`} />
               <span>Staff Portal</span>
             </a>
 
@@ -680,11 +698,11 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleNavClick('book_consultation')}
-              className="hidden md:inline-flex h-9 lg:h-10 px-3 lg:px-4 rounded-lg lg:rounded-xl text-xs font-bold text-[#06172C] bg-gradient-to-r from-[#C99A3D] to-[#E2BD67] hover:brightness-105 transition-all shadow-md active:scale-95 items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#C99A3D]"
+              className="hidden md:inline-flex h-9 lg:h-10 px-3 lg:px-4 rounded-lg lg:rounded-xl text-xs font-bold text-[#061426] bg-gradient-to-r from-[#D4AF37] via-[#E4C461] to-[#C89F2B] hover:brightness-105 transition-all duration-150 shadow-md active:scale-95 items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
               aria-label="Book a Consultation"
               id="navbar-book-consultation-compact"
             >
-              <Calendar className="w-3.5 h-3.5 text-[#06172C] flex-shrink-0" />
+              <Calendar className="w-3.5 h-3.5 text-[#061426] flex-shrink-0" />
               <span>Book Consultation</span>
             </button>
 

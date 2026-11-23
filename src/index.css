@@ -470,6 +470,100 @@
   will-change: opacity;
 }
 
+/* Staff Practice Portal Lightweight GPU-Composited FinTech Animations */
+@keyframes staff-pulse-flow {
+  from {
+    stroke-dashoffset: 120;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes staff-node-breathe {
+  0%, 100% {
+    opacity: 0.22;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.68;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes staff-shield-hover {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes staff-border-sheen {
+  0%, 100% {
+    opacity: 0.45;
+    transform: translate3d(-12%, 0, 0);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate3d(12%, 0, 0);
+  }
+}
+
+.staff-tech-grid-static {
+  background-image:
+    linear-gradient(to right, rgba(0, 194, 209, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 55, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.staff-tech-grid-layer {
+  background-image:
+    linear-gradient(to right, rgba(0, 194, 209, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 55, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: destria-grid-drift 42s linear infinite;
+  will-change: transform;
+}
+
+.staff-pulse-stream-cyan {
+  stroke-dasharray: 12 108;
+  animation: staff-pulse-flow 5.4s linear infinite;
+}
+
+.staff-pulse-stream-gold {
+  stroke-dasharray: 10 110;
+  animation: staff-pulse-flow 6.8s linear infinite;
+}
+
+.staff-data-curve {
+  stroke-dasharray: 14 26;
+  animation: staff-pulse-flow 9.5s linear infinite;
+}
+
+.staff-data-curve-slow {
+  stroke-dasharray: 10 30;
+  animation: staff-pulse-flow 12s linear infinite;
+}
+
+.staff-node-halo {
+  animation: staff-node-breathe 5.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.staff-shield-float {
+  animation: staff-shield-hover 6.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.staff-card-border-sheen {
+  animation: staff-border-sheen 7.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 .destria-motion-paused,
 .destria-motion-paused * {
   animation-play-state: paused !important;

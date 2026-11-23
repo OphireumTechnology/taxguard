@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { ClientPortalLoginLayout } from './client-portal/ClientPortalLoginLayout';
 import { ClientPortalTrustIndicators } from './client-portal/ClientPortalTrustIndicators';
+import { StaffPortalLoginLayout } from './staff-portal/StaffPortalLoginLayout';
 
 const REGISTRATION_STATE_LABELS: Record<RegistrationResultState, string> = {
   IDLE: 'Ready to Register',
@@ -1073,65 +1074,112 @@ export const StaffLoginPage: React.FC = () => {
 
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 text-slate-100 space-y-8">
-      <div className="text-center space-y-3 flex flex-col items-center">
-        <BrandLogo variant="emblem" size="lg" />
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#071A2E] border border-[#D4A843]/40 text-[#D4A843] text-xs font-semibold">
-          <Lock className="w-3 h-3" />
-          <span>Internal Staff Access Only</span>
+    <StaffPortalLoginLayout>
+      <div className="group/card relative overflow-hidden rounded-2xl border border-[#D4AF37]/28 bg-[#0B1F36]/82 p-5 sm:p-6 lg:p-7 shadow-[0_28px_72px_rgba(2,10,22,0.72)] backdrop-blur-xl transition-transform duration-200 ease-out hover:-translate-y-0.5 space-y-4">
+        {/* Soft Animated Top Border Illumination (symmetric fade; pauses on hidden tab / reduced motion) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] overflow-hidden"
+        >
+          <div className="staff-card-border-sheen h-full w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
         </div>
-        <h1 className="font-serif text-3xl font-extrabold text-white">Staff Practice Portal</h1>
-        <p className="text-xs text-slate-300">
-          DESTRIA TAX SERVICES, LLC practitioner workspace and single-use staff onboarding invitations.
-        </p>
-      </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-[#00C2D1]/30 to-transparent"
+        />
 
-      <div className="p-8 rounded-3xl bg-[#0D2745] border border-[rgba(148,163,184,0.18)] shadow-2xl space-y-6">
-        {/* Mode switcher */}
-        <div className={`grid ${recoveryAvailable ? 'grid-cols-3' : 'grid-cols-2'} gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]`}>
+        {/* 1-3. Brand Emblem, Heading & Authorized Personnel Subheading (unboxed, zero pills) */}
+        <div className="flex flex-col items-center text-center space-y-2">
+          <BrandLogo variant="emblem" size="md" />
+          <div className="space-y-1">
+            <h1 className="font-serif text-2xl sm:text-[1.75rem] font-extrabold tracking-tight text-white">
+              Staff Practice Portal
+            </h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]">
+              Authorized Personnel Access
+            </p>
+            <p className="text-xs leading-relaxed text-[#A8B8CC] max-w-sm mx-auto">
+              DESTRIA TAX SERVICES, LLC practitioner workspace and single-use staff onboarding invitations.
+            </p>
+          </div>
+        </div>
+
+        {/* 4. Mode Switcher — Staff Sign In / Accept Staff Invite (+ MFA Recovery when configured) */}
+        <div
+          role="tablist"
+          aria-label="Staff authentication mode"
+          className={`grid ${recoveryAvailable ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 p-1 rounded-xl bg-[#061426]/90 border border-white/10`}
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={loginMode === 'signin'}
             disabled={loginMode === 'accept_invitation'}
             onClick={() => {
               setLoginMode('signin');
               clearStaleError();
             }}
-            className={`py-2 rounded-lg text-xs font-bold transition-all ${
-              loginMode === 'signin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
+            className={`min-h-[40px] px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-55 ${
+              loginMode === 'signin'
+                ? 'bg-[#D4AF37] text-[#061426] font-bold shadow-sm'
+                : 'text-[#A8B8CC] hover:text-white hover:bg-white/5'
             }`}
           >
             Staff Sign In
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={loginMode === 'accept_invitation'}
             disabled={loading || mfaEnrollmentRequired}
             onClick={() => {
               setLoginMode('accept_invitation');
               clearStaleError();
             }}
-            className={`py-2 rounded-lg text-xs font-bold transition-all ${
-              loginMode === 'accept_invitation' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'
+            className={`min-h-[40px] px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-55 ${
+              loginMode === 'accept_invitation'
+                ? 'bg-[#D4AF37] text-[#061426] font-bold shadow-sm'
+                : 'text-[#A8B8CC] hover:text-white hover:bg-white/5'
             }`}
           >
             Accept Staff Invite
           </button>
-          {recoveryAvailable && <button
-            type="button"
-            disabled={loading || mfaEnrollmentRequired}
-            onClick={() => { setLoginMode('mfa_recovery'); clearStaleError(); }}
-            className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'mfa_recovery' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-300 hover:text-white'}`}
-          >
-            Complete MFA Recovery
-          </button>}
+          {recoveryAvailable && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={loginMode === 'mfa_recovery'}
+              disabled={loading || mfaEnrollmentRequired}
+              onClick={() => {
+                setLoginMode('mfa_recovery');
+                clearStaleError();
+              }}
+              className={`min-h-[40px] px-2 py-2 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap truncate focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-55 ${
+                loginMode === 'mfa_recovery'
+                  ? 'bg-[#D4AF37] text-[#061426] font-bold shadow-sm'
+                  : 'text-[#A8B8CC] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Complete MFA Recovery
+            </button>
+          )}
         </div>
 
         {error && (
-          <div role="alert" className="p-3 rounded-lg bg-red-900/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>
+          <div
+            role="alert"
+            className="p-3.5 rounded-xl bg-rose-950/55 border border-rose-400/35 text-rose-100 text-xs flex items-start gap-2.5"
+          >
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <span className="leading-relaxed">
               {error}
               {errorReference && (
-                <span data-testid="login-error-reference" className="block mt-1 text-[10px] text-red-300/80 font-mono">Reference: {errorReference}</span>
+                <span
+                  data-testid="login-error-reference"
+                  className="block mt-1 text-[10px] text-rose-200/80 font-mono tabular-nums"
+                >
+                  Reference: {errorReference}
+                </span>
               )}
             </span>
           </div>
@@ -1140,131 +1188,245 @@ export const StaffLoginPage: React.FC = () => {
         {loginMode === 'signin' ? (
           <>
             {localLoginAvailable ? (
-              <div role="note" data-testid="local-server-login-notice" className="p-3 rounded-lg bg-[#071A2E] border border-[#D4A843]/40 text-slate-200 text-[11px]">
+              <div
+                role="note"
+                data-testid="local-server-login-notice"
+                className="p-3 rounded-xl bg-[#061426]/85 border border-[#D4AF37]/35 text-[#E2EAF4] text-[11px] leading-relaxed"
+              >
                 Local development sign-in: credentials and authenticator codes are verified by this TaxGuard server. Not a production identity provider.
               </div>
             ) : localBuild ? (
-              <div role="status" data-testid="local-server-unreachable-notice" className="p-3 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-100 text-[11px]">
+              <div
+                role="status"
+                data-testid="local-server-unreachable-notice"
+                className="p-3 rounded-xl bg-amber-950/60 border border-amber-400/35 text-amber-100 text-[11px] leading-relaxed"
+              >
                 The local TaxGuard sign-in server is not responding. Start or restart it; this page checks again when you sign in.
               </div>
             ) : (
               <AuthConfigurationNotice />
             )}
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#071A2E] border border-[rgba(148,163,184,0.18)]">
-              <button
-                type="button"
-                aria-pressed={targetRole === 'accountant'}
-                onKeyDown={submitOnEnter}
-                onClick={() => { setTargetRole('accountant'); clearStaleError(); }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                  targetRole === 'accountant' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Staff Accountant
-              </button>
-              <button
-                type="button"
-                aria-pressed={targetRole === 'admin'}
-                onKeyDown={submitOnEnter}
-                onClick={() => { setTargetRole('admin'); clearStaleError(); }}
-                className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                  targetRole === 'admin' ? 'bg-[#D4A843] text-[#071A2E]' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Compliance Admin
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-400 -mt-1">
-              This choice only changes the button label. Your access is set by your account on the server.
-            </p>
 
-            {mfaEnrollmentRequired && <TotpEnrollmentPanel onComplete={() => { setMfaEnrollmentRequired(false); setMfaStep(true); setError('Authenticator verified. Sign in to enter your workspace.'); }} onCancel={() => { void signOutProvider(); setMfaEnrollmentRequired(false); setPassword(''); }} />}
-            <form ref={staffFormRef} onSubmit={handleStaffLogin} className="space-y-4 text-xs">
-              <fieldset disabled={mfaEnrollmentRequired} className="space-y-4">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-16`}>Staff Work Email</label>
-                <input id={`${fieldPrefix}-auth-16`}
-                  type="text"
-                  required
-                  autoComplete="username"
-                  placeholder="practitioner@destriataxservices.com"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); clearStaleError(); setMfaStep(false); setMfaCode(''); }}
-                  className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-17`}>Staff Security Token / Password</label>
-                <div className="flex gap-2">
-                  <input id={`${fieldPrefix}-auth-17`}
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoComplete="current-password"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); clearStaleError(); }}
-                    className="flex-1 bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#D4A843]"
-                  />
-                  <button
-                    type="button"
-                    onKeyDown={submitOnEnter}
-                    onClick={() => setShowPassword(v => !v)}
-                    aria-pressed={showPassword}
-                    aria-controls={`${fieldPrefix}-auth-17`}
-                    className="px-3 rounded-lg bg-[rgba(148,163,184,0.18)] text-slate-200 text-[11px] font-bold"
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-              </div>
-
-              {mfaStep && (
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1" htmlFor={`${fieldPrefix}-auth-mfa`}>Authenticator Code</label>
-                  <input id={`${fieldPrefix}-auth-mfa`}
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9]{6}"
-                    required
-                    placeholder="6-digit code"
-                    value={mfaCode}
-                    onChange={(e) => { setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6)); clearStaleError(); }}
-                    className="w-full bg-[#071A2E] border border-[rgba(148,163,184,0.18)] rounded-lg px-3 py-2.5 text-white font-mono tracking-widest focus:outline-none focus:border-[#D4A843]"
-                  />
-                  <p className="mt-1 text-[10px] text-slate-400">Multi-factor authentication is required for this account.</p>
-                </div>
-              )}
-
-              <div className="pt-2">
+            {/* 5. Staff Accountant / Compliance Admin presentation selection */}
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#061426]/90 border border-white/10">
                 <button
-                  type="submit"
-                  disabled={loading || mfaEnrollmentRequired || (!isSupabaseConfigured() && !localBuild)}
-                  className="w-full py-3 rounded-xl font-bold text-xs text-[#071A2E] bg-[#D4A843] hover:bg-[#E1BB60] transition-all shadow-lg flex items-center justify-center gap-2"
+                  type="button"
+                  aria-pressed={targetRole === 'accountant'}
+                  onKeyDown={submitOnEnter}
+                  onClick={() => {
+                    setTargetRole('accountant');
+                    clearStaleError();
+                  }}
+                  className={`min-h-[38px] px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+                    targetRole === 'accountant'
+                      ? 'bg-[#123156] text-white border border-[#00C2D1]/45 shadow-sm'
+                      : 'text-[#A8B8CC] border border-transparent hover:text-white hover:bg-white/5'
+                  }`}
                 >
-                  <UserCheck className="w-4 h-4" />
-                  {loading ? 'Validating Token...' : `Enter ${targetRole === 'admin' ? 'Admin Control' : 'Staff Workspace'}`}
+                  Staff Accountant
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={targetRole === 'admin'}
+                  onKeyDown={submitOnEnter}
+                  onClick={() => {
+                    setTargetRole('admin');
+                    clearStaleError();
+                  }}
+                  className={`min-h-[38px] px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+                    targetRole === 'admin'
+                      ? 'bg-[#123156] text-white border border-[#D4AF37]/50 shadow-sm'
+                      : 'text-[#A8B8CC] border border-transparent hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Compliance Admin
                 </button>
               </div>
+              <p className="text-[11px] text-[#A8B8CC]">
+                This choice only changes the button label. Your access is set by your account on the server.
+              </p>
+            </div>
+
+            {mfaEnrollmentRequired && (
+              <TotpEnrollmentPanel
+                onComplete={() => {
+                  setMfaEnrollmentRequired(false);
+                  setMfaStep(true);
+                  setError('Authenticator verified. Sign in to enter your workspace.');
+                }}
+                onCancel={() => {
+                  void signOutProvider();
+                  setMfaEnrollmentRequired(false);
+                  setPassword('');
+                }}
+              />
+            )}
+
+            <form ref={staffFormRef} onSubmit={handleStaffLogin} className="space-y-4 text-xs">
+              <fieldset disabled={mfaEnrollmentRequired} className="space-y-4">
+                {/* 6. Staff Work Email */}
+                <div>
+                  <label
+                    className="block text-xs font-semibold text-white mb-1.5"
+                    htmlFor={`${fieldPrefix}-auth-16`}
+                  >
+                    Staff Work Email
+                  </label>
+                  <div className="relative">
+                    <Mail
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8B8CC]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id={`${fieldPrefix}-auth-16`}
+                      type="text"
+                      required
+                      autoComplete="username"
+                      placeholder="practitioner@destriataxservices.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearStaleError();
+                        setMfaStep(false);
+                        setMfaCode('');
+                      }}
+                      className="w-full min-h-[44px] bg-[#061426]/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white placeholder:text-[#7F94AD] transition-all duration-150 focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/25"
+                    />
+                  </div>
+                </div>
+
+                {/* 7-8. Staff Security Token / Password + Show / Hide control */}
+                <div>
+                  <label
+                    className="block text-xs font-semibold text-white mb-1.5"
+                    htmlFor={`${fieldPrefix}-auth-17`}
+                  >
+                    Staff Security Token / Password
+                  </label>
+                  <div className="flex items-stretch gap-2">
+                    <div className="relative flex-1 min-w-0">
+                      <Key
+                        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8B8CC]"
+                        aria-hidden="true"
+                      />
+                      <input
+                        id={`${fieldPrefix}-auth-17`}
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        autoComplete="current-password"
+                        placeholder="••••••••••••"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          clearStaleError();
+                        }}
+                        className="w-full min-h-[44px] bg-[#061426]/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white placeholder:text-[#7F94AD] transition-all duration-150 focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/25"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onKeyDown={submitOnEnter}
+                      onClick={() => setShowPassword(v => !v)}
+                      aria-pressed={showPassword}
+                      aria-controls={`${fieldPrefix}-auth-17`}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="min-h-[44px] min-w-[76px] px-3 rounded-xl bg-[#061426]/90 border border-white/15 hover:border-[#00C2D1]/50 text-[#E2EAF4] hover:text-white text-xs font-semibold transition-colors duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-3.5 h-3.5 text-[#00C2D1]" aria-hidden="true" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5 text-[#A8B8CC]" aria-hidden="true" />
+                      )}
+                      <span>{showPassword ? 'Hide' : 'Show'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {mfaStep && (
+                  <div>
+                    <label
+                      className="block text-xs font-semibold text-white mb-1.5"
+                      htmlFor={`${fieldPrefix}-auth-mfa`}
+                    >
+                      Authenticator Code
+                    </label>
+                    <div className="relative">
+                      <Fingerprint
+                        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#00C2D1]"
+                        aria-hidden="true"
+                      />
+                      <input
+                        id={`${fieldPrefix}-auth-mfa`}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="[0-9]{6}"
+                        required
+                        placeholder="6-digit code"
+                        value={mfaCode}
+                        onChange={(e) => {
+                          setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                          clearStaleError();
+                        }}
+                        className="w-full min-h-[44px] bg-[#061426]/90 border border-[#00C2D1]/40 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white font-mono tabular-nums tracking-[0.22em] transition-all duration-150 focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/25"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-[#A8B8CC]">
+                      Multi-factor authentication is required for this account.
+                    </p>
+                  </div>
+                )}
+
+                {/* 9. Enter Staff Workspace Primary Gold CTA */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading || mfaEnrollmentRequired || (!isSupabaseConfigured() && !localBuild)}
+                    aria-busy={loading}
+                    className="w-full min-h-[46px] py-3 px-5 rounded-xl font-bold text-xs sm:text-[13px] tracking-wide text-[#061426] bg-gradient-to-r from-[#D4AF37] via-[#E5C562] to-[#C89F2B] hover:brightness-105 active:scale-[0.99] transition-all duration-150 shadow-[0_12px_28px_rgba(212,175,55,0.24)] flex items-center justify-center gap-2 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1F36] focus-visible:ring-[#D4AF37] disabled:opacity-55 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <UserCheck className="w-4 h-4" aria-hidden="true" />
+                    )}
+                    <span>
+                      {loading
+                        ? 'Validating Token...'
+                        : `Enter ${targetRole === 'admin' ? 'Admin Control' : 'Staff Workspace'}`}
+                    </span>
+                  </button>
+                </div>
               </fieldset>
             </form>
 
-            <div className="pt-2 border-t border-[rgba(148,163,184,0.18)] text-center space-y-1">
-              <p className="text-[11px] text-slate-400">
+            {/* 10. Existing Security & Administrative Invitation Information */}
+            <div className="pt-4 border-t border-white/10 text-center space-y-1.5">
+              <p className="text-xs font-medium text-[#CBD6E4]">
                 Authorized practitioners and compliance reviewers only.
               </p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[11px] leading-relaxed text-[#A8B8CC]">
                 Lost your security token or password? Contact firm IT or request an administrator invite re-issue.
               </p>
             </div>
           </>
         ) : loginMode === 'mfa_recovery' ? (
-          <StaffMfaRecoveryEnrollmentFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
+          <StaffMfaRecoveryEnrollmentFlow
+            onCancel={() => {
+              setLoginMode('signin');
+              clearStaleError();
+            }}
+          />
         ) : (
-          <StaffInvitationFlow onCancel={() => { setLoginMode('signin'); clearStaleError(); }} />
+          <StaffInvitationFlow
+            onCancel={() => {
+              setLoginMode('signin');
+              clearStaleError();
+            }}
+          />
         )}
       </div>
-    </div>
+    </StaffPortalLoginLayout>
   );
 };

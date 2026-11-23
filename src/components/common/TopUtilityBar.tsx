@@ -10,7 +10,8 @@ import { useApp } from '../../context/AppContext';
 import { COMPANY_CONTACT } from '../../config/companyBranding';
 
 export const TopUtilityBar: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { currentPage, setCurrentPage } = useApp();
+  const isStaffActive = currentPage === 'staff_login' || currentPage === 'staff';
 
   const handleClientPortalClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
@@ -26,7 +27,7 @@ export const TopUtilityBar: React.FC = () => {
 
   return (
     <div 
-      className="bg-[#050E1A] border-b border-[#0B2748] text-xs text-slate-300 py-1.5 sm:py-2 relative z-50 select-none min-h-[38px] flex items-center"
+      className="bg-[#040E1C] border-b border-[#132F52]/80 text-xs text-[#A8B8CC] py-1.5 sm:py-2 relative z-50 select-none min-h-[38px] flex items-center"
       role="region"
       aria-label="Firm Quick Links & Utility Bar"
     >
@@ -35,9 +36,9 @@ export const TopUtilityBar: React.FC = () => {
         {/* LEFT: Verified Firm Information (Location, Phone, Business Hours) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 text-[11px] sm:text-xs">
           {/* Location */}
-          <div className="hidden sm:flex items-center gap-1.5 text-slate-300 whitespace-nowrap">
-            <MapPin className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
-            <span className="text-slate-300 font-medium">Columbia, SC</span>
+          <div className="hidden sm:flex items-center gap-1.5 text-[#CBD6E4] whitespace-nowrap">
+            <MapPin className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" />
+            <span className="font-medium">Columbia, SC</span>
           </div>
 
           <span className="text-slate-600 hidden sm:inline" aria-hidden="true">|</span>
@@ -45,18 +46,18 @@ export const TopUtilityBar: React.FC = () => {
           {/* Direct Phone */}
           <a 
             href={COMPANY_CONTACT.phoneHref}
-            className="inline-flex items-center gap-1.5 text-slate-300 hover:text-[#E2BD67] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D] rounded px-1 py-0.5 whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 text-[#CBD6E4] hover:text-[#D4AF37] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] rounded px-1 py-0.5 whitespace-nowrap"
             aria-label={`Direct Telephone: ${COMPANY_CONTACT.phoneDisplay}`}
           >
-            <Phone className="w-3.5 h-3.5 text-[#C99A3D] flex-shrink-0" />
-            <span className="font-mono whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</span>
+            <Phone className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" />
+            <span className="font-mono tabular-nums whitespace-nowrap">{COMPANY_CONTACT.phoneDisplay}</span>
           </a>
 
           <span className="text-slate-600 hidden md:inline" aria-hidden="true">|</span>
 
           {/* Business Hours */}
-          <div className="hidden md:flex items-center gap-1.5 text-slate-400 whitespace-nowrap text-[11px]">
-            <Clock className="w-3 h-3 text-slate-500 flex-shrink-0" />
+          <div className="hidden md:flex items-center gap-1.5 text-[#A8B8CC] whitespace-nowrap text-[11px]">
+            <Clock className="w-3 h-3 text-[#A8B8CC] flex-shrink-0" />
             <span>Mon–Fri 9:00 AM – 6:00 PM EST</span>
           </div>
         </div>
@@ -68,11 +69,11 @@ export const TopUtilityBar: React.FC = () => {
             <a
               href="/portal"
               onClick={handleClientPortalClick}
-              className="text-slate-300 hover:text-[#E2BD67] font-medium transition-colors inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              className="text-[#CBD6E4] hover:text-[#D4AF37] font-medium transition-colors inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
               aria-label="Access Client Portal"
               role="link"
             >
-              <Lock className="w-3 h-3 text-[#C99A3D] flex-shrink-0" />
+              <Lock className="w-3 h-3 text-[#D4AF37] flex-shrink-0" />
               <span>Client Portal</span>
             </a>
 
@@ -81,11 +82,14 @@ export const TopUtilityBar: React.FC = () => {
             <a
               href="/staff"
               onClick={handleStaffPortalClick}
-              className="hidden min-[420px]:inline-flex text-slate-400 hover:text-[#E2BD67] font-medium transition-colors items-center gap-1 px-1.5 py-0.5 rounded whitespace-nowrap focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C99A3D]"
+              aria-current={isStaffActive ? 'page' : undefined}
+              className={`hidden min-[420px]:inline-flex font-medium transition-colors items-center gap-1 px-1.5 py-0.5 rounded whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+                isStaffActive ? 'text-[#D4AF37]' : 'text-[#A8B8CC] hover:text-[#D4AF37]'
+              }`}
               aria-label="Access Staff Portal"
               role="link"
             >
-              <Briefcase className="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <Briefcase className={`w-3 h-3 flex-shrink-0 ${isStaffActive ? 'text-[#D4AF37]' : 'text-[#A8B8CC]'}`} />
               <span>Staff Portal</span>
             </a>
           </div>
