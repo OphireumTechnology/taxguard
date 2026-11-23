@@ -366,6 +366,26 @@ describe('A10 advisory job review draft', () => {
     expect(job).toEqual({ status: 'DEAD_LETTER', last_error_code: 'VALIDATION_AI_EVIDENCE' });
   });
 
+  it('rolls back the governed worker claim when case evidence is temporarily unavailable', async () => {
+    const queued = await enqueueA10('jw-evidence-outage');
+    expect(queued.status).toBe(201);
+    const database = new PgGovernanceDatabase(db.pool);
+    await expect(runGovernedA10Job({
+      transaction: work => database.transaction(connection => work({
+        async query<T>(statement: string, params?: unknown[]) {
+          if (statement.includes('FROM public.taxguard_cases')) throw new Error('Synthetic case store outage');
+          return connection.query<T>(statement, params);
+        },
+      })),
+    }, T, 'worker-outage')).rejects.toThrow('Synthetic case store outage');
+    expect(await sql('SELECT status, attempt_count, lease_token FROM taxguard_durable_jobs WHERE id=$1', [queued.body.id]))
+      .toEqual([{ status: 'PENDING', attempt_count: 0, lease_token: null }]);
+    expect(await results(queued.body.id)).toEqual([]);
+    expect((await events(queued.body.id)).map(event => event.action)).toEqual(['ENQUEUED']);
+    expect(await runGovernedA10Job(database, T, 'worker-recovered')).toBe('REFUSED');
+    expect((await events(queued.body.id)).map(event => event.action)).toEqual(['ENQUEUED', 'CLAIMED', 'DEAD_LETTERED']);
+  });
+
   it('refuses a real SQL-backed job without active governance and writes no summary', async () => {
     const queued = await enqueueA10('jw-draft-ai-0005');
     expect(queued.status).toBe(201);
