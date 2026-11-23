@@ -195,14 +195,14 @@ BEGIN
   IF p_decision IS NULL THEN
     RETURN (
       WITH documents AS (
-        SELECT DISTINCT lower(v->>'document_record_id') AS id, v->'document_version' AS version,
+        SELECT DISTINCT lower(v->>'document_record_id') AS id, v->'document_version' AS version, v->>'document_status' AS document_status,
           v->>'source_hash' AS hash FROM jsonb_array_elements(a.evidence_snapshot) v
       ), matches AS (
         SELECT hash, row_number() OVER (ORDER BY min(id)) AS group_number
         FROM documents GROUP BY hash HAVING count(DISTINCT id)>1
       )
       SELECT jsonb_build_object('version',token,'documents',jsonb_agg(
-        jsonb_build_object('id',id,'version',version,'duplicateGroup',group_number) ORDER BY id))
+        jsonb_build_object('id',id,'version',version,'status',document_status,'duplicateGroup',group_number) ORDER BY id))
       FROM documents LEFT JOIN matches USING (hash)
     );
   END IF;

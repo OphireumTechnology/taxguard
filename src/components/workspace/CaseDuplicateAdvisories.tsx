@@ -22,7 +22,7 @@ function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision
   }
   return <div>
     <button type="button" disabled={busy} onClick={() => review()}>Inspect review evidence</button>
-    {preview && <><ul>{preview.documents.map(doc => <li key={doc.id + ':' + doc.version}>Document {doc.id} · version {doc.version} · {doc.duplicateGroup ? `Duplicate group ${doc.duplicateGroup}` : 'No matching document in this check'}</li>)}</ul>
+    {preview && <><ul>{preview.documents.map(doc => <li key={doc.id + ':' + doc.version}>Document {doc.id} · version {doc.version} · {doc.status} · {doc.duplicateGroup ? `Duplicate group ${doc.duplicateGroup}` : 'No matching document in this check'}</li>)}</ul>
       <button type="button" disabled={busy} onClick={() => review('ACKNOWLEDGED')}>Acknowledge result</button>
       <button type="button" disabled={busy} onClick={() => review('RETURNED')}>Return for review</button></>}
     {message && <p role="status">{message}</p>}
