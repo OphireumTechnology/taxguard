@@ -8281,7 +8281,7 @@
     "docs/proposed-migrations/20261016050000_taxguard_contact_intake.sql": "ac43fa7caf02e29034cf27ee7bfba9094abc00279700372a0591afe6172b12bd",
     "docs/sql/taxguard-audit-append-only.proposal.sql": "0c332306af64bb9e17f41f814cf1850f44f7c9fec73a9936f2810bafb911635e",
     "docs/taxguard-ai-agent-gate-ai-16-pre-review.md": "d4b17802e3517daf5d2cfb087fa8b5d98f0e3b9f7f4e71d8c54032ee86464c81",
-    "package.json": "039cd2056a0ce7dd49528346d6b79f3b3865fe8b6d545454074d8039766d26a3",
+    "package.json": "5ab32dc5f34f89f2324d00b6bd5632fb8f1c5896dac6c14fec73fca6cba07d56",
     "qa/browser/synthetic-shell.spec.mjs": "3971f53158b13c2497c6005f893682415e5612373e1f3caa620fb9b784aaa5e2",
     "qa/playwright.product-anonymous.config.mjs": "b0e5408e01d6927c1a0252ff3d34ac316497ea45487d8c65f80997f04e1a8a98",
     "qa/playwright.synthetic.config.mjs": "c3ccd5411de6800c47a306a511481dedf4b1b86cc706a942e1f0e018d52b199c",
