@@ -28,7 +28,8 @@ export default function AdminPasswordResetPage() {
     }
     // Supabase SDK consumes recovery fragments during initialization. Never log or store the tokens.
     const callback = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const hasRecoveryFragment = callback.get('type') === 'recovery' && Boolean(callback.get('access_token'));
+    const callbackAccessToken = callback.get('type') === 'recovery' ? callback.get('access_token') : null;
+    const hasRecoveryFragment = Boolean(callbackAccessToken);
     const hasRecoveryCode = new URLSearchParams(window.location.search).get('type') === 'recovery';
     let recoveryEvent = false;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -43,7 +44,7 @@ export default function AdminPasswordResetPage() {
       // Let the SDK process the callback. A generic signed-in session is not recovery authorization.
       const { data, error } = await supabase.auth.getSession();
       if (!mounted || recoveryEvent) return;
-      if (!error && data.session && (hasRecoveryFragment || hasRecoveryCode)) {
+      if (!error && data.session && ((hasRecoveryFragment && data.session.access_token === callbackAccessToken) || (hasRecoveryCode && recoveryEvent))) {
         setState('ready');
         window.history.replaceState(null, '', RESET_PATH);
       } else {
