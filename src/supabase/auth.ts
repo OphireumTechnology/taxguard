@@ -746,7 +746,7 @@ export async function requestPasswordReset(
 }
 
 export const NEUTRAL_ADMIN_RECOVERY_MESSAGE =
-  'If an authorized administrator account exists for this email address, password recovery instructions have been sent. Password recovery updates authentication credentials only and never grants or bypasses administrator role authorization or MFA.';
+  'Recovery request processed by the authentication service. Email delivery is not confirmed. If an authorized administrator account exists, check the inbox and spam folder. Password recovery never grants administrator privileges or bypasses MFA.';
 
 export const ADMIN_RECOVERY_COOLDOWN_MS = 60_000;
 export const ADMIN_RECOVERY_WINDOW_MS = 15 * 60 * 1000;
@@ -883,7 +883,7 @@ export async function requestAdminPasswordRecovery(
         adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
         return {
           success: true,
-          message: 'Recovery request processed. Email delivery has not been confirmed. If an authorized account exists, check your inbox and spam folder.',
+          message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
           cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
           auditEvent
         };
@@ -898,7 +898,7 @@ export async function requestAdminPasswordRecovery(
     adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
     return {
       success: true,
-      message: 'Recovery request accepted by the authentication service. Email delivery has not been confirmed. If an authorized account exists, check your inbox and spam folder.',
+      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
       cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
       auditEvent
     };
