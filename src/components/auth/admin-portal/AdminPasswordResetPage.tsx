@@ -254,12 +254,20 @@ export default function AdminPasswordResetPage() {
     const {
       data: { subscription }
     } = authClient.onAuthStateChange((event) => {
-      if (!mounted || completedRef.current) return;
-      if (event === 'PASSWORD_RECOVERY') {
-        recoveryEventObserved = true;
-        setState('ready');
-        scrubUrl();
-      }
+      if (!mounted || completedRef.current || event !== 'PASSWORD_RECOVERY') return;
+      // The SDK event is evidence of recovery intent, not sufficient proof of
+      // a usable authenticated session. Validate the current user before enabling
+      // password changes; do not erase callback parameters prematurely.
+      recoveryEventObserved = true;
+      void resolveAdminRecoverySession(authClient, parsed, {
+        recoveryEventObserved: true
+      }).then((outcome) => {
+        if (!mounted || completedRef.current) return;
+        setState(outcome);
+        if (outcome === 'ready') scrubUrl();
+      }).catch(() => {
+        if (mounted && !completedRef.current) setState('invalid');
+      });
     });
 
     const verify = async () => {
@@ -279,13 +287,12 @@ export default function AdminPasswordResetPage() {
       // are handled by the subscription above. Do not introduce artificial
       // timing delays into a security-sensitive recovery callback.
       if (!mounted || completedRef.current) return;
-      if (recoveryEventObserved) {
-        setState('ready');
-        scrubUrl();
-        return;
-      }
+      // A recovery event may arrive while the initial session lookup is in
+      // progress. Let its independently validated result win instead of
+      // overwriting it with a stale invalid result.
+      if (recoveryEventObserved) return;
 
-      scrubUrl();
+      if (outcome === 'ready') scrubUrl();
       setState(outcome);
     };
 
