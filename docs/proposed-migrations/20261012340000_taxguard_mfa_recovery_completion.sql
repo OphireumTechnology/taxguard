@@ -52,7 +52,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_taxguard_mfa_recovery_open ON public.taxgua
   WHERE status IN ('pending_approval','approved');
 
 -- Jobs: fenced leases, attempts, verified reset and verified re-enrolment.
-ALTER TABLE public.taxguard_mfa_reset_jobs ALTER COLUMN status TYPE varchar(32);
+-- Widen only when necessary. Re-running ALTER COLUMN TYPE, even to the same type,
+-- can reparse CHECK constraints and partial indexes, changing their catalog definitions.
+-- Keeping the operation conditional preserves second-apply schema identity.
+DO $ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_attribute
+    WHERE attrelid = 'public.taxguard_mfa_reset_jobs'::regclass
+      AND attname = 'status' AND NOT attisdropped
+      AND atttypid = 'pg_catalog.varchar'::regtype AND atttypmod = 36
+  ) THEN
+    ALTER TABLE public.taxguard_mfa_reset_jobs ALTER COLUMN status TYPE varchar(32);
+  END IF;
+END $;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD COLUMN IF NOT EXISTS fence bigint NOT NULL DEFAULT 0;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD COLUMN IF NOT EXISTS lease_owner varchar(128);
