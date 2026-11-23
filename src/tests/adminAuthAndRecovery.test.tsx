@@ -247,6 +247,43 @@ describe('Destria Super Administrator — Complete Auth, MFA & Recovery Security
     expect(req4Blocked.rateLimited).toBe(true);
   });
 
+  it('fails closed on provider errors, timeouts, and unexpected exceptions without exposing account identity', async () => {
+    const t0 = 1_700_100_000_000;
+    const cases = [
+      { label: 'SMTP service unavailable', invoke: vi.fn().mockResolvedValue({ error: { message: 'SMTP provider unavailable', status: 503 } }) },
+      { label: 'provider configuration missing', invoke: vi.fn().mockResolvedValue({ error: { message: 'supabase_not_configured' } }) },
+      { label: 'network timeout', invoke: vi.fn().mockRejectedValue(new Error('network timeout')) },
+      { label: 'unexpected exception', invoke: vi.fn().mockRejectedValue(new Error('unexpected auth provider error')) }
+    ];
+    for (const [index, entry] of cases.entries()) {
+      const result = await requestAdminPasswordRecovery(`failure-${index}@example.test`, {
+        authClient: { resetPasswordForEmail: entry.invoke },
+        now: t0
+      });
+      expect(result.success, entry.label).toBe(false);
+      expect(result.error, entry.label).toContain('recovery service');
+      expect(result.error, entry.label).not.toMatch(/SMTP|supabase_not_configured|network timeout|auth provider/i);
+    }
+  });
+
+  it('does not claim delivery on accepted requests and reports provider throttling', async () => {
+    const accepted = await requestAdminPasswordRecovery('accepted@example.test', {
+      authClient: { resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }) },
+      now: 1_700_200_000_000
+    });
+    expect(accepted.success).toBe(true);
+    expect(accepted.message).toContain('delivery is not confirmed');
+    expect(accepted.message).not.toMatch(/have been sent|delivered/i);
+
+    const throttled = await requestAdminPasswordRecovery('throttled@example.test', {
+      authClient: { resetPasswordForEmail: vi.fn().mockResolvedValue({ error: { message: 'Too many requests', status: 429 } }) },
+      now: 1_700_200_000_000
+    });
+    expect(throttled.success).toBe(false);
+    expect(throttled.rateLimited).toBe(true);
+    expect(throttled.cooldownSeconds).toBeGreaterThan(0);
+  });
+
   it('4. Valid recovery links (implicit fragment, PKCE code, and OTP token_hash) open recovery form while generic sessions are rejected', async () => {
     // 4a. Implicit fragment
     const fragmentLoc = parseAdminRecoveryCallback({
