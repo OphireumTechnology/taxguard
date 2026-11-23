@@ -14,80 +14,22 @@
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- 1. Storage Vault Bucket Registration & Private Configuration
+-- 1–2. Supabase-managed Storage boundary (review-only migration repair)
 -- ------------------------------------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS storage;
-
-CREATE TABLE IF NOT EXISTS storage.buckets (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  owner UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  public BOOLEAN DEFAULT FALSE,
-  avif_autodetection BOOLEAN DEFAULT FALSE,
-  file_size_limit BIGINT,
-  allowed_mime_types TEXT[]
-);
-
-CREATE TABLE IF NOT EXISTS storage.objects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  bucket_id TEXT REFERENCES storage.buckets(id),
-  name TEXT,
-  owner UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  last_accessed_at TIMESTAMPTZ DEFAULT NOW(),
-  metadata JSONB
-);
-
--- Register or update private taxguard-vault bucket with 25MB limit
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'taxguard-vault',
-  'taxguard-vault',
-  FALSE,
-  26214400, -- 25 MB max file size
-  ARRAY[
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/csv'
-  ]
-)
-ON CONFLICT (id) DO UPDATE SET
-  public = FALSE,
-  file_size_limit = 26214400,
-  allowed_mime_types = ARRAY[
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/csv'
-  ],
-  updated_at = NOW();
-
--- ------------------------------------------------------------------------------
--- 2. Storage RLS Activation & Service Role Baseline Authority
--- ------------------------------------------------------------------------------
-ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
--- Service Role has unrestricted administrative authority across storage
-DROP POLICY IF EXISTS service_role_all_storage_buckets ON storage.buckets;
-CREATE POLICY service_role_all_storage_buckets ON storage.buckets
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS service_role_all_storage_objects ON storage.objects;
-CREATE POLICY service_role_all_storage_objects ON storage.objects
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Authenticated users can only read bucket metadata for taxguard-vault
-DROP POLICY IF EXISTS authenticated_read_vault_bucket ON storage.buckets;
-CREATE POLICY authenticated_read_vault_bucket ON storage.buckets
-  FOR SELECT TO authenticated
-  USING (id = 'taxguard-vault' AND public = false);
+-- Supabase owns storage schema, storage.buckets and storage.objects. Application
+-- migrations MUST NOT create/alter these managed tables, enable their RLS, or
+-- replace global service_role policies. Such DDL fails with SQLSTATE 42501 on
+-- hosted preview branches and risks overriding platform security boundaries.
+--
+-- The private 'taxguard-vault' bucket (25 MiB; PDF/JPEG/PNG/XLSX/CSV) must be
+-- provisioned separately through the Supabase Storage API/dashboard by an
+-- authorized operator. The operator must verify public=false, size/MIME limits,
+-- and scoped object policies before staging acceptance. Do not make the bucket
+-- public or grant blanket authenticated access to storage.objects.
+--
+-- This migration intentionally touches only TaxGuard-owned functions and
+-- public application-table RLS policies below. A separate, reviewed Storage
+-- policy change is required for actual object upload/download authorization.
 
 -- ------------------------------------------------------------------------------
 -- 3. Staff Assignment Governance Functions / RPCs (Least Privilege & Search Path)
