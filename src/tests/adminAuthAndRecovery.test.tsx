@@ -446,3 +446,32 @@ describe('Destria Super Administrator — Complete Auth, MFA & Recovery Security
     expect(resetSrc).not.toMatch(/console\.(log|info|debug)\s*\(/);
   });
 });
+
+
+describe('Administrator recovery callback race regression', () => {
+  it('does not grant reset access solely from PASSWORD_RECOVERY or overwrite validated event outcome', () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/auth/admin-portal/AdminPasswordResetPage.tsx'),
+      'utf8'
+    );
+    expect(source).toContain("event !== 'PASSWORD_RECOVERY'");
+    expect(source).toContain('resolveAdminRecoverySession(authClient, parsed, {');
+    expect(source).toContain("if (outcome === 'ready') scrubUrl()");
+    expect(source).toContain('if (recoveryEventObserved) return;');
+    expect(source).not.toContain("if (recoveryEventObserved) {\n        setState('ready')");
+  });
+
+  it('rejects an event without a usable authenticated session', async () => {
+    const auth = createMockAuthClient({
+      getSession: vi.fn(async () => ({ data: { session: null }, error: null }))
+    });
+    const parsed = parseAdminRecoveryCallback({
+      pathname: '/admin/reset-password',
+      hash: '',
+      search: ''
+    });
+    expect(await resolveAdminRecoverySession(auth, parsed, {
+      recoveryEventObserved: true
+    })).toBe('invalid');
+  });
+});
