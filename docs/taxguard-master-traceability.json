@@ -6782,8 +6782,8 @@
     },
     {
       "file": "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
-      "sha256": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
-      "bytes": 47653,
+      "sha256": "9973140c94b4aef7d6bab9f6eae1a2929d88180021b8075abac3e72e7e6c7869",
+      "bytes": 48188,
       "headings": []
     },
     {
@@ -8257,7 +8257,7 @@
     "docs/proposed-migrations/20261012310000_taxguard_document_requests.sql": "8048e088de31b4e86d1b8cfce94935efedb9ea86bd498f2930107ff09f7ba088",
     "docs/proposed-migrations/20261012320000_taxguard_role_dashboards.sql": "1c99c8005aaade7be0db994cdb5522baaae2e934cac670a8aa3a049a1457f3bc",
     "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql": "2dc0fe8dd4caffd0dfe1c4a882bc4bdcbce699b086c7a2cbe0c6b599e4c8f60c",
-    "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
+    "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql": "9973140c94b4aef7d6bab9f6eae1a2929d88180021b8075abac3e72e7e6c7869",
     "docs/proposed-migrations/20261012350000_taxguard_staff_access_hardening.sql": "e29548e6080c23d20686731373d169447e006853bf886b9227d6a6c204530be9",
     "docs/proposed-migrations/20261012360000_taxguard_tax_rule_verification_cases.sql": "66d094bf951c57ba1ab22b15011660ebc3975038eac825a7234ae4d3587ce310",
     "docs/proposed-migrations/20261012370000_taxguard_mfa_recovery_history.sql": "192c371b3115f1d688ac648a621fac8f0273801ed77bc1888bd733d33f38f508",
