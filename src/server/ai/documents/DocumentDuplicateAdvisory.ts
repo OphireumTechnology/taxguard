@@ -13,13 +13,16 @@ export function inspectSelectedDocumentDuplicates(evidence: readonly EvidenceMet
     if(!row||Object.keys(row).sort().join(',')!=='document_record_id,document_status,document_version,quarantine_status,source_hash,source_id'||
       !/^[a-f0-9]{64}$/.test(row.source_hash)||!Number.isInteger(row.document_version)||row.document_version<1||
       !['RELEASED','VERIFIED'].includes(row.document_status)||row.quarantine_status!=='CLEAN'||
-      ![row.source_id,row.document_record_id].every(id=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))||sources.has(row.source_id))throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
-    sources.add(row.source_id);
-    const previous=documents.get(row.document_record_id);
+      ![row.source_id,row.document_record_id].every(id=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
+    const sourceId = row.source_id.toLowerCase();
+    const documentId = row.document_record_id.toLowerCase();
+    if (sources.has(sourceId)) throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
+    sources.add(sourceId);
+    const previous=documents.get(documentId);
     if(previous && previous!==row.source_hash)throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
-    documents.set(row.document_record_id,row.source_hash);
+    documents.set(documentId,row.source_hash);
     const group=groups.get(row.source_hash)??new Set<string>();
-    group.add(row.document_record_id);groups.set(row.source_hash,group);
+    group.add(documentId);groups.set(row.source_hash,group);
   }
   return {status:'ADVISORY' as const,coverage:'SELECTED_AUTHORIZED_DOCUMENTS_ONLY' as const,
     human_review_required:true as const,fraud_assessed:false as const,authoritative_mutation:false as const,

@@ -180,7 +180,7 @@ BEGIN
   IF p_decision IS NULL THEN
     RETURN (
       WITH documents AS (
-        SELECT DISTINCT v->>'document_record_id' AS id, v->'document_version' AS version,
+        SELECT DISTINCT lower(v->>'document_record_id') AS id, v->'document_version' AS version,
           v->>'source_hash' AS hash FROM jsonb_array_elements(a.evidence_snapshot) v
       ), matches AS (
         SELECT hash, row_number() OVER (ORDER BY min(id)) AS group_number
