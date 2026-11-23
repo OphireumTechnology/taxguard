@@ -11,6 +11,10 @@ describe('A05 document intake advisory', () => {
     const result = inspectDocumentIntake(scope, { ...snapshot, linkedRequest: false });
     expect(result).toMatchObject({ findings: ['WAITING_FOR_SCAN', 'REQUEST_LINK_MISSING'], human_review_required: true });
   });
+  it.each(['UPLOAD_PENDING', 'SCAN_PENDING'])('marks infected evidence unavailable during %s', status => {
+    expect(inspectDocumentIntake(scope, { ...snapshot, status, quarantineStatus: 'INFECTED' }).findings)
+      .toEqual(['DOCUMENT_UNAVAILABLE']);
+  });
   it('flags unsafe metadata, refuses out-of-scope intake, and never releases a rejected document', () => {
     expect(inspectDocumentIntake(scope, { ...snapshot, fileName: 'document.exe.pdf', status: 'PENDING_REVIEW', quarantineStatus: 'CLEAN' }).findings)
       .toEqual(['FILE_SUSPICIOUS', 'DOCUMENT_UNAVAILABLE']);
