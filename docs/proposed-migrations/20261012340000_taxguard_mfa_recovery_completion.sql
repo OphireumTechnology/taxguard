@@ -55,7 +55,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_taxguard_mfa_recovery_open ON public.taxgua
 -- Widen only when necessary. Re-running ALTER COLUMN TYPE, even to the same type,
 -- can reparse CHECK constraints and partial indexes, changing their catalog definitions.
 -- Keeping the operation conditional preserves second-apply schema identity.
-DO $ BEGIN
+DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_catalog.pg_attribute
     WHERE attrelid = 'public.taxguard_mfa_reset_jobs'::regclass
@@ -64,7 +64,7 @@ DO $ BEGIN
   ) THEN
     ALTER TABLE public.taxguard_mfa_reset_jobs ALTER COLUMN status TYPE varchar(32);
   END IF;
-END $;
+END $$;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD COLUMN IF NOT EXISTS fence bigint NOT NULL DEFAULT 0;
 ALTER TABLE public.taxguard_mfa_reset_jobs ADD COLUMN IF NOT EXISTS lease_owner varchar(128);
