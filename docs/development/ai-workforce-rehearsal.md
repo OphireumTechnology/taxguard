@@ -55,3 +55,9 @@ The shared staff case workflow displays the latest 20 completed duplicate checks
 | A10 | Duplicate calculation, queue and review transaction exercised in a disposable database | Stage Three case panel implements preview and decision controls | Pending an isolated deployment and a decision by an approved independent reviewer | Pending |
 
 For hosted acceptance, record the deployed commit, synthetic case and job identifiers, evidence fingerprint, reviewer assignment, decision, and outcome after reopening the case. Verify that the saved decision matches the preview and a revoked assignment prevents another review. Keep document contents and session credentials out of the acceptance record.
+
+### Identifying the A10 path under acceptance
+
+The staff case workflow pilot in this branch uses `CaseDuplicateAdvisories` and `jobService`. Record the job ID, the version returned by the job's `a10-review` preview, and the resulting `ACKNOWLEDGED` or `RETURNED` decision. Reopen the same case in the staff case workflow and confirm the decision on that job.
+
+The workforce panel on main at `f569f085a863a69e2d142f08c9de25f1400f269f` uses `StageThreeDuplicateAdvisoryPanel` and `aiWorkforceService.recordDecision` with an advisory ID. Track acceptance for that API separately. Evidence from one panel establishes shared decision persistence only after a test correlates the job and advisory and reads the same decision through both paths.
