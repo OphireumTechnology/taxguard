@@ -10,6 +10,7 @@
 import { supabase } from './config';
 import { UserRole } from '../types';
 import { signOutProviderSession } from './providerSignOut';
+import { getAuthorizedAdminRecoveryRedirectUrl } from '../config/authRecoveryPolicy';
 
 export type ControlledAuthErrorCode =
   | 'REGISTRATION_FAILED'
@@ -93,6 +94,82 @@ export function validatePasswordStrength(password: string): {
   return {
     valid,
     isValid: valid,
+    errors,
+    message: errors[0]
+  };
+}
+
+export const ADMIN_PASSWORD_MIN_LENGTH = 16;
+
+export interface AdminPasswordPolicyResult {
+  valid: boolean;
+  score: number;
+  strength: 'weak' | 'fair' | 'strong' | 'very_strong';
+  checks: {
+    minLength: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    number: boolean;
+    special: boolean;
+    noRepeatingRun: boolean;
+  };
+  errors: string[];
+  message?: string;
+}
+
+/**
+ * Enforces the Destria Super Administrator password policy:
+ * minimum 16 characters, uppercase, lowercase, numeric, special character,
+ * and rejection of trivial repeated-character sequences.
+ */
+export function validateAdminPasswordStrength(password: string): AdminPasswordPolicyResult {
+  const value = typeof password === 'string' ? password : '';
+  const trimmedNonEmpty = value.trim().length > 0;
+  const checks = {
+    minLength: value.length >= ADMIN_PASSWORD_MIN_LENGTH,
+    uppercase: /[A-Z]/.test(value),
+    lowercase: /[a-z]/.test(value),
+    number: /[0-9]/.test(value),
+    special: /[^A-Za-z0-9\s]/.test(value),
+    noRepeatingRun: trimmedNonEmpty && !/(.)\1{4,}/.test(value)
+  };
+
+  const errors: string[] = [];
+  if (!checks.minLength) {
+    errors.push(`Administrator passwords must be at least ${ADMIN_PASSWORD_MIN_LENGTH} characters long.`);
+  }
+  if (!checks.uppercase) {
+    errors.push('Include at least one uppercase letter (A-Z).');
+  }
+  if (!checks.lowercase) {
+    errors.push('Include at least one lowercase letter (a-z).');
+  }
+  if (!checks.number) {
+    errors.push('Include at least one number (0-9).');
+  }
+  if (!checks.special) {
+    errors.push('Include at least one special character (e.g., !@#$%^&*).');
+  }
+  if (!checks.noRepeatingRun) {
+    errors.push('Avoid long repeating character sequences or whitespace-only passwords.');
+  }
+
+  const passedCount = Object.values(checks).filter(Boolean).length;
+  const valid = errors.length === 0;
+  const strength: AdminPasswordPolicyResult['strength'] =
+    !valid && passedCount <= 2
+      ? 'weak'
+      : !valid
+        ? 'fair'
+        : value.length >= 20
+          ? 'very_strong'
+          : 'strong';
+
+  return {
+    valid,
+    score: passedCount,
+    strength,
+    checks,
     errors,
     message: errors[0]
   };
@@ -664,6 +741,183 @@ export async function requestPasswordReset(
     return {
       success: true,
       message: NEUTRAL_PASSWORD_RESET_MESSAGE
+    };
+  }
+}
+
+export const NEUTRAL_ADMIN_RECOVERY_MESSAGE =
+  'If an authorized administrator account exists for this email address, password recovery instructions have been sent. Password recovery updates authentication credentials only and never grants or bypasses administrator role authorization or MFA.';
+
+export const ADMIN_RECOVERY_COOLDOWN_MS = 60_000;
+export const ADMIN_RECOVERY_WINDOW_MS = 15 * 60 * 1000;
+export const ADMIN_RECOVERY_MAX_REQUESTS_PER_WINDOW = 3;
+
+const adminRecoveryAttempts = new Map<string, number[]>();
+
+/** Test hook: resets client-side administrator recovery throttle state between isolated tests. */
+export function clearAdminRecoveryThrottle(): void {
+  adminRecoveryAttempts.clear();
+}
+
+export interface AdminRecoveryAuditSummary {
+  eventType: 'ADMIN_PASSWORD_RECOVERY_REQUESTED' | 'ADMIN_PASSWORD_RECOVERY_THROTTLED';
+  timestamp: string;
+  redirectTarget: string;
+  emailDomain: string;
+}
+
+export interface AdminPasswordRecoveryResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  cooldownSeconds?: number;
+  rateLimited?: boolean;
+  auditEvent?: AdminRecoveryAuditSummary;
+}
+
+/**
+ * Initiates an authorized Super Administrator password recovery request via Supabase Auth.
+ * - Strictly targets https://destriataxservices.com/admin/reset-password (validated against allowlist).
+ * - Enforces client-side resend cooldown and sliding-window throttling alongside Supabase rate limits.
+ * - Always returns a neutral confirmation for unknown or known accounts to prevent enumeration.
+ * - Never assigns privileges, never bypasses MFA, and never logs credentials or tokens.
+ */
+export async function requestAdminPasswordRecovery(
+  email: string,
+  options?: {
+    redirectTo?: string;
+    now?: number;
+    authClient?: Pick<typeof supabase.auth, 'resetPasswordForEmail'>;
+  }
+): Promise<AdminPasswordRecoveryResult> {
+  const emailValidation = validateEmailFormat(email);
+  if (!emailValidation.valid) {
+    return {
+      success: false,
+      error: emailValidation.message || 'Please enter a valid administrator email address.'
+    };
+  }
+
+  let redirectUrl: string;
+  try {
+    redirectUrl = getAuthorizedAdminRecoveryRedirectUrl(options?.redirectTo);
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || 'Recovery redirect URL is not authorized.'
+    };
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const emailDomain = normalizedEmail.split('@')[1] || 'unknown';
+  const now = options?.now ?? Date.now();
+  const recent = (adminRecoveryAttempts.get(normalizedEmail) || []).filter(
+    (ts) => now - ts < ADMIN_RECOVERY_WINDOW_MS
+  );
+
+  const lastAttempt = recent.length > 0 ? recent[recent.length - 1] : 0;
+  const elapsedSinceLast = now - lastAttempt;
+  if (lastAttempt > 0 && elapsedSinceLast < ADMIN_RECOVERY_COOLDOWN_MS) {
+    const remainingSec = Math.max(1, Math.ceil((ADMIN_RECOVERY_COOLDOWN_MS - elapsedSinceLast) / 1000));
+    adminRecoveryAttempts.set(normalizedEmail, recent);
+    return {
+      success: false,
+      rateLimited: true,
+      cooldownSeconds: remainingSec,
+      error: `Please wait ${remainingSec} seconds before requesting another recovery email.`,
+      auditEvent: {
+        eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
+        timestamp: new Date(now).toISOString(),
+        redirectTarget: redirectUrl,
+        emailDomain
+      }
+    };
+  }
+
+  if (recent.length >= ADMIN_RECOVERY_MAX_REQUESTS_PER_WINDOW) {
+    const oldest = recent[0];
+    const remainingSec = Math.max(60, Math.ceil((ADMIN_RECOVERY_WINDOW_MS - (now - oldest)) / 1000));
+    adminRecoveryAttempts.set(normalizedEmail, recent);
+    return {
+      success: false,
+      rateLimited: true,
+      cooldownSeconds: remainingSec,
+      error: 'Too many recovery requests were submitted recently. Please wait before trying again or contact Destria Security Administration.',
+      auditEvent: {
+        eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED',
+        timestamp: new Date(now).toISOString(),
+        redirectTarget: redirectUrl,
+        emailDomain
+      }
+    };
+  }
+
+  const authClient = options?.authClient ?? supabase.auth;
+  const auditEvent: AdminRecoveryAuditSummary = {
+    eventType: 'ADMIN_PASSWORD_RECOVERY_REQUESTED',
+    timestamp: new Date(now).toISOString(),
+    redirectTarget: redirectUrl,
+    emailDomain
+  };
+
+  try {
+    const { error } = await authClient.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: redirectUrl
+    });
+
+    if (error) {
+      const errMsg = (error.message || '').toLowerCase();
+      if (errMsg.includes('supabase_not_configured')) {
+        return { success: false, error: sanitizeAuthErrorMessage(error).message };
+      }
+      if (errMsg.includes('rate') || errMsg.includes('too many') || (error as any).status === 429) {
+        adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+        return {
+          success: false,
+          rateLimited: true,
+          cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+          error: 'Recovery requests are temporarily rate-limited. Please wait a moment before trying again.',
+          auditEvent: {
+            ...auditEvent,
+            eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+          }
+        };
+      }
+    }
+
+    adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+    return {
+      success: true,
+      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
+      cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+      auditEvent
+    };
+  } catch (err: any) {
+    const errStr = (err?.message || String(err)).toLowerCase();
+    if (errStr.includes('supabase_not_configured')) {
+      return { success: false, error: sanitizeAuthErrorMessage(err).message };
+    }
+    if (errStr.includes('rate') || errStr.includes('too many') || err?.status === 429) {
+      adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+      return {
+        success: false,
+        rateLimited: true,
+        cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+        error: 'Recovery requests are temporarily rate-limited. Please wait a moment before trying again.',
+        auditEvent: {
+          ...auditEvent,
+          eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+        }
+      };
+    }
+
+    // Account-enumeration invariant: never reveal account existence on provider errors.
+    adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+    return {
+      success: true,
+      message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
+      cooldownSeconds: Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+      auditEvent
     };
   }
 }

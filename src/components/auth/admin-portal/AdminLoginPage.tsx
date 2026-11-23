@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
+  Clock,
   Eye,
   EyeOff,
   Fingerprint,
@@ -15,6 +16,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  Send,
   ShieldAlert,
   ShieldCheck
 } from 'lucide-react';
@@ -22,7 +24,10 @@ import { useApp } from '../../../context/AppContext';
 import { isLocalServerLoginBuild } from '../../../context/localServerLogin';
 import { isSuperAdministratorRole } from '../../../config/canonicalRouting';
 import { isStaffIdentityDevelopmentConfigured, isSupabaseConfigured } from '../../../supabase/config';
-import { logout as signOutProvider } from '../../../supabase/auth';
+import {
+  logout as signOutProvider,
+  requestAdminPasswordRecovery
+} from '../../../supabase/auth';
 import { BrandLogo } from '../../common/BrandLogo';
 import { AuthConfigurationNotice } from '../AuthConfigurationNotice';
 import { TotpEnrollmentPanel } from '../TotpEnrollmentPanel';
@@ -36,13 +41,22 @@ import { AdminPortalLoginLayout } from './AdminPortalLoginLayout';
  * - Public administrator self-registration is strictly disabled.
  * - Mandatory server-verified MFA (TOTP) is preserved; no client bypass exists.
  * - Role authorization is strictly server-authoritative: browser state or URL never elevates privilege.
+ * - Password recovery updates credentials only and never assigns privileges or bypasses MFA.
  * - Credentials and authenticator codes are never logged to the browser console or persisted in storage.
  */
 export const AdminLoginPage: React.FC = () => {
   const fieldPrefix = React.useId();
   const { login, setCurrentPage, logout } = useApp();
 
-  const [mode, setMode] = useState<'signin' | 'recovery'>('signin');
+  const [mode, setMode] = useState<'signin' | 'recovery'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'recovery' || params.get('tab') === 'recovery') {
+        return 'recovery';
+      }
+    }
+    return 'signin';
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,16 +68,25 @@ export const AdminLoginPage: React.FC = () => {
   const [errorReference, setErrorReference] = useState<string | null>(null);
   const [statusNote, setStatusNote] = useState<string | null>(null);
 
+  // Account Recovery Request state
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoveryConfirmation, setRecoveryConfirmation] = useState<string | null>(null);
+  const [recoveryCooldown, setRecoveryCooldown] = useState(0);
+  const [recoveryAuditTimestamp, setRecoveryAuditTimestamp] = useState<string | null>(null);
+
   const localBuild = isLocalServerLoginBuild();
   const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
   const recoveryEnrollmentAvailable = isStaffIdentityDevelopmentConfigured();
   const formRef = useRef<HTMLFormElement>(null);
   const submittingRef = useRef(false);
+  const recoverySubmittingRef = useRef(false);
 
   useEffect(() => {
     if (
       typeof window !== 'undefined' &&
-      (window.location.pathname !== '/admin/login' || window.location.hash)
+      (window.location.pathname !== '/admin/login' || window.location.hash || window.location.search)
     ) {
       try {
         window.history.replaceState({ page: 'admin_login' }, '', '/admin/login');
@@ -72,6 +95,14 @@ export const AdminLoginPage: React.FC = () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (recoveryCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setRecoveryCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [recoveryCooldown]);
 
   useEffect(() => {
     if (!localBuild) return;
@@ -97,6 +128,15 @@ export const AdminLoginPage: React.FC = () => {
     setError(null);
     setErrorReference(null);
     setStatusNote(null);
+  };
+
+  const openRecoveryTab = () => {
+    if (!recoveryEmail && email.trim()) {
+      setRecoveryEmail(email.trim());
+    }
+    setMode('recovery');
+    clearFeedback();
+    setRecoveryError(null);
   };
 
   const submitOnEnter = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -169,8 +209,43 @@ export const AdminLoginPage: React.FC = () => {
     }
   };
 
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (recoverySubmittingRef.current || recoveryCooldown > 0) return;
+    recoverySubmittingRef.current = true;
+    setRecoveryLoading(true);
+    setRecoveryError(null);
+    setRecoveryConfirmation(null);
+
+    try {
+      const result = await requestAdminPasswordRecovery(recoveryEmail);
+      if (result.cooldownSeconds && result.cooldownSeconds > 0) {
+        setRecoveryCooldown(result.cooldownSeconds);
+      }
+      if (result.auditEvent?.timestamp) {
+        setRecoveryAuditTimestamp(result.auditEvent.timestamp);
+      }
+      if (result.success) {
+        setRecoveryConfirmation(
+          result.message ||
+            'If an authorized administrator account exists for this email address, password recovery instructions have been sent.'
+        );
+      } else {
+        setRecoveryError(
+          result.error ||
+            'Unable to process your recovery request right now. Please try again shortly.'
+        );
+      }
+    } finally {
+      recoverySubmittingRef.current = false;
+      setRecoveryLoading(false);
+    }
+  };
+
   const submitDisabled =
     loading || mfaEnrollmentRequired || (!isSupabaseConfigured() && !localBuild);
+  const recoveryDisabled =
+    recoveryLoading || recoveryCooldown > 0 || !isSupabaseConfigured();
 
   return (
     <AdminPortalLoginLayout>
@@ -233,11 +308,8 @@ export const AdminLoginPage: React.FC = () => {
             role="tab"
             aria-selected={mode === 'recovery'}
             disabled={loading || mfaEnrollmentRequired}
-            onClick={() => {
-              setMode('recovery');
-              clearFeedback();
-            }}
-            className={`min-h-[40px] rounded-lg px-3 py-2 text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-55 ${
+            onClick={openRecoveryTab}
+            className={`min-h-[40px] whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-55 ${
               mode === 'recovery'
                 ? 'bg-[#D4AF37] font-bold text-[#061426] shadow-sm'
                 : 'text-[#A8B8CC] hover:bg-white/5 hover:text-white'
@@ -247,8 +319,8 @@ export const AdminLoginPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Error Alert */}
-        {error && (
+        {/* Error Alert (Sign In mode) */}
+        {mode === 'signin' && error && (
           <div
             role="alert"
             data-testid="admin-login-error"
@@ -269,8 +341,8 @@ export const AdminLoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Informational Status */}
-        {statusNote && !error && (
+        {/* Informational Status (Sign In mode) */}
+        {mode === 'signin' && statusNote && !error && (
           <div
             role="status"
             className="flex items-start gap-2.5 rounded-xl border border-[#00C2D1]/35 bg-[#061426]/90 p-3.5 text-xs text-[#E2EAF4]"
@@ -352,12 +424,21 @@ export const AdminLoginPage: React.FC = () => {
 
                 {/* Password + Show/Hide Toggle */}
                 <div>
-                  <label
-                    className="mb-1.5 block text-xs font-semibold text-white"
-                    htmlFor={`${fieldPrefix}-admin-password`}
-                  >
-                    Password
-                  </label>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <label
+                      className="block text-xs font-semibold text-white"
+                      htmlFor={`${fieldPrefix}-admin-password`}
+                    >
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={openRecoveryTab}
+                      className="text-[11px] font-medium text-[#D4AF37] hover:text-[#E5C562] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] rounded"
+                    >
+                      Recover password
+                    </button>
+                  </div>
                   <div className="flex items-stretch gap-2">
                     <div className="relative min-w-0 flex-1">
                       <Key
@@ -475,19 +556,119 @@ export const AdminLoginPage: React.FC = () => {
           </>
         ) : (
           <div className="space-y-4" data-testid="admin-recovery-panel">
+            {!isSupabaseConfigured() && <AuthConfigurationNotice />}
+
+            {recoveryError && (
+              <div
+                role="alert"
+                data-testid="admin-recovery-error"
+                className="flex items-start gap-2.5 rounded-xl border border-rose-400/35 bg-rose-950/55 p-3.5 text-xs text-rose-100"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" aria-hidden="true" />
+                <span className="leading-relaxed">{recoveryError}</span>
+              </div>
+            )}
+
+            {recoveryConfirmation && (
+              <div
+                role="status"
+                data-testid="admin-recovery-confirmation"
+                className="space-y-2 rounded-xl border border-[#00C2D1]/40 bg-[#061426]/95 p-4 text-xs text-[#E2EAF4]"
+              >
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#00C2D1]" aria-hidden="true" />
+                  <div className="space-y-1.5 leading-relaxed">
+                    <p className="font-semibold text-white">Recovery Request Recorded</p>
+                    <p>{recoveryConfirmation}</p>
+                    <p className="text-[11px] text-[#A8B8CC]">
+                      Open the most recent recovery link promptly—links expire automatically and
+                      can only be used once. If your link expires, wait for the cooldown to finish
+                      and submit a new request.
+                    </p>
+                    {recoveryAuditTimestamp && (
+                      <p className="font-mono text-[10px] text-[#7F94AD] tabular-nums">
+                        Logged at {new Date(recoveryAuditTimestamp).toISOString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form
+              onSubmit={handleRecoverySubmit}
+              data-testid="admin-recovery-form"
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-semibold text-white"
+                  htmlFor={`${fieldPrefix}-recovery-email`}
+                >
+                  Administrator email address
+                </label>
+                <div className="relative">
+                  <Mail
+                    className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8B8CC]"
+                    aria-hidden="true"
+                  />
+                  <input
+                    id={`${fieldPrefix}-recovery-email`}
+                    type="email"
+                    required
+                    autoComplete="username"
+                    placeholder="administrator@destriataxservices.com"
+                    value={recoveryEmail}
+                    onChange={(e) => {
+                      setRecoveryEmail(e.target.value);
+                      setRecoveryError(null);
+                    }}
+                    className="min-h-[44px] w-full rounded-xl border border-white/15 bg-[#061426]/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-[#7F94AD] transition-all duration-150 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25"
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[#A8B8CC]">
+                  Enter your authorized administrator email to receive a time-limited password recovery link.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={recoveryDisabled}
+                aria-busy={recoveryLoading}
+                data-testid="admin-recovery-submit"
+                className="flex min-h-[46px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#E5C562] to-[#C89F2B] px-5 py-3 text-[13px] font-bold tracking-wide text-[#061426] shadow-[0_12px_28px_rgba(212,175,55,0.24)] transition-all duration-150 hover:brightness-105 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1F36] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100"
+              >
+                {recoveryLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : recoveryCooldown > 0 ? (
+                  <Clock className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                )}
+                <span>
+                  {recoveryLoading
+                    ? 'Sending Recovery Request...'
+                    : recoveryCooldown > 0
+                      ? `Resend available in ${recoveryCooldown}s`
+                      : 'Request Recovery'}
+                </span>
+              </button>
+            </form>
+
+            {/* Governance & MFA Distinction Notice */}
             <div className="rounded-xl border border-[#D4AF37]/25 bg-[#061426]/85 p-4 text-xs space-y-2">
               <div className="flex items-center gap-2 font-bold text-[#E6C96E]">
                 <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>Approved Administrator Account Recovery</span>
+                <span>Approved Administrator Account Recovery Policy</span>
               </div>
               <p className="leading-relaxed text-[#CBD6E4]">
-                Super Administrator credentials and MFA factors cannot be self-reset without
-                verified identity authorization. Lost authenticators require an approved recovery
-                token issued through Destria Security Governance.
+                Password recovery restores authentication credentials only—it never assigns Super
+                Administrator privileges or bypasses mandatory MFA. Lost authenticators require an
+                approved MFA recovery workflow through Destria Security Governance.
               </p>
               <p className="text-[11px] text-[#A8B8CC]">
-                Emergency governance assistance: contact your designated practice owner or security
-                compliance administrator. Every recovery action is recorded in the immutable audit log.
+                Every recovery request and authentication event is subject to rate limiting and
+                audit logging.
               </p>
             </div>
 
@@ -505,8 +686,9 @@ export const AdminLoginPage: React.FC = () => {
               onClick={() => {
                 setMode('signin');
                 clearFeedback();
+                setRecoveryError(null);
               }}
-              className="flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-[#061426]/90 px-4 py-2 text-xs font-semibold text-white transition-colors hover:border-[#D4AF37]/45 hover:bg-[#0D2745]"
+              className="flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-[#061426]/90 px-4 py-2 text-xs font-semibold text-white transition-colors hover:border-[#D4AF37]/45 hover:bg-[#0D2745] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Back to Administrator Sign In</span>
