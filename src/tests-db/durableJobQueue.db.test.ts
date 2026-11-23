@@ -466,6 +466,12 @@ describe('A10 advisory job review draft', () => {
     expect((await call('POST', decisionPath, decision)).status).toBe(200);
     expect((await call('POST', decisionPath, decision)).status).toBe(200);
     expect((await call('POST', decisionPath, { ...decision, decision: 'RETURNED' })).status).toBe(409);
+    const savedReviews = await sql(
+      `SELECT reviewer_uid, decision, encode(sha256(convert_to(job_id || evidence_snapshot::text, 'UTF8')), 'hex') AS version
+       FROM taxguard_a10_reviews WHERE job_id=$1`,
+      [first.body.id],
+    );
+    expect(savedReviews).toEqual([{ reviewer_uid: 'jq-wide', decision: 'ACKNOWLEDGED', version: preview.body.version }]);
     const reopened = await call('GET', casePath);
     expect(reopened.body).toContainEqual(expect.objectContaining({ jobId: first.body.id, decision: 'ACKNOWLEDGED' }));
     as('jq-prep1');
