@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "ea4f6a9211e9dacdddddd88b7bbd6df5b27486b3af37f6152b353225136f5a9c",
+  "executionPlanSha256": "66475568868139e178c2060de1107e32235353591eb530c72f86c90526a5a6e2",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -6699,6 +6699,58 @@
         "-- Preserves all historical migrations untouched.",
         "-- Enforces tenant isolation, metadata-only job payloads, human-review-only advisories,",
         "-- idempotent job submission, and atomic single-decision concurrency protection."
+      ]
+    },
+    {
+      "order": 123,
+      "file": "supabase/migrations/20261123000000_taxguard_assignment_rpc_hardening.sql",
+      "kind": "core",
+      "version": "20261123000000",
+      "sha256": "3b7cb92b958671142953d442a4d534e52d3438884a22c0fe4071381b696db0d6",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql",
+        "supabase/migrations/20261004000000_taxguard_private_storage_client_scope.sql"
+      ],
+      "referencedDependencies": [],
+      "declaredObjects": [
+        "taxguard_is_staff_assigned_to_client",
+        "taxguard_is_staff_assigned_to_engagement"
+      ],
+      "supersededFunctions": [
+        {
+          "name": "taxguard_is_staff_assigned_to_client",
+          "previousFile": "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        },
+        {
+          "name": "taxguard_is_staff_assigned_to_engagement",
+          "previousFile": "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql",
+          "review": "Check overload signatures and final grants in composed PostgreSQL."
+        }
+      ],
+      "rollback": [],
+      "grantsAndRevocations": [
+        "REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) FROM PUBLIC;",
+        "REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) FROM anon;",
+        "GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO authenticated;",
+        "GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO service_role;",
+        "REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) FROM PUBLIC;",
+        "REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) FROM anon;",
+        "GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) TO authenticated;",
+        "GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) TO service_role;"
+      ],
+      "securityDefinerDeclarations": 2,
+      "notValidConstraints": 0,
+      "header": [
+        "-- Forward-only security correction. Historical migration 20261002000000 is immutable.",
+        "-- Applies only after the original migration was applied by a supported bootstrap path.",
+        "-- Does not modify Supabase-managed Storage schema/tables or global policies.",
+        "-- Private taxguard-vault bucket and scoped object policies require independent verification.",
+        "-- Revoke public execution, grant only to authenticated and service_role",
+        "-- Authoritative check whether staff member is assigned to an engagement / tax year"
       ]
     }
   ]

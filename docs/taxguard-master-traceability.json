@@ -5846,8 +5846,8 @@
     },
     {
       "file": "docs/development/migration-execution-manifest.md",
-      "sha256": "72d3bbee6392e5407e4b5bca77e9533ec528daa35cf70b1b6ffd796774c7fa77",
-      "bytes": 25280,
+      "sha256": "3ea86f9188e504bc8cae0b73806ab8e7c2d9b87e94d080b09125d44fb7019a95",
+      "bytes": 25742,
       "headings": [
         "# Migration catalog audit (derived from canonical dependency plan)",
         "## Not re-runnable files",
@@ -8473,7 +8473,7 @@
     "src/tests/mfaRecoveryCompletion.test.ts": "12f71a0d61cb5138c8ba06692c845f53f472bb98949c77a83536b402cc253169",
     "src/tests/mfaRecoveryHistory.test.ts": "61e7e30f2402f8d96ef0528146467fcbf38b64d2a2173a31aa73aad1b79dd836",
     "src/tests/migrationPreparationIntegrity.test.ts": "d1c96ddff9617c7213e0550dbf77e4937fe6ce529374ca7bdaee5c26e97aa504",
-    "src/tests/migrationReadinessAudit.test.ts": "166b79d28460fee15b12df6aa564ad4521deb09a1caada40d8926632d83896a6",
+    "src/tests/migrationReadinessAudit.test.ts": "0652fe8c3e7f7563d11b6aaf3aa00c98cbfa160e27dfd4c0607310c304af45d3",
     "src/tests/notificationPreferences.test.ts": "e72b02069574eb53f116eeed551a22437327782ae6f2ea6c1f7f0ae34128d589",
     "src/tests/ocrTransportPreparation.test.ts": "5575152ca27306923a3f0fb290b461b64d961d569c014ba0bd36f4f1f89bd2d8",
     "src/tests/paymentsRouteAuthority.test.ts": "923dfb4448a67ba4ec0b1b8bc261f8ea82d3595acbd758c94342ea6c178684ac",
@@ -8511,7 +8511,7 @@
     "src/tests/stageGateBridgeBoolean.test.ts": "e3230599f6bda0315bc326609a2739155237dbbb77a5c402c138d94b938192a4",
     "src/tests/stageGateUnknownEvidence.test.ts": "48f8f2a99b3fa10ead7ae6f03abbe19f2d867579843576ca851b9aa865705c7e",
     "src/tests/stageTwoProductionVerification.test.ts": "22977703d47ee1bdf482196376bbd6b656d5547e8bb21b5b99deaf2875d99ab2",
-    "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "778069ef7c287dfae1d001af051ab9b9d3c5a5dcbc15f2cfc4ee60c173772f45",
+    "src/tests/stageTwoStorageAndAssignmentGovernance.test.ts": "98420019c3bd9e3cebab2a9302d30bb3fce73fb17c3cd9b7ee6a33c5f5fbc5aa",
     "src/tests/stagingAcceptanceCoverage.test.ts": "259cbfeab328766bd3e43919a7ddec83b6ac1b03ae9087befcbc32e866374368",
     "src/tests/stagingConfiguration.test.ts": "d337febae5b1d4e85a129fae45688acc3ba5344764c975e7eb2a79072c8ea5b0",
     "src/tests/stagingEnvironmentValidator.test.ts": "340fc4908b74616f46cf948f099b631e4d5b9626f76b97672a4be67e260a83e4",
