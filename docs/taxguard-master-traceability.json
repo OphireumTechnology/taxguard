@@ -8481,7 +8481,7 @@
     "src/tests/phase12bFrontend.test.tsx": "b84b2fb03adae85e04b5e28a89d837283f23223f0c82d8fb227c64f5e8d6e735",
     "src/tests/phase12cFrontend.test.ts": "96973fcb42487a98b8619e50ad345bdd0220c2861bc51b7601f311a7021c1821",
     "src/tests/portalCaseStages.test.ts": "e0b075ec2e6d6cf17097f276bb4f0f0626e31d898b70a736b53981be3993e80a",
-    "src/tests/portalConsultations.test.ts": "5515ad61f3741711f371be1f24032865459e4889cee773f01e0bdf0c983d65aa",
+    "src/tests/portalConsultations.test.ts": "0945f3d1236026324cb687344b45a005f851c55c25eb3a0dc1023ae729e96281",
     "src/tests/practiceManagementHttp.test.ts": "1004e5d96081e29a86c3cfe23c98ec19dcf08e319c07266cf06355bc578f1e72",
     "src/tests/practiceManagerAuthority.test.ts": "a114859bcc547c610a9ccc5dc16a959a7a02a6d1eaf92cd69de286bc5f49c93a",
     "src/tests/productAnonymousBrowserBoundary.test.ts": "91578815c784b5ad7451d1489243852a60c23ae2e604397b7c5ca3a868d293cf",
