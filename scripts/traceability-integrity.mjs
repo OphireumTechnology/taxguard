@@ -15,7 +15,7 @@ export function verifyTraceability(matrix, read) {
     for (const file of [...row.implementation, ...row.tests]) {
       if (!permittedEvidencePath(file)) throw new Error('TRACEABILITY_PATH_DENIED');
       const hash = createHash('sha256').update(read(file).toString('utf8').replace(/\r\n/g, '\n')).digest('hex');
-      if (matrix.evidence_versions?.[file] !== hash) throw new Error('TRACEABILITY_EVIDENCE_DRIFT');
+      if (matrix.evidence_versions?.[file] !== hash) throw new Error(`TRACEABILITY_EVIDENCE_DRIFT:${file}`);
     }
   }
   for (const source of matrix.source_inventory) {

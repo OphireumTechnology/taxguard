@@ -23,14 +23,28 @@ describe('composition on a real PostgreSQL server', () => {
     expect(r.rows[0].v).toBeGreaterThanOrEqual(150000);
     expect(r.rows[0].addr).toBe('127.0.0.1/32');
   });
-  it('re-applies the Claude proposals idempotently', async () => {
-    const fs = await import('node:fs');
-    const before=await schemaFingerprint(db.pool);
-    for (const entry of buildMigrationManifest().entries.filter(e=>e.kind==='proposal'&&/^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017|^20261018|^20261019/.test(e.file.split('/').at(-1)!)))
-      await db.pool.query(fs.readFileSync(entry.file, 'utf8'));
-    const after=await schemaFingerprint(db.pool);
-    for(const name of Object.keys(before.groups))expect(after.groups[name],`schema group ${name}`).toEqual(before.groups[name]);
-    expect(after.sha256).toBe(before.sha256);
+  it('re-applies the Claude proposals idempotently at their canonical DAG positions', async () => {
+    // Replaying an earlier privilege-lockdown proposal after a later core migration
+    // is not an idempotency test: it revokes grants on newly introduced workforce
+    // tables that did not exist when the proposal first ran.
+    // Instead, use a separate disposable server and replay each selected proposal
+    // immediately after its first application. The harness compares the full schema
+    // fingerprint (including ACLs, constraints and functions) before/after every
+    // replay, and fails closed on any drift.
+    const replayFiles = buildMigrationManifest().entries
+      .filter(e => e.kind === 'proposal' && /^202610122[3-9]|^20261012[3-9]|^20261013|^20261014|^20261015|^20261016|^20261017|^20261018|^20261019/.test(e.file.split('/').at(-1)!))
+      .map(e => e.file.split('/').at(-1)!);
+    expect(replayFiles.length).toBeGreaterThan(0);
+    const baseline = await schemaFingerprint(db.pool);
+    const verified = await startDatabase({ verifyReplayFiles: replayFiles });
+    try {
+      const after = await schemaFingerprint(verified.pool);
+      for (const name of Object.keys(baseline.groups))
+        expect(after.groups[name], `schema group ${name}`).toEqual(baseline.groups[name]);
+      expect(after.sha256).toBe(baseline.sha256);
+    } finally {
+      await verified.stop();
+    }
   });
   it('detects privilege and constraint drift and recovers the exact schema after rollback',async()=>{
     const baseline=await schemaFingerprint(db.pool);const session=await db.connect();

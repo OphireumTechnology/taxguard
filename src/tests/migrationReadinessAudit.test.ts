@@ -20,8 +20,8 @@ const name = (f: string) => f.split('/').pop()!.replace(/\.sql$/, '');
 
 describe('migration readiness audit', () => {
   it('applies every file in the canonical order, with and without Supabase default privileges', () => {
-    expect(m.summary.core).toBe(13);
-    expect(m.files.map((f: any) => f.kind)).toEqual([...Array(13).fill('core'), ...Array(m.summary.proposals).fill('proposal'), 'separate-proposal']);
+    expect(m.summary.core).toBe(14);
+    expect(m.files.map((f: any) => f.kind)).toEqual([...Array(13).fill('core'), ...Array(m.summary.proposals).fill('proposal'), 'core', 'separate-proposal']);
     expect(m.files.filter((f: any) => !f.appliesInOrder).map((f: any) => f.file)).toEqual([]);
     // Explicit prerequisites govern order; newer corrective IDs can precede dependent IDs.
     const proposals = m.files.filter((f: any) => f.kind === 'proposal').map((f: any) => name(f.file));

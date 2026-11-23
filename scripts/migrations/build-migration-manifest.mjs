@@ -14,6 +14,13 @@ const fnName = s => s.slice(0, s.indexOf('('));
 export async function buildManifest(root = '.') {
   const supabase = await auditMigrations(root, { supabaseDefaults: true });
   const plain = await auditMigrations(root, { supabaseDefaults: false });
+  // Never certify a partial migration catalog. Include the actual SQL failure for
+  // each execution mode rather than reducing it to an ambiguous manifest mismatch.
+  const rejected = [
+    ...supabase.files.filter(f => !f.applied).map(f => ({ mode: 'supabase-defaults', file: f.file, error: f.error })),
+    ...plain.files.filter(f => !f.applied).map(f => ({ mode: 'plain', file: f.file, error: f.error })),
+  ];
+  if (rejected.length) throw new Error('MIGRATION_AUDIT_APPLY_FAILED:' + JSON.stringify(rejected));
   const files = supabase.files.map((f, i) => ({
     order: f.order, kind: f.kind, file: f.file, appliesInOrder: f.applied && plain.files[i].applied, reapply: f.reapply,
     tablesAdded: f.tablesAdded, functionsAdded: f.functionsAdded.map(fnName), supersedes: f.supersedes.map(s => ({ function: fnName(s.fn), previous: s.originallyDefinedIn })),
