@@ -153,7 +153,7 @@ export function CaseWorkflowPanel() {
               </form>}</td></tr>)}</tbody></table>}
         </section>
         {/* Mounted per case: no research state carries over from another case. */}
-        {selected === c.caseId && c.activeStage === 3 && <CaseDuplicateAdvisories key={'duplicates-' + c.caseId} caseId={c.caseId} />}
+        {selected === c.caseId && c.activeStage === 3 && <CaseDuplicateAdvisories key={'duplicates-' + c.caseId} caseId={c.caseId} assignedReviewer={queue.items.some(item => item.caseId === c.caseId && item.myRole === 'reviewer')} />}
         <CaseResearchPanel key={c.caseId} caseId={c.caseId} taxYear={c.taxYear} />
         <CaseReadinessPanel key={'readiness-' + c.caseId} caseId={c.caseId} taxYear={c.taxYear} />
         <CaseConclusionsPanel key={'conclusions-' + c.caseId} caseId={c.caseId} />

@@ -26,7 +26,7 @@ function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision
   </div>;
 }
 
-export function CaseDuplicateAdvisories({ caseId }: { caseId: string }) {
+export function CaseDuplicateAdvisories({ caseId, assignedReviewer }: { caseId: string; assignedReviewer: boolean }) {
   const [rows, setRows] = useState<Awaited<ReturnType<typeof jobService.caseAdvisories>> | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -41,7 +41,7 @@ export function CaseDuplicateAdvisories({ caseId }: { caseId: string }) {
       rows.length === 0 ? <p>No completed checks for this case.</p> :
       <ul aria-label="Latest 20 completed checks">{rows.map(row =>
         <li key={row.jobId}><time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString()}</time>
-          {' · '}{row.duplicateGroupCount} duplicate groups ·  {row.decision ? (row.decision === 'RETURNED' ? 'Returned for review' : 'Acknowledged') :
+          {' · '}{row.duplicateGroupCount} duplicate groups ·  {row.decision ? (row.decision === 'RETURNED' ? 'Returned for review' : 'Acknowledged') : !assignedReviewer ? 'Awaiting reviewer decision' :
             <DuplicateReview jobId={row.jobId} onSaved={decision => setRows(current =>
               current?.map(item => item.jobId === row.jobId ? { ...item, decision } : item) ?? null)} />}</li>)}</ul>}
   </section>;
