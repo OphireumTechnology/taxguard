@@ -56,6 +56,13 @@ BEGIN
     RETURN FALSE;
   END IF;
 
+  -- A caller must never probe another staff member's assignments.
+  -- Service-role calls are trusted server-side operations only.
+  IF (auth.uid() IS NULL OR p_user_id <> auth.uid()::text)
+     AND COALESCE(auth.jwt() ->> 'role', '') <> 'service_role' THEN
+    RETURN FALSE;
+  END IF;
+
   SELECT EXISTS (
     SELECT 1
     FROM taxguard_staff_assignments
@@ -74,6 +81,7 @@ $$;
 
 -- Revoke public execution, grant only to authenticated and service_role
 REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) FROM PUBLIC;
+REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) FROM anon;
 GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO authenticated;
 GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_client(VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO service_role;
 
@@ -98,6 +106,13 @@ BEGIN
     RETURN FALSE;
   END IF;
 
+  -- A caller must never probe another staff member's assignments.
+  -- Service-role calls are trusted server-side operations only.
+  IF (auth.uid() IS NULL OR p_user_id <> auth.uid()::text)
+     AND COALESCE(auth.jwt() ->> 'role', '') <> 'service_role' THEN
+    RETURN FALSE;
+  END IF;
+
   SELECT EXISTS (
     SELECT 1
     FROM taxguard_staff_assignments
@@ -116,6 +131,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) FROM anon;
 GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION taxguard_is_staff_assigned_to_engagement(VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER) TO service_role;
 
