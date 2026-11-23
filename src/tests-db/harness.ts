@@ -176,7 +176,7 @@ async function compose(pool: pg.Pool,reviewBundle=false,verifyReplayFiles=new Se
   await pool.query(`CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
     CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$; CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS 'SELECT current_user::text';
     CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;`);
-  if(reviewBundle){for(const entry of buildReviewBundle().entries){const sql=entry.sql.replace(/CREATE\\s+EXTENSION\\s+IF\\s+NOT\\s+EXISTS\\s+"[^"]+";/gi,'');try{await pool.query(sql);}catch(error:any){throw new Error(`${entry.file} (${entry.source}): ${error.message}`);}}}
+  if(reviewBundle){for(const entry of buildReviewBundle().entries){const sql=entry.sql.replace(/CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"[^"]+";/gi,'');try{await pool.query(sql);}catch(error:any){throw new Error(`${entry.file} (${entry.source}): ${error.message}`);}}}
   else for (const entry of manifest.entries) {
     const name = path.basename(entry.file);
     await apply(pool, path.dirname(entry.file), name);
