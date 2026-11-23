@@ -71,11 +71,12 @@ export function draftEngagement(scope: Scope, snapshot: unknown) {
   }));
   const requested = [...new Set(data.requestedServices)];
   const approved = new Set(data.approvedServices);
+  const unlistedServices = requested.filter(key => !approved.has(key));
   return advisory('A03', {
     taxYear: scope.taxYear, engagementStatus: data.engagementStatus,
     proposedServices: data.engagementStatus === 'CLOSED' ? [] : requested.filter(key => approved.has(key)),
-    unlistedServiceCount: requested.filter(key => !approved.has(key)).length,
-    requiresScopeConfirmation: data.engagementStatus !== 'PENDING' || requested.length === 0 || requested.some(key => !approved.has(key)),
+    unlistedServices, unlistedServiceCount: unlistedServices.length,
+    requiresScopeConfirmation: data.engagementStatus !== 'PENDING' || requested.length === 0 || unlistedServices.length > 0,
   });
 }
 

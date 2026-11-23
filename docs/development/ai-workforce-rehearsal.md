@@ -42,7 +42,7 @@ The hosted pilot still needs approved staging configuration and case assignments
 
 ## Stage One onboarding advisories (A01–A04)
 
-The four server functions in `src/server/ai/onboarding/OnboardingAdvisories.ts` accept a trusted case scope and a matching metadata projection. A01 identifies missing intake, contact and consent steps. A02 refers pending or inconsistent identity evidence to staff. A03 intersects requested and approved service codes for the scoped tax year. A04 selects applicable organizer question IDs with missing or conflicting answers. Each returns a draft for human review.
+The four server functions in `src/server/ai/onboarding/OnboardingAdvisories.ts` accept a trusted case scope and a matching metadata projection. A01 identifies missing intake, contact and consent steps. A02 refers pending or inconsistent identity evidence to staff. A03 lists proposed services and separately identifies requested codes absent from the approved catalog so staff can resolve scope for that tax year. A04 selects applicable organizer question IDs with missing or conflicting answers. Each returns a draft for human review.
 
 The synthetic tests exercise all four decisions, case mismatch and unexpected identity fields. These deterministic components still need a server-authorized projection from onboarding records, stage and assignment checks, and review queue integration before users can invoke them.
 

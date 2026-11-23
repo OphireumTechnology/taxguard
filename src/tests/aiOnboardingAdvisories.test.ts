@@ -5,8 +5,8 @@ const scope = { tenantId: 'firm', caseId: 'case', clientId: 'client', taxYear: 2
 const scenarios = [
   [inspectOnboarding, { contactComplete: false, checklistComplete: true, consentReceiptCurrent: false }, ['COMPLETE_CONTACT_DETAILS', 'REVIEW_CONSENT_RECEIPT']],
   [inspectIdentity, { evidenceStatus: 'VERIFIED', nameConsistent: null, duplicateFlag: true }, ['CHECK_NAME_CONSISTENCY', 'REVIEW_POSSIBLE_DUPLICATE']],
-  [draftEngagement, { requestedServices: ['tax', 'tax', 'payroll'], approvedServices: ['tax'], engagementStatus: 'PENDING' },
-    { taxYear: 2025, engagementStatus: 'PENDING', proposedServices: ['tax'], unlistedServiceCount: 1, requiresScopeConfirmation: true }],
+  [draftEngagement, { requestedServices: ['tax', 'tax', 'payroll', 'payroll'], approvedServices: ['tax'], engagementStatus: 'PENDING' },
+    { taxYear: 2025, engagementStatus: 'PENDING', proposedServices: ['tax'], unlistedServices: ['payroll'], unlistedServiceCount: 1, requiresScopeConfirmation: true }],
   [draftOrganizerFollowups, { questions: [
     { applicable: true, questionId: 'income', answerStatus: 'CONFLICTING' },
     { applicable: false, questionId: 'entity', answerStatus: 'MISSING' },
