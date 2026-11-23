@@ -587,7 +587,7 @@ export const AdminLoginPage: React.FC = () => {
                     </p>
                     {recoveryAuditTimestamp && (
                       <p className="font-mono text-[10px] text-[#7F94AD] tabular-nums">
-                        Logged at {new Date(recoveryAuditTimestamp).toISOString()}
+                        Request timestamp (browser clock): {new Date(recoveryAuditTimestamp).toISOString()}
                       </p>
                     )}
                   </div>
