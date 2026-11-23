@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { jobService } from '../../services/jobService';
+import { jobMessage, jobService } from '../../services/jobService';
 
 function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision: "ACKNOWLEDGED" | "RETURNED") => void }) {
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof jobService.reviewEvidence>>>();
@@ -14,7 +14,10 @@ function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision
         onSaved(decision);
         setPreview(undefined);
       } else setPreview(await jobService.reviewEvidence(jobId));
-    } catch { setMessage('Review unavailable. Check assignment and reload the evidence.'); setPreview(undefined); }
+    } catch (error) {
+      setMessage(jobMessage(error));
+      setPreview(undefined);
+    }
     finally { setBusy(false); }
   }
   return <div>
@@ -29,13 +32,20 @@ function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision
 export function CaseDuplicateAdvisories({ caseId, assignedReviewer }: { caseId: string; assignedReviewer: boolean }) {
   const [rows, setRows] = useState<Awaited<ReturnType<typeof jobService.caseAdvisories>> | null>(null);
   const [failed, setFailed] = useState(false);
+  const [revision, setRevision] = useState(0);
+  function refresh() {
+    setRows(null);
+    setFailed(false);
+    setRevision(value => value + 1);
+  }
   useEffect(() => {
     let current = true;
     jobService.caseAdvisories(caseId).then(data => { if (current) setRows(data); })
       .catch(() => { if (current) setFailed(true); });
     return () => { current = false; };
-  }, [caseId]);
+  }, [caseId, revision]);
   return <section><h3>Duplicate document checks</h3>
+    <button type="button" onClick={refresh} disabled={rows === null && !failed}>Refresh checks</button>
     {failed ? <p role="status">Case advisories are unavailable.</p> :
       rows === null ? <p role="status">Loading checks…</p> :
       rows.length === 0 ? <p>No completed checks for this case.</p> :
