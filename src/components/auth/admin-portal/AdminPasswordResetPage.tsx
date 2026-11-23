@@ -271,23 +271,13 @@ export default function AdminPasswordResetPage() {
       }
 
       // First resolution attempt
-      let outcome = await resolveAdminRecoverySession(authClient, parsed, {
+      const outcome = await resolveAdminRecoverySession(authClient, parsed, {
         recoveryEventObserved
       });
 
-      // Allow a brief settle window when Supabase SDK is asynchronously parsing a recovery fragment
-      if (
-        outcome !== 'ready' &&
-        !recoveryEventObserved &&
-        (parsed.hashAccessToken || parsed.pkceCode)
-      ) {
-        await new Promise((resolve) => setTimeout(resolve, 350));
-        if (!mounted || recoveryEventObserved) return;
-        outcome = await resolveAdminRecoverySession(authClient, parsed, {
-          recoveryEventObserved
-        });
-      }
-
+      // Supabase getSession() awaits SDK initialization; PASSWORD_RECOVERY events
+      // are handled by the subscription above. Do not introduce artificial
+      // timing delays into a security-sensitive recovery callback.
       if (!mounted || completedRef.current) return;
       if (recoveryEventObserved) {
         setState('ready');
