@@ -319,6 +319,19 @@ describe('A10 advisory job review draft', () => {
     }
   });
 
+  it('restricts the A10 review ledger to the scoped backend function', async () => {
+    const [ledger] = await sql("SELECT relrowsecurity FROM pg_class WHERE oid = 'public.taxguard_a10_reviews'::regclass");
+    expect(ledger.relrowsecurity).toBe(true);
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      const grants = await sql(`SELECT operation, has_table_privilege($1, 'public.taxguard_a10_reviews', operation) AS allowed
+        FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) operation`, [role]);
+      expect(grants.filter(grant => grant.allowed)).toEqual([]);
+      const [review] = await sql(`SELECT has_function_privilege($1,
+        'public.taxguard_a10_review(text,text,text,text,text)', 'EXECUTE') AS allowed`, [role]);
+      expect(review.allowed).toBe(role === 'service_role');
+    }
+  });
+
   it('rejects repeated A10 evidence at submission', async () => {
     const invalid = await enqueue('jq-prep1', 'jw-invalid-selection', {
       jobType: 'AI_PROPOSAL', clientId: C, caseId: caseIds.E1,
