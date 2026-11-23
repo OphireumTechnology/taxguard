@@ -823,6 +823,26 @@
         "GET /api/readiness",
         "GET /api/route-cutover"
       ]
+    },
+    {
+      "id": "ai-workforce-matrix",
+      "kind": "STATELESS",
+      "reason": "Authenticated read of the static workforce roster and its declared delivery status.",
+      "routes": [
+        "GET /api/ai-workforce/matrix"
+      ]
+    },
+    {
+      "id": "ai-workforce-operations",
+      "kind": "DURABLE",
+      "reason": "Workforce case execution and advisory review use the configured PostgreSQL store and server session.",
+      "routes": [
+        "POST /api/ai-workforce/agents/:agentId/execute",
+        "POST /api/ai-workforce/a10/jobs",
+        "POST /api/ai-workforce/a10/jobs/:jobId/process",
+        "GET /api/ai-workforce/cases/:caseId/advisories",
+        "POST /api/ai-workforce/advisories/:advisoryId/decisions"
+      ]
     }
   ]
 }

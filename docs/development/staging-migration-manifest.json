@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "executionAllowed": false,
-  "executionPlanSha256": "f79dc8f3ce47c7c768ea01d150581832256b2a4995c0435daccde426f36c0c9a",
+  "executionPlanSha256": "ea4f6a9211e9dacdddddd88b7bbd6df5b27486b3af37f6152b353225136f5a9c",
   "ordering": "explicit dependency DAG in migration-execution-order.json",
   "notes": [
     "dependsOn follows the explicit conservative execution DAG; unknown files, missing prerequisites and cycles fail closed. referencedDependencies and supersededFunctions are static review aids, not a SQL parser or proof of authorization.",
@@ -1696,7 +1696,7 @@
       "file": "docs/proposed-migrations/20261012340000_taxguard_mfa_recovery_completion.sql",
       "kind": "proposal",
       "version": "20261012340000",
-      "sha256": "c22607d1a85c0bd4d346ccfff609d082e9ad7b51bb18818966a88e6dc143107e",
+      "sha256": "590e0a88aeb2b6b8a98810c2d13d2ea0411ac2c654f31d2dbd1a19313eabf99e",
       "validTimestamp": false,
       "requiresOwnerReview": true,
       "externalApplicationStatus": "NOT_VERIFIED",
@@ -6669,6 +6669,36 @@
         "-- Identical to the current definition except for the activeClients figure and its definition.",
         "-- Rollback (development): re-apply 20261012320000's taxguard_dash_practice_summary.",
         "-- Current definition: 20261012320000. Changed: adds activeClients and its definition."
+      ]
+    },
+    {
+      "order": 122,
+      "file": "supabase/migrations/20261122120000_ai_workforce_jobs_and_decisions.sql",
+      "kind": "core",
+      "version": "20261122120000",
+      "sha256": "7582783d335ada6515646b78ab6d3afc93a427a567b1fe48c31078e22687dd7f",
+      "validTimestamp": true,
+      "requiresOwnerReview": true,
+      "externalApplicationStatus": "NOT_VERIFIED",
+      "dependsOn": [
+        "supabase/migrations/20261008060000_taxguard_ai_document_advisory_routing.sql"
+      ],
+      "referencedDependencies": [],
+      "declaredObjects": [
+        "ai_workforce_jobs",
+        "ai_workforce_advisories",
+        "ai_workforce_decisions"
+      ],
+      "supersededFunctions": [],
+      "rollback": [],
+      "grantsAndRevocations": [],
+      "securityDefinerDeclarations": 0,
+      "notValidConstraints": 0,
+      "header": [
+        "-- Strictly additive migration for TaxGuard 61-Agent Application Workforce (A00–A60).",
+        "-- Preserves all historical migrations untouched.",
+        "-- Enforces tenant isolation, metadata-only job payloads, human-review-only advisories,",
+        "-- idempotent job submission, and atomic single-decision concurrency protection."
       ]
     }
   ]
