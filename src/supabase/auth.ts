@@ -1017,16 +1017,16 @@ export async function requestAdminPasswordRecovery(
             adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
             return {
               success: true,
-              internalStatus: 'PROVIDER_ACCEPTED',
+              // The public accepted=true response is intentionally neutral: the server
+              // may have suppressed dispatch for an unknown or throttled account.
+              // Never promote this acknowledgement to provider acceptance.
+              internalStatus: 'REQUEST_ACCEPTED',
               deliveryStatus: 'DELIVERY_UNCONFIRMED',
-              message:
-                typeof payload?.message === 'string' && payload.message
-                  ? payload.message
-                  : NEUTRAL_ADMIN_RECOVERY_MESSAGE,
+              message: NEUTRAL_ADMIN_RECOVERY_MESSAGE,
               cooldownSeconds: Number(payload?.cooldownSeconds) || Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
               auditEvent: {
                 ...auditEvent,
-                internalStatus: 'PROVIDER_ACCEPTED'
+                internalStatus: 'REQUEST_ACCEPTED'
               }
             };
           }

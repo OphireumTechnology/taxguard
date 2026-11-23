@@ -247,6 +247,24 @@ describe('Destria Super Administrator — Complete Auth, MFA & Recovery Security
     expect(req4Blocked.rateLimited).toBe(true);
   });
 
+  it('treats neutral server recovery acceptance as receipt only, not confirmed provider dispatch', async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ accepted: true, message: 'Password recovery instructions have been sent.', cooldownSeconds: 60 })
+    })) as unknown as typeof fetch;
+    const result = await requestAdminPasswordRecovery('neutral-ack@example.test', {
+      useServerEndpoint: true,
+      fetchImpl,
+      now: 1_700_250_000_000
+    });
+    expect(result.success).toBe(true);
+    expect(result.internalStatus).toBe('REQUEST_ACCEPTED');
+    expect(result.deliveryStatus).toBe('DELIVERY_UNCONFIRMED');
+    expect(result.auditEvent?.internalStatus).toBe('REQUEST_ACCEPTED');
+    expect(result.message).not.toMatch(/have been sent|delivered/i);
+  });
+
   it('4. Valid recovery links (implicit fragment, PKCE code, and OTP token_hash) open recovery form while generic sessions are rejected', async () => {
     // 4a. Implicit fragment
     const fragmentLoc = parseAdminRecoveryCallback({
