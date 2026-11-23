@@ -115,7 +115,7 @@ async function main() {
       postgres: 'disposable loopback only',
       manifestEntries: manifest.entries.length,
       reviewPacketEntries: review.entries.length,
-      replaySafeProposalsVerified: replayEntries.length,
+      replaySafeProposalsVerified: replaySafeFiles.size,
       schemaFingerprint: initialFingerprint.sha256,
       canonicalChecks: checks,
       reviewPacketChecks: reviewChecks,
