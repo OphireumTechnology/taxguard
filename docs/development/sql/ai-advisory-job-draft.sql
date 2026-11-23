@@ -173,7 +173,7 @@ BEGIN
       AND c.tenant_id=p_tenant AND c.case_id=j.case_id AND e.tax_year=c.tax_year AND d.tax_year=c.tax_year
       AND d.tenant_id=p_tenant AND d.client_id=j.client_id AND d.case_id=j.case_id AND d.engagement_id=c.engagement_id
       AND d.id=(item->>'document_record_id')::uuid AND e.document_version=d.version AND d.version=(item->>'document_version')::integer
-      AND e.source_hash=d.hash AND d.hash=item->>'source_hash' AND d.status IN ('VERIFIED','RELEASED') AND d.quarantine_status='CLEAN' FOR SHARE OF e,d;
+      AND e.source_hash=d.hash AND d.hash=item->>'source_hash' AND d.status=item->>'document_status' AND d.status IN ('VERIFIED','RELEASED') AND d.quarantine_status='CLEAN' FOR SHARE OF e,d;
     IF NOT FOUND THEN RAISE EXCEPTION 'JOB_STATE_INVALID'; END IF;
   END LOOP;
   token := encode(sha256(convert_to(p_job||a.evidence_snapshot::text,'UTF8')),'hex');

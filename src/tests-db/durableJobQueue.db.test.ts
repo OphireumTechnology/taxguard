@@ -451,6 +451,10 @@ describe('A10 advisory job review draft', () => {
     }
     const decision = { version: preview.body.version, decision: 'ACKNOWLEDGED' };
     const reviewedDocument = evidence[0].document_record_id;
+    await sql("UPDATE taxguard_documents SET status='RELEASED' WHERE tenant_id=$1 AND id=$2", [T, reviewedDocument]);
+    expect((await call('POST', decisionPath, decision)).status).toBe(409);
+    expect(await sql('SELECT job_id FROM taxguard_a10_reviews WHERE job_id=$1', [first.body.id])).toEqual([]);
+    await sql("UPDATE taxguard_documents SET status='VERIFIED' WHERE tenant_id=$1 AND id=$2", [T, reviewedDocument]);
     await sql('UPDATE taxguard_documents SET version=2 WHERE tenant_id=$1 AND id=$2', [T, reviewedDocument]);
     expect((await call('POST', decisionPath, decision)).status).toBe(409);
     expect(await sql('SELECT job_id FROM taxguard_a10_reviews WHERE job_id=$1', [first.body.id])).toEqual([]);
