@@ -32,18 +32,43 @@ import {
 } from '../supabase';
 import { SupabaseDurableSessions } from '../supabase-db';
 import { provisionOrResolveClientOnboarding } from '../taxguard/clientOnboardingProvisioner';
+import {
+  adminRecoveryLimiter,
+  processAdminRecoveryRequest,
+  type AdminRecoveryHandlerDeps
+} from '../adminRecoveryLimiter';
+import { getSupabaseAdmin } from '../supabase';
 
 export const authRouter = Router();
 
-// Password-reset request throttle (per e-mail address, in-memory like the legacy session store).
+// Password-reset request throttle (per e-mail address and per IP, in-memory like the legacy session store).
 const resetRequestLog = new Map<string, number[]>();
+const resetIpRequestLog = new Map<string, number[]>();
 const RESET_WINDOW_MS = 60 * 60 * 1000;
 const MAX_RESET_REQUESTS_PER_WINDOW = 3;
+const MAX_RESET_REQUESTS_PER_IP_WINDOW = 10;
+
+let adminRecoveryDispatcherOverride: AdminRecoveryHandlerDeps['dispatchRecovery'] | null = null;
+
 /** Test hook: clears reset throttling state between isolated tests. */
-export function clearPasswordResetThrottle(): void { resetRequestLog.clear(); }
+export function clearPasswordResetThrottle(): void {
+  resetRequestLog.clear();
+  resetIpRequestLog.clear();
+  adminRecoveryLimiter.reset();
+}
+
+/** Test hook: injects a synthetic recovery dispatcher for isolated server tests. */
+export function setAdminRecoveryDispatcherForTest(
+  dispatcher: AdminRecoveryHandlerDeps['dispatchRecovery'] | null
+): void {
+  adminRecoveryDispatcherOverride = dispatcher;
+}
 
 authRouter.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production' && !['/supabase-session', '/me', '/logout'].includes(req.path)) {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !['/supabase-session', '/me', '/logout', '/admin-recovery-request'].includes(req.path)
+  ) {
     return res.status(410).json({ error: 'Use Supabase Authentication for live account operations.', code: 'SUPABASE_AUTH_REQUIRED' });
   }
   next();
@@ -156,6 +181,79 @@ authRouter.post('/supabase-session', async (req: Request, res: Response) => {
       code
     });
   }
+});
+
+/**
+ * Authoritative Server-Side Administrator Password Recovery Request Endpoint.
+ * Enforces dual-key (per-IP + per-account) rate limiting, strict redirect allowlist validation,
+ * neutral anti-enumeration responses, and sanitized security/audit logging.
+ * Security Invariant: Unauthenticated; NEVER assigns or modifies roles, memberships, or sessions,
+ * and NEVER returns recovery links or tokens to the caller.
+ */
+authRouter.post('/admin-recovery-request', async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { email, redirectTo } = req.body || {};
+  const ip = req.ip || 'unknown';
+  const tenantId = (process.env.TAXGUARD_TENANT_ID || '').trim() || 'tenantA';
+
+  const outcome = await processAdminRecoveryRequest(
+    { email, redirectTo, ip },
+    {
+      limiter: adminRecoveryLimiter,
+      isProduction: process.env.NODE_ENV === 'production',
+      dispatchRecovery: async (normalizedEmail, authorizedRedirectTo) => {
+        if (adminRecoveryDispatcherOverride) {
+          return adminRecoveryDispatcherOverride(normalizedEmail, authorizedRedirectTo);
+        }
+        if (!isSupabaseServerConfigured()) {
+          return { error: { message: 'SUPABASE_NOT_CONFIGURED' } };
+        }
+        const admin = getSupabaseAdmin();
+        return admin.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: authorizedRedirectTo
+        });
+      },
+      onSecurityEvent: (event) => {
+        db.logSecurityEvent({
+          eventType: event.eventType,
+          ipAddress: 'withheld',
+          details: event.details,
+          severity: event.severity
+        });
+      },
+      onAuditEvent: (event) => {
+        db.logAudit({
+          userId: 'anonymous_recovery_request',
+          userName: 'Administrator Recovery Request',
+          userRole: 'anonymous',
+          action: event.action,
+          resource: 'Admin Password Recovery',
+          details: event.details,
+          ipAddress: 'withheld',
+          severity: event.severity
+        });
+        if (isSupabaseServerConfigured()) {
+          void Promise.resolve(
+            getSupabaseAdmin()
+              .from('taxguard_audit_log')
+              .insert({
+                tenant_id: tenantId,
+                action: event.action,
+                actor_uid: 'anonymous_recovery_request',
+                actor_role: 'anonymous',
+                metadata: event.metadata,
+                ip_address: 'withheld'
+              })
+          ).catch(() => undefined);
+        }
+      }
+    }
+  );
+
+  if (outcome.retryAfterSeconds) {
+    res.setHeader('Retry-After', String(outcome.retryAfterSeconds));
+  }
+  return res.status(outcome.status).json(outcome.body);
 });
 
 /**
@@ -384,13 +482,23 @@ authRouter.post('/forgot-password', (req: Request, res: Response) => {
   if (typeof email !== 'string' || !email) return res.status(400).json({ error: 'Email address is required.' });
   const neutral = { message: 'If an account exists with this email, a secure reset token has been dispatched.' };
 
-  // Per-address throttle; the response stays neutral so it reveals nothing about the account.
   const now = Date.now();
+  const ipKey = (req.ip || 'unknown').trim() || 'unknown';
+  const recentIp = (resetIpRequestLog.get(ipKey) || []).filter(at => now - at < RESET_WINDOW_MS);
+  if (recentIp.length >= MAX_RESET_REQUESTS_PER_IP_WINDOW) {
+    resetIpRequestLog.set(ipKey, recentIp);
+    db.logSecurityEvent({ eventType: 'PASSWORD_RESET_THROTTLED', ipAddress: 'withheld', details: 'Password reset IP requests throttled.', severity: 'warning' });
+    res.setHeader('Retry-After', '60');
+    return res.status(429).json({ error: 'Too many password reset requests. Please try again later.', code: 'PASSWORD_RESET_RATE_LIMITED' });
+  }
+  resetIpRequestLog.set(ipKey, [...recentIp, now]);
+
+  // Per-address throttle; the response stays neutral so it reveals nothing about the account.
   const throttleKey = email.toLowerCase();
   const recent = (resetRequestLog.get(throttleKey) || []).filter(at => now - at < RESET_WINDOW_MS);
   if (recent.length >= MAX_RESET_REQUESTS_PER_WINDOW) {
     resetRequestLog.set(throttleKey, recent);
-    db.logSecurityEvent({ eventType: 'PASSWORD_RESET_THROTTLED', ipAddress: req.ip || 'unknown', details: 'Password reset requests throttled for an address.', severity: 'warning' });
+    db.logSecurityEvent({ eventType: 'PASSWORD_RESET_THROTTLED', ipAddress: 'withheld', details: 'Password reset requests throttled for an address.', severity: 'warning' });
     return res.json(neutral);
   }
   resetRequestLog.set(throttleKey, [...recent, now]);

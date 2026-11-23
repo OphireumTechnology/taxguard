@@ -766,6 +766,14 @@
       ]
     },
     {
+      "id": "auth-admin-recovery",
+      "kind": "DURABLE",
+      "reason": "Administrator password recovery enforces server-side per-IP and per-account abuse throttling, canonical redirect validation, neutral responses, Supabase recovery dispatch, and durable taxguard_audit_log recording.",
+      "routes": [
+        "POST /api/auth/admin-recovery-request"
+      ]
+    },
+    {
       "id": "auth-local-retired",
       "kind": "RETIRED",
       "code": "SUPABASE_AUTH_REQUIRED",

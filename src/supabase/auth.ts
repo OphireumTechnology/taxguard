@@ -11,6 +11,7 @@ import { supabase } from './config';
 import { UserRole } from '../types';
 import { signOutProviderSession } from './providerSignOut';
 import { getAuthorizedAdminRecoveryRedirectUrl } from '../config/authRecoveryPolicy';
+import { apiEndpoint } from '../config/apiEndpoint';
 
 export type ControlledAuthErrorCode =
   | 'REGISTRATION_FAILED'
@@ -788,6 +789,8 @@ export async function requestAdminPasswordRecovery(
     redirectTo?: string;
     now?: number;
     authClient?: Pick<typeof supabase.auth, 'resetPasswordForEmail'>;
+    fetchImpl?: typeof fetch;
+    useServerEndpoint?: boolean;
   }
 ): Promise<AdminPasswordRecoveryResult> {
   const emailValidation = validateEmailFormat(email);
@@ -852,13 +855,82 @@ export async function requestAdminPasswordRecovery(
     };
   }
 
-  const authClient = options?.authClient ?? supabase.auth;
   const auditEvent: AdminRecoveryAuditSummary = {
     eventType: 'ADMIN_PASSWORD_RECOVERY_REQUESTED',
     timestamp: new Date(now).toISOString(),
     redirectTarget: redirectUrl,
     emailDomain
   };
+
+  // Prefer the server-side rate-limited /api/auth/admin-recovery-request endpoint when a
+  // TaxGuard backend API is configured (not on static GitHub Pages without VITE_API_BASE_URL,
+  // and not when an explicit authClient test double is provided without useServerEndpoint).
+  const shouldAttemptServerEndpoint =
+    options?.useServerEndpoint === true ||
+    (!options?.authClient && typeof fetch === 'function');
+
+  if (shouldAttemptServerEndpoint) {
+    let endpoint: string | null = null;
+    try {
+      endpoint = apiEndpoint('/api/auth/admin-recovery-request');
+    } catch {
+      endpoint = null;
+    }
+
+    if (endpoint) {
+      const fetchFn = options?.fetchImpl ?? fetch;
+      try {
+        const response = await fetchFn(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          credentials: 'omit',
+          body: JSON.stringify({ email: normalizedEmail, redirectTo: redirectUrl })
+        });
+
+        if (response.status === 429) {
+          const payload = await response.json().catch(() => ({}));
+          const retrySec = Number(payload?.retryAfterSeconds) || Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000);
+          adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+          return {
+            success: false,
+            rateLimited: true,
+            cooldownSeconds: retrySec,
+            error:
+              typeof payload?.error === 'string' && payload.error
+                ? payload.error
+                : 'Recovery requests are temporarily rate-limited. Please wait before trying again.',
+            auditEvent: {
+              ...auditEvent,
+              eventType: 'ADMIN_PASSWORD_RECOVERY_THROTTLED'
+            }
+          };
+        }
+
+        if (response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          if (payload?.accepted === true) {
+            adminRecoveryAttempts.set(normalizedEmail, [...recent, now]);
+            return {
+              success: true,
+              message:
+                typeof payload?.message === 'string' && payload.message
+                  ? payload.message
+                  : NEUTRAL_ADMIN_RECOVERY_MESSAGE,
+              cooldownSeconds: Number(payload?.cooldownSeconds) || Math.ceil(ADMIN_RECOVERY_COOLDOWN_MS / 1000),
+              auditEvent
+            };
+          }
+        }
+        // On static hosts or unmounted backend (404/405/503), fall back to Supabase Auth directly
+        // so recovery continues to operate with Supabase provider-level rate limits.
+      } catch {
+        // Network unreachable for backend API; fall back to Supabase Auth provider directly.
+      }
+    }
+  }
+
+  const authClient = options?.authClient ?? supabase.auth;
 
   try {
     const { error } = await authClient.resetPasswordForEmail(normalizedEmail, {
