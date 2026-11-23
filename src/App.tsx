@@ -10,6 +10,7 @@ import { PortalLayout } from './components/layout/PortalLayout';
 import { PageLoadingFallback } from './components/common/PageLoadingFallback';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { HomePage } from './components/public/HomePage';
+import AdminPasswordResetPage, { isAdminRecoveryCallback } from './components/auth/admin-portal/AdminPasswordResetPage';
 
 const AboutPage = lazy(() => import('./components/public/AboutPage').then(m => ({ default: m.AboutPage })));
 const FounderPage = lazy(() => import('./components/public/FounderPage').then(m => ({ default: m.FounderPage })));
@@ -196,6 +197,8 @@ const AppContent: React.FC = () => {
   }, [currentPage, authLifecycleState, isTaxGuardRoute, isPublicV2Route, currentUser?.role]);
 
   useEffect(() => {
+    // Recovery callbacks must not be normalized into the public homepage or another portal.
+    if (isAdminRecoveryCallback(window.location)) return;
     // Legacy normalization check on each render / URL change
     const legacy = normalizeLegacyUrl(window.location.hash, window.location.pathname);
     if (legacy) {
@@ -301,6 +304,10 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentPage]);
+
+  if (typeof window !== 'undefined' && isAdminRecoveryCallback(window.location)) {
+    return <AdminPasswordResetPage />;
+  }
 
   const isTaxGuard = isTaxGuardRoute || isTaxGuardRouteUrl() || (currentPage as string) === 'taxguard';
   if (isTaxGuard) {
