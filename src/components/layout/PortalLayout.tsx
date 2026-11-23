@@ -76,6 +76,8 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     'portal', 'client_portal', 'stage_one_onboard', 'client_onboarding', 'onboarding',
     'staff', 'staff_portal', 'accountant_workspace', 'reviewer_workspace',
     'senior_reviewer_workspace', 'reviewer_portal', 'admin_dashboard', 'admin_portal',
+    'super_admin_console', 'admin_command_center', 'admin_users', 'admin_security',
+    'admin_audit', 'admin_ai_control', 'admin_settings',
   ]);
   if (isAuthenticatedUser && sharedShellPages.has(currentPage)) return <>{children}</>;
 

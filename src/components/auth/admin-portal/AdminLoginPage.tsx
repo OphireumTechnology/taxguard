@@ -1,0 +1,535 @@
+/*
+ * OPHIREUM-IP | Proprietary Source Code
+ * Project: Destria Tax Services LLC / TaxGuard — Secure Super Administrator Portal
+ * Notice: Unauthorized copying, redistribution, or derivative use is prohibited.
+ */
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Fingerprint,
+  Key,
+  KeyRound,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldAlert,
+  ShieldCheck
+} from 'lucide-react';
+import { useApp } from '../../../context/AppContext';
+import { isLocalServerLoginBuild } from '../../../context/localServerLogin';
+import { isSuperAdministratorRole } from '../../../config/canonicalRouting';
+import { isStaffIdentityDevelopmentConfigured, isSupabaseConfigured } from '../../../supabase/config';
+import { logout as signOutProvider } from '../../../supabase/auth';
+import { BrandLogo } from '../../common/BrandLogo';
+import { AuthConfigurationNotice } from '../AuthConfigurationNotice';
+import { TotpEnrollmentPanel } from '../TotpEnrollmentPanel';
+import { StaffMfaRecoveryEnrollmentFlow } from '../StaffMfaRecoveryEnrollmentFlow';
+import { AdminPortalLoginLayout } from './AdminPortalLoginLayout';
+
+/**
+ * Dedicated Super Administrator Authentication Gateway (/admin/login).
+ *
+ * Security invariants:
+ * - Public administrator self-registration is strictly disabled.
+ * - Mandatory server-verified MFA (TOTP) is preserved; no client bypass exists.
+ * - Role authorization is strictly server-authoritative: browser state or URL never elevates privilege.
+ * - Credentials and authenticator codes are never logged to the browser console or persisted in storage.
+ */
+export const AdminLoginPage: React.FC = () => {
+  const fieldPrefix = React.useId();
+  const { login, setCurrentPage, logout } = useApp();
+
+  const [mode, setMode] = useState<'signin' | 'recovery'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaEnrollmentRequired, setMfaEnrollmentRequired] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [errorReference, setErrorReference] = useState<string | null>(null);
+  const [statusNote, setStatusNote] = useState<string | null>(null);
+
+  const localBuild = isLocalServerLoginBuild();
+  const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
+  const recoveryEnrollmentAvailable = isStaffIdentityDevelopmentConfigured();
+  const formRef = useRef<HTMLFormElement>(null);
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname !== '/admin/login' || window.location.hash)
+    ) {
+      try {
+        window.history.replaceState({ page: 'admin_login' }, '', '/admin/login');
+      } catch {
+        // fallback
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!localBuild) return;
+    let active = true;
+    const check = () =>
+      fetch('/api/auth/local-login-status', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((status) => {
+          if (active) setLocalLoginAvailable(status?.localLoginAvailable === true);
+        })
+        .catch(() => {
+          if (active) setLocalLoginAvailable(false);
+        });
+    void check();
+    window.addEventListener('focus', check);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', check);
+    };
+  }, [localBuild]);
+
+  const clearFeedback = () => {
+    setError(null);
+    setErrorReference(null);
+    setStatusNote(null);
+  };
+
+  const submitOnEnter = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    formRef.current?.requestSubmit();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setLoading(true);
+    setError(null);
+    setErrorReference(null);
+    setStatusNote(null);
+
+    try {
+      // Authenticate via the existing server-authoritative staff/admin channel (never auto-provisions a client).
+      const result = await login(email, password, mfaStep ? mfaCode : undefined, {
+        portal: 'staff',
+        navigateOnSuccess: false
+      });
+
+      if (result.success) {
+        setMfaCode('');
+        setMfaStep(false);
+
+        // Enforce server-assigned Super Administrator role before entering /admin/dashboard.
+        if (result.user && isSuperAdministratorRole(result.user.role)) {
+          setCurrentPage('admin_command_center');
+        } else {
+          // Non-super-administrator accounts cannot enter the Super Administrator Command Center.
+          await logout().catch(() => {});
+          setPassword('');
+          setError(
+            'Access Denied: This portal is restricted to authorized Super Administrator accounts. Use the Staff Practice Portal or Client Portal for your assigned role.'
+          );
+        }
+        return;
+      }
+
+      if (result.mfaEnrollmentRequired) {
+        setMfaEnrollmentRequired(true);
+        setMfaStep(false);
+        setMfaCode('');
+        return;
+      }
+
+      if (result.mfaRequired) {
+        setMfaStep(true);
+        setMfaCode('');
+        setError(mfaStep ? result.error || 'Invalid authenticator code.' : null);
+        setErrorReference(mfaStep ? result.reference || null : null);
+        if (!mfaStep) {
+          setStatusNote('Primary credentials accepted. Complete multifactor verification to continue.');
+        }
+        return;
+      }
+
+      setMfaCode('');
+      setError(
+        result.error ||
+          'Authentication failed. Verify your administrator credentials or contact Destria Security Administration.'
+      );
+      setErrorReference(result.reference || null);
+    } finally {
+      submittingRef.current = false;
+      setLoading(false);
+    }
+  };
+
+  const submitDisabled =
+    loading || mfaEnrollmentRequired || (!isSupabaseConfigured() && !localBuild);
+
+  return (
+    <AdminPortalLoginLayout>
+      <div
+        data-testid="admin-login-card"
+        className="relative overflow-hidden rounded-2xl border border-[#D4AF37]/30 bg-[#0B1F36]/86 p-6 sm:p-7 shadow-[0_28px_72px_rgba(2,10,22,0.74)] backdrop-blur-xl space-y-5"
+      >
+        {/* Top Metallic Gold Border Illumination */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] overflow-hidden"
+        >
+          <div className="staff-card-border-sheen h-full w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
+        </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-[#00C2D1]/35 to-transparent"
+        />
+
+        {/* Brand Identity & Portal Title */}
+        <div className="flex flex-col items-center text-center space-y-2.5">
+          <BrandLogo variant="emblem" size="md" />
+          <div className="space-y-1">
+            <h1 className="font-serif text-2xl sm:text-[1.75rem] font-extrabold tracking-tight text-white">
+              Destria Super Administrator
+            </h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#D4AF37]">
+              Authorized Executive &amp; System Administration Access
+            </p>
+            <p className="text-xs leading-relaxed text-[#A8B8CC] max-w-sm mx-auto">
+              Mandatory multifactor verification and server-enforced role authorization apply to every session.
+            </p>
+          </div>
+        </div>
+
+        {/* Mode Switcher: Sign In vs Approved Account Recovery (NO public self-registration) */}
+        <div
+          role="tablist"
+          aria-label="Administrator authentication mode"
+          className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-[#061426]/90 p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'signin'}
+            onClick={() => {
+              setMode('signin');
+              clearFeedback();
+            }}
+            className={`min-h-[40px] whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] ${
+              mode === 'signin'
+                ? 'bg-[#D4AF37] font-bold text-[#061426] shadow-sm'
+                : 'text-[#A8B8CC] hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            Admin Sign In
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'recovery'}
+            disabled={loading || mfaEnrollmentRequired}
+            onClick={() => {
+              setMode('recovery');
+              clearFeedback();
+            }}
+            className={`min-h-[40px] rounded-lg px-3 py-2 text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-55 ${
+              mode === 'recovery'
+                ? 'bg-[#D4AF37] font-bold text-[#061426] shadow-sm'
+                : 'text-[#A8B8CC] hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            Account Recovery
+          </button>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div
+            role="alert"
+            data-testid="admin-login-error"
+            className="flex items-start gap-2.5 rounded-xl border border-rose-400/35 bg-rose-950/55 p-3.5 text-xs text-rose-100"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" aria-hidden="true" />
+            <div className="space-y-1 leading-relaxed">
+              <span>{error}</span>
+              {errorReference && (
+                <span
+                  data-testid="admin-login-error-reference"
+                  className="block font-mono text-[10px] text-rose-200/80 tabular-nums"
+                >
+                  Reference: {errorReference}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Informational Status */}
+        {statusNote && !error && (
+          <div
+            role="status"
+            className="flex items-start gap-2.5 rounded-xl border border-[#00C2D1]/35 bg-[#061426]/90 p-3.5 text-xs text-[#E2EAF4]"
+          >
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#00C2D1]" aria-hidden="true" />
+            <span className="leading-relaxed">{statusNote}</span>
+          </div>
+        )}
+
+        {mode === 'signin' ? (
+          <>
+            {localLoginAvailable ? (
+              <div
+                role="note"
+                data-testid="admin-local-login-notice"
+                className="rounded-xl border border-[#D4AF37]/30 bg-[#061426]/85 p-3 text-[11px] leading-relaxed text-[#E2EAF4]"
+              >
+                Local development sign-in active: password and TOTP authenticator codes are verified by this TaxGuard server.
+              </div>
+            ) : localBuild ? (
+              <div
+                role="status"
+                data-testid="admin-local-unreachable-notice"
+                className="rounded-xl border border-amber-400/35 bg-amber-950/60 p-3 text-[11px] leading-relaxed text-amber-100"
+              >
+                The local TaxGuard authentication server is not responding. Start the backend server before attempting sign-in.
+              </div>
+            ) : (
+              <AuthConfigurationNotice />
+            )}
+
+            {mfaEnrollmentRequired && (
+              <TotpEnrollmentPanel
+                onComplete={() => {
+                  setMfaEnrollmentRequired(false);
+                  setMfaStep(true);
+                  setStatusNote('Authenticator enrolled. Enter your current 6-digit code to finish signing in.');
+                }}
+                onCancel={() => {
+                  void signOutProvider();
+                  setMfaEnrollmentRequired(false);
+                  setPassword('');
+                }}
+              />
+            )}
+
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 text-xs" noValidate={false}>
+              <fieldset disabled={mfaEnrollmentRequired} className="space-y-4">
+                {/* Administrator Work Email */}
+                <div>
+                  <label
+                    className="mb-1.5 block text-xs font-semibold text-white"
+                    htmlFor={`${fieldPrefix}-admin-email`}
+                  >
+                    Administrator work email
+                  </label>
+                  <div className="relative">
+                    <Mail
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8B8CC]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id={`${fieldPrefix}-admin-email`}
+                      type="email"
+                      required
+                      autoComplete="username"
+                      placeholder="administrator@destriataxservices.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearFeedback();
+                        setMfaStep(false);
+                        setMfaCode('');
+                      }}
+                      className="min-h-[44px] w-full rounded-xl border border-white/15 bg-[#061426]/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-[#7F94AD] transition-all duration-150 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25"
+                    />
+                  </div>
+                </div>
+
+                {/* Password + Show/Hide Toggle */}
+                <div>
+                  <label
+                    className="mb-1.5 block text-xs font-semibold text-white"
+                    htmlFor={`${fieldPrefix}-admin-password`}
+                  >
+                    Password
+                  </label>
+                  <div className="flex items-stretch gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Key
+                        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8B8CC]"
+                        aria-hidden="true"
+                      />
+                      <input
+                        id={`${fieldPrefix}-admin-password`}
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        autoComplete="current-password"
+                        placeholder="••••••••••••"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          clearFeedback();
+                        }}
+                        className="min-h-[44px] w-full rounded-xl border border-white/15 bg-[#061426]/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-[#7F94AD] transition-all duration-150 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onKeyDown={submitOnEnter}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-pressed={showPassword}
+                      aria-controls={`${fieldPrefix}-admin-password`}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="inline-flex min-h-[44px] min-w-[76px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-white/15 bg-[#061426]/90 px-3 text-xs font-semibold text-[#E2EAF4] transition-colors hover:border-[#00C2D1]/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-3.5 w-3.5 text-[#00C2D1]" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5 text-[#A8B8CC]" aria-hidden="true" />
+                      )}
+                      <span>{showPassword ? 'Hide' : 'Show'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mandatory MFA Verification Step */}
+                {mfaStep && (
+                  <div
+                    role="group"
+                    aria-labelledby={`${fieldPrefix}-mfa-label`}
+                    className="space-y-2 rounded-xl border border-[#00C2D1]/35 bg-[#061426]/95 p-4"
+                  >
+                    <label
+                      id={`${fieldPrefix}-mfa-label`}
+                      className="block text-xs font-semibold text-white"
+                      htmlFor={`${fieldPrefix}-admin-mfa`}
+                    >
+                      Authenticator Code (Mandatory MFA)
+                    </label>
+                    <div className="relative">
+                      <Fingerprint
+                        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#00C2D1]"
+                        aria-hidden="true"
+                      />
+                      <input
+                        id={`${fieldPrefix}-admin-mfa`}
+                        type="text"
+                        required
+                        autoFocus
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        placeholder="6-digit code"
+                        value={mfaCode}
+                        onChange={(e) => {
+                          setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                          clearFeedback();
+                        }}
+                        className="min-h-[44px] w-full rounded-xl border border-[#00C2D1]/45 bg-[#0B1F36] py-2.5 pl-10 pr-3.5 font-mono text-sm tracking-[0.24em] text-white tabular-nums transition-all focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25"
+                      />
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-[#A8B8CC]">
+                      Enter the time-based 6-digit code from your registered authenticator application.
+                    </p>
+                  </div>
+                )}
+
+                {/* Primary CTA — Continue securely */}
+                <div className="pt-1">
+                  <button
+                    type="submit"
+                    disabled={submitDisabled}
+                    aria-busy={loading}
+                    className="flex min-h-[46px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#E5C562] to-[#C89F2B] px-5 py-3 text-[13px] font-bold tracking-wide text-[#061426] shadow-[0_12px_28px_rgba(212,175,55,0.24)] transition-all duration-150 hover:brightness-105 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1F36] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Lock className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    <span>
+                      {loading
+                        ? 'Verifying Authorization...'
+                        : mfaStep
+                          ? 'Verify MFA & Continue'
+                          : 'Continue securely'}
+                    </span>
+                  </button>
+                </div>
+              </fieldset>
+            </form>
+
+            {/* Hardware Passkey / WebAuthn Posture Notice (Honest, No Fabrication) */}
+            <div className="rounded-xl border border-white/10 bg-[#061426]/75 px-3.5 py-2.5 text-[11px] text-[#A8B8CC] flex items-start gap-2.5">
+              <KeyRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#D4AF37]" aria-hidden="true" />
+              <span>
+                <strong className="text-white">MFA Policy:</strong> Time-based authenticator (TOTP) is enforced server-side. Hardware passkey / WebAuthn ceremony is not yet provisioned in this environment.
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4" data-testid="admin-recovery-panel">
+            <div className="rounded-xl border border-[#D4AF37]/25 bg-[#061426]/85 p-4 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-bold text-[#E6C96E]">
+                <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>Approved Administrator Account Recovery</span>
+              </div>
+              <p className="leading-relaxed text-[#CBD6E4]">
+                Super Administrator credentials and MFA factors cannot be self-reset without
+                verified identity authorization. Lost authenticators require an approved recovery
+                token issued through Destria Security Governance.
+              </p>
+              <p className="text-[11px] text-[#A8B8CC]">
+                Emergency governance assistance: contact your designated practice owner or security
+                compliance administrator. Every recovery action is recorded in the immutable audit log.
+              </p>
+            </div>
+
+            {recoveryEnrollmentAvailable && (
+              <StaffMfaRecoveryEnrollmentFlow
+                onCancel={() => {
+                  setMode('signin');
+                  clearFeedback();
+                }}
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setMode('signin');
+                clearFeedback();
+              }}
+              className="flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-[#061426]/90 px-4 py-2 text-xs font-semibold text-white transition-colors hover:border-[#D4AF37]/45 hover:bg-[#0D2745]"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Back to Administrator Sign In</span>
+            </button>
+          </div>
+        )}
+
+        {/* Footer Security Notice & Return to Staff Portal */}
+        <div className="space-y-3 border-t border-white/10 pt-4 text-center">
+          <p className="text-[11px] leading-relaxed text-[#A8B8CC]">
+            Public administrator registration is disabled. All sign-in attempts and authorization
+            decisions are monitored and recorded.
+          </p>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('staff_login')}
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-[#061426]/80 px-4 py-2 text-xs font-semibold text-[#E2EAF4] transition-colors hover:border-[#00C2D1]/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 text-[#00C2D1]" aria-hidden="true" />
+            <span>Return to Staff Portal</span>
+          </button>
+        </div>
+      </div>
+    </AdminPortalLoginLayout>
+  );
+};

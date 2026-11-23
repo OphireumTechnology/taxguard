@@ -67,7 +67,7 @@ export function sanitizeAndValidateRecoveryUrl(candidate: string): string {
     throw new Error('Unauthorized recovery URL: user credentials in URL are prohibited.');
   }
 
-  const allowedCleanPaths = ['/portal', '/portal/login', '/portal/reset-password', '/staff', '/staff/login'];
+  const allowedCleanPaths = ['/portal', '/portal/login', '/portal/reset-password', '/staff', '/staff/login', '/admin/login'];
   const cleanPath = url.pathname.replace(/\/+$/, '');
 
   const isCleanPath = allowedCleanPaths.includes(cleanPath);

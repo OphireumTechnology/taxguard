@@ -78,6 +78,13 @@ export type PageRoute =
   | 'admin_portal'
   | 'super_admin_console'
   | 'ai_command_center'
+  | 'admin_login'
+  | 'admin_command_center'
+  | 'admin_users'
+  | 'admin_security'
+  | 'admin_audit'
+  | 'admin_ai_control'
+  | 'admin_settings'
   | 'tax_forms_library'
   | 'staff_account_security'
   | 'live_calendar'
@@ -148,7 +155,7 @@ interface AppContextType {
   onboardingState: OnboardingState | null;
   onboardingProgress: { percentComplete: number; missingRequirements: string[]; nextAction: string } | null;
   securityTestResults: SecurityTestResult[];
-  login: (email: string, password: string, mfaCode?: string, options?: { portal?: 'staff' | 'client' }) => Promise<{
+  login: (email: string, password: string, mfaCode?: string, options?: { portal?: 'staff' | 'client'; navigateOnSuccess?: boolean }) => Promise<{
     success: boolean;
     mfaRequired?: boolean;
     mfaEnrollmentRequired?: boolean;
@@ -158,6 +165,7 @@ interface AppContextType {
     /** Local diagnostics only: server request ID for the refused attempt. */
     reference?: string;
     redirectPage?: PageRoute;
+    user?: User;
   }>;
   register: (payload: {
     name: string;
@@ -211,7 +219,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
  * clients still restore. Elsewhere it is left unset (client self-registration, e.g. e-mail verification).
  */
 export function restoredSessionPortal(pathname: string): 'staff' | undefined {
-  return /^\/staff(\/|$)/i.test(pathname) ? 'staff' : undefined;
+  return /^\/(staff|admin)(\/|$)/i.test(pathname) ? 'staff' : undefined;
 }
 const currentRestorePortal = () => (typeof window === 'undefined' ? undefined : restoredSessionPortal(window.location.pathname || ''));
 
@@ -250,6 +258,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clean === 'staff/login') return 'staff_login';
     if (clean === 'staff/super-admin') return 'super_admin_console';
     if (clean === 'admin/master/ai') return 'ai_command_center';
+    if (clean === 'admin/login') return 'admin_login';
+    if (clean === 'admin/dashboard' || clean === 'admin') return 'admin_command_center';
+    if (clean === 'admin/users') return 'admin_users';
+    if (clean === 'admin/security') return 'admin_security';
+    if (clean === 'admin/audit') return 'admin_audit';
+    if (clean === 'admin/ai-control') return 'admin_ai_control';
+    if (clean === 'admin/settings') return 'admin_settings';
     if (clean === 'staff/forms') return 'tax_forms_library';
     if (clean === 'staff/account-security') return 'staff_account_security';
     if (clean === 'client/login') return 'client_login';
@@ -261,6 +276,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'register', 'onboarding', 'client_onboarding', 'stage_one_onboard', 'staff_onboarding',
       'client_portal', 'accountant_workspace', 'staff_portal', 'reviewer_workspace',
       'senior_reviewer_workspace', 'reviewer_portal', 'admin_dashboard', 'admin_portal',
+      'super_admin_console', 'ai_command_center', 'admin_login', 'admin_command_center',
+      'admin_users', 'admin_security', 'admin_audit', 'admin_ai_control', 'admin_settings',
       'live_calendar', 'virtual_consultation_room', 'client_login', 'client_register',
       'staff_login', 'privacy', 'terms', 'accessibility', 'security', 'disclaimers',
       'cookies', 'portals', 'public_v2', 'portal', 'staff', 'not_found'
@@ -338,6 +355,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clean === 'portal/register' ||
       clean === 'staff' ||
       clean === 'staff/login' ||
+      clean === 'staff/super-admin' ||
+      clean === 'admin/login' ||
+      clean === 'admin/dashboard' ||
+      clean === 'admin/users' ||
+      clean === 'admin/security' ||
+      clean === 'admin/audit' ||
+      clean === 'admin/ai-control' ||
+      clean === 'admin/settings' ||
+      clean === 'admin/master/ai' ||
       clean === 'client/login' ||
       clean === 'client/register' ||
       clean === 'portals'
@@ -525,6 +551,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } else if (page === 'staff_login') {
         targetPath = '/staff/login';
+      } else if (page === 'admin_login') {
+        targetPath = '/admin/login';
+      } else if (page === 'admin_command_center') {
+        targetPath = '/admin/dashboard';
+      } else if (page === 'admin_users') {
+        targetPath = '/admin/users';
+      } else if (page === 'admin_security') {
+        targetPath = '/admin/security';
+      } else if (page === 'admin_audit') {
+        targetPath = '/admin/audit';
+      } else if (page === 'admin_ai_control') {
+        targetPath = '/admin/ai-control';
+      } else if (page === 'admin_settings') {
+        targetPath = '/admin/settings';
       } else if (page === 'tax_forms_library') {
         targetPath = '/staff/forms';
       } else if (page === 'staff_account_security') {
@@ -776,18 +816,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let active = true;
     const expireSession = () => {
       if (authOperationInProgressRef.current) return;
+      const inAdminPortal = typeof window !== 'undefined' && /^\/admin(\/|$)/i.test(window.location.pathname || '');
       const staffSession = Boolean(lastRoleRef.current && !['client', 'prospective_client'].includes(lastRoleRef.current));
+      const targetPage: PageRoute = inAdminPortal ? 'admin_login' : staffSession ? 'staff_login' : 'client_login';
+      const targetPath = inAdminPortal ? '/admin/login' : staffSession ? '/staff/login' : '/portal/login';
       clearStoredToken();
       clearTaxpayerState();
       LiveWorkflowAuthority.clear();
       setCurrentUser(null);
       setCurrentRoleState('guest');
       setAuthLifecycleState('UNAUTHENTICATED');
-      setCurrentPageState(staffSession ? 'staff_login' : 'client_login');
+      setCurrentPageState(targetPage);
       if (typeof window !== 'undefined') {
         localStorage.removeItem('taxguard_environment');
         try {
-          window.history.replaceState({ page: staffSession ? 'staff_login' : 'client_login' }, '', staffSession ? '/staff/login' : '/portal/login');
+          window.history.replaceState({ page: targetPage }, '', targetPath);
         } catch {
           // fallback
         }
@@ -977,7 +1020,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     email: string,
     password: string,
     mfaCode?: string,
-    loginOptions?: { portal?: 'staff' | 'client' }
+    loginOptions?: { portal?: 'staff' | 'client'; navigateOnSuccess?: boolean }
   ): Promise<{
     success: boolean;
     mfaRequired?: boolean;
@@ -987,6 +1030,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     error?: string;
     reference?: string;
     redirectPage?: PageRoute;
+    user?: User;
   }> => {
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -1036,7 +1080,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAuthLifecycleState('AUTHENTICATED');
         setIsInitialized(true);
         const isClient = outcome.user.role === 'client' || outcome.user.role === 'prospective_client';
-        return { success: true, redirectPage: isClient ? 'portal' : 'staff' };
+        return { success: true, redirectPage: isClient ? 'portal' : 'staff', user: outcome.user };
       }
 
       const sbResult = await supabaseLoginWithEmail(normalizedEmail, password);
@@ -1077,11 +1121,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         accessToken = verified.accessToken;
       }
 
-      const { redirectPage } = await establishSupabaseServerSession(accessToken, {
-        navigateIfAuthRoute: true,
+      const { user: establishedUser, redirectPage } = await establishSupabaseServerSession(accessToken, {
+        navigateIfAuthRoute: loginOptions?.navigateOnSuccess !== false,
         ...(loginOptions?.portal ? { portal: loginOptions.portal } : {})
       });
-      return { success: true, redirectPage };
+      return { success: true, redirectPage, user: establishedUser };
     } catch (err: any) {
       // Keep only the provider session for enrollment, and only where enrollment can actually run
       // (production builds never enable staff self-enrollment); no TaxGuard session or data is retained.
@@ -1233,9 +1277,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('taxguard_environment') === 'demo';
     // Every non-client account signs in at the staff portal (practice managers, bookkeepers and recruiters
     // included), so it returns there; only client accounts go back to the client sign-in page.
+    const inAdminPortal = typeof window !== 'undefined' && /^\/admin(\/|$)/i.test(window.location.pathname || '');
     const isStaffSession = Boolean(currentUser && !['client', 'prospective_client'].includes(currentUser.role));
-    const logoutTargetPage: PageRoute = isStaffSession ? 'staff_login' : 'client_login';
-    const logoutTargetPath = isStaffSession ? '/staff/login' : '/portal/login';
+    const logoutTargetPage: PageRoute = inAdminPortal ? 'admin_login' : isStaffSession ? 'staff_login' : 'client_login';
+    const logoutTargetPath = inAdminPortal ? '/admin/login' : isStaffSession ? '/staff/login' : '/portal/login';
 
     try {
       if (isDemoSession) {

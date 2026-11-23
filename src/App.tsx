@@ -44,6 +44,9 @@ const PracticeAdminWorkspace = lazy(() => import('./components/admin/PracticeAdm
 const TaxFormsLibrary = lazy(() => import('./components/taxForms/TaxFormsLibrary').then(m => ({ default: m.TaxFormsLibrary })));
 const StaffAccountSecurityPage = lazy(() => import('./components/auth/StaffAccountSecurityPage').then(m => ({ default: m.StaffAccountSecurityPage })));
 const SuperAdminConsole = lazy(() => import('./components/admin/SuperAdminConsole').then(m => ({ default: m.SuperAdminConsole })));
+const SuperAdminCommandCenter = lazy(() => import('./components/admin/SuperAdminCommandCenter').then(m => ({ default: m.SuperAdminCommandCenter })));
+const AdminAccessDeniedView = lazy(() => import('./components/admin/AdminAccessDeniedView').then(m => ({ default: m.AdminAccessDeniedView })));
+const AdminLoginPage = lazy(() => import('./components/auth/admin-portal/AdminLoginPage').then(m => ({ default: m.AdminLoginPage })));
 const AiCommandCenterPage = lazy(() => import('./components/admin/commandCenter/AiCommandCenterPage').then(m => ({ default: m.AiCommandCenterPage })));
 const LiveClientWorkflowRouter = lazy(() => import('./components/workflow/LiveClientWorkflowRouter').then(m => ({ default: m.LiveClientWorkflowRouter })));
 import {
@@ -51,8 +54,10 @@ import {
   normalizeLegacyUrl,
   canAccessStaffWorkspace,
   resolveAuthoritativeStaffWorkspace,
-  applyCanonicalUrl
+  applyCanonicalUrl,
+  isProtectedAdminPageRoute
 } from './config/canonicalRouting';
+import { canInspectDashboards } from './components/layout/dashboardInspection';
 
 function getUrlTarget(): string {
   if (typeof window === 'undefined') return '';
@@ -85,6 +90,16 @@ function isCanonicalLiveAuthRouteUrl(): boolean {
     target === 'staff/login' ||
     target === 'staff/workspace' ||
     target.startsWith('staff/') ||
+    target === 'admin' ||
+    target === 'admin/login' ||
+    target === 'admin/dashboard' ||
+    target === 'admin/users' ||
+    target === 'admin/security' ||
+    target === 'admin/audit' ||
+    target === 'admin/ai-control' ||
+    target === 'admin/settings' ||
+    target === 'admin/master/ai' ||
+    target.startsWith('admin/') ||
     target === 'client/login' ||
     target === 'client/register'
   );
@@ -247,7 +262,13 @@ const AppContent: React.FC = () => {
         return;
       }
       // Super administrators land on their console (role verified by the server session).
-      if (isSuperAdministrator(currentUser.role) && currentPage !== 'super_admin_console' && currentPage !== 'ai_command_center' && currentPage !== 'tax_forms_library') {
+      if (
+        isSuperAdministrator(currentUser.role) &&
+        currentPage !== 'super_admin_console' &&
+        currentPage !== 'ai_command_center' &&
+        currentPage !== 'tax_forms_library' &&
+        !isProtectedAdminPageRoute(currentPage)
+      ) {
         setCurrentPage('super_admin_console');
         return;
       }
@@ -261,7 +282,21 @@ const AppContent: React.FC = () => {
       setCurrentPage('staff');
       return;
     }
-  }, [currentPage, currentUser, hasLiveClientSession, isInitializingAuth, setCurrentPage]);
+
+    if (currentPage === 'admin_login' && currentUser && authLifecycleState === 'AUTHENTICATED') {
+      if (canInspectDashboards(currentUser, authLifecycleState)) {
+        setCurrentPage('admin_command_center');
+        return;
+      }
+    }
+
+    if (isProtectedAdminPageRoute(currentPage)) {
+      if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') {
+        setCurrentPage('admin_login');
+        return;
+      }
+    }
+  }, [authLifecycleState, currentPage, currentUser, hasLiveClientSession, isInitializingAuth, setCurrentPage]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -419,6 +454,28 @@ const AppContent: React.FC = () => {
       return <SuperAdminConsole />;
     }
 
+    if (isProtectedAdminPageRoute(currentPage)) {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (authLifecycleState !== 'AUTHENTICATED' || !currentUser || currentUser.status !== 'active') {
+        return <AdminLoginPage />;
+      }
+      if (!canInspectDashboards(currentUser, authLifecycleState)) {
+        return <AdminAccessDeniedView />;
+      }
+      return <SuperAdminCommandCenter />;
+    }
+
+    if (currentPage === 'admin_login') {
+      if (isInitializingAuth) return renderAuthInitializingState();
+      if (authLifecycleState === 'AUTHENTICATED' && currentUser) {
+        if (canInspectDashboards(currentUser, authLifecycleState)) {
+          return <SuperAdminCommandCenter />;
+        }
+        return <AdminAccessDeniedView />;
+      }
+      return <AdminLoginPage />;
+    }
+
     if (currentPage === 'staff_onboarding') {
       if (isInitializingAuth) return renderAuthInitializingState();
       if (!currentUser) return <StaffLoginPage />;
@@ -485,6 +542,12 @@ const AppContent: React.FC = () => {
     'admin_dashboard',
     'admin_portal',
     'super_admin_console',
+    'admin_command_center',
+    'admin_users',
+    'admin_security',
+    'admin_audit',
+    'admin_ai_control',
+    'admin_settings',
     'ai_command_center',
     'tax_forms_library',
     'staff_account_security',

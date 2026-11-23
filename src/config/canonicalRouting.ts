@@ -34,10 +34,36 @@ export const CANONICAL_ROUTES = {
   STAFF_WORKSPACE: '/staff/workspace',
   SUPER_ADMIN_CONSOLE: '/staff/super-admin',
   AI_COMMAND_CENTER: '/admin/master/ai',
+  ADMIN_LOGIN: '/admin/login',
+  ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_SECURITY: '/admin/security',
+  ADMIN_AUDIT: '/admin/audit',
+  ADMIN_AI_CONTROL: '/admin/ai-control',
+  ADMIN_SETTINGS: '/admin/settings',
   TAX_FORMS_LIBRARY: '/staff/forms',
   STAFF_ACCOUNT_SECURITY: '/staff/account-security',
   PORTALS_DIRECTORY: '/portals'
 } as const;
+
+export const ADMIN_PROTECTED_PAGE_ROUTES = new Set<PageRoute>([
+  'admin_command_center',
+  'admin_users',
+  'admin_security',
+  'admin_audit',
+  'admin_ai_control',
+  'admin_settings'
+]);
+
+export function isProtectedAdminPageRoute(page: PageRoute | string | null | undefined): boolean {
+  return Boolean(page && ADMIN_PROTECTED_PAGE_ROUTES.has(page as PageRoute));
+}
+
+export function isSuperAdministratorRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  const normalized = role.toLowerCase().trim();
+  return normalized === 'super_admin' || normalized === 'super_administrator';
+}
 
 export const AUTHORIZED_STAFF_ROLES = new Set([
   'practice_manager',
@@ -149,10 +175,42 @@ export function normalizeLegacyUrl(
     cleanHash === 'staff_login' ||
     cleanHash === 'staff-login' ||
     cleanHash === 'reviewer/login' ||
-    cleanHash === 'admin/login' ||
     cleanHash === 'cpa/login'
   ) {
     return { canonicalPath: CANONICAL_ROUTES.STAFF_LOGIN, page: 'staff_login' };
+  }
+
+  // Dedicated Super Administrator portal hash routes
+  if (
+    cleanHash === 'admin/login' ||
+    cleanHash === 'admin_login' ||
+    cleanHash === 'admin-login'
+  ) {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_LOGIN, page: 'admin_login' };
+  }
+
+  if (
+    cleanHash === 'admin/dashboard' ||
+    cleanHash === 'admin-dashboard' ||
+    cleanHash === 'admin_command_center'
+  ) {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_DASHBOARD, page: 'admin_command_center' };
+  }
+
+  if (cleanHash === 'admin/users' || cleanHash === 'admin_users') {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_USERS, page: 'admin_users' };
+  }
+  if (cleanHash === 'admin/security' || cleanHash === 'admin_security') {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_SECURITY, page: 'admin_security' };
+  }
+  if (cleanHash === 'admin/audit' || cleanHash === 'admin_audit') {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_AUDIT, page: 'admin_audit' };
+  }
+  if (cleanHash === 'admin/ai-control' || cleanHash === 'admin_ai_control') {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_AI_CONTROL, page: 'admin_ai_control' };
+  }
+  if (cleanHash === 'admin/settings' || cleanHash === 'admin_settings') {
+    return { canonicalPath: CANONICAL_ROUTES.ADMIN_SETTINGS, page: 'admin_settings' };
   }
 
   // Legacy public portal directory routes
@@ -186,9 +244,7 @@ export function normalizeLegacyUrl(
     cleanHash === 'reviewer/dashboard' ||
     cleanHash === 'reviewer-workspace' ||
     cleanHash === 'reviewer-portal' ||
-    cleanHash === 'admin/dashboard' ||
     cleanHash === 'admin-portal' ||
-    cleanHash === 'admin-dashboard' ||
     cleanHash === 'staff-portal' ||
     cleanHash === 'staff'
   ) {
@@ -268,6 +324,13 @@ export function resolveCanonicalPageRoute(
   if (clean === 'staff/workspace') return 'staff';
   if (clean === 'staff/super-admin') return 'super_admin_console';
   if (clean === 'admin/master/ai') return 'ai_command_center';
+  if (clean === 'admin/login') return 'admin_login';
+  if (clean === 'admin/dashboard' || clean === 'admin') return 'admin_command_center';
+  if (clean === 'admin/users') return 'admin_users';
+  if (clean === 'admin/security') return 'admin_security';
+  if (clean === 'admin/audit') return 'admin_audit';
+  if (clean === 'admin/ai-control') return 'admin_ai_control';
+  if (clean === 'admin/settings') return 'admin_settings';
   if (clean === 'staff/forms') return 'tax_forms_library';
   if (clean === 'staff/account-security') return 'staff_account_security';
 

@@ -8,6 +8,7 @@ interface PageMetadata {
   description: string;
   canonicalPath: string;
   ogType?: string;
+  noIndex?: boolean;
 }
 
 const BRAND_NAME = COMPANY_BRANDING.displayName;
@@ -203,19 +204,71 @@ const PAGE_METADATA_MAP: Partial<Record<PageRoute, PageMetadata>> = {
     title: `Super Administrator Console | ${BRAND_NAME}`,
     description: 'Authorized super administrator console.',
     canonicalPath: '/staff/super-admin',
-    ogType: 'website'
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_login: {
+    title: `Super Administrator Sign In | ${BRAND_NAME}`,
+    description: 'Authorized executive and system administration authentication gateway.',
+    canonicalPath: '/admin/login',
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_command_center: {
+    title: `Super Administrator Command Center | ${BRAND_NAME}`,
+    description: 'Centralized governance, security monitoring, AI oversight, and audit administration.',
+    canonicalPath: '/admin/dashboard',
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_users: {
+    title: `Staff & Access Administration | ${BRAND_NAME}`,
+    description: 'Authorized staff onboarding, role governance, and session access administration.',
+    canonicalPath: '/admin/users',
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_security: {
+    title: `Security Command Center | ${BRAND_NAME}`,
+    description: 'Security monitoring, MFA enforcement status, and session revocation controls.',
+    canonicalPath: '/admin/security',
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_audit: {
+    title: `Audit & Accountability Center | ${BRAND_NAME}`,
+    description: 'Immutable tenant-scoped administrative and compliance audit records.',
+    canonicalPath: '/admin/audit',
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_ai_control: {
+    title: `AI Workforce Governance | ${BRAND_NAME}`,
+    description: 'Authorized AI agent registry, commissioning governance, and emergency kill-switch controls.',
+    canonicalPath: '/admin/ai-control',
+    ogType: 'website',
+    noIndex: true
+  },
+  admin_settings: {
+    title: `System Configuration | ${BRAND_NAME}`,
+    description: 'Authorized enterprise security, session policy, and system configuration controls.',
+    canonicalPath: '/admin/settings',
+    ogType: 'website',
+    noIndex: true
   },
   admin_dashboard: {
     title: `Executive Admin Dashboard | ${BRAND_NAME}`,
     description: 'Firm operations, workflow queues, and practice analytics dashboard.',
     canonicalPath: '/admin/dashboard',
-    ogType: 'website'
+    ogType: 'website',
+    noIndex: true
   },
   not_found: {
     title: `Page Not Found | ${BRAND_NAME}`,
     description: 'The requested page could not be located. Explore our core tax preparation, accounting, and advisory services.',
     canonicalPath: '/404',
-    ogType: 'website'
+    ogType: 'website',
+    noIndex: true
   }
 };
 
@@ -246,8 +299,9 @@ export const SEOHead: React.FC = () => {
       el.setAttribute('content', content);
     };
 
-    // 2. Standard Meta Description
+    // 2. Standard Meta Description & Robots
     setMetaTag('meta[name="description"]', 'name', 'description', meta.description);
+    setMetaTag('meta[name="robots"]', 'name', 'robots', meta.noIndex ? 'noindex, nofollow' : 'index, follow');
 
     // 3. OpenGraph Tags
     setMetaTag('meta[property="og:title"]', 'property', 'og:title', meta.title);
