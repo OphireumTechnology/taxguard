@@ -22,7 +22,9 @@ function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision
   }
   return <div>
     <button type="button" disabled={busy} onClick={() => review()}>Inspect review evidence</button>
-    {preview && <><ul>{preview.documents.map(doc => <li key={doc.id + ':' + doc.version}>Document {doc.id} · version {doc.version} · {doc.status} · {doc.duplicateGroup ? `Duplicate group ${doc.duplicateGroup}` : 'No matching document in this check'}</li>)}</ul>
+    {preview && <>
+      <p>Reviewed evidence fingerprint <code>{preview.version}</code></p>
+      <ul>{preview.documents.map(doc => <li key={doc.id + ':' + doc.version}>Document {doc.id} · version {doc.version} · {doc.status} · {doc.duplicateGroup ? `Duplicate group ${doc.duplicateGroup}` : 'No matching document in this check'}</li>)}</ul>
       <button type="button" disabled={busy} onClick={() => review('ACKNOWLEDGED')}>Acknowledge result</button>
       <button type="button" disabled={busy} onClick={() => review('RETURNED')}>Return for review</button></>}
     {message && <p role="status">{message}</p>}
@@ -50,7 +52,7 @@ export function CaseDuplicateAdvisories({ caseId, assignedReviewer }: { caseId: 
       rows === null ? <p role="status">Loading checks…</p> :
       rows.length === 0 ? <p>No completed checks for this case.</p> :
       <ul aria-label="Latest 20 completed checks">{rows.map(row =>
-        <li key={row.jobId}><time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString()}</time>
+        <li key={row.jobId}><p>Check ID <code>{row.jobId}</code></p><time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString()}</time>
           {' · '}{row.duplicateGroupCount} duplicate groups ·  {row.decision ? (row.decision === 'RETURNED' ? 'Returned for review' : 'Acknowledged') : !assignedReviewer ? 'Awaiting reviewer decision' :
             <DuplicateReview jobId={row.jobId} onSaved={decision => setRows(current =>
               current?.map(item => item.jobId === row.jobId ? { ...item, decision } : item) ?? null)} />}</li>)}</ul>}
