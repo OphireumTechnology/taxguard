@@ -97,6 +97,7 @@ describe('Stage 02 — Storage & Staff Assignment Governance Suite', () => {
         '20261008050000_taxguard_ai_execution_ledger.sql',
         '20261008060000_taxguard_ai_document_advisory_routing.sql',
         '20261122120000_ai_workforce_jobs_and_decisions.sql',
+        '20261123000000_taxguard_assignment_rpc_hardening.sql',
       ]);
     });
 
