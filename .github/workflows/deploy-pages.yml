@@ -34,7 +34,6 @@ jobs:
       actions: read
     outputs:
       sha: ${{ steps.sha.outputs.sha }}
-      deploy: ${{ steps.sha.outputs.deploy }}
       ci_run: ${{ steps.ci.outputs.run_id }}
     steps:
       - name: Require the main branch for manual runs
