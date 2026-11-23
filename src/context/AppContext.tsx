@@ -862,6 +862,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         // 2. Check for an active Supabase browser session (e.g. after refresh or email verification callback)
+        // Password recovery is a provider-only identity flow: never bridge it into an app session.
+        const recoveryFragment = typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type') === 'recovery';
+        const recoveryRoute = typeof window !== 'undefined' && window.location.pathname === '/admin/reset-password';
+        if (recoveryFragment || recoveryRoute) {
+          if (active) { setAuthLifecycleState('UNAUTHENTICATED'); setIsInitialized(true); }
+          return;
+        }
         const sbAccessToken = await getSupabaseAccessToken();
         if (sbAccessToken && active && !authOperationInProgressRef.current && !providerOnlyIdentityFlowActive()) {
           try {
@@ -920,6 +928,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSupabaseConfigured() && supabase
         ? supabase.auth.onAuthStateChange(async (event, session) => {
             if (!active || authOperationInProgressRef.current) return;
+
+            if (event === 'PASSWORD_RECOVERY' ||
+                (typeof window !== 'undefined' && (window.location.pathname === '/admin/reset-password' ||
+                  new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type') === 'recovery'))) return;
 
             if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
               // Invitation sessions prove identity only; they must never trigger client auto-provisioning.
