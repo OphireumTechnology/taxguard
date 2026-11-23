@@ -38,7 +38,7 @@ The local staging composition uses the durable job's requesting actor and resolv
 
 The disposable PostgreSQL regression enqueues two jobs through the API using synthetic evaluation records. The first stores one duplicate group for human review. After case assignment revocation, the worker refuses the second job and stores no advisory.
 
-The hosted pilot still needs approved staging configuration and case assignments, a successful run using approved governance fixtures, and a scoped review API/UI backed by the review ledger. No agent is activated by this composition. Use only an isolated staging database and synthetic evidence while verifying the rollout.
+The hosted pilot still needs approved staging configuration and case assignments, a successful run using approved governance fixtures, and a hosted exercise of the scoped review API and case panel. No agent is activated by this composition. Use only an isolated staging database and synthetic evidence while verifying the rollout.
 
 ## Stage One onboarding advisories (A01–A04)
 
@@ -48,4 +48,10 @@ The synthetic tests exercise all four decisions, case mismatch and unexpected id
 
 ### A10 Stage Three case panel
 
-The shared staff case workflow displays the latest 20 completed duplicate checks for the selected Stage Three case. The database checks active case assignment and job visibility before returning summaries. An unavailable result and an empty result have distinct displays. The panel supports inspection only. Decision recording still requires an approved reviewer role and review-ledger integration. Hosted staging acceptance and commissioning remain pending.
+The shared staff case workflow displays the latest 20 completed duplicate checks for the selected Stage Three case. The database checks active case assignment and job visibility before returning summaries. An unavailable result and an empty result have distinct displays. The assigned reviewer can inspect the document IDs, versions, statuses and duplicate groups. Acknowledging or returning a finding sends the preview fingerprint to the review endpoint. The database rechecks assignment, reviewer independence and current evidence before recording one decision for the job.
+
+| Agent | Implementation | Website integration | Hosted staging acceptance | Production commissioning |
+|---|---|---|---|---|
+| A10 | Duplicate calculation, queue and review transaction exercised in a disposable database | Stage Three case panel implements preview and decision controls | Pending an isolated deployment and a decision by an approved independent reviewer | Pending |
+
+For hosted acceptance, record the deployed commit, synthetic case and job identifiers, evidence fingerprint, reviewer assignment, decision, and outcome after reopening the case. Verify that the saved decision matches the preview and a revoked assignment prevents another review. Keep document contents and session credentials out of the acceptance record.
