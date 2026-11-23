@@ -8397,7 +8397,7 @@
     "src/tests-db/clientDocumentConfidentiality.db.test.ts": "60d381cebf9b67da3ecd84222e0e4a48007f8a5f98feeec2123da5e7712d7a22",
     "src/tests-db/concurrency.db.test.ts": "a631b70043342fab5233cd3c645c9eef542757a72b8a435e4ce34eef7bcf2f54",
     "src/tests-db/durableJobQueue.db.test.ts": "ebd5614cc22bb97bed30162ea830c8e3080482fc0a86ec3a961bca95d6a8bcad",
-    "src/tests-db/harness.ts": "e087d2bd6c060124159896ae50f52bdcf25047e0a371308a475a880540d9c589",
+    "src/tests-db/harness.ts": "3c8885e6344e3b2116da0eac5a86303938169b2eb7ea44c6ac222078806e2b77",
     "src/tests-db/ledgerWriteRetries.db.test.ts": "e741caf8e54e940bf279dadf70be7776d2d1756fad01cb5a966d156f91347383",
     "src/tests-e2e/02-practice-documents-billing.e2e.test.ts": "fb6e36ef2bdd60a0764ef5dc9f16750b4e97f0572d3fb68581542afa3f5550b1",
     "src/tests-e2e/08-durable-staff-security.e2e.test.ts": "3eca96beef2a60869e6d2f11cede98dd1ca244a473e757b46af7d75d285d42ad",
