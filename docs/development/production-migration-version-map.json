@@ -486,7 +486,7 @@
       "proposedVersion": "20261012230011",
       "remapped": true,
       "reason": "INVALID_TIMESTAMP",
-      "sha256": "9973140c94b4aef7d6bab9f6eae1a2929d88180021b8075abac3e72e7e6c7869",
+      "sha256": "590e0a88aeb2b6b8a98810c2d13d2ea0411ac2c654f31d2dbd1a19313eabf99e",
       "dependsOn": [
         "docs/proposed-migrations/20261012330000_taxguard_tax_engine_foundation.sql"
       ]
