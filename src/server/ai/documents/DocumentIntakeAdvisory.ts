@@ -28,9 +28,8 @@ export function inspectDocumentIntake(scope: Scope, snapshot: IntakeSnapshot, no
   const findings: IntakeFinding[] = [];
   if (isUploadRejected(validation)) {
     findings.push(validation.code, 'DOCUMENT_UNAVAILABLE');
-  } else if (snapshot.quarantineStatus === 'INFECTED') {
-    findings.push('DOCUMENT_UNAVAILABLE');
-  } else if (snapshot.status === 'UPLOAD_PENDING' || snapshot.status === 'SCAN_PENDING') {
+  } else if (['QUARANTINED', 'PENDING'].includes(snapshot.quarantineStatus)
+    && ['UPLOAD_PENDING', 'SCAN_PENDING'].includes(snapshot.status)) {
     findings.push('WAITING_FOR_SCAN');
   } else if (snapshot.quarantineStatus === 'CLEAN' && ['PENDING_REVIEW', 'VERIFIED'].includes(snapshot.status)) {
     findings.push('REVIEW_INTAKE');
