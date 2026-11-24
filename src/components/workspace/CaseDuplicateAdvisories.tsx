@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { jobMessage, jobService } from '../../services/jobService';
+import { JobRequestError, jobMessage, jobService } from '../../services/jobService';
 
 function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision: "ACKNOWLEDGED" | "RETURNED") => void }) {
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof jobService.reviewEvidence>>>();
@@ -15,7 +15,11 @@ function DuplicateReview({ jobId, onSaved }: { jobId: string; onSaved: (decision
         setPreview(undefined);
       } else setPreview(await jobService.reviewEvidence(jobId));
     } catch (error) {
-      setMessage(jobMessage(error));
+      if (error instanceof JobRequestError && error.code === 'JOB_STATE_INVALID') {
+        setMessage('The evidence or review status has changed. Refresh checks to see any saved decision, then inspect the current evidence if review is still pending.');
+      } else {
+        setMessage(jobMessage(error));
+      }
       setPreview(undefined);
     }
     finally { setBusy(false); }
