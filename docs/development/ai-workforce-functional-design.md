@@ -111,3 +111,12 @@ A10 has two integration paths. Main mounts the workforce router at `/api/ai-work
 ## A10 staff acceptance path verified in source on 2026-11-24
 
 At main `f569f085a863a69e2d142f08c9de25f1400f269f`, `CaseWorkflowPanel.tsx` mounts `StageThreeDuplicateAdvisoryPanel.tsx` with tenant, client, case, tax year and active stage. Use that panel for the scoped staff rehearsal. The shared `CaseAiWorkforcePanel.tsx` excludes A10 from its generic decision controls, including in the reviewer workspace. Trace the dedicated panel through `src/services/aiWorkforceService.ts` and `src/server/ai/workforce/a10DuplicateWorkflow.ts` when collecting evidence. Review head `13370e1066c51e0ea6bf321868edc1cfb73ef78b` passed 46 local collection, duplicate and roster tests. Hosted staff review, isolated staging acceptance and production commissioning remain open.
+
+## A10 acceptance evidence on 2026-11-25
+
+| Lifecycle state | Evidence |
+| --- | --- |
+| Implementation | The Stage Three pilot checks authorized evidence pins and binds the independent reviewer decision to the inspected versions. |
+| Integration | Staff candidate `57fb56bf8915c34403e96d1b48a52fddae35a076` passes TypeScript and 18 local workforce and migration tests. The SQL-backed test persists and reloads the exact fingerprint, evidence versions and reviewer ID. |
+| Hosted staging | Open. The connected PR #83 Supabase staging database lacked the workforce tables at the latest schema check. A staging deployment, reviewed schema and authorized independent staff decision are required for acceptance. |
+| Production commissioning | Open. Live reviewer authority remains owner-gated. |
