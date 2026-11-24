@@ -58,6 +58,10 @@ describe('A08 source comparison advisory', () => {
     expect(advisory.findings).toEqual([{ field_key: extra.key, page: 2, code: 'EXTRACTED_FIELD_MISSING' }]);
     expect(JSON.stringify(advisory)).not.toContain(extra.value);
   });
+  it('rejects a non-string evidence hash before source comparison', () => {
+    const malformed = { ...evidence, source_hash: [evidence.source_hash] } as unknown as EvidenceMetadata;
+    expect(() => inspectDocumentExtraction(malformed, extraction, source)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
+  });
   it('refuses stale versions, released-state gaps, and malformed duplicate anchors', () => {
     expect(() => inspectDocumentExtraction(evidence, extraction, { ...source, documentVersion: 1 })).toThrow('AI_EXTRACTION_SOURCE_INVALID');
     expect(() => inspectDocumentExtraction({ ...evidence, document_status: 'SCAN_PENDING' as EvidenceMetadata['document_status'] }, extraction, source))

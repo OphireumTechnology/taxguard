@@ -23,6 +23,7 @@ export function inspectDocumentExtraction(evidence: EvidenceMetadata, extraction
   if (!evidence.source_id || evidence.quarantine_status !== 'CLEAN'
     || !['RELEASED', 'VERIFIED'].includes(evidence.document_status)
     || !Number.isSafeInteger(evidence.document_version) || evidence.document_version < 1
+    || typeof evidence.source_hash !== 'string'
     || !/^[a-f0-9]{64}$/.test(evidence.source_hash)
     || [extraction, source].some(input => input.sourceId !== evidence.source_id
       || input.documentVersion !== evidence.document_version)) {
