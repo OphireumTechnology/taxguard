@@ -29,6 +29,11 @@ describe('A09 missing-document advisory', () => {
     expect(inspectMissingDocuments(scope, input).findings).toEqual([]);
   });
 
+  it('rejects a malformed status that would suppress a required finding', () => {
+    const malformed = { ...row('one', 'EXPECTED'), status: ['WAIVED'] } as unknown as Item;
+    expect(() => inspectMissingDocuments(scope, manifest(malformed))).toThrow('AI_MANIFEST_INVALID');
+  });
+
   it('refuses out-of-scope, duplicate or unknown requirement records', () => {
     const item = row('one', 'EXPECTED');
     expect(() => inspectMissingDocuments({ ...scope, clientId: 'other' }, manifest(item))).toThrow('AI_MANIFEST_SCOPE_INVALID');

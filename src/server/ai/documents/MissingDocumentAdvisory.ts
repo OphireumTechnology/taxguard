@@ -44,7 +44,7 @@ export function inspectMissingDocuments(scope: Scope, manifest: Manifest) {
   for (const row of manifest.requirements) {
     if (!row || row.engagementId !== scope.engagementId || row.taxYear !== scope.taxYear
       || typeof row.requirementId !== 'string' || !row.requirementId.trim() || seen.has(row.requirementId)
-      || !Object.prototype.hasOwnProperty.call(STATUS, row.status) || !LEVELS.has(row.requirementLevel)) throw new GovernanceError('AI_MANIFEST_INVALID');
+      || typeof row.status !== 'string' || !Object.prototype.hasOwnProperty.call(STATUS, row.status) || !LEVELS.has(row.requirementLevel)) throw new GovernanceError('AI_MANIFEST_INVALID');
 
     seen.add(row.requirementId);
     const code = STATUS[row.status];
