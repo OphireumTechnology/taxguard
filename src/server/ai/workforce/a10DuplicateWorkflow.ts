@@ -405,22 +405,25 @@ export class A10DuplicateWorkflowService {
       });
     }
 
-    // Enforce pending owner-approval live gate + maker-checker + role authority.
-    const { syntheticUsed } = assertDecisionAuthority({
-      agentId: 'A10',
-      actor,
-      requestedBy: advisory.requested_by,
-      caseRecord,
-      requiredReviewerRole: advisory.required_reviewer_role,
-      syntheticStaging: this.env.getSyntheticStagingConfig(),
-    });
-
     // Final live session recheck right before atomic commit (revocation guard).
     const freshActor = await this.env.verifyActor(token);
     assertActiveActor(freshActor);
     if (freshActor.uid !== actor.uid || freshActor.tenant_id !== actor.tenant_id) {
       throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
     }
+
+    if (!(await this.env.isStaffAssigned(freshActor, caseRecord))) {
+      throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
+    }
+    // Enforce pending owner-approval live gate + maker-checker + role authority.
+    const { syntheticUsed } = assertDecisionAuthority({
+      agentId: 'A10',
+      actor: freshActor,
+      requestedBy: advisory.requested_by,
+      caseRecord,
+      requiredReviewerRole: advisory.required_reviewer_role,
+      syntheticStaging: this.env.getSyntheticStagingConfig(),
+    });
 
     const record: WorkforceHumanDecisionRecord = {
       decision_id: randomUUID(),

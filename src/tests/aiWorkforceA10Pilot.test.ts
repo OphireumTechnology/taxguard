@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { A10DuplicateWorkflowService } from '../server/ai/workforce/a10DuplicateWorkflow';
 import { SqlWorkforceStore } from '../server/ai/workforce/sqlWorkforceStore';
 import {
@@ -365,6 +365,20 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       code: 'WORKFORCE_MAKER_CHECKER_SELF_REVIEW_DENIED',
       status: 403,
     });
+
+    const reviewer = h.actors.get('tok_reviewer')!;
+    const verify = vi.spyOn(h.env, 'verifyActor')
+      .mockResolvedValueOnce(reviewer)
+      .mockResolvedValueOnce({ ...reviewer, role: 'bookkeeper' });
+    await expect(h.service.recordDuplicateDecision('tok_reviewer', {
+      request_id: 'req-role-changed',
+      advisory_id: processed.advisory.advisory_id,
+      scope: BASE_SCOPE,
+      expected_evidence_fingerprint: processed.advisory.evidence_fingerprint,
+      decision: 'ACKNOWLEDGE',
+      rationale: 'Synthetic role change during evidence review.',
+    })).rejects.toMatchObject({ code: 'WORKFORCE_REVIEWER_ROLE_DENIED', status: 403 });
+    verify.mockRestore();
 
     // Independent reviewer commits bound human decision
     const decision = await h.service.recordDuplicateDecision('tok_reviewer', {
