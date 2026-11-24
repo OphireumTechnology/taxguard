@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   aiWorkforceService,
   workforceErrorMessage,
@@ -25,7 +25,11 @@ const DECISIONS = ['ACKNOWLEDGE', 'ESCALATE', 'DISMISS', 'RETURN_FOR_CORRECTION'
  * - Live decision button stays disabled/unavailable while A10's production reviewer role awaits owner approval.
  * - Flags stale evidence whenever document version, release status, or quarantine state changes.
  */
-export const StageThreeDuplicateAdvisoryPanel: React.FC<StageThreeDuplicateAdvisoryPanelProps> = ({
+export const StageThreeDuplicateAdvisoryPanel: React.FC<StageThreeDuplicateAdvisoryPanelProps> = props => (
+  <ScopedDuplicateAdvisories key={JSON.stringify([props.tenantId, props.clientId, props.caseId, props.taxYear])} {...props} />
+);
+
+const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps> = ({
   tenantId,
   clientId,
   caseId,
@@ -47,16 +51,23 @@ export const StageThreeDuplicateAdvisoryPanel: React.FC<StageThreeDuplicateAdvis
     tax_year: taxYear,
   };
 
+  const latestRead = useRef(0);
+  const [readSucceeded, setReadSucceeded] = useState(false);
   const loadAdvisories = useCallback(async () => {
     if (!tenantId || !clientId || !caseId) return;
+    const read = ++latestRead.current;
+    setItems([]);
+    setReadSucceeded(false);
     setLoading(true);
     try {
       const res = await aiWorkforceService.listA10CaseAdvisories(scope);
+      if (read !== latestRead.current) return;
       setItems(res.items);
+      setReadSucceeded(true);
     } catch (error) {
-      setNotice({ error: true, text: workforceErrorMessage(error) });
+      if (read === latestRead.current) setNotice({ error: true, text: workforceErrorMessage(error) });
     } finally {
-      setLoading(false);
+      if (read === latestRead.current) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId, clientId, caseId, taxYear]);
@@ -198,7 +209,7 @@ export const StageThreeDuplicateAdvisoryPanel: React.FC<StageThreeDuplicateAdvis
       </form>
 
       <div className="space-y-2">
-        {items.length === 0 && !loading && (
+        {items.length === 0 && readSucceeded && (
           <p className="text-slate-400">No A10 duplicate advisories recorded for this case yet.</p>
         )}
         {items.map(item => {
