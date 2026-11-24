@@ -156,6 +156,7 @@ export class PgWorkforceEnvironment implements WorkforceEnvironment {
              AND e.tenant_id = $2 AND e.client_id = $3 AND e.tax_case_id = $4 AND e.tax_year = $5
              AND d.tenant_id = e.tenant_id AND d.client_id = e.client_id
              AND d.case_id = e.tax_case_id AND d.tax_year = e.tax_year
+             AND d.version = e.document_version AND d.hash = e.source_hash
            ORDER BY e.source_id LIMIT 50`,
           [sourceIds, tenantId, scope.client_id, scope.tax_case_id, scope.tax_year],
         )
