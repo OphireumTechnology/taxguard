@@ -639,11 +639,19 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
         request_id: 'sql-pilot-submit', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
       });
       const { advisory } = await service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
-      await service.recordDuplicateDecision('tok_reviewer', {
+      const review = {
         request_id: 'sql-pilot-review', scope: BASE_SCOPE, advisory_id: advisory.advisory_id,
         expected_evidence_fingerprint: advisory.evidence_fingerprint,
-        decision: 'ACKNOWLEDGE', rationale: 'Reviewed both synthetic evidence versions.',
-      });
+        decision: 'ACKNOWLEDGE' as const, rationale: 'Reviewed both synthetic evidence versions.',
+      };
+      const decisions = await Promise.allSettled([
+        service.recordDuplicateDecision('tok_reviewer', review),
+        service.recordDuplicateDecision('tok_reviewer', { ...review, request_id: 'sql-pilot-second-review' }),
+      ]);
+      expect(decisions.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+      expect(decisions.filter(result => result.status === 'rejected')).toMatchObject([
+        { reason: { code: 'CONCURRENT_DECISION_CONFLICT', status: 409 } },
+      ]);
       const [inspection] = await service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
       expect(inspection.decisions).toMatchObject([{
         bound_evidence_fingerprint: advisory.evidence_fingerprint,
