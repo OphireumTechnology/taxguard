@@ -226,6 +226,20 @@ export const StageThreeDuplicateAdvisoryPanel: React.FC<StageThreeDuplicateAdvis
               </div>
               <p className="text-white">{adv.summary}</p>
 
+              <details className="rounded border border-slate-700 p-2">
+                <summary>Inspect pinned evidence</summary>
+                <p className="break-all">Evidence fingerprint: {adv.evidence_fingerprint}</p>
+                <ul className="space-y-2">
+                  {adv.evidence_pins.map(pin => (
+                    <li key={pin.source_id} className="break-all">
+                      <p>Document {pin.document_record_id} · Version {pin.document_version}</p>
+                      <p>Source {pin.source_id}</p>
+                      <p>SHA-256 {pin.source_hash}</p>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+
               {item.stale_evidence && (
                 <p role="alert" className="rounded border border-amber-500/50 bg-amber-950/40 p-2 text-amber-200">
                   Stale evidence detected ({item.stale_reason}). Re-run A10 on current document versions before recording any decision.
