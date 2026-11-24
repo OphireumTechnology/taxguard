@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it, vi } from 'vitest';
 import { A10DuplicateWorkflowService } from '../server/ai/workforce/a10DuplicateWorkflow';
 import { SqlWorkforceStore } from '../server/ai/workforce/sqlWorkforceStore';
@@ -131,8 +133,9 @@ class InMemoryTransactionalWorkforceStore implements WorkforceStore {
 function createPilotHarness(overrides?: {
   synthetic?: Partial<SyntheticStagingPermissionConfig>;
   activeStage?: number;
+  store?: SqlWorkforceStore;
 }) {
-  const store = new InMemoryTransactionalWorkforceStore();
+  const store = overrides?.store ?? new InMemoryTransactionalWorkforceStore();
 
   const actors = new Map<string, WorkforceActor>([
     [
@@ -599,6 +602,39 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     await expect(
       h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE),
     ).rejects.toMatchObject({ code: 'WORKFORCE_SESSION_REVOKED', status: 401 });
+  });
+
+  it('persists the exact reviewed evidence versions through the migrated SQL store', async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(readFileSync('supabase/migrations/20261122120000_ai_workforce_jobs_and_decisions.sql', 'utf8'));
+      const store = new SqlWorkforceStore({
+        transaction: run => db.transaction(tx => run({
+          query: (sql, params) => tx.query(sql, [...(params ?? [])]),
+        })),
+      });
+      const { service } = createPilotHarness({
+        store,
+        synthetic: { allow_a10_synthetic_staging_decisions: true },
+      });
+      const { job } = await service.submitDuplicateCheckJob('tok_preparer', {
+        request_id: 'sql-pilot-submit', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+      });
+      const { advisory } = await service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+      await service.recordDuplicateDecision('tok_reviewer', {
+        request_id: 'sql-pilot-review', scope: BASE_SCOPE, advisory_id: advisory.advisory_id,
+        expected_evidence_fingerprint: advisory.evidence_fingerprint,
+        decision: 'ACKNOWLEDGE', rationale: 'Reviewed both synthetic evidence versions.',
+      });
+      const [inspection] = await service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
+      expect(inspection.decisions).toMatchObject([{
+        bound_evidence_fingerprint: advisory.evidence_fingerprint,
+        bound_evidence_versions: advisory.evidence_pins,
+        reviewer_uid: 'staff_rev_1',
+      }]);
+    } finally {
+      await db.close();
+    }
   });
 
   it('SqlWorkforceStore issues parameterized queries with FOR UPDATE locking for atomic decision recording', async () => {
