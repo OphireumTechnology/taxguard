@@ -11,7 +11,7 @@ export function inspectSelectedDocumentDuplicates(evidence: readonly EvidenceMet
   const documents = new Map<string,string>();
   for(const row of evidence) {
     if(!row||Object.keys(row).sort().join(',')!=='document_record_id,document_status,document_version,quarantine_status,source_hash,source_id'||
-      !/^[a-f0-9]{64}$/.test(row.source_hash)||!Number.isInteger(row.document_version)||row.document_version<1||
+      typeof row.source_hash !== 'string'||!/^[a-f0-9]{64}$/.test(row.source_hash)||!Number.isSafeInteger(row.document_version)||row.document_version<1||
       !['RELEASED','VERIFIED'].includes(row.document_status)||row.quarantine_status!=='CLEAN'||
       ![row.source_id,row.document_record_id].every(id=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
     const sourceId = row.source_id.toLowerCase();
