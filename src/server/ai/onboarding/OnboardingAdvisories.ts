@@ -59,6 +59,7 @@ export function inspectIdentity(scope: Scope, snapshot: unknown) {
   }));
   const referrals = [];
   if (data.evidenceStatus !== 'VERIFIED') referrals.push('REVIEW_IDENTITY_EVIDENCE');
+  if (data.evidenceStatus === 'REJECTED') referrals.push('RESOLVE_REJECTED_IDENTITY_EVIDENCE');
   if (data.nameConsistent !== true) referrals.push('CHECK_NAME_CONSISTENCY');
   if (data.duplicateFlag) referrals.push('REVIEW_POSSIBLE_DUPLICATE');
   return advisory('A02', referrals);

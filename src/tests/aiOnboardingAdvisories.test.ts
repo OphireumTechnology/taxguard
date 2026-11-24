@@ -5,6 +5,9 @@ const scope = { tenantId: 'firm', caseId: 'case', clientId: 'client', taxYear: 2
 const scenarios = [
   [inspectOnboarding, { contactComplete: false, checklistComplete: true, consentReceiptCurrent: false }, ['COMPLETE_CONTACT_DETAILS', 'REVIEW_CONSENT_RECEIPT']],
   [inspectIdentity, { evidenceStatus: 'VERIFIED', nameConsistent: null, duplicateFlag: true }, ['CHECK_NAME_CONSISTENCY', 'REVIEW_POSSIBLE_DUPLICATE']],
+  [inspectIdentity, { evidenceStatus: 'PENDING', nameConsistent: true, duplicateFlag: false }, ['REVIEW_IDENTITY_EVIDENCE']],
+  [inspectIdentity, { evidenceStatus: 'REJECTED', nameConsistent: true, duplicateFlag: false },
+    ['REVIEW_IDENTITY_EVIDENCE', 'RESOLVE_REJECTED_IDENTITY_EVIDENCE']],
   [draftEngagement, { requestedServices: ['tax', 'tax', 'payroll', 'payroll'], approvedServices: ['tax'], engagementStatus: 'PENDING' },
     { taxYear: 2025, engagementStatus: 'PENDING', proposedServices: ['tax'], unlistedServices: ['payroll'], unlistedServiceCount: 1, requiresScopeConfirmation: true }],
   [draftOrganizerFollowups, { questions: [
