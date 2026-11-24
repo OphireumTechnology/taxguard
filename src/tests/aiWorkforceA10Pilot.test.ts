@@ -622,6 +622,40 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     }
   });
 
+  it('loads evidence only while the vault version and hash match the source pin', async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(`
+        CREATE TABLE taxguard_documents (
+          id uuid PRIMARY KEY, version integer, hash text, status text, quarantine_status text,
+          tenant_id text, client_id text, case_id text, tax_year integer
+        );
+        CREATE TABLE ai_evidence_sources (
+          source_id uuid PRIMARY KEY, document_record_id uuid, document_version integer,
+          source_hash text, tenant_id text, client_id text, tax_case_id text, tax_year integer
+        );
+      `);
+      const { tenant_id, client_id, tax_case_id, tax_year } = BASE_SCOPE;
+      const params = [DOC_REC_1, HASH_DUPLICATE, tenant_id, client_id, tax_case_id, tax_year];
+      await db.query("INSERT INTO taxguard_documents VALUES ($1, 1, $2, 'RELEASED', 'CLEAN', $3, $4, $5, $6)", params);
+      await db.query('INSERT INTO ai_evidence_sources VALUES ($7, $1, 1, $2, $3, $4, $5, $6)', [...params, SRC_1]);
+      const env = new PgWorkforceEnvironment({
+        transaction: run => db.transaction(tx => run({
+          query: (sql, values) => tx.query(sql, [...(values ?? [])]),
+        })),
+      }, async () => null);
+      const load = () => env.loadEvidence(tenant_id, BASE_SCOPE, [SRC_1]);
+      expect(await load()).toMatchObject([{ source_id: SRC_1, document_version: 1 }]);
+
+      await db.exec('UPDATE taxguard_documents SET version = 2');
+      expect(await load()).toEqual([]);
+      await db.query('UPDATE taxguard_documents SET version = 1, hash = $1', [HASH_UNIQUE]);
+      expect(await load()).toEqual([]);
+    } finally {
+      await db.close();
+    }
+  });
+
   it('persists the exact reviewed evidence versions through the migrated SQL store', async () => {
     const db = new PGlite();
     try {
