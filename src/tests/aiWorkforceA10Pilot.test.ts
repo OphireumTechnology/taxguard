@@ -1,3 +1,4 @@
+import { PgWorkforceEnvironment } from '../server/ai/workforce/productionWorkforceEnvironment';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it, vi } from 'vitest';
@@ -602,6 +603,23 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     await expect(
       h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE),
     ).rejects.toMatchObject({ code: 'WORKFORCE_SESSION_REVOKED', status: 401 });
+  });
+
+  it.each([
+    ['production', 'true', false],
+    ['test', '', false],
+    ['test', 'true', true],
+  ] as const)('checks the A10 synthetic gate in %s with flag %j', (nodeEnv, flag, expected) => {
+    vi.stubEnv('NODE_ENV', nodeEnv);
+    vi.stubEnv('TAXGUARD_ALLOW_A10_SYNTHETIC_STAGING_DECISIONS', flag);
+    try {
+      const env = new PgWorkforceEnvironment({
+        async transaction() { throw new Error('Unexpected SQL query'); },
+      }, async () => null);
+      expect(env.getSyntheticStagingConfig().allow_a10_synthetic_staging_decisions).toBe(expected);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('persists the exact reviewed evidence versions through the migrated SQL store', async () => {
