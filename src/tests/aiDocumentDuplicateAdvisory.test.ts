@@ -19,6 +19,10 @@ describe('deterministic selected-document duplicate advisory',()=>{
   it('does not count two evidence references to the same document as duplicate documents',()=>{
     expect(inspectSelectedDocumentDuplicates([row,{...row,source_id:randomUUID()}]).duplicate_groups).toEqual([]);
   });
+  it('refuses inconsistent version pins on one document even when bytes match', () => {
+    const laterVersion = { ...row, source_id: randomUUID(), document_version: 2 };
+    expect(() => inspectSelectedDocumentDuplicates([row, laterVersion])).toThrow('AI_DOCUMENT_METADATA_INVALID');
+  });
   it('compares source and document UUIDs independent of letter case', () => {
     const id = 'abcdefab-1234-4234-8234-abcdefabcdef';
     const first = { ...row, source_id: id, document_record_id: id };

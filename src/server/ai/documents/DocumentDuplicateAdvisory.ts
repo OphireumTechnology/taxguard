@@ -8,7 +8,7 @@ export function inspectSelectedDocumentDuplicates(evidence: readonly EvidenceMet
   if(!Array.isArray(evidence)||!evidence.length||evidence.length>10)throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
   const groups = new Map<string, Set<string>>();
   const sources = new Set<string>();
-  const documents = new Map<string,string>();
+  const documents = new Map<string, EvidenceMetadata>();
   for(const row of evidence) {
     if(!row||Object.keys(row).sort().join(',')!=='document_record_id,document_status,document_version,quarantine_status,source_hash,source_id'||
       typeof row.source_hash !== 'string'||!/^[a-f0-9]{64}$/.test(row.source_hash)||!Number.isSafeInteger(row.document_version)||row.document_version<1||
@@ -19,8 +19,10 @@ export function inspectSelectedDocumentDuplicates(evidence: readonly EvidenceMet
     if (sources.has(sourceId)) throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
     sources.add(sourceId);
     const previous=documents.get(documentId);
-    if(previous && previous!==row.source_hash)throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
-    documents.set(documentId,row.source_hash);
+    if (previous && (previous.source_hash !== row.source_hash || previous.document_version !== row.document_version)) {
+      throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
+    }
+    documents.set(documentId, row);
     const group=groups.get(row.source_hash)??new Set<string>();
     group.add(documentId);groups.set(row.source_hash,group);
   }
