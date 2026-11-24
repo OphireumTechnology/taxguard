@@ -23,6 +23,12 @@ describe('A09 missing-document advisory', () => {
     expect(input).toEqual(snapshot);
   });
 
+  it('omits conditional requirements already settled or marked inapplicable', () => {
+    const settled = ['WAIVED', 'NOT_APPLICABLE', 'SATISFIED', 'COLLECTION_ACCEPTED'] as const;
+    const input = manifest(...settled.map(status => row(status, status, 'CONDITIONAL')));
+    expect(inspectMissingDocuments(scope, input).findings).toEqual([]);
+  });
+
   it('refuses out-of-scope, duplicate or unknown requirement records', () => {
     const item = row('one', 'EXPECTED');
     expect(() => inspectMissingDocuments({ ...scope, clientId: 'other' }, manifest(item))).toThrow('AI_MANIFEST_SCOPE_INVALID');
