@@ -37,6 +37,15 @@ describe('A08 source comparison advisory', () => {
     expect(JSON.stringify(advisory)).not.toContain('private value');
     expect(advisory.human_review_required).toBe(true);
   });
+  it('reports every anchored field when extraction returns no fields', () => {
+    const empty = { ...extraction, fields: [] };
+    const advisory = inspectDocumentExtraction(evidence, empty, source);
+    expect(advisory).toMatchObject({ compared_fields: 0, human_review_required: true, authoritative_mutation: false });
+    expect(advisory.findings).toEqual(source.fields.map(({ key, page }) => ({
+      field_key: key, page, code: 'EXTRACTED_FIELD_MISSING',
+    })));
+    expect(() => inspectDocumentExtraction(evidence, empty, empty)).toThrow('AI_EXTRACTION_FIELDS_INVALID');
+  });
   it('flags an anchored field omitted from extraction on a different page', () => {
     const extra = { ...extraction.fields[0], page: 2, value: 'private anchor' };
     const advisory = inspectDocumentExtraction(evidence, extraction, { ...source, fields: [...extraction.fields, extra] });

@@ -42,7 +42,7 @@ export function inspectDocumentExtraction(evidence: EvidenceMetadata, extraction
   };
   const extracted = buildIndex(extraction.fields);
   const anchored = buildIndex(source.fields);
-  if (!extracted.size) throw new GovernanceError('AI_EXTRACTION_FIELDS_INVALID');
+  if (!extracted.size && !anchored.size) throw new GovernanceError('AI_EXTRACTION_FIELDS_INVALID');
 
   const findings: { field_key: string; page: number; code: FindingCode }[] = [];
   for (const [key, field] of extracted) {
