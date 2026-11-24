@@ -7,6 +7,10 @@ describe('A05 document intake advisory', () => {
   const scope = { clientId: 'client', engagementId: 'engagement', taxYear: 2025 };
   const snapshot = { ...scope, documentId: 'doc', version: 1, fileName: 'document.pdf', fileType: 'application/pdf',
     sizeBytes: 512, status: 'SCAN_PENDING', quarantineStatus: 'PENDING', linkedRequest: true };
+  it.each(['   ', { unexpected: 'metadata' }])('rejects a malformed vault document ID', documentId => {
+    const malformed = { ...snapshot, documentId } as unknown as typeof snapshot;
+    expect(() => inspectDocumentIntake(scope, malformed)).toThrow('AI_DOCUMENT_METADATA_INVALID');
+  });
   it('holds documents awaiting scanning and flags missing request links', () => {
     const result = inspectDocumentIntake(scope, { ...snapshot, linkedRequest: false });
     expect(result).toMatchObject({ findings: ['WAITING_FOR_SCAN', 'REQUEST_LINK_MISSING'], human_review_required: true });

@@ -21,7 +21,8 @@ export function inspectDocumentIntake(scope: Scope, snapshot: IntakeSnapshot, no
     || scope.engagementId !== snapshot.engagementId || scope.taxYear !== snapshot.taxYear) {
     throw new GovernanceError('AI_DOCUMENT_SCOPE_INVALID');
   }
-  if (!snapshot.documentId || !Number.isSafeInteger(snapshot.version) || snapshot.version < 1
+  if (typeof snapshot.documentId !== 'string' || !snapshot.documentId.trim()
+    || !Number.isSafeInteger(snapshot.version) || snapshot.version < 1
     || typeof snapshot.linkedRequest !== 'boolean') throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
 
   const validation = validateDocumentUpload({ ...snapshot, fileSize: snapshot.sizeBytes }, now);
