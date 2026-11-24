@@ -67,6 +67,13 @@ describe('A10 governed A00 integration',()=>{
     expect(history.rows).toEqual([{agent_id:'A10',action_executed:false,human_review_required:true}]);
     expect((await f.pg.query('SELECT count(*)::int AS n FROM ai_runs')).rows).toEqual([{n:0}]);
   });
+  it('refuses a read result containing a different source with identical document metadata', async () => {
+    readSpy.mockResolvedValueOnce({ capability_id: 'document.read', evidence: [{ ...row, source_id: randomUUID() }] });
+    await expect(runner().coordinate('valid', request())).rejects.toThrow('AI_INVALID_CAPABILITY_OUTPUT');
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    const recorded = await f.pg.query("SELECT 1 FROM ai_orchestration_events WHERE root_id=$1 AND agent_id='A10' AND status='RESULT_RECORDED'", [readSpy.mock.calls[0][0].context.root_id]);
+    expect(recorded.rows).toHaveLength(0);
+  });
   it.each(['tenant_id','client_id','tax_case_id','tax_year'])('denies cross-%s without privileged reads',async key=>{
     const r=request({scope:{...scope,[key]:key==='tax_year'?2024:'foreign'}});
     await expect(runner().coordinate('valid',r)).rejects.toThrow();expect(readSpy).not.toHaveBeenCalled();
