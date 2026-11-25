@@ -260,7 +260,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
 
               {!item.live_decision_available && (
                 <p role="note" className="rounded border border-slate-600 bg-slate-900/60 p-2 text-slate-300">
-                  Live decision action unavailable ({item.live_decision_block_reason}): pending owner approval of A10&apos;s production reviewer role.
+                  Decision unavailable ({item.live_decision_block_reason}).
                 </p>
               )}
 

@@ -328,15 +328,24 @@ export class A10DuplicateWorkflowService {
       const staleness = detectStaleEvidence(advisory.evidence_pins, liveEvidence, scope);
       const decisions = await this.store.listAdvisoryDecisions(actor.tenant_id, advisory.advisory_id);
 
+      let decisionBlockReason: string | null = null;
+      try {
+        assertDecisionAuthority({
+          agentId: 'A10', actor, requestedBy: advisory.requested_by, caseRecord,
+          requiredReviewerRole: advisory.required_reviewer_role, syntheticStaging: staging,
+        });
+      } catch (error) {
+        if (!(error instanceof WorkforceError)) throw error;
+        decisionBlockReason = error.code;
+      }
+
       results.push({
         advisory,
         decisions,
         stale_evidence: staleness.stale,
         stale_reason: staleness.reason,
-        live_decision_available: staging.allow_a10_synthetic_staging_decisions,
-        live_decision_block_reason: staging.allow_a10_synthetic_staging_decisions
-          ? null
-          : 'A10_LIVE_DECISION_PENDING_OWNER_APPROVAL',
+        live_decision_available: decisionBlockReason === null,
+        live_decision_block_reason: decisionBlockReason,
       });
     }
 
