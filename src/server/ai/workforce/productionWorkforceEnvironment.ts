@@ -108,6 +108,10 @@ export class PgWorkforceEnvironment implements WorkforceEnvironment {
           : actor.role === 'reviewer' || actor.role === 'senior_reviewer'
             ? 'reviewer'
             : actor.role;
+      if ((caseRole === 'preparer' && caseRecord.preparer_uid !== actor.uid)
+        || (caseRole === 'reviewer' && caseRecord.reviewer_uid !== actor.uid)) {
+        return false;
+      }
       const rows = (
         await sql.query<{ id: string }>(
           `SELECT a.id
@@ -116,7 +120,7 @@ export class PgWorkforceEnvironment implements WorkforceEnvironment {
              ON s.tenant_id = a.tenant_id AND s.user_id = a.uid
            JOIN taxguard_clients cl
              ON cl.tenant_id = s.tenant_id AND cl.client_id = s.client_id
-           WHERE a.tenant_id = $1 AND a.case_id = $2 AND a.uid = $3 AND a.active AND a.assigned_at <= now()
+           WHERE a.tenant_id = $1 AND a.case_id = $2 AND a.uid = $3 AND a.role = $7 AND a.active AND a.assigned_at <= now()
              AND s.client_id = $4 AND s.engagement_id = $5 AND s.tax_year = $6
              AND s.role IN ($7, $8) AND s.status = 'ACTIVE'
              AND s.effective_from <= now() AND (s.effective_to IS NULL OR s.effective_to > now())
