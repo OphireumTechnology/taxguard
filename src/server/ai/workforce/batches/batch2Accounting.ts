@@ -161,6 +161,9 @@ export function runA14JournalEntry(
     }
     totalDebits += debit;
     totalCredits += credit;
+    if (!isInt(totalDebits) || !isInt(totalCredits)) {
+      throw new WorkforceError('JOURNAL_ENTRY_TOTAL_OUT_OF_RANGE', 400);
+    }
     normalizedLines.push({ account_code: accountCode, debit_cents: debit, credit_cents: credit, memo: typeof l.memo === 'string' ? l.memo.slice(0, 200) : '' });
   }
 

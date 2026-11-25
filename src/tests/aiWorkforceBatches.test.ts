@@ -365,6 +365,20 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
       }),
     ).rejects.toMatchObject({ code: 'JOURNAL_ENTRY_UNBALANCED', status: 400 });
 
+    await expect(h.dispatcher.executeAgent('cpa_exec', {
+      request_id: 'req-a14-overflow',
+      agent_id: 'A14',
+      scope: SCOPE,
+      workflow_stage: 5,
+      evidence_source_ids: [],
+      payload: { lines: [
+        { account_code: '1010-Cash', debit_cents: Number.MAX_SAFE_INTEGER, credit_cents: 0 },
+        { account_code: '1010-Cash', debit_cents: 1, credit_cents: 0 },
+        { account_code: '4000-Revenue', debit_cents: 0, credit_cents: Number.MAX_SAFE_INTEGER },
+        { account_code: '4000-Revenue', debit_cents: 0, credit_cents: 2 },
+      ] },
+    })).rejects.toMatchObject({ code: 'JOURNAL_ENTRY_TOTAL_OUT_OF_RANGE', status: 400 });
+
     const a14Good = await h.dispatcher.executeAgent('cpa_exec', {
       request_id: 'req-a14-ok',
       agent_id: 'A14',
