@@ -214,11 +214,11 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
         )}
         {items.map(item => {
           const adv = item.advisory;
-          const alreadyDecided = item.decisions.length > 0;
+          const recordedDecision = item.decisions[0];
           const decisionDisabled =
             busy ||
             activeStage !== 3 ||
-            alreadyDecided ||
+            Boolean(recordedDecision) ||
             item.stale_evidence ||
             !item.live_decision_available ||
             (rationales[adv.advisory_id] ?? '').trim().length < 10;
@@ -264,9 +264,12 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
                 </p>
               )}
 
-              {alreadyDecided ? (
+              {recordedDecision ? (
                 <div className="rounded border border-emerald-500/40 bg-emerald-950/20 p-2 text-emerald-200">
-                  <strong>Human decision recorded:</strong> {item.decisions[0].decision} by {item.decisions[0].reviewer_uid} ({item.decisions[0].reviewer_role}) — {item.decisions[0].rationale}
+                  <strong>Human decision recorded:</strong> {recordedDecision.decision} by {recordedDecision.reviewer_uid} ({recordedDecision.reviewer_role}) — {recordedDecision.rationale}
+                  <p className="break-all">Decision ID {recordedDecision.decision_id}</p>
+                  <p>Recorded <time dateTime={recordedDecision.recorded_at}>{recordedDecision.recorded_at}</time></p>
+                  {recordedDecision.synthetic_staging_gate_used && <p>Synthetic staging decision</p>}
                 </div>
               ) : (
                 <div className="flex flex-col gap-2 pt-1">
