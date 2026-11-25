@@ -62,6 +62,11 @@ describe('A08 source comparison advisory', () => {
     expect(advisory.findings).toEqual([{ field_key: extra.key, page: 2, code: 'EXTRACTED_FIELD_MISSING' }]);
     expect(JSON.stringify(advisory)).not.toContain(extra.value);
   });
+  it('rejects missing extraction or source snapshots before comparing fields', () => {
+    const missing = null as unknown as typeof extraction;
+    expect(() => inspectDocumentExtraction(evidence, missing, source)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
+    expect(() => inspectDocumentExtraction(evidence, extraction, missing)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
+  });
   it('rejects a non-string evidence hash before source comparison', () => {
     const malformed = { ...evidence, source_hash: [evidence.source_hash] } as unknown as EvidenceMetadata;
     expect(() => inspectDocumentExtraction(malformed, extraction, source)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
