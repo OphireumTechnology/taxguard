@@ -355,6 +355,17 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       approval_ticket_ref: 'STAGING-A10-TEST',
     });
 
+    const [makerInspection] = await h.service.getCaseDuplicateAdvisories('tok_preparer', BASE_SCOPE);
+    expect(makerInspection).toMatchObject({
+      live_decision_available: false,
+      live_decision_block_reason: 'WORKFORCE_MAKER_CHECKER_SELF_REVIEW_DENIED',
+    });
+    const [reviewerInspection] = await h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
+    expect(reviewerInspection).toMatchObject({
+      live_decision_available: true,
+      live_decision_block_reason: null,
+    });
+
     // Maker-checker blocks self-review by preparer who submitted job
     await expect(
       h.service.recordDuplicateDecision('tok_preparer', {
