@@ -1,0 +1,68 @@
+name: PR83 Review Evidence Regeneration
+on:
+  push:
+    branches:
+      - review/storage-managed-schema-migration-20261123
+    paths:
+      - '.github/workflows/pr83-review-evidence-repair.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  regenerate:
+    if: github.repository == 'OphireumTechnology/taxguard' && github.ref == 'refs/heads/review/storage-managed-schema-migration-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --include=dev --include=optional
+      - name: Generate offline migration manifests
+        run: |
+          node scripts/staging/migration-manifest.mjs --write
+          node scripts/migrations/build-migration-manifest.mjs
+      - name: Refresh only reviewed traceability file hashes
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const file='docs/taxguard-master-traceability.json';
+          const m=JSON.parse(fs.readFileSync(file,'utf8'));
+          const allowed=new Set([
+            'src/tests/migrationReadinessAudit.test.ts',
+            'src/tests/stageTwoStorageAndAssignmentGovernance.test.ts',
+            'docs/development/migration-execution-manifest.json',
+            'docs/development/migration-execution-manifest.md',
+            'docs/development/staging-migration-manifest.json'
+          ]);
+          for(const p of allowed) {
+            if(!fs.existsSync(p)) throw new Error('EVIDENCE_SOURCE_MISSING:'+p);
+            const value=fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n');
+            const hash=crypto.createHash('sha256').update(value).digest('hex');
+            if(Object.hasOwn(m.evidence_versions,p)) m.evidence_versions[p]=hash;
+            for(const row of m.source_inventory.filter(x=>x.file===p)) {
+              row.sha256=hash;
+              row.bytes=Buffer.byteLength(value);
+              if(p.endsWith('.md') && Array.isArray(row.headings)) row.headings=value.split('\n').filter(x=>/^#{1,6} /.test(x));
+            }
+          }
+          fs.writeFileSync(file,JSON.stringify(m,null,2)+'\n');
+          NODE
+      - name: Verify offline manifest consistency and traceability
+        run: |
+          node scripts/staging/migration-manifest.mjs
+          node scripts/migrations/build-migration-manifest.mjs --check
+          npx vitest run src/tests/stagingMigrationManifest.test.ts src/tests/traceabilityEvidenceIntegrity.test.ts
+      - name: Commit generated evidence to review branch only
+        run: |
+          git diff --check
+          git add docs/development/staging-migration-manifest.json docs/development/migration-execution-manifest.json docs/development/migration-execution-manifest.md docs/taxguard-master-traceability.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'chore(review): regenerate PR83 offline evidence manifests'
+            git push origin HEAD:review/storage-managed-schema-migration-20261123
+          fi

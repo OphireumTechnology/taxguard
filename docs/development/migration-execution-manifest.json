@@ -2,14 +2,20 @@
   "generatedBy": "scripts/migrations/build-migration-manifest.mjs",
   "order": "explicit dependency DAG; separate audit draft analyzed last and excluded from execution authority",
   "summary": {
-    "files": 123,
-    "core": 14,
+    "files": 124,
+    "core": 15,
     "proposals": 108,
     "tables": 188,
     "functions": 521,
     "securityDefinerFunctions": 411,
-    "clientExecutableFunctionsWithSupabaseDefaults": [],
-    "clientExecutableFunctionsWithoutDefaults": [],
+    "clientExecutableFunctionsWithSupabaseDefaults": [
+      "taxguard_is_staff_assigned_to_client",
+      "taxguard_is_staff_assigned_to_engagement"
+    ],
+    "clientExecutableFunctionsWithoutDefaults": [
+      "taxguard_is_staff_assigned_to_client",
+      "taxguard_is_staff_assigned_to_engagement"
+    ],
     "clientReachableTablesWithSupabaseDefaults": [
       {
         "table": "taxguard_cases",
@@ -4990,6 +4996,49 @@
     },
     {
       "order": 123,
+      "kind": "core",
+      "file": "supabase/migrations/20261123000000_taxguard_assignment_rpc_hardening.sql",
+      "appliesInOrder": true,
+      "reapply": "ok",
+      "tablesAdded": [],
+      "functionsAdded": [],
+      "supersedes": [
+        {
+          "function": "taxguard_is_staff_assigned_to_client",
+          "previous": "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql"
+        },
+        {
+          "function": "taxguard_is_staff_assigned_to_engagement",
+          "previous": "supabase/migrations/20261002000000_taxguard_storage_and_assignment_governance.sql"
+        }
+      ],
+      "functionsRemoved": [],
+      "policiesAdded": [],
+      "triggersAdded": 0,
+      "indexesAdded": 0,
+      "notValidConstraints": [],
+      "prerequisites": [
+        4
+      ],
+      "clientRoleAccess": [
+        {
+          "object": "function taxguard_is_staff_assigned_to_client",
+          "write": false
+        },
+        {
+          "object": "function taxguard_is_staff_assigned_to_engagement",
+          "write": false
+        }
+      ],
+      "serviceRoleRevoked": [],
+      "definerWithoutSearchPath": [],
+      "tablesWithoutRls": [],
+      "hazards": [
+        "GRANT_TO_CLIENT_ROLE"
+      ]
+    },
+    {
+      "order": 124,
       "kind": "separate-proposal",
       "file": "docs/sql/taxguard-audit-append-only.proposal.sql",
       "appliesInOrder": true,
