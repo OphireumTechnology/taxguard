@@ -78,7 +78,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
 
   const handleRunDuplicateCheck = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy) return;
+    if (busy || activeStage !== 3) return;
     const ids = sourceIdsInput
       .split(/[\s,]+/)
       .map(s => s.trim())
@@ -112,7 +112,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
   };
 
   const handleRecordDecision = async (item: ClientA10InspectionItem) => {
-    if (busy) return;
+    if (busy || activeStage !== 3) return;
     const advisoryId = item.advisory.advisory_id;
     const decision = selectedDecision[advisoryId] || 'ACKNOWLEDGE';
     const rationale = (rationales[advisoryId] ?? '').trim();
@@ -160,7 +160,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
         <button
           type="button"
           onClick={() => void loadAdvisories()}
-          disabled={loading}
+          disabled={loading || busy}
           className="rounded-lg border border-slate-600 px-2.5 py-1 text-slate-200 hover:border-[#D4A843]"
         >
           {loading ? 'Refreshing…' : 'Refresh advisories'}
@@ -169,7 +169,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
 
       {activeStage !== 3 && (
         <p role="note" className="rounded-lg border border-amber-500/40 bg-amber-950/30 p-2 text-amber-200">
-          Case is currently in Stage {activeStage}. New A10 submissions require Stage 3 active gate; existing case advisories remain visible below.
+          Case is currently in Stage {activeStage}. A10 submissions and decisions require Stage Three. Existing advisories remain visible below.
         </p>
       )}
 
@@ -217,6 +217,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
           const alreadyDecided = item.decisions.length > 0;
           const decisionDisabled =
             busy ||
+            activeStage !== 3 ||
             alreadyDecided ||
             item.stale_evidence ||
             !item.live_decision_available ||
@@ -275,7 +276,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
                       <select
                         value={selectedDecision[adv.advisory_id] ?? 'ACKNOWLEDGE'}
                         onChange={e => setSelectedDecision(prev => ({ ...prev, [adv.advisory_id]: e.target.value }))}
-                        disabled={!item.live_decision_available || item.stale_evidence}
+                        disabled={activeStage !== 3 || !item.live_decision_available || item.stale_evidence}
                         className="rounded border border-slate-600 bg-[#06182B] px-2 py-1 text-white"
                       >
                         {DECISIONS.map(d => (
@@ -287,7 +288,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
                       type="text"
                       value={rationales[adv.advisory_id] ?? ''}
                       onChange={e => setRationales(prev => ({ ...prev, [adv.advisory_id]: e.target.value }))}
-                      disabled={!item.live_decision_available || item.stale_evidence}
+                      disabled={activeStage !== 3 || !item.live_decision_available || item.stale_evidence}
                       placeholder="Independent reviewer rationale (min 10 chars)"
                       className="flex-1 min-w-[220px] rounded border border-slate-600 bg-[#06182B] px-2 py-1 text-white"
                     />
