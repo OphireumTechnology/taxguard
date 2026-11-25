@@ -269,6 +269,9 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
                   <strong>Human decision recorded:</strong> {recordedDecision.decision} by {recordedDecision.reviewer_uid} ({recordedDecision.reviewer_role}) — {recordedDecision.rationale}
                   <p className="break-all">Decision ID {recordedDecision.decision_id}</p>
                   <p>Recorded <time dateTime={recordedDecision.recorded_at}>{recordedDecision.recorded_at}</time></p>
+                  {recordedDecision.bound_evidence_fingerprint && (
+                    <p className="break-all">Reviewed evidence fingerprint {recordedDecision.bound_evidence_fingerprint}</p>
+                  )}
                   {recordedDecision.synthetic_staging_gate_used && <p>Synthetic staging decision</p>}
                 </div>
               ) : (
