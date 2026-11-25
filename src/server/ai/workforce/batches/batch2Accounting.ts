@@ -101,10 +101,17 @@ export function runA13Reconciliation(
   if (!isInt(bankEnding) || !isInt(ledgerEnding)) {
     throw new WorkforceError('ACCOUNTING_INVALID_CENT_AMOUNTS', 400);
   }
-  const depositsInTransit = isInt(payload.deposits_in_transit_cents) ? payload.deposits_in_transit_cents : 0;
-  const outstandingChecks = isInt(payload.outstanding_checks_cents) ? payload.outstanding_checks_cents : 0;
-  const adjustedBank = bankEnding + depositsInTransit - outstandingChecks;
-  const varianceCents = adjustedBank - ledgerEnding;
+  const depositsInTransit = payload.deposits_in_transit_cents ?? 0;
+  const outstandingChecks = payload.outstanding_checks_cents ?? 0;
+  if (!isInt(depositsInTransit) || !isInt(outstandingChecks)) {
+    throw new WorkforceError('ACCOUNTING_INVALID_CENT_AMOUNTS', 400);
+  }
+  const exactBank = BigInt(bankEnding) + BigInt(depositsInTransit) - BigInt(outstandingChecks);
+  const adjustedBank = Number(exactBank);
+  const varianceCents = Number(exactBank - BigInt(ledgerEnding));
+  if (!isInt(adjustedBank) || !isInt(varianceCents)) {
+    throw new WorkforceError('ACCOUNTING_INVALID_CENT_AMOUNTS', 400);
+  }
 
   return {
     status: varianceCents !== 0 ? 'REVIEW_REQUIRED' : 'ADVISORY',

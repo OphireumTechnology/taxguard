@@ -379,6 +379,27 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
       ] },
     })).rejects.toMatchObject({ code: 'JOURNAL_ENTRY_TOTAL_OUT_OF_RANGE', status: 400 });
 
+    const reconciliation = {
+      request_id: 'req-a13-precision',
+      agent_id: 'A13' as const,
+      scope: SCOPE,
+      workflow_stage: 5,
+      evidence_source_ids: [],
+      payload: {
+        bank_ending_balance_cents: Number.MAX_SAFE_INTEGER,
+        ledger_ending_balance_cents: Number.MAX_SAFE_INTEGER - 1,
+        deposits_in_transit_cents: 2,
+        outstanding_checks_cents: 2,
+      },
+    };
+    const exact = await h.dispatcher.executeAgent('cpa_exec', reconciliation);
+    expect(exact.structured_data).toMatchObject({ variance_cents: 1 });
+    await expect(h.dispatcher.executeAgent('cpa_exec', {
+      ...reconciliation,
+      request_id: 'req-a13-invalid-adjustment',
+      payload: { ...reconciliation.payload, deposits_in_transit_cents: '2' },
+    })).rejects.toMatchObject({ code: 'ACCOUNTING_INVALID_CENT_AMOUNTS', status: 400 });
+
     const a14Good = await h.dispatcher.executeAgent('cpa_exec', {
       request_id: 'req-a14-ok',
       agent_id: 'A14',
