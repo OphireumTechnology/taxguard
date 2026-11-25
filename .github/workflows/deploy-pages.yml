@@ -8,6 +8,18 @@ name: Deploy TaxGuard Production to GitHub Pages
 #     commit, writes CNAME (destriataxservices.com) and dist/version.json (the exact published commit), and refuses
 #     server bundles, source maps and secret-like files in the artifact.
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/**'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
     inputs:
       commit:
