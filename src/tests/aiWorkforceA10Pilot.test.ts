@@ -622,6 +622,43 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     }
   });
 
+  it('requires the designated reviewer and a matching active SQL case assignment', async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(`
+        CREATE TABLE taxguard_case_assignments (
+          id integer, tenant_id text, case_id text, uid text, role text, active boolean, assigned_at timestamptz
+        );
+        CREATE TABLE taxguard_staff_assignments (
+          tenant_id text, user_id text, client_id text, engagement_id text, tax_year integer, role text,
+          status text, effective_from timestamptz, effective_to timestamptz
+        );
+        CREATE TABLE taxguard_clients (tenant_id text, client_id text, status text);
+      `);
+      const harness = createPilotHarness();
+      const actor = harness.actors.get('tok_reviewer')!;
+      const record = (await harness.env.loadCase(BASE_SCOPE.tenant_id, BASE_SCOPE))!;
+      await db.query("INSERT INTO taxguard_case_assignments VALUES (1, $1, $2, $3, 'reviewer', true, now())",
+        [record.tenant_id, record.tax_case_id, actor.uid]);
+      await db.query("INSERT INTO taxguard_staff_assignments VALUES ($1, $2, $3, $4, $5, 'reviewer', 'ACTIVE', now(), NULL)",
+        [record.tenant_id, actor.uid, record.client_id, record.engagement_id, record.tax_year]);
+      await db.query("INSERT INTO taxguard_clients VALUES ($1, $2, 'active')", [record.tenant_id, record.client_id]);
+      const env = new PgWorkforceEnvironment({
+        transaction: run => db.transaction(tx => run({
+          query: (sql, values) => tx.query(sql, [...(values ?? [])]),
+        })),
+      }, async () => null);
+      expect(await env.isStaffAssigned(actor, record)).toBe(true);
+      expect(await env.isStaffAssigned(actor, { ...record, reviewer_uid: 'other-reviewer' })).toBe(false);
+      await db.exec("UPDATE taxguard_case_assignments SET role = 'preparer'");
+      expect(await env.isStaffAssigned(actor, record)).toBe(false);
+      await db.exec("UPDATE taxguard_case_assignments SET role = 'reviewer', active = false");
+      expect(await env.isStaffAssigned(actor, record)).toBe(false);
+    } finally {
+      await db.close();
+    }
+  });
+
   it('loads only enabled stop controls for the selected tenant through the SQL adapter', async () => {
     const db = new PGlite();
     try {
