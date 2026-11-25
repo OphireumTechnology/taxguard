@@ -264,14 +264,21 @@ export function runA16BookToTax(
   if (!isInt(bookNetIncome)) {
     throw new WorkforceError('BOOK_TO_TAX_INVALID_INCOME', 400);
   }
-  const mealsExpense = isInt(payload.business_meals_cents) ? payload.business_meals_cents : 0;
-  const nondeductiblePenalties = isInt(payload.penalties_cents) ? payload.penalties_cents : 0;
-  const bookDepreciation = isInt(payload.book_depreciation_cents) ? payload.book_depreciation_cents : 0;
-  const taxDepreciation = isInt(payload.tax_depreciation_cents) ? payload.tax_depreciation_cents : 0;
+  const mealsExpense = payload.business_meals_cents ?? 0;
+  const nondeductiblePenalties = payload.penalties_cents ?? 0;
+  const bookDepreciation = payload.book_depreciation_cents ?? 0;
+  const taxDepreciation = payload.tax_depreciation_cents ?? 0;
+  if (!isInt(mealsExpense) || !isInt(nondeductiblePenalties) || !isInt(bookDepreciation) || !isInt(taxDepreciation)) {
+    throw new WorkforceError('BOOK_TO_TAX_INVALID_ADJUSTMENTS', 400);
+  }
 
   const mealsAddback = Math.round(mealsExpense * 0.5);
-  const depreciationTimingDiff = bookDepreciation - taxDepreciation;
-  const estimatedTaxableIncome = bookNetIncome + mealsAddback + nondeductiblePenalties + depreciationTimingDiff;
+  const exactDepreciationDiff = BigInt(bookDepreciation) - BigInt(taxDepreciation);
+  const depreciationTimingDiff = Number(exactDepreciationDiff);
+  const estimatedTaxableIncome = Number(BigInt(bookNetIncome) + BigInt(mealsAddback) + BigInt(nondeductiblePenalties) + exactDepreciationDiff);
+  if (!isInt(depreciationTimingDiff) || !isInt(estimatedTaxableIncome)) {
+    throw new WorkforceError('BOOK_TO_TAX_INVALID_ADJUSTMENTS', 400);
+  }
 
   return {
     status: 'REVIEW_REQUIRED',

@@ -416,6 +416,20 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
       },
     })).rejects.toMatchObject({ code: 'FINANCIAL_STATEMENT_INVALID_TOTALS', status: 400 });
 
+    const bridge = {
+      request_id: 'req-a16-exact',
+      agent_id: 'A16' as const,
+      scope: SCOPE,
+      workflow_stage: 6,
+      evidence_source_ids: [],
+      payload: { book_net_income_cents: Number.MAX_SAFE_INTEGER, penalties_cents: 2, tax_depreciation_cents: 2 },
+    };
+    expect((await h.dispatcher.executeAgent('cpa_exec', bridge)).structured_data)
+      .toMatchObject({ advisory_taxable_income_cents: Number.MAX_SAFE_INTEGER });
+    await expect(h.dispatcher.executeAgent('cpa_exec', {
+      ...bridge, request_id: 'req-a16-overflow', payload: { ...bridge.payload, tax_depreciation_cents: 0 },
+    })).rejects.toMatchObject({ code: 'BOOK_TO_TAX_INVALID_ADJUSTMENTS', status: 400 });
+
     h.setStage(5);
     const a14Good = await h.dispatcher.executeAgent('cpa_exec', {
       request_id: 'req-a14-ok',
