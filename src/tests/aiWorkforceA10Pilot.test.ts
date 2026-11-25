@@ -622,6 +622,36 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     }
   });
 
+  it('loads only enabled stop controls for the selected tenant through the SQL adapter', async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(`
+        CREATE TABLE ai_kill_switches (
+          tenant_id text, scope text, agent_id text, tool_id text, workflow_stage integer, enabled boolean
+        );
+        INSERT INTO ai_kill_switches VALUES
+          ('tenant_destria', 'AGENT', 'A10', NULL, NULL, true),
+          ('tenant_destria', 'TOOL', NULL, 'document.read', NULL, true),
+          ('tenant_destria', 'WORKFLOW', NULL, NULL, 3, true),
+          ('tenant_destria', 'GLOBAL', NULL, NULL, NULL, false),
+          ('tenant_other', 'GLOBAL', NULL, NULL, NULL, true);
+      `);
+      const env = new PgWorkforceEnvironment({
+        transaction: run => db.transaction(tx => run({
+          query: (sql, values) => tx.query(sql, [...(values ?? [])]),
+        })),
+      }, async () => null);
+      expect(await env.getKillSwitches(BASE_SCOPE.tenant_id)).toEqual({
+        global_stop: false,
+        stopped_agents: ['A10'],
+        stopped_tools: ['document.read'],
+        stopped_stages: [3],
+      });
+    } finally {
+      await db.close();
+    }
+  });
+
   it('loads evidence only while the vault version and hash match the source pin', async () => {
     const db = new PGlite();
     try {
