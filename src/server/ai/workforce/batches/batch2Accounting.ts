@@ -221,6 +221,9 @@ export function runA15FinancialStatement(
 
   const balanceSheetDiff = assets - (liabilities + equity);
   const netIncome = revenue - expenses;
+  if (!isInt(balanceSheetDiff) || !isInt(netIncome) || !isInt(liabilities + equity)) {
+    throw new WorkforceError('FINANCIAL_STATEMENT_INVALID_TOTALS', 400);
+  }
   const marginPct = revenue > 0 ? Number(((netIncome / revenue) * 100).toFixed(2)) : 0;
 
   return {

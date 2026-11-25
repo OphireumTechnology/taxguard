@@ -400,6 +400,23 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
       payload: { ...reconciliation.payload, deposits_in_transit_cents: '2' },
     })).rejects.toMatchObject({ code: 'ACCOUNTING_INVALID_CENT_AMOUNTS', status: 400 });
 
+    h.setStage(6);
+    await expect(h.dispatcher.executeAgent('cpa_exec', {
+      request_id: 'req-a15-overflow',
+      agent_id: 'A15',
+      scope: SCOPE,
+      workflow_stage: 6,
+      evidence_source_ids: [],
+      payload: {
+        total_assets_cents: Number.MAX_SAFE_INTEGER,
+        total_liabilities_cents: Number.MAX_SAFE_INTEGER,
+        total_equity_cents: 2,
+        total_revenue_cents: 100,
+        total_expenses_cents: 10,
+      },
+    })).rejects.toMatchObject({ code: 'FINANCIAL_STATEMENT_INVALID_TOTALS', status: 400 });
+
+    h.setStage(5);
     const a14Good = await h.dispatcher.executeAgent('cpa_exec', {
       request_id: 'req-a14-ok',
       agent_id: 'A14',
