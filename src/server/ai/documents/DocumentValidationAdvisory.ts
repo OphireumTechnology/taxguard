@@ -47,8 +47,10 @@ export function inspectDocumentExtraction(evidence: EvidenceMetadata, extraction
   if (!extracted.size && !anchored.size) throw new GovernanceError('AI_EXTRACTION_FIELDS_INVALID');
 
   const findings: { field_key: string; page: number; code: FindingCode }[] = [];
+  let comparedFields = 0;
   for (const [key, field] of extracted) {
     const anchor = anchored.get(key);
+    if (anchor) comparedFields += 1;
     if (!anchor || anchor.value !== field.value) {
       findings.push({ field_key: field.key, page: field.page, code: anchor ? 'SOURCE_VALUE_MISMATCH' : 'SOURCE_ANCHOR_MISSING' });
     }
@@ -63,6 +65,6 @@ export function inspectDocumentExtraction(evidence: EvidenceMetadata, extraction
   return {
     agent_id: 'A08' as const, status: 'ADVISORY' as const, human_review_required: true as const,
     authoritative_mutation: false as const, source_id: evidence.source_id, document_version: evidence.document_version,
-    compared_fields: extracted.size, findings,
+    extracted_fields: extracted.size, anchored_fields: anchored.size, compared_fields: comparedFields, findings,
   };
 }

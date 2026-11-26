@@ -48,6 +48,7 @@ describe('A08 source comparison advisory', () => {
       { field_key: 'second', page: 1, code: 'SOURCE_VALUE_MISMATCH' },
       { field_key: 'third', page: 2, code: 'SOURCE_ANCHOR_MISSING' },
     ]);
+    expect(advisory).toMatchObject({ extracted_fields: 3, anchored_fields: 2, compared_fields: 2 });
     expect(JSON.stringify(advisory)).not.toContain('private value');
     expect(advisory.human_review_required).toBe(true);
   });
