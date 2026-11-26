@@ -5,6 +5,7 @@ type Field = Readonly<{ key: string; page: number; value: string | number }>;
 type Extraction = Readonly<{
   sourceId: string;
   documentVersion: number;
+  sourceHash: string;
   fields: readonly Field[];
 }>;
 type FindingCode = 'EXTRACTED_FIELD_MISSING' | 'SOURCE_ANCHOR_MISSING' | 'SOURCE_VALUE_MISMATCH';
@@ -26,7 +27,7 @@ export function inspectDocumentExtraction(evidence: EvidenceMetadata, extraction
     || typeof evidence.source_hash !== 'string'
     || !/^[a-f0-9]{64}$/.test(evidence.source_hash)
     || [extraction, source].some(input => !input || input.sourceId !== evidence.source_id
-      || input.documentVersion !== evidence.document_version)) {
+      || input.documentVersion !== evidence.document_version || input.sourceHash !== evidence.source_hash)) {
     throw new GovernanceError('AI_EXTRACTION_SOURCE_INVALID');
   }
 

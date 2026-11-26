@@ -39,7 +39,7 @@ describe('A05 document intake advisory', () => {
 describe('A08 source comparison advisory', () => {
   const evidence: EvidenceMetadata = { source_id: 'source', document_record_id: 'doc', document_version: 2,
     source_hash: 'a'.repeat(64), document_status: 'RELEASED', quarantine_status: 'CLEAN' };
-  const extraction = { sourceId: 'source', documentVersion: 2,
+  const extraction = { sourceId: 'source', documentVersion: 2, sourceHash: evidence.source_hash,
     fields: [{ key: 'first', page: 1, value: 2 }, { key: 'second', page: 1, value: 'private value' }, { key: 'third', page: 2, value: 3 }] };
   const source = { ...extraction, fields: [{ key: 'first', page: 1, value: 2 }, { key: 'second', page: 1, value: 'different' }] };
   it('reports mismatches and missing anchors without echoing extracted values', () => {
@@ -74,6 +74,11 @@ describe('A08 source comparison advisory', () => {
   it('rejects a non-string evidence hash before source comparison', () => {
     const malformed = { ...evidence, source_hash: [evidence.source_hash] } as unknown as EvidenceMetadata;
     expect(() => inspectDocumentExtraction(malformed, extraction, source)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
+  });
+  it('rejects snapshots with a different content hash even when source and version match', () => {
+    const substituted = { ...extraction, sourceHash: 'b'.repeat(64) };
+    expect(() => inspectDocumentExtraction(evidence, substituted, source)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
+    expect(() => inspectDocumentExtraction(evidence, extraction, substituted)).toThrow('AI_EXTRACTION_SOURCE_INVALID');
   });
   it('refuses stale versions, released-state gaps, and malformed duplicate anchors', () => {
     expect(() => inspectDocumentExtraction(evidence, extraction, { ...source, documentVersion: 1 })).toThrow('AI_EXTRACTION_SOURCE_INVALID');
