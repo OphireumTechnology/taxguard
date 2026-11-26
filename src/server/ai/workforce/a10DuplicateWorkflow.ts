@@ -330,6 +330,7 @@ export class A10DuplicateWorkflowService {
 
       let decisionBlockReason: string | null = null;
       try {
+        assertCaseScopeMatch(caseRecord, scope, [3]);
         assertDecisionAuthority({
           agentId: 'A10', actor, requestedBy: advisory.requested_by, caseRecord,
           requiredReviewerRole: advisory.required_reviewer_role, syntheticStaging: staging,
