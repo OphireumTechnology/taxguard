@@ -366,6 +366,16 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       live_decision_block_reason: null,
     });
 
+    const activeCase = (await h.env.loadCase(BASE_SCOPE.tenant_id, BASE_SCOPE))!;
+    h.setCase({ ...activeCase, active_stage: 4 });
+    const [advancedInspection] = await h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
+    expect(advancedInspection).toMatchObject({
+      advisory: { advisory_id: processed.advisory.advisory_id },
+      live_decision_available: false,
+      live_decision_block_reason: 'WORKFORCE_STAGE_MISMATCH',
+    });
+    h.setCase(activeCase);
+
     // Maker-checker blocks self-review by preparer who submitted job
     await expect(
       h.service.recordDuplicateDecision('tok_preparer', {
