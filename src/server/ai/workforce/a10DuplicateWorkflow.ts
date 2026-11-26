@@ -94,6 +94,11 @@ export class A10DuplicateWorkflowService {
       throw new WorkforceError('WORKFORCE_INVALID_REQUEST_ID', 400);
     }
 
+    if (rawInput.idempotency_key !== undefined &&
+      (typeof rawInput.idempotency_key !== 'string' || rawInput.idempotency_key.length > 128)) {
+      throw new WorkforceError('WORKFORCE_INVALID_IDEMPOTENCY_KEY', 400);
+    }
+
     const actor = await this.env.verifyActor(token);
     assertActiveActor(actor);
     assertTenantScope(actor, scope);
@@ -123,7 +128,7 @@ export class A10DuplicateWorkflowService {
             evidence_fingerprint: fingerprint,
           });
 
-    return this.store.createOrGetJob({
+    const result = await this.store.createOrGetJob({
       job_id: randomUUID(),
       idempotency_key: idempotencyKey,
       tenant_id: scope.tenant_id,
@@ -144,6 +149,13 @@ export class A10DuplicateWorkflowService {
       advisory_id: null,
       error_code: null,
     });
+    const job = result.job;
+    if (job.client_id !== scope.client_id || job.tax_case_id !== scope.tax_case_id ||
+      job.tax_year !== scope.tax_year || job.case_record_id !== caseRecord.case_record_id ||
+      job.metadata_payload.evidence_fingerprint !== fingerprint) {
+      throw new WorkforceError('WORKFORCE_IDEMPOTENCY_CONFLICT', 409);
+    }
+    return result;
   }
 
   async processDuplicateCheckJob(

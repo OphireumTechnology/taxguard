@@ -285,6 +285,16 @@ function createPilotHarness(overrides?: {
 }
 
 describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot', () => {
+  it('matches a custom retry key only to the same evidence selection', async () => {
+    const h = createPilotHarness();
+    const input = { request_id: 'custom-key', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2], idempotency_key: 'review-retry' };
+    const first = await h.service.submitDuplicateCheckJob('tok_preparer', input);
+    const retry = await h.service.submitDuplicateCheckJob('tok_preparer', input);
+    expect(retry).toEqual({ job: first.job, created: false });
+    await expect(h.service.submitDuplicateCheckJob('tok_preparer', { ...input, evidence_source_ids: [SRC_3] }))
+      .rejects.toMatchObject({ code: 'WORKFORCE_IDEMPOTENCY_CONFLICT', status: 409 });
+  });
+
   it('keeps stale jobs terminal and allows a new check against updated evidence', async () => {
     const h = createPilotHarness();
     const submit = () => h.service.submitDuplicateCheckJob('tok_preparer', {
