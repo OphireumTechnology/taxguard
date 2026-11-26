@@ -17,6 +17,7 @@ type IntakeFinding = UploadRejectionCode | 'WAITING_FOR_SCAN' | 'REVIEW_INTAKE' 
 
 /** Advisory over a trusted vault snapshot. This function cannot upload, scan, release or enqueue processing. */
 export function inspectDocumentIntake(scope: Scope, snapshot: IntakeSnapshot, now = new Date()) {
+  if (!snapshot || typeof snapshot !== 'object') throw new GovernanceError('AI_DOCUMENT_METADATA_INVALID');
   if (!scope.clientId || !scope.engagementId || scope.clientId !== snapshot.clientId
     || scope.engagementId !== snapshot.engagementId || scope.taxYear !== snapshot.taxYear) {
     throw new GovernanceError('AI_DOCUMENT_SCOPE_INVALID');

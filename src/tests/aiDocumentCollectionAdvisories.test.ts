@@ -7,6 +7,10 @@ describe('A05 document intake advisory', () => {
   const scope = { clientId: 'client', engagementId: 'engagement', taxYear: 2025 };
   const snapshot = { ...scope, documentId: 'doc', version: 1, fileName: 'document.pdf', fileType: 'application/pdf',
     sizeBytes: 512, status: 'SCAN_PENDING', quarantineStatus: 'PENDING', linkedRequest: true };
+  it.each([null, undefined])('rejects missing vault metadata', missing => {
+    expect(() => inspectDocumentIntake(scope, missing as unknown as typeof snapshot))
+      .toThrow('AI_DOCUMENT_METADATA_INVALID');
+  });
   it.each(['   ', { unexpected: 'metadata' }])('rejects a malformed vault document ID', documentId => {
     const malformed = { ...snapshot, documentId } as unknown as typeof snapshot;
     expect(() => inspectDocumentIntake(scope, malformed)).toThrow('AI_DOCUMENT_METADATA_INVALID');
