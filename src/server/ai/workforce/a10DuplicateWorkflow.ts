@@ -212,11 +212,7 @@ export class A10DuplicateWorkflowService {
       const verifiedEvidence = verifyAuthorizedEvidence(job.evidence_source_ids, loadedEvidence, scope, 10);
       const { pins, fingerprint } = buildEvidencePins(verifiedEvidence);
 
-      const expectedFingerprint =
-        typeof job.metadata_payload.evidence_fingerprint === 'string'
-          ? job.metadata_payload.evidence_fingerprint
-          : null;
-      if (expectedFingerprint && expectedFingerprint !== fingerprint) {
+      if (job.metadata_payload.evidence_fingerprint !== fingerprint) {
         await this.store.updateJobStatus(actor.tenant_id, job.job_id, 'STALE', {
           error_code: 'STALE_EVIDENCE_CONFLICT',
         });

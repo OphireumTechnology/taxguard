@@ -295,6 +295,20 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       .rejects.toMatchObject({ code: 'WORKFORCE_IDEMPOTENCY_CONFLICT', status: 409 });
   });
 
+  it('refuses to generate an advisory when the queued evidence fingerprint is missing', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'missing-fingerprint', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const { evidence_fingerprint: _, ...metadata } = job.metadata_payload;
+    h.store.jobs.set(job.job_id, { ...job, metadata_payload: metadata });
+
+    await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
+      .rejects.toMatchObject({ code: 'STALE_EVIDENCE_CONFLICT', status: 409 });
+    expect(h.store.advisories.size).toBe(0);
+    expect(h.store.jobs.get(job.job_id)?.status).toBe('STALE');
+  });
+
   it('keeps stale jobs terminal and allows a new check against updated evidence', async () => {
     const h = createPilotHarness();
     const submit = () => h.service.submitDuplicateCheckJob('tok_preparer', {
