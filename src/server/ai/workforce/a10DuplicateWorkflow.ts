@@ -169,26 +169,26 @@ export class A10DuplicateWorkflowService {
       tax_year: job.tax_year,
     };
 
+    assertRoleAllowed(actor, A10_ALLOWED_ROLES);
+    const killSwitches = await this.env.getKillSwitches(actor.tenant_id);
+    assertKillSwitchClear(killSwitches, 'A10', 3, ['document.read']);
+
+    const caseRecord = await this.env.loadCase(actor.tenant_id, scope);
+    assertCaseScopeMatch(caseRecord, scope, [3]);
+
+    const assigned = await this.env.isStaffAssigned(actor, caseRecord);
+    if (!assigned) {
+      throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
+    }
+
+    // Replays require the same current authority as the original processing request.
+    if (job.status === 'COMPLETED' && job.advisory_id) {
+      const existingAdvisory = await this.store.getAdvisory(actor.tenant_id, job.advisory_id);
+      if (existingAdvisory) return { job, advisory: existingAdvisory };
+      throw new WorkforceError('WORKFORCE_ADVISORY_NOT_FOUND', 404);
+    }
+
     try {
-      assertRoleAllowed(actor, A10_ALLOWED_ROLES);
-      const killSwitches = await this.env.getKillSwitches(actor.tenant_id);
-      assertKillSwitchClear(killSwitches, 'A10', 3, ['document.read']);
-
-      const caseRecord = await this.env.loadCase(actor.tenant_id, scope);
-      assertCaseScopeMatch(caseRecord, scope, [3]);
-
-      const assigned = await this.env.isStaffAssigned(actor, caseRecord);
-      if (!assigned) {
-        throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
-      }
-
-      // Replays require the same current authority as the original processing request.
-      if (job.status === 'COMPLETED' && job.advisory_id) {
-        const existingAdvisory = await this.store.getAdvisory(actor.tenant_id, job.advisory_id);
-        if (existingAdvisory) return { job, advisory: existingAdvisory };
-        throw new WorkforceError('WORKFORCE_ADVISORY_NOT_FOUND', 404);
-      }
-
       await this.store.updateJobStatus(actor.tenant_id, job.job_id, 'PROCESSING');
 
       // Re-read live evidence metadata and re-verify version, status, and quarantine.
