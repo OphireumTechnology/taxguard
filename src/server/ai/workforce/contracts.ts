@@ -296,6 +296,7 @@ export interface WorkforceStore {
     status: WorkforceJobStatus,
     patch?: { advisory_id?: string | null; error_code?: string | null },
   ): Promise<WorkforceJobRecord>;
+  completeA10Job(advisory: WorkforceAdvisoryOutput & { job_id: string }): Promise<WorkforceJobRecord>;
   saveAdvisory(advisory: WorkforceAdvisoryOutput): Promise<WorkforceAdvisoryOutput>;
   getAdvisory(tenantId: string, advisoryId: string): Promise<WorkforceAdvisoryOutput | null>;
   listCaseAdvisories(tenantId: string, taxCaseId: string, agentId?: AgentId): Promise<readonly WorkforceAdvisoryOutput[]>;

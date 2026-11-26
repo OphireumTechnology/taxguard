@@ -1,5 +1,5 @@
 import type { AgentId } from '../../../ai/types';
-import type { TransactionalSql } from '../governance/SqlGovernanceStore';
+import type { SqlConnection, TransactionalSql } from '../governance/SqlGovernanceStore';
 import {
   WorkforceError,
   type WorkforceAdvisoryOutput,
@@ -102,67 +102,86 @@ export class SqlWorkforceStore implements WorkforceStore {
     status: WorkforceJobStatus,
     patch?: { advisory_id?: string | null; error_code?: string | null },
   ): Promise<WorkforceJobRecord> {
-    return this.db.transaction(async sql => {
-      const rows = (
-        await sql.query<WorkforceJobRecord>(
-          `UPDATE ai_workforce_jobs
-           SET status = $3,
-               advisory_id = COALESCE($4, advisory_id),
-               error_code = $5,
-               updated_at = now()
-           WHERE tenant_id = $1 AND job_id = $2
-           RETURNING job_id, idempotency_key, tenant_id, client_id, tax_case_id, tax_year, case_record_id,
-                     agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
-                     status, advisory_id, error_code, created_at, updated_at`,
-          [tenantId, jobId, status, patch?.advisory_id ?? null, patch?.error_code ?? null],
-        )
-      ).rows;
-      if (!rows[0]) throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
-      return rows[0];
-    });
+    return this.db.transaction(sql => this.updateJobStatusInTransaction(sql, tenantId, jobId, status, patch));
+  }
+
+  private async updateJobStatusInTransaction(sql: SqlConnection,
+    tenantId: string,
+    jobId: string,
+    status: WorkforceJobStatus,
+    patch?: { advisory_id?: string | null; error_code?: string | null },
+  ): Promise<WorkforceJobRecord> {
+    const rows = (
+      await sql.query<WorkforceJobRecord>(
+        `UPDATE ai_workforce_jobs
+         SET status = $3,
+             advisory_id = COALESCE($4, advisory_id),
+             error_code = $5,
+             updated_at = now()
+         WHERE tenant_id = $1 AND job_id = $2
+         RETURNING job_id, idempotency_key, tenant_id, client_id, tax_case_id, tax_year, case_record_id,
+                   agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
+                   status, advisory_id, error_code, created_at, updated_at`,
+        [tenantId, jobId, status, patch?.advisory_id ?? null, patch?.error_code ?? null],
+      )
+    ).rows;
+    if (!rows[0]) throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
+    return rows[0];
   }
 
   async saveAdvisory(advisory: WorkforceAdvisoryOutput): Promise<WorkforceAdvisoryOutput> {
+    return this.db.transaction(sql => this.saveAdvisoryInTransaction(sql, advisory));
+  }
+
+  private async saveAdvisoryInTransaction(sql: SqlConnection, advisory: WorkforceAdvisoryOutput): Promise<WorkforceAdvisoryOutput> {
+    await sql.query(
+      `INSERT INTO ai_workforce_advisories (
+         advisory_id, job_id, tenant_id, client_id, tax_case_id, tax_year,
+         agent_id, agent_name, batch_id, workflow_stage, status, summary,
+         findings, structured_data, evidence_pins, evidence_fingerprint,
+         authority_citations, required_reviewer_role, permitted_decisions,
+         output_audience, human_review_required, authoritative_mutation,
+         external_submission_allowed, requested_by, created_at
+       ) VALUES (
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+         $13::jsonb,$14::jsonb,$15::jsonb,$16,$17::jsonb,$18,$19::jsonb,
+         $20,true,false,false,$21,$22
+       )`,
+      [
+        advisory.advisory_id,
+        advisory.job_id,
+        advisory.scope.tenant_id,
+        advisory.scope.client_id,
+        advisory.scope.tax_case_id,
+        advisory.scope.tax_year,
+        advisory.agent_id,
+        advisory.agent_name,
+        advisory.batch_id,
+        advisory.workflow_stage,
+        advisory.status,
+        advisory.summary,
+        JSON.stringify(advisory.findings),
+        JSON.stringify(advisory.structured_data),
+        JSON.stringify(advisory.evidence_pins),
+        advisory.evidence_fingerprint,
+        JSON.stringify(advisory.authority_citations),
+        advisory.required_reviewer_role,
+        JSON.stringify(advisory.permitted_decisions),
+        advisory.output_audience,
+        advisory.requested_by,
+        advisory.created_at,
+      ],
+    );
+    return advisory;
+  }
+
+  async completeA10Job(advisory: WorkforceAdvisoryOutput & { job_id: string }): Promise<WorkforceJobRecord> {
     return this.db.transaction(async sql => {
-      await sql.query(
-        `INSERT INTO ai_workforce_advisories (
-           advisory_id, job_id, tenant_id, client_id, tax_case_id, tax_year,
-           agent_id, agent_name, batch_id, workflow_stage, status, summary,
-           findings, structured_data, evidence_pins, evidence_fingerprint,
-           authority_citations, required_reviewer_role, permitted_decisions,
-           output_audience, human_review_required, authoritative_mutation,
-           external_submission_allowed, requested_by, created_at
-         ) VALUES (
-           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-           $13::jsonb,$14::jsonb,$15::jsonb,$16,$17::jsonb,$18,$19::jsonb,
-           $20,true,false,false,$21,$22
-         )`,
-        [
-          advisory.advisory_id,
-          advisory.job_id,
-          advisory.scope.tenant_id,
-          advisory.scope.client_id,
-          advisory.scope.tax_case_id,
-          advisory.scope.tax_year,
-          advisory.agent_id,
-          advisory.agent_name,
-          advisory.batch_id,
-          advisory.workflow_stage,
-          advisory.status,
-          advisory.summary,
-          JSON.stringify(advisory.findings),
-          JSON.stringify(advisory.structured_data),
-          JSON.stringify(advisory.evidence_pins),
-          advisory.evidence_fingerprint,
-          JSON.stringify(advisory.authority_citations),
-          advisory.required_reviewer_role,
-          JSON.stringify(advisory.permitted_decisions),
-          advisory.output_audience,
-          advisory.requested_by,
-          advisory.created_at,
-        ],
-      );
-      return advisory;
+      await this.saveAdvisoryInTransaction(sql, advisory);
+      return this.updateJobStatusInTransaction(sql, advisory.scope.tenant_id, advisory.job_id, 'COMPLETED', {
+        advisory_id: advisory.advisory_id,
+        error_code: null,
+      });
     });
   }
 

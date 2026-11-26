@@ -64,6 +64,14 @@ class RouteTestStore implements WorkforceStore {
     this.jobs.set(jobId, updated);
     return updated;
   }
+  async completeA10Job(advisory: WorkforceAdvisoryOutput & { job_id: string }): Promise<WorkforceJobRecord> {
+    const job = await this.updateJobStatus(advisory.scope.tenant_id, advisory.job_id, 'COMPLETED', {
+      advisory_id: advisory.advisory_id, error_code: null,
+    });
+    await this.saveAdvisory(advisory);
+    return job;
+  }
+
   async saveAdvisory(advisory: WorkforceAdvisoryOutput) {
     this.advisories.set(advisory.advisory_id, advisory);
     return advisory;

@@ -251,7 +251,7 @@ export class A10DuplicateWorkflowService {
             },
           ];
 
-      const advisory: WorkforceAdvisoryOutput = {
+      const advisory: WorkforceAdvisoryOutput & { job_id: string } = {
         advisory_id: randomUUID(),
         job_id: job.job_id,
         agent_id: 'A10',
@@ -305,11 +305,7 @@ export class A10DuplicateWorkflowService {
         throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
       }
 
-      await this.store.saveAdvisory(advisory);
-      const completedJob = await this.store.updateJobStatus(actor.tenant_id, job.job_id, 'COMPLETED', {
-        advisory_id: advisory.advisory_id,
-        error_code: null,
-      });
+      const completedJob = await this.store.completeA10Job(advisory);
 
       return { job: completedJob, advisory };
     } catch (error) {

@@ -46,6 +46,10 @@ class BatchTestStore implements WorkforceStore {
   async updateJobStatus(_t: string, _j: string, _s: WorkforceJobStatus): Promise<WorkforceJobRecord> {
     throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
   }
+  async completeA10Job(advisory: WorkforceAdvisoryOutput & { job_id: string }): Promise<WorkforceJobRecord> {
+    throw new Error('A10 is outside this test store');
+  }
+
   async saveAdvisory(advisory: WorkforceAdvisoryOutput) {
     this.advisories.set(advisory.advisory_id, advisory);
     return advisory;

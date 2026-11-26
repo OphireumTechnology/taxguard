@@ -83,6 +83,14 @@ class InMemoryTransactionalWorkforceStore implements WorkforceStore {
     return updated;
   }
 
+  async completeA10Job(advisory: WorkforceAdvisoryOutput & { job_id: string }): Promise<WorkforceJobRecord> {
+    const job = await this.updateJobStatus(advisory.scope.tenant_id, advisory.job_id, 'COMPLETED', {
+      advisory_id: advisory.advisory_id, error_code: null,
+    });
+    await this.saveAdvisory(advisory);
+    return job;
+  }
+
   async saveAdvisory(advisory: WorkforceAdvisoryOutput): Promise<WorkforceAdvisoryOutput> {
     this.advisories.set(advisory.advisory_id, advisory);
     return advisory;
@@ -306,7 +314,7 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
 
     await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
       .rejects.toMatchObject({ code: 'WORKFORCE_STAGE_MISMATCH' });
-    expect(h.store.advisories.size).toBe(0);
+    expect(await h.store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
   });
 
   it('does not save the advisory if the worker session is revoked during processing', async () => {
@@ -321,7 +329,7 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
 
     await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
       .rejects.toMatchObject({ code: 'WORKFORCE_SESSION_REVOKED', status: 401 });
-    expect(h.store.advisories.size).toBe(0);
+    expect(await h.store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
     const retried = await h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
     expect(retried.job.status).toBe('COMPLETED');
   });
@@ -332,12 +340,12 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       request_id: 'missing-fingerprint', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
     });
     const { evidence_fingerprint: _, ...metadata } = job.metadata_payload;
-    h.store.jobs.set(job.job_id, { ...job, metadata_payload: metadata });
+    vi.spyOn(h.store, 'getJob').mockResolvedValueOnce({ ...job, metadata_payload: metadata });
 
     await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
       .rejects.toMatchObject({ code: 'STALE_EVIDENCE_CONFLICT', status: 409 });
-    expect(h.store.advisories.size).toBe(0);
-    expect(h.store.jobs.get(job.job_id)?.status).toBe('STALE');
+    expect(await h.store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
+    expect((await h.store.getJob(BASE_SCOPE.tenant_id, job.job_id))?.status).toBe('STALE');
   });
 
   it('keeps stale jobs terminal and allows a new check against updated evidence', async () => {
@@ -855,9 +863,15 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     const db = new PGlite();
     try {
       await db.exec(readFileSync('supabase/migrations/20261122120000_ai_workforce_jobs_and_decisions.sql', 'utf8'));
+      let failCompletion = false;
       const store = new SqlWorkforceStore({
         transaction: run => db.transaction(tx => run({
-          query: (sql, params) => tx.query(sql, [...(params ?? [])]),
+          query: (sql, params) => {
+            if (failCompletion && sql.includes('UPDATE ai_workforce_jobs') && params?.[2] === 'COMPLETED') {
+              throw new Error('synthetic completion failure');
+            }
+            return tx.query(sql, [...(params ?? [])]);
+          },
         })),
       });
       const { service } = createPilotHarness({
@@ -870,6 +884,11 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       const { job } = await service.submitDuplicateCheckJob('tok_preparer', submission);
       const repeated = await service.submitDuplicateCheckJob('tok_preparer', submission);
       expect(repeated).toMatchObject({ created: false, job: { job_id: job.job_id } });
+      failCompletion = true;
+      await expect(service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
+        .rejects.toThrow('synthetic completion failure');
+      expect(await store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
+      failCompletion = false;
       const { advisory } = await service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
       const review = {
         request_id: 'sql-pilot-review', scope: BASE_SCOPE, advisory_id: advisory.advisory_id,
