@@ -19,6 +19,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'public/**'
+      - 'server.ts'
       - 'index.html'
       - 'vite.config.ts'
       - 'tsconfig.json'
