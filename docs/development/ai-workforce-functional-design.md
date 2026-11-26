@@ -128,3 +128,13 @@ The execution manifest traces the workforce migration through 13 prerequisites. 
 ## Review evidence on 2026-11-26
 
 The [staff review candidate at 6930da4](https://github.com/OphireumTechnology/taxguard/commit/6930da493460dd314eb3391393e8882bdecc270d) checks the full advisory scope before loading A10 evidence or decisions. The regression verifies that mismatched client and tax-year entries are excluded without loading their decisions. Five local workforce and staging manifest suites passed (25 tests). On workforce head `183483a49f3e12f70732a5570ae35b9933a4e75d`, the collection, onboarding and roster suites passed (31 tests), including coverage for infected A05 intake, A08 omitted source fields and A03 unlisted engagement services. These results establish local review evidence. Hosted acceptance requires the reconciled staging schema, an exact isolated deployment and an independent authorized decision tied to the pinned evidence. Production commissioning requires separate approval.
+
+## A09 Stage Two integration boundary on 2026-11-26
+
+The local A09 evaluator needs a current, versioned manifest with evidence lifecycle statuses. The browser manifest engine reads localStorage. The durable collection route calls the scoped collection store, but the questionnaire save RPC initializes its requirement rows with `status: Required` and `reviewStatus: PENDING`. The questionnaire revision versions client-reported answers. It provides no evidence status for an individual requirement. A pending waiver claim requires professional review before it can suppress a finding.
+
+The staff integration needs a server-side projection that joins requirement IDs and levels with the authorized current evidence status and a version that covers those statuses. Resolve scope through the existing tenant, client, engagement and tax-year controls. When this projection is unavailable, the staff UI should show that the advisory is unavailable and keep the existing document workflow usable. Verify missing, pending-review, correction and accepted cases using the same scoped source as the UI.
+
+| Implementation | Website integration | Hosted staging | Production commissioning |
+| --- | --- | --- | --- |
+| Local evaluator at `8947c3651b183b5e4e7763bfe8c1fccd5f04cc9a`; 21 tests across A09 and Stage Two verification | The authoritative evidence-status projection and staff advisory wiring are open | Open | Open |
