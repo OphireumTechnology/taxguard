@@ -285,6 +285,29 @@ function createPilotHarness(overrides?: {
 }
 
 describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot', () => {
+  it('keeps stale jobs terminal and allows a new check against updated evidence', async () => {
+    const h = createPilotHarness();
+    const submit = () => h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'stale-job-test',
+      scope: BASE_SCOPE,
+      evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const { job } = await submit();
+    const evidence = await h.env.loadEvidence(BASE_SCOPE.tenant_id, BASE_SCOPE, [SRC_1, SRC_2]);
+    h.setEvidence(evidence.map(row => ({ ...row, document_version: row.document_version + 1 })));
+    const process = () => h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+
+    await expect(process()).rejects.toMatchObject({ code: 'STALE_EVIDENCE_CONFLICT' });
+    expect(await h.store.getJob(BASE_SCOPE.tenant_id, job.job_id)).toMatchObject({ status: 'STALE' });
+
+    const update = vi.spyOn(h.store, 'updateJobStatus');
+    await expect(process()).rejects.toMatchObject({ code: 'STALE_EVIDENCE_CONFLICT' });
+    expect(update).not.toHaveBeenCalled();
+    const replacement = await submit();
+    expect(replacement.created).toBe(true);
+    expect(replacement.job.job_id).not.toBe(job.job_id);
+  });
+
   it('only inspects advisories in the authorized client and tax year', async () => {
     const h = createPilotHarness();
     const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {

@@ -182,10 +182,14 @@ export class A10DuplicateWorkflowService {
     }
 
     // Replays require the same current authority as the original processing request.
-    if (job.status === 'COMPLETED' && job.advisory_id) {
-      const existingAdvisory = await this.store.getAdvisory(actor.tenant_id, job.advisory_id);
+    if (job.status === 'COMPLETED') {
+      const existingAdvisory = job.advisory_id ? await this.store.getAdvisory(actor.tenant_id, job.advisory_id) : null;
       if (existingAdvisory) return { job, advisory: existingAdvisory };
       throw new WorkforceError('WORKFORCE_ADVISORY_NOT_FOUND', 404);
+    }
+
+    if (job.status === 'STALE') {
+      throw new WorkforceError('STALE_EVIDENCE_CONFLICT', 409);
     }
 
     try {
@@ -287,7 +291,7 @@ export class A10DuplicateWorkflowService {
       return { job: completedJob, advisory };
     } catch (error) {
       const code = error instanceof WorkforceError ? error.code : 'WORKFORCE_PROCESSING_FAILED';
-      if (job.status !== 'COMPLETED' && code !== 'STALE_EVIDENCE_CONFLICT') {
+      if (code !== 'STALE_EVIDENCE_CONFLICT') {
         await this.store
           .updateJobStatus(actor.tenant_id, job.job_id, error instanceof WorkforceError && error.status === 403 ? 'DENIED' : 'FAILED', {
             error_code: code,
