@@ -33,6 +33,7 @@ const LEVELS = new Set(['REQUIRED', 'CONDITIONAL', 'OPTIONAL', 'INFORMATIONAL'])
 
 /** Local A09 capability. Its caller must supply a currently authorized authoritative manifest. */
 export function inspectMissingDocuments(scope: Scope, manifest: Manifest) {
+  if (!manifest || typeof manifest !== 'object') throw new GovernanceError('AI_MANIFEST_INVALID');
   if (!scope.clientId || !scope.engagementId || !Number.isSafeInteger(scope.taxYear)
     || manifest.clientId !== scope.clientId || manifest.engagementId !== scope.engagementId
     || manifest.taxYear !== scope.taxYear) throw new GovernanceError('AI_MANIFEST_SCOPE_INVALID');

@@ -8,6 +8,11 @@ const row = (requirementId: string, status: Item['status'], requirementLevel: It
 const manifest = (...requirements: Item[]) => ({ ...scope, manifestVersion: 2, requirements });
 
 describe('A09 missing-document advisory', () => {
+  it.each([null, undefined])('rejects an unavailable authoritative manifest', unavailable => {
+    expect(() => inspectMissingDocuments(scope, unavailable as unknown as ReturnType<typeof manifest>))
+      .toThrow('AI_MANIFEST_INVALID');
+  });
+
   it('distinguishes missing evidence, pending review and unusable evidence', () => {
     const input = manifest(row('one', 'MISSING'), row('two', 'MATCHED'), row('three', 'WRONG_YEAR', 'CONDITIONAL'),
       row('four', 'COLLECTION_ACCEPTED'), row('five', 'WAIVED'), row('six', 'MISSING', 'OPTIONAL'));
