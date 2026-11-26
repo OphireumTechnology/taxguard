@@ -267,11 +267,18 @@ export async function submitAdminPasswordReset(
 
   // Always terminate the recovery session so it can never be reused or mistaken for an active admin session.
   clearVerifiedRecoveryMarker();
-  await authClient.signOut().catch(() => {});
+  let terminationConfirmed = false;
+  try {
+    const result = await authClient.signOut();
+    terminationConfirmed = Boolean(result && typeof result === 'object' && 'error' in result && result.error === null);
+  } catch {
+    // Password update already succeeded; do not retry the mutation or claim sign-out succeeded.
+  }
   return {
     success: true,
-    message:
-      'Administrator password updated securely. Your recovery session has been terminated. Sign in again with your new password and mandatory MFA.'
+    message: terminationConfirmed
+      ? 'Administrator password updated securely. Your recovery session has been terminated. Sign in again with your new password and mandatory MFA.'
+      : 'Administrator password updated. Recovery session termination could not be confirmed. Sign out before signing in again with your new password and mandatory MFA.'
   };
 }
 
