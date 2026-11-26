@@ -295,6 +295,20 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       .rejects.toMatchObject({ code: 'WORKFORCE_IDEMPOTENCY_CONFLICT', status: 409 });
   });
 
+  it('does not save an advisory after the case leaves Stage Three during processing', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'advanced-case', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const activeCase = (await h.env.loadCase(BASE_SCOPE.tenant_id, BASE_SCOPE))!;
+    vi.spyOn(h.env, 'loadCase').mockResolvedValueOnce(activeCase)
+      .mockResolvedValueOnce({ ...activeCase, active_stage: 4 });
+
+    await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
+      .rejects.toMatchObject({ code: 'WORKFORCE_STAGE_MISMATCH' });
+    expect(h.store.advisories.size).toBe(0);
+  });
+
   it('does not save the advisory if the worker session is revoked during processing', async () => {
     const h = createPilotHarness();
     const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {

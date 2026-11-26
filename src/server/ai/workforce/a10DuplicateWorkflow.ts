@@ -296,7 +296,12 @@ export class A10DuplicateWorkflowService {
         throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
       }
       assertRoleAllowed(freshActor, A10_ALLOWED_ROLES);
-      if (!(await this.env.isStaffAssigned(freshActor, caseRecord))) {
+      const freshCase = await this.env.loadCase(freshActor.tenant_id, scope);
+      assertCaseScopeMatch(freshCase, scope, [3]);
+      if (freshCase.case_record_id !== caseRecord.case_record_id) {
+        throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
+      }
+      if (!(await this.env.isStaffAssigned(freshActor, freshCase))) {
         throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
       }
 
@@ -457,7 +462,12 @@ export class A10DuplicateWorkflowService {
       throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
     }
 
-    if (!(await this.env.isStaffAssigned(freshActor, caseRecord))) {
+    const freshCase = await this.env.loadCase(freshActor.tenant_id, scope);
+    assertCaseScopeMatch(freshCase, scope, [3]);
+    if (freshCase.case_record_id !== caseRecord.case_record_id) {
+      throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
+    }
+    if (!(await this.env.isStaffAssigned(freshActor, freshCase))) {
       throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
     }
     // Enforce pending owner-approval live gate + maker-checker + role authority.
@@ -465,7 +475,7 @@ export class A10DuplicateWorkflowService {
       agentId: 'A10',
       actor: freshActor,
       requestedBy: advisory.requested_by,
-      caseRecord,
+      caseRecord: freshCase,
       requiredReviewerRole: advisory.required_reviewer_role,
       syntheticStaging: this.env.getSyntheticStagingConfig(),
     });
