@@ -46,6 +46,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
   const [sourceIdsInput, setSourceIdsInput] = useState('');
   const [items, setItems] = useState<ClientA10InspectionItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [rationales, setRationales] = useState<Record<string, string>>({});
@@ -65,6 +66,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
     const read = ++latestRead.current;
     setItems([]);
     setReadSucceeded(false);
+    setReadError(null);
     setLoading(true);
     try {
       const res = await aiWorkforceService.listA10CaseAdvisories(scope);
@@ -72,7 +74,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
       setItems(res.items);
       setReadSucceeded(true);
     } catch (error) {
-      if (read === latestRead.current) setNotice({ error: true, text: workforceErrorMessage(error) });
+      if (read === latestRead.current) setReadError(workforceErrorMessage(error));
     } finally {
       if (read === latestRead.current) setLoading(false);
     }
@@ -190,6 +192,12 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
           }`}
         >
           {notice.text}
+        </p>
+      )}
+
+      {readError && (
+        <p role="alert" className="rounded-lg border border-red-500/40 bg-red-950/30 p-2 text-red-200">
+          Could not refresh advisories. {readError}
         </p>
       )}
 
