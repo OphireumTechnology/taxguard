@@ -39,6 +39,12 @@ describe('A09 missing-document advisory', () => {
     expect(() => inspectMissingDocuments(scope, manifest(malformed))).toThrow('AI_MANIFEST_INVALID');
   });
 
+  it.each([{ clientId: 42 }, { engagementId: '   ' }])('rejects malformed scope even when the manifest repeats it', patch => {
+    const malformed = { ...scope, ...patch } as typeof scope;
+    expect(() => inspectMissingDocuments(malformed, { ...manifest(), ...malformed }))
+      .toThrow('AI_MANIFEST_SCOPE_INVALID');
+  });
+
   it('refuses out-of-scope, duplicate or unknown requirement records', () => {
     const item = row('one', 'EXPECTED');
     expect(() => inspectMissingDocuments({ ...scope, clientId: 'other' }, manifest(item))).toThrow('AI_MANIFEST_SCOPE_INVALID');
