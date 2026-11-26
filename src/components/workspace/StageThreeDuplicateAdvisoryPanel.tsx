@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   aiWorkforceService,
+  AiWorkforceRequestError,
   workforceErrorMessage,
   type ClientA10InspectionItem,
   type ClientWorkforceScope,
@@ -146,6 +147,10 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
       await loadAdvisories();
     } catch (error) {
       setNotice({ error: true, text: workforceErrorMessage(error) });
+      if (error instanceof AiWorkforceRequestError && error.status === 409 &&
+        (error.code === 'CONCURRENT_DECISION_CONFLICT' || error.code === 'STALE_EVIDENCE_CONFLICT')) {
+        await loadAdvisories();
+      }
     } finally {
       setBusy(false);
     }
