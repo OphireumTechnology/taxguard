@@ -29,6 +29,13 @@ export const StageThreeDuplicateAdvisoryPanel: React.FC<StageThreeDuplicateAdvis
   <ScopedDuplicateAdvisories key={JSON.stringify([props.tenantId, props.clientId, props.caseId, props.taxYear])} {...props} />
 );
 
+const MIN_RATIONALE_LENGTH = 10;
+const MAX_RATIONALE_LENGTH = 2000;
+
+function validRationale(value: string) {
+  return value.length >= MIN_RATIONALE_LENGTH && value.length <= MAX_RATIONALE_LENGTH;
+}
+
 const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps> = ({
   tenantId,
   clientId,
@@ -112,12 +119,12 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
   };
 
   const handleRecordDecision = async (item: ClientA10InspectionItem) => {
-    if (busy || activeStage !== 3) return;
+    if (busy || activeStage !== 3 || item.decisions.length || item.stale_evidence || !item.live_decision_available) return;
     const advisoryId = item.advisory.advisory_id;
     const decision = selectedDecision[advisoryId] || 'ACKNOWLEDGE';
     const rationale = (rationales[advisoryId] ?? '').trim();
-    if (rationale.length < 10) {
-      setNotice({ error: true, text: 'Enter a review rationale of at least 10 characters.' });
+    if (!validRationale(rationale)) {
+      setNotice({ error: true, text: 'Enter a review rationale of 10 to 2,000 characters.' });
       return;
     }
 
@@ -221,7 +228,7 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
             Boolean(recordedDecision) ||
             item.stale_evidence ||
             !item.live_decision_available ||
-            (rationales[adv.advisory_id] ?? '').trim().length < 10;
+            !validRationale((rationales[adv.advisory_id] ?? '').trim());
 
           return (
             <article
@@ -295,7 +302,9 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
                       value={rationales[adv.advisory_id] ?? ''}
                       onChange={e => setRationales(prev => ({ ...prev, [adv.advisory_id]: e.target.value }))}
                       disabled={activeStage !== 3 || !item.live_decision_available || item.stale_evidence}
-                      placeholder="Independent reviewer rationale (min 10 chars)"
+                      maxLength={MAX_RATIONALE_LENGTH}
+                      aria-label="Independent reviewer rationale"
+                      placeholder="Review rationale (10 to 2,000 characters)"
                       className="flex-1 min-w-[220px] rounded border border-slate-600 bg-[#06182B] px-2 py-1 text-white"
                     />
                     <button
