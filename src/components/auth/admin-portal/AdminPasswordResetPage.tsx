@@ -297,6 +297,7 @@ export default function AdminPasswordResetPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [message, setMessage] = useState('');
   const completedRef = useRef(false);
+  const submittingRef = useRef(false);
   const initialCallbackRef = useRef<ParsedAdminRecoveryCallback | null>(null);
   if (!initialCallbackRef.current && typeof window !== 'undefined') {
     initialCallbackRef.current = parseAdminRecoveryCallback(window.location);
@@ -383,7 +384,10 @@ export default function AdminPasswordResetPage() {
       setState(outcome);
     };
 
-    void verify();
+    void verify().catch(() => {
+      clearVerifiedRecoveryMarker();
+      if (mounted && !completedRef.current) setState('invalid');
+    });
 
     return () => {
       mounted = false;
@@ -393,7 +397,7 @@ export default function AdminPasswordResetPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (completedRef.current || state !== 'ready') return;
+    if (completedRef.current || submittingRef.current || state !== 'ready') return;
     const authClient = supabase?.auth as unknown as AdminRecoveryAuthClient | undefined;
     if (!authClient) {
       setState('invalid');
@@ -410,8 +414,17 @@ export default function AdminPasswordResetPage() {
       return;
     }
 
+    submittingRef.current = true;
     setState('saving');
-    const result = await submitAdminPasswordReset(authClient, password, confirm);
+    let result: Awaited<ReturnType<typeof submitAdminPasswordReset>>;
+    try {
+      result = await submitAdminPasswordReset(authClient, password, confirm);
+    } catch {
+      clearVerifiedRecoveryMarker();
+      result = { success: false, sessionExpired: true, error: 'The password update outcome could not be confirmed. Do not retry this link. Sign in or request a fresh recovery link.' };
+    } finally {
+      submittingRef.current = false;
+    }
     setPassword('');
     setConfirm('');
 
