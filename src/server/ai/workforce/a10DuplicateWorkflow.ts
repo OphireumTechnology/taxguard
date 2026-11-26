@@ -162,14 +162,6 @@ export class A10DuplicateWorkflowService {
       throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
     }
 
-    // Idempotent replay when job already completed cleanly.
-    if (job.status === 'COMPLETED' && job.advisory_id) {
-      const existingAdvisory = await this.store.getAdvisory(actor.tenant_id, job.advisory_id);
-      if (existingAdvisory) {
-        return { job, advisory: existingAdvisory };
-      }
-    }
-
     const scope = {
       tenant_id: job.tenant_id,
       client_id: job.client_id,
@@ -188,6 +180,13 @@ export class A10DuplicateWorkflowService {
       const assigned = await this.env.isStaffAssigned(actor, caseRecord);
       if (!assigned) {
         throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
+      }
+
+      // Replays require the same current authority as the original processing request.
+      if (job.status === 'COMPLETED' && job.advisory_id) {
+        const existingAdvisory = await this.store.getAdvisory(actor.tenant_id, job.advisory_id);
+        if (existingAdvisory) return { job, advisory: existingAdvisory };
+        throw new WorkforceError('WORKFORCE_ADVISORY_NOT_FOUND', 404);
       }
 
       await this.store.updateJobStatus(actor.tenant_id, job.job_id, 'PROCESSING');
@@ -288,7 +287,7 @@ export class A10DuplicateWorkflowService {
       return { job: completedJob, advisory };
     } catch (error) {
       const code = error instanceof WorkforceError ? error.code : 'WORKFORCE_PROCESSING_FAILED';
-      if (code !== 'STALE_EVIDENCE_CONFLICT') {
+      if (job.status !== 'COMPLETED' && code !== 'STALE_EVIDENCE_CONFLICT') {
         await this.store
           .updateJobStatus(actor.tenant_id, job.job_id, error instanceof WorkforceError && error.status === 403 ? 'DENIED' : 'FAILED', {
             error_code: code,

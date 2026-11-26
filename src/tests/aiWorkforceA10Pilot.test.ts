@@ -334,6 +334,10 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     // 2. Worker processes job and produces bounded advisory without assessing fraud or mutating records
     const processed = await h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, first.job.job_id);
     expect(processed.job.status).toBe('COMPLETED');
+    await expect(h.service.processDuplicateCheckJob('tok_unassigned', BASE_SCOPE.tenant_id, first.job.job_id))
+      .rejects.toMatchObject({ code: 'WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', status: 403 });
+    const replay = await h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, first.job.job_id);
+    expect(replay).toEqual(processed);
     expect(processed.advisory.agent_id).toBe('A10');
     expect(processed.advisory.human_review_required).toBe(true);
     expect(processed.advisory.authoritative_mutation).toBe(false);
