@@ -295,6 +295,23 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       .rejects.toMatchObject({ code: 'WORKFORCE_IDEMPOTENCY_CONFLICT', status: 409 });
   });
 
+  it('does not save the advisory if the worker session is revoked during processing', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'revoked-worker', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const actor = h.actors.get('tok_preparer')!;
+    const verify = h.env.verifyActor.bind(h.env);
+    vi.spyOn(h.env, 'verifyActor').mockImplementationOnce(verify)
+      .mockResolvedValueOnce({ ...actor, session_revoked: true });
+
+    await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
+      .rejects.toMatchObject({ code: 'WORKFORCE_SESSION_REVOKED', status: 401 });
+    expect(h.store.advisories.size).toBe(0);
+    const retried = await h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+    expect(retried.job.status).toBe('COMPLETED');
+  });
+
   it('refuses to generate an advisory when the queued evidence fingerprint is missing', async () => {
     const h = createPilotHarness();
     const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {

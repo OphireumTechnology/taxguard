@@ -290,6 +290,16 @@ export class A10DuplicateWorkflowService {
         requested_by: job.requested_by,
       };
 
+      const freshActor = await this.env.verifyActor(token);
+      assertActiveActor(freshActor);
+      if (freshActor.uid !== actor.uid || freshActor.tenant_id !== actor.tenant_id) {
+        throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
+      }
+      assertRoleAllowed(freshActor, A10_ALLOWED_ROLES);
+      if (!(await this.env.isStaffAssigned(freshActor, caseRecord))) {
+        throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
+      }
+
       await this.store.saveAdvisory(advisory);
       const completedJob = await this.store.updateJobStatus(actor.tenant_id, job.job_id, 'COMPLETED', {
         advisory_id: advisory.advisory_id,
