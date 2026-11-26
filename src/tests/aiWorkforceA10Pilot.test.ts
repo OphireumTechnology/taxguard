@@ -285,6 +285,27 @@ function createPilotHarness(overrides?: {
 }
 
 describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot', () => {
+  it('only inspects advisories in the authorized client and tax year', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'scope-filter-job',
+      scope: BASE_SCOPE,
+      evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const { advisory } = await h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+    vi.spyOn(h.store, 'listCaseAdvisories').mockResolvedValue([
+      { ...advisory, advisory_id: 'wrong-year', scope: { ...BASE_SCOPE, tax_year: BASE_SCOPE.tax_year - 1 } },
+      { ...advisory, advisory_id: 'wrong-client', scope: { ...BASE_SCOPE, client_id: 'former-client' } },
+      advisory,
+    ]);
+    const decisions = vi.spyOn(h.store, 'listAdvisoryDecisions');
+
+    const inspection = await h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
+
+    expect(inspection.map(item => item.advisory.advisory_id)).toEqual([advisory.advisory_id]);
+    expect(decisions.mock.calls).toEqual([[BASE_SCOPE.tenant_id, advisory.advisory_id]]);
+  });
+
   it('runs the full Stage 3 workflow: submit -> idempotent repeat -> process -> inspect -> owner-gated decision', async () => {
     const h = createPilotHarness();
 

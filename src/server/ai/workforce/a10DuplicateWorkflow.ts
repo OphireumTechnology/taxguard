@@ -321,6 +321,15 @@ export class A10DuplicateWorkflowService {
     const results: A10CaseAdvisoryInspection[] = [];
 
     for (const advisory of advisories) {
+      if (
+        advisory.agent_id !== 'A10' ||
+        advisory.scope.tenant_id !== scope.tenant_id ||
+        advisory.scope.client_id !== scope.client_id ||
+        advisory.scope.tax_case_id !== scope.tax_case_id ||
+        advisory.scope.tax_year !== scope.tax_year
+      ) {
+        continue;
+      }
       const sourceIds = advisory.evidence_pins.map(p => p.source_id);
       const liveEvidence = sourceIds.length
         ? await this.env.loadEvidence(actor.tenant_id, scope, sourceIds)
