@@ -314,6 +314,21 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
     });
     expect(synthDecRes.status).toBe(201);
 
+    const reopened = await fetch(
+      `${baseUrl}/cases/${SCOPE.tax_case_id}/advisories?tenant_id=${SCOPE.tenant_id}&client_id=${SCOPE.client_id}&tax_year=${SCOPE.tax_year}&agent_id=A10`,
+      { headers: { Authorization: 'Bearer rev_tok' } },
+    );
+    expect(reopened.status).toBe(200);
+    expect(await reopened.json()).toMatchObject({ items: [{
+      live_decision_available: false,
+      live_decision_block_reason: 'CONCURRENT_DECISION_CONFLICT',
+      decisions: [{
+        decision: 'ACKNOWLEDGE',
+        reviewer_uid: 'rev_300',
+        bound_evidence_fingerprint: procBody.advisory.evidence_fingerprint,
+      }],
+    }] });
+
     const conflictRes = await fetch(`${baseUrl}/advisories/${procBody.advisory.advisory_id}/decisions`, {
       method: 'POST',
       headers: { Authorization: 'Bearer rev_tok', 'Content-Type': 'application/json' },

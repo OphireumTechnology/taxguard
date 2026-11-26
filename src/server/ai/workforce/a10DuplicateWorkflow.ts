@@ -349,6 +349,11 @@ export class A10DuplicateWorkflowService {
         decisionBlockReason = error.code;
       }
 
+      if (decisionBlockReason === null) {
+        if (decisions.length > 0) decisionBlockReason = 'CONCURRENT_DECISION_CONFLICT';
+        else if (staleness.stale) decisionBlockReason = 'STALE_EVIDENCE_CONFLICT';
+      }
+
       results.push({
         advisory,
         decisions,
