@@ -819,9 +819,12 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
         store,
         synthetic: { allow_a10_synthetic_staging_decisions: true },
       });
-      const { job } = await service.submitDuplicateCheckJob('tok_preparer', {
+      const submission = {
         request_id: 'sql-pilot-submit', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
-      });
+      };
+      const { job } = await service.submitDuplicateCheckJob('tok_preparer', submission);
+      const repeated = await service.submitDuplicateCheckJob('tok_preparer', submission);
+      expect(repeated).toMatchObject({ created: false, job: { job_id: job.job_id } });
       const { advisory } = await service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
       const review = {
         request_id: 'sql-pilot-review', scope: BASE_SCOPE, advisory_id: advisory.advisory_id,

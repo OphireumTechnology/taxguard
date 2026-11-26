@@ -29,22 +29,6 @@ export class SqlWorkforceStore implements WorkforceStore {
     job: Omit<WorkforceJobRecord, 'created_at' | 'updated_at'>,
   ): Promise<{ job: WorkforceJobRecord; created: boolean }> {
     return this.db.transaction(async sql => {
-      const existing = (
-        await sql.query<WorkforceJobRecord>(
-          `SELECT job_id, idempotency_key, tenant_id, client_id, tax_case_id, tax_year, case_record_id,
-                  agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
-                  status, advisory_id, error_code, created_at, updated_at
-           FROM ai_workforce_jobs
-           WHERE tenant_id = $1 AND agent_id = $2 AND idempotency_key = $3
-           LIMIT 1`,
-          [job.tenant_id, job.agent_id, job.idempotency_key],
-        )
-      ).rows[0];
-
-      if (existing) {
-        return { job: existing, created: false };
-      }
-
       const inserted = (
         await sql.query<WorkforceJobRecord>(
           `INSERT INTO ai_workforce_jobs (
@@ -52,6 +36,7 @@ export class SqlWorkforceStore implements WorkforceStore {
              agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
              status, advisory_id, error_code
            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13,$14,$15)
+           ON CONFLICT (tenant_id, agent_id, idempotency_key) DO NOTHING
            RETURNING job_id, idempotency_key, tenant_id, client_id, tax_case_id, tax_year, case_record_id,
                      agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
                      status, advisory_id, error_code, created_at, updated_at`,
@@ -75,7 +60,22 @@ export class SqlWorkforceStore implements WorkforceStore {
         )
       ).rows[0];
 
-      return { job: inserted, created: true };
+      if (inserted) return { job: inserted, created: true };
+
+      const existing = (
+        await sql.query<WorkforceJobRecord>(
+          `SELECT job_id, idempotency_key, tenant_id, client_id, tax_case_id, tax_year, case_record_id,
+                  agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
+                  status, advisory_id, error_code, created_at, updated_at
+           FROM ai_workforce_jobs
+           WHERE tenant_id = $1 AND agent_id = $2 AND idempotency_key = $3
+           LIMIT 1`,
+          [job.tenant_id, job.agent_id, job.idempotency_key],
+        )
+      ).rows[0];
+
+      if (!existing) throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
+      return { job: existing, created: false };
     });
   }
 
