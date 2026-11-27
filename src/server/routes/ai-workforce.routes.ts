@@ -100,7 +100,7 @@ export function createAiWorkforceRouter(deps: AiWorkforceRouterDeps = {}) {
         agent_id: req.params.agentId as any,
         scope: req.body?.scope,
         workflow_stage: Number(req.body?.workflow_stage),
-        evidence_source_ids: Array.isArray(req.body?.evidence_source_ids) ? req.body.evidence_source_ids : [],
+        evidence_source_ids: req.body?.evidence_source_ids,
         payload: req.body?.payload ?? {},
       });
       res.status(201).json({ advisory });

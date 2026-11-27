@@ -12,6 +12,7 @@ import {
   buildEvidencePins,
   detectStaleEvidence,
   sha256Json,
+  validateEvidenceSelection,
   validateScope,
   verifyAuthorizedEvidence,
 } from './authority';
@@ -123,11 +124,13 @@ export class WorkforceDispatcher {
       }
     }
 
-    const sourceIds = Array.isArray(rawInput.evidence_source_ids) ? rawInput.evidence_source_ids : [];
+    const sourceIds = rawInput.evidence_source_ids === undefined ? [] : rawInput.evidence_source_ids;
+    const maxEvidenceItems = spec.agent_id === 'A10' ? 10 : 50;
     let verifiedEvidence = [] as readonly import('./contracts').AuthorizedDocumentEvidence[];
-    if (spec.requires_evidence || sourceIds.length > 0) {
+    if (spec.requires_evidence || !Array.isArray(sourceIds) || sourceIds.length > 0) {
+      validateEvidenceSelection(sourceIds, maxEvidenceItems);
       const loaded = await this.env.loadEvidence(actor.tenant_id, scope, sourceIds);
-      verifiedEvidence = verifyAuthorizedEvidence(sourceIds, loaded, scope, spec.agent_id === 'A10' ? 10 : 50);
+      verifiedEvidence = verifyAuthorizedEvidence(sourceIds, loaded, scope, maxEvidenceItems);
     }
 
     const { pins, fingerprint } = buildEvidencePins(verifiedEvidence);

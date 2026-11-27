@@ -156,6 +156,7 @@ function createDispatcherHarness() {
     },
   ];
 
+  let evidenceLoads = 0;
   const env: WorkforceEnvironment = {
     async verifyActor(token) {
       return actors[token] ?? null;
@@ -177,6 +178,7 @@ function createDispatcherHarness() {
       return Boolean(actor.assigned_case_ids?.includes(c.tax_case_id));
     },
     async loadEvidence(tenantId, _scope, sourceIds) {
+      evidenceLoads += 1;
       return evidence.filter(e => e.tenant_id === tenantId && sourceIds.includes(e.source_id));
     },
     async getKillSwitches() {
@@ -195,6 +197,7 @@ function createDispatcherHarness() {
 
   return {
     dispatcher: new WorkforceDispatcher(env, store),
+    evidenceLoads: () => evidenceLoads,
     store,
     setStage: (s: number) => {
       activeStage = s;
@@ -313,6 +316,25 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
     }
 
     expect(executedCount).toBe(60);
+  });
+
+  it.each([
+    [[], 'WORKFORCE_INVALID_EVIDENCE_SELECTION'],
+    [Array(51).fill(DOC_1), 'WORKFORCE_INVALID_EVIDENCE_SELECTION'],
+    [[DOC_1, DOC_1], 'WORKFORCE_DUPLICATE_EVIDENCE_IDS'],
+    [['invalid'], 'WORKFORCE_INVALID_EVIDENCE_ID'],
+  ] as const)('rejects invalid OCR evidence before lookup (%j)', async (sourceIds, code) => {
+    const h = createDispatcherHarness();
+    h.setStage(3);
+    await expect(h.dispatcher.executeAgent('cpa_exec', {
+      request_id: 'req-a07-invalid-evidence',
+      agent_id: 'A07',
+      scope: SCOPE,
+      workflow_stage: 3,
+      evidence_source_ids: sourceIds,
+      payload: {},
+    })).rejects.toMatchObject({ code });
+    expect(h.evidenceLoads()).toBe(0);
   });
 
   it('enforces domain-specific invariants across Batches 1–6 (A07 OCR gate, A14 balance, A17/A18 authority, OV-09/OV-10/OV-05)', async () => {
