@@ -376,6 +376,8 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
       }),
     });
     expect(synthDecRes.status).toBe(201);
+    const { decision: recordedDecision } = await synthDecRes.json() as { decision: WorkforceHumanDecisionRecord };
+    expect(recordedDecision.bound_evidence_versions).toEqual(procBody.advisory.evidence_pins);
 
     const reopened = await fetch(
       `${baseUrl}/cases/${SCOPE.tax_case_id}/advisories?tenant_id=${SCOPE.tenant_id}&client_id=${SCOPE.client_id}&tax_year=${SCOPE.tax_year}&agent_id=A10`,
@@ -388,6 +390,8 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
       decisions: [{
         decision: 'ACKNOWLEDGE',
         reviewer_uid: 'rev_300',
+        decision_id: recordedDecision.decision_id,
+        bound_evidence_versions: recordedDecision.bound_evidence_versions,
         bound_evidence_fingerprint: procBody.advisory.evidence_fingerprint,
       }],
     }] });
