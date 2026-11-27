@@ -542,6 +542,21 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
     expect(a55.structured_data.permissions_mutated).toBe(false);
   });
 
+  it('honors the stage stop on the assigned case before loading evidence', async () => {
+    const h = createDispatcherHarness();
+    h.setStage(3);
+    h.setKillSwitches({ global_stop: false, stopped_agents: [], stopped_stages: [3], stopped_tools: [] });
+    await expect(h.dispatcher.executeAgent('cpa_exec', {
+      request_id: 'req-a07-stage-stop',
+      agent_id: 'A07',
+      scope: SCOPE,
+      workflow_stage: 2,
+      evidence_source_ids: [DOC_1],
+      payload: {},
+    })).rejects.toMatchObject({ code: 'WORKFORCE_KILL_SWITCH_ACTIVE' });
+    expect(h.evidenceLoads()).toBe(0);
+  });
+
   it('enforces kill switches, cross-tenant denial, unauthorized roles, and raw secret/SSN payload blocking', async () => {
     const h = createDispatcherHarness();
     h.setStage(1);

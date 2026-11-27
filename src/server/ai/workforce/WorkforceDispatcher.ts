@@ -124,6 +124,10 @@ export class WorkforceDispatcher {
       }
     }
 
+    if (caseRecord && caseRecord.active_stage !== rawInput.workflow_stage) {
+      assertKillSwitchClear(killSwitches, spec.agent_id, caseRecord.active_stage, spec.authorized_tools);
+    }
+
     const sourceIds = rawInput.evidence_source_ids === undefined ? [] : rawInput.evidence_source_ids;
     const maxEvidenceItems = spec.agent_id === 'A10' ? 10 : 50;
     let verifiedEvidence = [] as readonly import('./contracts').AuthorizedDocumentEvidence[];
