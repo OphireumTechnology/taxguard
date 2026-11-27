@@ -1,6 +1,7 @@
 import { Router, type NextFunction, type Response } from 'express';
 import type { AuthenticatedRequest } from '../auth';
 import { buildWorkforceMatrix, workforceMatrixTotals } from '../../ai/workforceMatrix';
+import { assertCaseScopeMatch, validateScope } from '../ai/workforce/authority';
 import { WorkforceDispatcher } from '../ai/workforce/WorkforceDispatcher';
 import { A10DuplicateWorkflowService } from '../ai/workforce/a10DuplicateWorkflow';
 import { createProductionWorkforceRuntime } from '../ai/workforce/productionWorkforceEnvironment';
@@ -142,12 +143,12 @@ export function createAiWorkforceRouter(deps: AiWorkforceRouterDeps = {}) {
     res.setHeader('Cache-Control', 'no-store');
     try {
       const { env, store } = resolveRuntime();
-      const scope = {
+      const scope = validateScope({
         tenant_id: String(req.query.tenant_id ?? req.user?.tenantId ?? ''),
         client_id: String(req.query.client_id ?? ''),
         tax_case_id: req.params.caseId,
         tax_year: Number(req.query.tax_year),
-      };
+      });
       if (req.query.agent_id === 'A10') {
         const a10 = new A10DuplicateWorkflowService(env, store);
         const items = await a10.getCaseDuplicateAdvisories(bearerToken(req), scope);
@@ -155,16 +156,19 @@ export function createAiWorkforceRouter(deps: AiWorkforceRouterDeps = {}) {
         return;
       }
       const actor = await env.verifyActor(bearerToken(req));
-      if (!actor || actor.status !== 'active' || actor.tenant_id !== scope.tenant_id) {
+      if (!actor || actor.session_revoked || actor.status !== 'active' || actor.tenant_id !== scope.tenant_id) {
         throw new WorkforceError('WORKFORCE_AUTH_REQUIRED', 401);
       }
       const caseRecord = await env.loadCase(actor.tenant_id, scope);
       if (!caseRecord || !(await env.isStaffAssigned(actor, caseRecord))) {
         throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
       }
+      assertCaseScopeMatch(caseRecord, scope);
       const agentFilter = typeof req.query.agent_id === 'string' ? (req.query.agent_id as any) : undefined;
       const advisories = await store.listCaseAdvisories(actor.tenant_id, scope.tax_case_id, agentFilter);
-      res.json({ items: advisories });
+      res.json({ items: advisories.filter(({ scope: saved }) =>
+        saved.tenant_id === scope.tenant_id && saved.client_id === scope.client_id &&
+        saved.tax_case_id === scope.tax_case_id && saved.tax_year === scope.tax_year) });
     } catch (error) {
       sendError(res, error);
     }

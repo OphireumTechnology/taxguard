@@ -243,6 +243,15 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
     expect(bodyA00.advisory.agent_id).toBe('A00');
     expect(bodyA00.advisory.human_review_required).toBe(true);
 
+    const historyUrl = `${baseUrl}/cases/${SCOPE.tax_case_id}/advisories?tenant_id=${SCOPE.tenant_id}&client_id=${SCOPE.client_id}&agent_id=A00`;
+    const headers = { Authorization: 'Bearer prep_tok' };
+    const history = await fetch(`${historyUrl}&tax_year=${SCOPE.tax_year}`, { headers });
+    expect(history.status).toBe(200);
+    expect(await history.json()).toMatchObject({ items: [{ advisory_id: bodyA00.advisory.advisory_id }] });
+    const otherYear = await fetch(`${historyUrl}&tax_year=${SCOPE.tax_year + 1}`, { headers });
+    expect(otherYear.ok).toBe(false);
+
+
     const resA39 = await fetch(`${baseUrl}/agents/A39/execute`, {
       method: 'POST',
       headers: { Authorization: 'Bearer prep_tok', 'Content-Type': 'application/json' },
