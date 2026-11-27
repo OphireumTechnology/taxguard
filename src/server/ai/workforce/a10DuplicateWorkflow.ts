@@ -206,7 +206,16 @@ export class A10DuplicateWorkflowService {
     // Replays require the same current authority as the original processing request.
     if (job.status === 'COMPLETED') {
       const existingAdvisory = job.advisory_id ? await this.store.getAdvisory(actor.tenant_id, job.advisory_id) : null;
-      if (existingAdvisory) return { job, advisory: existingAdvisory };
+      if (
+        existingAdvisory?.agent_id === 'A10' &&
+        existingAdvisory.workflow_stage === 3 &&
+        existingAdvisory.scope.tenant_id === scope.tenant_id &&
+        existingAdvisory.scope.client_id === scope.client_id &&
+        existingAdvisory.scope.tax_case_id === scope.tax_case_id &&
+        existingAdvisory.scope.tax_year === scope.tax_year
+      ) {
+        return { job, advisory: existingAdvisory };
+      }
       throw new WorkforceError('WORKFORCE_ADVISORY_NOT_FOUND', 404);
     }
 
