@@ -72,7 +72,20 @@ const ADMIN_RECOVERY_MARKER_TTL_MS = 15 * 60 * 1000;
 
 interface VerifiedRecoveryMarker {
   uid: string;
+  sessionId: string;
   expiresAt: number;
+}
+
+// Decode only for session correlation; provider getUser remains the identity check.
+export function recoverySessionId(token?: string): string | null {
+  try {
+    const parts = token?.split('.');
+    if (!parts || parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.session_id === 'string' && payload.session_id.trim() ? payload.session_id : null;
+  } catch {
+    return null;
+  }
 }
 
 function readVerifiedRecoveryMarker(now = Date.now()): VerifiedRecoveryMarker | null {
@@ -84,6 +97,7 @@ function readVerifiedRecoveryMarker(now = Date.now()): VerifiedRecoveryMarker | 
     if (
       typeof parsed?.uid !== 'string' ||
       !parsed.uid ||
+      typeof parsed.sessionId !== 'string' || !parsed.sessionId ||
       typeof parsed?.expiresAt !== 'number' ||
       !Number.isFinite(parsed.expiresAt) ||
       parsed.expiresAt <= now
@@ -91,24 +105,26 @@ function readVerifiedRecoveryMarker(now = Date.now()): VerifiedRecoveryMarker | 
       window.sessionStorage.removeItem(ADMIN_RECOVERY_MARKER_KEY);
       return null;
     }
-    return { uid: parsed.uid, expiresAt: parsed.expiresAt };
+    return { uid: parsed.uid, sessionId: parsed.sessionId, expiresAt: parsed.expiresAt };
   } catch {
     return null;
   }
 }
 
-function writeVerifiedRecoveryMarker(uid: string | undefined, now = Date.now()): void {
-  if (!uid || typeof window === 'undefined' || !window.sessionStorage) return;
+function writeVerifiedRecoveryMarker(uid: string | undefined, sessionId: string | null, now = Date.now()): boolean {
+  if (!uid || !sessionId || typeof window === 'undefined' || !window.sessionStorage) return false;
   try {
     // Store only the non-secret user id + short expiry so refreshing /admin/reset-password
     // after URL scrubbing preserves an already-verified recovery flow without storing tokens.
     const marker: VerifiedRecoveryMarker = {
       uid,
+      sessionId,
       expiresAt: now + ADMIN_RECOVERY_MARKER_TTL_MS
     };
     window.sessionStorage.setItem(ADMIN_RECOVERY_MARKER_KEY, JSON.stringify(marker));
+    return true;
   } catch {
-    // Ignore storage quota / privacy mode errors
+    return false;
   }
 }
 
@@ -157,8 +173,7 @@ export async function resolveAdminRecoverySession(
       }
       verifiedUid = userCheck.data.user.id ?? verifiedUid;
     }
-    writeVerifiedRecoveryMarker(verifiedUid);
-    return 'ready';
+    return writeVerifiedRecoveryMarker(verifiedUid, recoverySessionId(data.session?.access_token)) ? 'ready' : 'invalid';
   }
 
   // 2. PKCE authorization code callback (/admin/reset-password?code=...)
@@ -187,8 +202,7 @@ export async function resolveAdminRecoverySession(
       }
       verifiedUid = userCheck.data.user.id;
     }
-    writeVerifiedRecoveryMarker(verifiedUid);
-    return 'ready';
+    return writeVerifiedRecoveryMarker(verifiedUid, recoverySessionId(session.access_token)) ? 'ready' : 'invalid';
   }
 
   // 3. Implicit recovery fragment (#access_token=...&type=recovery), SDK PASSWORD_RECOVERY event,
@@ -213,9 +227,11 @@ export async function resolveAdminRecoverySession(
     verifiedUid = userCheck.data.user.id;
   }
 
+  const sessionId = recoverySessionId(data.session.access_token);
+  if (!sessionId || !verifiedUid) { clearVerifiedRecoveryMarker(); return 'invalid'; }
   const marker = parsed.isResetPath ? readVerifiedRecoveryMarker() : null;
   const refreshedVerifiedRecovery = Boolean(
-    marker && verifiedUid && marker.uid === verifiedUid
+    marker && verifiedUid && marker.uid === verifiedUid && marker.sessionId === sessionId
   );
 
   if (!fragmentMatches && !options?.recoveryEventObserved && !refreshedVerifiedRecovery) {
@@ -223,7 +239,7 @@ export async function resolveAdminRecoverySession(
   }
 
   // Refreshing a verified callback must not extend its original authorization window.
-  if (!refreshedVerifiedRecovery) writeVerifiedRecoveryMarker(verifiedUid);
+  if (!refreshedVerifiedRecovery && !writeVerifiedRecoveryMarker(verifiedUid, sessionId)) return 'invalid';
   return 'ready';
 }
 
@@ -415,9 +431,12 @@ export default function AdminPasswordResetPage() {
       const marker = readVerifiedRecoveryMarker();
       const session = await authClient.getSession();
       const user = await authClient.getUser?.();
+      const latestSession = await authClient.getSession();
       const currentMarker = readVerifiedRecoveryMarker();
       if (!marker || !currentMarker || currentMarker.uid !== marker.uid ||
-          currentMarker.expiresAt !== marker.expiresAt || session.error ||
+          currentMarker.expiresAt !== marker.expiresAt || currentMarker.sessionId !== marker.sessionId || session.error ||
+          latestSession.error || recoverySessionId(session.data?.session?.access_token) !== marker.sessionId ||
+          recoverySessionId(latestSession.data?.session?.access_token) !== marker.sessionId ||
           !session.data?.session?.access_token || !user || user.error ||
           user.data?.user?.id !== marker.uid) {
         clearVerifiedRecoveryMarker();
