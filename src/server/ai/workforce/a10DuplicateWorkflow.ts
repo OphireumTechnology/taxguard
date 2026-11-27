@@ -364,6 +364,7 @@ export class A10DuplicateWorkflowService {
 
     const advisories = await this.store.listCaseAdvisories(actor.tenant_id, scope.tax_case_id, 'A10');
     const staging = this.env.getSyntheticStagingConfig();
+    const killSwitches = advisories.length ? await this.env.getKillSwitches(actor.tenant_id) : null;
     const results: A10CaseAdvisoryInspection[] = [];
 
     for (const advisory of advisories) {
@@ -386,6 +387,7 @@ export class A10DuplicateWorkflowService {
       let decisionBlockReason: string | null = null;
       try {
         assertCaseScopeMatch(caseRecord, scope, [3]);
+        if (killSwitches) assertKillSwitchClear(killSwitches, 'A10', 3, ['document.read']);
         assertDecisionAuthority({
           agentId: 'A10', actor, requestedBy: advisory.requested_by, caseRecord,
           requiredReviewerRole: advisory.required_reviewer_role, syntheticStaging: staging,
