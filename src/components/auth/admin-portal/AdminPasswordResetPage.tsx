@@ -299,6 +299,7 @@ export default function AdminPasswordResetPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [message, setMessage] = useState('');
   const completedRef = useRef(false);
+  const verificationRef = useRef<Promise<RecoveryContextOutcome> | null>(null);
   const submittingRef = useRef(false);
   const initialCallbackRef = useRef<ParsedAdminRecoveryCallback | null>(null);
   if (!initialCallbackRef.current && typeof window !== 'undefined') {
@@ -341,55 +342,43 @@ export default function AdminPasswordResetPage() {
       }
     };
 
-    const {
-      data: { subscription }
-    } = authClient.onAuthStateChange((event) => {
-      if (!mounted || completedRef.current || event !== 'PASSWORD_RECOVERY') return;
-      // The SDK event is evidence of recovery intent, not sufficient proof of
-      // a usable authenticated session. Validate the current user before enabling
-      // password changes; do not erase callback parameters prematurely.
-      recoveryEventObserved = true;
-      void resolveAdminRecoverySession(authClient, parsed, {
-        recoveryEventObserved: true
-      }).then((outcome) => {
-        if (!mounted || completedRef.current) return;
-        setState(outcome);
-        if (outcome === 'ready') scrubUrl();
-      }).catch(() => {
-        if (mounted && !completedRef.current) setState('invalid');
-      });
-    });
-
-    const verify = async () => {
-      if (parsed.hasExplicitError) {
-        scrubUrl();
-        const outcome = await resolveAdminRecoverySession(authClient, parsed);
-        if (mounted) setState(outcome);
-        return;
+    // Keep one callback resolution across StrictMode effect replay. Never call
+    // Supabase auth methods from inside its synchronous auth event callback.
+    const verify = () => {
+      if (!verificationRef.current) {
+        verificationRef.current = Promise.resolve().then(() =>
+          resolveAdminRecoverySession(authClient, parsed, { recoveryEventObserved })
+        ).catch(() => {
+          clearVerifiedRecoveryMarker();
+          return 'invalid' as const;
+        });
       }
-
-      // First resolution attempt
-      const outcome = await resolveAdminRecoverySession(authClient, parsed, {
-        recoveryEventObserved
+      void verificationRef.current.then(outcome => {
+        if (!mounted || completedRef.current) return;
+        if (outcome === 'ready' || parsed.hasExplicitError) scrubUrl();
+        setState(outcome);
       });
-
-      // Supabase getSession() awaits SDK initialization; PASSWORD_RECOVERY events
-      // are handled by the subscription above. Do not introduce artificial
-      // timing delays into a security-sensitive recovery callback.
-      if (!mounted || completedRef.current) return;
-      // A recovery event may arrive while the initial session lookup is in
-      // progress. Let its independently validated result win instead of
-      // overwriting it with a stale invalid result.
-      if (recoveryEventObserved) return;
-
-      if (outcome === 'ready') scrubUrl();
-      setState(outcome);
     };
 
-    void verify().catch(() => {
-      clearVerifiedRecoveryMarker();
-      if (mounted && !completedRef.current) setState('invalid');
+    const { data: { subscription } } = authClient.onAuthStateChange((event) => {
+      if (!mounted || completedRef.current || event !== 'PASSWORD_RECOVERY') return;
+      recoveryEventObserved = true;
+      // Explicit callbacks are consumed only by the initial verification.
+      // Event-only callbacks may be retried after the initial lookup settles.
+      if (parsed.pkceCode || parsed.tokenHash || parsed.hashAccessToken || parsed.hasExplicitError) return;
+      const pending = verificationRef.current;
+      if (pending) {
+        void pending.then(outcome => {
+          if (!mounted || completedRef.current || outcome === 'ready' || verificationRef.current !== pending) return;
+          verificationRef.current = null;
+          verify();
+        });
+      } else {
+        verify();
+      }
     });
+
+    verify();
 
     return () => {
       mounted = false;
