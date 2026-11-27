@@ -311,6 +311,20 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
                   {recordedDecision.bound_evidence_fingerprint && (
                     <p className="break-all">Reviewed evidence fingerprint {recordedDecision.bound_evidence_fingerprint}</p>
                   )}
+                  {!!recordedDecision.bound_evidence_versions?.length && (
+                    <details>
+                      <summary>Evidence versions bound to this decision</summary>
+                      <ul className="space-y-2">
+                        {recordedDecision.bound_evidence_versions.map(pin => (
+                          <li key={pin.source_id} className="break-all">
+                            <p>Document {pin.document_record_id} · Version {pin.document_version}</p>
+                            <p>Source {pin.source_id}</p>
+                            <p>SHA-256 {pin.source_hash}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                   {recordedDecision.synthetic_staging_gate_used && <p>Synthetic staging decision</p>}
                 </div>
               ) : (
