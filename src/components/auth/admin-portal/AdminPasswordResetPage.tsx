@@ -162,8 +162,9 @@ export async function resolveAdminRecoverySession(
 
   // 2. PKCE authorization code callback (/admin/reset-password?code=...)
   if (parsed.pkceCode) {
-    let session = (await authClient.getSession()).data?.session ?? null;
-    if (!session && typeof authClient.exchangeCodeForSession === 'function') {
+    // Never authorize a recovery callback merely because an unrelated session exists.
+    let session: { access_token?: string } | null = null;
+    if (typeof authClient.exchangeCodeForSession === 'function') {
       const exchanged = await authClient.exchangeCodeForSession(parsed.pkceCode);
       if (exchanged.error) {
         clearVerifiedRecoveryMarker();
@@ -220,7 +221,8 @@ export async function resolveAdminRecoverySession(
     return 'invalid';
   }
 
-  writeVerifiedRecoveryMarker(verifiedUid);
+  // Refreshing a verified callback must not extend its original authorization window.
+  if (!refreshedVerifiedRecovery) writeVerifiedRecoveryMarker(verifiedUid);
   return 'ready';
 }
 
