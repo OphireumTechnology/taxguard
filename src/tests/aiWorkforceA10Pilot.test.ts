@@ -22,7 +22,7 @@ import type { AgentId, AICaseScope } from '../ai/types';
 
 const HASH_DUPLICATE = 'a'.repeat(64);
 const HASH_UNIQUE = 'b'.repeat(64);
-const SRC_1 = '11111111-1111-4111-8111-111111111111';
+const SRC_1 = '11111111-1111-4111-8111-11111111111a';
 const SRC_2 = '22222222-2222-4222-8222-222222222222';
 const SRC_3 = '33333333-3333-4333-8333-333333333333';
 const DOC_REC_1 = '11111111-aaaa-4111-8111-111111111111';
@@ -927,7 +927,9 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
         request_id: 'sql-pilot-submit', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
       };
       const { job } = await service.submitDuplicateCheckJob('tok_preparer', submission);
-      const repeated = await service.submitDuplicateCheckJob('tok_preparer', { ...submission, request_id: 'sql-pilot-retry' });
+      const repeated = await service.submitDuplicateCheckJob('tok_preparer', {
+        ...submission, request_id: 'sql-pilot-retry', evidence_source_ids: [SRC_1.toUpperCase(), SRC_2],
+      });
       expect(repeated).toMatchObject({
         created: false, job: { job_id: job.job_id, metadata_payload: { submission_request_id: submission.request_id } },
       });

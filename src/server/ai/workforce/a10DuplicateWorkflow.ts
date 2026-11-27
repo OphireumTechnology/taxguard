@@ -117,8 +117,12 @@ export class A10DuplicateWorkflowService {
     }
 
     validateEvidenceSelection(rawInput.evidence_source_ids, 10);
-    const loadedEvidence = await this.env.loadEvidence(actor.tenant_id, scope, rawInput.evidence_source_ids);
-    const verifiedEvidence = verifyAuthorizedEvidence(rawInput.evidence_source_ids, loadedEvidence, scope, 10);
+    const sourceIds = rawInput.evidence_source_ids.map(id => id.toLowerCase());
+    if (new Set(sourceIds).size !== sourceIds.length) {
+      throw new WorkforceError('WORKFORCE_DUPLICATE_EVIDENCE_IDS', 400);
+    }
+    const loadedEvidence = await this.env.loadEvidence(actor.tenant_id, scope, sourceIds);
+    const verifiedEvidence = verifyAuthorizedEvidence(sourceIds, loadedEvidence, scope, 10);
     const { pins, fingerprint } = buildEvidencePins(verifiedEvidence);
 
     const idempotencyKey =
