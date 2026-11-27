@@ -14,8 +14,14 @@
       "id": "case-authority-review-decisions",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_DECISION_PROVIDER_REQUIRED",
-      "coverage": "NONE",
-      "gap": "No durable reviewer decision provider; durable case authority is next priority 1.",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "POST /api/cases/:caseId/advance",
+        "POST /api/cases/:caseId/return",
+        "POST /api/tax-engine/returns/:returnVersionId/qc",
+        "POST /api/tax-engine/returns/:returnVersionId/final-authorization"
+      ],
+      "gap": "Case-level approval is the reviewer attestation on advance (only the independent assigned reviewer, never the preparer, with the stage checklist confirmed and a version check) and return for correction is the case return (reviewer or manager, never the preparer, reason 10-500 characters, later stages relocked, audited). The legacy separate corrections text becomes part of that reason. Approving a return is QC plus final authorization, which fails closed until the owner sets the QC and authorization policies.",
       "reason": "Reviewer approve and return-for-correction. The repository validates confirmation and reason, then refuses before any write because no durable reviewer decision provider exists.",
       "routes": [
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/approvals",
@@ -26,8 +32,18 @@
       "id": "case-authority-review-workspace",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_WORKSPACE_PROVIDER_REQUIRED",
-      "coverage": "NONE",
-      "gap": "No durable reviewer workspace; durable case authority is next priority 1.",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/cases/:caseId",
+        "GET /api/vault/clients/:clientId/documents",
+        "GET /api/tax-engine/cases/:caseId/returns",
+        "GET /api/tax-engine/returns/:returnVersionId/qc-context",
+        "GET /api/tax-engine/returns/:returnVersionId/comparison",
+        "GET /api/tax-engine/cases/:caseId/evidence-trace",
+        "GET /api/tax-engine/cases/:caseId/diagnostics",
+        "GET /api/book-to-tax/clients/:clientId/:taxYear/:family"
+      ],
+      "gap": "The workspace is read from the durable case, vault, tax-engine and book-to-tax routes rather than one snapshot. Stage 04 records, Stage 05 reconciliations and the legacy provenance list have no durable read until the reviewed-fact and ledger adapters exist.",
       "reason": "The reviewer workspace snapshot is assembled from the process-local authority adapter.",
       "routes": [
         "GET /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviewer-workspace"
@@ -37,8 +53,15 @@
       "id": "case-authority-review-action",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_ACTION_PROVIDER_REQUIRED",
-      "coverage": "NONE",
-      "gap": "No durable legacy review action; durable case authority is next priority 1.",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "POST /api/tax-engine/conclusions/:conclusionId/:decision(approve|return|reject)",
+        "POST /api/tax-engine/returns/:returnVersionId/qc",
+        "POST /api/cases/:caseId/return",
+        "POST /api/vault/clients/:clientId/documents/:documentId/versions/:version/review",
+        "POST /api/book-to-tax/clients/:clientId/workpapers/:workpaperId/:decision(approve|reject)"
+      ],
+      "gap": "Review actions on conclusions, returns, documents and book-to-tax workpapers are durable, each under its own independent-review rule. Actions on Stage 04 records and Stage 05 reconciliations have no durable target until those adapters exist.",
       "reason": "Legacy review actions on the process-local authority adapter; refused before any write.",
       "routes": [
         "POST /api/case-authority/:tenantId/:clientId/:engagementId/:taxYear/reviews/action"
@@ -48,8 +71,14 @@
       "id": "case-authority-review-queue",
       "kind": "VOLATILE_REFUSED",
       "code": "DURABLE_REVIEW_QUEUE_PROVIDER_REQUIRED",
-      "coverage": "NONE",
-      "gap": "No durable case reviewer queue; durable case authority is next priority 1.",
+      "coverage": "PARTIAL",
+      "replacementRoutes": [
+        "GET /api/cases/",
+        "GET /api/tax-engine/review/queue",
+        "GET /api/tax-engine/qc/queue",
+        "GET /api/vault/review-queue"
+      ],
+      "gap": "The cases queue with role=reviewer lists only cases where the actor is the live assigned reviewer (managers see the tenant), flagging cases awaiting a reviewer attestation with deadline and open-task counts; the tax-engine and vault queues list returns, QC and documents awaiting review. Rows do not carry the legacy highRisk and openExceptions flags: risk and blocking diagnostics are read per case from the tax-engine risk and diagnostics routes.",
       "reason": "The reviewer queue is discovered from the process-local authority adapter, which is not a production discovery source.",
       "routes": [
         "GET /api/case-authority/reviewer/dashboard"
