@@ -297,7 +297,9 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
 
               {!item.live_decision_available && (
                 <p role="note" className="rounded border border-slate-600 bg-slate-900/60 p-2 text-slate-300">
-                  Decision unavailable ({item.live_decision_block_reason}).
+                  {item.live_decision_block_reason === 'WORKFORCE_KILL_SWITCH_ACTIVE'
+                    ? 'A10 review decisions are paused. You can still inspect the pinned evidence.'
+                    : `Decision unavailable (${item.live_decision_block_reason}).`}
                 </p>
               )}
 
