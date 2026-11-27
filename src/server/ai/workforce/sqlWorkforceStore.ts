@@ -119,14 +119,21 @@ export class SqlWorkforceStore implements WorkforceStore {
              error_code = $5,
              updated_at = now()
          WHERE tenant_id = $1 AND job_id = $2
+           AND (agent_id <> 'A10' OR status NOT IN ('COMPLETED', 'STALE'))
          RETURNING job_id, idempotency_key, tenant_id, client_id, tax_case_id, tax_year, case_record_id,
                    agent_id, workflow_stage, requested_by, evidence_source_ids, metadata_payload,
                    status, advisory_id, error_code, created_at, updated_at`,
         [tenantId, jobId, status, patch?.advisory_id ?? null, patch?.error_code ?? null],
       )
     ).rows;
-    if (!rows[0]) throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
-    return rows[0];
+    if (rows[0]) return rows[0];
+
+    const existing = await sql.query(
+      'SELECT 1 FROM ai_workforce_jobs WHERE tenant_id = $1 AND job_id = $2',
+      [tenantId, jobId],
+    );
+    if (existing.rows.length) throw new WorkforceError('WORKFORCE_JOB_ALREADY_FINAL', 409);
+    throw new WorkforceError('WORKFORCE_JOB_NOT_FOUND', 404);
   }
 
   async saveAdvisory(advisory: WorkforceAdvisoryOutput): Promise<WorkforceAdvisoryOutput> {

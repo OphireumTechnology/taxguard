@@ -890,6 +890,11 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       expect(await store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
       failCompletion = false;
       const { advisory } = await service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+      await expect(store.updateJobStatus(BASE_SCOPE.tenant_id, job.job_id, 'FAILED'))
+        .rejects.toMatchObject({ code: 'WORKFORCE_JOB_ALREADY_FINAL', status: 409 });
+      expect(await store.getJob(BASE_SCOPE.tenant_id, job.job_id)).toMatchObject({
+        status: 'COMPLETED', advisory_id: advisory.advisory_id, error_code: null,
+      });
       const review = {
         request_id: 'sql-pilot-review', scope: BASE_SCOPE, advisory_id: advisory.advisory_id,
         expected_evidence_fingerprint: advisory.evidence_fingerprint,
