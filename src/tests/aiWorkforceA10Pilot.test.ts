@@ -362,6 +362,21 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     expect(await h.store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
   });
 
+  it('blocks completion when Stage Three is paused during processing and resumes after the pause clears', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'stage-pause', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const running = await h.env.getKillSwitches(BASE_SCOPE.tenant_id);
+    vi.spyOn(h.env, 'getKillSwitches').mockResolvedValueOnce(running)
+      .mockResolvedValueOnce({ ...running, stopped_stages: [3] });
+
+    const process = () => h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+    await expect(process()).rejects.toMatchObject({ code: 'WORKFORCE_KILL_SWITCH_ACTIVE' });
+    expect(await h.store.listCaseAdvisories(BASE_SCOPE.tenant_id, BASE_SCOPE.tax_case_id, 'A10')).toEqual([]);
+    await expect(process()).resolves.toMatchObject({ job: { job_id: job.job_id, status: 'COMPLETED' } });
+  });
+
   it('does not save the advisory if the worker session is revoked during processing', async () => {
     const h = createPilotHarness();
     const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
