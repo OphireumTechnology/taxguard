@@ -179,13 +179,19 @@ export function createAiWorkforceRouter(deps: AiWorkforceRouterDeps = {}) {
     try {
       const { env, store } = resolveRuntime();
       const agentId = req.body?.agent_id;
+      const { request_id, expected_evidence_fingerprint, rationale } = req.body ?? {};
+      if (typeof request_id !== 'string' || !request_id.trim() || request_id.length > 128 ||
+          typeof expected_evidence_fingerprint !== 'string' || !expected_evidence_fingerprint.trim() ||
+          typeof rationale !== 'string') {
+        throw new WorkforceError('WORKFORCE_INVALID_DECISION_REQUEST', 400);
+      }
       const request = {
-        request_id: String(req.body?.request_id ?? ''),
+        request_id,
         advisory_id: req.params.advisoryId,
         scope: req.body?.scope,
-        expected_evidence_fingerprint: String(req.body?.expected_evidence_fingerprint ?? ''),
+        expected_evidence_fingerprint,
         decision: req.body?.decision,
-        rationale: String(req.body?.rationale ?? ''),
+        rationale,
       };
       const record =
         agentId === 'A10'

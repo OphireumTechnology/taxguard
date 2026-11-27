@@ -318,6 +318,24 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
     expect(listBody.items).toHaveLength(1);
     expect(listBody.items[0].live_decision_available).toBe(false);
 
+    for (const patch of [{ request_id: 42 }, { expected_evidence_fingerprint: 42 }, { rationale: ['Reviewed evidence versions'] }]) {
+      const response = await fetch(`${baseUrl}/advisories/${procBody.advisory.advisory_id}/decisions`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer rev_tok', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: 'http-dec-invalid',
+          agent_id: 'A10',
+          scope: SCOPE,
+          expected_evidence_fingerprint: procBody.advisory.evidence_fingerprint,
+          decision: 'ACKNOWLEDGE',
+          rationale: 'Reviewed both evidence versions.',
+          ...patch,
+        }),
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: 'WORKFORCE_INVALID_DECISION_REQUEST' });
+    }
+
     // Live blocked with 503
     const liveDecRes = await fetch(`${baseUrl}/advisories/${procBody.advisory.advisory_id}/decisions`, {
       method: 'POST',
