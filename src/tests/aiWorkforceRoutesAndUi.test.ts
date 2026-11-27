@@ -15,7 +15,7 @@ import {
   type WorkforceStore,
 } from '../server/ai/workforce/contracts';
 import type { AgentId, AICaseScope } from '../ai/types';
-import { aiWorkforceService } from '../services/aiWorkforceService';
+import { AiWorkforceRequestError, aiWorkforceService, workforceErrorMessage } from '../services/aiWorkforceService';
 import { AiWorkforceMatrixView } from '../components/admin/AiWorkforceMatrixView';
 import { StageThreeDuplicateAdvisoryPanel } from '../components/workspace/StageThreeDuplicateAdvisoryPanel';
 import { CaseAiWorkforcePanel } from '../components/workspace/CaseAiWorkforcePanel';
@@ -350,6 +350,11 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
       }),
     });
     expect(conflictRes.status).toBe(409);
+  });
+
+  it('guides staff to review the results when an A10 job has already finished', () => {
+    expect(workforceErrorMessage(new AiWorkforceRequestError(409, 'WORKFORCE_JOB_ALREADY_FINAL')))
+      .toContain('Review the current advisories');
   });
 
   it('exports frontend service and website UI panels cleanly', () => {

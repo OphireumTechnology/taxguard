@@ -209,6 +209,8 @@ export function workforceErrorMessage(error: unknown): string {
         'Agent A39 is reserved and unassigned pending owner definition (OV-01).',
       STALE_EVIDENCE_CONFLICT:
         'Underlying document version, status, or quarantine state changed after this advisory was created. Re-run the check before deciding.',
+      WORKFORCE_JOB_ALREADY_FINAL:
+        'This check has already finished. Review the current advisories before starting another check.',
       CONCURRENT_DECISION_CONFLICT:
         'A human decision has already been recorded for this advisory.',
       WORKFORCE_MAKER_CHECKER_SELF_REVIEW_DENIED:

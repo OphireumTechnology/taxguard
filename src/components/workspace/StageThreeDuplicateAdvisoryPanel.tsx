@@ -116,6 +116,9 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
       await loadAdvisories();
     } catch (error) {
       setNotice({ error: true, text: workforceErrorMessage(error) });
+      if (error instanceof AiWorkforceRequestError && error.code === 'WORKFORCE_JOB_ALREADY_FINAL') {
+        await loadAdvisories();
+      }
     } finally {
       setBusy(false);
     }
