@@ -84,7 +84,7 @@ export class WorkforceDispatcher {
     if (!rawInput || typeof rawInput !== 'object') {
       throw new WorkforceError('WORKFORCE_INVALID_REQUEST', 400);
     }
-    if (!rawInput.request_id || typeof rawInput.request_id !== 'string' || rawInput.request_id.length > 128) {
+    if (typeof rawInput.request_id !== 'string' || !rawInput.request_id.trim() || rawInput.request_id.length > 128) {
       throw new WorkforceError('WORKFORCE_INVALID_REQUEST_ID', 400);
     }
 
@@ -110,6 +110,9 @@ export class WorkforceDispatcher {
     }
 
     assertRoleAllowed(actor, spec.allowed_roles);
+    if (!Number.isInteger(rawInput.workflow_stage) || rawInput.workflow_stage < 1 || rawInput.workflow_stage > 18) {
+      throw new WorkforceError('WORKFORCE_INVALID_WORKFLOW_STAGE', 400);
+    }
 
     const killSwitches = await this.env.getKillSwitches(actor.tenant_id);
     assertKillSwitchClear(killSwitches, spec.agent_id, rawInput.workflow_stage, spec.authorized_tools);

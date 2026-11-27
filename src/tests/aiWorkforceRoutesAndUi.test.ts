@@ -227,6 +227,16 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
   });
 
   it('executes bounded agents over HTTP and fails closed on reserved A39', async () => {
+    for (const invalid of [{ workflow_stage: '3' }, { workflow_stage: 0 }, { workflow_stage: 3.5 }]) {
+      const response = await fetch(`${baseUrl}/agents/A00/execute`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer prep_tok', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: 'http-a00-invalid-stage', scope: SCOPE, payload: {}, ...invalid }),
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: 'WORKFORCE_INVALID_WORKFLOW_STAGE' });
+    }
+
     const resA00 = await fetch(`${baseUrl}/agents/A00/execute`, {
       method: 'POST',
       headers: { Authorization: 'Bearer prep_tok', 'Content-Type': 'application/json' },

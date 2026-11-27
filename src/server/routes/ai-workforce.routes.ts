@@ -95,11 +95,11 @@ export function createAiWorkforceRouter(deps: AiWorkforceRouterDeps = {}) {
       const { env, store } = resolveRuntime();
       const dispatcher = new WorkforceDispatcher(env, store);
       const advisory = await dispatcher.executeAgent(bearerToken(req), {
-        request_id: String(req.body?.request_id ?? ''),
+        request_id: req.body?.request_id,
         idempotency_key: typeof req.body?.idempotency_key === 'string' ? req.body.idempotency_key : undefined,
         agent_id: req.params.agentId as any,
         scope: req.body?.scope,
-        workflow_stage: Number(req.body?.workflow_stage),
+        workflow_stage: req.body?.workflow_stage,
         evidence_source_ids: req.body?.evidence_source_ids,
         payload: req.body?.payload ?? {},
       });
