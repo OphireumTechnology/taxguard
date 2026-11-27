@@ -187,6 +187,9 @@ export class A10DuplicateWorkflowService {
 
     const caseRecord = await this.env.loadCase(actor.tenant_id, scope);
     assertCaseScopeMatch(caseRecord, scope, [3]);
+    if (caseRecord.case_record_id !== job.case_record_id) {
+      throw new WorkforceError('WORKFORCE_AUTHORITY_CHANGED', 403);
+    }
 
     const assigned = await this.env.isStaffAssigned(actor, caseRecord);
     if (!assigned) {

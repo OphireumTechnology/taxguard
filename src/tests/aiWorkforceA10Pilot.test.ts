@@ -303,6 +303,19 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
       .rejects.toMatchObject({ code: 'WORKFORCE_IDEMPOTENCY_CONFLICT', status: 409 });
   });
 
+  it('preserves a queued job when its original case record is replaced', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'replaced-case', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const original = (await h.env.loadCase(BASE_SCOPE.tenant_id, BASE_SCOPE))!;
+    h.setCase({ ...original, case_record_id: 'replacement-record' });
+
+    await expect(h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
+      .rejects.toMatchObject({ code: 'WORKFORCE_AUTHORITY_CHANGED', status: 403 });
+    expect(await h.store.getJob(BASE_SCOPE.tenant_id, job.job_id)).toEqual(job);
+  });
+
   it('does not save an advisory after the case leaves Stage Three during processing', async () => {
     const h = createPilotHarness();
     const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
