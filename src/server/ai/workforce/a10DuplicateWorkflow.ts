@@ -326,6 +326,9 @@ export class A10DuplicateWorkflowService {
         throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
       }
 
+      const freshKillSwitches = await this.env.getKillSwitches(freshActor.tenant_id);
+      assertKillSwitchClear(freshKillSwitches, 'A10', 3, ['document.read']);
+
       const completedJob = await this.store.completeA10Job(advisory);
 
       return { job: completedJob, advisory };
