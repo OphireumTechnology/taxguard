@@ -233,8 +233,10 @@ export class SqlWorkforceStore implements WorkforceStore {
           `SELECT advisory_id, evidence_fingerprint
            FROM ai_workforce_advisories
            WHERE tenant_id = $1 AND advisory_id = $2
+             AND client_id = $3 AND tax_case_id = $4 AND tax_year = $5 AND agent_id = $6
            FOR UPDATE`,
-          [decision.tenant_id, decision.advisory_id],
+          [decision.tenant_id, decision.advisory_id, decision.client_id, decision.tax_case_id,
+            decision.tax_year, decision.agent_id],
         )
       ).rows;
 

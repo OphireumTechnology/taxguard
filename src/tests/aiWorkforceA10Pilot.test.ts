@@ -959,6 +959,9 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
         bound_evidence_versions: advisory.evidence_pins,
         reviewer_uid: 'staff_rev_1',
       }]);
+      const saved = inspection.decisions[0];
+      await expect(store.recordDecisionAtomic({ ...saved, tax_year: saved.tax_year + 1 }))
+        .rejects.toMatchObject({ code: 'WORKFORCE_ADVISORY_NOT_FOUND', status: 404 });
     } finally {
       await db.close();
     }
