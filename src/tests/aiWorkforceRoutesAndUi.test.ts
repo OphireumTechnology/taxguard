@@ -268,6 +268,24 @@ describe('AI Workforce HTTP Routes & Website UI Integration', () => {
     expect(bodyA39.code).toBe('AI_AGENT_RESERVED_PENDING_OWNER_DEFINITION');
   });
 
+  it.each([
+    [{ request_id: 42 }, 'WORKFORCE_INVALID_REQUEST_ID'],
+    [{ idempotency_key: 42 }, 'WORKFORCE_INVALID_IDEMPOTENCY_KEY'],
+  ] as const)('rejects invalid A10 submission identifiers (%j)', async (patch, code) => {
+    const response = await fetch(`${baseUrl}/a10/jobs`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer prep_tok', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        request_id: 'http-a10-invalid-identifier',
+        scope: SCOPE,
+        evidence_source_ids: [SRC_A, SRC_B],
+        ...patch,
+      }),
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code });
+  });
+
   it('completes the A10 HTTP workflow including live 503 block, synthetic 201 commit, and 409 conflict', async () => {
     const subRes = await fetch(`${baseUrl}/a10/jobs`, {
       method: 'POST',

@@ -115,10 +115,10 @@ export function createAiWorkforceRouter(deps: AiWorkforceRouterDeps = {}) {
       const { env, store } = resolveRuntime();
       const a10 = new A10DuplicateWorkflowService(env, store);
       const result = await a10.submitDuplicateCheckJob(bearerToken(req), {
-        request_id: String(req.body?.request_id ?? ''),
-        idempotency_key: typeof req.body?.idempotency_key === 'string' ? req.body.idempotency_key : undefined,
+        request_id: req.body?.request_id,
+        idempotency_key: req.body?.idempotency_key,
         scope: req.body?.scope,
-        evidence_source_ids: Array.isArray(req.body?.evidence_source_ids) ? req.body.evidence_source_ids : [],
+        evidence_source_ids: req.body?.evidence_source_ids,
       });
       res.status(result.created ? 201 : 200).json(result);
     } catch (error) {
