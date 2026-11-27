@@ -15,6 +15,8 @@ interface StageThreeDuplicateAdvisoryPanelProps {
   activeStage: number;
 }
 
+const EVIDENCE_SOURCE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const DECISIONS = ['ACKNOWLEDGE', 'ESCALATE', 'DISMISS', 'RETURN_FOR_CORRECTION'] as const;
 
 /**
@@ -98,13 +100,22 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
       return;
     }
 
+    if (ids.some(id => !EVIDENCE_SOURCE_UUID.test(id))) {
+      setNotice({ error: true, text: 'Each evidence source ID must be a valid UUID.' });
+      return;
+    }
+    if (new Set(ids.map(id => id.toLowerCase())).size !== ids.length) {
+      setNotice({ error: true, text: 'Enter each evidence source ID only once.' });
+      return;
+    }
+
     setBusy(true);
     setNotice(null);
     try {
       const submitted = await aiWorkforceService.submitA10Job({
         request_id: `a10-${Date.now()}`,
         scope,
-        evidence_source_ids: ids,
+        evidence_source_ids: ids.map(id => id.toLowerCase()),
       });
       await aiWorkforceService.processA10Job(submitted.job.job_id, tenantId);
       setNotice({
