@@ -91,7 +91,7 @@ export class A10DuplicateWorkflowService {
     rawInput: A10SubmitJobInput,
   ): Promise<{ job: WorkforceJobRecord; created: boolean }> {
     const scope = validateScope(rawInput?.scope);
-    if (!rawInput?.request_id || typeof rawInput.request_id !== 'string' || rawInput.request_id.length > 128) {
+    if (typeof rawInput?.request_id !== 'string' || !rawInput.request_id.trim() || rawInput.request_id.length > 128) {
       throw new WorkforceError('WORKFORCE_INVALID_REQUEST_ID', 400);
     }
 
@@ -144,6 +144,7 @@ export class A10DuplicateWorkflowService {
       evidence_source_ids: pins.map(p => p.source_id),
       metadata_payload: {
         purpose: 'DOCUMENT_DUPLICATE_CHECK',
+        submission_request_id: rawInput.request_id,
         evidence_count: pins.length,
         evidence_fingerprint: fingerprint,
       },

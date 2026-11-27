@@ -927,8 +927,10 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
         request_id: 'sql-pilot-submit', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
       };
       const { job } = await service.submitDuplicateCheckJob('tok_preparer', submission);
-      const repeated = await service.submitDuplicateCheckJob('tok_preparer', submission);
-      expect(repeated).toMatchObject({ created: false, job: { job_id: job.job_id } });
+      const repeated = await service.submitDuplicateCheckJob('tok_preparer', { ...submission, request_id: 'sql-pilot-retry' });
+      expect(repeated).toMatchObject({
+        created: false, job: { job_id: job.job_id, metadata_payload: { submission_request_id: submission.request_id } },
+      });
       failCompletion = true;
       await expect(service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id))
         .rejects.toThrow('synthetic completion failure');
@@ -939,6 +941,7 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
         .rejects.toMatchObject({ code: 'WORKFORCE_JOB_ALREADY_FINAL', status: 409 });
       expect(await store.getJob(BASE_SCOPE.tenant_id, job.job_id)).toMatchObject({
         status: 'COMPLETED', advisory_id: advisory.advisory_id, error_code: null,
+        metadata_payload: { submission_request_id: submission.request_id },
       });
       const review = {
         request_id: 'sql-pilot-review', scope: BASE_SCOPE, advisory_id: advisory.advisory_id,
