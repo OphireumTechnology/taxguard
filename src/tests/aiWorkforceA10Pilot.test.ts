@@ -437,6 +437,22 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     expect(decisions.mock.calls).toEqual([[BASE_SCOPE.tenant_id, advisory.advisory_id]]);
   });
 
+  it('withholds a completed advisory when the stored tax year differs from the job', async () => {
+    const h = createPilotHarness();
+    const { job } = await h.service.submitDuplicateCheckJob('tok_preparer', {
+      request_id: 'replay-scope-check', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2],
+    });
+    const replay = () => h.service.processDuplicateCheckJob('tok_preparer', BASE_SCOPE.tenant_id, job.job_id);
+    const { advisory } = await replay();
+    const lookup = vi.spyOn(h.store, 'getAdvisory').mockResolvedValueOnce({
+      ...advisory,
+      scope: { ...advisory.scope, tax_year: advisory.scope.tax_year - 1 },
+    });
+    await expect(replay()).rejects.toMatchObject({ code: 'WORKFORCE_ADVISORY_NOT_FOUND', status: 404 });
+    lookup.mockRestore();
+    await expect(replay()).resolves.toMatchObject({ advisory });
+  });
+
   it('runs the full Stage 3 workflow: submit -> idempotent repeat -> process -> inspect -> owner-gated decision', async () => {
     const h = createPilotHarness();
 
