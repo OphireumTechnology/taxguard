@@ -11,6 +11,7 @@ import {
   buildEvidencePins,
   detectStaleEvidence,
   sha256Json,
+  validateEvidenceSelection,
   validateScope,
   verifyAuthorizedEvidence,
 } from './authority';
@@ -115,6 +116,7 @@ export class A10DuplicateWorkflowService {
       throw new WorkforceError('WORKFORCE_STAFF_ASSIGNMENT_REQUIRED', 403);
     }
 
+    validateEvidenceSelection(rawInput.evidence_source_ids, 10);
     const loadedEvidence = await this.env.loadEvidence(actor.tenant_id, scope, rawInput.evidence_source_ids);
     const verifiedEvidence = verifyAuthorizedEvidence(rawInput.evidence_source_ids, loadedEvidence, scope, 10);
     const { pins, fingerprint } = buildEvidencePins(verifiedEvidence);

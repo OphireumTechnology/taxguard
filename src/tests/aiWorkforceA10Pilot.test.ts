@@ -293,6 +293,22 @@ function createPilotHarness(overrides?: {
 }
 
 describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot', () => {
+  it('rejects malformed evidence selections before loading document metadata', async () => {
+    const h = createPilotHarness();
+    const lookup = vi.spyOn(h.env, 'loadEvidence');
+    for (const [evidence_source_ids, code] of [
+      [[], 'WORKFORCE_INVALID_EVIDENCE_SELECTION'],
+      [[SRC_1, SRC_1], 'WORKFORCE_DUPLICATE_EVIDENCE_IDS'],
+      [['invalid'], 'WORKFORCE_INVALID_EVIDENCE_ID'],
+      [Array(11).fill(SRC_1), 'WORKFORCE_INVALID_EVIDENCE_SELECTION'],
+    ] as const) {
+      await expect(h.service.submitDuplicateCheckJob('tok_preparer', {
+        request_id: 'validate-evidence', scope: BASE_SCOPE, evidence_source_ids,
+      })).rejects.toMatchObject({ code, status: 400 });
+    }
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
   it('rejects malformed decision identifiers before looking up an advisory', async () => {
     const h = createPilotHarness();
     const lookup = vi.spyOn(h.store, 'getAdvisory');

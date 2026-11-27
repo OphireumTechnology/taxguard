@@ -196,12 +196,7 @@ export function assertCaseScopeMatch(
  * and tax year, is CLEAN of quarantine, has status RELEASED or VERIFIED, has valid SHA-256
  * hash, and has a valid integer document_version >= 1.
  */
-export function verifyAuthorizedEvidence(
-  requestedSourceIds: readonly string[],
-  loadedEvidence: readonly AuthorizedDocumentEvidence[],
-  scope: AICaseScope,
-  maxItems = 50,
-): readonly AuthorizedDocumentEvidence[] {
+export function validateEvidenceSelection(requestedSourceIds: unknown, maxItems: number): asserts requestedSourceIds is readonly string[] {
   if (!Array.isArray(requestedSourceIds) || requestedSourceIds.length === 0 || requestedSourceIds.length > maxItems) {
     throw new WorkforceError('WORKFORCE_INVALID_EVIDENCE_SELECTION', 400);
   }
@@ -213,6 +208,15 @@ export function verifyAuthorizedEvidence(
       throw new WorkforceError('WORKFORCE_INVALID_EVIDENCE_ID', 400);
     }
   }
+}
+
+export function verifyAuthorizedEvidence(
+  requestedSourceIds: readonly string[],
+  loadedEvidence: readonly AuthorizedDocumentEvidence[],
+  scope: AICaseScope,
+  maxItems = 50,
+): readonly AuthorizedDocumentEvidence[] {
+  validateEvidenceSelection(requestedSourceIds, maxItems);
   const byId = new Map(loadedEvidence.map(item => [item.source_id, item]));
   const verified: AuthorizedDocumentEvidence[] = [];
 
