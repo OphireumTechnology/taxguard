@@ -263,6 +263,9 @@ const ScopedDuplicateAdvisories: React.FC<StageThreeDuplicateAdvisoryPanelProps>
 
               <details className="rounded border border-slate-700 p-2">
                 <summary>Inspect pinned evidence</summary>
+                {typeof adv.structured_data?.submission_request_id === 'string' && (
+                  <p className="break-all">Original request ID: {adv.structured_data.submission_request_id}</p>
+                )}
                 <p className="break-all">Evidence fingerprint: {adv.evidence_fingerprint}</p>
                 <ul className="space-y-2">
                   {adv.evidence_pins.map(pin => (

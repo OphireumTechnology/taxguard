@@ -272,6 +272,8 @@ export class A10DuplicateWorkflowService {
             : `Advisory: 0 exact byte-duplicate groups found among ${pins.length} selected authorized document(s). Fraud is not assessed; human review required.`,
         findings,
         structured_data: {
+          submission_request_id: typeof job.metadata_payload.submission_request_id === 'string'
+            ? job.metadata_payload.submission_request_id : null,
           coverage: report.coverage,
           fraud_assessed: false,
           authoritative_mutation: false,
