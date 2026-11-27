@@ -567,6 +567,21 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     });
     h.setCase(activeCase);
 
+    const running = await h.env.getKillSwitches(BASE_SCOPE.tenant_id);
+    h.setKillSwitches({ ...running, stopped_stages: [3] });
+    const [pausedInspection] = await h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
+    expect(pausedInspection).toMatchObject({
+      advisory: {
+        advisory_id: processed.advisory.advisory_id,
+        evidence_pins: processed.advisory.evidence_pins,
+      },
+      live_decision_available: false,
+      live_decision_block_reason: 'WORKFORCE_KILL_SWITCH_ACTIVE',
+    });
+    h.setKillSwitches(running);
+    const [resumedInspection] = await h.service.getCaseDuplicateAdvisories('tok_reviewer', BASE_SCOPE);
+    expect(resumedInspection).toMatchObject({ live_decision_available: true, live_decision_block_reason: null });
+
     // Maker-checker blocks self-review by preparer who submitted job
     await expect(
       h.service.recordDuplicateDecision('tok_preparer', {
