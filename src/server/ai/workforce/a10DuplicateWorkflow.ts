@@ -398,9 +398,9 @@ export class A10DuplicateWorkflowService {
   ): Promise<WorkforceHumanDecisionRecord> {
     const scope = validateScope(rawRequest?.scope);
     if (
-      !rawRequest?.request_id ||
-      !rawRequest?.advisory_id ||
-      !rawRequest?.expected_evidence_fingerprint ||
+      typeof rawRequest?.request_id !== 'string' || !rawRequest.request_id.trim() || rawRequest.request_id.length > 128 ||
+      typeof rawRequest.advisory_id !== 'string' || !rawRequest.advisory_id.trim() ||
+      typeof rawRequest.expected_evidence_fingerprint !== 'string' || !rawRequest.expected_evidence_fingerprint.trim() ||
       !A10_PERMITTED_DECISIONS.includes(rawRequest.decision) ||
       typeof rawRequest.rationale !== 'string' ||
       rawRequest.rationale.trim().length < 10 ||

@@ -293,6 +293,22 @@ function createPilotHarness(overrides?: {
 }
 
 describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot', () => {
+  it('rejects malformed decision identifiers before looking up an advisory', async () => {
+    const h = createPilotHarness();
+    const lookup = vi.spyOn(h.store, 'getAdvisory');
+    const valid = {
+      request_id: 'review-request', scope: BASE_SCOPE, advisory_id: 'advisory',
+      expected_evidence_fingerprint: 'fingerprint', decision: 'ACKNOWLEDGE' as const,
+      rationale: 'Reviewed the duplicate evidence.',
+    };
+    for (const patch of [{ request_id: '   ' }, { request_id: 'x'.repeat(129) },
+      { advisory_id: 123 }, { expected_evidence_fingerprint: [] }]) {
+      await expect(h.service.recordDuplicateDecision('tok_reviewer', { ...valid, ...patch } as typeof valid))
+        .rejects.toMatchObject({ code: 'WORKFORCE_INVALID_DECISION_REQUEST', status: 400 });
+    }
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
   it('matches a custom retry key only to the same evidence selection', async () => {
     const h = createPilotHarness();
     const input = { request_id: 'custom-key', scope: BASE_SCOPE, evidence_source_ids: [SRC_1, SRC_2], idempotency_key: 'review-retry' };
