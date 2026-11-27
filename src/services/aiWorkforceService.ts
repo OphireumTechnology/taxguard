@@ -63,6 +63,7 @@ export interface ClientWorkforceAdvisory {
 
 export interface ClientWorkforceDecision {
   bound_evidence_fingerprint?: string;
+  bound_evidence_versions?: ClientWorkforceAdvisory['evidence_pins'];
   decision_id: string;
   advisory_id: string;
   agent_id: AgentId;
