@@ -85,6 +85,7 @@ function readVerifiedRecoveryMarker(now = Date.now()): VerifiedRecoveryMarker | 
       typeof parsed?.uid !== 'string' ||
       !parsed.uid ||
       typeof parsed?.expiresAt !== 'number' ||
+      !Number.isFinite(parsed.expiresAt) ||
       parsed.expiresAt <= now
     ) {
       window.sessionStorage.removeItem(ADMIN_RECOVERY_MARKER_KEY);
@@ -409,7 +410,21 @@ export default function AdminPasswordResetPage() {
     setState('saving');
     let result: Awaited<ReturnType<typeof submitAdminPasswordReset>>;
     try {
-      result = await submitAdminPasswordReset(authClient, password, confirm);
+      // Recheck the recovery marker and provider identity immediately before mutation.
+      // A stale ready screen is not sufficient authorization.
+      const marker = readVerifiedRecoveryMarker();
+      const session = await authClient.getSession();
+      const user = await authClient.getUser?.();
+      const currentMarker = readVerifiedRecoveryMarker();
+      if (!marker || !currentMarker || currentMarker.uid !== marker.uid ||
+          currentMarker.expiresAt !== marker.expiresAt || session.error ||
+          !session.data?.session?.access_token || !user || user.error ||
+          user.data?.user?.id !== marker.uid) {
+        clearVerifiedRecoveryMarker();
+        result = { success: false, sessionExpired: true, error: 'Recovery authorization is no longer valid. Request a fresh recovery link.' };
+      } else {
+        result = await submitAdminPasswordReset(authClient, password, confirm);
+      }
     } catch {
       clearVerifiedRecoveryMarker();
       result = { success: false, sessionExpired: true, error: 'The password update outcome could not be confirmed. Do not retry this link. Sign in or request a fresh recovery link.' };
