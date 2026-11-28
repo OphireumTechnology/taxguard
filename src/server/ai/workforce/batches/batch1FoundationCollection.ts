@@ -410,8 +410,13 @@ export function runA09MissingDocument(
       structured_data: { expected_documents: [], missing_documents: [] },
     };
   }
-  const received = new Set(ctx.evidence.map(e => (e.document_type ?? '').trim().toUpperCase()).filter(Boolean));
-  const missing = expected.filter(docType => !received.has(docType));
+  const documentCoverage = expected.map(document_type => ({
+    document_type,
+    evidence_source_ids: ctx.evidence
+      .filter(item => item.document_type?.trim().toUpperCase() === document_type)
+      .map(item => item.source_id),
+  }));
+  const missing = documentCoverage.filter(item => !item.evidence_source_ids.length).map(item => item.document_type);
 
   return {
     status: missing.length ? 'EVIDENCE_REQUIRED' : 'ADVISORY',
@@ -423,11 +428,11 @@ export function runA09MissingDocument(
         code: missing.length ? 'MISSING_EVIDENCE_IDENTIFIED' : 'EXPECTED_DOCUMENTS_PRESENT',
         severity: missing.length ? 'WARNING' : 'INFO',
         summary: missing.length ? `Missing: ${missing.join(', ')}.` : 'No expected documents missing.',
-        evidence_source_ids: ctx.evidence.map(e => e.source_id),
+        evidence_source_ids: documentCoverage.flatMap(item => item.evidence_source_ids),
         recommended_human_action: 'Review missing document list before issuing a client document request.',
       },
     ],
-    structured_data: { expected_documents: expected, missing_documents: missing },
+    structured_data: { expected_documents: expected, missing_documents: missing, document_coverage: documentCoverage },
   };
 }
 
