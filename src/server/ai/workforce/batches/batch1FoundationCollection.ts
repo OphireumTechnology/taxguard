@@ -201,7 +201,26 @@ export function runA05DocumentIntake(
   _payload: Readonly<Record<string, unknown>>,
 ): WorkforceDomainHandlerResult {
   const allowedExts = new Set(['pdf', 'png', 'jpg', 'jpeg', 'csv', 'xlsx']);
-  const unsupported = ctx.evidence.filter(e => e.file_extension && !allowedExts.has(e.file_extension.toLowerCase()));
+  const missingFormat = ctx.evidence.filter(e => !e.file_extension?.trim());
+  const unsupported = ctx.evidence.filter(e => e.file_extension?.trim() && !allowedExts.has(e.file_extension.trim().toLowerCase()));
+  if (missingFormat.length) {
+    return {
+      status: 'REVIEW_REQUIRED',
+      summary: 'Some documents lack the format metadata needed for intake review.',
+      findings: [{
+        code: 'DOCUMENT_FORMAT_METADATA_MISSING',
+        severity: 'WARNING',
+        summary: `Format metadata is missing for ${missingFormat.length} document(s).`,
+        evidence_source_ids: missingFormat.map(e => e.source_id),
+        recommended_human_action: 'Verify each document format against its vault record before accepting intake.',
+      }],
+      structured_data: {
+        total_documents: ctx.evidence.length,
+        unsupported_source_ids: unsupported.map(e => e.source_id),
+        missing_format_source_ids: missingFormat.map(e => e.source_id),
+      },
+    };
+  }
   return {
     status: unsupported.length ? 'REVIEW_REQUIRED' : 'ADVISORY',
     summary: `Intake check inspected ${ctx.evidence.length} clean authorized document(s); ${unsupported.length} unsupported extension(s).`,
