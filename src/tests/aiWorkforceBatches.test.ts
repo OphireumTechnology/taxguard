@@ -388,6 +388,29 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
     expect(advisory.findings[0].evidence_source_ids).toEqual([DOC_1]);
   });
 
+  it('checks A08 line totals in exact cents and flags malformed values', async () => {
+    const h = createDispatcherHarness();
+    h.setStage(3);
+    const validate = (line_items_cents: Array<number | string>, request_id: string) =>
+      h.dispatcher.executeAgent('cpa_exec', {
+        request_id,
+        agent_id: 'A08',
+        scope: SCOPE,
+        workflow_stage: 3,
+        evidence_source_ids: [DOC_1],
+        payload: { extracted_fields: { box_total_cents: 1, line_items_cents } },
+      });
+
+    const max = Number.MAX_SAFE_INTEGER;
+    await expect(validate([max, 2, -max, -1], 'a08-exact-total')).resolves.toMatchObject({ status: 'ADVISORY' });
+    for (const [index, items] of [[1, '0'], [0.5, 0.5], []].entries()) {
+      await expect(validate(items, `a08-invalid-${index}`)).resolves.toMatchObject({
+        status: 'REVIEW_REQUIRED',
+        structured_data: { discrepancies: ['INVALID_LINE_TOTAL_INPUT'] },
+      });
+    }
+  });
+
   it('enforces domain-specific invariants across Batches 1–6 (A07 OCR gate, A14 balance, A17/A18 authority, OV-09/OV-10/OV-05)', async () => {
     const h = createDispatcherHarness();
 
