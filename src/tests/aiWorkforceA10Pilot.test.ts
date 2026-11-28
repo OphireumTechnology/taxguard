@@ -611,6 +611,20 @@ describe('A10 Duplicate/Fraud Indicator Agent — End-to-End Stage Three Pilot',
     })).rejects.toMatchObject({ code: 'WORKFORCE_REVIEWER_ROLE_DENIED', status: 403 });
     verify.mockRestore();
 
+    const pauseDuringDecision = vi.spyOn(h.env, 'getKillSwitches')
+      .mockResolvedValueOnce(running)
+      .mockResolvedValueOnce({ ...running, stopped_stages: [3] });
+    await expect(h.service.recordDuplicateDecision('tok_reviewer', {
+      request_id: 'req-dec-paused',
+      advisory_id: processed.advisory.advisory_id,
+      scope: BASE_SCOPE,
+      expected_evidence_fingerprint: processed.advisory.evidence_fingerprint,
+      decision: 'ACKNOWLEDGE',
+      rationale: 'Reviewed the pinned synthetic evidence versions.',
+    })).rejects.toMatchObject({ code: 'WORKFORCE_KILL_SWITCH_ACTIVE', status: 403 });
+    expect(await h.store.listAdvisoryDecisions(BASE_SCOPE.tenant_id, processed.advisory.advisory_id)).toEqual([]);
+    pauseDuringDecision.mockRestore();
+
     // Independent reviewer commits bound human decision
     const decision = await h.service.recordDuplicateDecision('tok_reviewer', {
       request_id: 'req-dec-1',
