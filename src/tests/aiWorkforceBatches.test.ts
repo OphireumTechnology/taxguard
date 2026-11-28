@@ -138,6 +138,7 @@ function createDispatcherHarness() {
   const evidence: AuthorizedDocumentEvidence[] = [
     {
       source_id: DOC_1,
+      document_type: 'W2',
       document_record_id: 'aaaaaaaa-1111-4aaa-8aaa-aaaaaaaaaaaa',
       document_version: 1,
       source_hash: HASH_A,
@@ -147,6 +148,7 @@ function createDispatcherHarness() {
     },
     {
       source_id: DOC_2,
+      document_type: '1099-INT',
       document_record_id: 'bbbbbbbb-2222-4bbb-8bbb-bbbbbbbbbbbb',
       document_version: 1,
       source_hash: HASH_B,
@@ -365,6 +367,25 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
     });
     expect(advisory.status).toBe('EVIDENCE_REQUIRED');
     expect(advisory.structured_data.missing_documents).toEqual(['W2']);
+  });
+
+  it('links A09 coverage only to matching case evidence', async () => {
+    const h = createDispatcherHarness();
+    h.setStage(3);
+    const advisory = await h.dispatcher.executeAgent('operations_exec', {
+      request_id: 'req-a09-mixed-evidence',
+      agent_id: 'A09',
+      scope: SCOPE,
+      workflow_stage: 3,
+      evidence_source_ids: [DOC_1, DOC_2],
+      payload: { expected_document_types: [' w2 ', '1099-DIV'] },
+    });
+    expect(advisory.structured_data.document_coverage).toEqual([
+      { document_type: 'W2', evidence_source_ids: [DOC_1] },
+      { document_type: '1099-DIV', evidence_source_ids: [] },
+    ]);
+    expect(advisory.structured_data.missing_documents).toEqual(['1099-DIV']);
+    expect(advisory.findings[0].evidence_source_ids).toEqual([DOC_1]);
   });
 
   it('enforces domain-specific invariants across Batches 1–6 (A07 OCR gate, A14 balance, A17/A18 authority, OV-09/OV-10/OV-05)', async () => {
