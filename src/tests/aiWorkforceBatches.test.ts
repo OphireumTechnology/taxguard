@@ -388,6 +388,27 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
     expect(advisory.findings[0].evidence_source_ids).toEqual([DOC_1]);
   });
 
+  it.each([
+    [{}, 'NO_VALIDATABLE_EXTRACTION_FIELDS'],
+    [{ tax_year: '2026' }, 'INVALID_EXTRACTED_TAX_YEAR'],
+    [{ wages_cents: 100 }, 'INVALID_WAGE_WITHHOLDING_INPUT'],
+    [{ wages_cents: 100, federal_withholding_cents: 1.5 }, 'INVALID_WAGE_WITHHOLDING_INPUT'],
+  ] as const)('routes incomplete or malformed A08 extraction to review (%j)', async (extracted_fields, code) => {
+    const h = createDispatcherHarness();
+    h.setStage(3);
+    const advisory = await h.dispatcher.executeAgent('cpa_exec', {
+      request_id: 'a08-extraction-review',
+      agent_id: 'A08',
+      scope: SCOPE,
+      workflow_stage: 3,
+      evidence_source_ids: [DOC_1],
+      payload: { extracted_fields },
+    });
+    expect(advisory.status).toBe('REVIEW_REQUIRED');
+    expect(advisory.structured_data.discrepancies).toEqual([code]);
+    expect(advisory.evidence_pins[0].source_id).toBe(DOC_1);
+  });
+
   it('checks A08 line totals in exact cents and flags malformed values', async () => {
     const h = createDispatcherHarness();
     h.setStage(3);
