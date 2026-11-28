@@ -365,10 +365,17 @@ export function runA08DocumentValidation(
       discrepancies.push('WITHHOLDING_EXCEEDS_WAGES_OR_NEGATIVE');
     }
   }
-  if (typeof fields.box_total_cents === 'number' && Array.isArray(fields.line_items_cents)) {
-    const sum = fields.line_items_cents.reduce<number>((acc, v) => acc + (typeof v === 'number' ? v : 0), 0);
-    if (sum !== fields.box_total_cents) {
-      discrepancies.push(`SUM_MISMATCH:computed=${sum},reported=${fields.box_total_cents}`);
+  if (fields.box_total_cents !== undefined || fields.line_items_cents !== undefined) {
+    const total = fields.box_total_cents;
+    const items = fields.line_items_cents;
+    if (typeof total !== 'number' || !Number.isSafeInteger(total) ||
+        !Array.isArray(items) || !items.length || !items.every(Number.isSafeInteger)) {
+      discrepancies.push('INVALID_LINE_TOTAL_INPUT');
+    } else {
+      const sum = items.reduce<bigint>((acc, value) => acc + BigInt(value), 0n);
+      if (sum !== BigInt(total)) {
+        discrepancies.push(`SUM_MISMATCH:computed=${sum},reported=${total}`);
+      }
     }
   }
 
