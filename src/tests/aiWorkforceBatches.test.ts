@@ -337,6 +337,21 @@ describe('TaxGuard 6-Batch Workforce Execution (All 61 Agents A00–A60)', () =>
     expect(h.evidenceLoads()).toBe(0);
   });
 
+  it('reports A09 document coverage as unknown without expected requirements', async () => {
+    const h = createDispatcherHarness();
+    h.setStage(3);
+    const advisory = await h.dispatcher.executeAgent('operations_exec', {
+      request_id: 'req-a09-no-expectations',
+      agent_id: 'A09',
+      scope: SCOPE,
+      workflow_stage: 3,
+      evidence_source_ids: [],
+      payload: { expected_document_types: [] },
+    });
+    expect(advisory.status).toBe('EVIDENCE_REQUIRED');
+    expect(advisory.findings).toMatchObject([{ code: 'EXPECTED_DOCUMENT_REQUIREMENTS_MISSING' }]);
+  });
+
   it('requires pinned evidence to satisfy expected A09 document types', async () => {
     const h = createDispatcherHarness();
     h.setStage(3);
