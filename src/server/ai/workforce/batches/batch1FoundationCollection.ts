@@ -213,7 +213,13 @@ export function runA05DocumentIntake(
         summary: `Format metadata is missing for ${missingFormat.length} document(s).`,
         evidence_source_ids: missingFormat.map(e => e.source_id),
         recommended_human_action: 'Verify each document format against its vault record before accepting intake.',
-      }],
+      }, ...(unsupported.length ? [{
+        code: 'UNSUPPORTED_DOCUMENT_FORMAT',
+        severity: 'WARNING' as const,
+        summary: `Unsupported formats found on ${unsupported.length} document(s).`,
+        evidence_source_ids: unsupported.map(e => e.source_id),
+        recommended_human_action: 'Review the unsupported formats before accepting intake.',
+      }] : [])],
       structured_data: {
         total_documents: ctx.evidence.length,
         unsupported_source_ids: unsupported.map(e => e.source_id),
