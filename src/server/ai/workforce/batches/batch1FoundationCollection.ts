@@ -395,7 +395,7 @@ export function runA09MissingDocument(
   ctx: WorkforceAgentContext,
   payload: Readonly<Record<string, unknown>>,
 ): WorkforceDomainHandlerResult {
-  const expected = [...new Set(strArray(payload.expected_document_types).map(s => s.toUpperCase()))];
+  const expected = [...new Set(strArray(payload.expected_document_types).map(s => s.trim().toUpperCase()))];
   if (expected.length === 0) {
     return {
       status: 'EVIDENCE_REQUIRED',
@@ -410,7 +410,7 @@ export function runA09MissingDocument(
       structured_data: { expected_documents: [], missing_documents: [] },
     };
   }
-  const received = new Set(ctx.evidence.map(e => (e.document_type ?? '').toUpperCase()).filter(Boolean));
+  const received = new Set(ctx.evidence.map(e => (e.document_type ?? '').trim().toUpperCase()).filter(Boolean));
   const missing = expected.filter(docType => !received.has(docType));
 
   return {
