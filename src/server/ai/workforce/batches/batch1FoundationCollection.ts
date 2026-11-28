@@ -357,11 +357,24 @@ export function runA08DocumentValidation(
     : {}) as Record<string, unknown>;
   const discrepancies: string[] = [];
 
-  if (typeof fields.tax_year === 'number' && fields.tax_year !== ctx.scope.tax_year) {
-    discrepancies.push(`TAX_YEAR_MISMATCH:extracted=${fields.tax_year},case=${ctx.scope.tax_year}`);
+  const year = fields.tax_year;
+  const wages = fields.wages_cents;
+  const withholding = fields.federal_withholding_cents;
+  if ([year, wages, withholding, fields.box_total_cents, fields.line_items_cents].every(value => value === undefined)) {
+    discrepancies.push('NO_VALIDATABLE_EXTRACTION_FIELDS');
   }
-  if (typeof fields.wages_cents === 'number' && typeof fields.federal_withholding_cents === 'number') {
-    if (fields.federal_withholding_cents < 0 || fields.federal_withholding_cents > fields.wages_cents) {
+  if (year !== undefined) {
+    if (typeof year !== 'number' || !Number.isSafeInteger(year)) {
+      discrepancies.push('INVALID_EXTRACTED_TAX_YEAR');
+    } else if (year !== ctx.scope.tax_year) {
+      discrepancies.push(`TAX_YEAR_MISMATCH:extracted=${year},case=${ctx.scope.tax_year}`);
+    }
+  }
+  if (wages !== undefined || withholding !== undefined) {
+    if (typeof wages !== 'number' || !Number.isSafeInteger(wages) ||
+        typeof withholding !== 'number' || !Number.isSafeInteger(withholding)) {
+      discrepancies.push('INVALID_WAGE_WITHHOLDING_INPUT');
+    } else if (withholding < 0 || withholding > wages) {
       discrepancies.push('WITHHOLDING_EXCEEDS_WAGES_OR_NEGATIVE');
     }
   }
@@ -388,7 +401,7 @@ export function runA08DocumentValidation(
       {
         code: discrepancies.length ? 'EXTRACTION_DISCREPANCY_FOUND' : 'EXTRACTION_VALIDATED_ADVISORY',
         severity: discrepancies.length ? 'HIGH' : 'INFO',
-        summary: discrepancies.length ? discrepancies.join('; ') : 'Extracted fields are mathematically and year-aligned.',
+        summary: discrepancies.length ? discrepancies.join('; ') : 'The supplied fields passed the applicable checks.',
         evidence_source_ids: ctx.evidence.map(e => e.source_id),
         recommended_human_action: 'Reviewer must resolve discrepancies against source document before marking verified.',
       },
