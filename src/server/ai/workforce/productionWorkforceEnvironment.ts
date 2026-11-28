@@ -150,9 +150,10 @@ export class PgWorkforceEnvironment implements WorkforceEnvironment {
     if (sourceIds.length === 0) return [];
     return this.db.transaction(async sql => {
       const rows = (
-        await sql.query<any>(
+        await sql.query<AuthorizedDocumentEvidence & { file_extension: string | null }>(
           `SELECT e.source_id, e.document_record_id, d.version AS document_version,
                   d.hash AS source_hash, d.status AS document_status, d.quarantine_status,
+                  LOWER(SUBSTRING(TRIM(d.file_name) FROM '[.]([^./]+)$')) AS file_extension,
                   d.tenant_id, d.client_id, d.case_id AS tax_case_id, d.tax_year
            FROM ai_evidence_sources e
            JOIN taxguard_documents d ON d.id = e.document_record_id
@@ -165,7 +166,10 @@ export class PgWorkforceEnvironment implements WorkforceEnvironment {
           [sourceIds, tenantId, scope.client_id, scope.tax_case_id, scope.tax_year],
         )
       ).rows;
-      return rows;
+      return rows.map(({ file_extension, ...evidence }) => ({
+        ...evidence,
+        ...(file_extension ? { file_extension } : {}),
+      }));
     });
   }
 
