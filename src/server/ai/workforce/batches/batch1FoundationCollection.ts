@@ -395,13 +395,8 @@ export function runA09MissingDocument(
   ctx: WorkforceAgentContext,
   payload: Readonly<Record<string, unknown>>,
 ): WorkforceDomainHandlerResult {
-  const expected = strArray(payload.expected_document_types).map(s => s.toUpperCase());
-  const received = new Set(
-    [
-      ...ctx.evidence.map(e => (e.document_type ?? '').toUpperCase()),
-      ...strArray(payload.received_document_types).map(s => s.toUpperCase()),
-    ].filter(Boolean),
-  );
+  const expected = [...new Set(strArray(payload.expected_document_types).map(s => s.toUpperCase()))];
+  const received = new Set(ctx.evidence.map(e => (e.document_type ?? '').toUpperCase()).filter(Boolean));
   const missing = expected.filter(docType => !received.has(docType));
 
   return {
