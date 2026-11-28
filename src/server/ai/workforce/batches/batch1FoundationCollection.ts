@@ -396,6 +396,20 @@ export function runA09MissingDocument(
   payload: Readonly<Record<string, unknown>>,
 ): WorkforceDomainHandlerResult {
   const expected = [...new Set(strArray(payload.expected_document_types).map(s => s.toUpperCase()))];
+  if (expected.length === 0) {
+    return {
+      status: 'EVIDENCE_REQUIRED',
+      summary: 'Document coverage could not be assessed because no expected document types were supplied.',
+      findings: [{
+        code: 'EXPECTED_DOCUMENT_REQUIREMENTS_MISSING',
+        severity: 'WARNING',
+        summary: 'No expected document types are available to compare with case evidence.',
+        evidence_source_ids: [],
+        recommended_human_action: 'Confirm the expected document requirements for this case before assessing coverage.',
+      }],
+      structured_data: { expected_documents: [], missing_documents: [] },
+    };
+  }
   const received = new Set(ctx.evidence.map(e => (e.document_type ?? '').toUpperCase()).filter(Boolean));
   const missing = expected.filter(docType => !received.has(docType));
 
