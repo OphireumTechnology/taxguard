@@ -521,6 +521,8 @@ export class A10DuplicateWorkflowService {
       recorded_at: this.now(),
     };
 
+    const freshKillSwitches = await this.env.getKillSwitches(freshActor.tenant_id);
+    assertKillSwitchClear(freshKillSwitches, 'A10', 3, ['document.read']);
     return this.store.recordDecisionAtomic(record);
   }
 }
